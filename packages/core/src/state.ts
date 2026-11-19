@@ -9,13 +9,15 @@ import type { Direction, Hex } from './hex.ts';
 /** hidden: never in view. seen: in play (in the window or its grace). lost: gone to the fog. */
 export type Visibility = 'hidden' | 'seen' | 'lost';
 
+/** What is known of a hex that has been in view. `terrain` is its terrain id. */
 export type TileKnowledge =
   | {
       readonly visibility: 'seen';
+      readonly terrain: string;
       /** The day the hex left the window, or null while it is in the window. */
       readonly leftWindowOnDay: number | null;
     }
-  | { readonly visibility: 'lost' };
+  | { readonly visibility: 'lost'; readonly terrain: string };
 
 export interface Creature {
   readonly centre: Hex;
@@ -33,13 +35,29 @@ export type Place = { readonly kind: 'hex'; readonly hex: Hex } | { readonly kin
 
 export interface Character {
   readonly id: string;
+  /** The player who runs this character (a Discord user id from Milestone 2). */
+  readonly userId: string;
+  readonly name: string;
+  /** Content ids (`content/`); null for the plain character. */
+  readonly traitId: string | null;
+  readonly quirkId: string | null;
+  readonly roleId: string;
+  /** The day the character joined. */
+  readonly joinedDay: number;
   readonly at: Place;
   readonly actionsLeft: number;
   readonly status: CharacterStatus;
 }
 
-export interface GameState {
-  readonly seed: number;
+/**
+ * The game as a player may see it: everything but the seed. Terrain is known
+ * only for tiles that have been in view (`tiles`), so the map ahead and the
+ * creature's next step cannot be worked out from it. Every rule a client uses
+ * reads this type.
+ */
+export interface GameStateView {
+  /** The content the state was made with (`CONTENT_VERSION`). */
+  readonly contentVersion: number;
   /** Starts at 1 and goes up by one each tick. */
   readonly day: number;
   /** The tuning this game was created with; every rule reads it from here. */
@@ -50,5 +68,13 @@ export interface GameState {
   readonly characters: readonly Character[];
 }
 
-export const findCharacter = (state: GameState, id: string): Character | undefined =>
+/** The whole game, held only by the server: the view plus the seed that generates the map. */
+export interface GameState extends GameStateView {
+  readonly seed: number;
+}
+
+export const hasSeed = (state: GameStateView): state is GameState =>
+  typeof (state as Partial<GameState>).seed === 'number';
+
+export const findCharacter = (state: GameStateView, id: string): Character | undefined =>
   state.characters.find((c) => c.id === id);

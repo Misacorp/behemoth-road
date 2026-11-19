@@ -13,9 +13,10 @@ import {
   type TerrainGeneration,
   type TerrainType,
 } from './content/index.ts';
-import { type Hex, neighbours } from './hex.ts';
+import { type Hex, hexKey, neighbours } from './hex.ts';
 import { noiseAt } from './noise.ts';
 import { hashString } from './random.ts';
+import { type GameStateView, hasSeed } from './state.ts';
 
 export interface MapContent {
   readonly terrains: readonly TerrainType[];
@@ -51,13 +52,31 @@ export const terrainIdAt = (
   return generation.fallback;
 };
 
+/**
+ * The terrain of a hex as the state knows it: from its known tiles first, then
+ * generated from the seed when the state has one (the server). Null when the
+ * hex is unknown to a player view.
+ */
+export const terrainOf = (state: GameStateView, h: Hex): TerrainType | null => {
+  const known = state.tiles[hexKey(h)];
+  if (known) return terrainById(known.terrain);
+  return hasSeed(state) ? terrainAt(state.seed, h) : null;
+};
+
+/** A terrain type from its id. Throws for an id the content does not have. */
+export const terrainById = (
+  id: string,
+  terrains: readonly TerrainType[] = TERRAIN_TYPES,
+): TerrainType => {
+  const terrain = terrains.find((t) => t.id === id);
+  if (!terrain) throw new Error(`Unknown terrain: ${id}`);
+  return terrain;
+};
+
 export const terrainAt = (
   seed: number,
   h: Hex,
   content: MapContent = DEFAULT_MAP_CONTENT,
 ): TerrainType => {
-  const id = terrainIdAt(seed, h, content.generation);
-  const terrain = content.terrains.find((t) => t.id === id);
-  if (!terrain) throw new Error(`Generation names unknown terrain: ${id}`);
-  return terrain;
+  return terrainById(terrainIdAt(seed, h, content.generation), content.terrains);
 };

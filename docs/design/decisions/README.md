@@ -49,7 +49,9 @@ Record a decision:
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
-- 2026-11-19 The server keeps the seed; clients get a player view with known terrain
+- 2026-11-19 Games pin their content version and prune lost tiles beyond four rings
+- 2026-11-19 Rules read a seedless view; tiles carry their terrain
+- 2026-11-19 The server keeps the seed; clients get a player view with known terrain (amended)
 - 2026-11-19 The world layer's bitmap is capped at 4096 px a side and 16 MP
 - 2026-11-19 The map pans a world layer by CSS transform; the scene stays memoised (amended)
 - 2026-11-19 Vulnerable transitive packages are fixed by bumping the direct dependency, else by a scoped exact override
@@ -92,6 +94,7 @@ Record a decision:
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-19 Character choices are rolled from the game, the player and the attempt; players pick by index
 - 2026-11-19 Popovers point at their subject; grace-day tiles and figures warn without words
 - 2026-11-19 Three actions a day, and moving costs actions \[Misa\]
 - 2026-11-19 Escape and right-click close popovers on desktop; right-click is a setting \[Misa\]

@@ -24,7 +24,7 @@ describe('createGame', () => {
     const state = createGame(5, { characterIds: ['a', 'b', 'c'] });
     expect(state.day).toBe(1);
     for (const c of state.characters) {
-      expect(c).toEqual({ id: c.id, at: { kind: 'creature' }, actionsLeft: 3, status: 'active' });
+      expect(c).toMatchObject({ at: { kind: 'creature' }, actionsLeft: 3, status: 'active' });
     }
   });
 

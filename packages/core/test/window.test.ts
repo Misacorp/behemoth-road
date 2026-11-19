@@ -51,7 +51,10 @@ describe('window and fog of war', () => {
     const state = createGame(1, { config: straight });
     const lostAhead = {
       ...state,
-      tiles: { ...state.tiles, [hexKey(hex(0, -6))]: { visibility: 'lost' as const } },
+      tiles: {
+        ...state.tiles,
+        [hexKey(hex(0, -6))]: { visibility: 'lost' as const, terrain: 'plains' },
+      },
     };
     expect(visibilityAt(nextDay(lostAhead), hex(0, -6))).toBe('seen');
   });

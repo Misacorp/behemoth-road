@@ -6,7 +6,7 @@
 
 import { type Direction, neighbour, rotate, type Hex } from './hex.ts';
 import { hashString, hashToUnit, pickWeighted } from './random.ts';
-import type { GameState } from './state.ts';
+import { type GameState, type GameStateView, hasSeed } from './state.ts';
 
 const STEP_STREAM = hashString('creature-step');
 
@@ -18,7 +18,7 @@ export interface CreatureStepOption {
 }
 
 /** The possible next centres of the creature, with their chances. Zero-chance steps are left out. */
-export const predictCreature = (state: GameState): CreatureStepOption[] => {
+export const predictCreature = (state: GameStateView): CreatureStepOption[] => {
   const { heading, centre } = state.creature;
   const w = state.config.veerWeights;
   const options = [
@@ -34,10 +34,12 @@ export const predictCreature = (state: GameState): CreatureStepOption[] => {
   }));
 };
 
-/** The step the creature takes at the end of the current day: a pure function of seed and day. */
-export const chooseCreatureStep = (state: GameState): CreatureStepOption =>
-  pickWeighted(
+/** The step the creature takes at the end of the current day: a pure function of seed and day. Server only. */
+export const chooseCreatureStep = (state: GameState): CreatureStepOption => {
+  if (!hasSeed(state)) throw new TypeError('The creature step needs the seed: server only');
+  return pickWeighted(
     predictCreature(state),
     (o) => o.chance,
     hashToUnit(state.seed, STEP_STREAM, state.day),
   );
+};
