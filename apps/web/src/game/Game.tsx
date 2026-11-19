@@ -25,6 +25,9 @@ import {
 import { type FocusTarget, MapView } from '../map/MapView.tsx';
 import type { Target } from '../map/pick.ts';
 import { getSettings } from '../settings.ts';
+
+/** The width from which the layout is the desktop one (`styles.css` media queries). */
+const DESKTOP_FROM = 900;
 import { identities, setAccents } from './identity.ts';
 import { toGameState } from './viewState.ts';
 
@@ -40,6 +43,13 @@ export function characterNeed(view: PlayerView): 'none' | 'join' | 'replace' {
   const me = view.game.characters.find((c) => c.id === id);
   return me?.status === 'lost' ? 'replace' : 'none';
 }
+
+/**
+ * How much of the screen the half drawer covers on a phone (as `styles.css` sizes it: the smaller of 56 %
+ * of the height and 520 px); none on desktop, where the drawer sits at the side.
+ */
+export const halfDrawerCover = (width: number, height: number): number =>
+  width >= DESKTOP_FROM ? 0 : Math.min(height * 0.56, 520);
 
 /** The "next day" control shows only when the server offers dev tools and you are an admin. */
 export const showsNextDay = (view: PlayerView): boolean => view.devTools && view.you.admin;
@@ -144,6 +154,8 @@ export function Game({ api, initial }: GameProps): JSX.Element {
     ).then(() => setFocus((f) => ({ target: 'me', n: f.n + 1 })));
   };
 
+  const drawerOpen = need !== 'none' && offers.length > 0 && !drawerClosed;
+
   return (
     <main class="game">
       <MapView
@@ -157,6 +169,7 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         onCharacter={(other) => setFlow(openCharacter(other))}
         onRightClick={() => setFlow((f) => rightClick(f, getSettings()))}
         focus={focus}
+        coverBottom={drawerOpen ? halfDrawerCover(window.innerWidth, window.innerHeight) : 0}
       />
       <Hud
         day={view.day}
@@ -178,7 +191,7 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         onJoin={need !== 'none' && offers.length > 0 ? () => setDrawerClosed(false) : null}
       />
       <JoinDrawer
-        open={need !== 'none' && offers.length > 0 && !drawerClosed}
+        open={drawerOpen}
         offers={offers}
         busy={busy}
         onConfirm={onJoin}

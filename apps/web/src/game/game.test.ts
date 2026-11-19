@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { terrainOf } from '@behemoth-road/core';
 import { characterIdOf, joined, lost, notJoined, USERS } from '../api/fixtures.ts';
 import { IDLE, openCharacter, tap } from '../map/flow.ts';
-import { characterNeed, showsNextDay } from './Game.tsx';
+import { characterNeed, halfDrawerCover, showsNextDay } from './Game.tsx';
 import { accentForName, identities } from './identity.ts';
 import { toGameState } from './viewState.ts';
 
@@ -58,5 +58,11 @@ describe('playing from the player view', () => {
     const state = toGameState(notJoined().game);
     const t = tap(IDLE, state, '', { kind: 'hex', hex: state.creature.centre });
     expect(t).toEqual({ kind: 'bubble', selecting: false });
+  });
+
+  it('on phones the half drawer covers the bottom; on desktop it sits at the side', () => {
+    expect(halfDrawerCover(390, 844)).toBeCloseTo(472.6, 1);
+    expect(halfDrawerCover(390, 1200)).toBe(520);
+    expect(halfDrawerCover(1440, 900)).toBe(0);
   });
 });

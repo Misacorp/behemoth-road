@@ -73,6 +73,11 @@ export interface MapViewProps {
   readonly onRightClick: () => void;
   /** Recentre requests: a new `n` animates the view to the target. */
   readonly focus: { readonly target: FocusTarget; readonly n: number };
+  /**
+   * Screen px covered at the bottom (a phone's half drawer). Centring then uses the space above it, and
+   * a change recentres on your character (or the creature before you have one).
+   */
+  readonly coverBottom?: number;
 }
 
 /** Paper grain over the whole screen; it uses the filter defs in the scene (default id prefix). */
@@ -207,6 +212,11 @@ export function MapView(props: MapViewProps): JSX.Element {
   const settleZoom = (): void => setInkZoom(inkZoomFor(view.current.scale));
   const latest = useRef(props);
   latest.current = props;
+  /** The part of the screen the map is seen in: all of it, less what a drawer covers. */
+  const seen = (): Size => ({
+    width: size.current.width,
+    height: Math.max(1, size.current.height - (latest.current.coverBottom ?? 0)),
+  });
 
   // The scene depends on the game state only; overlays also on the flow.
   const layers = useMemo(() => {
@@ -352,7 +362,7 @@ export function MapView(props: MapViewProps): JSX.Element {
     view.current = centreOn(
       targetPoint(s, latest.current.characterId, 'me'),
       fitScale(size.current, s.config.windowRadius),
-      size.current,
+      seen(),
     );
     apply();
     settleZoom();
@@ -425,11 +435,7 @@ export function MapView(props: MapViewProps): JSX.Element {
     previous.current = snapshot();
     if (before.game !== state.artSeed || before.me !== characterId || state.day < before.day) {
       stopAnimation();
-      view.current = centreOn(
-        targetPoint(state, characterId, 'me'),
-        view.current.scale,
-        size.current,
-      );
+      view.current = centreOn(targetPoint(state, characterId, 'me'), view.current.scale, seen());
       requestApply();
       return;
     }
@@ -451,10 +457,22 @@ export function MapView(props: MapViewProps): JSX.Element {
     if (focusN === 0) return;
     const { state: s, characterId: id, focus } = latest.current;
     animateTo(
-      centreOn(targetPoint(s, id, focus.target), view.current.scale, size.current),
+      centreOn(targetPoint(s, id, focus.target), view.current.scale, seen()),
       MAP_TUNING.followMs,
     );
   }, [focusN]);
+
+  // A drawer opened or closed over the map: keep what matters in the space still seen.
+  const cover = props.coverBottom ?? 0;
+  const firstCover = useRef(true);
+  useEffect(() => {
+    if (firstCover.current) {
+      firstCover.current = false;
+      return;
+    }
+    const { state: s, characterId: id } = latest.current;
+    animateTo(centreOn(targetPoint(s, id, 'me'), view.current.scale, seen()), MAP_TUNING.followMs);
+  }, [cover]);
 
   // A redrawn world layer (new zoom step or a new day) needs its transform in the same frame.
   useLayoutEffect(() => {
