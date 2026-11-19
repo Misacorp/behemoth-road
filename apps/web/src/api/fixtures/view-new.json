@@ -10,17 +10,20 @@
     {
       "name": "Joryka",
       "trait": "night-sighted",
-      "quirk": "hoarder"
+      "quirk": "hoarder",
+      "lookSeed": 3009266036
     },
     {
-      "name": "Quillka",
+      "name": "Yarris Burr",
       "trait": "fair-spoken",
-      "quirk": "restless"
+      "quirk": "restless",
+      "lookSeed": 1139934711
     },
     {
-      "name": "Corar the Quiet",
+      "name": "Quillwyn",
       "trait": null,
-      "quirk": null
+      "quirk": null,
+      "lookSeed": 3994066438
     }
   ],
   "game": {
