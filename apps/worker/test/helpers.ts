@@ -2,7 +2,8 @@ import { env } from 'cloudflare:workers';
 import { runInDurableObject } from 'cloudflare:test';
 import { expect } from 'vitest';
 import { DiscordError, type DiscordApi, type GuildApi } from '../src/discord.ts';
-import type { Seed } from '../src/game-core.ts';
+import { hiddenFeatureKeys } from '@behemoth-road/core';
+import { loadGame, type Seed } from '../src/game-core.ts';
 import { GuildGame, type GuildGameOptions, type SessionUser } from '../src/guild-game.ts';
 import { createHandler } from '../src/index.ts';
 import type { ActivityInstance, DiscordMember, DiscordRole, DiscordUser } from '../src/schemas.ts';
@@ -172,6 +173,23 @@ export function expectNoSeed(body: unknown, seed: Seed = SEED): void {
     expect(text).not.toMatch(new RegExp(`(^|[^0-9])${String(word)}([^0-9]|$)`));
 }
 
+/**
+ * Fails the test if a response's view carries a feature the stored game still hides: only revealed
+ * features may leave the server (glints mark a hex, never what is there).
+ */
+export function expectNoHiddenFeatures(body: unknown, sql: SqlStorage): void {
+  const features = (body as { game?: { features?: Record<string, { revealed?: unknown }> } } | null)
+    ?.game?.features;
+  if (features === undefined) return;
+  const row = sql.exec<{ state: string }>('SELECT state FROM game WHERE id = 1').toArray()[0];
+  if (row === undefined) return;
+  const hidden = hiddenFeatureKeys(loadGame(JSON.parse(row.state)));
+  for (const key of hidden) expect(features, `hidden feature at ${key}`).not.toHaveProperty([key]);
+  for (const [key, feature] of Object.entries(features)) {
+    expect(feature.revealed, `feature at ${key}`).toBe(true);
+  }
+}
+
 export interface Called {
   status: number;
   body: unknown;
@@ -227,6 +245,7 @@ export async function runGame<R>(
       expectApiHeaders(res);
       const parsed: unknown = await res.json();
       expectNoSeed(parsed, seed);
+      expectNoHiddenFeatures(parsed, state.storage.sql);
       return { status: res.status, body: parsed };
     };
     return fn({
