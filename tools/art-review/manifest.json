@@ -5,7 +5,9 @@
     "2026-11-19-3",
     "2026-11-19-4",
     "2026-11-19-5",
-    "2026-11-19-6"
+    "2026-11-19-6",
+    "2026-11-19-7",
+    "2026-11-19-8"
   ],
   "items": [
     {
@@ -84,19 +86,19 @@
       "id": "sheet/terrain",
       "group": "Sheets",
       "title": "Terrain tiles",
-      "version": "d2ac9ec1",
+      "version": "6cd73b36",
       "kind": "glance",
-      "batch": "2026-11-19-3",
-      "file": "art/sheet-terrain-d2ac9ec1.svg"
+      "batch": "2026-11-19-7",
+      "file": "art/sheet-terrain-6cd73b36.svg"
     },
     {
       "id": "sheet/props",
       "group": "Sheets",
       "title": "Props",
-      "version": "506e2c55",
+      "version": "1a882a42",
       "kind": "glance",
-      "batch": "2026-11-19-3",
-      "file": "art/sheet-props-506e2c55.svg"
+      "batch": "2026-11-19-7",
+      "file": "art/sheet-props-1a882a42.svg"
     },
     {
       "id": "creature/gentle-ambler",
@@ -112,19 +114,19 @@
       "id": "sheet/characters",
       "group": "Sheets",
       "title": "Character standees",
-      "version": "ae715362",
+      "version": "a9c4b9d1",
       "kind": "glance",
-      "batch": "2026-11-19-4",
-      "file": "art/sheet-characters-ae715362.svg"
+      "batch": "2026-11-19-7",
+      "file": "art/sheet-characters-a9c4b9d1.svg"
     },
     {
       "id": "sheet/fog",
       "group": "Sheets",
       "title": "Unseen, fading, lost, hint",
-      "version": "4a85f4e2",
+      "version": "b5078857",
       "kind": "glance",
-      "batch": "2026-11-19-6",
-      "file": "art/sheet-fog-4a85f4e2.svg"
+      "batch": "2026-11-19-7",
+      "file": "art/sheet-fog-b5078857.svg"
     },
     {
       "id": "facing/side",
@@ -164,19 +166,19 @@
       "id": "map/patch",
       "group": "Map",
       "title": "The map, Spring at tilt 0.8",
-      "version": "a7f31fbe",
+      "version": "91fe610e",
       "kind": "glance",
-      "batch": "2026-11-19-6",
-      "file": "art/map-patch-a7f31fbe.svg"
+      "batch": "2026-11-19-7",
+      "file": "art/map-patch-91fe610e.svg"
     },
     {
       "id": "creature/headings",
       "group": "Creature",
       "title": "Walking the six directions",
-      "version": "36677bf7",
+      "version": "e1274b95",
       "kind": "glance",
-      "batch": "2026-11-19-4",
-      "file": "art/creature-headings-36677bf7.svg"
+      "batch": "2026-11-19-7",
+      "file": "art/creature-headings-e1274b95.svg"
     },
     {
       "id": "creature-shape/broad",
@@ -240,10 +242,10 @@
       "id": "icons/sheet",
       "group": "Icons",
       "title": "Every icon, and the fallback",
-      "version": "73e36c77",
+      "version": "8a5cea30",
       "kind": "glance",
-      "batch": "2026-11-19-6",
-      "file": "art/icons-sheet-73e36c77.svg"
+      "batch": "2026-11-19-7",
+      "file": "art/icons-sheet-8a5cea30.svg"
     },
     {
       "id": "characters/lineup",
@@ -258,37 +260,127 @@
       "id": "characters/riders",
       "group": "Characters",
       "title": "Fifteen riders on the creature",
-      "version": "65403c26",
+      "version": "836bf2c1",
       "kind": "glance",
-      "batch": "2026-11-19-6",
-      "file": "art/characters-riders-65403c26.svg"
+      "batch": "2026-11-19-7",
+      "file": "art/characters-riders-836bf2c1.svg"
     },
     {
       "id": "features/sheet",
       "group": "Features",
       "title": "Nodes, sites and traps, as found and used up",
-      "version": "c78bbad3",
+      "version": "207a1932",
       "kind": "glance",
-      "batch": "2026-11-19-6",
-      "file": "art/features-sheet-c78bbad3.svg"
+      "batch": "2026-11-19-7",
+      "file": "art/features-sheet-207a1932.svg"
     },
     {
       "id": "features/glint",
       "group": "Features",
       "title": "The glint on sensed tiles",
-      "version": "c9995758",
+      "version": "74004bd0",
       "kind": "glance",
-      "batch": "2026-11-19-6",
-      "file": "art/features-glint-c9995758.svg"
+      "batch": "2026-11-19-7",
+      "file": "art/features-glint-74004bd0.svg"
     },
     {
       "id": "marks/moments",
       "group": "Marks",
-      "title": "Reveal, find and trap moments; the hook on a path step",
-      "version": "8d872c43",
+      "title": "Reveal, find, trap and survey moments; via marks on a path step",
+      "version": "94c96b0c",
       "kind": "glance",
-      "batch": "2026-11-19-6",
-      "file": "art/marks-moments-8d872c43.svg"
+      "batch": "2026-11-19-7",
+      "file": "art/marks-moments-94c96b0c.svg"
+    },
+    {
+      "id": "creature/underfed",
+      "group": "Creature care",
+      "title": "Underfed: calm, levels 1 to 3, then faint at 2 and 3",
+      "version": "9562e9f4",
+      "kind": "glance",
+      "batch": "2026-11-19-8",
+      "file": "art/creature-underfed-9562e9f4.svg"
+    },
+    {
+      "id": "creature/overfed",
+      "group": "Creature care",
+      "title": "Overfed: calm, levels 1 to 3, then faint at 2 and 3",
+      "version": "e5b6019b",
+      "kind": "glance",
+      "batch": "2026-11-19-8",
+      "file": "art/creature-overfed-e5b6019b.svg"
+    },
+    {
+      "id": "creature/cues",
+      "group": "Creature care",
+      "title": "Keeper's cues: drawn to the fire, shying from it, unmoved; two at once",
+      "version": "92507ee7",
+      "kind": "glance",
+      "batch": "2026-11-19-8",
+      "file": "art/creature-cues-92507ee7.svg"
+    },
+    {
+      "id": "creature/linger",
+      "group": "Creature care",
+      "title": "Lying down to linger, beside standing",
+      "version": "e3a90eac",
+      "kind": "glance",
+      "batch": "2026-11-19-8",
+      "file": "art/creature-linger-e3a90eac.svg"
+    },
+    {
+      "id": "features/care",
+      "group": "Creature care",
+      "title": "Fires on four tiles and under the veil; berry bushes, picked bare, beside a fire",
+      "version": "2026261e",
+      "kind": "glance",
+      "batch": "2026-11-19-8",
+      "file": "art/features-care-2026261e.svg"
+    },
+    {
+      "id": "marks/care",
+      "group": "Creature care",
+      "title": "Forage, light a fire, feed, linger; the stay hint; fire, feed and linger moments",
+      "version": "55bc8fec",
+      "kind": "glance",
+      "batch": "2026-11-19-7",
+      "file": "art/marks-care-55bc8fec.svg"
+    },
+    {
+      "id": "map/care",
+      "group": "Creature care",
+      "title": "On the map: fires, berries, an underfed creature and two cues",
+      "version": "79b35f37",
+      "kind": "glance",
+      "batch": "2026-11-19-8",
+      "file": "art/map-care-79b35f37.svg"
+    },
+    {
+      "id": "map/care-lite",
+      "group": "Creature care",
+      "title": "The same in lite mode",
+      "version": "1d145d38",
+      "kind": "glance",
+      "batch": "2026-11-19-8",
+      "file": "art/map-care-lite-1d145d38.svg"
+    },
+    {
+      "id": "features/veil",
+      "group": "Features",
+      "title": "Explored, unexplored, blank paper, fading",
+      "version": "4ee2500b",
+      "kind": "glance",
+      "batch": "2026-11-19-7",
+      "file": "art/features-veil-4ee2500b.svg"
+    },
+    {
+      "id": "team/marks",
+      "group": "Team",
+      "title": "Pack from empty to full, stores, unlocks done, work bars",
+      "version": "6e6388a0",
+      "kind": "glance",
+      "batch": "2026-11-19-7",
+      "file": "art/team-marks-6e6388a0.svg"
     }
   ]
 }

@@ -4,6 +4,23 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: Milestone 4 art: appetite, cues, lying down and fires are drawn by the art kit from the core's signs
+
+ID: `2026-11-20-milestone-4-art-appetite-cues-lying` · Status: current
+
+**Decision.** The creature drawing takes a mood (`CreatureArt.appetite`, `pose`, `cues`; `drawCreature(..., stores, mood)`), and the scene draws it:
+
+- **Underfed:** a narrow, low, sunken body on thin legs, the moss shrunk back, head and tail drooping, a cool grey wash over hide and moss, no blush, and ribs on the near flank, one per level.
+- **Overfed:** a wide body bulging a little past the footprint on thicker legs, a sheen low on the flank, heavy lids, and large doze bubbles rising from the crown, one per level.
+- **Levels** step up by strength 0.4, 0.7 and 1 (`APPETITE_STEPS` in `creature.ts`), so each level is clearly stronger at map scale.
+- **Faint** (what non-keepers see): the shape at level-1 strength and the marks in lighter ink at full opacity, so it stays visible at map scale; the count of ribs or bubbles still matches the level the core gives them.
+- **Cues** take the core's `{ hex, reaction }` (the scene turns hexes into offsets from the centre). Toward: the head turns to the first such fire, ears prick, and a dashed look-line with two alert strokes points at each such fire. Away: three heavy coral shiver arcs outside the rim on the fire's side, ears flat, head turned away. Unmoved: still sage rings on the ground on the fire's side, head straight.
+- **Lying** (`pose: 'lying'`): the body flattens onto the ground in a wide shadow pool, legs tucked with two front paws showing, head resting low, tail flat; riders sit lower (`riderAnchor` takes the same mood).
+- **Fires:** `ArtCell.fire` draws a small campfire (stones, sticks, flame, glow, smoke with `data-fire` parts to animate) on its hex, in full even under the veil, clearing the terrain props like a feature does.
+- **Keys:** feature `berries` (bushes; picked bare when depleted), material `forage`, actions `light-fire`, `feed`, `linger` on a round tile with a dashed inner ring, moments `fire`, `feed`, `linger`, and `drawStayMark` for the step hint when the creature stays put (two paws side by side in a dashed ring; the paw-print hints live in the web app).
+
+**Reasoning.** Counting the level in ribs and bubbles keeps the sign readable without text or numbers, and the two kinds use different shapes and colours so they never look alike. The look-line, shiver arcs and calm rings are three unlike marks, so a keeper cannot mistake one reaction for another, and each sits on the fire's side so several cues can be told apart.
+
 ## 2026-11-20: M4 core: hunger cap in creature data, starving meals nourish, lingering twice refused
 
 ID: `2026-11-20-m4-core-hunger-cap-in-creature` · Status: current
@@ -82,6 +99,30 @@ ID: `2026-11-20-features-are-placed-by-terrain-tags` · Status: current
 **Decision.** Each feature type has a placement: terrain tags it sits `on`, optionally tags it sits `near` (cliff edges, river banks, forest edges), and a weight against a scale of 20. A hex holds a given fitting feature with probability `featureChance × weight / 20`, and the fitting features' slices add up, so a rare feature stays rare wherever it fits. Starting values: `featureChance` 0.08; iron 30 (desert, cliff edges), stones 20 (river and banks), timber 40 (forest and edges), tomb 2, deep tomb 4, snare 2, pitfall 2 (open or dry ground). That leaves about 88% of hexes empty. A resource node and a tomb are in view from the first day, and a deep tomb typically within a few days. A scripted party of three (scout, engineer, scholar) completes the chain to climbing spikes on 10 of 12 maps, on days 21–45 (median about 34). Most of the wait is for timber and iron to come into view, then for a deep tomb after the lantern.
 
 **Reasoning.** Relative weights let plains (most of the map) fill up with tombs and traps, because nothing else fits there. Absolute weights keep each feature's frequency under control on its own. The chain timing is a tuning question for Misa: raising `featureChance` or the node weights shortens it.
+
+## 2026-11-20: Unexplored hexes sit under one hatched paper veil; packs, stores and unlocks have their own marks
+
+ID: `2026-11-20-unexplored-hexes-sit-under-one-hatched` · Status: current
+
+**Decision.** A new cell state, `unexplored`, draws a hex's terrain under a veil: one shared SVG `<pattern>` (paper at about 60 % with a fine slanted inkSoft hatch, in the scene's defs, also in lite mode) filling one merged path over every unexplored hex, with that hex's props at 60 % opacity and no feature. It is clearly unlike explored ground, blank paper (unseen) and the plain paper veil of fading tiles. `drawVeilLift(projection, hex)` gives one hex's veil (`data-veil="q,r"`) for the map to fade and lift when the hex becomes explored. `drawPackIcon(palette, px, units, capacity)` draws a satchel with a rising wash and one ochre pip per unit; `drawStoresIcon` draws crates and a basket, and `CreatureArt.stores` puts one to three crates on the creature's back near the tail, clear of the rider slots. Unlock icons stay hook, lantern and spikes; `drawIcon(key, …, { done: true })` adds a wax seal (`drawUnlockSeal` alone), and `drawWorkBar(palette, width, fraction, steps)` is an ink bar filled to a fraction with a tick per unit of work. The survey mark is a fourth moment kind (`drawMoment('survey')`): a spyglass sweeping a fan of looking-lines, in staged parts.
+
+**Reasoning.** Misa's revised Milestone 3 makes exploration visible on the map and moves materials through packs into the creature's stores. A single pattern on one path keeps 91 hexes cheap on phones; the per-hex lift element lets the web animate a reveal without the scene drawing hexes one by one.
+
+## 2026-11-20: The Stubborn quirk's icon is a boulder, so icon keys never clash
+
+ID: `2026-11-20-the-stubborn-quirk-s-icon-is` · Status: current · Amends: `2026-11-20-features-glints-moments-and-the-via`
+
+**Decision.** The quirk motif formerly keyed `stone` is keyed `boulder` (content renames the Stubborn quirk's icon to match), and `drawIcon` no longer chooses between a quirk and a material by the tile option: every icon key names one drawing. `stone` is the material.
+
+**Reasoning.** One key for one drawing is simpler and cannot surprise a caller that forgets the tile option.
+
+## 2026-11-20: Features, glints, moments and the via mark are drawn by the art kit from content keys
+
+ID: `2026-11-20-features-glints-moments-and-the-via` · Status: current, amended by `2026-11-20-the-stubborn-quirk-s-icon-is`
+
+**Decision.** A revealed feature is drawn on its tile from the `icon` key content gives it (`ore`, `stones`, `logs`, `tomb`, `deep-tomb`, `snare`, `pitfall`; `ArtCell.feature = { look, state }`), upright like the props, 1.6 times their size (`ART_TUNING.featureScale`) so it reads on a phone, and it replaces the terrain's props on that tile. Nodes have a `depleted` look, tombs a `spent` one (the door open, the seal rolled aside); traps are drawn only once revealed, as a cut snare and a marked pit. Unknown keys draw a small cairn. The glint is the hint mark made quieter (a light four-point twinkle and two specks, parts tagged `data-glint` for the map to animate). Materials sit on a rounded-square tile and items on a double-ring roundel; where a key names both a quirk and a material (`stone`), a `quirk` or `trait` tile asks for the quirk drawing and anything else gets the material. Moments (`drawMoment`: an ink bloom for a reveal, a burst for a find, a snap for a trap) are finished frames in three parts tagged `data-part` for the map to stage. `drawViaMark` draws a hook for a step taken with the grappling hook, spikes for the climbing spikes, and a plain dot otherwise.
+
+**Reasoning.** Milestone 3's chain has to be readable on the map without text: what a hex holds, whether it is used up, and what just happened. Keying everything by content's icon names keeps content as data; staging marks as parts lets the web animate them without the art kit knowing about time.
 
 ## 2026-11-20: Explored and unexplored hexes look clearly different **[Misa]**
 

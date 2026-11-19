@@ -1,7 +1,9 @@
 /** A map patch as one SVG: paper, the ground under the wash filter, then every upright thing back to front. */
 import { DEFAULT_LOOK, drawCharacter, type CharacterArt } from './character.ts';
 import { ART_TUNING } from './config.ts';
-import { drawCreature, inFootprint, riderAnchor, type CreatureArt } from './creature.ts';
+import { drawCreature, inFootprint, moodOf, riderAnchor, type CreatureArt } from './creature.ts';
+import { drawFire } from './fire.ts';
+import { featureDrawer } from './features.ts';
 import { figureAnchor } from './figure.ts';
 import { artDefs, refUrl } from './filters.ts';
 import { ellipsePath, unionBox, type Box, type Point } from './geom.ts';
@@ -166,7 +168,7 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
       : []),
     ...(input.occupied ?? []).map((h) => hexKey(h.q, h.r)),
   ]);
-  const ground = drawGround(cells, p, palette, seed, ink, occupied);
+  const ground = drawGround(cells, p, palette, seed, ink, occupied, prefix);
   const creature = input.creature ?? null;
   const placed: Placed[] = [];
 
@@ -184,10 +186,16 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
     const rng = rngFor(seed, 'props', cell.q, cell.r);
     const spots =
       cell.props ??
+      ((cell.feature || cell.fire) && !underCreature ? [] : undefined) ??
       (underCreature
         ? []
         : placeProps((cell.site && SITE_PROPS[cell.site]) || terrainLook(cell.terrain).props, rng));
-    const opacity = state === 'fading' ? ART_TUNING.fadingPropOpacity : undefined;
+    const opacity =
+      state === 'fading'
+        ? ART_TUNING.fadingPropOpacity
+        : state === 'unexplored'
+          ? ART_TUNING.veilPropOpacity
+          : undefined;
     for (const spot of spots) {
       const draw = drawers[spot.kind];
       if (!draw) continue;
@@ -207,6 +215,23 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
         ...(opacity === undefined ? {} : { opacity }),
       });
     }
+    if (cell.feature && !underCreature && state !== 'unexplored') {
+      const at = onPlane(p, c, 0, 0.08);
+      const draw = featureDrawer(cell.feature.look);
+      const drawn = draw(
+        ctx(at, rngFor(seed, 'feature', cell.q, cell.r), ART_TUNING.featureScale),
+        cell.feature.state ?? 'ready',
+      );
+      placed.push({ at, drawn, ...(opacity === undefined ? {} : { opacity }) });
+    }
+    if (cell.fire && !underCreature) {
+      // A lit fire is the team's own doing: drawn in full even under the veil, beside any feature.
+      const at = cell.feature ? onPlane(p, c, -0.26, 0.2) : onPlane(p, c, 0, 0.12);
+      placed.push({
+        at,
+        drawn: drawFire(ctx(at, rngFor(seed, 'fire', cell.q, cell.r), ART_TUNING.fireScale)),
+      });
+    }
     if (cell.hint) {
       const at = onPlane(p, c, 0.05, 0.05);
       placed.push({ at, drawn: hintMark(ctx(at, rngFor(seed, 'hint', cell.q, cell.r))) });
@@ -217,7 +242,17 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
     const c = hexCenter(p, creature.q, creature.r);
     placed.push({
       at: c,
-      drawn: drawCreature(palette, creature.look, c, p.size, p.squash, ink, creature.heading),
+      drawn: drawCreature(
+        palette,
+        creature.look,
+        c,
+        p.size,
+        p.squash,
+        ink,
+        creature.heading,
+        creature.stores ?? 0,
+        moodOf(creature),
+      ),
     });
   }
   const sites = new Set(cells.filter((c) => c.site).map((c) => `${c.q},${c.r}`));
@@ -237,6 +272,7 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
         hexCenter(p, creature.q, creature.r),
         p.size,
         p.squash,
+        moodOf(creature),
       );
       figures.set(ch.id, c);
       const drawn = drawCharacter(

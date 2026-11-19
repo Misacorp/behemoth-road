@@ -9,9 +9,12 @@ export {
   type CharacterLook,
 } from './character.ts';
 export {
+  ACTION_MOTIFS,
   drawIcon,
   hasIcon,
   ICON_MOTIFS,
+  ITEM_MOTIFS,
+  MATERIAL_MOTIFS,
   ROLE_ICON_KEYS,
   ROLE_IDS,
   type EmblemFrame,
@@ -24,8 +27,15 @@ export {
   drawCreatureIcon,
   GENTLE_AMBLER,
   inFootprint,
+  moodOf,
   riderAnchor,
   riderSlot,
+  type AppetiteKind,
+  type CreatureAppetite,
+  type CreatureCue,
+  type CreatureMood,
+  type CreaturePose,
+  type CueReaction,
   type CreatureArt,
   type CreatureIconOptions,
   type CreatureLook,
@@ -82,4 +92,21 @@ export {
   type SvgNode,
 } from './svg.ts';
 export { TERRAIN_LOOKS, terrainLook, type TerrainLook } from './terrain.ts';
-export type { ArtCell, CellState } from './tile.ts';
+export { drawVeilLift, type ArtCell, type CellState } from './tile.ts';
+export {
+  FEATURE_DRAWERS,
+  featureDrawer,
+  type FeatureArt,
+  type FeatureDraw,
+  type FeatureState,
+} from './features.ts';
+export { drawFire } from './fire.ts';
+export {
+  drawMoment,
+  drawStayMark,
+  drawViaMark,
+  MOMENT_KINDS,
+  VIA_MARKS,
+  type MomentKind,
+} from './marks.ts';
+export { drawPackIcon, drawStoresIcon, drawUnlockSeal, drawWorkBar } from './team-marks.ts';

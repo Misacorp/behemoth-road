@@ -20,8 +20,14 @@ export const ART_TUNING = {
   /** Fading tiles: paper veil over the ground, and the opacity of their props. */
   fadingVeil: 0.55,
   fadingPropOpacity: 0.45,
+  /** Unexplored tiles: their props under the veil. */
+  veilPropOpacity: 0.6,
   /** Character height, in hex sizes. */
   characterHeight: 0.74,
+  /** Revealed features (nodes, sites, traps) are the tile's focus: drawn this much larger than props. */
+  featureScale: 1.6,
+  /** A lit fire on a hex, against the props. */
+  fireScale: 1.3,
   /** Space around a scene, in hex sizes. */
   padding: 0.45,
 } as const;

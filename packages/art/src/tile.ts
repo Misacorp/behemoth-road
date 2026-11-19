@@ -4,6 +4,7 @@
  * 91-hex map stays a few dozen nodes (the web app hit-tests hexes by maths, not by element).
  */
 import { ART_TUNING } from './config.ts';
+import { refUrl } from './filters.ts';
 import { ellipsePath, poly, smoothClosed, smoothOpen, type Box, type Point } from './geom.ts';
 import type { Palette } from './palette.ts';
 import {
@@ -17,9 +18,14 @@ import {
 import { inkAttrs } from './props.ts';
 import { rngFor, type Rng } from './rng.ts';
 import { el, type AttrValue, type SvgNode } from './svg.ts';
+import type { FeatureArt } from './features.ts';
 import { terrainLook, TRODDEN_LOOK } from './terrain.ts';
 
-export type CellState = 'seen' | 'unseen' | 'fading' | 'lost';
+/**
+ * `seen`: explored ground. `unexplored`: in the window, terrain known, under the veil until someone explores
+ * it. `unseen`: blank paper. `fading`: behind the creature, about to be lost. `lost`: gone into the fog.
+ */
+export type CellState = 'seen' | 'unexplored' | 'unseen' | 'fading' | 'lost';
 
 export interface ArtCell {
   readonly q: number;
@@ -30,8 +36,12 @@ export interface ArtCell {
   readonly state?: CellState;
   /** A site drawn on the tile (`SITE_PROPS`), such as `ruin`. */
   readonly site?: string;
-  /** Shows the hint mark: something here is undiscovered. */
+  /** Shows the glint (the hint mark): something here is undiscovered, never what. */
   readonly hint?: boolean;
+  /** A revealed feature on the tile (a resource node, a site, a trap); it replaces the terrain's props. */
+  readonly feature?: FeatureArt;
+  /** A fire burns here (lit today); visible to everyone, also under the veil. */
+  readonly fire?: boolean;
   /** Hand-placed props replacing the terrain's own: kind and offset from the centre in hex sizes. */
   readonly props?: readonly PropSpot[];
 }
@@ -44,6 +54,30 @@ export interface PropSpot {
   readonly scale?: number;
 }
 
+/** A hex's top face and, below its front edges, its side faces: the area a veil covers. */
+function veilOutline(p: Projection, corners: readonly Point[]): Point[] {
+  return p.depth > 0
+    ? [
+        ...corners.slice(0, 4).map((q) => ({ x: q.x, y: q.y + p.depth })),
+        ...corners.slice(3),
+        corners[0]!,
+      ]
+    : [...corners];
+}
+
+/**
+ * One hex's veil, on its own, for the map to lift away when the hex becomes explored (fade it and drift it
+ * up a little). Drawn with the scene's veil pattern (same `prefix`).
+ */
+export function drawVeilLift(p: Projection, hex: { q: number; r: number }, prefix = 'br'): SvgNode {
+  const corners = hexCorners(p, hexCenter(p, hex.q, hex.r));
+  return el('path', {
+    d: poly(veilOutline(p, corners)),
+    fill: refUrl(prefix, 'veil'),
+    'data-veil': `${hex.q},${hex.r}`,
+  });
+}
+
 export function cellState(cell: ArtCell): CellState {
   return cell.state ?? 'seen';
 }
@@ -51,7 +85,7 @@ export function cellState(cell: ArtCell): CellState {
 export function isSolid(cell: ArtCell | undefined): boolean {
   if (!cell) return false;
   const s = cellState(cell);
-  return s === 'seen' || s === 'fading';
+  return s === 'seen' || s === 'fading' || s === 'unexplored';
 }
 
 /** Collects path data by paint, so each paint becomes one element. Insertion order is kept. */
@@ -101,6 +135,8 @@ export function drawGround(
   ink: number,
   /** Hexes the creature stands on (`hexKey`): drawn as its own trodden ground instead of their terrain. */
   occupied: ReadonlySet<string> = new Set(),
+  /** Prefix of the scene's defs (for the veil pattern). */
+  prefix = 'br',
 ): GroundLayers {
   const byKey = new Map(cells.map((c) => [hexKey(c.q, c.r), c]));
   const k = p.k;
@@ -113,6 +149,7 @@ export function drawGround(
   const fog = new Batch();
   const outlines: string[] = [];
   const dotted: string[] = [];
+  const veiled: string[] = [];
   const boxes: Box[] = [];
 
   const ordered = [...cells].sort((a, b) => {
@@ -276,6 +313,9 @@ export function drawGround(
       rivers.light.push(d);
     }
 
+    if (state === 'unexplored') {
+      veiled.push(poly(veilOutline(p, corners)));
+    }
     if (state === 'fading') {
       const veil = { fill: palette.paper, opacity: ART_TUNING.fadingVeil };
       veils.add(
@@ -331,6 +371,11 @@ export function drawGround(
     );
   }
   ground.push(...veils.nodes());
+  if (veiled.length) {
+    ground.push(
+      el('path', { d: veiled.join(''), fill: refUrl(prefix, 'veil'), 'data-veil': 'all' }),
+    );
+  }
   const crisp: SvgNode[] = dotted.length
     ? [
         el('path', {
