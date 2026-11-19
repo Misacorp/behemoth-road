@@ -88,9 +88,10 @@ Record a decision:
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-19 Pushed characters take the nearest free hex, beside before behind, or are lost if none is in reach
 - 2026-11-19 Characters start on a free hex next to the creature \[Misa\]
 - 2026-11-19 The creature stays mostly inside its footprint so the map stays readable \[Misa\]
-- 2026-11-19 The creature's hexes are occupied: characters cannot enter them \[Misa\]
+- 2026-11-19 The creature's hexes are occupied: characters cannot enter them \[Misa\] (amended)
 - 2026-11-19 The creature is a behemoth: it fills its footprint and carries a small landscape (amended)
 - 2026-11-19 The creature is modelled as small solids and turns to all six headings; upright props shrink part way at the high view (amended)
 - 2026-11-19 The creature is drawn from above, at the map's view angle \[Misa\]

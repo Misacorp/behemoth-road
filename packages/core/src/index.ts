@@ -55,5 +55,6 @@ export {
   type PathStep,
   type ReachableHex,
 } from './path.ts';
+export { isFreeHex, nearestFreeHex } from './placement.ts';
 export { nextDay } from './tick.ts';
 export { createGame, type CreateGameOptions } from './game.ts';

@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: Pushed characters take the nearest free hex, beside before behind, or are lost if none is in reach
+
+ID: `2026-11-19-pushed-characters-take-the-nearest-free` · Status: current · Amends: `2026-11-19-the-creature-s-hexes-are-occupied`
+
+**Decision.** `nearestFreeHex` searches outward from the character, ring by ring, for a hex in reach that can be entered and is not the creature's. Within a ring it ranks hexes by how far they lie along the creature's heading, worked out with whole numbers only: level with the creature first, then behind it (nearer the side first), then ahead; remaining ties follow the ring's fixed order. There is no radius limit inside what is in reach. If no free hex is in reach at all, the character is lost, so nobody is ever left standing on the creature. `createGame` uses the same search from the creature's centre, so characters start beside it when that hex is free.
+
+**Reasoning.** This is one rule for both the start and the push, and it is deterministic without floating-point ties. Being lost when nothing is free can only happen on a map with no open ground, and it keeps the invariant simple.
+
 ## 2026-11-19: Characters start on a free hex next to the creature **[Misa]**
 
 ID: `2026-11-19-characters-start-on-a-free-hex` · Status: current · Supersedes: `2026-11-19-characters-start-on-the-creature-s`
@@ -22,7 +30,7 @@ ID: `2026-11-19-the-creature-stays-mostly-inside-its` · Status: current · Amen
 
 ## 2026-11-19: The creature's hexes are occupied: characters cannot enter them **[Misa]**
 
-ID: `2026-11-19-the-creature-s-hexes-are-occupied` · Status: current · Supersedes: `2026-11-19-the-creature-s-hexes-are-always`
+ID: `2026-11-19-the-creature-s-hexes-are-occupied` · Status: current, amended by `2026-11-19-pushed-characters-take-the-nearest-free` · Supersedes: `2026-11-19-the-creature-s-hexes-are-always`
 
 **Decision.** The creature's hexes are occupied: characters cannot enter, stand on or pass through them, and they offer no actions. Paths go around the creature. Characters start on a free hex next to it. When the creature steps onto a hex where a character stands, the character is moved to the nearest free hex the character could stand on, preferring the hexes beside and behind the creature (a fixed order, so it is deterministic), and the move costs no actions.
 

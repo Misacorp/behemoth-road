@@ -4,11 +4,12 @@
 
 import { type ConfigOverrides, resolveConfig } from './config.ts';
 import { type Direction, DIRECTIONS, type Hex, isValidHex } from './hex.ts';
+import { nearestFreeHex } from './placement.ts';
 import type { GameState } from './state.ts';
 import { updateTiles } from './window.ts';
 
 export interface CreateGameOptions {
-  /** One character per id, all starting on the creature's centre. Up to the player cap. */
+  /** One character per id, all starting on one free hex next to the creature. Up to the player cap. */
   readonly characterIds?: readonly string[];
   readonly config?: ConfigOverrides;
   /** The creature's general heading. Default north. */
@@ -36,15 +37,22 @@ export const createGame = (seed: number, options: CreateGameOptions = {}): GameS
   }
 
   const day = 1;
-  return {
+  const world: GameState = {
     seed,
     day,
     config,
     creature: { centre, heading },
     tiles: updateTiles({}, centre, day, config),
+    characters: [],
+  };
+  if (ids.length === 0) return world;
+  const position = nearestFreeHex(world, centre);
+  if (!position) throw new RangeError('No free hex near the creature to start on');
+  return {
+    ...world,
     characters: ids.map((id) => ({
       id,
-      position: centre,
+      position,
       actionsLeft: config.actionsPerDay,
       status: 'active',
     })),

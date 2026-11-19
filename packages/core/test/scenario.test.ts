@@ -4,6 +4,7 @@ import {
   type GameState,
   hexDistance,
   hexKey,
+  isCreatureHex,
   isReachable,
   legalMoves,
   move,
@@ -48,6 +49,7 @@ describe('30 seeded days', () => {
       for (const c of state.characters) {
         if (c.status !== 'active') continue;
         expect(isReachable(state, c.position)).toBe(true);
+        expect(isCreatureHex(state, c.position)).toBe(false);
         expect(hexDistance(c.position, state.creature.centre)).toBeLessThanOrEqual(
           windowRadius + graceDays,
         );

@@ -3,7 +3,9 @@ import {
   createGame,
   type GameState,
   hex,
-  isReachable,
+  hexDistance,
+  isCreatureHex,
+  terrainAt,
   legalMoves,
   move,
   nextDay,
@@ -28,15 +30,28 @@ const play = (start: GameState, days: number): GameState => {
 };
 
 describe('createGame', () => {
-  it("puts every character on the creature's centre with full actions, even on a cliff", () => {
+  it('puts every character on one free hex next to the creature, with full actions', () => {
     for (let seed = 0; seed < 50; seed++) {
       const state = createGame(seed, { characterIds: ['a', 'b', 'c'] });
+      const start = state.characters[0]!.position;
       expect(state.day).toBe(1);
+      expect(hexDistance(start, state.creature.centre)).toBe(state.config.creatureRadius + 1);
+      expect(isCreatureHex(state, start)).toBe(false);
+      expect(terrainAt(seed, start).passable).toBe(true);
       for (const c of state.characters) {
-        expect(c.position).toEqual(state.creature.centre);
-        expect(isReachable(state, c.position)).toBe(true);
+        expect(c.position).toEqual(start);
         expect(c).toMatchObject({ actionsLeft: 3, status: 'active' });
       }
+      expect(createGame(seed, { characterIds: ['x'] }).characters[0]?.position).toEqual(start);
+    }
+  });
+
+  it('starts beside the creature when that hex is free', () => {
+    // Heading north, the hexes level with the creature two steps out are (-2, 1) and (2, -1).
+    for (const seed of [0, 1, 2, 3, 4, 5, 6, 7]) {
+      const state = createGame(seed, { characterIds: ['a'] });
+      const beside = [hex(-2, 1), hex(2, -1)].filter((h) => terrainAt(seed, h).passable);
+      if (beside.length > 0) expect(state.characters[0]?.position).toEqual(beside[0]);
     }
   });
 

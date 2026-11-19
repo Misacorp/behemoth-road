@@ -33,12 +33,13 @@ export interface Entry {
 
 /**
  * Whether and how a character may enter a hex, ignoring reachability and actions.
- * The creature's hexes can always be entered, whatever lies under them:
- * characters climb on and through it. Gear will plug in here, returning a `via`.
+ * The creature's hexes are occupied: nobody enters, stands on or passes through them.
+ * Gear will plug in here, returning a `via`.
  */
 export const entryInto = (state: GameState, h: Hex): Entry | null => {
+  if (isCreatureHex(state, h)) return null;
   const terrain = terrainAt(state.seed, h);
-  if (!terrain.passable && !isCreatureHex(state, h)) return null;
+  if (!terrain.passable) return null;
   return { cost: state.config.moveCost + terrain.extraMoveCost };
 };
 
@@ -56,7 +57,7 @@ export const activeCharacter = (state: GameState, characterId: string): Characte
   return { ok: true, index, character };
 };
 
-/** Moves a character one hex. Characters may stand in and pass through the creature's hexes. */
+/** Moves a character one hex. */
 export const move = (state: GameState, characterId: string, to: Hex): ActionResult => {
   if (!isValidHex(to)) return { ok: false, reason: 'invalid-hex' };
   const found = activeCharacter(state, characterId);
