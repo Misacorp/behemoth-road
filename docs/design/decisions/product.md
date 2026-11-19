@@ -12,6 +12,14 @@ ID: `2026-11-19-joining-is-a-drawer-wizard-each` · Status: current
 
 **Reasoning.** This follows the M2 plan and Misa's "show, don't tell". Players need to tell characters apart on a shared map, and a name-based colour needs no new field in the contract.
 
+## 2026-11-19: Character choices are rolled from the game, the player and the attempt; players pick by index
+
+ID: `2026-11-19-character-choices-are-rolled-from-the` · Status: current
+
+**Decision.** `characterOffers(state, userId)` returns two or three characters, each with a generated name, a trait and a quirk (none repeated), followed by a plain one with a name only. The roll is seeded by the game seed, the user id and the number of characters that user has had, so a reload shows the same list and a replacement gets a fresh one. `addCharacter` and `replaceCharacter` take the index of the chosen entry and roll again on the server, so a client cannot invent a trait. Character ids are `<userId>.<attempt>`. The cap counts active characters only, so a lost character frees a place.
+
+**Reasoning.** Picking by index keeps the server authoritative over what was rolled. Because rolls need the seed, the server must send the choices to the joining player: the contract needs a field or a call for them.
+
 ## 2026-11-19: Popovers point at their subject; grace-day tiles and figures warn without words
 
 ID: `2026-11-19-popovers-point-at-their-subject-grace` · Status: current

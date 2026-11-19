@@ -22,7 +22,9 @@ export interface TuningConfig {
   readonly windowRadius: number;
   /** Days a hex stays reachable after it leaves the window, before it is lost. */
   readonly graceDays: number;
-  /** Maximum characters in one game. */
+  /** Lost tiles are kept (for drawing the fog) this many rings beyond the window; further ones are pruned. */
+  readonly lostTileRings: number;
+  /** Maximum active characters in one game. */
   readonly playerCap: number;
   /** How the creature chooses each day's step. */
   readonly veerWeights: VeerWeights;
@@ -34,6 +36,7 @@ export const DEFAULT_CONFIG: TuningConfig = {
   creatureRadius: 1,
   windowRadius: 5,
   graceDays: 1,
+  lostTileRings: 4,
   playerCap: 15,
   veerWeights: { left: 1, straight: 2, right: 1 },
 };
@@ -57,6 +60,7 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
   if (!isCount(config.creatureRadius, 0)) problems.push('creatureRadius');
   if (!isCount(config.windowRadius, config.creatureRadius + 1)) problems.push('windowRadius');
   if (!isCount(config.graceDays, 0)) problems.push('graceDays');
+  if (!isCount(config.lostTileRings, 0)) problems.push('lostTileRings');
   if (!isCount(config.playerCap, 1)) problems.push('playerCap');
   const w = config.veerWeights;
   const weights = [w.left, w.straight, w.right];

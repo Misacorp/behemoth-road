@@ -1,16 +1,54 @@
 import { describe, expect, it } from 'vitest';
-import { createRng, hashInts, hashToUnit, pickWeighted } from '../src/index.ts';
+import {
+  createRng,
+  hashInts,
+  hashToUnit,
+  isSeed,
+  newSeed,
+  pickWeighted,
+  type Seed,
+  toSeed,
+} from '../src/index.ts';
 
 describe('seeded randomness', () => {
+  const S: Seed = [7, 0x12345678, 0x9abcdef0, 0xdeadbeef];
+
   it('hashes deterministically into [0, 1), sensitive to every part', () => {
-    expect(hashInts(7, 1, 2)).toBe(hashInts(7, 1, 2));
-    expect(hashInts(7, 1, 2)).not.toBe(hashInts(7, 2, 1));
-    expect(hashInts(7, 1, 2)).not.toBe(hashInts(8, 1, 2));
+    expect(hashInts(S, 1, 2)).toBe(hashInts(S, 1, 2));
+    expect(hashInts(S, 1, 2)).not.toBe(hashInts(S, 2, 1));
+    expect(hashInts(S, 1, 2)).not.toBe(hashInts(S, 1, 2, 0));
     for (let i = 0; i < 1000; i++) {
-      const x = hashToUnit(42, i, -i);
+      const x = hashToUnit(S, i, -i);
       expect(x).toBeGreaterThanOrEqual(0);
       expect(x).toBeLessThan(1);
     }
+  });
+
+  it('depends on all 128 bits of the seed', () => {
+    // Flipping any one bit of any word changes most outputs.
+    for (let word = 0; word < 4; word++) {
+      for (const bit of [0, 13, 31]) {
+        const flipped = S.map((w, i) =>
+          i === word ? (w ^ (1 << bit)) >>> 0 : w,
+        ) as unknown as Seed;
+        let differ = 0;
+        for (let i = 0; i < 200; i++) if (hashInts(S, 5, i) !== hashInts(flipped, 5, i)) differ++;
+        expect(differ).toBeGreaterThan(190);
+      }
+    }
+  });
+
+  it('makes seeds from numbers for tests, and fresh random ones', () => {
+    expect(toSeed(5)).toEqual([5, 0, 0, 0]);
+    expect(toSeed(S)).toBe(S);
+    for (const bad of [-1, 1.5, 2 ** 32, Number.NaN]) expect(() => toSeed(bad)).toThrow(RangeError);
+    expect(() => toSeed([1, 2, 3] as unknown as Seed)).toThrow(RangeError);
+    expect(() => toSeed([1, 2, 3, -4] as unknown as Seed)).toThrow(RangeError);
+    const a = newSeed();
+    const b = newSeed();
+    expect(isSeed(a)).toBe(true);
+    expect(a).not.toEqual(b);
+    expect(isSeed(JSON.parse(JSON.stringify(a)))).toBe(true);
   });
 
   it('repeats a generator sequence for the same seed', () => {
