@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { drawCreature, GENTLE_AMBLER, type CreatureLook } from '../src/creature.ts';
 import { PALETTES, paletteColours, MORNING } from '../src/palette.ts';
-import { DIRECTIONS, isometric, topDown } from '../src/projection.ts';
+import { DIRECTIONS, hexCenter, isometric, topDown } from '../src/projection.ts';
 import { samplePatch } from '../src/sample.ts';
-import { paperGrain, renderScene, renderSceneFramed, type SceneInput } from '../src/scene.ts';
+import { paperGrain, renderScene, renderSceneFramed } from '../src/scene.ts';
 import { countNodes, el, toSvgString, walk, type SvgNode } from '../src/svg.ts';
 import { riseFor } from '../src/props.ts';
 import { FALLBACK_LOOK, TERRAIN_LOOKS, terrainLook } from '../src/terrain.ts';
 import { bigScene } from './fixtures.ts';
+import type { ArtCell } from '../src/tile.ts';
 
 const sample = (seed = 's') => {
   const { cells, creature, characters } = samplePatch();
@@ -157,53 +158,6 @@ describe('scene options', () => {
   });
 });
 
-describe('the creature', () => {
-  it('fills its seven-hex footprint at scale 1, and scale sizes it', () => {
-    const p = isometric();
-    const width = (scale: number): number => {
-      const { box } = drawCreature(
-        MORNING,
-        { ...GENTLE_AMBLER, scale },
-        { x: 0, y: 0 },
-        p.size,
-        p.squash,
-        1.4,
-        { q: 1, r: 0 },
-      );
-      return box.x1 - box.x0;
-    };
-    // The footprint is about three hexes (about 4 hex sizes) across; head and tail reach past it.
-    expect(width(1)).toBeGreaterThan(4 * p.size);
-    expect(width(0.5)).toBeCloseTo(width(1) / 2, -1);
-  });
-
-  it('draws a character on its back over it, with a contact shadow', () => {
-    const cells = [{ q: 0, r: 0 }, ...DIRECTIONS].map((h) => ({
-      ...h,
-      terrain: 'plains',
-      props: [],
-    }));
-    const base: SceneInput = { ...sample(), cells, characters: [] };
-    const on: SceneInput = { ...base, characters: [{ id: 'c', q: 1, r: 0, accent: 'teal' }] };
-    const objects = (input: SceneInput): SvgNode[] => {
-      let layer: SvgNode | undefined;
-      walk(renderScene(input), (n) => {
-        if (n.attrs['data-layer'] === 'objects') layer = n;
-      });
-      return [...(layer?.children ?? [])];
-    };
-    const without = objects(base);
-    const withChar = objects(on);
-    // Everything the creature scene drew comes first; the character (and its shadow) after it.
-    expect(withChar.slice(0, without.length).map((n) => n.attrs.d)).toEqual(
-      without.map((n) => n.attrs.d),
-    );
-    const extra = withChar.slice(without.length);
-    expect(extra[0]?.attrs.fill).toBe(MORNING.shadow);
-    expect(Number(extra[0]?.attrs.opacity)).toBeGreaterThan(0.3);
-  });
-});
-
 describe('creature guards and back order', () => {
   it('faces north for a heading that is zero or not a number, and survives a bad squash', () => {
     const draw = (heading: { q: number; r: number }, squash = 0.8): string =>
@@ -220,25 +174,110 @@ describe('creature guards and back order', () => {
     expect(draw({ q: Infinity, r: -1 })).toBe(north);
     expect(draw({ q: 0, r: -1 }, Number.NaN)).not.toMatch(/NaN|Infinity/);
   });
+});
 
-  it('orders characters on its back by their own depth, not by list order', () => {
-    const cells = [{ q: 0, r: 0 }, ...DIRECTIONS].map((h) => ({
-      ...h,
-      terrain: 'plains',
-      props: [],
-    }));
-    const back = { id: 'back', q: 0, r: -1, accent: 'teal' };
-    const front = { id: 'front', q: 0, r: 1, accent: 'plum' };
-    const order = (characters: (typeof back)[]): string[] => {
-      const out: string[] = [];
-      walk(renderScene({ ...sample(), cells, characters }), (n) => {
-        if (n.attrs.fill === MORNING.accents.teal.base) out.push('back');
-        if (n.attrs.fill === MORNING.accents.plum.base) out.push('front');
-      });
-      return out;
+describe('the creature on the map', () => {
+  const p = isometric();
+  const inside = (
+    pt: { x: number; y: number },
+    poly: readonly { x: number; y: number }[],
+  ): boolean => {
+    let c = false;
+    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      const a = poly[i]!;
+      const b = poly[j]!;
+      if (a.y > pt.y !== b.y > pt.y && pt.x < ((b.x - a.x) * (pt.y - a.y)) / (b.y - a.y) + a.x)
+        c = !c;
+    }
+    return c;
+  };
+  /** Share of a hex's top face covered by the creature's drawn parts, sampled on a grid. */
+  const coverage = (
+    parts: readonly (readonly { x: number; y: number }[])[],
+    q: number,
+    r: number,
+  ): number => {
+    const ctr = hexCenter(p, q, r);
+    let n = 0;
+    let hit = 0;
+    for (let i = -10; i <= 10; i += 1) {
+      for (let j = -10; j <= 10; j += 1) {
+        const x = i / 10;
+        const y = (j / 10) * 0.866;
+        if (Math.abs(x) + Math.abs(y) / Math.sqrt(3) > 1) continue;
+        n += 1;
+        const pt = { x: ctr.x + x * p.size, y: ctr.y + y * p.size * p.squash };
+        if (parts.some((s) => inside(pt, s))) hit += 1;
+      }
+    }
+    return hit / n;
+  };
+  const ring2: { q: number; r: number }[] = [];
+  for (let q = -2; q <= 2; q += 1) {
+    for (let r = -2; r <= 2; r += 1) {
+      if ((Math.abs(q) + Math.abs(r) + Math.abs(q + r)) / 2 === 2) ring2.push({ q, r });
+    }
+  }
+
+  it('stays mostly inside its footprint for every heading: no hex beyond it is covered even by a third', () => {
+    for (const heading of DIRECTIONS) {
+      const { silhouettes } = drawCreature(
+        MORNING,
+        GENTLE_AMBLER,
+        hexCenter(p, 0, 0),
+        p.size,
+        p.squash,
+        1.4,
+        heading,
+      );
+      for (const h of ring2) {
+        const share = coverage(silhouettes, h.q, h.r);
+        expect(share, `heading ${heading.q},${heading.r} over ${h.q},${h.r}`).toBeLessThan(0.33);
+        expect(silhouettes.some((s) => inside(hexCenter(p, h.q, h.r), s))).toBe(false);
+      }
+      // It still stands over the middle of its footprint.
+      expect(coverage(silhouettes, 0, 0)).toBeGreaterThan(0.9);
+    }
+  });
+
+  it('scale sizes it', () => {
+    const width = (scale: number): number => {
+      const { box } = drawCreature(
+        MORNING,
+        { ...GENTLE_AMBLER, scale },
+        { x: 0, y: 0 },
+        p.size,
+        p.squash,
+        1.4,
+        { q: 1, r: 0 },
+      );
+      return box.x1 - box.x0;
     };
-    expect(order([front, back])).toEqual(['back', 'front']);
-    expect(order([back, front])).toEqual(['back', 'front']);
+    expect(width(0.5)).toBeCloseTo(width(1) / 2, -1);
+  });
+
+  it('draws its footprint hexes as trodden ground, and only those', () => {
+    const cells: ArtCell[] = [];
+    for (let q = -2; q <= 2; q += 1) {
+      for (let r = -2; r <= 2; r += 1) {
+        if ((Math.abs(q) + Math.abs(r) + Math.abs(q + r)) / 2 <= 2)
+          cells.push({ q, r, terrain: 'plains', props: [] });
+      }
+    }
+    const svg = (creature: boolean): string =>
+      toSvgString(
+        renderScene({
+          ...sample(),
+          cells,
+          characters: [],
+          creature: creature ? sample().creature : null,
+        }),
+      );
+    expect(svg(true)).toContain(MORNING.ramps.trodden.base);
+    expect(svg(false)).not.toContain(MORNING.ramps.trodden.base);
+    // Seven tops in the trodden paint: one path with seven closed hexagons.
+    const m = new RegExp(`<path d="([^"]+)" fill="${MORNING.ramps.trodden.base}"`).exec(svg(true));
+    expect(m?.[1]?.split('Z').filter(Boolean).length).toBe(7);
   });
 });
 

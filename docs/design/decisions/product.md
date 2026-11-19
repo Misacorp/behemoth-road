@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: The art kit draws a compact creature on trodden ground, measured against its footprint
+
+ID: `2026-11-19-the-art-kit-draws-a-compact` · Status: current · Amends: `2026-11-19-the-creature-stays-mostly-inside-its`
+
+**Decision.** The default build is `highback`: the high, mossy back with its trees, rock and pond, a moderately long neck and a longer tail, sized so that at `scale` 1 the body stays over its footprint. A test draws it for all six headings at tilt 0.8 and requires that no hex beyond the footprint has a third or more of its top face covered, that no such hex's centre is covered, and that the centre hex is covered. The seven footprint hexes are drawn as trodden ground (palette ramp `trodden`, scuffed earth) in place of their terrain. Characters are no longer drawn as riders: no contact shadow and no special order. The `broad`, `longneck` and `low` builds stay as data.
+
+**Reasoning.** Misa's pick: a compact creature keeps the map readable, and the trodden ground keeps it feeling huge. Measuring coverage on the drawn outlines keeps "never a whole hex" true as the drawing changes; the old large build covered up to 70% of a neighbouring hex.
+
 ## 2026-11-19: Characters start on a free hex next to the creature **[Misa]**
 
 ID: `2026-11-19-characters-start-on-a-free-hex` · Status: current · Supersedes: `2026-11-19-characters-start-on-the-creature-s`
@@ -14,7 +22,7 @@ ID: `2026-11-19-characters-start-on-a-free-hex` · Status: current · Supersedes
 
 ## 2026-11-19: The creature stays mostly inside its footprint so the map stays readable **[Misa]**
 
-ID: `2026-11-19-the-creature-stays-mostly-inside-its` · Status: current · Amends: `2026-11-19-the-creature-is-a-behemoth-it`
+ID: `2026-11-19-the-creature-stays-mostly-inside-its` · Status: current, amended by `2026-11-19-the-art-kit-draws-a-compact` · Amends: `2026-11-19-the-creature-is-a-behemoth-it`
 
 **Decision.** The creature is drawn smaller, between the broad high back and the long-neck, long-tail shapes. Its body stays mostly within its 7-hex footprint; the head, neck and tail may reach a little into neighbouring hexes, but never cover a whole hex outside the footprint. The footprint hexes are drawn in their own colour (ground the creature is standing on), so its size reads from the ground as well as the body. The map is not rotatable.
 

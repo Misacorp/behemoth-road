@@ -4,9 +4,17 @@ import { ART_TUNING } from './config.ts';
 import { drawCreature, inFootprint, type CreatureArt } from './creature.ts';
 import { figureAnchor } from './figure.ts';
 import { artDefs, refUrl } from './filters.ts';
-import { ellipsePath, unionBox, type Box, type Point } from './geom.ts';
+import { unionBox, type Box, type Point } from './geom.ts';
 import type { Palette } from './palette.ts';
-import { drawOrder, hexCenter, hexDistance, onPlane, type Projection } from './projection.ts';
+import {
+  drawOrder,
+  hexCenter,
+  hexDistance,
+  hexKey,
+  onPlane,
+  type Hex,
+  type Projection,
+} from './projection.ts';
 import {
   hintMark,
   inkWidth,
@@ -46,14 +54,14 @@ export interface SceneInput {
    * over the screen instead.
    */
   readonly frame?: 'page' | 'none';
+  /** More hexes drawn as trodden ground, as if a creature stood there (review sheets). */
+  readonly occupied?: readonly Hex[];
 }
 
 interface Placed {
   readonly at: Point;
   readonly drawn: Drawn;
   readonly opacity?: number;
-  /** Draw after everything up to this screen y instead of `at.y` (a character standing on the creature). */
-  readonly after?: number;
 }
 
 /** Picks spots for a tile's props inside the hex, keeping each prop's spacing. */
@@ -134,7 +142,14 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
       ? input.minInkPx
       : undefined;
   const ink = inkWidth(p.k, zoom, minInkPx);
-  const ground = drawGround(cells, p, palette, seed, ink);
+  const creatureIn = input.creature ?? null;
+  const occupied = new Set([
+    ...(creatureIn
+      ? cells.filter((c) => inFootprint(creatureIn, c)).map((c) => hexKey(c.q, c.r))
+      : []),
+    ...(input.occupied ?? []).map((h) => hexKey(h.q, h.r)),
+  ]);
+  const ground = drawGround(cells, p, palette, seed, ink, occupied);
   const creature = input.creature ?? null;
   const placed: Placed[] = [];
 
@@ -190,38 +205,15 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
   }
   const sites = new Set(cells.filter((c) => c.site).map((c) => `${c.q},${c.r}`));
   const perTile = new Map<string, number>();
-  const creatureY = creature ? hexCenter(p, creature.q, creature.r).y : 0;
   for (const ch of input.characters ?? []) {
     const key = `${ch.q},${ch.r}`;
     const index = perTile.get(key) ?? 0;
     perTile.set(key, index + 1);
     const c = figureAnchor(p, ch, index, { site: sites.has(key) });
-    if (creature && inFootprint(creature, ch)) {
-      // Standing on the creature's back: drawn over it, with a firm contact shadow so it does not float.
-      const drawn = drawCharacter(palette, ch.accent, c, p.size, p.squash, ink);
-      const contact = el('path', {
-        d: ellipsePath(
-          c.x + 0.02 * p.size,
-          c.y + 0.01 * p.size,
-          0.2 * p.size,
-          0.07 * p.size * (p.squash / 0.6),
-        ),
-        fill: palette.shadow,
-        opacity: 0.38,
-      });
-      placed.push({
-        at: c,
-        drawn: { nodes: [contact, ...drawn.nodes], box: drawn.box },
-        // After the creature, and among themselves by their own depth.
-        after: creatureY + 1e-3 + (c.y - creatureY) * 1e-6,
-      });
-      continue;
-    }
     placed.push({ at: c, drawn: drawCharacter(palette, ch.accent, c, p.size, p.squash, ink) });
   }
 
-  const sortAt = (x: Placed): Point => (x.after === undefined ? x.at : { x: x.at.x, y: x.after });
-  placed.sort((a, b) => drawOrder(sortAt(a), sortAt(b)));
+  placed.sort((a, b) => drawOrder(a.at, b.at));
   const objects: SvgNode[] = placed.flatMap(({ drawn, opacity }) =>
     opacity === undefined ? drawn.nodes : [el('g', { opacity }, drawn.nodes)],
   );

@@ -4,7 +4,7 @@
  */
 import type { Material } from './palette.ts';
 
-export type GroundMark = 'flecks' | 'ripples' | 'waves' | 'scree' | 'none';
+export type GroundMark = 'flecks' | 'ripples' | 'waves' | 'scree' | 'scuffs' | 'none';
 
 export interface PropRule {
   /** A prop kind (`props.ts`). */
@@ -98,6 +98,14 @@ export const FALLBACK_LOOK: TerrainLook = {
   ground: 'neutral',
   side: 'earth',
   marks: 'none',
+  props: [],
+};
+
+/** Ground the creature is standing on: warm, trodden earth that replaces the terrain under its footprint. */
+export const TRODDEN_LOOK: TerrainLook = {
+  ground: 'trodden',
+  side: 'earth',
+  marks: 'scuffs',
   props: [],
 };
 

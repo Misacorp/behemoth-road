@@ -8,7 +8,7 @@ import { samplePatch } from './sample.ts';
 import { renderScene } from './scene.ts';
 import { toSvgString } from './svg.ts';
 import { ART_TUNING } from './config.ts';
-import { drawCreature, GENTLE_AMBLER, type CreatureLook } from './creature.ts';
+import { drawCreature, GENTLE_AMBLER } from './creature.ts';
 import type { PropDraw } from './props.ts';
 import { TERRAIN_LOOKS } from './terrain.ts';
 import type { ArtCell } from './tile.ts';
@@ -94,29 +94,6 @@ function propsSheet(): string {
   );
 }
 
-/** The creature alone, large, walking north. */
-function creatureAlone(look: CreatureLook): string {
-  // Two rings of plain ground, the creature walking north-east (its shape reads best turned a little), and
-  // a character beside it for scale.
-  const cells: ArtCell[] = [];
-  for (let q = -2; q <= 2; q += 1) {
-    for (let r = -2; r <= 2; r += 1) {
-      if (Math.abs(q) + Math.abs(r) + Math.abs(q + r) <= 4)
-        cells.push({ q, r, terrain: 'plains', props: [] });
-    }
-  }
-  return toSvgString(
-    renderScene({
-      cells,
-      creature: { q: 0, r: 0, heading: { q: 1, r: -1 }, look },
-      characters: [{ id: 'scale', q: -1, r: 2, accent: 'rose' }],
-      projection: isometric(78),
-      palette: PALETTE,
-      seed: 'creature-sheet',
-    }),
-  );
-}
-
 /** The creature walking each of the six hex directions, north first, clockwise. */
 function headingsSheet(): string {
   const headings = [
@@ -130,7 +107,7 @@ function headingsSheet(): string {
   const centres = headings.map((_, i) => {
     const col = i % 3;
     const row = Math.floor(i / 3);
-    return { q: 5 * col, r: -Math.floor((5 * col) / 2) + 5 * row };
+    return { q: 4 * col, r: -Math.floor((4 * col) / 2) + 4 * row };
   });
   // Each creature is drawn through a prop override on its footprint's centre, so all six share one scene.
   const overrides: Record<string, PropDraw> = {};
@@ -153,10 +130,11 @@ function headingsSheet(): string {
   return toSvgString(
     renderScene({
       cells,
-      projection: isometric(38),
+      projection: isometric(50),
       palette: PALETTE,
       seed: 'headings',
       overrides,
+      occupied: centres.flatMap((c) => footprint(c.q, c.r)),
     }),
   );
 }
@@ -192,11 +170,6 @@ function fogSheet(): string {
 }
 
 export function buildReviewItems(): ReviewDraft[] {
-  const shapePick = {
-    kind: 'pick',
-    pick: 'creature-shape',
-    question: 'Which creature shape?',
-  } as const;
   const glance = { kind: 'glance' } as const;
   return [
     {
@@ -214,30 +187,6 @@ export function buildReviewItems(): ReviewDraft[] {
       file: 'creature-headings.svg',
       ...glance,
       svg: headingsSheet(),
-    },
-    {
-      id: 'creature-shape/broad',
-      group: 'Creature shape',
-      title: 'Broad, high back',
-      file: 'creature-shape-broad.svg',
-      ...shapePick,
-      svg: creatureAlone(GENTLE_AMBLER),
-    },
-    {
-      id: 'creature-shape/longneck',
-      group: 'Creature shape',
-      title: 'Long neck, long tail',
-      file: 'creature-shape-longneck.svg',
-      ...shapePick,
-      svg: creatureAlone({ ...GENTLE_AMBLER, body: 'longneck' }),
-    },
-    {
-      id: 'creature-shape/low',
-      group: 'Creature shape',
-      title: 'Low, wide and mossy',
-      file: 'creature-shape-low.svg',
-      ...shapePick,
-      svg: creatureAlone({ ...GENTLE_AMBLER, body: 'low' }),
     },
     {
       id: 'sheet/terrain',
