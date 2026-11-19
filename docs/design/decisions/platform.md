@@ -4,9 +4,17 @@ Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: The world layer's bitmap is capped at 4096 px a side and 16 MP
+
+ID: `2026-11-19-the-world-layer-s-bitmap-is` · Status: current · Amends: `2026-11-19-the-map-pans-a-world-layer`
+
+**Decision.** The world layer is drawn at the ink-zoom step unless its bitmap (box × raster × device pixel ratio) would pass 4096 device px on a side or 16 million pixels; then it uses the largest raster that fits (`layerRaster`, limits in `MAP_TUNING.layer`), and the CSS transform makes up the rest of the scale. The screenshot script checks that a zoom settling at a new step moves no known world point by more than 1 px.
+
+**Reasoning.** Phone GPUs limit texture sizes, and a layer larger than the limit can be dropped or tiled badly; ink may look slightly softer at an extreme zoom instead. The settle check guards the one moment the layer is replaced under a live transform.
+
 ## 2026-11-19: The map pans a world layer by CSS transform; the scene stays memoised
 
-ID: `2026-11-19-the-map-pans-a-world-layer` · Status: current
+ID: `2026-11-19-the-map-pans-a-world-layer` · Status: current, amended by `2026-11-19-the-world-layer-s-bitmap-is`
 
 **Decision.** The map draws the scene and its overlays into one world `<svg>` inside an HTML `div` with `will-change: transform`. Pan and zoom set that div's CSS transform (`layerTransform`, written through the CSSOM in `cssTransform.ts`, the one exemption from the inline-style guard; the CSP allows CSSOM writes). The world `<svg>` is drawn at the current ink-zoom step and redrawn only when a gesture settles at a new step or the game state changes. The paper grain sits in its own static `<svg>` above it, and a full-screen `svg.map` on top takes the pointer and holds the popover. Filters stay on during gestures (the old `lite` toggle is gone, since toggling forced a full redraw on release). The scene layers render through a component that skips re-rendering unless they change, and the bubble's figure and creature drawings are module constants.
 

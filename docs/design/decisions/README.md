@@ -49,7 +49,8 @@ Record a decision:
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
-- 2026-11-19 The map pans a world layer by CSS transform; the scene stays memoised
+- 2026-11-19 The world layer's bitmap is capped at 4096 px a side and 16 MP
+- 2026-11-19 The map pans a world layer by CSS transform; the scene stays memoised (amended)
 - 2026-11-19 Vulnerable transitive packages are fixed by bumping the direct dependency, else by a scoped exact override
 - 2026-11-19 Art terrain looks are keyed by the core's terrain ids
 - 2026-11-19 The map pans by one transformed group and drops its SVG filters during gestures

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   centreOn,
   inkZoomFor,
+  layerRaster,
   layerTransform,
   lerpView,
   panBy,
@@ -85,5 +86,31 @@ describe('layerTransform', () => {
         }
       }
     }
+  });
+});
+
+describe('layerRaster', () => {
+  const limits = { maxSide: 4096, maxPixels: 16_000_000 };
+  it('keeps the wanted step while the bitmap fits', () => {
+    expect(layerRaster(1, { width: 1500, height: 1000 }, 2, limits)).toBe(1);
+  });
+
+  it('lowers the raster so neither side passes the limit', () => {
+    const r = layerRaster(2.8, { width: 1500, height: 900 }, 3, limits);
+    expect(1500 * r * 3).toBeLessThanOrEqual(4096 + 1e-6);
+    expect(900 * r * 3).toBeLessThanOrEqual(4096);
+    expect(r).toBeLessThan(2.8);
+  });
+
+  it('lowers the raster so the area stays within the limit', () => {
+    const r = layerRaster(4, { width: 1300, height: 1300 }, 1, {
+      maxSide: 1e9,
+      maxPixels: 16_000_000,
+    });
+    expect(1300 * 1300 * r * r).toBeCloseTo(16_000_000, -3);
+  });
+
+  it('treats a missing device pixel ratio as 1', () => {
+    expect(layerRaster(1, { width: 1000, height: 1000 }, Number.NaN, limits)).toBe(1);
   });
 });

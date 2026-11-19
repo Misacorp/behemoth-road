@@ -41,6 +41,7 @@ import {
   centreOn,
   clampScale,
   inkZoomFor,
+  layerRaster,
   layerTransform,
   lerpView,
   panBy,
@@ -204,17 +205,18 @@ export function MapView(props: MapViewProps): JSX.Element {
     });
     const split = splitScene(scene);
     const m = LAYER_MARGIN * p.size;
+    const box = {
+      x: viewBox.x - m,
+      y: viewBox.y - m,
+      width: viewBox.width + 2 * m,
+      height: viewBox.height + 2 * m,
+    };
     return {
       ground: split.ground.map((n: SvgNode) => toPreact(n)),
       figures: split.figures.map((n: SvgNode) => toPreact(n)),
       // The world layer: this box of world px, drawn at `raster` CSS px per world px.
-      box: {
-        x: viewBox.x - m,
-        y: viewBox.y - m,
-        width: viewBox.width + 2 * m,
-        height: viewBox.height + 2 * m,
-      },
-      raster: inkZoom,
+      box,
+      raster: layerRaster(inkZoom, box, window.devicePixelRatio, MAP_TUNING.layer),
     };
   }, [state, inkZoom]);
   const layerRef = useRef(layers);

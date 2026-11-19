@@ -78,3 +78,31 @@ export function layerTransform(v: View, raster: number, origin: { x: number; y: 
   const ty = v.y + v.scale * origin.y;
   return `translate(${tx.toFixed(2)}px, ${ty.toFixed(2)}px) scale(${k.toFixed(5)})`;
 }
+
+/** Largest world-layer bitmap: per side and in area, in device px (GPU texture limits on phones). */
+export interface LayerLimits {
+  readonly maxSide: number;
+  readonly maxPixels: number;
+}
+
+/**
+ * The raster scale for the world layer: the wanted ink-zoom step, lowered if needed so the layer's bitmap
+ * (`box` × raster × device pixel ratio) stays within `limits` on both sides and in area. Ink may be slightly
+ * softer at an extreme zoom; the transform makes up the rest of the scale.
+ */
+export function layerRaster(
+  wanted: number,
+  box: { width: number; height: number },
+  dpr: number,
+  limits: LayerLimits,
+): number {
+  const d = Number.isFinite(dpr) && dpr > 0 ? dpr : 1;
+  const w = Math.max(1, box.width) * d;
+  const h = Math.max(1, box.height) * d;
+  const fit = Math.min(
+    limits.maxSide / w,
+    limits.maxSide / h,
+    Math.sqrt(limits.maxPixels / (w * h)),
+  );
+  return Math.min(wanted, fit);
+}

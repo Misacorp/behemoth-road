@@ -14,6 +14,7 @@ import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
 import { dirname, extname, join, normalize, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { SPRING } from '../../../packages/art/src/palette.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const web = resolve(here, '..');
@@ -259,6 +260,50 @@ async function run() {
       await page.waitForTimeout(100);
       if (!vp.touch && (await svg.getAttribute('data-view')) === scaleBefore) {
         problems.push(`${vp.name}: wheel did not zoom`);
+      }
+      // No jump when a zoom settles: the world layer is redrawn at a new ink-zoom step, and known world
+      // points (the creature's trodden footprint, your figure's cloak) must stay put on screen.
+      if (!vp.touch) {
+        await page.waitForTimeout(400);
+        const marks = () =>
+          page.evaluate(
+            ({ trodden, cloak }) => {
+              const box = (el) => {
+                const r = el.getBoundingClientRect();
+                return { x: r.x + r.width / 2, y: r.y + r.height / 2, w: r.width, h: r.height };
+              };
+              const world = document.querySelector('.map-world svg');
+              const foot = world.querySelector(`[fill="${trodden}"]`);
+              const cloaks = [...world.querySelectorAll(`[fill="${cloak}"]`)].map(box);
+              cloaks.sort((a, b) => b.w * b.h - a.w * a.h);
+              return { width: world.getAttribute('width'), points: [box(foot), cloaks[0]] };
+            },
+            { trodden: SPRING.ramps.trodden.base, cloak: SPRING.accents.rose.base },
+          );
+        await page.mouse.move(cx, cy);
+        // A zoom out by more than a half power of two always crosses an ink-zoom step.
+        await page.mouse.wheel(0, 320);
+        await page.waitForTimeout(60);
+        const pre = await marks();
+        await page.waitForTimeout(700);
+        const post = await marks();
+        if (pre.width === post.width) problems.push(`${vp.name}: no redraw after the zoom settled`);
+        pre.points.forEach((a, i) => {
+          const b = post.points[i];
+          const moved = Math.max(
+            Math.abs(a.x - b.x),
+            Math.abs(a.y - b.y),
+            Math.abs(a.w - b.w),
+            Math.abs(a.h - b.h),
+          );
+          if (!(moved <= 1))
+            problems.push(`${vp.name}: point ${i} jumped ${moved.toFixed(2)} px at a zoom settle`);
+        });
+        report.push(
+          `${vp.name}: zoom settle redraw, largest shift ${Math.max(
+            ...pre.points.map((a, i) => Math.hypot(a.x - post.points[i].x, a.y - post.points[i].y)),
+          ).toFixed(2)} px`,
+        );
       }
       const frames = await page.evaluate(() => window.__frames.slice(2));
       await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });

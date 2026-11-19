@@ -15,6 +15,8 @@ export const MAP_TUNING = {
   tilt: 0.8,
   /** Ink lines never get thinner than this on screen, in px (the scene is redrawn when zoom settles). */
   minInkPx: 1,
+  /** The world layer's bitmap stays within these, in device px (phone GPU texture limits). */
+  layer: { maxSide: 4096, maxPixels: 16_000_000 },
   /** Hex circumradius in world px at zoom 1. */
   hexSize: 64,
   /** Zoom limits (screen px per world px). */
