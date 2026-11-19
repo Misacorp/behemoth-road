@@ -4,6 +4,14 @@ Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: The server keeps the seed; clients get a player view with known terrain
+
+ID: `2026-11-19-the-server-keeps-the-seed-clients` · Status: current
+
+**Decision.** From Milestone 2 the game seed never leaves the server. Clients receive a player view: the core state without the seed, with the terrain of every known tile included, so they can draw the map and plan paths with the core. The core reads terrain from known tiles first and generates new tiles only on the server. Clients refresh the view after their own actions, on becoming visible and every 30 seconds while visible; a version number makes an unchanged view cheap. The contract is in `docs/design/m2-session.md`.
+
+**Reasoning.** With the seed, any client could compute the map ahead and the creature's next step, which defeats fog of war and, from Milestone 3, hidden sites and traps. Polling is enough for a group of about 8 taking a few actions a day; WebSockets can come later.
+
 ## 2026-11-19: The world layer's bitmap is capped at 4096 px a side and 16 MP
 
 ID: `2026-11-19-the-world-layer-s-bitmap-is` · Status: current · Amends: `2026-11-19-the-map-pans-a-world-layer`
