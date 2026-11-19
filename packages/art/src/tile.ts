@@ -14,7 +14,7 @@ import {
   onPlane,
   type Projection,
 } from './projection.ts';
-import { inkAttrs, inkWidth } from './props.ts';
+import { inkAttrs } from './props.ts';
 import { rngFor, type Rng } from './rng.ts';
 import { el, type AttrValue, type SvgNode } from './svg.ts';
 import { terrainLook } from './terrain.ts';
@@ -98,10 +98,10 @@ export function drawGround(
   p: Projection,
   palette: Palette,
   seed: string | number,
+  ink: number,
 ): GroundLayers {
   const byKey = new Map(cells.map((c) => [hexKey(c.q, c.r), c]));
   const k = p.k;
-  const ink = inkWidth(k);
   const sides = new Batch();
   const tops = new Batch();
   const washes = new Batch();
@@ -316,9 +316,9 @@ export function drawGround(
     ? [
         el('path', {
           d: dotted.join(''),
-          ...inkAttrs(palette.inkSoft, ink * 0.8),
-          'stroke-dasharray': `0.1 ${f2(4.2 * k)}`,
-          opacity: 0.75,
+          ...inkAttrs(palette.inkSoft, ink * 1.25),
+          'stroke-dasharray': `0.1 ${f2(Math.max(4.6 * k, ink * 3.4))}`,
+          opacity: 0.9,
         }),
       ]
     : [];

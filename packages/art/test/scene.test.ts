@@ -55,7 +55,7 @@ describe('renderScene', () => {
     for (const svg of svgs) expect(svg).not.toMatch(/NaN|undefined|Infinity|null/);
   });
 
-  it('stays under the node budget for a 91-hex isometric scene (measured 837)', () => {
+  it('stays under the node budget for a 91-hex isometric scene (measured 859)', () => {
     expect(countNodes(renderScene(bigScene()))).toBeLessThanOrEqual(1250);
   });
 
@@ -96,11 +96,47 @@ describe('renderScene', () => {
       { ...GENTLE_AMBLER, markings: 'none' },
     ];
     for (const look of variants) {
-      const svg = toSvgString(
-        renderScene({ ...sample(), creature: { q: 0, r: 0, facing: 'left', look } }),
-      );
-      expect(svg).not.toMatch(/NaN|undefined/);
+      for (const facing of ['left', 'right', 'away'] as const) {
+        const svg = toSvgString(
+          renderScene({ ...sample(), creature: { q: 0, r: 0, facing, look } }),
+        );
+        expect(svg).not.toMatch(/NaN|undefined/);
+      }
     }
+  });
+});
+
+describe('scene options', () => {
+  it('rejects an idPrefix that could break out of an id', () => {
+    for (const idPrefix of ['a b', 'x)', 'a"', '', 'é']) {
+      expect(() => renderScene({ ...sample(), idPrefix }), idPrefix).toThrow(/idPrefix/);
+    }
+    expect(() => renderScene({ ...sample(), idPrefix: 'map_2-a' })).not.toThrow();
+  });
+
+  it('lite effects leave out the filters but keep the drawing', () => {
+    const full = toSvgString(renderScene(sample()));
+    const lite = toSvgString(renderScene({ ...sample(), effects: 'lite' }));
+    expect(full).toMatch(/<filter/);
+    expect(lite).not.toMatch(/<filter|filter=/);
+    expect(countNodes(renderScene({ ...sample(), effects: 'lite' }))).toBeLessThan(
+      countNodes(renderScene(sample())),
+    );
+  });
+
+  it('holds ink at its minimum width on screen when zoomed out', () => {
+    const widths = (zoom: number): number[] => {
+      const out: number[] = [];
+      walk(renderScene({ ...sample(), zoom }), (n) => {
+        if (n.attrs.stroke === MORNING.ink && n.attrs['stroke-width'] !== undefined)
+          out.push(Number(n.attrs['stroke-width']));
+      });
+      return out;
+    };
+    const near = Math.max(...widths(1));
+    const far = widths(0.4);
+    expect(Math.min(...far) * 0.4).toBeGreaterThanOrEqual(0.5);
+    expect(Math.max(...far)).toBeGreaterThan(near);
   });
 });
 

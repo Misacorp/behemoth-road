@@ -48,6 +48,7 @@ Record a decision:
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
+- 2026-11-19 Art output is held to a tag and attribute allowlist, with a lite mode for slow phones
 - 2026-11-19 Map ground merges into one path per paint; hexes are hit-tested by maths
 - 2026-11-19 The art kit is a pure package that returns an SVG element tree
 - 2026-11-19 Hostnames stay out of the README and workflows
@@ -81,6 +82,7 @@ Record a decision:
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-19 The creature faces where it walks; cliffs are escarpments
 - 2026-11-19 First map art: a squashed hex plane with open-edge sides, upright props and four fog states
 - 2026-11-19 Isometric 3D hexes are the long-term goal; the map is built to allow it \[Misa\]
 - 2026-11-19 The look is a light ink-and-wash atlas in pastel, broken colours \[Misa\]

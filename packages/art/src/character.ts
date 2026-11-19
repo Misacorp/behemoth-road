@@ -2,7 +2,7 @@
 import { ART_TUNING } from './config.ts';
 import { boxOf, ellipsePath, mapper, poly, smoothClosed, type Point } from './geom.ts';
 import { accentRamp, type Palette } from './palette.ts';
-import { inkAttrs, inkWidth, type Drawn } from './props.ts';
+import { inkAttrs, type Drawn } from './props.ts';
 import { el, type SvgNode } from './svg.ts';
 
 export interface CharacterArt {
@@ -21,12 +21,12 @@ export function drawCharacter(
   origin: Point,
   size: number,
   squash: number,
+  ink: number,
 ): Drawn {
   const k = (size * ART_TUNING.characterHeight) / HEIGHT_UNITS;
-  const scale = size / ART_TUNING.hexSize;
   const T = mapper(origin, k);
   const ramp = accentRamp(palette, accent);
-  const w = inkWidth(scale) * 0.95;
+  const w = ink * 0.95;
   const pts = (raw: readonly (readonly [number, number])[]): Point[] =>
     raw.map(([x, y]) => T(x, y));
   const inkLine = (d: string, width = w, colour = palette.ink): SvgNode =>

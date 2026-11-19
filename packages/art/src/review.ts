@@ -7,7 +7,7 @@ import { isometric, topDown, type Projection } from './projection.ts';
 import { samplePatch } from './sample.ts';
 import { renderScene } from './scene.ts';
 import { toSvgString } from './svg.ts';
-import { GENTLE_AMBLER } from './creature.ts';
+import { GENTLE_AMBLER, type CreatureFacing } from './creature.ts';
 import { TERRAIN_LOOKS } from './terrain.ts';
 import type { ArtCell } from './tile.ts';
 
@@ -24,8 +24,8 @@ export interface ReviewDraft {
 
 const SEED = 'style-sample-1';
 
-function patch(palette: Palette, projection: Projection): string {
-  const { cells, creature, characters } = samplePatch();
+function patch(palette: Palette, projection: Projection, facing: CreatureFacing = 'right'): string {
+  const { cells, creature, characters } = samplePatch(facing);
   return toSvgString(renderScene({ cells, creature, characters, projection, palette, seed: SEED }));
 }
 
@@ -70,7 +70,7 @@ function propsSheet(): string {
   );
 }
 
-function creatureSheet(): string {
+function creatureSheet(facing: CreatureFacing): string {
   const cells: ArtCell[] = [
     { q: 0, r: 0 },
     { q: 1, r: 0 },
@@ -83,7 +83,7 @@ function creatureSheet(): string {
   return toSvgString(
     renderScene({
       cells,
-      creature: { q: 0, r: 0, facing: 'right', look: GENTLE_AMBLER },
+      creature: { q: 0, r: 0, facing, look: GENTLE_AMBLER },
       projection: isometric(140),
       palette: MIST,
       seed: 'creature-sheet',
@@ -132,6 +132,11 @@ export function buildReviewItems(): ReviewDraft[] {
     pick: 'style-tilt',
     question: 'How strong should the tilt be?',
   } as const;
+  const facingPick = {
+    kind: 'pick',
+    pick: 'creature-facing',
+    question: 'Which way should the creature face when it walks north?',
+  } as const;
   return [
     ...PALETTES.map((palette): ReviewDraft => ({
       id: `style/${palette.id}`,
@@ -166,6 +171,22 @@ export function buildReviewItems(): ReviewDraft[] {
       svg: patch(MIST, topDown(64)),
     },
     {
+      id: 'facing/side',
+      group: 'Creature facing',
+      title: 'Side view',
+      file: 'facing-side.svg',
+      ...facingPick,
+      svg: patch(MIST, isometric(), 'right'),
+    },
+    {
+      id: 'facing/away',
+      group: 'Creature facing',
+      title: 'From behind',
+      file: 'facing-away.svg',
+      ...facingPick,
+      svg: patch(MIST, isometric(), 'away'),
+    },
+    {
       id: 'sheet/terrain',
       group: 'Sheets',
       title: 'Terrain tiles',
@@ -187,7 +208,15 @@ export function buildReviewItems(): ReviewDraft[] {
       title: 'The first creature',
       file: 'creature-gentle-ambler.svg',
       kind: 'glance',
-      svg: creatureSheet(),
+      svg: creatureSheet('right'),
+    },
+    {
+      id: 'creature/gentle-ambler-away',
+      group: 'Sheets',
+      title: 'The first creature from behind',
+      file: 'creature-gentle-ambler-away.svg',
+      kind: 'glance',
+      svg: creatureSheet('away'),
     },
     {
       id: 'sheet/characters',
