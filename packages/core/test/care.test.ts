@@ -155,17 +155,17 @@ describe('signs', () => {
     expect(signs(6, 'keeper')).toBeNull();
     expect(signs(4, 'keeper')).toBeNull();
     expect(signs(7, 'keeper')).toBeNull();
-    expect(signs(3, 'keeper')).toEqual({ kind: 'underfed', level: 1 });
-    expect(signs(2, 'keeper')).toEqual({ kind: 'underfed', level: 2 });
-    expect(signs(1, 'keeper')).toEqual({ kind: 'underfed', level: 3 });
-    expect(signs(0, 'keeper')).toEqual({ kind: 'underfed', level: 3 });
-    expect(signs(8, 'keeper')).toEqual({ kind: 'overfed', level: 1 });
-    expect(signs(9, 'keeper')).toEqual({ kind: 'overfed', level: 2 });
-    expect(signs(10, 'keeper')).toEqual({ kind: 'overfed', level: 3 });
+    expect(signs(3, 'keeper')).toEqual({ kind: 'underfed', level: 1, faint: false });
+    expect(signs(2, 'keeper')).toEqual({ kind: 'underfed', level: 2, faint: false });
+    expect(signs(1, 'keeper')).toEqual({ kind: 'underfed', level: 3, faint: false });
+    expect(signs(0, 'keeper')).toEqual({ kind: 'underfed', level: 3, faint: false });
+    expect(signs(8, 'keeper')).toEqual({ kind: 'overfed', level: 1, faint: false });
+    expect(signs(9, 'keeper')).toEqual({ kind: 'overfed', level: 2, faint: false });
+    expect(signs(10, 'keeper')).toEqual({ kind: 'overfed', level: 3, faint: false });
     expect(signs(3, 'scout')).toBeNull();
     expect(signs(8, null)).toBeNull();
-    expect(signs(2, 'scout')).toEqual({ kind: 'underfed', level: 1 });
-    expect(signs(10, null)).toEqual({ kind: 'overfed', level: 1 });
+    expect(signs(2, 'scout')).toEqual({ kind: 'underfed', level: 1, faint: true });
+    expect(signs(10, null)).toEqual({ kind: 'overfed', level: 1, faint: true });
   });
 
   it("show a keeper the day's reaction cues, and nobody else", () => {

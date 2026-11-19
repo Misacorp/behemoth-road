@@ -23,7 +23,7 @@ This is a prototype slice. One creature, one need (hunger), one stimulus (fire),
 
 ```
 CreatureSigns = {
-  appetite: { kind: 'underfed' | 'overfed', level: 1 | 2 | 3 } | null,
+  appetite: { kind: 'underfed' | 'overfed', level: 1 | 2 | 3, faint: boolean } | null,  // faint: a non-keeper's view (level 1)
   cues: [{ hex: Hex, stimulus: 'fire', reaction: 'toward' | 'away' | 'unmoved' }],  // empty unless the viewer is a keeper
 }
 ```

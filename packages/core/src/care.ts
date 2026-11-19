@@ -101,7 +101,8 @@ const GESTURES: Readonly<Record<Reaction, CueGesture>> = {
 
 /** What one viewer can read off the creature. Not part of the shared view. */
 export interface CreatureSigns {
-  readonly appetite: Appetite | null;
+  /** `faint`: seen by a non-keeper (only levels 2 and 3, reported as level 1). */
+  readonly appetite: (Appetite & { readonly faint: boolean }) | null;
   /** Empty unless the viewer is a keeper. */
   readonly cues: readonly {
     readonly hex: Hex;
@@ -130,9 +131,9 @@ export const creatureSigns = (
   const seen = !appetite
     ? null
     : keeper
-      ? appetite
+      ? { ...appetite, faint: false }
       : appetite.level >= 2
-        ? { kind: appetite.kind, level: 1 as const }
+        ? { kind: appetite.kind, level: 1 as const, faint: true }
         : null;
   const cues =
     keeper && state.care.cues.day === state.day
