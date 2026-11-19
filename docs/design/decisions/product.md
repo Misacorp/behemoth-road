@@ -4,6 +4,20 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: The creature is the party's hub; a tap picks your own character first **[Misa]**
+
+ID: `2026-11-19-the-creature-is-the-party-s` · Status: current · Amends: `2026-11-19-moving-tap-your-character-tap-a`
+
+**Decision.** The creature is the party's hub: tapping it is where the shared expedition information will live (later milestones open it into a drawer). A tap on a place picks the player's own character first, because players can only move their own:
+
+- **You ride the creature:** tapping anywhere on it selects your character, so the hexes you can step off to light up at once, and opens a small bubble by the creature. The bubble holds your character (shown selected), the other riders, and the creature itself as the way into the hub.
+- **You don't ride it:** tapping the creature opens the same bubble without selecting anyone, and the hub is the main thing in it.
+- **Any hex with several characters**, from Milestone 2: the same bubble lists who is there. Your own character is preselected for moving, and choosing another character opens their details (loadout, stats) when those exist.
+
+Riders' figures on the creature's back are not tap targets of their own; the whole creature is.
+
+**Reasoning.** Misa's intuition: the game should assume a player means their own character, since they cannot move anyone else's, and a lightweight bubble can name the others when there is a real choice. This also fixes a figure on the creature's back being a tiny tap target that hid a footprint hex.
+
 ## 2026-11-19: A character's place is a hex or the creature; paths treat the creature as one node
 
 ID: `2026-11-19-a-character-s-place-is-a-2` · Status: current
@@ -99,7 +113,7 @@ ID: `2026-11-19-map-popovers-are-drawn-in-svg` · Status: current
 
 ## 2026-11-19: Moving: tap your character, tap a tile, see the arrow, confirm **[Misa]**
 
-ID: `2026-11-19-moving-tap-your-character-tap-a` · Status: current · Amends: `2026-11-19-touch-first-drag-to-pan-pinch`
+ID: `2026-11-19-moving-tap-your-character-tap-a` · Status: current, amended by `2026-11-19-the-creature-is-the-party-s` · Amends: `2026-11-19-touch-first-drag-to-pan-pinch`
 
 **Decision.** Moving a character takes three taps:
 
