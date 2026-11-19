@@ -5,13 +5,13 @@ What has landed and what is next. Newest first. Update it when a step lands or t
 ## Next
 
 - Milestone 2 (the session): plan and API contract in `docs/design/m2-session.md`; core, worker and web built in parallel on `m2/core`, `m2/worker` and `m2/web`, merged on `m2/integration`.
-- Phone performance: Misa felt input lag on a phone. Measure first (interaction latency and frame cost on a throttled phone profile), then cut the cost; options include rendering the static map layers to a bitmap once per day or zoom step and keeping only overlays as live SVG.
 - Milestone 2 setup: the Discord secrets into GitHub, then the Interactions Endpoint URL after the first deploy (`docs/setup.md`).
 - Before Milestone 2 persists games: pin the content (terrain table) a saved game was made with, so a later content change cannot alter it; and keep the per-tile record from growing without bound (lost tiles could be pruned).
 
 ## Done
 
 - 2026-11-19: Milestone 2 server on `m2/worker`: Discord Activity sign-in (from creatures), one `GuildWorld` Durable Object per server with the game, players and sessions in SQLite, the game API with strict Valibot schemas (move intents take exactly one place shape), the 06:00 Helsinki day tick as the object's alarm with catch-up, the staging-only admin "next day", the Launch interactions endpoint and the deploy's Discord steps, a local dev login, and contract fixtures for the web app captured from the Worker (`pnpm fixtures:capture`, checked in CI).
+- 2026-11-19: Art for Milestone 2: role emblems in a shared frame, an icon system by content icon key with a neutral fallback, icons for the 12 traits and 12 quirks, and varied character looks (headwear, garment, carry, skin; eight accents) seeded by id.
 - 2026-11-19: Phone performance: the map now pans a composited world layer by CSS transform (no re-raster while panning), with memoised scene layers; measured with `apps/web/scripts/perf.mjs`.
 - 2026-11-19: Milestone 1 polish from Misa's first play (branch `m1/map-polish`): Escape and right-click close popovers (right-click behind a setting); popovers point at their subject; grace-day tiles and characters on them are marked, and the grace rule is tested end to end.
 - 2026-11-19: Milestone 1 merged and live: the walking map with riding, the hub bubble, the Spring palette at a high view and the compact creature (PR #4).
