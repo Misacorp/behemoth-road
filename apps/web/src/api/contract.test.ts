@@ -63,6 +63,8 @@ describe('captured contract fixtures', () => {
         'view-lingered',
         'view-keeper-cue',
         'view-not-keeper',
+        'view-care-since',
+        'view-creature-ate',
       ]),
     );
   });
@@ -106,6 +108,14 @@ describe('captured contract fixtures', () => {
     const lit = v.parse(PlayerViewSchema, fixture('view-fire-lit'));
     expect(lit.game.stimuli.length).toBe(1);
     expect(v.parse(PlayerViewSchema, fixture('view-lingered')).game.creature.lingering).toBe(true);
+  });
+
+  it("the tick's fire going out and the creature eating play as moments; its step does not", () => {
+    const kinds = ['view-care-since', 'view-creature-ate'].map((name) => {
+      const view = v.parse(PlayerViewSchema, fixture(name));
+      return momentsFromEvents(view.events, view.game.creature.centre, '').map((m) => m.kind);
+    });
+    expect(kinds).toEqual([['fire-out'], ['ate']]);
   });
 
   it.each(errors.map((e) => [e.route, e.status, e.body] as const))(
