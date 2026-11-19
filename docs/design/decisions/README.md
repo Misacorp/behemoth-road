@@ -49,6 +49,7 @@ Record a decision:
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
+- 2026-11-20 The Durable Object keeps the last 100 game events for clients to replay
 - 2026-11-20 The core state holds exploration, packs, stores and unlocks; no glints, no migration
 - 2026-11-20 The Worker replaces an outdated game on start and refuses an unreadable one with 503
 - 2026-11-20 Features live in the state per hex; the view carries revealed ones and team glints; version-2 games migrate

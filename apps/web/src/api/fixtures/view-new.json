@@ -617,5 +617,7 @@
     "project": null
   },
   "players": [],
-  "devTools": true
+  "devTools": true,
+  "events": [],
+  "eventsTruncated": false
 }

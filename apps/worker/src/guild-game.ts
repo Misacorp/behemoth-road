@@ -20,7 +20,7 @@ import {
   moveWithEvents,
   type EventResult,
   type GameEvent,
-  nextDay,
+  tickWithEvents,
   replaceCharacter,
   toPlayerView,
   type CharacterOffer,
@@ -112,9 +112,12 @@ function readState(text: string): GameState {
   }
 }
 
+/** A game event as clients get it: the core's event and the game version that produced it. */
+export type VersionedEvent = GameEvent & { readonly version: number };
+
 type EventStop = Extract<EventResult, { ok: true }>['stopped'];
 
-const { tick, sessions, rateLimits, adminCacheMs, maxCatchUpTicks } = SERVER_CONFIG;
+const { eventLogSize, tick, sessions, rateLimits, adminCacheMs, maxCatchUpTicks } = SERVER_CONFIG;
 
 export class GuildGame {
   private readonly limiter: TokenBucketLimiter;
@@ -158,7 +161,10 @@ export class GuildGame {
         if (!(err instanceof OutdatedGameError)) return;
       }
       const state = createGame(this.options.newSeed(), { artSeed: this.options.newArtSeed() });
-      this.writeGame(state);
+      const version = this.writeGame(state);
+      // The old game's events mean nothing now: a client that saw it is told it missed some.
+      this.sql.exec('DELETE FROM events');
+      this.sql.exec('UPDATE game SET events_pruned_through = ? WHERE id = 1', version - 1);
     });
   }
 
@@ -311,7 +317,63 @@ export class GuildGame {
   }
 
   /** Writes a changed state and bumps the version. Call inside a transaction. */
-  private writeGame(state: GameState, nextTickAt?: number): void {
+  private writeGame(
+    state: GameState,
+    nextTickAt?: number,
+    events: readonly GameEvent[] = [],
+  ): number {
+    this.writeState(state, nextTickAt);
+    const version = this.sql
+      .exec<{ version: number }>('SELECT version FROM game WHERE id = 1')
+      .one().version;
+    this.logEvents(version, events);
+    return version;
+  }
+
+  /**
+   * Keeps the events of a change, stamped with its version, and drops the oldest past `eventLogSize`,
+   * remembering the highest dropped version. Call inside a transaction.
+   */
+  private logEvents(version: number, events: readonly GameEvent[]): void {
+    for (const event of events) {
+      this.sql.exec(
+        'INSERT INTO events (version, event) VALUES (?, ?)',
+        version,
+        JSON.stringify(event),
+      );
+    }
+    const dropped = this.sql
+      .exec<{ v: number | null }>(
+        'SELECT MAX(version) AS v FROM events WHERE seq <= (SELECT MAX(seq) FROM events) - ?',
+        eventLogSize,
+      )
+      .one().v;
+    if (dropped === null) return;
+    this.sql.exec('DELETE FROM events WHERE version <= ?', dropped);
+    this.sql.exec(
+      'UPDATE game SET events_pruned_through = MAX(events_pruned_through, ?) WHERE id = 1',
+      dropped,
+    );
+  }
+
+  /** The kept events after `since`, oldest first, each with its version, and whether some were dropped. */
+  private eventsSince(since: number): { events: VersionedEvent[]; eventsTruncated: boolean } {
+    const rows = this.sql
+      .exec<{ version: number; event: string }>(
+        'SELECT version, event FROM events WHERE version > ? ORDER BY seq',
+        since,
+      )
+      .toArray();
+    const pruned = this.sql
+      .exec<{ p: number }>('SELECT events_pruned_through AS p FROM game WHERE id = 1')
+      .one().p;
+    return {
+      events: rows.map((r) => ({ ...(JSON.parse(r.event) as GameEvent), version: r.version })),
+      eventsTruncated: since < pruned,
+    };
+  }
+
+  private writeState(state: GameState, nextTickAt?: number): void {
     if (nextTickAt === undefined) {
       this.sql.exec(
         'UPDATE game SET state = ?, version = version + 1 WHERE id = 1',
@@ -346,12 +408,17 @@ export class GuildGame {
       const game = this.readGame();
       if (game === null || t < game.nextTickAt) return;
       let { state, nextTickAt } = game;
+      // Each tick is its own version, so its events are stamped with it.
       for (let i = 0; i < maxCatchUpTicks && t >= nextTickAt; i++) {
-        state = nextDay(state);
+        const ticked = tickWithEvents(state);
+        state = ticked.state;
         nextTickAt = nextOccurrence(nextTickAt, tick.hour, tick.minute, tick.timeZone);
+        // Ticks beyond the limit are skipped: the schedule jumps to the next one after now.
+        if (i === maxCatchUpTicks - 1 && t >= nextTickAt) {
+          nextTickAt = nextOccurrence(t, tick.hour, tick.minute, tick.timeZone);
+        }
+        this.writeGame(state, nextTickAt, ticked.events);
       }
-      if (t >= nextTickAt) nextTickAt = nextOccurrence(t, tick.hour, tick.minute, tick.timeZone);
-      this.writeGame(state, nextTickAt);
     });
     const game = this.readGame();
     if (game === null) return;
@@ -428,7 +495,10 @@ export class GuildGame {
     const game = this.readGame();
     if (game === null) return errorResponse('no_game', 409);
     if (since !== null && Number(since) === game.version) return json({ unchanged: true });
-    return json(await this.view(user, game));
+    // Without `since` (a first load) there is nothing to replay; with it, every kept event after it.
+    const log =
+      since === null ? { events: [], eventsTruncated: false } : this.eventsSince(Number(since));
+    return json({ ...(await this.view(user, game)), ...log });
   }
 
   /** Join (the first character) or replace (a lost one): the same pick of an offer and a role. */
@@ -483,7 +553,7 @@ export class GuildGame {
     version: number,
     rule: (state: GameState, characterId: string) => EventResult,
   ): Promise<Response> {
-    let outcome: { events: readonly GameEvent[]; stopped: EventStop } = {
+    let outcome: { events: readonly VersionedEvent[]; stopped: EventStop } = {
       events: [],
       stopped: null,
     };
@@ -495,8 +565,11 @@ export class GuildGame {
       if (character === undefined) return 'no-character';
       const result = rule(game.state, character.id);
       if (!result.ok) return result.reason;
-      this.writeGame(result.state);
-      outcome = { events: result.events, stopped: result.stopped };
+      const written = this.writeGame(result.state, undefined, result.events);
+      outcome = {
+        events: result.events.map((e) => ({ ...e, version: written })),
+        stopped: result.stopped,
+      };
       return null;
     });
     if (refusal !== null) return errorResponse(refusal, 409);
@@ -520,7 +593,10 @@ export class GuildGame {
     this.storage.transactionSync(() => {
       const game = this.readGame();
       // The schedule is left alone: the next scheduled tick still comes at its time.
-      if (game !== null) this.writeGame(nextDay(game.state));
+      if (game !== null) {
+        const ticked = tickWithEvents(game.state);
+        this.writeGame(ticked.state, undefined, ticked.events);
+      }
     });
     return this.currentView(user);
   }
