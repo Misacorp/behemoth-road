@@ -2,6 +2,7 @@ import { hexKey, hiddenFeatureKeys, legalMoves } from '@behemoth-road/core';
 import { describe, expect, it } from 'vitest';
 import { CONTENT_VERSION, type GameState } from '../src/game-core.ts';
 import type { PlayerView } from '../src/guild-game.ts';
+import { SERVER_CONFIG } from '../src/server-config.ts';
 import { MISA, ROBIN, USER_ID, runGame, type GameContext } from './helpers.ts';
 
 const asView = (body: unknown) => body as PlayerView & { events?: unknown[] };
@@ -142,6 +143,7 @@ describe('actions that succeed', () => {
           characterId: ME,
           material: 'iron',
           amount: expect.any(Number) as number,
+          version: version + 1,
         },
       ]);
       const me = view.game.characters.find((c) => c.id === ME);
@@ -168,7 +170,12 @@ describe('moves report what happened on the way', () => {
       expect(res.status).toBe(200);
       const view = asView(res.body) as PlayerView & { events: unknown[]; stopped: unknown };
       expect(view.stopped).toEqual({ step: 0, reason: 'trap' });
-      expect(view.events).toContainEqual({ kind: 'trap', hex, characterId: ME });
+      expect(view.events).toContainEqual({
+        kind: 'trap',
+        hex,
+        characterId: ME,
+        version: version + 1,
+      });
       expect(view.game.characters.find((c) => c.id === ME)?.actionsLeft).toBe(0);
     });
   });
@@ -199,7 +206,7 @@ describe('moves report what happened on the way', () => {
         if (event.hex !== undefined) expect(event.hex).toEqual(hex);
       }
       expect(view.events.filter((e) => e.kind === 'reveal')).toEqual([
-        { kind: 'reveal', hex, feature: 'iron-deposit' },
+        { kind: 'reveal', hex, feature: 'iron-deposit', version: version + 1 },
       ]);
       expect(JSON.stringify(view.events)).not.toContain('timber-stand');
       // ctx.call has also checked the whole view against the stored hidden features.
@@ -289,6 +296,102 @@ describe('requests at the same version', () => {
       const statuses = [a.status, b.status].sort();
       expect(statuses).toEqual([200, 409]);
       expect([a.body, b.body]).toContainEqual({ error: 'stale' });
+    });
+  });
+});
+
+describe('the event log', () => {
+  /** Puts a hidden iron deposit on the next hex and walks there: three events (explore, reveal). */
+  async function walk(ctx: GameContext, token: string) {
+    const hex = nextHex(ctx.sql);
+    edit(ctx.sql, (s) => ({
+      ...s,
+      features: {
+        ...s.features,
+        [hexKey(hex)]: { type: 'iron-deposit', revealed: false, left: 3 },
+      },
+    }));
+    const version = asView((await ctx.call(token, 'GET', '/api/game')).body).version;
+    const res = await ctx.call(token, 'POST', '/api/game/move', {
+      version,
+      path: [{ kind: 'hex', hex }],
+    });
+    expect(res.status).toBe(200);
+    return { hex, before: version, after: version + 1, events: asView(res.body).events ?? [] };
+  }
+
+  it('gives other players the events after their version, stamped with it', async () => {
+    await runGame(async (ctx) => {
+      const robin = await ctx.signIn(ROBIN);
+      const { token } = await joined(ctx);
+      const walked = await walk(ctx, token);
+      expect(walked.events.length).toBeGreaterThan(0);
+      const res = await ctx.call(robin, 'GET', `/api/game?since=${String(walked.before)}`);
+      const view = res.body as PlayerView & {
+        events: { version: number }[];
+        eventsTruncated: boolean;
+      };
+      expect(view.events).toEqual(walked.events);
+      expect(view.events.every((e) => e.version === walked.after)).toBe(true);
+      expect(view.eventsTruncated).toBe(false);
+      // Nothing after the newest version; a first load replays nothing.
+      expect(
+        (await ctx.call(robin, 'GET', `/api/game?since=${String(walked.after)}`)).body,
+      ).toEqual({
+        unchanged: true,
+      });
+      const first = (await ctx.call(robin, 'GET', '/api/game')).body as { events: unknown[] };
+      expect(first.events).toEqual([]);
+    });
+  });
+
+  it('keeps only the last events and says when a client missed some', async () => {
+    await runGame(async (ctx) => {
+      const { token } = await joined(ctx);
+      const start = asView((await ctx.call(token, 'GET', '/api/game')).body).version;
+      // Fill the log past its size with the stored game unchanged (events only).
+      ctx.sql.exec(
+        `WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n WHERE i < ?)
+         INSERT INTO events (version, event) SELECT ?, '{"kind":"explore","hex":{"q":0,"r":0}}' FROM n`,
+        SERVER_CONFIG.eventLogSize + 5,
+        start,
+      );
+      const walked = await walk(ctx, token);
+      const kept = ctx.sql.exec<{ n: number }>('SELECT COUNT(*) AS n FROM events').one().n;
+      expect(kept).toBeLessThanOrEqual(SERVER_CONFIG.eventLogSize);
+      const late = (await ctx.call(token, 'GET', `/api/game?since=${String(start - 1)}`)).body as {
+        events: { version: number }[];
+        eventsTruncated: boolean;
+      };
+      expect(late.eventsTruncated).toBe(true);
+      expect(late.events.every((e) => e.version === walked.after)).toBe(true);
+      const recent = (await ctx.call(token, 'GET', `/api/game?since=${String(walked.before)}`))
+        .body as { eventsTruncated: boolean };
+      expect(recent.eventsTruncated).toBe(false);
+    });
+  });
+
+  it('logs nothing for a refused action, and starts over with a replaced game', async () => {
+    await runGame(async (ctx) => {
+      const { token, version } = await joined(ctx);
+      await walk(ctx, token);
+      const count = () => ctx.sql.exec<{ n: number }>('SELECT COUNT(*) AS n FROM events').one().n;
+      const before = count();
+      expect(
+        (await ctx.call(token, 'POST', '/api/game/act', { version: 1, action: { kind: 'gather' } }))
+          .status,
+      ).toBe(409);
+      expect(count()).toBe(before);
+      ctx.sql.exec(
+        'UPDATE game SET state = ? WHERE id = 1',
+        JSON.stringify({ ...storedState(ctx.sql), contentVersion: CONTENT_VERSION - 1 }),
+      );
+      ctx.game.migrate();
+      expect(count()).toBe(0);
+      const after = (await ctx.call(token, 'GET', `/api/game?since=${String(version)}`)).body as {
+        eventsTruncated: boolean;
+      };
+      expect(after.eventsTruncated).toBe(true);
     });
   });
 });

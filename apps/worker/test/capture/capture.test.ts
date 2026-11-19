@@ -100,6 +100,10 @@ describe('capture', () => {
           version: await versionNow(),
           path: [target],
         });
+        // Robin catches up on Misa's walk: the view and the walk's events.
+        const since = await ctx.call(robin, 'GET', `/api/game?since=${String(moved.version - 1)}`);
+        expect(since.status).toBe(200);
+        responses['view-since'] = since.body;
         responses['unchanged'] = (
           await ctx.call(misa, 'GET', `/api/game?since=${String(moved.version)}`)
         ).body;

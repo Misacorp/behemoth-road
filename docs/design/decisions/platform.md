@@ -4,6 +4,14 @@ Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: The Durable Object keeps the last 100 game events for clients to replay
+
+ID: `2026-11-20-the-durable-object-keeps-the-last` · Status: current
+
+**Decision.** Every change that produces game events writes them to an `events` table, each stamped with the game version it produced (every catch-up tick is now its own version). The last 100 are kept (`SERVER_CONFIG.eventLogSize`); `events_pruned_through` on the game row remembers the highest dropped version. `GET /api/game?since=v` returns the view plus the kept events after `v` and `eventsTruncated` when the client missed some; a replaced game clears the log and marks everything before it as missed. Act and move answers stamp their own events with the version too. The tick's events go through one adapter (`tickWithEvents`), which logs none until the core's tick reports them.
+
+**Reasoning.** The web was guessing other players' moments from differences between views, which breaks as soon as two things change at once. A short server-side log is exact and cheap at this scale (a few changes a day per player); a client that falls far behind just reloads the view without the moments.
+
 ## 2026-11-20: The core state holds exploration, packs, stores and unlocks; no glints, no migration
 
 ID: `2026-11-20-the-core-state-holds-exploration-packs-2` · Status: current

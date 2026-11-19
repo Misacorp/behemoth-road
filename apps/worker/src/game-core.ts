@@ -6,6 +6,7 @@
 import {
   act,
   moveAlong,
+  nextDay,
   UNLOCKS,
   ROLES,
   type Action,
@@ -54,6 +55,14 @@ export type EventResult =
       readonly stopped: { readonly step: number; readonly reason: 'trap' } | null;
     }
   | { readonly ok: false; readonly reason: string };
+
+/** The day tick with its events (the core's `nextDay` reports none yet). */
+export function tickWithEvents(state: GameState): {
+  state: GameState;
+  events: readonly GameEvent[];
+} {
+  return { state: nextDay(state), events: [] };
+}
 
 /** The core's walk, with the events on the way and where a trap stopped it. */
 export function moveWithEvents(
