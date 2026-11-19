@@ -31,7 +31,7 @@ export default defineConfig(
     // Node scripts run by CI or agents with plain `node` (no dependencies).
     files: [
       'scripts/**/*.mjs',
-      'apps/*/scripts/**/*.mjs',
+      'apps/worker/scripts/**/*.mjs',
       '.claude/skills/**/*.mjs',
       '.claude/hooks/**/*.mjs',
     ],
