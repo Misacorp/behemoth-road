@@ -36,3 +36,6 @@ worker-configuration.d.ts
 
 # Agent screenshots for review pages (never committed)
 screenshots/
+
+# Art review export (pnpm --filter @behemoth-road/art review)
+packages/art/review-out/
