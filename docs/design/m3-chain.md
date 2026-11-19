@@ -1,59 +1,60 @@
 # Milestone 3: the first chain
 
-The plan for Milestone 3 (`docs/PROTOTYPE_PLAN.md`): prove that roles depend on each other with three roles, Scout, Engineer and Scholar. A scout finds a site and a resource node, an engineer gathers and crafts something that changes how everyone moves, and a scholar opens the site with help from that chain. Every number below is a starting value in the tuning config or content data; change it there.
+The plan for Milestone 3 (`docs/PROTOTYPE_PLAN.md`): prove that roles depend on each other with three roles, Scout, Engineer and Scholar. A scout finds a site and a resource node, an engineer turns gathered materials into a permanent unlock that changes how everyone moves, and a scholar opens the site with help from that chain. Every number below is a starting value in the tuning config or content data; change it there.
+
+This is a prototype slice. The content (three nodes, two tomb tiers, two traps, three unlocks) and the effects (a trap ends your day) are placeholders to prove the loop; the world, the trap effects and the rewards are meant to become far more varied. Role abilities beyond the base ones (a scout's trap sense, an engineer's better yield) come later as upgrades.
+
+## Exploration and fog of war
+
+- A hex in the window is **unexplored** until a character enters it or surveys it, then **explored** for everyone. Unexplored hexes show their terrain under a light veil, clearly different from explored ground and from the blank paper beyond the window.
+- Exploring a hex reveals its **feature**, if it has one. Most hexes hold nothing.
 
 ## What hexes can hold (content as data)
 
-Each hex may hold one hidden **feature**, generated on the server from the seed (most hexes hold nothing). Kinds, each with tags:
+- **Resource nodes**: an iron deposit (desert, cliff edges), river stones (river), a timber stand (forest). A few charges each.
+- **Sites**: tombs in two tiers. Tier 2 needs the lantern unlock.
+- **Traps**: a snare and a pitfall. **Anyone** entering a hex with a hidden trap springs it: for now that ends the character's day (actions to zero). A revealed trap is harmless.
 
-- **Resource nodes**: an iron deposit (desert, cliff edges), sturdy river stones (river), a timber stand (forest). Each has a few charges and yields a material when gathered.
-- **Sites**: a tomb in two tiers. Tier 1 needs only time; tier 2 also needs an item (a lantern).
-- **Traps**: a snare or a pitfall. A trap triggered by a character ends that character's day (actions to zero). A revealed trap is harmless.
+Hidden features never reach the client.
 
-A feature is **hidden** until revealed. Hidden features never reach the client: the player view carries only revealed features, plus a faint **glint** on hexes a scout can sense (see Scout).
+## Roles in this milestone (base abilities only)
 
-## Roles (fixed perks, no skill trees)
+Anyone can try the basics; the specialist does it better.
 
-Anyone can try the basics; the specialist does it clearly better.
+- **Scout: survey.** Reveal an adjacent hex (its feature, a trap included, which is then harmless) without entering it: 1 action for a scout, 2 for anyone else. Trap sense, glints and immunity are future scout upgrades, kept in data but not active.
+- **Engineer: builds unlocks.** Only engineers work on unlocks (see Unlocks).
+- **Scholar: works sites.** Tier 1: 70 % for a scholar, 35 % for others; tier 2: scholars only, 50 %.
 
-- **Scout**: entering a hex reveals its feature for everyone and never triggers a trap there. A scout also senses the neighbouring hexes: a glint marks those that hold something (not what it is). Others entering a hex reveal its feature too, but trigger a hidden trap.
-- **Engineer**: gathers twice the yield. Crafts from recipes, at most one craft per engineer per day. Others may craft tier-1 recipes at one extra material.
-- **Scholar**: works sites with a better success chance (tier 1: 70 %, tier 2: 50 %; others: 35 % on tier 1 and cannot try tier 2).
+## Carrying, stores and unlocks
+
+- **Packs:** each character carries a pack (capacity 6 units, config). Gathering and finds go into the pack of the character who did it. A lost character's pack is lost.
+- **Team stores** live on the creature. A character on the creature (riding, or boarding) puts their whole pack into the stores automatically. Materials are only usable for unlocks from the stores, so gathering means a trip out and back.
+- **Unlocks** are permanent for the whole team. Each has a material cost (taken from the stores when the work starts) and a duration in work: engineers riding the creature spend actions on it, one action is one work. Several engineers can work on the same unlock. One unlock is in progress at a time.
+  - Grappling hook: 2 iron, 1 timber, 4 work. Cliffs can be entered at a cost of 2; the path step carries `via: 'grappling-hook'`.
+  - Lantern: 1 stone, 1 timber, 3 work. Tier-2 tombs can be worked.
+  - Climbing spikes: 1 ancient alloy, 1 iron, 6 work. Cliffs cost 1 instead of 2.
 
 ## Actions (each costs actions from the day's three)
 
-- **Gather** at a revealed node you stand on: 1 action, the yield goes to the shared team inventory, one charge is spent.
-- **Craft** a recipe from the team inventory: 1 action. Crafted items belong to the team.
-- **Work a site** you stand on: 2 actions. Success is a seeded roll (game seed, day, character, site), so it is fair and repeatable but unknown in advance. Success returns a find (a rare material) and the site is spent; failure keeps the site for another try.
-
-## Items and the movement chain
-
-- **Recipes** (data): grappling hook (2 iron, 1 timber), lantern (1 stone, 1 timber), climbing spikes (1 ancient alloy, 1 iron).
-- **Grappling hook** (team item): every character can enter cliff hexes, at a cost of 2. The path step carries `via: 'grappling-hook'`, so the arrow shows it.
-- **Climbing spikes** (needs the scholar's find): cliffs cost 1 instead of 2.
-- **Lantern**: needed to work tier-2 sites.
-
-The chain: a scout reveals nodes and a tomb, an engineer gathers and crafts a grappling hook and a lantern, a scholar opens the tier-2 tomb for ancient alloy, and the engineer turns it into climbing spikes.
+- **Survey** an adjacent hex: 1 (scout) or 2.
+- **Gather** at an explored node you stand on: 1 action, one unit into your pack, one charge spent. A full pack refuses.
+- **Work a site** you stand on: 2 actions. A seeded roll (game seed, day, character, site): success puts the find in your pack and spends the site; failure keeps it. Tier-1 tombs find old coin, tier-2 tombs ancient alloy.
+- **Work on an unlock** (engineers, riding): 1 action = 1 work. Starting an unlock takes its materials from the stores.
 
 ## State, view and API
 
-- Core state gains `features` (per hex, hidden or revealed, with charges), `inventory` (team materials and items) and per-day craft counters. The view carries revealed features, glints the viewing player's party has sensed, and the inventory.
-- **Content version 3**, with a migration from version 2 (`migrateGame`), so the live production game keeps its characters and map; features are generated for hexes as they come into view.
-- One new route: `POST /api/game/act` with `{ version, action }`, where `action` is `{ kind: 'gather' }`, `{ kind: 'craft', recipe }` or `{ kind: 'work-site' }`, all for the player's own character at their place. Strict schemas; refusals as `409 { error }`. The result of a site roll is in the returned view (the find, or the site still there).
-- `POST /api/game/act` and `POST /api/game/move` answer the new `PlayerView` plus `events`: what happened, in order, for the map's short moments, for example `[{ kind: 'revealed', hex }, { kind: 'trap', hex }]` (the core's event list, passed through; empty when nothing happened). A move that a trap stops answers `200` with the shorter walk and its `trap` event, not a refusal. `GET /api/game` carries no events.
+- Core state: per-tile `explored`, features, character `pack`, team `stores`, `unlocks` (done) and the one `project` in progress (unlock id and work done).
+- **No migration:** before a stable release, a stored game with an older content version is replaced by a new game (Misa: everything can be wiped).
+- `POST /api/game/act` with `{ version, action }`: `{ kind: 'survey', hex }`, `{ kind: 'gather' }`, `{ kind: 'work-site' }`, `{ kind: 'build', unlock }`. Act and move answer `{ ...PlayerView, events, stopped }`.
 
 ## Interface
 
-- A tap on your own hex shows its feature and the actions there in the popover (gather, work site), each with its action cost as pips; confirm spends.
-- A team inventory view: a drawer (bottom on phones, side on desktop) with materials and items as icons and counts, and the recipes as cards an engineer (or anyone, at extra cost) can craft from.
-- Reveals, finds and a triggered trap get a short visual moment on the map; no prose.
-- Glints are the art kit's hint mark.
+- The veil on unexplored hexes; explored ground clear.
+- Tap your own hex: its feature and the actions there with pip costs. Tap an adjacent unexplored hex: survey.
+- Your pack on the HUD (a satchel with a fill mark); tapping it shows the contents.
+- The creature's hub (the bubble's creature entry) opens a drawer with the team stores, the unlocks done, and the unlock in progress with its work bar. Engineers riding can start or work on an unlock there.
+- Moments for a reveal, a find, a trap and a finished unlock; no prose.
 
 ## Sessions and branches
 
-- **Core** (`m3/core`): content, generation, the rules above, the migration.
-- **Worker** (`m3/worker`): the act route, migration on load, fixtures.
-- **Web** (`m3/web`): the actions in the popover, the inventory drawer, the moments.
-- **Art** (`m3/art`): node, site and trap drawings and their revealed states, item and material icons, the glint, the "moment" marks.
-
-The lead merges them on `m3/integration`.
+Core, worker, web and art on `m3/core`, `m3/worker`, `m3/web` and `m3/art`, merged by the lead on `m3/integration`.
