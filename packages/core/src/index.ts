@@ -148,7 +148,7 @@ export {
   placeNeighbours,
   toPlace,
 } from './places.ts';
-export { nextDay } from './tick.ts';
+export { nextDay, nextDayWithEvents } from './tick.ts';
 export { createGame, type CreateGameOptions } from './game.ts';
 export {
   addCharacter,

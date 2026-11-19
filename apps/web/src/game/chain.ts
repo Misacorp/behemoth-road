@@ -84,9 +84,9 @@ export function actionsAt(game: GameStateView, characterId: string): PossibleAct
   const out: PossibleAction[] = [];
   for (const { action, check } of actionsHere(game, characterId)) {
     if (action.kind !== 'gather' && action.kind !== 'work-site') continue;
-    const cost = action.kind === 'gather' ? game.config.gatherCost : game.config.workSiteCost;
     if (check.ok) out.push({ kind: action.kind, cost: check.cost, enabled: true });
-    else if (NOT_NOW.has(check.reason)) out.push({ kind: action.kind, cost, enabled: false });
+    else if (NOT_NOW.has(check.reason) && check.cost !== undefined)
+      out.push({ kind: action.kind, cost: check.cost, enabled: false });
   }
   return out;
 }
@@ -99,13 +99,8 @@ export function surveyOf(
 ): { readonly cost: number; readonly enabled: boolean } | null {
   const check = checkAction(game, characterId, { kind: 'survey', hex: h });
   if (check.ok) return { cost: check.cost, enabled: true };
-  if (check.reason !== 'not-enough-actions') return null;
-  const me = game.characters.find((c) => c.id === characterId);
-  const scout = ROLES.find((r) => r.id === me?.role)?.tags.includes('survey') ?? false;
-  return {
-    cost: scout ? game.config.surveyCostSpecialist : game.config.surveyCostOther,
-    enabled: false,
-  };
+  if (check.reason !== 'not-enough-actions' || check.cost === undefined) return null;
+  return { cost: check.cost, enabled: false };
 }
 
 export interface UnlockOption {
@@ -113,8 +108,8 @@ export interface UnlockOption {
   readonly done: boolean;
   /** Work done, while it is the unlock in progress; null otherwise. */
   readonly work: number | null;
-  /** Whether the stores hold its cost (only matters before it starts). */
-  readonly affordable: boolean;
+  /** Materials the stores lack to start it (the core's answer); empty when they hold its cost. */
+  readonly missing: readonly { readonly material: string; readonly amount: number }[];
   /** Whether this character can start or work on it now. */
   readonly enabled: boolean;
   readonly cost: number;
@@ -129,10 +124,9 @@ export function unlockOptions(game: GameStateView, characterId: string): UnlockO
       unlock,
       done: game.unlocks.includes(unlock.id),
       work,
-      affordable:
-        work !== null || unlock.cost.every((c) => (game.stores[c.material] ?? 0) >= c.amount),
+      missing: check.ok ? [] : (check.missing ?? []),
       enabled: check.ok,
-      cost: check.ok ? check.cost : game.config.buildCost,
+      cost: check.cost ?? 0,
     };
   });
 }

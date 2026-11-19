@@ -77,6 +77,8 @@ export function toView(s: Scenario): PlayerView {
       };
     }),
     devTools: true,
+    events: [],
+    eventsTruncated: false,
   };
 }
 

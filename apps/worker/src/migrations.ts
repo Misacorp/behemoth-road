@@ -42,6 +42,18 @@ export const MIGRATIONS: readonly Migration[] = [
     )`);
     sql.exec('CREATE INDEX sessions_user_id ON sessions(user_id)');
   },
+  (sql) => {
+    // The last game events (the core's `GameEvent`s, JSON), each with the game version that produced it,
+    // so clients can show other players' moments after `since`. `events_pruned_through` is the highest
+    // version whose events have been dropped: a `since` below it means the client missed some.
+    sql.exec(`CREATE TABLE events (
+      seq INTEGER PRIMARY KEY AUTOINCREMENT,
+      version INTEGER NOT NULL,
+      event TEXT NOT NULL
+    )`);
+    sql.exec('CREATE INDEX events_version ON events(version)');
+    sql.exec('ALTER TABLE game ADD COLUMN events_pruned_through INTEGER NOT NULL DEFAULT 0');
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

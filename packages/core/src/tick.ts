@@ -25,9 +25,9 @@ import {
   stimulusType,
 } from './care.ts';
 import { chooseCreatureStep } from './creature.ts';
+import { addFeatures, depositPack, type GameEvent, keyToHex, pruneFeatures } from './features.ts';
 import { hexDistance } from './hex.ts';
 import { hashString, hashToUnit } from './random.ts';
-import { addFeatures, depositPack, keyToHex, pruneFeatures } from './features.ts';
 import { ON_CREATURE } from './places.ts';
 import type { Care, Character, Creature, GameState, Materials, Stimulus } from './state.ts';
 import { isCreatureHex, isReachable, pruneLostTiles, updateTiles } from './window.ts';
@@ -53,13 +53,14 @@ const starvingMeal = (state: GameState, stores: Materials): string | null => {
 const careAfter = (
   state: GameState,
   day: number,
-): { readonly care: Care; readonly stores: Materials } => {
+): { readonly care: Care; readonly stores: Materials; readonly ate: string | null } => {
   const { hunger } = creatureType(state.nature.type);
   const list = state.stimuli
     .filter((s) => hexDistance(state.creature.centre, s.hex) <= state.config.stimulusRange)
     .map((s) => ({ hex: s.hex, stimulus: s.type, reaction: reactionTo(state.nature, s) }));
   let satiety = Math.max(0, state.care.satiety - hunger.drainPerDay);
   let stores = state.stores;
+  let ate: string | null = null;
   const drained = appetiteOf({ ...state, care: { ...state.care, satiety } });
   if (drained?.kind === 'underfed' && drained.level === MAX_SIGN_LEVEL) {
     const meal = starvingMeal(state, stores);
@@ -70,16 +71,25 @@ const careAfter = (
       else delete next[meal];
       stores = next;
       satiety = Math.min(hunger.max, satiety + nourishment(meal));
+      ate = meal;
     }
   }
-  return { care: { satiety, cues: { day, list } }, stores };
+  return { care: { satiety, cues: { day, list } }, stores, ate };
 };
 
-/** Stimuli still burning after the tick that ends `day - 1`. */
-const stimuliAfter = (stimuli: readonly Stimulus[], day: number): Stimulus[] =>
-  stimuli.filter((s) => s.litDay + stimulusType(s.type).lastsTicks > day);
+/** Whether a stimulus still burns after the tick that ends `day - 1`. */
+const burnsOn = (s: Stimulus, day: number): boolean =>
+  s.litDay + stimulusType(s.type).lastsTicks > day;
 
-export const nextDay = (state: GameState): GameState => {
+/**
+ * The day tick, with what happened, in order: the creature's step (from equals
+ * to when it lingered), what a starving creature ate, each fire that went out,
+ * pick-up deposits, losses, the day. Events are public: none carries the
+ * creature's reactions, hunger or cues.
+ */
+export const nextDayWithEvents = (
+  state: GameState,
+): { readonly state: GameState; readonly events: readonly GameEvent[] } => {
   const day = state.day + 1;
   const step = chooseCreatureStep(state);
   const creature: Creature = {
@@ -88,7 +98,7 @@ export const nextDay = (state: GameState): GameState => {
     lingering: false,
     lingeredDay: state.creature.lingering ? state.day : state.creature.lingeredDay,
   };
-  const { care, stores } = careAfter(state, day);
+  const { care, stores, ate } = careAfter(state, day);
   const tiles = updateTiles(state.tiles, creature.centre, day, state.config, state.seed);
   const newHexes = Object.keys(tiles)
     .filter((key) => !state.tiles[key])
@@ -108,9 +118,17 @@ export const nextDay = (state: GameState): GameState => {
     features,
     care,
     stores,
-    stimuli: stimuliAfter(state.stimuli, day),
+    stimuli: state.stimuli.filter((s) => burnsOn(s, day)),
   };
   const actionsLeft = state.config.actionsPerDay;
+  const events: GameEvent[] = [
+    { kind: 'creature-step', from: state.creature.centre, to: creature.centre },
+  ];
+  if (ate) events.push({ kind: 'creature-ate', material: ate });
+  for (const s of state.stimuli) {
+    if (!burnsOn(s, day)) events.push({ kind: 'fire-out', hex: s.hex, stimulus: s.type });
+  }
+  const lost: GameEvent[] = [];
 
   const characters = state.characters.map((c): Character => {
     if (c.status !== 'active') return { ...c, actionsLeft: 0 };
@@ -119,10 +137,19 @@ export const nextDay = (state: GameState): GameState => {
     if (isCreatureHex(moved, c.at.hex)) return { ...fresh, at: ON_CREATURE };
     if (isReachable(moved, c.at.hex)) return fresh;
     // Lost for good, and the pack with them.
+    lost.push({ kind: 'lost', characterId: c.id, hex: c.at.hex });
     return { ...c, status: 'lost', actionsLeft: 0, pack: {} };
   });
   // Anyone now on the creature (picked up by it today) empties their pack into the stores.
   let settled: GameState = { ...moved, characters };
-  for (const c of characters) settled = depositPack(settled, c.id).state;
-  return pruneFeatures({ ...settled, tiles: pruneLostTiles(settled) });
+  for (const c of characters) {
+    const deposited = depositPack(settled, c.id);
+    settled = deposited.state;
+    events.push(...deposited.events);
+  }
+  events.push(...lost, { kind: 'day', day });
+  return { state: pruneFeatures({ ...settled, tiles: pruneLostTiles(settled) }), events };
 };
+
+/** The day tick (see `nextDayWithEvents` for what happened). */
+export const nextDay = (state: GameState): GameState => nextDayWithEvents(state).state;

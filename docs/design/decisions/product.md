@@ -4,13 +4,29 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: M4 tick events: a linger is a creature-step that stays; fire-out and creature-ate are public
+
+ID: `2026-11-20-m4-tick-events-a-linger-is` · Status: current
+
+**Decision.** In `nextDayWithEvents`, a creature that lingered still gets its `creature-step` event, with `from` equal to `to`, rather than a separate `lingered` event. Each fire that burns out gives `{ kind: 'fire-out', hex, stimulus }`. A starving creature that eats from the stores gives `{ kind: 'creature-ate', material }`. Order: step, ate, fires out, deposits, losses, day. No event, from an action or the tick, carries the creature's reaction, satiety or cues: signs stay per viewer in the view. M4 refusals carry `cost` like M3's; `no-fuel` and `no-food` also carry `missing` (the first material with the fuel or food tag).
+
+**Reasoning.** Every tick has exactly one step event, so the web needs no special case to find it; lingering is already public on the creature (`lingering`, `lingeredDay`). The stores and fires are public, so these events reveal nothing hidden.
+
 ## 2026-11-20: Milestone 4 art: appetite, cues, lying down and fires are drawn by the art kit from the core's signs
 
 ID: `2026-11-20-milestone-4-art-appetite-cues-lying-2` · Status: current
 
+## 2026-11-20: Moments play only from the server's event log, once per event
+
+ID: `2026-11-20-moments-play-only-from-the-server` · Status: current · Amends: `2026-11-20-the-revised-chain-in-the-interface`
+
+**Decision.** Every view the client receives carries the server's events: a move or an action answers its own; a read with `since` answers every logged event after that version (others' actions and the tick). The map plays each event once, keyed by its version and its place among that version's events, and plays nothing when the log reports `eventsTruncated`. The comparison of two views is gone (no more guessing a find from a pack growing or a trap from actions dropping to zero). A trap shows its snap wherever it sprang; your pips shake only when the trap caught your own character. Because the dev "next day" answer carries no events, the client reads the log `since` its previous view right after it. What the client can do and what it costs comes from the core's checks, including the cost and the missing materials on a refusal.
+
+**Reasoning.** The lead's review: events are the record of what happened, so moments built from them are exact and work the same for your own moves, other players and the tick, while view diffs were guesses that could miss or misread changes.
+
 ## 2026-11-20: The revised chain in the interface: survey in the inspect card, the pack on the HUD, stores and unlocks in the hub drawer
 
-ID: `2026-11-20-the-revised-chain-in-the-interface` · Status: current · Supersedes: `2026-11-20-chain-actions-live-in-the-popover`
+ID: `2026-11-20-the-revised-chain-in-the-interface` · Status: current, amended by `2026-11-20-moments-play-only-from-the-server` · Supersedes: `2026-11-20-chain-actions-live-in-the-popover`
 
 **Decision.** Following Misa's revised rules (`docs/design/m3-chain.md`). Unexplored hexes in the window are drawn under the art kit's veil (cell state `unexplored`); a newly explored hex's veil lifts away as a moment. Tapping an unexplored hex next to your character opens its inspect card with a survey button (a spyglass and its cost pips: 1 for a scout, 2 for others), faded when you lack the actions. Selecting your character on a revealed feature opens the compact here card (gather, work the site) as before. Your pack is the round button at the bottom left, drawn as a satchel whose fill shows how full it is; a tap shows its materials as icons with counts in a small card above it. The bubble's creature entry now opens the hub drawer instead of the creature card: the creature and its heading at the top, the team stores (crates icon and material counts), then one card per unlock: done ones carry the seal; the one in progress shows its work bar; the others show their material cost, faded where the stores fall short. Each open card has a build button with its cost pips, enabled only for an engineer riding the creature. A finished unlock closes the drawer so its moment shows. The stores also show as crates on the creature's back. Moments: veil lift, survey and reveal blooms, a find (burst and rising material), a trap (snap, pips shake), a deposit (the material drops onto the creature) and a finished unlock (its sealed icon rises from the creature). The recipe cards and the team inventory satchel are gone.
 

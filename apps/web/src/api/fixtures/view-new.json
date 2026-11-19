@@ -634,5 +634,7 @@
     "cues": []
   },
   "players": [],
-  "devTools": true
+  "devTools": true,
+  "events": [],
+  "eventsTruncated": false
 }
