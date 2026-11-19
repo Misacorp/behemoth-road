@@ -1,4 +1,9 @@
 {
   "files": [],
-  "references": [{ "path": "apps/web" }, { "path": "apps/worker" }, { "path": "packages/core" }]
+  "references": [
+    { "path": "apps/web" },
+    { "path": "apps/worker" },
+    { "path": "packages/art" },
+    { "path": "packages/core" }
+  ]
 }

@@ -20,6 +20,22 @@ ID: `2026-11-19-the-core-derives-terrain-from-a` · Status: current, amended by 
 
 **Reasoning.** The map is never stored whole and any tile can be generated on demand, as the design asks. Keeping the config in the state means every rule in a game reads the same numbers, and a stored game replays identically. Clustered terrain (rivers that flow, forests in patches) can replace the per-hex pick later without a state change.
 
+## 2026-11-19: Map ground merges into one path per paint; hexes are hit-tested by maths
+
+ID: `2026-11-19-map-ground-merges-into-one-path` · Status: current
+
+**Decision.** The ground layer merges every shape with the same paint (tile tops of one terrain, side faces, washes, marks, river strokes, outlines) into one `<path>`, and the paper, wash and ink effects are SVG filters applied once per layer, never per tile. Tiles are not separate elements, so the map finds the tapped hex from the pointer position with hex maths. A 91-hex isometric scene with every terrain, the creature and a character measured 837 nodes; a test holds it under 1250.
+
+**Reasoning.** Phones were the worry: per-tile elements and per-tile filters multiply DOM size and filter cost by the number of hexes. Hex picking by maths is exact and also works for the isometric view through the one projection function.
+
+## 2026-11-19: The art kit is a pure package that returns an SVG element tree
+
+ID: `2026-11-19-the-art-kit-is-a-pure` · Status: current
+
+**Decision.** The game's art lives in `packages/art` (`@behemoth-road/art`): pure TypeScript with no DOM and no runtime dependencies. Drawing functions return a small element tree (`SvgNode = { tag, attrs, children }`), not strings; `toSvgString` serialises it for export files and tests, and the web app will map nodes to Preact elements. Art keys off plain data (terrain id strings, cell states, seeds) and does not import `packages/core`. Colours are written only in `palette.ts` (a test checks both the source and every colour in the output). `pnpm --filter @behemoth-road/art review` writes a review batch to `packages/art/review-out/` (gitignored) using Node's built-in type stripping, so it needs Node 22.18 or later.
+
+**Reasoning.** The web app bans `innerHTML`, so strings could not reach the page safely; a tree maps to Preact directly. Keeping art free of the core lets both be built in parallel and lets the review export run without a browser or a build step.
+
 ## 2026-11-19: Hostnames stay out of the README and workflows
 
 ID: `2026-11-19-hostnames-stay-out-of-the-readme` · Status: current

@@ -51,6 +51,8 @@ Record a decision:
 
 - 2026-11-19 Terrain comes from seeded noise fields, with rivers and ridges on contour lines
 - 2026-11-19 The core derives terrain from a hash and stores only tile knowledge and the config (amended)
+- 2026-11-19 Map ground merges into one path per paint; hexes are hit-tested by maths
+- 2026-11-19 The art kit is a pure package that returns an SVG element tree
 - 2026-11-19 Hostnames stay out of the README and workflows
 - 2026-11-19 One Durable Object per Discord server holds the game; its alarm runs the day tick
 - 2026-11-19 The game core is its own pure package, imported by the Worker and the frontend
@@ -93,6 +95,7 @@ Record a decision:
 - 2026-11-19 The window is always in play; lost characters stay lost
 - 2026-11-19 Cliffs are impassable to characters in Milestone 1 (amended)
 - 2026-11-19 The creature veers by a seeded daily roll and ignores terrain for now
+- 2026-11-19 First map art: a squashed hex plane with open-edge sides, upright props and four fog states
 - 2026-11-19 Isometric 3D hexes are the long-term goal; the map is built to allow it \[Misa\] (amended)
 - 2026-11-19 The look is a light ink-and-wash atlas in pastel, broken colours \[Misa\]
 - 2026-11-19 Phone first, desktop too

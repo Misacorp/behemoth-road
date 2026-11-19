@@ -1,0 +1,521 @@
+/**
+ * Upright props in side view, as on old maps: trees, tufts, dunes, rocks, cliffs, hills and the ruin. Each
+ * draws at a base point on the ground and takes all variation from its own seeded generator. Local units
+ * are px at the reference hex size (64), y up is negative; `k` scales them.
+ */
+import { ART_TUNING } from './config.ts';
+import {
+  boxOf,
+  ellipsePath,
+  f,
+  mapper,
+  poly,
+  smoothClosed,
+  smoothOpen,
+  type Box,
+  type Point,
+} from './geom.ts';
+import type { Palette } from './palette.ts';
+import type { Rng } from './rng.ts';
+import { el, type AttrValue, type SvgNode } from './svg.ts';
+
+export interface PropContext {
+  readonly palette: Palette;
+  readonly rng: Rng;
+  /** The base point on the ground, in screen px. */
+  readonly origin: Point;
+  /** Scale against the reference hex size. */
+  readonly k: number;
+  /** Vertical squash of the ground plane (for shadows). */
+  readonly squash: number;
+}
+
+export interface Drawn {
+  readonly nodes: SvgNode[];
+  readonly box: Box;
+}
+
+export type PropDraw = (c: PropContext) => Drawn;
+
+type Raw = readonly (readonly [number, number])[];
+
+export function inkAttrs(colour: string, width: number): Record<string, AttrValue> {
+  return {
+    fill: 'none',
+    stroke: colour,
+    'stroke-width': width,
+    'stroke-linejoin': 'round',
+    'stroke-linecap': 'round',
+  };
+}
+
+export function inkWidth(k: number): number {
+  return ART_TUNING.inkWidth * k;
+}
+
+/** A soft wash shadow on the ground, squashed with the plane. */
+export function groundShadow(c: PropContext, rx: number, ry: number, dx = 0): SvgNode {
+  return el('path', {
+    d: ellipsePath(c.origin.x + dx * c.k, c.origin.y, rx * c.k, ry * c.k * (c.squash / 0.6)),
+    fill: c.palette.shadow,
+    opacity: 0.16,
+  });
+}
+
+function shape(c: PropContext, raw: Raw, jitter = 0): Point[] {
+  const T = mapper(c.origin, c.k);
+  return raw.map(([x, y]) =>
+    T(
+      x + (jitter ? c.rng.range(-jitter, jitter) : 0),
+      y + (jitter ? c.rng.range(-jitter, jitter) : 0),
+    ),
+  );
+}
+
+function wash(d: string, fill: string, opacity = 1): SvgNode {
+  return el('path', opacity === 1 ? { d, fill } : { d, fill, opacity });
+}
+
+function ink(c: PropContext, d: string, scale = 1, colour?: string): SvgNode {
+  return el('path', { d, ...inkAttrs(colour ?? c.palette.ink, inkWidth(c.k) * scale) });
+}
+
+const conifer: PropDraw = (c) => {
+  const { rng, palette } = c;
+  const ramp = palette.ramps.conifer;
+  const h = rng.range(40, 54);
+  const w = h * rng.range(0.4, 0.48);
+  const lean = rng.range(-2.5, 2.5);
+  const tiers = rng.int(2, 3);
+  const right: [number, number][] = [];
+  for (let i = 0; i < tiers; i += 1) {
+    const yOut = -h * (0.12 + ((tiers - 1 - i) * 0.6) / tiers);
+    const width = w * (0.5 - ((tiers - 1 - i) * 0.24) / tiers);
+    if (i > 0) right.push([width * 0.42, yOut - h * 0.03]);
+    right.push([width, yOut]);
+  }
+  right.sort((a, b) => a[1] - b[1]);
+  const raw: [number, number][] = [
+    [0, -h],
+    ...right.map(([x, y]): [number, number] => [x, y]),
+    ...right
+      .slice()
+      .reverse()
+      .map(([x, y]): [number, number] => [-x, y]),
+  ];
+  const leaned: Raw = raw.map(([x, y]) => [x + lean * (-y / h), y]);
+  const trunkRaw: Raw = [
+    [-w * 0.07, -h * 0.14],
+    [w * 0.07, -h * 0.14],
+    [w * 0.06, 0],
+    [-w * 0.06, 0],
+  ];
+  const crown = shape(c, leaned);
+  const crownWash = shape(c, leaned, 1.4);
+  const shadeRaw: Raw = [
+    [lean, -h],
+    ...leaned.slice(1, right.length + 1),
+    [lean * 0.12, -h * 0.12],
+  ];
+  const trunk = shape(c, trunkRaw);
+  return {
+    nodes: [
+      groundShadow(c, w * 0.55, w * 0.17, 2),
+      wash(poly(trunk), palette.ramps.bark.base),
+      ink(c, poly(trunk), 0.8),
+      wash(poly(crownWash), ramp.base),
+      wash(poly(shape(c, shadeRaw)), ramp.shade, 0.55),
+      ink(c, poly(crown)),
+    ],
+    box: boxOf([...crown, ...trunk]),
+  };
+};
+
+function blobRaw(
+  rng: Rng,
+  cx: number,
+  cy: number,
+  rx: number,
+  ry: number,
+  n: number,
+  wobble: number,
+): Raw {
+  const out: [number, number][] = [];
+  const turn = rng.range(0, Math.PI * 2);
+  for (let i = 0; i < n; i += 1) {
+    const a = turn + (Math.PI * 2 * i) / n;
+    const f = 1 + rng.range(-wobble, wobble);
+    out.push([cx + Math.cos(a) * rx * f, cy + Math.sin(a) * ry * f]);
+  }
+  return out;
+}
+
+const broadleaf: PropDraw = (c) => {
+  const { rng, palette } = c;
+  const ramp = palette.ramps.foliage;
+  const h = rng.range(34, 46);
+  const cw = h * rng.range(0.62, 0.78);
+  const cy = -h * 0.62;
+  const ry = h * 0.36;
+  const crownRaw = blobRaw(rng, 0, cy, cw / 2, ry, 9, 0.12);
+  const crown = shape(c, crownRaw);
+  const crownWash = shape(c, crownRaw, 1.5);
+  const shade = shape(c, blobRaw(rng, cw * 0.12, cy + ry * 0.28, cw * 0.3, ry * 0.55, 7, 0.12));
+  const light = shape(c, blobRaw(rng, -cw * 0.15, cy - ry * 0.3, cw * 0.2, ry * 0.32, 6, 0.15));
+  const trunkRaw: Raw = [
+    [-2.2, 0],
+    [-1.4, cy + ry * 0.4],
+    [1.4, cy + ry * 0.4],
+    [2.2, 0],
+  ];
+  const trunk = shape(c, trunkRaw);
+  return {
+    nodes: [
+      groundShadow(c, cw * 0.45, cw * 0.14, 2),
+      wash(poly(trunk), palette.ramps.bark.base),
+      ink(c, poly(trunk), 0.8),
+      wash(smoothClosed(crownWash), ramp.base),
+      wash(smoothClosed(shade), ramp.shade, 0.5),
+      wash(smoothClosed(light), ramp.light, 0.7),
+      ink(c, smoothClosed(crown)),
+    ],
+    box: boxOf([...crown, ...trunk]),
+  };
+};
+
+const tuft: PropDraw = (c) => {
+  const { rng, palette } = c;
+  const blades = rng.int(3, 5);
+  const T = mapper(c.origin, c.k);
+  const parts: string[] = [];
+  const pts: Point[] = [];
+  for (let i = 0; i < blades; i += 1) {
+    const x = (i - (blades - 1) / 2) * 1.6;
+    const len = rng.range(4, 7.5);
+    const bend = (i - (blades - 1) / 2) * rng.range(0.8, 1.6);
+    const a = T(x, 0);
+    const m = T(x + bend * 0.4, -len * 0.6);
+    const b = T(x + bend, -len);
+    parts.push(smoothOpen([a, m, b]));
+    pts.push(a, b);
+  }
+  return {
+    nodes: [el('path', { d: parts.join(''), ...inkAttrs(palette.inkSoft, inkWidth(c.k) * 0.8) })],
+    box: boxOf(pts),
+  };
+};
+
+const dune: PropDraw = (c) => {
+  const { rng, palette } = c;
+  const ramp = palette.ramps.sand;
+  const w = rng.range(24, 34);
+  const h = rng.range(8, 13);
+  const px = rng.range(-0.2, 0.25) * w;
+  const T = mapper(c.origin, c.k);
+  const P = (x: number, y: number): string => {
+    const p = T(x, y);
+    return `${Math.round(p.x * 10) / 10} ${Math.round(p.y * 10) / 10}`;
+  };
+  const top = `M${P(-w, 0)}C${P(-w * 0.5, 0)} ${P(px - w * 0.3, -h)} ${P(px, -h)}C${P(px + w * 0.25, -h)} ${P(w * 0.55, 0)} ${P(w, 0)}`;
+  const lee = `M${P(px, -h)}C${P(px + w * 0.25, -h)} ${P(w * 0.55, 0)} ${P(w, 0)}L${P(px + w * 0.12, 0)}Q${P(px + w * 0.02, -h * 0.4)} ${P(px, -h)}Z`;
+  const ripple = `M${P(-w * 0.62, -h * 0.12)}C${P(-w * 0.4, -h * 0.2)} ${P(px - w * 0.3, -h * 0.62)} ${P(px - w * 0.12, -h * 0.72)}`;
+  return {
+    nodes: [
+      el('path', { d: `${top}Z`, fill: ramp.light }),
+      el('path', { d: lee, fill: ramp.shade, opacity: 0.55 }),
+      el('path', { d: ripple, ...inkAttrs(palette.inkSoft, inkWidth(c.k) * 0.6) }),
+      ink(c, top),
+    ],
+    box: boxOf([T(-w, 0), T(w, 0), T(px, -h)]),
+  };
+};
+
+const rock: PropDraw = (c) => {
+  const { rng, palette } = c;
+  const ramp = palette.ramps.rock;
+  const w = rng.range(10, 16);
+  const h = rng.range(9, 14);
+  const raw: Raw = [
+    [-w, 0],
+    [-w * 0.85, -h * 0.55],
+    [-w * 0.25, -h],
+    [w * 0.35, -h * 0.88],
+    [w * 0.9, -h * 0.35],
+    [w, 0],
+  ];
+  const outline = shape(c, raw, 1);
+  const facetRaw: Raw = [
+    [w * 0.35, -h * 0.88],
+    [w * 0.9, -h * 0.35],
+    [w, 0],
+    [w * 0.1, 0],
+    [w * 0.05, -h * 0.55],
+  ];
+  const crack = shape(c, [
+    [-w * 0.25, -h],
+    [-w * 0.1, -h * 0.6],
+    [w * 0.05, -h * 0.55],
+  ]);
+  return {
+    nodes: [
+      groundShadow(c, w * 1.1, w * 0.25, 2),
+      wash(poly(shape(c, raw, 1)), ramp.light),
+      wash(poly(shape(c, facetRaw)), ramp.shade, 0.6),
+      ink(c, poly(crack, false), 0.7, palette.inkSoft),
+      ink(c, poly(outline)),
+    ],
+    box: boxOf(outline),
+  };
+};
+
+const cliff: PropDraw = (c) => {
+  const { rng, palette } = c;
+  const ramp = palette.ramps.rock;
+  const w = rng.range(36, 42);
+  const h = rng.range(40, 50);
+  const raw: Raw = [
+    [-w, 0],
+    [-w * 0.92, -h * 0.42],
+    [-w * 0.62, -h * 0.48],
+    [-w * 0.52, -h * 0.84],
+    [-w * 0.15, -h],
+    [w * 0.22, -h * 0.9],
+    [w * 0.36, -h * 0.6],
+    [w * 0.72, -h * 0.55],
+    [w * 0.86, -h * 0.22],
+    [w, 0],
+  ];
+  const outline = shape(c, raw, 1.2);
+  const lightRaw: Raw = [
+    [-w * 0.52, -h * 0.84],
+    [-w * 0.15, -h],
+    [w * 0.22, -h * 0.9],
+    [w * 0.05, -h * 0.78],
+    [-w * 0.3, -h * 0.74],
+  ];
+  const shadeRaw: Raw = [
+    [w * 0.22, -h * 0.9],
+    [w * 0.36, -h * 0.6],
+    [w * 0.72, -h * 0.55],
+    [w * 0.86, -h * 0.22],
+    [w, 0],
+    [w * 0.3, 0],
+    [w * 0.12, -h * 0.5],
+  ];
+  const strata: string[] = [];
+  for (let i = 0; i < 4; i += 1) {
+    const y = -h * (0.18 + i * 0.17) + rng.range(-2, 2);
+    const x0 = -w * rng.range(0.3, 0.7) * (1 - i * 0.12);
+    const x1 = x0 + w * rng.range(0.35, 0.6);
+    strata.push(
+      smoothOpen(
+        shape(c, [
+          [x0, y],
+          [(x0 + x1) / 2, y + rng.range(-1.5, 1.5)],
+          [x1, y + rng.range(-1, 1)],
+        ]),
+      ),
+    );
+  }
+  const cracks = [
+    poly(
+      shape(c, [
+        [w * 0.12, -h * 0.5],
+        [w * 0.18, -h * 0.3],
+        [w * 0.3, 0],
+      ]),
+      false,
+    ),
+  ];
+  return {
+    nodes: [
+      groundShadow(c, w * 1.05, w * 0.22, 3),
+      wash(poly(shape(c, raw, 1)), ramp.base),
+      wash(poly(shape(c, lightRaw)), ramp.light, 0.85),
+      wash(poly(shape(c, shadeRaw)), ramp.shade, 0.55),
+      el('path', {
+        d: strata.join('') + cracks.join(''),
+        ...inkAttrs(palette.inkSoft, inkWidth(c.k) * 0.7),
+      }),
+      ink(c, poly(outline)),
+    ],
+    box: boxOf(outline),
+  };
+};
+
+const hill: PropDraw = (c) => {
+  const { rng, palette } = c;
+  const ramp = palette.ramps.heath;
+  const w = rng.range(22, 30);
+  const h = rng.range(14, 20);
+  const T = mapper(c.origin, c.k);
+  const curve = (t: number): Point => {
+    // A cubic hump from (-w, 0) to (w, 0) with controls at (-w*0.55, -h*1.3) and (w*0.5, -h*1.3).
+    const u = 1 - t;
+    const x =
+      u * u * u * -w + 3 * u * u * t * (-w * 0.55) + 3 * u * t * t * (w * 0.5) + t * t * t * w;
+    const y = 3 * u * u * t * (-h * 1.3) + 3 * u * t * t * (-h * 1.3);
+    return { x, y };
+  };
+  const top: Point[] = [];
+  for (let i = 0; i <= 12; i += 1) top.push(curve(i / 12));
+  const topScreen = top.map((p) => T(p.x, p.y));
+  const hachures: string[] = [];
+  const n = rng.int(5, 7);
+  for (let i = 0; i < n; i += 1) {
+    const p = curve(0.55 + (i / n) * 0.4);
+    const len = 3 + (h + p.y) * 0.12 + rng.range(0, 2);
+    hachures.push(poly([T(p.x, p.y + 1.2), T(p.x + len * 0.35, p.y + 1.2 + len)], false));
+  }
+  return {
+    nodes: [
+      el('path', { d: `${smoothOpen(topScreen)}Z`, fill: ramp.light }),
+      el('path', {
+        d: `${smoothOpen(topScreen.slice(6))}L${f(T(w * 0.1, 0).x)} ${f(T(w * 0.1, 0).y)}Z`,
+        fill: ramp.shade,
+        opacity: 0.5,
+      }),
+      el('path', { d: hachures.join(''), ...inkAttrs(palette.inkSoft, inkWidth(c.k) * 0.75) }),
+      ink(c, smoothOpen(topScreen)),
+    ],
+    box: boxOf(topScreen),
+  };
+};
+
+const ruin: PropDraw = (outer) => {
+  const c = { ...outer, k: outer.k * 1.3 };
+  const { rng, palette } = c;
+  const ramp = palette.ramps.stone;
+  const tall = rng.range(28, 34);
+  const short = rng.range(15, 20);
+  const col = (x: number, h: number, broken: boolean): Raw => {
+    const top: [number, number][] = broken
+      ? [
+          [x + 3.6, -h + 1.5],
+          [x + 1.2, -h - 1.5],
+          [x - 0.8, -h + 0.8],
+          [x - 3.6, -h - 0.6],
+        ]
+      : [
+          [x + 3.6, -h],
+          [x - 3.6, -h],
+        ];
+    return [[x - 3.6, -4], [x + 3.6, -4], ...top];
+  };
+  const colA = col(-11, tall, false);
+  const colB = col(9, short, true);
+  const lintel: Raw = [
+    [-19, -tall - 5],
+    [-1, -tall - 5.5],
+    [-0.5, -tall],
+    [-18.5, -tall + 0.4],
+  ];
+  const slab: Raw = [
+    [-21, 0],
+    [-20, -4],
+    [20, -4.5],
+    [21, 0],
+  ];
+  const fallen: Raw = [
+    [15, 0],
+    [16, -4.5],
+    [24, -3.6],
+    [24.5, 0],
+  ];
+  const shadeOf = (x: number, h: number): Raw => [
+    [x + 0.8, -4],
+    [x + 3.6, -4],
+    [x + 3.6, -h + 1],
+    [x + 0.8, -h + 1],
+  ];
+  const all = [colA, colB, lintel, slab, fallen].map((r) => shape(c, r, 0.4));
+  const lines = [
+    poly(
+      shape(c, [
+        [-11, -tall * 0.55],
+        [-9.5, -tall * 0.45],
+      ]),
+      false,
+    ),
+    poly(
+      shape(c, [
+        [9, -short * 0.6],
+        [10.5, -short * 0.48],
+      ]),
+      false,
+    ),
+  ];
+  return {
+    nodes: [
+      groundShadow(c, 24, 5, 3),
+      ...all.map((pts) => wash(poly(pts), ramp.light)),
+      wash(
+        poly(shape(c, shadeOf(-11, tall))) + poly(shape(c, shadeOf(9, short))),
+        ramp.shade,
+        0.55,
+      ),
+      el('path', { d: lines.join(''), ...inkAttrs(palette.inkSoft, inkWidth(c.k) * 0.7) }),
+      ink(c, all.map((pts) => poly(pts)).join('')),
+    ],
+    box: boxOf(all.flat()),
+  };
+};
+
+/** The hint mark: something here is undiscovered. A small floating glint; it never says what. */
+export const hintMark: PropDraw = (c) => {
+  const { palette } = c;
+  const T = mapper(c.origin, c.k);
+  const cy = -24;
+  const star: Point[] = [];
+  for (let i = 0; i < 8; i += 1) {
+    const a = (Math.PI / 4) * i - Math.PI / 2;
+    const rr = i % 2 === 0 ? 9 : 2.6;
+    star.push(T(Math.cos(a) * rr, cy + Math.sin(a) * rr));
+  }
+  const d1 = T(11, cy - 8);
+  const d2 = T(-10, cy + 6);
+  return {
+    nodes: [
+      el('path', {
+        d: ellipsePath(c.origin.x, c.origin.y + cy * c.k, 13 * c.k, 13 * c.k),
+        fill: palette.hint,
+        opacity: 0.18,
+      }),
+      el('path', {
+        d: poly(star),
+        fill: palette.hint,
+        ...{ stroke: palette.ink, 'stroke-width': inkWidth(c.k) * 0.8, 'stroke-linejoin': 'round' },
+      }),
+      el('path', {
+        d:
+          ellipsePath(d1.x, d1.y, 1.3 * c.k, 1.3 * c.k) + ellipsePath(d2.x, d2.y, 1 * c.k, 1 * c.k),
+        fill: palette.hint,
+      }),
+    ],
+    box: boxOf([...star, d1, d2, T(-13, cy - 13), T(13, cy + 13)]),
+  };
+};
+
+/** Prop drawers by kind. Hand-drawn overrides can replace any entry (`renderScene`'s `overrides`). */
+export const PROP_DRAWERS: Readonly<Record<string, PropDraw>> = {
+  conifer,
+  broadleaf,
+  tuft,
+  dune,
+  rock,
+  cliff,
+  hill,
+  ruin,
+};
+
+/** How much ground a prop needs around its base, in hex sizes (keeps props from piling up). */
+export const PROP_SPACING: Readonly<Record<string, number>> = {
+  conifer: 0.28,
+  broadleaf: 0.32,
+  tuft: 0.14,
+  dune: 0.42,
+  rock: 0.24,
+  cliff: 0.6,
+  hill: 0.44,
+  ruin: 0.6,
+};
