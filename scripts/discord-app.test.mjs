@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
   APP_HANDLER,
+  EMBEDDED_FLAG,
+  allowedGuildsOf,
+  discordStatus,
   createDiscord,
   endpointFor,
   parseArgs,
@@ -124,5 +127,84 @@ describe('setEntryPointHandler', () => {
       'missing',
     );
     assert.equal(warnings.length, 2);
+  });
+});
+
+describe('discordStatus', () => {
+  const ALLOWED = '215386000132669440';
+  const status = (appExtra, guilds, commands) => {
+    const { doFetch } = fakeFetch({
+      'GET /applications/@me': {
+        body: {
+          id: APP_ID,
+          name: 'Behemoth Road (staging)',
+          verify_key: KEY,
+          flags: EMBEDDED_FLAG,
+          bot_public: true,
+          integration_types_config: { 0: {}, 1: {} },
+          ...appExtra,
+        },
+      },
+      'GET /users/@me/guilds?limit=200': guilds,
+      [`GET /applications/${APP_ID}/commands`]: commands,
+    });
+    return discordStatus(createDiscord('secret-token', doFetch), [ALLOWED]);
+  };
+  const entry = (extra = {}) => ({
+    body: [
+      {
+        id: '223456789012345678',
+        type: 4,
+        handler: 1,
+        integration_types: [0, 1],
+        contexts: [0, 1, 2],
+        ...extra,
+      },
+    ],
+  });
+
+  it('reports a healthy app with notices only, and no secret', async () => {
+    const { notices, warnings } = await status(
+      {},
+      { body: [{ id: ALLOWED }, { id: '1'.repeat(18) }] },
+      entry(),
+    );
+    assert.deepEqual(warnings, []);
+    const text = notices.join('\n');
+    assert.match(
+      text,
+      /Activities \(EMBEDDED\) on; installs: guild install, user install; public bot: yes/,
+    );
+    assert.match(text, /bot is in 2 server/);
+    assert.match(text, new RegExp(`allowed server ${ALLOWED}: bot is a member`));
+    assert.match(
+      text,
+      /entry point command: present, type 4, handler 1, installs: guild install, user install, contexts: guilds, bot DMs, private channels/,
+    );
+    assert.ok(!text.includes('secret-token') && !text.includes(KEY));
+  });
+
+  it('warns on a missing EMBEDDED flag, a missing server, a missing or server-less entry point', async () => {
+    const a = await status({ flags: 0 }, { body: [] }, { body: [] });
+    assert.equal(a.warnings.length, 3);
+    assert.match(a.warnings.join('\n'), /EMBEDDED/);
+    assert.match(a.warnings.join('\n'), /not in allowed server/);
+    assert.match(a.warnings.join('\n'), /no entry point command/);
+    const b = await status({}, { body: [{ id: ALLOWED }] }, entry({ contexts: [1] }));
+    assert.deepEqual(b.warnings.length, 1);
+    assert.match(b.warnings[0], /contexts lack guilds/);
+  });
+
+  it('turns failed lookups into warnings', async () => {
+    const c = await status({}, { status: 403 }, { status: 500 });
+    assert.equal(c.warnings.length, 2);
+  });
+});
+
+describe('allowedGuildsOf', () => {
+  it('reads the target env list, snowflakes only', () => {
+    const wrangler = { env: { staging: { vars: { ALLOWED_GUILDS: '215386000132669440, x' } } } };
+    assert.deepEqual(allowedGuildsOf(wrangler, 'staging'), ['215386000132669440']);
+    assert.deepEqual(allowedGuildsOf(wrangler, 'production'), []);
   });
 });

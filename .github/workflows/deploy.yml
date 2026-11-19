@@ -124,3 +124,11 @@ jobs:
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
         run: node scripts/discord-app.mjs register "$TARGET_ENV"
+
+      # Prints non-secret facts about the Discord app (Activities flag, installs, the bot's servers, the Launch
+      # command) as notices, and warns on problems. Never fails the deploy.
+      - name: Discord status
+        if: ${{ !cancelled() }}
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+        run: node scripts/discord-app.mjs status "$TARGET_ENV"

@@ -5,6 +5,9 @@
 //     Reads the app's public key (`verify_key`, not a secret) and writes `public_key=<hex>` to
 //     $GITHUB_OUTPUT, so the Worker can check interaction signatures. Warns when the app's
 //     Interactions Endpoint URL is not this game's.
+//   node scripts/discord-app.mjs status <production|staging>
+//     Prints non-secret facts about the app as ::notice lines (Activities flag, install types, public bot,
+//     the bot's membership of each ALLOWED_GUILDS server, the entry point command) and warns on problems.
 //   node scripts/discord-app.mjs register <production|staging>
 //     Sets the handler of the Activity's entry point command (Launch) to APP_HANDLER, so Launch reaches
 //     our interactions endpoint and opens the Activity without posting a "game invitation" card. Only
@@ -31,10 +34,10 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export function parseArgs(argv) {
   const [mode, target] = argv;
   if (
-    (mode !== 'public-key' && mode !== 'register') ||
+    !['public-key', 'register', 'status'].includes(mode) ||
     (target !== 'production' && target !== 'staging')
   ) {
-    return { error: 'usage: discord-app.mjs <public-key|register> <production|staging>' };
+    return { error: 'usage: discord-app.mjs <public-key|register|status> <production|staging>' };
   }
   return { mode, target };
 }
@@ -112,6 +115,89 @@ export async function setEntryPointHandler(discord, expected, warn) {
   return 'set';
 }
 
+/** EMBEDDED in `GET /applications/@me` flags: the app can run as an Activity. */
+export const EMBEDDED_FLAG = 1 << 17;
+const INTEGRATION_NAMES = { 0: 'guild install', 1: 'user install' };
+const CONTEXT_NAMES = { 0: 'guilds', 1: 'bot DMs', 2: 'private channels' };
+
+const named = (ids, names) =>
+  Array.isArray(ids) && ids.length > 0
+    ? ids.map((id) => names[id] ?? `unknown (${String(id)})`).join(', ')
+    : 'none';
+
+/** wrangler.jsonc without its whole-line comments (none of its strings contain `//`). */
+function readWrangler() {
+  const text = readFileSync(path.join(root, 'apps/worker/wrangler.jsonc'), 'utf8');
+  return JSON.parse(text.replace(/^\s*\/\/.*$/gm, ''));
+}
+
+/** The guild ids in the target's `ALLOWED_GUILDS`, snowflakes only. */
+export function allowedGuildsOf(wrangler, target) {
+  const raw = wrangler?.env?.[target]?.vars?.ALLOWED_GUILDS;
+  if (typeof raw !== 'string') return [];
+  return raw
+    .split(',')
+    .map((id) => id.trim())
+    .filter((id) => SNOWFLAKE.test(id));
+}
+
+/**
+ * Non-secret facts about the app for the deploy log: no token, no key value, only ids, names, flags and
+ * settings. Returns `{ notices, warnings }`; a failed lookup becomes a warning, never a thrown error.
+ */
+export async function discordStatus(discord, allowedIds) {
+  const notices = [];
+  const warnings = [];
+  const app = await discord.currentApp();
+  const embedded = typeof app.flags === 'number' && (app.flags & EMBEDDED_FLAG) !== 0;
+  const installs = Object.keys(app.integration_types_config ?? {})
+    .map(Number)
+    .sort();
+  notices.push(
+    `app ${app.id} "${String(app.name ?? '').slice(0, 100)}"; Activities (EMBEDDED) ${embedded ? 'on' : 'off'}; installs: ${named(installs, INTEGRATION_NAMES)}; public bot: ${app.bot_public === true ? 'yes' : 'no'}`,
+  );
+  if (!embedded) warnings.push('the app has no EMBEDDED flag: Activities are not enabled.');
+
+  const guildsRes = await discord.call('/users/@me/guilds?limit=200');
+  if (guildsRes.ok) {
+    const guilds = await guildsRes.json();
+    const ids = new Set(Array.isArray(guilds) ? guilds.map((g) => g?.id) : []);
+    notices.push(`the bot is in ${String(ids.size)} server(s)`);
+    if (allowedIds.length === 0) warnings.push('ALLOWED_GUILDS lists no server.');
+    for (const id of allowedIds) {
+      const member = ids.has(id);
+      notices.push(`allowed server ${id}: bot ${member ? 'is a member' : 'is not a member'}`);
+      if (!member) warnings.push(`the bot is not in allowed server ${id}; add the app to it.`);
+    }
+  } else {
+    warnings.push(`listing the bot's servers answered HTTP ${String(guildsRes.status)}`);
+  }
+
+  const listed = await discord.call(`/applications/${app.id}/commands`);
+  if (listed.ok) {
+    const commands = await listed.json();
+    const entry = Array.isArray(commands)
+      ? commands.find((c) => c?.type === PRIMARY_ENTRY_POINT)
+      : undefined;
+    if (entry === undefined) {
+      notices.push('entry point command: missing');
+      warnings.push('the Activity has no entry point command (Launch).');
+    } else {
+      notices.push(
+        `entry point command: present, type ${String(entry.type)}, handler ${String(entry.handler)}, installs: ${named(entry.integration_types, INTEGRATION_NAMES)}, contexts: ${named(entry.contexts, CONTEXT_NAMES)}`,
+      );
+      if (!Array.isArray(entry.contexts) || !entry.contexts.includes(0)) {
+        warnings.push(
+          'the entry point command is not available in servers (contexts lack guilds).',
+        );
+      }
+    }
+  } else {
+    warnings.push(`listing commands answered HTTP ${String(listed.status)}`);
+  }
+  return { notices, warnings };
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
   if ('error' in args) {
@@ -133,7 +219,12 @@ async function main() {
       const key = await readPublicKey(discord, expected, warn);
       if (process.env.GITHUB_OUTPUT)
         appendFileSync(process.env.GITHUB_OUTPUT, `public_key=${key}\n`);
-      console.log(`public key read (${key.slice(0, 8)}...)`);
+      console.log(`public key read (${key === '' ? 'missing' : 'present'})`);
+    } else if (args.mode === 'status') {
+      const status = await discordStatus(discord, allowedGuildsOf(readWrangler(), args.target));
+      for (const line of status.notices)
+        console.log(`::notice::Discord status (${args.target}): ${line}`);
+      for (const line of status.warnings) warn(line);
     } else {
       console.log(`Launch handler: ${await setEntryPointHandler(discord, expected, warn)}`);
     }
