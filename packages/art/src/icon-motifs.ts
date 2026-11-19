@@ -77,6 +77,20 @@ export const MATERIAL_MOTIFS: Readonly<Record<string, IconMotif>> = {
     ink(pal, 'M22 26l3 1.5M27 23l3 1.5', 1.2, pal.ramps.bark.shade),
     solid(pal, leafPath(30, 19, -1.2, 7), pal.ramps.foliage.base, 1.5),
   ],
+  // Old coin: a short stack of worn coins and one standing, a faint crest on its face.
+  coin: (pal) => [
+    solid(pal, ellipsePath(18, 33, 8, 3), pal.accents.ochre.base, 1.8),
+    solid(
+      pal,
+      'M10 30v3c0 1.7 3.6 3 8 3s8-1.3 8-3v-3c0 1.7-3.6 3-8 3s-8-1.3-8-3z',
+      pal.accents.ochre.shade,
+      1.6,
+    ),
+    solid(pal, ellipsePath(18, 28.5, 8, 3), pal.accents.ochre.light, 1.8),
+    solid(pal, ellipsePath(31, 22, 6.5, 8.5), pal.accents.ochre.base),
+    ink(pal, ellipsePath(31, 22, 4.2, 5.8), 1.1, pal.accents.ochre.shade),
+    ink(pal, 'M29 21.5l2-2.5 2 2.5M31 19v6', 1.2, pal.accents.ochre.shade),
+  ],
   alloy: (pal) => [
     solid(pal, 'M12 30l5-11h14l5 11-12 5z', pal.accents.teal.light),
     solid(pal, 'M17 19l7 5 7-5M24 24v11', pal.accents.teal.base, 1.6),
