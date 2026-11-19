@@ -4,7 +4,8 @@
  * their sessions. The object runs one request at a time, and every write here is one `transactionSync`.
  *
  * Every game rule goes through `game-core.ts` (the core package). Identity comes from the session only.
- * The seed stays in the stored state: only `toPlayerView` output leaves this file.
+ * The seed and the creature's nature and condition stay in the stored state: only `toPlayerView` output
+ * and the viewer's `creatureSigns` leave this file.
  */
 import type { GuildApi } from './discord.ts';
 import { DiscordError } from './discord.ts';
@@ -470,7 +471,7 @@ export class GuildGame {
     );
   }
 
-  /** `POST /api/game/act`: gather, craft or work a site, as the player's own character at its place. */
+  /** `POST /api/game/act`: an action (survey, gather, work a site, build, light a fire, feed, linger) by the player's own character. */
   private async act(user: SessionUser, request: Request): Promise<Response> {
     const body = await parseBody(request, ActBodySchema);
     if (body === undefined) return errorResponse('invalid_body', 400);
