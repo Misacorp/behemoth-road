@@ -11,7 +11,7 @@ import {
   terrainIdAt,
 } from '@behemoth-road/core';
 import type { JSX } from 'preact';
-import { useEffect, useLayoutEffect, useMemo, useRef } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { PALETTE, PROJECTION } from './art.ts';
 import { cellStateAt, characterArts, creatureArt, lookFor, sceneCells } from './cells.ts';
 import { placePopover, splitScene } from './compose.ts';
@@ -25,6 +25,7 @@ import { toPreact } from './svgToPreact.ts';
 import {
   centreOn,
   clampScale,
+  inkZoomFor,
   lerpView,
   panBy,
   type Size,
@@ -83,6 +84,9 @@ export function MapView(props: MapViewProps): JSX.Element {
   const frame = useRef(0);
   const animation = useRef(0);
   const popover = useRef<{ hex: Hex; size: { width: number; height: number } } | null>(null);
+  // The zoom the scene's ink widths were drawn for; changes only when a gesture settles at a new step.
+  const [inkZoom, setInkZoom] = useState(1);
+  const settleZoom = (): void => setInkZoom(inkZoomFor(view.current.scale));
   const latest = useRef(props);
   latest.current = props;
 
@@ -95,6 +99,8 @@ export function MapView(props: MapViewProps): JSX.Element {
       projection: p,
       palette: PALETTE,
       seed: state.seed,
+      zoom: inkZoom,
+      minInkPx: MAP_TUNING.minInkPx,
     });
     const split = splitScene(scene);
     return {
@@ -102,7 +108,7 @@ export function MapView(props: MapViewProps): JSX.Element {
       figures: split.figures.map(toPreact),
       grain: split.grain.map(toPreact),
     };
-  }, [state]);
+  }, [state, inkZoom]);
 
   const overlays = useMemo(() => {
     const selecting = flow.kind === 'selected' || flow.kind === 'planned';
@@ -192,6 +198,7 @@ export function MapView(props: MapViewProps): JSX.Element {
         }
         case 'end':
           setLite(false);
+          settleZoom();
           break;
       }
     }
@@ -219,6 +226,7 @@ export function MapView(props: MapViewProps): JSX.Element {
       size.current,
     );
     apply();
+    settleZoom();
     const observer = new ResizeObserver(() => {
       const next = measure();
       view.current = panBy(
@@ -247,7 +255,10 @@ export function MapView(props: MapViewProps): JSX.Element {
       stopAnimation();
       setLite(true);
       window.clearTimeout(idle);
-      idle = window.setTimeout(() => setLite(false), 160);
+      idle = window.setTimeout(() => {
+        setLite(false);
+        settleZoom();
+      }, 160);
       const perPixel = e.ctrlKey ? MAP_TUNING.pinchWheelZoomPerPixel : MAP_TUNING.wheelZoomPerPixel;
       const lines = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? size.current.height : 1;
       const factor = Math.exp(-e.deltaY * lines * perPixel);

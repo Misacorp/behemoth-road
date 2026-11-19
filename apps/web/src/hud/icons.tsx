@@ -37,8 +37,9 @@ function figure(drawn: Drawn, pad: number): JSX.Element {
   );
 }
 
-const CHARACTER = drawCharacter(PALETTE, MAP_TUNING.accent, { x: 0, y: 0 }, 40, 0.6);
-const CREATURE = drawCreature(PALETTE, GENTLE_AMBLER, { x: 0, y: 0 }, 14, 0.6, 'right');
+// Ink widths in drawing units, picked so lines read about 1.2 px at the button's size.
+const CHARACTER = drawCharacter(PALETTE, MAP_TUNING.accent, { x: 0, y: 0 }, 40, 0.6, 1.3);
+const CREATURE = drawCreature(PALETTE, GENTLE_AMBLER, { x: 0, y: 0 }, 14, 0.6, 1.8, 'right');
 
 export const CharacterIcon = (): JSX.Element => figure(CHARACTER, 2);
 export const CreatureIcon = (): JSX.Element => figure(CREATURE, 2);

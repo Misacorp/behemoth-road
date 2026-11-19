@@ -28,7 +28,9 @@ const isVignette = (node: SvgNode): boolean => {
 
 export function splitScene(scene: SvgNode): SceneLayers {
   const children = scene.children;
-  const ink = children.findIndex((c) => usesFilter(c, 'ink'));
+  const ink = children.findIndex(
+    (c) => c.attrs['data-layer'] === 'objects' || usesFilter(c, 'ink'),
+  );
   const grain = children.findIndex((c) => usesFilter(c, 'grain'));
   const end = grain === -1 ? children.length : grain;
   const start = ink === -1 ? end : Math.min(ink, end);

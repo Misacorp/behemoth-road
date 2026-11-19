@@ -11,6 +11,10 @@ export const MAP_TUNING = {
   accent: 'rose',
   /** Art kit palette id (`morning`, `mist`, `spring`). */
   paletteId: 'morning',
+  /** How the creature faces when heading north: drawn side-on (`side`) or from behind (`away`). */
+  creatureNorth: 'side' as 'side' | 'away',
+  /** Ink lines never get thinner than this on screen, in px (the scene is redrawn when zoom settles). */
+  minInkPx: 1,
   /** Hex circumradius in world px at zoom 1. */
   hexSize: 64,
   /** Zoom limits (screen px per world px). */

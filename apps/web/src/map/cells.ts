@@ -3,9 +3,9 @@
  * Reads the core only; the core never learns about the screen.
  */
 import type { ArtCell, CellState, CharacterArt, CreatureArt } from '@behemoth-road/art';
-import { GENTLE_AMBLER } from '@behemoth-road/art';
+import { facingFor, GENTLE_AMBLER } from '@behemoth-road/art';
 import {
-  type Direction,
+  directionOffset,
   type GameState,
   hexDistance,
   hexesInRange,
@@ -60,16 +60,11 @@ export function sceneCells(state: GameState): ArtCell[] {
   return cells;
 }
 
-/** Which way the creature faces on screen: towards the east or west part of its heading. */
-export function facingFor(heading: Direction): 'left' | 'right' {
-  return heading === 'nw' || heading === 'sw' ? 'left' : 'right';
-}
-
 export function creatureArt(state: GameState): CreatureArt {
   return {
     q: state.creature.centre.q,
     r: state.creature.centre.r,
-    facing: facingFor(state.creature.heading),
+    facing: facingFor(directionOffset(state.creature.heading), MAP_TUNING.creatureNorth),
     look: GENTLE_AMBLER,
   };
 }

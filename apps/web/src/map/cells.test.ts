@@ -1,6 +1,6 @@
 import { createGame, hexKey, nextDay } from '@behemoth-road/core';
 import { describe, expect, it } from 'vitest';
-import { cellStateAt, facingFor, lookFor, sceneCells } from './cells.ts';
+import { cellStateAt, creatureArt, lookFor, sceneCells } from './cells.ts';
 import { MAP_TUNING } from './config.ts';
 
 describe('scene cells', () => {
@@ -28,7 +28,7 @@ describe('scene cells', () => {
   it('map core terrain to art looks and headings to facing', () => {
     expect(lookFor('plains')).toBe('meadow');
     expect(lookFor('cliff')).toBe('cliff');
-    expect(facingFor('nw')).toBe('left');
-    expect(facingFor('n')).toBe('right');
+    expect(creatureArt(createGame(1, { heading: 'nw' })).facing).toBe('left');
+    expect(creatureArt(createGame(1, { heading: 'n' })).facing).toBe('right');
   });
 });

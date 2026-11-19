@@ -7,6 +7,7 @@
  */
 import {
   accentRamp,
+  ART_TUNING,
   drawCharacter,
   el,
   hexCenter,
@@ -213,7 +214,14 @@ function lostCharacters(i: OverlayInput): SvgNode[] {
     .filter((c) => c.status === 'lost')
     .flatMap((c) => {
       const at = feetOf(p, c.position);
-      const drawn = drawCharacter(i.palette, MAP_TUNING.accent, at, p.size, p.squash);
+      const drawn = drawCharacter(
+        i.palette,
+        MAP_TUNING.accent,
+        at,
+        p.size,
+        p.squash,
+        ART_TUNING.inkWidth * p.k,
+      );
       return [
         el('g', { opacity: 0.38 }, drawn.nodes),
         el('path', {

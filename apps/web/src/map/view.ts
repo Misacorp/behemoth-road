@@ -62,3 +62,9 @@ export const lerpView = (a: View, b: View, t: number): View => ({
   y: a.y + (b.y - a.y) * t,
   scale: a.scale + (b.scale - a.scale) * t,
 });
+
+/**
+ * The zoom step the scene's ink is drawn for: the scale rounded to half powers of two (…, 0.71, 1, 1.41, …),
+ * so small zoom changes never redraw the scene.
+ */
+export const inkZoomFor = (scale: number): number => 2 ** (Math.round(Math.log2(scale) * 2) / 2);

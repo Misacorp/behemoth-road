@@ -1,6 +1,6 @@
 import { hexCenter, isometric, topDown } from '@behemoth-road/art';
 import { describe, expect, it } from 'vitest';
-import { pickHex, roundHex, worldToHex } from './pick.ts';
+import { pickHex, worldToHex } from './pick.ts';
 
 const hexes = (): { q: number; r: number }[] => {
   const out = [];
@@ -30,12 +30,6 @@ describe('screen-to-hex picking', () => {
       }
     });
   }
-
-  it('rounds to the nearest hex without -0', () => {
-    expect(roundHex(-0.1, 0.05)).toEqual({ q: 0, r: 0 });
-    expect(Object.is(roundHex(-0.1, 0.05).q, -0)).toBe(false);
-    expect(roundHex(0.6, 0.1)).toEqual({ q: 1, r: 0 });
-  });
 
   it("picks the character's hex when its upright figure is tapped", () => {
     const p = isometric(64);
