@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* global URL, console, process, window, document, performance, requestAnimationFrame */
+/* global URL, console, process, window, document, performance, requestAnimationFrame, MouseEvent */
 /**
  * Loads the built app (apps/web/dist) in Chromium at a phone and a desktop size, plays a scripted
  * tap, tap, confirm move and a next day, and writes screenshots to screenshots/ at the repo root
@@ -192,16 +192,14 @@ async function run() {
         await tap(...spot);
         const blocked = await page.evaluate(
           ([x, y]) =>
-            !document
-              .elementFromPoint(x, y)
-              .dispatchEvent(
-                new MouseEvent('contextmenu', {
-                  bubbles: true,
-                  cancelable: true,
-                  clientX: x,
-                  clientY: y,
-                }),
-              ),
+            !document.elementFromPoint(x, y).dispatchEvent(
+              new MouseEvent('contextmenu', {
+                bubbles: true,
+                cancelable: true,
+                clientX: x,
+                clientY: y,
+              }),
+            ),
           spot,
         );
         await page.waitForTimeout(100);
