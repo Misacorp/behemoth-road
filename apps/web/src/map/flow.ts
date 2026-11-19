@@ -122,3 +122,10 @@ export function confirmMove(
   const me = findCharacter(result.state, characterId);
   return { flow: me && me.actionsLeft > 0 ? { kind: 'selected' } : IDLE, state: result.state };
 }
+
+/** Escape closes the open popover, bubble or card and cancels a plan or selection. Other keys do nothing. */
+export const keyDown = (flow: Flow, key: string): Flow => (key === 'Escape' ? IDLE : flow);
+
+/** A right-click on the map closes everything the same way, when the player's setting allows it. */
+export const rightClick = (flow: Flow, settings: { readonly closeOnRightClick: boolean }): Flow =>
+  settings.closeOnRightClick ? IDLE : flow;

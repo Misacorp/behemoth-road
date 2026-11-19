@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: Popovers point at their subject; grace-day tiles and figures warn without words
+
+ID: `2026-11-19-popovers-point-at-their-subject-grace` · Status: current
+
+**Decision.** Every popover, bubble and card has a small paper chevron with ink sides on the edge facing its subject: the hex, the destination, or the creature. The chevron slides along that edge to keep pointing when the card is clamped to the screen, and stays clear of the card's corners. Tiles in their grace day (out of the window, lost at the next tick) get a paler wash and a dashed ink edge on top of the art's fading look. A character standing on one carries a small hourglass mark above its figure. Both keep a minimum on-screen size when zoomed out. The grace rule itself is unchanged and checked end to end through the map's flow and overlays: a hex that leaves the window at the tick into day D stays reachable through day D and is lost at the next tick. Escape and right-click close everything back to idle, cancelling a plan or selection. Right-click reads `closeOnRightClick` from `apps/web/src/settings.ts` (default on), and the browser menu never opens over the map, whatever the setting.
+
+**Reasoning.** Misa expected one more move before being left behind; the rule already gave it, but the tile did not look different enough to say so. The chevron ties a card to its subject when cards move above or below to stay on screen.
+
 ## 2026-11-19: Three actions a day, and moving costs actions **[Misa]**
 
 ID: `2026-11-19-three-actions-a-day-and-moving` · Status: current

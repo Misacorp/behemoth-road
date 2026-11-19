@@ -29,6 +29,7 @@ import {
   hexKey,
   placeHex,
 } from '@behemoth-road/core';
+import { cellStateAt } from './cells.ts';
 import { MAP_TUNING } from './config.ts';
 import { figureFeet, placePoint } from './figures.ts';
 import { type Flow, isSelecting } from './flow.ts';
@@ -42,6 +43,8 @@ export interface OverlayInput {
   readonly predicted: readonly CreatureStepOption[];
   readonly projection: Projection;
   readonly palette: Palette;
+  /** Screen px per world px the map settles at (default 1); keeps key marks legible when zoomed out. */
+  readonly zoom?: number;
 }
 
 export interface Overlays {
@@ -285,11 +288,73 @@ function lostCharacters(i: OverlayInput): SvgNode[] {
     });
 }
 
+/** The hexes in their grace day: seen, out of the window, lost at the next tick. */
+function graceHexes(i: OverlayInput): Hex[] {
+  return Object.keys(i.state.tiles)
+    .filter((key) => cellStateAt(i.state, key) === 'fading')
+    .map((key) => {
+      const [q, r] = key.split(',').map(Number) as [number, number];
+      return { q, r };
+    });
+}
+
+/** Grace-day tiles read as "last chance": a paler wash and a dashed ink edge on each, in one path each. */
+/** A width in world px that is at least `screenPx` on screen at the settled zoom. */
+const atLeast = (i: OverlayInput, world: number, screenPx: number): number =>
+  Math.max(world, screenPx / (i.zoom ?? 1));
+
+function graceTiles(i: OverlayInput, hexes: readonly Hex[]): SvgNode[] {
+  if (hexes.length === 0) return [];
+  const k = i.projection.k;
+  const w = atLeast(i, 1.6 * k, 1.3);
+  const d = hexes.map((h) => hexPath(i.projection, h, 0.9)).join('');
+  return [
+    el('path', { d, fill: i.palette.paper, opacity: 0.4, 'data-mark': 'grace' }),
+    el('path', {
+      d,
+      fill: 'none',
+      stroke: i.palette.ink,
+      'stroke-width': w,
+      'stroke-dasharray': `${n(1.5 * w)} ${n(3.5 * w)}`,
+      'stroke-linecap': 'round',
+      opacity: 0.75,
+    }),
+  ];
+}
+
+/** A small hourglass above a figure on a grace-day tile: time is running out here. No words. */
+function graceWarning(i: OverlayInput, feet: Point): SvgNode {
+  const p = i.projection;
+  // The disc is 3.8 × 7k across: at least about 16 screen px, wherever the zoom settles.
+  const k = atLeast(i, p.k, 0.6);
+  const s = 7 * k;
+  const cx = feet.x + 0.2 * p.size;
+  const cy = feet.y - 0.95 * p.size;
+  const glass = `M${n(cx - s)} ${n(cy - s)}L${n(cx + s)} ${n(cy - s)}L${n(cx - s)} ${n(cy + s)}L${n(cx + s)} ${n(cy + s)}Z`;
+  return el('g', { 'data-mark': 'grace-warning' }, [
+    el('path', {
+      d: ellipse({ x: cx, y: cy }, s * 1.9, s * 1.9),
+      fill: i.palette.paper,
+      stroke: i.palette.hint,
+      'stroke-width': 1.6 * k,
+    }),
+    el('path', {
+      d: glass,
+      fill: i.palette.hint,
+      stroke: i.palette.ink,
+      'stroke-width': 1.3 * k,
+      'stroke-linejoin': 'round',
+    }),
+  ]);
+}
+
 export function buildOverlays(i: OverlayInput): Overlays {
   const under: SvgNode[] = [];
   const over: SvgNode[] = [];
   const me = i.state.characters.find((c) => c.id === i.characterId);
   under.push(...creatureHints(i));
+  const grace = graceHexes(i);
+  under.push(...graceTiles(i, grace));
   const feet = figureFeet(i.state, i.characterId, i.projection);
   const riding = me?.at.kind === 'creature';
   if (isSelecting(i.flow) && feet) {
@@ -305,5 +370,9 @@ export function buildOverlays(i: OverlayInput): Overlays {
     over.push(...pathArrow(i, feet, i.flow.steps));
   }
   over.push(...lostCharacters(i));
+  const standing = me?.status === 'active' && me.at.kind === 'hex' ? me.at.hex : null;
+  if (feet && standing && grace.some((h) => h.q === standing.q && h.r === standing.r)) {
+    over.push(graceWarning(i, feet));
+  }
   return { under, over };
 }

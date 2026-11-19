@@ -1,10 +1,11 @@
 import { createGame, findCharacter, type GameState, nextDay } from '@behemoth-road/core';
-import { useState } from 'preact/hooks';
+import { useEffect, useState } from 'preact/hooks';
 import { Hud } from './hud/Hud.tsx';
 import { MAP_TUNING } from './map/config.ts';
-import { confirmMove, type Flow, IDLE, openHub, tap } from './map/flow.ts';
+import { confirmMove, type Flow, IDLE, keyDown, openHub, rightClick, tap } from './map/flow.ts';
 import { type FocusTarget, MapView } from './map/MapView.tsx';
 import type { Target } from './map/pick.ts';
+import { getSettings } from './settings.ts';
 
 /** Game number `n` uses seed `MAP_TUNING.seed + n`, so every game can be replayed. */
 export function startGame(n: number): GameState {
@@ -18,6 +19,13 @@ export function App() {
   const [focus, setFocus] = useState<{ target: FocusTarget; n: number }>({ target: 'me', n: 0 });
   const { state } = game;
   const me = findCharacter(state, id);
+
+  // Escape closes popovers and cancels a plan (desktop convenience; nothing else needs a keyboard).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => setFlow((f) => keyDown(f, e.key));
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
 
   const onTap = (target: Target): void => setFlow((f) => tap(f, state, id, target));
   const onConfirm = (): void => {
@@ -43,6 +51,7 @@ export function App() {
         onTap={onTap}
         onConfirm={onConfirm}
         onOpenHub={() => setFlow(openHub())}
+        onRightClick={() => setFlow((f) => rightClick(f, getSettings()))}
         focus={focus}
       />
       <Hud

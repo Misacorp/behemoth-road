@@ -183,6 +183,56 @@ async function run() {
       if (!(await page.locator('[data-popover=inspect]').count()))
         problems.push(`${vp.name}: no inspect popover`);
       await shot('8-inspect');
+      // Escape closes it; on desktop a right-click closes it too, with the browser menu suppressed.
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(100);
+      if (await has('inspect')) problems.push(`${vp.name}: Escape did not close the popover`);
+      if (!vp.touch) {
+        const spot = await hexOnScreen(q1 - 3, r1 + 1);
+        await tap(...spot);
+        const blocked = await page.evaluate(
+          ([x, y]) =>
+            !document
+              .elementFromPoint(x, y)
+              .dispatchEvent(
+                new MouseEvent('contextmenu', {
+                  bubbles: true,
+                  cancelable: true,
+                  clientX: x,
+                  clientY: y,
+                }),
+              ),
+          spot,
+        );
+        await page.waitForTimeout(100);
+        if (!blocked) problems.push(`${vp.name}: right-click menu not suppressed`);
+        if (await has('inspect'))
+          problems.push(`${vp.name}: right-click did not close the popover`);
+      }
+
+      // The grace day: a new game, step off behind the creature, walk further back, and let days pass
+      // until the character's hex leaves the window (warning mark on the figure), then screenshot.
+      await page.locator('[aria-label="New game"]').click();
+      await page.waitForTimeout(300);
+      const [gq, gr] = await creature();
+      await tap(...(await hexOnScreen(gq, gr)));
+      for (const [dq, dr] of [
+        [0, 2],
+        [0, 3],
+      ]) {
+        await tap(...(await hexOnScreen(gq + dq, gr + dr)));
+        if (await has('confirm')) await page.locator('[aria-label=Confirm]').click();
+        await page.waitForTimeout(150);
+      }
+      await page.keyboard.press('Escape');
+      let warned = false;
+      for (let d = 0; d < 6 && !warned; d += 1) {
+        await page.locator('[aria-label="Next day"]').click();
+        await page.waitForTimeout(700);
+        warned = (await page.locator('[data-mark=grace-warning]').count()) > 0;
+      }
+      if (!warned) problems.push(`${vp.name}: never saw the grace-day warning`);
+      await shot('9-grace-day');
 
       // Frame times during a drag, CPU slowed 4x.
       const cdp = await context.newCDPSession(page);
