@@ -55,17 +55,22 @@ interface Visit {
  */
 const search = (state: GameState, start: Hex, budget: number): Map<string, Visit> => {
   const settled = new Map<string, Visit>();
-  const best = new Map<string, Visit>([
-    [hexKey(start), { hex: start, cost: 0, step: null, from: null }],
-  ]);
-  // The reachable area is a few hundred hexes at most, so a sorted frontier is plenty.
-  const frontier: Visit[] = [best.get(hexKey(start)) as Visit];
-  while (frontier.length > 0) {
-    let next = 0;
-    for (let i = 1; i < frontier.length; i++) {
-      if ((frontier[i] as Visit).cost < (frontier[next] as Visit).cost) next = i;
+  const origin: Visit = { hex: start, cost: 0, step: null, from: null };
+  const best = new Map<string, Visit>([[hexKey(start), origin]]);
+  // The reachable area is a few hundred hexes at most, so scanning the frontier
+  // for its cheapest entry is plenty. The first of equal costs wins: ties are stable.
+  const frontier: Visit[] = [origin];
+  for (;;) {
+    let next = -1;
+    let current: Visit | undefined;
+    for (const [i, visit] of frontier.entries()) {
+      if (!current || visit.cost < current.cost) {
+        current = visit;
+        next = i;
+      }
     }
-    const current = frontier.splice(next, 1)[0] as Visit;
+    if (!current) break;
+    frontier.splice(next, 1);
     const key = hexKey(current.hex);
     if (settled.has(key)) continue;
     settled.set(key, current);

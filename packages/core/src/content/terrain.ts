@@ -20,7 +20,6 @@ export const TERRAIN_TYPES: readonly TerrainType[] = [
   {
     id: 'desert',
     tags: ['dry', 'open'],
-
     passable: true,
     extraMoveCost: 0,
     elevation: 0,
