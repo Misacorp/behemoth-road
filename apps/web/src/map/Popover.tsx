@@ -14,12 +14,14 @@ import {
   el,
   hexCenter,
   isometric,
+  moodOf,
   renderScene,
   type CellState,
   type FeatureArt,
 } from '@behemoth-road/art';
-import type { GameStateView } from '@behemoth-road/core';
+import type { CreatureSigns, GameStateView } from '@behemoth-road/core';
 import type { JSX } from 'preact';
+import { iconOf } from '../game/chain.ts';
 import { Pips, TickMark } from '../hud/icons.tsx';
 import type { Identity } from '../game/identity.ts';
 import { QuirkIcon, RoleEmblem, TraitIcon } from '../ui/emblems.tsx';
@@ -274,9 +276,18 @@ function HeadingMark({ heading }: { heading: { q: number; r: number } }): JSX.El
   );
 }
 
-/** The creature: a small drawing of it, turned to its heading, and the heading as a compass mark. */
-export function CreatureCard({ state }: { state: GameStateView }): JSX.Element {
-  const art = creatureArt(state);
+/**
+ * The creature: a small drawing of it, turned to its heading (lying down while it lingers, with your signs:
+ * its appetite as you see it), and the heading as a compass mark.
+ */
+export function CreatureCard({
+  state,
+  signs = null,
+}: {
+  state: GameStateView;
+  signs?: CreatureSigns | null;
+}): JSX.Element {
+  const art = creatureArt(state, signs);
   const drawn = drawCreature(
     PALETTE,
     art.look,
@@ -285,6 +296,8 @@ export function CreatureCard({ state }: { state: GameStateView }): JSX.Element {
     MINI.squash,
     ART_TUNING.inkWidth * MINI.k,
     art.heading,
+    0,
+    moodOf(art),
   );
   const { x0, y0, x1, y1 } = drawn.box;
   const pad = 2;
@@ -513,6 +526,8 @@ export interface HereAction {
   readonly kind: string;
   readonly cost: number;
   readonly enabled: boolean;
+  /** A material it takes (a fire's timber), drawn small beside the pips. */
+  readonly uses?: string | null;
 }
 
 const ACTION_W = 54;
@@ -525,6 +540,7 @@ function ActionButton({
   enabled,
   x,
   y,
+  uses = null,
   onRun,
   buttonRef,
 }: {
@@ -534,9 +550,14 @@ function ActionButton({
   enabled: boolean;
   x: number;
   y: number;
+  /** An art kit icon id for a material it takes, drawn before the pips. */
+  uses?: string | null;
   onRun: () => void;
   buttonRef?: (el: SVGGElement | null) => void;
 }): JSX.Element {
+  const material = uses ? 15 : 0;
+  const row = material + (material ? 2 : 0) + cost * 10;
+  const left = (ACTION_W - 6) / 2 - row / 2;
   const run = (): void => {
     if (enabled) onRun();
   };
@@ -561,7 +582,8 @@ function ActionButton({
     >
       <rect width={ACTION_W - 6} height={50} rx={9} fill={PALETTE.paperDeep} />
       <CardIcon id={icon} x={(ACTION_W - 6) / 2 - 14} y={3} size={28} />
-      <g transform={`translate(${(ACTION_W - 6) / 2 - (cost * 10) / 2 - 2} 34)`}>
+      {uses && <CardIcon id={uses} x={left} y={31} size={material} />}
+      <g transform={`translate(${left + row - cost * 10 - 2} 34)`}>
         <Pips total={cost} left={cost} size={9} />
       </g>
     </g>
@@ -578,8 +600,9 @@ export const hereSize = (count: number): { width: number; height: number } => ({
 });
 
 /**
- * Your own hex: the revealed feature there and the actions it offers (gather, work the site), each a
- * button with its action icon and cost pips. Tapping an action is the second tap that spends.
+ * Your own hex: the revealed feature there and the actions it offers (gather, work the site, light a fire),
+ * each a button with its action icon and cost pips (and the material it takes). Tapping an action is the
+ * second tap that spends.
  */
 export function HereCard({
   terrain,
@@ -589,14 +612,14 @@ export function HereCard({
   firstRef,
 }: {
   terrain: string;
-  feature: FeatureArt;
+  feature: FeatureArt | null;
   actions: readonly HereAction[];
   onAct: (kind: string) => void;
   firstRef: (el: SVGGElement | null) => void;
 }): JSX.Element {
   const size = hereSize(actions.length);
   return (
-    <g data-popover="here" data-feature={feature.look}>
+    <g data-popover="here" data-feature={feature?.look}>
       {/* Taps on the card body reach the map below (a neighbour's hex); only the actions catch them. */}
       <g class="pass-through">
         <Card {...size} />
@@ -611,6 +634,7 @@ export function HereCard({
           enabled={a.enabled}
           x={56 + i * ACTION_W}
           y={5}
+          uses={a.uses ? iconOf(a.uses) : null}
           onRun={() => onAct(a.kind)}
           {...(i === 0 ? { buttonRef: firstRef } : {})}
         />

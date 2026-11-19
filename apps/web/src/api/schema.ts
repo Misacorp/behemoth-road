@@ -3,6 +3,7 @@
  * use: a wrong type throws. Objects ignore keys they do not know, so a newer server can add fields
  * without breaking an open client; requests are the server's to check strictly.
  */
+import { DEFAULT_CONFIG } from '@behemoth-road/core';
 import * as v from 'valibot';
 
 const id = v.pipe(v.string(), v.minLength(1), v.maxLength(64));
@@ -52,6 +53,8 @@ const character = v.object({
   status: v.picklist(['active', 'lost']),
 });
 
+const weights = v.object({ left: v.number(), straight: v.number(), right: v.number() });
+
 const config = v.object({
   actionsPerDay: count,
   moveCost: count,
@@ -60,7 +63,7 @@ const config = v.object({
   graceDays: count,
   lostTileRings: count,
   playerCap: count,
-  veerWeights: v.object({ left: v.number(), straight: v.number(), right: v.number() }),
+  veerWeights: weights,
   featureChance: v.number(),
   packCapacity: count,
   surveyCostSpecialist: count,
@@ -72,6 +75,13 @@ const config = v.object({
   siteChanceSpecialistTier2: v.number(),
   siteChanceOtherTier1: v.number(),
   siteChanceOtherTier2: v.number(),
+  // Milestone 4. Defaulted until the Worker's captured fixtures carry them (`docs/design/m4-creature.md`).
+  stimulusRange: v.optional(count, DEFAULT_CONFIG.stimulusRange),
+  stimulusPull: v.optional(v.number(), DEFAULT_CONFIG.stimulusPull),
+  hungryVeerWeights: v.optional(weights, { ...DEFAULT_CONFIG.hungryVeerWeights }),
+  lightFireCost: v.optional(count, DEFAULT_CONFIG.lightFireCost),
+  feedCost: v.optional(count, DEFAULT_CONFIG.feedCost),
+  lingerCost: v.optional(count, DEFAULT_CONFIG.lingerCost),
 });
 
 /** The core state without the seed (the core's `GameStateView`): known tiles carry their terrain. */
@@ -81,7 +91,14 @@ export const GameStateViewSchema = v.object({
   artSeed: v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(0xffffffff)),
   day: count,
   config,
-  creature: v.object({ centre: hex, heading: direction }),
+  creature: v.object({
+    centre: hex,
+    heading: direction,
+    /** A keeper asked it to stay put at the next tick. */
+    lingering: v.optional(v.boolean(), false),
+    /** The last day it lingered, or null. */
+    lingeredDay: v.optional(v.nullable(count), null),
+  }),
   tiles: v.pipe(
     v.record(v.pipe(v.string(), v.regex(/^-?\d+,-?\d+$/), v.maxLength(24)), tile),
     v.check((t) => Object.keys(t).length <= 20_000, 'too many tiles'),
@@ -98,7 +115,33 @@ export const GameStateViewSchema = v.object({
   unlocks: v.pipe(v.array(id), v.maxLength(100)),
   /** The one unlock in progress. */
   project: v.nullable(v.object({ unlock: id, work: count })),
+  /** Lit fires (public): each burns through the tick that ends the day it was lit. */
+  stimuli: v.optional(
+    v.pipe(v.array(v.object({ type: id, hex, litDay: count })), v.maxLength(200)),
+    [],
+  ),
 });
+
+/**
+ * What the signed-in player can read off the creature (core `CreatureSigns`): its appetite (faint for a
+ * non-keeper) and, for a keeper, how it reacted to each fire at the last tick.
+ */
+export const SignsSchema = v.object({
+  appetite: v.nullable(
+    v.object({
+      kind: v.picklist(['underfed', 'overfed']),
+      level: v.picklist([1, 2, 3]),
+      faint: v.boolean(),
+    }),
+  ),
+  cues: v.pipe(
+    v.array(v.object({ hex, stimulus: id, reaction: v.picklist(['toward', 'away', 'unmoved']) })),
+    v.maxLength(64),
+  ),
+});
+
+/** No signs: what a viewer without a character sees of a comfortable creature. */
+export const NO_SIGNS: v.InferOutput<typeof SignsSchema> = { appetite: null, cues: [] };
 
 const player = v.object({
   userId: id,
@@ -129,6 +172,8 @@ export const PlayerViewSchema = v.object({
   players: v.pipe(v.array(player), v.maxLength(64)),
   devTools: v.boolean(),
   offers: v.nullable(v.pipe(v.array(OfferSchema), v.maxLength(8))),
+  /** Defaulted until the Worker's captured fixtures carry it. */
+  signs: v.optional(SignsSchema, NO_SIGNS),
 });
 
 export const GameResponseSchema = v.union([
@@ -160,6 +205,7 @@ export type Offer = v.InferOutput<typeof OfferSchema>;
 export type GameResponse = v.InferOutput<typeof GameResponseSchema>;
 export type AppConfig = v.InferOutput<typeof ConfigSchema>;
 export type Session = v.InferOutput<typeof SessionSchema>;
+export type Signs = v.InferOutput<typeof SignsSchema>;
 
 /** Something that happened in a move or an action, for the map's short moments (core event list). */
 export const GameEventSchema = v.object({
@@ -177,6 +223,8 @@ export const GameEventSchema = v.object({
   /** Unlock progress: work done and needed. */
   work: v.optional(count),
   needed: v.optional(count),
+  /** A lit fire's stimulus id. */
+  stimulus: v.optional(id),
 });
 
 /** The answer to a move or an action: the new view and what happened on the way. */
@@ -198,4 +246,7 @@ export type GameAction =
   | { readonly kind: 'survey'; readonly hex: { readonly q: number; readonly r: number } }
   | { readonly kind: 'gather' }
   | { readonly kind: 'work-site' }
-  | { readonly kind: 'build'; readonly unlock: string };
+  | { readonly kind: 'build'; readonly unlock: string }
+  | { readonly kind: 'light-fire' }
+  | { readonly kind: 'feed' }
+  | { readonly kind: 'linger' };

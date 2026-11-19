@@ -13,6 +13,7 @@ import {
   hexKey,
   MATERIALS,
   ROLES,
+  STIMULUS_TYPES,
   UNLOCKS,
   type Unlock,
 } from '@behemoth-road/core';
@@ -135,4 +136,85 @@ export function unlockOptions(game: GameStateView, characterId: string): UnlockO
       cost: check.ok ? check.cost : game.config.buildCost,
     };
   });
+}
+
+/** An action with a material cost, as a button shows it: its cost in actions and the material it uses. */
+export interface CostedAction {
+  readonly kind: 'light-fire' | 'feed' | 'linger';
+  readonly cost: number;
+  readonly enabled: boolean;
+  /** The material it takes (fuel from your pack, food from the stores), or null. */
+  readonly uses: string | null;
+  /** Feed: the stores hold no food. Drawn faded on the material. */
+  readonly short?: boolean;
+  /** Linger: already asked for today. */
+  readonly done?: boolean;
+}
+
+const firstTagged = (tag: string, held: Readonly<Record<string, number>> = {}): string | null =>
+  (
+    MATERIALS.find((m) => m.tags.includes(tag) && (held[m.id] ?? 0) > 0) ??
+    MATERIALS.find((m) => m.tags.includes(tag))
+  )?.id ?? null;
+
+/** The material tag the creature eats (the core's `FOOD_TAG`, not exported from its index). */
+const FOOD_TAG = 'food';
+
+/** The stimulus a fire is (tagged `fire`) and its fuel tag: content, read by tag. */
+const FIRE = STIMULUS_TYPES.find((t) => t.tags.includes('fire')) ?? null;
+
+/**
+ * Lighting a fire where you stand, for your own hex's card: offered when you carry its fuel, faded when your
+ * actions are spent. Not offered without fuel (so the card does not open on every hex), on water, on the
+ * creature, or where a fire already burns.
+ */
+export function fireAction(game: GameStateView, characterId: string): CostedAction | null {
+  if (!FIRE) return null;
+  const check = checkAction(game, characterId, { kind: 'light-fire' });
+  if (check.ok) {
+    return {
+      kind: 'light-fire',
+      cost: check.cost,
+      enabled: true,
+      uses: check.uses[0]?.material ?? null,
+    };
+  }
+  if (check.reason !== 'not-enough-actions') return null;
+  const me = game.characters.find((c) => c.id === characterId);
+  return {
+    kind: 'light-fire',
+    cost: game.config.lightFireCost,
+    enabled: false,
+    uses: firstTagged(FIRE.fuel.tag, me?.pack),
+  };
+}
+
+/**
+ * Feeding and lingering in the creature's hub. Feeding is for everyone (faded unless you ride, have the
+ * actions and the stores hold food); lingering only for keepers (faded unless riding with the actions, and
+ * not the day after a linger; marked done once asked for today).
+ */
+export function careOptions(game: GameStateView, characterId: string): CostedAction[] {
+  const me = game.characters.find((c) => c.id === characterId);
+  if (me?.status !== 'active') return [];
+  const out: CostedAction[] = [];
+  const feed = checkAction(game, characterId, { kind: 'feed' });
+  out.push({
+    kind: 'feed',
+    cost: feed.ok ? feed.cost : game.config.feedCost,
+    enabled: feed.ok,
+    uses: feed.ok ? (feed.uses[0]?.material ?? null) : firstTagged(FOOD_TAG, game.stores),
+    short: !feed.ok && feed.reason === 'no-food',
+  });
+  const linger = checkAction(game, characterId, { kind: 'linger' });
+  if (linger.ok || linger.reason !== 'needs-keeper') {
+    out.push({
+      kind: 'linger',
+      cost: linger.ok ? linger.cost : game.config.lingerCost,
+      enabled: linger.ok,
+      uses: null,
+      done: game.creature.lingering,
+    });
+  }
+  return out;
 }

@@ -2,8 +2,9 @@
  * One moment, drawn in world px on its own SVG layer over the map and animated by CSS (`styles.css`,
  * `.moment-*`), so it costs no per-frame work. The art kit draws the marks: an explored hex's veil lifting
  * away (`drawVeilLift`), the survey and reveal blooms, the burst of a find with the material's icon rising,
- * the snap of a trap (`drawMoment`), a material dropping into the stores on the creature, and a finished
- * unlock's sealed icon rising from the creature.
+ * the snap of a trap (`drawMoment`), a material dropping into the stores on the creature, a finished
+ * unlock's sealed icon rising from the creature, and Milestone 4's fire lit, feeding (the food dropping in)
+ * and linger (`drawMoment` fire, feed, linger).
  */
 import { drawIcon, drawMoment, drawVeilLift, hexCenter, type SvgNode } from '@behemoth-road/art';
 import type { JSX } from 'preact';
@@ -60,6 +61,24 @@ export function MomentMark({ moment }: { moment: Moment }): JSX.Element {
         <Marked kind="drop">
           {at(drawIcon(iconOf(moment.item), PALETTE, icon), c.x, c.y - 0.6 * p.size, icon)}
         </Marked>
+      );
+      break;
+    case 'fire':
+    case 'linger':
+      body = (
+        <Marked kind="bloom">{at(drawMoment(moment.kind, PALETTE, size), c.x, c.y, size)}</Marked>
+      );
+      break;
+    case 'feed':
+      body = (
+        <g>
+          <Marked kind="burst">{at(drawMoment('feed', PALETTE, size), c.x, c.y, size)}</Marked>
+          {moment.item && (
+            <Marked kind="drop">
+              {at(drawIcon(iconOf(moment.item), PALETTE, icon), c.x, c.y - 0.6 * p.size, icon)}
+            </Marked>
+          )}
+        </g>
       );
       break;
     case 'unlock': {

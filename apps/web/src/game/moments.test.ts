@@ -87,3 +87,34 @@ describe('moments from the core events', () => {
     ]);
   });
 });
+
+describe('Milestone 4 moments', () => {
+  it('come from the fire-lit, fed and linger events', () => {
+    const hex = { q: centre.q + 2, r: centre.r };
+    expect(
+      momentsFromEvents(
+        [{ kind: 'fire-lit', hex }, { kind: 'fed', material: 'forage' }, { kind: 'linger' }],
+        centre,
+      ),
+    ).toEqual([
+      { kind: 'fire', hex },
+      { kind: 'feed', hex: centre, item: 'forage' },
+      { kind: 'linger', hex: centre },
+    ]);
+  });
+
+  it("show others' fires, feeding and lingering from the views", () => {
+    const hex = { q: centre.q + 2, r: centre.r };
+    const before = view({ stores: { forage: 2 } });
+    const after = view({
+      stores: { forage: 1 },
+      stimuli: [{ type: 'fire', hex, litDay: base.day }],
+      creature: { ...base.creature, lingering: true },
+    });
+    expect(momentsBetween(before, after, 'me')).toEqual([
+      { kind: 'fire', hex },
+      { kind: 'feed', hex: centre, item: 'forage' },
+      { kind: 'linger', hex: centre },
+    ]);
+  });
+});

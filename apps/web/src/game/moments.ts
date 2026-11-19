@@ -1,12 +1,13 @@
 /**
  * Moments: short visual beats on the map when the view changes, with no prose. A hex explored (its veil
  * lifts), a survey, a reveal (an ink bloom), a find (the material's icon rising from the site), a sprung trap
- * (a snap, and your pips going dark), a deposit into the stores and a finished unlock (on the creature).
+ * (a snap, and your pips going dark), a deposit into the stores and a finished unlock (on the creature), a
+ * fire lit (on its hex), a feeding and a linger (on the creature).
  * They come from the events of your own move or action, and otherwise from comparing two views, so they
  * show for anything that happened, whoever did it. They are CSS animations (no per-frame renders) and end
  * by themselves.
  */
-import { type GameStateView, type Hex, keyToHex } from '@behemoth-road/core';
+import { type GameStateView, type Hex, hexKey, keyToHex, MATERIALS } from '@behemoth-road/core';
 import { featureAt } from './chain.ts';
 
 export type Moment =
@@ -16,7 +17,10 @@ export type Moment =
   | { readonly kind: 'find'; readonly hex: Hex; readonly item: string }
   | { readonly kind: 'trap'; readonly hex: Hex }
   | { readonly kind: 'deposit'; readonly hex: Hex; readonly item: string }
-  | { readonly kind: 'unlock'; readonly hex: Hex; readonly item: string };
+  | { readonly kind: 'unlock'; readonly hex: Hex; readonly item: string }
+  | { readonly kind: 'fire'; readonly hex: Hex }
+  | { readonly kind: 'feed'; readonly hex: Hex; readonly item: string | null }
+  | { readonly kind: 'linger'; readonly hex: Hex };
 
 /** How long a moment stays on screen, in ms (its CSS animation is as long). */
 export const MOMENT_MS = 1400;
@@ -79,8 +83,23 @@ export function momentsBetween(before: GameStateView, after: GameStateView, me: 
   for (const u of after.unlocks) {
     if (!before.unlocks.includes(u)) out.push({ kind: 'unlock', hex: centre, item: u });
   }
+  const lit = new Set(before.stimuli.map((f) => hexKey(f.hex)));
+  for (const f of after.stimuli) {
+    if (!lit.has(hexKey(f.hex))) out.push({ kind: 'fire', hex: f.hex });
+  }
+  if (after.day === before.day) {
+    // Within a day, food leaves the stores only when someone feeds the creature.
+    const eaten = FOODS.find((id) => (after.stores[id] ?? 0) < (before.stores[id] ?? 0));
+    if (eaten) out.push({ kind: 'feed', hex: centre, item: eaten });
+  }
+  if (after.creature.lingering && !before.creature.lingering) {
+    out.push({ kind: 'linger', hex: centre });
+  }
   return out;
 }
+
+/** Materials the creature eats (tagged `food`), in content order. */
+const FOODS: readonly string[] = MATERIALS.filter((m) => m.tags.includes('food')).map((m) => m.id);
 
 /** The part of an event the moments read (the core's `GameEvent`, as parsed). */
 export interface EventLike {
@@ -93,13 +112,19 @@ export interface EventLike {
 
 /**
  * Moments from the events the server returned with your own move or action, in order. `centre` is where
- * the creature stands (deposits and unlocks show there). Kinds without a moment (gather, a failed site,
+ * the creature stands (deposits, unlocks, feeding and lingering show there). Kinds without a moment (gather, a failed site,
  * unlock progress) and unknown kinds are skipped, so new events never break the map.
  */
 export function momentsFromEvents(events: readonly EventLike[], centre: Hex): Moment[] {
   const out: Moment[] = [];
   for (const e of events) {
-    if (e.kind === 'deposit' && e.materials) {
+    if (e.kind === 'fed') {
+      out.push({ kind: 'feed', hex: centre, item: e.material ?? null });
+    } else if (e.kind === 'linger') {
+      out.push({ kind: 'linger', hex: centre });
+    } else if (e.kind === 'fire-lit' && e.hex) {
+      out.push({ kind: 'fire', hex: e.hex });
+    } else if (e.kind === 'deposit' && e.materials) {
       const item = grew({}, e.materials);
       if (item) out.push({ kind: 'deposit', hex: centre, item });
     } else if (e.kind === 'unlock-done' && e.unlock) {

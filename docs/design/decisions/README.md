@@ -49,6 +49,7 @@ Record a decision:
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
+- 2026-11-20 Web schema defaults the M4 view fields until the fixtures are recaptured
 - 2026-11-20 The core state holds exploration, packs, stores and unlocks; no glints, no migration
 - 2026-11-20 The Worker replaces an outdated game on start and refuses an unreadable one with 503
 - 2026-11-20 Features live in the state per hex; the view carries revealed ones and team glints; version-2 games migrate
@@ -109,6 +110,9 @@ Superseded: 2 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-20 A lingering creature's stay mark sits on its footprint's near edge
+- 2026-11-20 Feed and linger sit in the hub drawer as unlock-style cards
+- 2026-11-20 Light a fire shows on your hex's card only when you carry fuel
 - 2026-11-20 Milestone 4 art: appetite, cues, lying down and fires are drawn by the art kit from the core's signs
 - 2026-11-20 The revised chain in the interface: survey in the inspect card, the pack on the HUD, stores and unlocks in the hub drawer
 - 2026-11-20 The here card is compact and lets taps through its body; moments use the art kit's marks

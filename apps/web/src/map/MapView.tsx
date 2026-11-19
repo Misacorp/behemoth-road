@@ -13,6 +13,7 @@ import {
   type SvgNode,
 } from '@behemoth-road/art';
 import {
+  type CreatureSigns,
   type GameStateView,
   type Hex,
   terrainOf,
@@ -74,15 +75,17 @@ import {
 
 export type FocusTarget = 'me' | 'creature';
 
-/** Your own hex in the "here" card: its revealed feature and the actions it offers. */
+/** Your own hex in the "here" card: its revealed feature (if any) and the actions it offers. */
 export interface Here {
   readonly terrain: string;
-  readonly feature: FeatureArt;
+  readonly feature: FeatureArt | null;
   readonly actions: readonly HereAction[];
 }
 
 export interface MapViewProps {
   readonly state: GameStateView;
+  /** What you read off the creature (your appetite sign, a keeper's cues); none by default. */
+  readonly signs?: CreatureSigns | null;
   readonly flow: Flow;
   readonly characterId: string;
   readonly onTap: (target: Target) => void;
@@ -200,7 +203,7 @@ function popoverAnchor(
     if (feet) {
       const head = 0.9 * p.size;
       return {
-        key: `here:${here.feature.look}:${here.actions.map((a) => a.kind).join(',')}`,
+        key: `here:${here.feature?.look ?? ''}:${here.actions.map((a) => a.kind).join(',')}`,
         top: { x: feet.x, y: feet.y - head },
         below: head,
         size: hereSize(here.actions.length),
@@ -246,6 +249,7 @@ const LAYER_MARGIN = 2;
 
 export function MapView(props: MapViewProps): JSX.Element {
   const { state, flow, characterId } = props;
+  const signs = props.signs ?? null;
   const svgRef = useRef<SVGSVGElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
   const popRef = useRef<SVGGElement>(null);
@@ -275,7 +279,7 @@ export function MapView(props: MapViewProps): JSX.Element {
   const layers = useMemo(() => {
     const { svg: scene, viewBox } = renderSceneFramed({
       cells: sceneCells(state),
-      creature: creatureArt(state),
+      creature: creatureArt(state, signs),
       characters: characterArts(state),
       projection: p,
       palette: PALETTE,
@@ -300,7 +304,7 @@ export function MapView(props: MapViewProps): JSX.Element {
       box,
       raster: layerRaster(inkZoom, box, window.devicePixelRatio, MAP_TUNING.layer),
     };
-  }, [state, inkZoom]);
+  }, [state, signs, inkZoom]);
   const layerRef = useRef(layers);
   layerRef.current = layers;
 

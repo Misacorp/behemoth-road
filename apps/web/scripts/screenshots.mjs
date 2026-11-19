@@ -9,7 +9,8 @@
  * 2. The Vite dev server (its fake session stands in for Discord) at a phone and a desktop size, with every
  *    /api call answered by a fake server that runs the real core on the hand-written fixtures: the join
  *    wizard, two players on the creature, another player's card, moves, the hub, next day, the grace day,
- *    replacing a lost character, and frame times during a drag with the CPU slowed 4x.
+ *    replacing a lost character, Milestone 3's chain, Milestone 4's fires, creature signs, feeding and
+ *    lingering, and frame times during a drag with the CPU slowed 4x.
  *
  * Usage: pnpm --filter @behemoth-road/web build && node apps/web/scripts/screenshots.mjs
  * Not part of the unit test run. Needs the pre-installed Playwright (require('playwright')).
@@ -605,6 +606,55 @@ async function run() {
           problems.push(`${vp.name}: the trap did not end the day`);
         await shot3('12-trap');
         await settle();
+
+        // Milestone 4: fires, the creature's signs, feeding and lingering.
+        const shot4 = (name) => page.screenshot({ path: join(out, `m4-${vp.name}-${name}.png`) });
+        const cueAt = { at: { q: 3, r: -1 }, reaction: 'attracted' };
+
+        // Carrying timber, your own hex offers a fire (its timber and pip); lighting it draws it on the map.
+        await stage({ pack: { timber: 1 } });
+        await openHere();
+        if (!(await page.locator('[data-popover=here] [data-action=light-fire]').count()))
+          problems.push(`${vp.name}: no light-fire with timber in the pack`);
+        await shot4('01-fire-offer');
+        await press('[data-popover=here] [data-action=light-fire]');
+        await page.waitForTimeout(450);
+        await expectMoment('fire');
+        if (fake.scenario.state.stimuli.length !== 1)
+          problems.push(`${vp.name}: lighting did not reach the server`);
+        await shot4('02-fire-lit');
+        await settle();
+        await idle();
+        await shot4('03-fire-burning');
+
+        // A keeper: the hungry creature droops (level 2) and turns its head toward yesterday's fire.
+        await stage({ role: 'keeper', satiety: 2, cues: [cueAt], fires: [cueAt.at] });
+        await shot4('04-keeper-signs');
+        // Anyone else sees the same hunger only faintly, and no cue.
+        await stage({ role: 'scout', satiety: 2, cues: [cueAt], fires: [cueAt.at] });
+        await shot4('05-faint-sign');
+
+        // A keeper riding: the hub offers feeding (the forage it takes) and lingering, each with pips.
+        await stage({ role: 'keeper', at: 'creature', stores: { forage: 2, timber: 1 } });
+        await openHub();
+        if ((await page.locator('.drawer [data-care]').count()) !== 2)
+          problems.push(`${vp.name}: the hub does not offer feed and linger to a keeper`);
+        await shot4('06-hub-care');
+        await press('[data-care=feed] [aria-label=feed]');
+        await page.waitForTimeout(300);
+        if ((fake.scenario.state.stores.forage ?? 0) !== 1)
+          problems.push(`${vp.name}: feeding did not reach the server`);
+        await press('[data-care=linger] [aria-label=linger]');
+        await page.waitForTimeout(450);
+        await expectMoment('linger');
+        if (!fake.scenario.state.creature.lingering)
+          problems.push(`${vp.name}: lingering did not reach the server`);
+        await shot4('07-linger');
+        await settle();
+        await idle();
+        if (!(await page.locator('[data-mark=stay]').count()))
+          problems.push(`${vp.name}: no stay mark while the creature lingers`);
+        await shot4('08-lingering');
       }
 
       // Lost and replace: the drawer opens by itself; replacing starts a new character on the creature.

@@ -5,7 +5,9 @@
 import type { ArtCell, CellState, FeatureArt, CharacterArt, CreatureArt } from '@behemoth-road/art';
 import { GENTLE_AMBLER } from '@behemoth-road/art';
 import {
+  type CreatureSigns,
   featureType,
+  STIMULUS_TYPES,
   directionOffset,
   type GameStateView,
   terrainOf,
@@ -49,6 +51,8 @@ export function sceneCells(state: GameStateView): ArtCell[] {
     }
   }
   for (const c of state.characters) if (c.at.kind === 'hex') keys.set(hexKey(c.at.hex), c.at.hex);
+  const fires = fireKeys(state);
+  for (const s of state.stimuli) if (fires.has(hexKey(s.hex))) keys.set(hexKey(s.hex), s.hex);
 
   const cells: ArtCell[] = [];
   for (const [key, h] of keys) {
@@ -61,6 +65,8 @@ export function sceneCells(state: GameStateView): ArtCell[] {
       state: cellState,
       terrain: known ? (terrainOf(state, h)?.id ?? 'unknown') : 'unknown',
       ...(feature ? { feature } : {}),
+      // A lit fire shows to everyone, also under the veil and on paper never seen.
+      ...(fires.has(key) ? { fire: true } : {}),
     });
   }
   return cells;
@@ -80,8 +86,26 @@ export function featureArtAt(state: GameStateView, key: string): FeatureArt | nu
   return { look: type.icon, state: type.kind === 'node' ? 'depleted' : 'spent' };
 }
 
-export function creatureArt(state: GameStateView): CreatureArt {
+/** Stimulus content ids that draw as a fire: read by the `fire` tag, never by id. */
+const FIRE_TYPES: ReadonlySet<string> = new Set(
+  STIMULUS_TYPES.filter((t) => t.tags.includes('fire')).map((t) => t.id),
+);
+
+/** The hexes where a fire burns (the view's stimuli tagged `fire`; unknown types are left out). */
+export function fireKeys(state: GameStateView): Set<string> {
+  return new Set(state.stimuli.filter((s) => FIRE_TYPES.has(s.type)).map((s) => hexKey(s.hex)));
+}
+
+/**
+ * The creature as the art kit draws it for one viewer: lying down while it lingers (public), and the
+ * viewer's own signs (`PlayerView.signs`): the appetite as they see it (faint for a non-keeper) and, for a
+ * keeper, the reaction cues. Without signs (a card that shows only the public creature) it is plain.
+ */
+export function creatureArt(state: GameStateView, signs: CreatureSigns | null = null): CreatureArt {
   return {
+    pose: state.creature.lingering ? 'lying' : 'standing',
+    appetite: signs?.appetite ?? null,
+    cues: (signs?.cues ?? []).map((c) => ({ hex: c.hex, reaction: c.reaction })),
     q: state.creature.centre.q,
     r: state.creature.centre.r,
     heading: directionOffset(state.creature.heading),

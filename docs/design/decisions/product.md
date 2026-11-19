@@ -4,6 +4,30 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: A lingering creature's stay mark sits on its footprint's near edge
+
+ID: `2026-11-20-a-lingering-creature-s-stay-mark` · Status: current
+
+**Decision.** While `predictCreature` returns the `stay` option, the paw prints ahead are not drawn; the art kit's stay mark is drawn once over the map at the hex on the near (screen-bottom) edge of the creature's footprint, at least about 40 screen px across at any zoom.
+
+**Reasoning.** At the creature's centre the body and riders would hide it, and drawn ahead it would read as where the creature goes. The near edge is at its feet, always in view. Its place is one line in `apps/web/src/map/overlays.ts` (`stayHint`).
+
+## 2026-11-20: Feed and linger sit in the hub drawer as unlock-style cards
+
+ID: `2026-11-20-feed-and-linger-sit-in-the` · Status: current
+
+**Decision.** The creature's hub drawer has a care row above the unlocks, using the unlock card layout: the action icon, the food it takes (faded when the stores hold none), the action pips and the go button. Feed shows for every active character, faded unless riding with the actions and food. Linger shows only for keepers (hidden on `needs-keeper`), faded when not riding, out of actions or the day after a linger, and sealed (done icon, no button) once asked for today. Feeding keeps the drawer open; lingering closes it so the creature is seen lying down with the stay mark.
+
+**Reasoning.** Reuses the hub's existing card and its second-tap button, so no new control to learn. A faded feed card hints that the creature eats without saying how; linger is the keeper's lever, so others never see it.
+
+## 2026-11-20: Light a fire shows on your hex's card only when you carry fuel
+
+ID: `2026-11-20-light-a-fire-shows-on-your` · Status: current
+
+**Decision.** Your own hex's card offers light-fire (the fire icon, a small timber icon and the action pip) when you stand on a hex with fuel in your pack: enabled when `checkAction` allows it, faded when only actions are short. It is not offered without fuel, on water, on the creature or where a fire already burns. The card now opens on a hex without a revealed feature when an action is offered there.
+
+**Reasoning.** Offering a faded fire on every hex without timber would open the card each time you select your character and cover the neighbours you tap to move. Carrying timber is the player's own signal that they mean to burn it.
+
 ## 2026-11-20: Milestone 4 art: appetite, cues, lying down and fires are drawn by the art kit from the core's signs
 
 ID: `2026-11-20-milestone-4-art-appetite-cues-lying-2` · Status: current
