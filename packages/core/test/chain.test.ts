@@ -8,73 +8,69 @@ import {
   type GameState,
   type Hex,
   hexDistance,
+  isAdjacent,
+  isCreatureHex,
   keyToHex,
   moveAlong,
   nextDay,
   ON_CREATURE,
+  packSize,
   planPath,
   type Place,
   reachablePlaces,
+  UNLOCKS,
 } from '../src/index.ts';
 
 /**
  * A scripted party of three plays the chain: the scout explores (the script
- * knows where hidden features are, standing in for a player following glints),
- * the engineer gathers and crafts, the scholar works a deep tomb once there is a
- * lantern. Everyone else rides the creature when idle.
+ * knows where hidden features are, standing in for a curious player) and
+ * surveys what it finds; everyone gathers what the unlocks still need and
+ * carries it back to the creature's stores; the engineer, riding, builds the
+ * hook, the lantern and then the spikes; the scholar works a deep tomb once the
+ * lantern is done and brings the alloy home.
  */
 
-const NEEDS = { iron: 3, timber: 2, stone: 1 } as const;
 const ORDER = ['grappling-hook', 'lantern', 'climbing-spikes'] as const;
 
-const has = (s: GameState, item: string) => (s.inventory.items[item] ?? 0) > 0;
-const mat = (s: GameState, m: string) => s.inventory.materials[m] ?? 0;
+const done = (s: GameState, unlock: string) => s.unlocks.includes(unlock);
 
-/** Materials still to gather for the remaining recipes (ignoring finds). */
+/** Materials the unfinished unlocks still need beyond what is in the stores and packs. */
 const wanted = (s: GameState): Set<string> => {
-  const need: Record<string, number> = { ...NEEDS };
-  if (has(s, 'grappling-hook')) {
-    need.iron = (need.iron ?? 0) - 2;
-    need.timber = (need.timber ?? 0) - 1;
+  const need: Record<string, number> = {};
+  for (const id of ORDER) {
+    if (done(s, id) || s.project?.unlock === id) continue;
+    for (const c of UNLOCKS.find((u) => u.id === id)!.cost) {
+      need[c.material] = (need[c.material] ?? 0) + c.amount;
+    }
   }
-  if (has(s, 'lantern')) {
-    need.stone = (need.stone ?? 0) - 1;
-    need.timber = (need.timber ?? 0) - 1;
+  const have: Record<string, number> = { ...s.stores };
+  for (const c of s.characters) {
+    for (const [m, n] of Object.entries(c.pack)) have[m] = (have[m] ?? 0) + n;
   }
-  if (has(s, 'climbing-spikes')) need.iron = (need.iron ?? 0) - 1;
   return new Set(
     Object.entries(need)
-      .filter(([m, n]) => mat(s, m) < n)
+      .filter(([m, n]) => (have[m] ?? 0) < n)
       .map(([m]) => m),
   );
 };
 
+const me = (s: GameState, id: string) => s.characters.find((c) => c.id === id)!;
 const hexOf = (s: GameState, id: string): Hex | null => {
-  const c = s.characters.find((x) => x.id === id)!;
-  return c.at.kind === 'hex' ? c.at.hex : null;
+  const at = me(s, id).at;
+  return at.kind === 'hex' ? at.hex : null;
 };
 
 /** Walks as close to `target` as the actions allow. */
 const walkTowards = (s: GameState, id: string, target: Place): GameState => {
-  const exact = planPath(s, id, target);
-  let plan = exact;
-  if (!exact.ok) {
+  let plan = planPath(s, id, target);
+  if (!plan.ok) {
     const goal = target.kind === 'hex' ? target.hex : s.creature.centre;
-    const best = reachablePlaces(s, id)
-      .filter((r) => r.place.kind === 'hex')
-      .sort((a, b) => {
-        const da = hexDistance((a.place as { hex: Hex }).hex, goal);
-        const db = hexDistance((b.place as { hex: Hex }).hex, goal);
-        return da - db || a.cost - b.cost;
-      })[0];
     const here = hexOf(s, id);
-    if (
-      !best ||
-      (here && hexDistance((best.place as { hex: Hex }).hex, goal) >= hexDistance(here, goal))
-    ) {
-      return s;
-    }
-    plan = planPath(s, id, best.place);
+    const best = reachablePlaces(s, id)
+      .flatMap((r) => (r.place.kind === 'hex' ? [{ hex: r.place.hex, cost: r.cost }] : []))
+      .sort((a, b) => hexDistance(a.hex, goal) - hexDistance(b.hex, goal) || a.cost - b.cost)[0];
+    if (!best || (here && hexDistance(best.hex, goal) >= hexDistance(here, goal))) return s;
+    plan = planPath(s, id, { kind: 'hex', hex: best.hex });
   }
   if (!plan.ok) return s;
   const walked = moveAlong(s, id, plan.steps);
@@ -87,82 +83,114 @@ const tryAct = (s: GameState, id: string, action: Action): GameState => {
   return result.ok ? result.state : s;
 };
 
-/** Nearest feature hex in the window matching `test`, by distance from the character. */
+/** Nearest feature hex well inside the window matching `test`. */
 const nearest = (s: GameState, id: string, test: (key: string) => boolean): Hex | null => {
   const from = hexOf(s, id) ?? s.creature.centre;
-  const window = s.config.windowRadius - 1;
   return (
     Object.keys(s.features)
       .filter(test)
       .map(keyToHex)
-      .filter((h) => hexDistance(h, s.creature.centre) <= window)
+      .filter((h) => hexDistance(h, s.creature.centre) <= s.config.windowRadius - 2)
       .sort((a, b) => hexDistance(a, from) - hexDistance(b, from))[0] ?? null
   );
 };
 
-const goHomeIfIdle = (s: GameState, id: string): GameState => {
-  const here = hexOf(s, id);
-  if (!here) return s;
-  return walkTowards(s, id, ON_CREATURE);
-};
-
-/** An idle character gathers a wanted material nearby, or heads home. */
-const helpGather = (s0: GameState, id: string): GameState => {
-  let s = s0;
+const wantedNode = (s: GameState, id: string) => {
   const want = wanted(s);
-  const node = nearest(s, id, (k) => {
+  return nearest(s, id, (k) => {
     const f = s.features[k]!;
     const t = featureType(f.type);
     return f.revealed && t.kind === 'node' && f.left > 0 && want.has(t.yields.material);
   });
-  if (!node) return goHomeIfIdle(s, id);
-  s = walkTowards(s, id, { kind: 'hex', hex: node });
-  while (checkAction(s, id, { kind: 'gather' }).ok && wanted(s).size > 0) {
-    s = tryAct(s, id, { kind: 'gather' });
+};
+
+/** Gather what is wanted; carry it home when full or when nothing more is wanted nearby. */
+const gatherer = (s0: GameState, id: string): GameState => {
+  let s = s0;
+  const node = wantedNode(s, id);
+  const full = packSize(me(s, id).pack) >= s.config.packCapacity;
+  if (node && !full) {
+    s = walkTowards(s, id, { kind: 'hex', hex: node });
+    while (checkAction(s, id, { kind: 'gather' }).ok && wanted(s).size > 0) {
+      s = tryAct(s, id, { kind: 'gather' });
+    }
+    return s;
+  }
+  return walkTowards(s, id, ON_CREATURE);
+};
+
+const scout = (s0: GameState): GameState => {
+  let s = s0;
+  const hidden = nearest(
+    s,
+    'scout',
+    (k) => !s.features[k]!.revealed && !isCreatureHex(s, keyToHex(k)),
+  );
+  if (!hidden) return gatherer(s, 'scout');
+  const here = hexOf(s, 'scout');
+  if (!here || !isAdjacent(here, hidden)) {
+    // Walk next to it (not onto it: it might be a trap), then survey.
+    const beside = reachablePlaces(s, 'scout')
+      .flatMap((r) => (r.place.kind === 'hex' && isAdjacent(r.place.hex, hidden) ? [r] : []))
+      .sort((a, b) => a.cost - b.cost)[0];
+    s = beside
+      ? walkTowards(s, 'scout', beside.place)
+      : walkTowards(s, 'scout', { kind: 'hex', hex: hidden });
+  }
+  s = tryAct(s, 'scout', { kind: 'survey', hex: hidden });
+  return s;
+};
+
+const engineer = (s0: GameState): GameState => {
+  let s = s0;
+  const next =
+    s.project?.unlock ??
+    ORDER.find(
+      (id) => !done(s, id) && checkAction(s, 'engineer', { kind: 'build', unlock: id }).ok,
+    );
+  if (next && me(s, 'engineer').at.kind === 'creature') {
+    while (checkAction(s, 'engineer', { kind: 'build', unlock: next }).ok) {
+      s = tryAct(s, 'engineer', { kind: 'build', unlock: next });
+    }
+    return s;
+  }
+  // Nothing to build: help gather, and come home once there is something to build.
+  return gatherer(s, 'engineer');
+};
+
+const scholar = (s0: GameState): GameState => {
+  let s = s0;
+  const hasAlloy = (me(s, 'scholar').pack['ancient-alloy'] ?? 0) > 0;
+  const tomb =
+    done(s, 'lantern') &&
+    !hasAlloy &&
+    !done(s, 'climbing-spikes') &&
+    (s.stores['ancient-alloy'] ?? 0) === 0
+      ? nearest(s, 'scholar', (k) => {
+          const f = s.features[k]!;
+          const t = featureType(f.type);
+          return f.revealed && t.kind === 'site' && t.tier === 2 && f.left > 0;
+        })
+      : null;
+  if (tomb) {
+    s = walkTowards(s, 'scholar', { kind: 'hex', hex: tomb });
+    return tryAct(s, 'scholar', { kind: 'work-site' });
+  }
+  if (hasAlloy) return walkTowards(s, 'scholar', ON_CREATURE);
+  return gatherer(s, 'scholar');
+};
+
+/** Whoever has strayed far from the creature heads back before nightfall. */
+const stayClose = (s0: GameState): GameState => {
+  let s = s0;
+  for (const c of s.characters) {
+    const h = hexOf(s, c.id);
+    if (h && hexDistance(h, s.creature.centre) > 3) s = walkTowards(s, c.id, ON_CREATURE);
   }
   return s;
 };
 
-const playDay = (s0: GameState): GameState => {
-  let s = s0;
-  // Scout: reveal the nearest hidden feature.
-  const hidden = nearest(s, 'scout', (k) => !s.features[k]!.revealed);
-  s = hidden ? walkTowards(s, 'scout', { kind: 'hex', hex: hidden }) : goHomeIfIdle(s, 'scout');
-
-  // Engineer: craft what it can, else gather what is still wanted.
-  for (const recipe of ORDER) s = tryAct(s, 'engineer', { kind: 'craft', recipe });
-  const want = wanted(s);
-  const node = nearest(s, 'engineer', (k) => {
-    const f = s.features[k]!;
-    const t = featureType(f.type);
-    return f.revealed && t.kind === 'node' && f.left > 0 && want.has(t.yields.material);
-  });
-  if (node) {
-    s = walkTowards(s, 'engineer', { kind: 'hex', hex: node });
-    while (checkAction(s, 'engineer', { kind: 'gather' }).ok && wanted(s).size > 0) {
-      s = tryAct(s, 'engineer', { kind: 'gather' });
-    }
-  } else {
-    s = goHomeIfIdle(s, 'engineer');
-  }
-
-  // Scholar: once there is a lantern, work the nearest revealed deep tomb.
-  const tomb = has(s, 'lantern')
-    ? nearest(s, 'scholar', (k) => {
-        const f = s.features[k]!;
-        const t = featureType(f.type);
-        return f.revealed && t.kind === 'site' && t.tier === 2 && f.left > 0;
-      })
-    : null;
-  if (tomb && !has(s, 'climbing-spikes') && mat(s, 'ancient-alloy') === 0) {
-    s = walkTowards(s, 'scholar', { kind: 'hex', hex: tomb });
-    s = tryAct(s, 'scholar', { kind: 'work-site' });
-  } else {
-    s = helpGather(s, 'scholar');
-  }
-  s = helpGather(s, 'scout');
-  return nextDay(s);
-};
+const playDay = (s: GameState): GameState => nextDay(stayClose(scholar(engineer(scout(s)))));
 
 const playChain = (seed: number, maxDays: number) => {
   let s = createGame([seed, 0x5eed, 0xc4a1, 0x3], {
@@ -173,40 +201,32 @@ const playChain = (seed: number, maxDays: number) => {
   const milestones: Record<string, number> = {};
   for (let day = 1; day <= maxDays; day++) {
     s = playDay(s);
-    for (const item of ORDER) if (has(s, item) && !milestones[item]) milestones[item] = day;
-    if ((s.inventory.materials['ancient-alloy'] ?? 0) > 0 && !milestones.alloy)
-      milestones.alloy = day;
-    if (has(s, 'climbing-spikes')) break;
+    for (const id of ORDER) if (done(s, id) && !milestones[id]) milestones[id] = day;
+    if (done(s, 'climbing-spikes')) break;
   }
   return { state: s, milestones };
 };
 
+// Measured with this script (3 characters): the spikes come on days 25–46 on 9 of
+// 12 maps (median about 37); the wait is mostly for timber and iron to come into
+// view, then for a deep tomb once the lantern is done. Real parties are larger.
 describe('the first chain', () => {
-  // Measured with this script (3 characters): the spikes come on days 21–45 on
-  // 10 of 12 maps (median about 34); the hook takes 5–34 days, mostly waiting for
-  // timber and iron to come into view. Real parties are larger.
-  it('runs from scouting to climbing spikes within a few weeks', () => {
-    const { state, milestones } = playChain(1, 40);
+  it('runs from scouting to climbing spikes, with trips back to the creature', () => {
+    const { state, milestones } = playChain(1, 60);
     expect(Object.keys(milestones).sort()).toEqual([
-      'alloy',
       'climbing-spikes',
       'grappling-hook',
       'lantern',
     ]);
-    expect(milestones['grappling-hook']!).toBeLessThan(milestones['climbing-spikes']!);
-    expect(milestones.lantern!).toBeLessThanOrEqual(milestones.alloy!);
-    expect(milestones['climbing-spikes']!).toBeLessThanOrEqual(40);
+    expect(milestones.lantern!).toBeLessThan(milestones['climbing-spikes']!);
     expect(state.characters.every((c) => c.status === 'active')).toBe(true);
   });
 
   it('is reachable on most maps', () => {
     const days: number[] = [];
     for (let seed = 1; seed <= 12; seed++) {
-      const { milestones } = playChain(seed, 60);
-      days.push(milestones['climbing-spikes'] ?? Infinity);
+      days.push(playChain(seed, 60).milestones['climbing-spikes'] ?? Infinity);
     }
-    const done = days.filter((d) => d <= 60);
-    expect(done.length).toBeGreaterThanOrEqual(9);
-    expect(days.filter((d) => d <= 45).length).toBeGreaterThanOrEqual(9);
+    expect(days.filter((d) => d <= 60).length).toBeGreaterThanOrEqual(9);
   });
 });

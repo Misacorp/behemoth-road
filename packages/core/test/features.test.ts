@@ -7,6 +7,7 @@ import {
   hex,
   hexesInRange,
   hexKey,
+  isExplored,
   move,
   moveAlong,
   nextDay,
@@ -71,49 +72,44 @@ describe('feature generation', () => {
   });
 });
 
-describe('revealing', () => {
-  it('reveals a feature for everyone when anyone enters', () => {
+describe('exploring and revealing', () => {
+  it('explores a hex for everyone when anyone enters, revealing its feature', () => {
     let state = placeCharacter(chainGame(['engineer']), 'engineer', P);
     state = withFeature(state, N, 'iron-deposit');
+    expect(isExplored(state, N)).toBe(false);
     expect(toPlayerView(state).features[hexKey(N)]).toBeUndefined();
     const result = move(state, 'engineer', N);
     if (!result.ok) throw new Error(result.reason);
-    expect(result.events).toEqual([{ kind: 'reveal', hex: N, feature: 'iron-deposit' }]);
-    expect(toPlayerView(result.state).features[hexKey(N)]).toMatchObject({ revealed: true });
-  });
-
-  it('springs a hidden trap on a non-scout: the day ends, the trap is revealed and harmless', () => {
-    let state = placeCharacter(chainGame(['engineer', 'scout']), 'engineer', P);
-    state = placeCharacter(state, 'scout', P);
-    state = withFeature(state, N, 'snare');
-    const caught = move(state, 'engineer', N);
-    if (!caught.ok) throw new Error(caught.reason);
-    expect(caught.trapped).toBe(true);
-    expect(caught.events).toContainEqual({ kind: 'trap', hex: N, characterId: 'engineer' });
-    expect(caught.state.characters[0]?.actionsLeft).toBe(0);
-    // Now revealed: the next one through is fine.
-    const after = move(caught.state, 'scout', N);
-    expect(after.ok && after.trapped).toBe(false);
-  });
-
-  it('never springs a trap on a scout, who also senses hidden features nearby', () => {
-    let state = placeCharacter(chainGame(['scout']), 'scout', P);
-    state = withFeature(state, N, 'pitfall');
-    const beyond = hex(3, -3);
-    const aside = hex(4, -3);
-    state = withFeature(state, beyond, 'tomb');
-    state = withFeature(state, aside, 'iron-deposit', true);
-    const result = move(state, 'scout', N);
-    if (!result.ok) throw new Error(result.reason);
-    expect(result.trapped).toBe(false);
-    expect(result.state.characters[0]?.actionsLeft).toBe(2);
-    expect(result.events).toContainEqual({ kind: 'sense', hex: beyond });
-    // A revealed feature needs no glint; a glint never says what is there.
-    expect(result.state.glints).toEqual({ [hexKey(beyond)]: true });
+    expect(result.events).toEqual([
+      { kind: 'explore', hex: N },
+      { kind: 'reveal', hex: N, feature: 'iron-deposit' },
+    ]);
     const view = toPlayerView(result.state);
-    expect(view.glints).toEqual({ [hexKey(beyond)]: true });
-    expect(view.features[hexKey(beyond)]).toBeUndefined();
-    expect(JSON.stringify(view)).not.toContain('"tomb"');
+    expect(view.tiles[hexKey(N)]?.explored).toBe(true);
+    expect(view.features[hexKey(N)]).toMatchObject({ type: 'iron-deposit', revealed: true });
+  });
+
+  it('keeps a hex explored as the window moves on', () => {
+    let state = placeCharacter(chainGame(['engineer']), 'engineer', P);
+    const moved = move(state, 'engineer', N);
+    if (!moved.ok) throw new Error(moved.reason);
+    state = nextDay(moved.state);
+    expect(isExplored(state, N)).toBe(true);
+  });
+
+  it('springs a hidden trap on anyone, scouts too: the day ends; then it is harmless', () => {
+    for (const role of ['scout', 'engineer']) {
+      let state = placeCharacter(chainGame([role, 'scholar']), role, P);
+      state = placeCharacter(state, 'scholar', P);
+      state = withFeature(state, N, 'snare');
+      const caught = move(state, role, N);
+      if (!caught.ok) throw new Error(caught.reason);
+      expect(caught.trapped).toBe(true);
+      expect(caught.events).toContainEqual({ kind: 'trap', hex: N, characterId: role });
+      expect(caught.state.characters[0]?.actionsLeft).toBe(0);
+      const after = move(caught.state, 'scholar', N);
+      expect(after.ok && after.trapped).toBe(false);
+    }
   });
 
   it('stops a walk at a trap: the rest is neither taken nor spent', () => {
@@ -136,7 +132,8 @@ describe('revealing', () => {
     let state = placeCharacter(chainGame(['scout']), 'scout', P);
     state = withFeature(state, N, 'tomb');
     const result = move(toPlayerView(state), 'scout', N);
-    expect(result.ok && result.events).toEqual([]);
+    expect(result.ok && result.events).toEqual([{ kind: 'explore', hex: N }]);
+    expect(JSON.stringify(toPlayerView(state))).not.toContain('"tomb"');
   });
 
   it('knows every feature type it can generate', () => {
