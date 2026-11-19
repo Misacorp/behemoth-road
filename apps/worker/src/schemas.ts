@@ -1,5 +1,5 @@
 import * as v from 'valibot';
-import { ROLE_IDS } from './game-core.ts';
+import { ROLE_IDS, UNLOCK_IDS } from './game-core.ts';
 import { SERVER_CONFIG } from './server-config.ts';
 
 export const SNOWFLAKE_RE = /^\d{17,20}$/;
@@ -53,6 +53,27 @@ export const MoveBodySchema = v.strictObject({
   version: VersionSchema,
   path: v.pipe(v.array(PlaceSchema), v.minLength(1), v.maxLength(maxPathLength)),
 });
+
+/** An action by the player's own character: exactly one of the four shapes. */
+export const ActionSchema = v.variant('kind', [
+  v.strictObject({
+    kind: v.literal('survey'),
+    hex: v.strictObject({ q: coordinate, r: coordinate }),
+  }),
+  v.strictObject({ kind: v.literal('gather') }),
+  v.strictObject({ kind: v.literal('work-site') }),
+  v.strictObject({
+    kind: v.literal('build'),
+    unlock: v.pipe(
+      v.string(),
+      v.maxLength(64),
+      v.check((id) => UNLOCK_IDS.includes(id)),
+    ),
+  }),
+]);
+
+/** POST /api/game/act. */
+export const ActBodySchema = v.strictObject({ version: VersionSchema, action: ActionSchema });
 
 /** POST /api/dev/next-day. */
 export const EmptyBodySchema = v.strictObject({});

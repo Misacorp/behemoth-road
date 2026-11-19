@@ -50,6 +50,8 @@ Record a decision:
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 - 2026-11-20 The core state holds exploration, packs, stores and unlocks; no glints, no migration
+- 2026-11-20 The Worker replaces an outdated game on start and refuses an unreadable one with 503
+- 2026-11-20 Features live in the state per hex; the view carries revealed ones and team glints; version-2 games migrate
 - 2026-11-20 Before a stable release, older games are wiped, not migrated \[Misa\]
 - 2026-11-19 Only allowed Discord servers can play; the app itself is public \[Misa\]
 - 2026-11-19 The web client boots as an Activity, parses every response, and runs rules on the player view
@@ -101,13 +103,16 @@ Record a decision:
 - 2026-11-19 One Worker serves the frontend and the API, configured as code
 - 2026-11-19 Strict security headers, and everything served from our own origin
 
-Superseded: 1 entry (see the topic file).
+Superseded: 2 entries (see the topic file).
 
 ## Product
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
 - 2026-11-20 Milestone 4 art: appetite, cues, lying down and fires are drawn by the art kit from the core's signs
+- 2026-11-20 The revised chain in the interface: survey in the inspect card, the pack on the HUD, stores and unlocks in the hub drawer
+- 2026-11-20 The here card is compact and lets taps through its body; moments use the art kit's marks
+- 2026-11-20 Unexplored hexes sit under one hatched paper veil; packs, stores and unlocks have their own marks
 - 2026-11-20 M4 core: hunger cap in creature data, starving meals nourish, lingering twice refused
 - 2026-11-20 Lingering is the keeper's action and never runs two days in a row
 - 2026-11-20 Hunger has a comfortable band; underfed is erratic, overfed is sluggish; anyone can feed
@@ -173,4 +178,4 @@ Superseded: 1 entry (see the topic file).
 - 2026-11-19 Drag and drop always has a tap and keyboard alternative
 - 2026-11-19 Counts read "1 / 3", and terms explain themselves without "?" icons
 
-Superseded: 6 entries (see the topic file).
+Superseded: 7 entries (see the topic file).

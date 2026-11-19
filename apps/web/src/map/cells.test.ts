@@ -12,9 +12,12 @@ describe('scene cells', () => {
     const r = s.config.windowRadius + MAP_TUNING.paperRings;
     const cells = sceneCells(s);
     expect(cells).toHaveLength(1 + 3 * r * (r + 1));
-    expect(cells.filter((c) => c.state === 'seen')).toHaveLength(
-      1 + 3 * s.config.windowRadius * (s.config.windowRadius + 1),
-    );
+    // The window: explored ground clear, the rest under the veil.
+    const inWindow = cells.filter((c) => c.state === 'seen' || c.state === 'unexplored');
+    expect(inWindow).toHaveLength(1 + 3 * s.config.windowRadius * (s.config.windowRadius + 1));
+    for (const c of inWindow) {
+      expect(c.state).toBe(s.tiles[`${c.q},${c.r}`]!.explored ? 'seen' : 'unexplored');
+    }
     for (const c of cells.filter((x) => x.state === 'unseen')) expect(c.terrain).toBe('unknown');
   });
 

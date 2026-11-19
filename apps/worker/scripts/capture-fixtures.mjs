@@ -17,6 +17,7 @@ import {
   readFileSync,
   rmSync,
   writeFileSync,
+  readdirSync,
 } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
@@ -138,6 +139,14 @@ async function main() {
       if (before === next) continue;
       changed.push(file);
       if (!options.check) copyFileSync(target, real);
+    }
+    // A file the capture no longer writes is stale: removed when writing, reported by --check.
+    const stale = existsSync(FIXTURES_DIR)
+      ? readdirSync(FIXTURES_DIR).filter((f) => f.endsWith('.json') && !staged.has(f))
+      : [];
+    for (const file of stale) {
+      changed.push(`${file} (no longer captured)`);
+      if (!options.check) rmSync(path.join(FIXTURES_DIR, file));
     }
     changed.sort();
     const total = String(staged.size);

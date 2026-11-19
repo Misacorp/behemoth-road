@@ -5,9 +5,16 @@
  * carries the paper grain and a full-screen SVG (`svg.map`) takes the pointer and holds the popover.
  * Gestures update the view imperatively (no re-render per frame); taps find their hex by maths.
  */
-import { hexCenter, paperGrain, renderSceneFramed, type SvgNode } from '@behemoth-road/art';
+import {
+  type FeatureArt,
+  hexCenter,
+  paperGrain,
+  renderSceneFramed,
+  type SvgNode,
+} from '@behemoth-road/art';
 import {
   type GameStateView,
+  type Hex,
   terrainOf,
   predictCreature,
   hexKey,
@@ -17,9 +24,18 @@ import {
 import { Component, type ComponentChildren, type JSX } from 'preact';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { PALETTE, PROJECTION } from './art.ts';
-import { cellStateAt, characterArts, creatureArt, sceneCells } from './cells.ts';
+import {
+  cellStateAt,
+  characterArts,
+  creatureArt,
+  featureArtAt,
+  sceneCells,
+  terrainKnown,
+} from './cells.ts';
 import { chevronFor, placePopover, splitScene } from './compose.ts';
 import { accentOf, type Identity, lookOf } from '../game/identity.ts';
+import type { Moment } from '../game/moments.ts';
+import { MomentMark } from './MomentMark.tsx';
 import { MAP_TUNING } from './config.ts';
 import { type Flow, isSelecting } from './flow.ts';
 import { GestureTracker, type Gesture } from './gestures.ts';
@@ -27,15 +43,16 @@ import { buildOverlays } from './overlays.ts';
 import { figureFeet, pickableFeet, placePoint } from './figures.ts';
 import { pickTarget, type Point, type Target } from './pick.ts';
 import {
+  HereCard,
+  type HereAction,
+  hereSize,
+  inspectSize,
   Bubble,
   CHARACTER_SIZE,
   CharacterCard,
   bubbleSize,
   CONFIRM_SIZE,
   ConfirmCard,
-  CREATURE_SIZE,
-  CreatureCard,
-  INSPECT_SIZE,
   InspectCard,
 } from './Popover.tsx';
 import { setCssTransform } from './cssTransform.ts';
@@ -57,6 +74,13 @@ import {
 
 export type FocusTarget = 'me' | 'creature';
 
+/** Your own hex in the "here" card: its revealed feature and the actions it offers. */
+export interface Here {
+  readonly terrain: string;
+  readonly feature: FeatureArt;
+  readonly actions: readonly HereAction[];
+}
+
 export interface MapViewProps {
   readonly state: GameStateView;
   readonly flow: Flow;
@@ -65,6 +89,16 @@ export interface MapViewProps {
   readonly onConfirm: () => void;
   /** The bubble's way into the hub was tapped. */
   readonly onOpenHub: () => void;
+  /** Your own hex's revealed feature and the actions there, shown while you are selected. */
+  readonly here?: Here | null;
+  /** An action in the "here" card was tapped (the second tap that spends). */
+  readonly onAct?: (kind: string) => void;
+  /** Surveying a hex next to you: its cost and whether it can be done now, or null where it is not offered. */
+  readonly surveyAt?: (h: Hex) => { readonly cost: number; readonly enabled: boolean } | null;
+  /** The survey button on an inspect card was tapped. */
+  readonly onSurvey?: (h: Hex) => void;
+  /** Short visual beats to play on the map (reveals, finds, a trap); they end by themselves. */
+  readonly moments?: readonly Moment[];
   /** Another player's character in the bubble was tapped. */
   readonly onCharacter: (id: string) => void;
   /** Who each character is (names, roles, traits, quirks), from the player view. */
@@ -120,7 +154,13 @@ interface Anchor {
   readonly prefer?: 'above' | 'below';
 }
 
-function popoverAnchor(state: GameStateView, flow: Flow, characterId: string): Anchor | null {
+function popoverAnchor(
+  state: GameStateView,
+  flow: Flow,
+  characterId: string,
+  here: Here | null,
+  survey: boolean,
+): Anchor | null {
   const tile = 2 * p.size * p.squash;
   if (flow.kind === 'character') {
     // Above the character's head, wherever it stands (on a hex or on the creature's back).
@@ -137,13 +177,13 @@ function popoverAnchor(state: GameStateView, flow: Flow, characterId: string): A
   if (flow.kind === 'inspect') {
     const c = hexCenter(p, flow.hex.q, flow.hex.r);
     return {
-      key: `inspect:${hexKey(flow.hex)}`,
+      key: `inspect:${hexKey(flow.hex)}:${survey ? 'survey' : ''}`,
       top: { x: c.x, y: c.y - tile / 2 },
       below: tile,
-      size: INSPECT_SIZE,
+      size: inspectSize(survey),
     };
   }
-  if (flow.kind === 'creature' || flow.kind === 'bubble') {
+  if (flow.kind === 'bubble') {
     // Above the creature's back, clear of its footprint.
     const c = hexCenter(p, state.creature.centre.q, state.creature.centre.r);
     const lift = tile * 1.5 + 0.5 * p.size;
@@ -151,8 +191,21 @@ function popoverAnchor(state: GameStateView, flow: Flow, characterId: string): A
       key: flow.kind,
       top: { x: c.x, y: c.y - lift },
       below: lift + tile,
-      size: flow.kind === 'bubble' ? bubbleSize(ridersOf(state).length) : CREATURE_SIZE,
+      size: bubbleSize(ridersOf(state).length),
     };
+  }
+  if (flow.kind === 'selected' && here) {
+    // Your own hex's feature and actions, above your figure.
+    const feet = figureFeet(state, characterId, p);
+    if (feet) {
+      const head = 0.9 * p.size;
+      return {
+        key: `here:${here.feature.look}:${here.actions.map((a) => a.kind).join(',')}`,
+        top: { x: feet.x, y: feet.y - head },
+        below: head,
+        size: hereSize(here.actions.length),
+      };
+    }
   }
   if (flow.kind === 'planned') {
     // Above the figure's head where it would stand (its seat, for the creature).
@@ -266,7 +319,8 @@ export function MapView(props: MapViewProps): JSX.Element {
     return { under: o.under.map(toPreact), over: o.over.map(toPreact) };
   }, [state, flow, characterId, inkZoom]);
 
-  popover.current = popoverAnchor(state, flow, characterId);
+  const survey = flow.kind === 'inspect' ? (props.surveyAt?.(flow.hex) ?? null) : null;
+  popover.current = popoverAnchor(state, flow, characterId, props.here ?? null, survey !== null);
 
   function apply(): void {
     frame.current = 0;
@@ -485,7 +539,10 @@ export function MapView(props: MapViewProps): JSX.Element {
     apply();
     if (popKey) {
       const target =
-        flow.kind === 'planned' || flow.kind === 'bubble'
+        flow.kind === 'planned' ||
+        flow.kind === 'bubble' ||
+        flow.kind === 'selected' ||
+        (flow.kind === 'inspect' && survey)
           ? popoverFocusRef.current
           : popRef.current;
       target?.focus({ preventScroll: true });
@@ -513,15 +570,32 @@ export function MapView(props: MapViewProps): JSX.Element {
   let card: JSX.Element | null = null;
   if (flow.kind === 'inspect') {
     const cellState = cellStateAt(state, `${flow.hex.q},${flow.hex.r}`);
-    const known = cellState === 'seen' || cellState === 'fading';
+    const known = terrainKnown(cellState);
+    const at = flow.hex;
     card = (
       <InspectCard
         terrain={known ? (terrainOf(state, flow.hex)?.id ?? 'unknown') : 'unknown'}
         state={cellState}
+        feature={known ? featureArtAt(state, hexKey(flow.hex)) : null}
+        survey={survey}
+        onSurvey={() => props.onSurvey?.(at)}
+        surveyRef={(el) => {
+          popoverFocusRef.current = el;
+        }}
       />
     );
-  } else if (flow.kind === 'creature') {
-    card = <CreatureCard state={state} />;
+  } else if (flow.kind === 'selected' && props.here) {
+    card = (
+      <HereCard
+        terrain={props.here.terrain}
+        feature={props.here.feature}
+        actions={props.here.actions}
+        onAct={(kind) => props.onAct?.(kind)}
+        firstRef={(el) => {
+          popoverFocusRef.current = el;
+        }}
+      />
+    );
   } else if (flow.kind === 'character') {
     const who = props.identities?.get(flow.id);
     if (who) card = <CharacterCard who={who} />;
@@ -570,6 +644,19 @@ export function MapView(props: MapViewProps): JSX.Element {
           <Static nodes={layers.figures} />
           {overlays.over}
         </svg>
+        {props.moments && props.moments.length > 0 && (
+          <svg
+            class="map-moments"
+            viewBox={`${box.x} ${box.y} ${box.width} ${box.height}`}
+            width={box.width * raster}
+            height={box.height * raster}
+            aria-hidden="true"
+          >
+            {props.moments.map((m, i) => (
+              <MomentMark key={`${m.kind}:${m.hex.q},${m.hex.r}:${String(i)}`} moment={m} />
+            ))}
+          </svg>
+        )}
       </div>
       <svg class="map-grain" aria-hidden="true">
         {GRAIN}

@@ -125,6 +125,89 @@ export function lostScenario(): Scenario {
   return { ...joined, state, version: 12 };
 }
 
+/** Hexes of the chain scenario, as offsets from the creature's centre. */
+export const CHAIN_SPOTS = {
+  /** Where you start (explored). */
+  start: { q: 1, r: 2 },
+  /** A hidden iron deposit. */
+  iron: { q: 1, r: 3 },
+  /** A hidden tomb. */
+  tomb: { q: 2, r: 2 },
+  /** A hidden snare, beside both the start and the deposit. */
+  snare: { q: 0, r: 3 },
+  /** A cliff beside the deposit, only for climbers. */
+  cliff: { q: 1, r: 4 },
+} as const;
+
+export interface ChainStage {
+  readonly role?: string;
+  /** Where you stand: a spot, or riding the creature. Default `start`. */
+  readonly at?: keyof typeof CHAIN_SPOTS | 'creature';
+  readonly day?: number;
+  readonly pack?: Readonly<Record<string, number>>;
+  readonly stores?: Readonly<Record<string, number>>;
+  readonly unlocks?: readonly string[];
+  readonly project?: { readonly unlock: string; readonly work: number } | null;
+  /** Spots already explored (their features revealed). */
+  readonly explored?: readonly (keyof typeof CHAIN_SPOTS)[];
+}
+
+/**
+ * Milestone 3's chain staged south of the creature: you stand as `role` on explored open ground beside a
+ * hidden iron deposit, a hidden tomb and a hidden snare, with a cliff beyond the deposit. The seed's own
+ * features are cleared so only these show; the ground around them is set to plains and forest.
+ */
+export function chainScenario(stage: ChainStage = {}): Scenario {
+  const s = joinScenario(notJoinedScenario(), stage.role ?? 'scout', 0);
+  const c = s.state.creature.centre;
+  const abs = (h: Hex): Hex => ({ q: c.q + h.q, r: c.r + h.r });
+  const key = (h: Hex): string => `${c.q + h.q},${c.r + h.r}`;
+  const explored = new Set<string>(['start', ...(stage.explored ?? [])]);
+  const tiles = { ...s.state.tiles };
+  for (let dq = -1; dq <= 3; dq += 1) {
+    for (let dr = 1; dr <= 5; dr += 1) {
+      const k = key({ q: dq, r: dr });
+      const known = tiles[k];
+      if (known) tiles[k] = { ...known, terrain: (dq + dr) % 3 === 0 ? 'forest' : 'plains' };
+    }
+  }
+  for (const [name, h] of Object.entries(CHAIN_SPOTS)) {
+    const k = key(h);
+    const known = tiles[k];
+    if (!known) continue;
+    tiles[k] = {
+      ...known,
+      ...(name === 'cliff' ? { terrain: 'cliff' } : {}),
+      explored: explored.has(name),
+    };
+  }
+  const feature = (spot: keyof typeof CHAIN_SPOTS, type: string, left: number) => ({
+    [key(CHAIN_SPOTS[spot])]: { type, revealed: explored.has(spot), left },
+  });
+  let state: GameState = {
+    ...s.state,
+    day: stage.day ?? s.state.day,
+    tiles,
+    features: {
+      ...feature('iron', 'iron-deposit', 3),
+      ...feature('tomb', 'tomb', 1),
+      ...feature('snare', 'snare', 1),
+    },
+    stores: stage.stores ?? {},
+    unlocks: stage.unlocks ?? [],
+    project: stage.project ?? null,
+  };
+  const at = stage.at ?? 'start';
+  if (at !== 'creature') state = place(state, MISA, abs(CHAIN_SPOTS[at]));
+  state = {
+    ...state,
+    characters: state.characters.map((ch) =>
+      ch.userId === MISA ? { ...ch, pack: stage.pack ?? {} } : ch,
+    ),
+  };
+  return { ...s, state, version: s.version + 1 };
+}
+
 export const notJoined = (): PlayerView => toView(notJoinedScenario());
 export const joined = (): PlayerView => toView(joinedScenario());
 export const lost = (): PlayerView => toView(lostScenario());
