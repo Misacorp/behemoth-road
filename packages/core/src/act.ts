@@ -57,18 +57,30 @@ export type ActRefusal =
   | 'busy'
   | 'missing-materials';
 
-/** What an action would cost, or why it cannot be done now. */
+type Uses = readonly { readonly material: string; readonly amount: number }[];
+
+/**
+ * What an action would cost, or why it cannot be done now. A refusal still says
+ * what the action costs this character (`cost`) wherever that is known, and for
+ * an unlock the materials the stores lack (`missing`), so the interface needs no
+ * rules or config of its own.
+ */
 export type ActCheck =
   | {
       readonly ok: true;
       /** Actions it costs. */
       readonly cost: number;
       /** Materials taken from the stores (starting an unlock). */
-      readonly uses: readonly { readonly material: string; readonly amount: number }[];
+      readonly uses: Uses;
       /** The published chance of success (working a site); 1 for everything else. */
       readonly chance: number;
     }
-  | { readonly ok: false; readonly reason: ActRefusal };
+  | {
+      readonly ok: false;
+      readonly reason: ActRefusal;
+      readonly cost?: number;
+      readonly missing?: Uses;
+    };
 
 export type ActResult =
   | { readonly ok: true; readonly state: GameState; readonly events: readonly GameEvent[] }
@@ -98,8 +110,6 @@ const featureHere = (state: GameStateView, c: Character): FeatureState | null =>
 const free = (state: GameStateView, c: Character): number =>
   state.config.packCapacity - packSize(c.pack);
 
-type Uses = readonly { readonly material: string; readonly amount: number }[];
-
 const done = (cost: number, uses: Uses = []): ActCheck => ({
   ok: true,
   cost,
@@ -120,61 +130,66 @@ export const checkAction = (
   if (!found.ok) return found;
   const c = found.character;
   const { config } = state;
-  const enough = (cost: number) => c.actionsLeft >= cost;
 
   switch (action?.kind) {
     case 'survey': {
-      const target = action.hex;
-      if (!isValidHex(target)) return { ok: false, reason: 'invalid-hex' };
-      if (isCreatureHex(state, target)) return { ok: false, reason: 'not-adjacent' };
-      if (!arePlacesAdjacent(state, c.at, onHex(target)))
-        return { ok: false, reason: 'not-adjacent' };
-      if (!isPlaceReachable(state, onHex(target))) return { ok: false, reason: 'unreachable' };
-      if (isExplored(state, target)) return { ok: false, reason: 'already-explored' };
       const cost = roleHas(c, 'survey') ? config.surveyCostSpecialist : config.surveyCostOther;
-      return enough(cost) ? done(cost) : { ok: false, reason: 'not-enough-actions' };
+      const no = (reason: ActRefusal): ActCheck => ({ ok: false, reason, cost });
+      const target = action.hex;
+      if (!isValidHex(target)) return no('invalid-hex');
+      if (isCreatureHex(state, target)) return no('not-adjacent');
+      if (!arePlacesAdjacent(state, c.at, onHex(target))) return no('not-adjacent');
+      if (!isPlaceReachable(state, onHex(target))) return no('unreachable');
+      if (isExplored(state, target)) return no('already-explored');
+      return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
     }
     case 'gather': {
-      if (!hexOf(c)) return { ok: false, reason: 'not-on-hex' };
+      const cost = config.gatherCost;
+      const no = (reason: ActRefusal): ActCheck => ({ ok: false, reason, cost });
+      if (!hexOf(c)) return no('not-on-hex');
       const f = featureHere(state, c);
       const type = f ? featureType(f.type) : null;
-      if (!f || type?.kind !== 'node') return { ok: false, reason: 'nothing-here' };
-      if (f.left <= 0) return { ok: false, reason: 'depleted' };
-      if (free(state, c) < type.yields.amount) return { ok: false, reason: 'pack-full' };
-      return enough(config.gatherCost)
-        ? done(config.gatherCost)
-        : { ok: false, reason: 'not-enough-actions' };
+      if (!f || type?.kind !== 'node') return no('nothing-here');
+      if (f.left <= 0) return no('depleted');
+      if (free(state, c) < type.yields.amount) return no('pack-full');
+      return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
     }
     case 'work-site': {
-      if (!hexOf(c)) return { ok: false, reason: 'not-on-hex' };
+      const cost = config.workSiteCost;
+      const no = (reason: ActRefusal): ActCheck => ({ ok: false, reason, cost });
+      if (!hexOf(c)) return no('not-on-hex');
       const f = featureHere(state, c);
       const type = f ? featureType(f.type) : null;
-      if (!f || type?.kind !== 'site') return { ok: false, reason: 'nothing-here' };
-      if (f.left <= 0) return { ok: false, reason: 'depleted' };
+      if (!f || type?.kind !== 'site') return no('nothing-here');
+      if (f.left <= 0) return no('depleted');
       // Whether this character could ever work it comes before what the team lacks.
       const chance = siteChance(state, c, type);
-      if (chance <= 0) return { ok: false, reason: 'cannot-work' };
+      if (chance <= 0) return no('cannot-work');
       const tags = unlockTags(state);
-      if (!type.needs.every((tag) => tags.has(tag))) return { ok: false, reason: 'needs-unlock' };
-      if (free(state, c) < type.finds.amount) return { ok: false, reason: 'pack-full' };
-      if (!enough(config.workSiteCost)) return { ok: false, reason: 'not-enough-actions' };
-      return { ok: true, cost: config.workSiteCost, uses: [], chance };
+      if (!type.needs.every((tag) => tags.has(tag))) return no('needs-unlock');
+      if (free(state, c) < type.finds.amount) return no('pack-full');
+      if (c.actionsLeft < cost) return no('not-enough-actions');
+      return { ok: true, cost, uses: [], chance };
     }
     case 'build': {
       const unlock = UNLOCKS.find((u) => u.id === action.unlock);
       if (!unlock) return { ok: false, reason: 'unknown-unlock' };
-      if (!roleHas(c, 'build')) return { ok: false, reason: 'needs-specialist' };
-      if (c.at.kind !== 'creature') return { ok: false, reason: 'not-riding' };
-      if (state.unlocks.includes(unlock.id)) return { ok: false, reason: 'already-have' };
+      const cost = config.buildCost;
+      // Materials are taken only when the work starts.
       const project = state.project;
-      if (project && project.unlock !== unlock.id) return { ok: false, reason: 'busy' };
-      const uses = project ? [] : unlock.cost;
-      if (uses.some((u) => (state.stores[u.material] ?? 0) < u.amount)) {
-        return { ok: false, reason: 'missing-materials' };
-      }
-      return enough(config.buildCost)
-        ? done(config.buildCost, uses)
-        : { ok: false, reason: 'not-enough-actions' };
+      const uses = project?.unlock === unlock.id ? [] : unlock.cost;
+      const missing = uses.flatMap((u) => {
+        const short = u.amount - (state.stores[u.material] ?? 0);
+        return short > 0 ? [{ material: u.material, amount: short }] : [];
+      });
+      const no = (reason: ActRefusal): ActCheck =>
+        missing.length > 0 ? { ok: false, reason, cost, missing } : { ok: false, reason, cost };
+      if (!roleHas(c, 'build')) return no('needs-specialist');
+      if (c.at.kind !== 'creature') return no('not-riding');
+      if (state.unlocks.includes(unlock.id)) return { ok: false, reason: 'already-have', cost };
+      if (project && project.unlock !== unlock.id) return no('busy');
+      if (missing.length > 0) return no('missing-materials');
+      return c.actionsLeft >= cost ? done(cost, uses) : no('not-enough-actions');
     }
     default:
       return { ok: false, reason: 'invalid-action' };
