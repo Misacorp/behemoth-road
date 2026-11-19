@@ -110,6 +110,9 @@ Superseded: 2 entries (see the topic file).
 [product.md](product.md): Features, UX and behaviour the users see.
 
 - 2026-11-20 Milestone 4 art: appetite, cues, lying down and fires are drawn by the art kit from the core's signs
+- 2026-11-20 The revised chain in the interface: survey in the inspect card, the pack on the HUD, stores and unlocks in the hub drawer
+- 2026-11-20 The here card is compact and lets taps through its body; moments use the art kit's marks
+- 2026-11-20 Unexplored hexes sit under one hatched paper veil; packs, stores and unlocks have their own marks
 - 2026-11-20 M4 core: hunger cap in creature data, starving meals nourish, lingering twice refused
 - 2026-11-20 Lingering is the keeper's action and never runs two days in a row
 - 2026-11-20 Hunger has a comfortable band; underfed is erratic, overfed is sluggish; anyone can feed
@@ -175,4 +178,4 @@ Superseded: 2 entries (see the topic file).
 - 2026-11-19 Drag and drop always has a tap and keyboard alternative
 - 2026-11-19 Counts read "1 / 3", and terms explain themselves without "?" icons
 
-Superseded: 6 entries (see the topic file).
+Superseded: 7 entries (see the topic file).

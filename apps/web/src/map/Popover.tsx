@@ -7,6 +7,7 @@ import {
   ART_TUNING,
   drawCharacter,
   drawCreature,
+  drawIcon,
   type CharacterLook,
   type Drawn,
   GENTLE_AMBLER,
@@ -15,6 +16,7 @@ import {
   isometric,
   renderScene,
   type CellState,
+  type FeatureArt,
 } from '@behemoth-road/art';
 import type { GameStateView } from '@behemoth-road/core';
 import type { JSX } from 'preact';
@@ -54,14 +56,25 @@ function Miniature({
   state,
   x,
   y,
+  feature = null,
+  hint = false,
+  scale = 1,
 }: {
   terrain: string;
   state: CellState;
   x: number;
   y: number;
+  /** 1 draws it 64 × 56 px. */
+  scale?: number;
+  /** A revealed feature, drawn on the tile as the map draws it. */
+  feature?: FeatureArt | null;
+  /** The glint: something sensed here. */
+  hint?: boolean;
 }) {
   const scene = renderScene({
-    cells: [{ q: 0, r: 0, terrain, state }],
+    cells: [
+      { q: 0, r: 0, terrain, state, ...(feature ? { feature } : {}), ...(hint ? { hint } : {}) },
+    ],
     projection: MINI,
     palette: PALETTE,
     seed: terrain,
@@ -69,7 +82,9 @@ function Miniature({
     // On the card, a page frame would show as a box.
     frame: 'none',
   });
-  return toPreact(el('svg', { ...scene.attrs, x, y, width: 64, height: 56 }, scene.children));
+  return toPreact(
+    el('svg', { ...scene.attrs, x, y, width: 64 * scale, height: 56 * scale }, scene.children),
+  );
 }
 
 const eyeLine = {
@@ -133,20 +148,65 @@ function VisibilityMark({ state }: { state: CellState }): JSX.Element {
   }
 }
 
+/** An art kit icon (`drawIcon`), placed at (x, y) in a card. */
+function CardIcon({
+  id,
+  x,
+  y,
+  size,
+}: {
+  id: string;
+  x: number;
+  y: number;
+  size: number;
+}): JSX.Element {
+  const icon = drawIcon(id, PALETTE, size);
+  return toPreact({ ...icon, attrs: { ...icon.attrs, x, y, width: size, height: size } });
+}
+
+/** The inspect card, wider when it offers a survey. */
+export const inspectSize = (survey: boolean): { width: number; height: number } =>
+  survey ? { width: INSPECT_SIZE.width + ACTION_W, height: INSPECT_SIZE.height } : INSPECT_SIZE;
+
+/**
+ * The inspect card: the tile as the map draws it (under its veil while unexplored, with its revealed
+ * feature) and its visibility; next to you and unexplored, a survey button (a spyglass and its cost).
+ */
 export function InspectCard({
   terrain,
   state,
+  feature = null,
+  survey = null,
+  onSurvey,
+  surveyRef,
 }: {
   terrain: string;
   state: CellState;
+  /** A revealed feature on the hex, drawn on the tile. */
+  feature?: FeatureArt | null;
+  survey?: { readonly cost: number; readonly enabled: boolean } | null;
+  onSurvey?: () => void;
+  surveyRef?: (el: SVGGElement | null) => void;
 }): JSX.Element {
   return (
-    <g data-popover="inspect">
-      <Card {...INSPECT_SIZE} />
-      <Miniature terrain={terrain} state={state} x={6} y={8} />
+    <g data-popover="inspect" data-feature={feature?.look} data-state={state}>
+      <Card {...inspectSize(survey !== null)} />
+      <Miniature terrain={terrain} state={state} x={6} y={8} feature={feature} />
       <g transform="translate(84 22)">
         <VisibilityMark state={state} />
       </g>
+      {survey && (
+        <ActionButton
+          kind="survey"
+          icon="spyglass"
+          cost={survey.cost}
+          enabled={survey.enabled}
+          x={INSPECT_SIZE.width - 6}
+          y={12}
+          onRun={() => onSurvey?.()}
+          {...(surveyRef ? { buttonRef: surveyRef } : {})}
+        />
+      )}
     </g>
   );
 }
@@ -444,6 +504,117 @@ export function CharacterCard({ who }: { who: Identity }): JSX.Element {
       <g transform="translate(120 43)">
         <QuirkIcon id={who.quirk} size={22} />
       </g>
+    </g>
+  );
+}
+
+/** One action offered where you stand: its kind (an art kit icon id) and cost. */
+export interface HereAction {
+  readonly kind: string;
+  readonly cost: number;
+  readonly enabled: boolean;
+}
+
+const ACTION_W = 54;
+
+/** One action as a button: its art kit icon and cost pips; faded and inert when it cannot be done now. */
+function ActionButton({
+  kind,
+  icon,
+  cost,
+  enabled,
+  x,
+  y,
+  onRun,
+  buttonRef,
+}: {
+  kind: string;
+  icon: string;
+  cost: number;
+  enabled: boolean;
+  x: number;
+  y: number;
+  onRun: () => void;
+  buttonRef?: (el: SVGGElement | null) => void;
+}): JSX.Element {
+  const run = (): void => {
+    if (enabled) onRun();
+  };
+  return (
+    <g
+      {...(buttonRef ? { ref: buttonRef } : {})}
+      class={enabled ? 'svg-button' : 'svg-button is-off'}
+      role="button"
+      tabindex={0}
+      aria-label={kind}
+      aria-disabled={!enabled}
+      data-action={kind}
+      transform={`translate(${x} ${y})`}
+      opacity={enabled ? 1 : 0.4}
+      onClick={run}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          run();
+        }
+      }}
+    >
+      <rect width={ACTION_W - 6} height={50} rx={9} fill={PALETTE.paperDeep} />
+      <CardIcon id={icon} x={(ACTION_W - 6) / 2 - 14} y={3} size={28} />
+      <g transform={`translate(${(ACTION_W - 6) / 2 - (cost * 10) / 2 - 2} 34)`}>
+        <Pips total={cost} left={cost} size={9} />
+      </g>
+    </g>
+  );
+}
+
+/** The art kit icon each action shows (an open hand to gather, a key to work a site). */
+const ACTION_ICONS: Readonly<Record<string, string>> = { gather: 'hand', 'work-site': 'key' };
+
+// Compact, so the neighbours up-left and up-right of your figure stay tappable on a phone.
+export const hereSize = (count: number): { width: number; height: number } => ({
+  width: 58 + count * ACTION_W,
+  height: 62,
+});
+
+/**
+ * Your own hex: the revealed feature there and the actions it offers (gather, work the site), each a
+ * button with its action icon and cost pips. Tapping an action is the second tap that spends.
+ */
+export function HereCard({
+  terrain,
+  feature,
+  actions,
+  onAct,
+  firstRef,
+}: {
+  terrain: string;
+  feature: FeatureArt;
+  actions: readonly HereAction[];
+  onAct: (kind: string) => void;
+  firstRef: (el: SVGGElement | null) => void;
+}): JSX.Element {
+  const size = hereSize(actions.length);
+  return (
+    <g data-popover="here" data-feature={feature.look}>
+      {/* Taps on the card body reach the map below (a neighbour's hex); only the actions catch them. */}
+      <g class="pass-through">
+        <Card {...size} />
+        <Miniature terrain={terrain} state="seen" x={4} y={9} feature={feature} scale={0.78} />
+      </g>
+      {actions.map((a, i) => (
+        <ActionButton
+          key={a.kind}
+          kind={a.kind}
+          icon={ACTION_ICONS[a.kind] ?? a.kind}
+          cost={a.cost}
+          enabled={a.enabled}
+          x={56 + i * ACTION_W}
+          y={5}
+          onRun={() => onAct(a.kind)}
+          {...(i === 0 ? { buttonRef: firstRef } : {})}
+        />
+      ))}
     </g>
   );
 }

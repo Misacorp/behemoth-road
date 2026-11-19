@@ -4,11 +4,11 @@
  * applies each move. The view is refreshed after your own actions, when the page becomes visible and every
  * 30 seconds while it is visible.
  */
-import { findCharacter } from '@behemoth-road/core';
+import { findCharacter, type Hex, hexKey, terrainOf } from '@behemoth-road/core';
 import type { JSX } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { ApiError, type ApiClient } from '../api/client.ts';
-import type { PlayerView } from '../api/schema.ts';
+import type { ActionAnswer, PlayerView } from '../api/schema.ts';
 import { Sync } from '../api/sync.ts';
 import { Hud } from '../hud/Hud.tsx';
 import { JoinDrawer } from '../join/JoinDrawer.tsx';
@@ -22,13 +22,17 @@ import {
   rightClick,
   tap,
 } from '../map/flow.ts';
-import { type FocusTarget, MapView } from '../map/MapView.tsx';
+import { type FocusTarget, type Here, MapView } from '../map/MapView.tsx';
+import { HubDrawer } from '../hub/HubDrawer.tsx';
+import { featureArtAt } from '../map/cells.ts';
+import { actionsAt, packUnits, stockOf, surveyOf, unlockOptions } from './chain.ts';
 import type { Target } from '../map/pick.ts';
 import { getSettings } from '../settings.ts';
 
 /** The width from which the layout is the desktop one (`styles.css` media queries). */
 const DESKTOP_FROM = 900;
 import { identities, partySeeds, setAccents } from './identity.ts';
+import { MOMENT_MS, type Moment, momentsBetween, momentsFromEvents } from './moments.ts';
 import { toGameState } from './viewState.ts';
 
 export interface GameProps {
@@ -106,6 +110,27 @@ export function Game({ api, initial }: GameProps): JSX.Element {
   useEffect(() => setDrawerClosed(false), [need]);
 
   // A plan made on an older view may no longer hold: drop it when the view changes under it.
+  // Moments: what changed between the last view and this one, shown briefly on the map.
+  const [moments, setMoments] = useState<readonly Moment[]>([]);
+  const momentTimer = useRef(0);
+  const playMoments = (found: readonly Moment[]): void => {
+    if (found.length === 0) return;
+    window.clearTimeout(momentTimer.current);
+    setMoments(found);
+    momentTimer.current = window.setTimeout(() => setMoments([]), MOMENT_MS);
+  };
+  useEffect(() => () => window.clearTimeout(momentTimer.current), []);
+  // Changes others made (or the day's tick) show as moments from the difference between views; your own
+  // move or action brings its events instead (`ownAnswer`).
+  const shown = useRef(view);
+  const ownAnswer = useRef(-1);
+  useEffect(() => {
+    const before = shown.current;
+    shown.current = view;
+    if (before === view || ownAnswer.current === view.version) return;
+    playMoments(momentsBetween(before.game, view.game, view.you.characterId ?? ''));
+  }, [view]);
+
   const planVersion = useRef(view.version);
   useEffect(() => {
     if (planVersion.current !== view.version) {
@@ -116,14 +141,20 @@ export function Game({ api, initial }: GameProps): JSX.Element {
 
   /** Runs an action: its answer is the new view; a refusal refreshes and clears the plan. */
   async function act(
-    run: () => Promise<PlayerView>,
+    run: () => Promise<PlayerView | ActionAnswer>,
     after: (v: PlayerView) => Flow,
   ): Promise<void> {
     if (busy) return;
     setBusy(true);
     try {
-      const next = await run();
+      const answer = await run();
+      const { events, ...next } = 'events' in answer ? answer : { ...answer, events: null };
       planVersion.current = next.version;
+      if (events) {
+        // Your own move or action reports what happened itself: play those, not a guess from the views.
+        ownAnswer.current = next.version;
+        playMoments(momentsFromEvents(events, next.game.creature.centre));
+      }
       sync.current!.accept(next);
       setFlow(after(next));
     } catch (err) {
@@ -156,6 +187,43 @@ export function Game({ api, initial }: GameProps): JSX.Element {
 
   const drawerOpen = need !== 'none' && offers.length > 0 && !drawerClosed;
 
+  // Milestone 3's chain: what you can do where you stand, a survey next to you, your pack, the hub.
+  const here = useMemo((): Here | null => {
+    if (me?.status !== 'active' || me.at.kind !== 'hex') return null;
+    const feature = featureArtAt(state, hexKey(me.at.hex));
+    if (!feature) return null;
+    const terrain = terrainOf(state, me.at.hex)?.id ?? 'unknown';
+    return { terrain, feature, actions: actionsAt(state, me.id) };
+  }, [state, me]);
+  const stillSelected = (next: PlayerView): Flow => {
+    const mine = next.game.characters.find((c) => c.id === next.you.characterId);
+    return mine && mine.actionsLeft > 0 ? { kind: 'selected' } : IDLE;
+  };
+  const onAct = (kind: string): void => {
+    if (kind !== 'gather' && kind !== 'work-site') return;
+    void act(() => api.act(view.version, { kind }), stillSelected);
+  };
+  const surveyAt = (h: Hex) => (me?.status === 'active' ? surveyOf(state, me.id, h) : null);
+  const onSurvey = (h: Hex): void => {
+    void act(
+      () => api.act(view.version, { kind: 'survey', hex: h }),
+      () => IDLE,
+    );
+  };
+  const hubOpen = flow.kind === 'creature' && need === 'none';
+  const onBuild = (unlock: string): void => {
+    void act(
+      () => api.act(view.version, { kind: 'build', unlock }),
+      // A finished unlock closes the hub, so its moment on the creature shows.
+      (next) => (next.game.unlocks.includes(unlock) ? IDLE : { kind: 'creature' }),
+    );
+  };
+  const pack =
+    me?.status === 'active'
+      ? { stock: stockOf(me.pack), units: packUnits(me.pack), capacity: state.config.packCapacity }
+      : null;
+  const anyDrawer = drawerOpen || hubOpen;
+
   return (
     <main class="game">
       <MapView
@@ -163,13 +231,22 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         flow={flow}
         characterId={id}
         identities={who}
-        onTap={(target: Target) => setFlow((f) => tap(f, state, id, target))}
+        onTap={(target: Target) => {
+          // Moments are skippable: any tap clears them.
+          setMoments([]);
+          setFlow((f) => tap(f, state, id, target));
+        }}
+        moments={moments}
         onConfirm={onConfirm}
         onOpenHub={() => setFlow(openHub())}
         onCharacter={(other) => setFlow(openCharacter(other))}
         onRightClick={() => setFlow((f) => rightClick(f, getSettings()))}
         focus={focus}
-        coverBottom={drawerOpen ? halfDrawerCover(window.innerWidth, window.innerHeight) : 0}
+        coverBottom={anyDrawer ? halfDrawerCover(window.innerWidth, window.innerHeight) : 0}
+        here={here}
+        onAct={onAct}
+        surveyAt={surveyAt}
+        onSurvey={onSurvey}
       />
       <Hud
         day={view.day}
@@ -177,6 +254,7 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         actionsPerDay={state.config.actionsPerDay}
         planned={flow.kind === 'planned' && isSelecting(flow) ? flow.cost : 0}
         lost={me?.status !== 'active'}
+        snapped={moments.some((m) => m.kind === 'trap')}
         me={who.get(id) ?? null}
         onFocus={(target) => setFocus((f) => ({ target, n: f.n + 1 }))}
         onNextDay={
@@ -189,6 +267,16 @@ export function Game({ api, initial }: GameProps): JSX.Element {
             : null
         }
         onJoin={need !== 'none' && offers.length > 0 ? () => setDrawerClosed(false) : null}
+        pack={pack}
+      />
+      <HubDrawer
+        open={hubOpen}
+        onClose={() => setFlow(IDLE)}
+        state={state}
+        stores={stockOf(state.stores)}
+        unlocks={me ? unlockOptions(state, me.id) : []}
+        busy={busy}
+        onBuild={onBuild}
       />
       <JoinDrawer
         open={drawerOpen}
