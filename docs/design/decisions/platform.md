@@ -107,3 +107,75 @@ ID: `2026-11-19-migrations-apply-by-recorded-version-and` · Status: current
 **Decision.** The migration runner applies every migration whose version is not yet recorded, not "everything above the highest recorded version". A released migration number is never reused or edited. When parallel agents or branches add migrations, the lead assigns the numbers.
 
 **Reasoning.** Branches merge in any order, so production can hold a higher number while lower ones are still unmerged; a highest-version runner would skip those forever. Parallel agents otherwise take the same next number.
+
+## 2026-11-19: Production deploys only from main; staging only from a manual run
+
+ID: `2026-11-19-production-deploys-only-from-main-staging` · Status: current
+
+**Decision.** A merge to `main` deploys production, and nothing else does: a guard step fails the deploy job if the target is production for anything but a push to `main`. Staging changes only when the deploy workflow is run by hand on a chosen branch; pushing a branch deploys nothing. Agents start that manual run only when the owner asks for it in that session, then wait until it is live and say so.
+
+**Reasoning.** When every push deployed staging, parallel sessions took turns overwriting it and it was unclear what the owner was testing. The owner wants to decide what is on staging; a guard step keeps a manual run from ever reaching production.
+
+## 2026-11-19: Dev tools exist only in staging and fail closed
+
+ID: `2026-11-19-dev-tools-exist-only-in-staging` · Status: current
+
+**Decision.** Dev routes and the dev panel are switched on by one runtime variable that is on only in the staging config, and a test pins it off in production; with it off, every dev route answers a plain 404 before any other check, at every layer. The panel's code is a separate chunk left out of the production build, and a build test checks production output has none of it. Dev tools are for the owner and admins only and fail closed when that cannot be checked.
+
+**Reasoning.** Tools that set state for testing are dangerous in production. Checking first at each layer means the gate holds even if one layer is bypassed, and a build test proves production users never download the code.
+
+## 2026-11-19: Large reworks run behind a staging-only flag
+
+ID: `2026-11-19-large-reworks-run-behind-a-staging` · Status: current
+
+**Decision.** A large rework is built behind a runtime flag that is on in staging and pinned off in production by a test. Anything long-lived (a run, a period, a stored job) records which rules version it started under, and the client follows that stored version, not the flag. The flag is read only when something starts.
+
+**Reasoning.** Storing the version at the start means a flag flip never changes work already under way, and old records still replay under their own rules. The rework can merge to `main` early without changing production.
+
+## 2026-11-19: Destructive one-off operations are built inert
+
+ID: `2026-11-19-destructive-one-off-operations-are-built` · Status: current
+
+**Decision.** A destructive one-off (a data wipe, a bulk migration, a reset) merges with nothing in production able to call it, and staging gets a read-only dry run. The wipe refuses to run without proof that the backup step succeeded for the same data, and a test scans the source so no route, timer or tool can reach it unnoticed. The release that turns it on is a small, explicit wiring PR that must also change that test.
+
+**Reasoning.** The owner wants to review such work on staging before it can touch real users. Making "back up first, then wipe" a property of the code, not of whoever triggers it, means a mistake in the trigger cannot lose data.
+
+## 2026-11-19: A script tells agents which commit is deployed
+
+ID: `2026-11-19-a-script-tells-agents-which-commit` · Status: current
+
+**Decision.** A small script reads the deployed branch and commit from the public config endpoint of the fixed production and staging hosts (read-only, no URL from the caller), compares them with a ref and can wait until a commit is live. The deploy workflow's last step runs the same check, so a green run means the commit is live. The page also carries the branch and commit in meta tags.
+
+**Reasoning.** Without it, every deploy ended with asking the owner to read a footer. A fixed host list keeps the script from becoming a general fetch tool for agents that are otherwise denied curl.
+
+## 2026-11-19: Client-server contract fixtures are captured from the real server
+
+ID: `2026-11-19-client-server-contract-fixtures-are-captured` · Status: current
+
+**Decision.** The fixtures the client tests read are captured by one command that plays seeded scenarios against the real server code, writes the files whole and maps random ids to stable ones; they are never edited by hand. Its `--check` mode runs in CI and fails if a capture would change a file, and after a capture the PR says what moved and why. The server proves its responses match the fixtures and the client proves it parses every one.
+
+**Reasoning.** Hand-kept fixtures drifted on `main` and carried hand-typed numbers. Captured fixtures keep the two sides in sync without end-to-end browser tests, and stable ids make a re-capture show only real changes.
+
+## 2026-11-19: Measure costs before guessing, and price work that repeats
+
+ID: `2026-11-19-measure-costs-before-guessing-and-price` · Status: current
+
+**Decision.** Performance and quota work starts from a measurement on realistic data, and the probe becomes a test with a budget (about 1.5x the measured value, kept next to it; raising one needs a reason in the PR). Work that repeats on a timer, a poll or every request is priced per day before it ships, remembering that staging counts against the same account quotas. Nothing that must last between requests lives in memory, because the runtime may drop it seconds after a request.
+
+**Reasoning.** Guesses were wrong twice in one week, and a free-tier limit was hit twice by small work that ran every minute, not by big tables. Memory "caches" were recomputed on almost every request because instances sleep and restart.
+
+## 2026-11-19: One Worker serves the frontend and the API, configured as code
+
+ID: `2026-11-19-one-worker-serves-the-frontend-and` · Status: current
+
+**Decision.** One Cloudflare Worker serves the static frontend and the API under `/api/*` on one origin, so the frontend uses relative URLs; the frontend is Vite, Preact and strict TypeScript, and request bodies are checked with strict Valibot schemas. Infrastructure is declared in `wrangler.jsonc` and applied by CI, which runs `wrangler` from the project's own lockfile rather than a marketplace deploy action; only one-time tokens are set up by hand. The project starts on the Workers Free plan and upgrades only when a measured limit blocks it.
+
+**Reasoning.** One origin and one deploy pipeline mean one set of credentials and one place to look when something breaks. Running the deploy CLI from the lockfile hands the Cloudflare token only to pinned, aged code. Preact and Valibot keep bundles small, and JSX escapes text by default.
+
+## 2026-11-19: Strict security headers, and everything served from our own origin
+
+ID: `2026-11-19-strict-security-headers-and-everything-served` · Status: current
+
+**Decision.** The frontend sends a strict CSP (`default-src 'self'`, no inline scripts or styles, `object-src 'none'`, `base-uri 'none'`) plus `nosniff`, a referrer policy, HSTS and a permissions policy, and fonts and other assets are self-hosted with their licence texts shipped. API responses carry `Cache-Control: no-store` and no CORS headers. Text is rendered as text only; `innerHTML` and `dangerouslySetInnerHTML` are banned by lint.
+
+**Reasoning.** Serving everything from one origin keeps the CSP simple and removes third-party requests. Banning raw HTML in lint makes the safe path the only one.

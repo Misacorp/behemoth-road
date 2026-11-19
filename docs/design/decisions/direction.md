@@ -4,7 +4,7 @@ Priorities, how the owner and agents work, naming and tone.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
-## 2026-11-19: Agents commit as the owner **[{{OWNER_NAME}}]**
+## 2026-11-19: Agents commit as the owner **[Misa]**
 
 ID: `2026-11-19-agents-commit-as-the-owner` · Status: current · Amends: `2026-11-19-squash-merges-only-the-pr-title`
 
@@ -155,3 +155,11 @@ ID: `2026-11-19-retros-turn-friction-into-proposals-procedures` · Status: curre
 **Decision.** After a large session, a retro lists where the owner had to step in, other friction, and a table of proposals (change, where it goes, what it would have prevented). The owner accepts or drops each proposal, and accepted ones are applied in the same PR. A procedure that agents repeat is kept as a skill so it is not reinvented each time.
 
 **Reasoning.** Most lasting improvements to how agents work came from retros. Writing the "would have prevented" column forces each proposal to point at a real cost, and a skill makes the fix stick across sessions.
+
+## 2026-11-19: Design variants ship only to staging until the owner picks one
+
+ID: `2026-11-19-design-variants-ship-only-to-staging` · Status: current
+
+**Decision.** When a look or layout has several candidates, they are built behind one switch that exists only in staging builds, so the owner can try them in the real app. Production never sets a variant. When the owner picks one, it becomes the default and the others are deleted.
+
+**Reasoning.** The owner judges best in the real app on their own device, not from stills alone. Keeping candidates out of production means no user sees an unfinished choice, and deleting the losers keeps the code from carrying dead options.

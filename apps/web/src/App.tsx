@@ -15,7 +15,7 @@ export function App() {
 
   return (
     <main>
-      <h1>{'{{PROJECT_NAME}}'}</h1>
+      <h1>{'Behemoth Road'}</h1>
       <p>It works. Start building in apps/web/src and apps/worker/src.</p>
       {build && <footer>{buildLabel(build)}</footer>}
     </main>

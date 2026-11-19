@@ -1,0 +1,27 @@
+{
+  "$comment": "Written by bootstrap/init.mjs. Read by scripts/github-setup.mjs, scripts/decisions.mjs and (with a stack) scripts/deployed.mjs. Edit freely; then re-run node scripts/github-setup.mjs.",
+  "name": "Behemoth Road",
+  "slug": "behemoth-road",
+  "repo": "Misacorp/behemoth-road",
+  "owner": {
+    "name": "Misa",
+    "github": "Misacorp",
+    "commitEmail": "5681847+Misacorp@users.noreply.github.com"
+  },
+  "stack": "cloudflare-web",
+  "created": "2026-11-19",
+  "environments": {
+    "production": {
+      "deploysFrom": "push to main",
+      "branches": ["main"],
+      "secrets": ["CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"],
+      "url": "https://behemoth.misacorp.dev"
+    },
+    "staging": {
+      "deploysFrom": "manual run",
+      "branches": [],
+      "secrets": ["CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"],
+      "url": "https://behemoth-staging.misacorp.dev"
+    }
+  }
+}

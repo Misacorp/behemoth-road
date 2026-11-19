@@ -1,15 +1,10 @@
 name: deploy
 
 # Production: every push to main (a merged PR) deploys production. Nothing else can.
-# @if staging
 # Staging: only a manual run. In GitHub, Actions -> deploy -> "Run workflow", pick the branch to put on
 # staging. Pushing a branch deploys nothing, so two branches never race for staging. A manual run always
 # deploys staging, even when main is picked (that resets staging to main).
 # Agents may start a manual run only when the owner asks in that session (see CLAUDE.md).
-# @else
-# A manual run on main redeploys production (for example after a secret changed); on any other branch it
-# fails.
-# @endif
 # Fork pull requests never trigger this workflow (they only trigger `pull_request` in ci.yml), so they never
 # see these secrets. Secrets live in the GitHub environment of each target (scripts/github-setup.mjs).
 on:
@@ -22,34 +17,19 @@ permissions: {}
 
 jobs:
   deploy:
-    # @if staging
     name: deploy (${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'production' || 'staging' }})
-    # @else
-    name: deploy (production)
-    # @endif
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
       contents: read
-    # @if staging
     environment:
       name: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'production' || 'staging' }}
-      url: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'https://{{PRODUCTION_HOST}}' || 'https://{{STAGING_HOST}}' }}
+      url: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'https://behemoth.misacorp.dev' || 'https://behemoth-staging.misacorp.dev' }}
     concurrency:
       group: deploy-${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'production' || 'staging' }}
       cancel-in-progress: ${{ !(github.event_name == 'push' && github.ref == 'refs/heads/main') }}
     env:
       TARGET_ENV: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'production' || 'staging' }}
-    # @else
-    environment:
-      name: production
-      url: https://{{PRODUCTION_HOST}}
-    concurrency:
-      group: deploy-production
-      cancel-in-progress: false
-    env:
-      TARGET_ENV: production
-    # @endif
     steps:
       # Belt and braces: fail loudly if the target ever stops matching the trigger (for example after an
       # edit to the expressions above).
@@ -58,7 +38,6 @@ jobs:
           EVENT: ${{ github.event_name }}
           REF: ${{ github.ref }}
         run: |
-          # @if staging
           if [ "$TARGET_ENV" = "production" ] && { [ "$EVENT" != "push" ] || [ "$REF" != "refs/heads/main" ]; }; then
             echo "::error::Production deploys only from a push to main (got $EVENT on $REF)."
             exit 1
@@ -71,12 +50,6 @@ jobs:
             echo "::error::Unknown target '$TARGET_ENV'."
             exit 1
           fi
-          # @else
-          if [ "$TARGET_ENV" != "production" ] || [ "$REF" != "refs/heads/main" ]; then
-            echo "::error::Production deploys only from main (got $EVENT on $REF)."
-            exit 1
-          fi
-          # @endif
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

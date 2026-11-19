@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "{{PROJECT_SLUG}}",
+  "name": "behemoth-road",
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
   "observability": { "enabled": true },
@@ -21,24 +21,22 @@
     "BRANCH": "dev"
   },
   "env": {
-    // @if staging
     "staging": {
-      "name": "{{PROJECT_SLUG}}-staging",
+      "name": "behemoth-road-staging",
       "workers_dev": false,
       "preview_urls": false,
-      "routes": [{ "pattern": "{{STAGING_HOST}}", "custom_domain": true }],
+      "routes": [{ "pattern": "behemoth-staging.misacorp.dev", "custom_domain": true }],
       "vars": {
         "ENVIRONMENT": "staging",
         "VERSION": "dev",
         "BRANCH": "dev"
       }
     },
-    // @endif
     "production": {
-      "name": "{{PROJECT_SLUG}}",
+      "name": "behemoth-road",
       "workers_dev": false,
       "preview_urls": false,
-      "routes": [{ "pattern": "{{PRODUCTION_HOST}}", "custom_domain": true }],
+      "routes": [{ "pattern": "behemoth.misacorp.dev", "custom_domain": true }],
       "vars": {
         "ENVIRONMENT": "production",
         "VERSION": "dev",
