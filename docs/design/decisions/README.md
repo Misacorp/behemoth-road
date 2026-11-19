@@ -49,6 +49,7 @@ Record a decision:
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
+- 2026-11-20 The player view carries each viewer's creature signs; the creature's nature and condition never leave the server
 - 2026-11-20 The Worker replaces an outdated game on start and refuses an unreadable one with 503
 - 2026-11-20 The core state holds exploration, packs, stores and unlocks; no glints, no migration
 - 2026-11-20 Before a stable release, older games are wiped, not migrated \[Misa\]

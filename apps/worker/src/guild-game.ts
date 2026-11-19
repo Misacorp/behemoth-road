@@ -14,6 +14,7 @@ import {
   characterOf,
   characterOffers,
   createGame,
+  creatureSigns,
   loadGame,
   actWithEvents,
   OutdatedGameError,
@@ -24,6 +25,7 @@ import {
   replaceCharacter,
   toPlayerView,
   type CharacterOffer,
+  type CreatureSigns,
   type GameState,
   type GameStateView,
   type Seed,
@@ -65,6 +67,11 @@ export interface PlayerView {
   /** The characters this player may pick (the rolls, then the plain one): only while they have no active character. */
   offers: CharacterOffer[] | null;
   game: GameStateView;
+  /**
+   * What this viewer reads off the creature, from their active character (a keeper sees clearer and sees
+   * cues). Per viewer, a pure function of the stored state, so it changes only with the version.
+   */
+  signs: CreatureSigns;
   players: PlayerEntry[];
   devTools: boolean;
 }
@@ -580,6 +587,7 @@ export class GuildGame {
       you: { userId: user.id, characterId: mine?.id ?? null, admin },
       offers: mine?.status === 'active' ? null : characterOffers(game.state, user.id),
       game: toPlayerView(game.state),
+      signs: creatureSigns(game.state, mine?.status === 'active' ? mine.id : null),
       players,
       devTools: this.options.devTools,
     };

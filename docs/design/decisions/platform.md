@@ -4,6 +4,14 @@ Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: The player view carries each viewer's creature signs; the creature's nature and condition never leave the server
+
+ID: `2026-11-20-the-player-view-carries-each-viewer` · Status: current
+
+**Decision.** `POST /api/game/act` also takes `{ kind: 'light-fire' }`, `{ kind: 'feed' }` and `{ kind: 'linger' }`, strict like the others; their refusals and events pass through unchanged. Every player view (game, join, move, act, replace, next day) carries `signs`: the core's `creatureSigns` for the signed-in player's newest character when it is active, else `null` (a lost or absent character reads only what anyone may). It is computed per request and not cached; since it is a pure function of the stored state and the viewer, and every change to either (a tick, an action, a replace into another role) bumps the game version, `?since=` stays correct per viewer. The test client checks every response for the keys `nature`, `care`, `satiety` and `reactions`, and that `signs` equals exactly what the core allows that viewer (no cues for a non-keeper). Content version 5: a stored version-4 game is replaced through the existing outdated-game path. The fixture capture adds a keeper scenario (forage, fire, feed, linger, next day) with a keeper's and a non-keeper's view.
+
+**Reasoning.** The reaction a cue reveals is the keeper's role, so the server must never send it to anyone else, nor the hidden numbers it comes from. Checking every response in the shared test client, rather than one test per route, keeps any new route covered.
+
 ## 2026-11-20: The Worker replaces an outdated game on start and refuses an unreadable one with 503
 
 ID: `2026-11-20-the-worker-replaces-an-outdated-game` · Status: current · Supersedes: `2026-11-20-act-and-move-answer-the-view`

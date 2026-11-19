@@ -1,4 +1,4 @@
-import { checkAction, legalMoves, neighbours, type GameState } from '@behemoth-road/core';
+import { checkAction, hexKey, legalMoves, neighbours, type GameState } from '@behemoth-road/core';
 import { describe, expect, it } from 'vitest';
 import { createHandler } from '../../src/index.ts';
 import type { PlayerView } from '../../src/guild-game.ts';
@@ -144,6 +144,109 @@ describe('capture', () => {
         ctx.sql.exec('UPDATE game SET state = ?, version = version + 1', JSON.stringify(lost));
         await ok('view-lost', 'GET', '/api/game');
         await ok('view-replaced', 'POST', '/api/game/replace', { role: 'envoy', offer: 2 });
+      },
+      { everyoneIsAdmin: true },
+    );
+
+    // Milestone 4: a keeper forages, lights a fire, feeds and lingers the creature; after the tick the
+    // keeper reads a cue and a clear appetite, a non-keeper only a faint one.
+    await runGame(
+      async (ctx) => {
+        const misa = await ctx.signIn(MISA);
+        const robin = await ctx.signIn(ROBIN);
+        const read = () =>
+          JSON.parse(
+            ctx.sql.exec<{ state: string }>('SELECT state FROM game').one().state,
+          ) as GameState;
+        const write = (state: GameState) =>
+          ctx.sql.exec('UPDATE game SET state = ?, version = version + 1', JSON.stringify(state));
+        const versionNow = async () =>
+          ((await ctx.call(misa, 'GET', '/api/game')).body as PlayerView).version;
+        const ok = async (
+          name: string,
+          token: string,
+          method: string,
+          path: string,
+          body?: unknown,
+        ) => {
+          if (body !== undefined) requests[name] = { method, path, body };
+          const res = await ctx.call(token, method, path, body);
+          expect(res.status, name).toBe(200);
+          responses[name] = res.body;
+          return res.body as PlayerView;
+        };
+        const refused = async (token: string, body: unknown) => {
+          const res = await ctx.call(token, 'POST', '/api/game/act', body);
+          expect(res.status).toBe(409);
+          errors.push({ route: 'POST /api/game/act', status: res.status, body: res.body });
+        };
+        const me = `${USER_ID}.0`;
+        const withMe = (state: GameState, change: Partial<GameState['characters'][number]>) => ({
+          ...state,
+          characters: state.characters.map((c) => (c.id === me ? { ...c, ...change } : c)),
+        });
+
+        expect(
+          (await ctx.call(misa, 'POST', '/api/game/join', { role: 'keeper', offer: 0 })).status,
+        ).toBe(200);
+        expect(
+          (await ctx.call(robin, 'POST', '/api/game/join', { role: 'scout', offer: 0 })).status,
+        ).toBe(200);
+        await refused(robin, { version: await versionNow(), action: { kind: 'linger' } });
+
+        // Place the keeper beside the creature, on a hex that burns, with timber and a berry bush.
+        const start = read();
+        const hex = legalMoves(start, me)
+          .flatMap((p) => (p.kind === 'hex' ? [p.hex] : []))
+          .find(
+            (h) =>
+              checkAction(withMe(start, { at: { kind: 'hex', hex: h }, pack: { timber: 1 } }), me, {
+                kind: 'light-fire',
+              }).ok,
+          );
+        if (hex === undefined) throw new Error('the scenario has no hex to light a fire on');
+        write({
+          ...withMe(start, { at: { kind: 'hex', hex }, pack: { timber: 1 } }),
+          features: {
+            ...start.features,
+            [hexKey(hex)]: { type: 'berry-bushes', revealed: true, left: 2 },
+          },
+        });
+        await ok('view-foraged', misa, 'POST', '/api/game/act', {
+          version: await versionNow(),
+          action: { kind: 'gather' },
+        });
+        await ok('view-fire-lit', misa, 'POST', '/api/game/act', {
+          version: await versionNow(),
+          action: { kind: 'light-fire' },
+        });
+
+        // Back on the creature with the forage in the stores and fresh actions.
+        const lit = read();
+        const actions = lit.config.actionsPerDay;
+        write({
+          ...withMe(lit, { at: { kind: 'creature' }, pack: {}, actionsLeft: actions }),
+          stores: { forage: 1 },
+        });
+        await ok('view-fed', misa, 'POST', '/api/game/act', {
+          version: await versionNow(),
+          action: { kind: 'feed' },
+        });
+        await refused(misa, { version: await versionNow(), action: { kind: 'feed' } });
+        await ok('view-lingered', misa, 'POST', '/api/game/act', {
+          version: await versionNow(),
+          action: { kind: 'linger' },
+        });
+
+        // Hungry enough that the tick leaves it underfed at level 2: the non-keeper sees it faintly.
+        const fed = read();
+        write({ ...fed, care: { ...fed.care, satiety: 3 } });
+        const cue = await ok('view-keeper-cue', misa, 'POST', '/api/dev/next-day', {});
+        expect(cue.signs.cues.length).toBeGreaterThan(0);
+        expect(cue.signs.appetite).toMatchObject({ kind: 'underfed', faint: false });
+        const other = await ok('view-not-keeper', robin, 'GET', '/api/game');
+        expect(other.signs).toMatchObject({ cues: [], appetite: { level: 1, faint: true } });
+        await refused(misa, { version: await versionNow(), action: { kind: 'linger' } });
       },
       { everyoneIsAdmin: true },
     );

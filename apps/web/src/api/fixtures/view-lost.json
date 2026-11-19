@@ -33,7 +33,7 @@
     }
   ],
   "game": {
-    "contentVersion": 4,
+    "contentVersion": 5,
     "artSeed": 4242,
     "day": 2,
     "config": {
@@ -59,14 +59,26 @@
       "siteChanceSpecialistTier1": 0.7,
       "siteChanceSpecialistTier2": 0.5,
       "siteChanceOtherTier1": 0.35,
-      "siteChanceOtherTier2": 0
+      "siteChanceOtherTier2": 0,
+      "stimulusRange": 3,
+      "stimulusPull": 6,
+      "hungryVeerWeights": {
+        "left": 1,
+        "straight": 1,
+        "right": 1
+      },
+      "lightFireCost": 1,
+      "feedCost": 1,
+      "lingerCost": 2
     },
     "creature": {
       "centre": {
         "q": 0,
         "r": -1
       },
-      "heading": "n"
+      "heading": "n",
+      "lingering": false,
+      "lingeredDay": null
     },
     "tiles": {
       "-5,0": {
@@ -729,7 +741,12 @@
     "project": {
       "unlock": "grappling-hook",
       "work": 1
-    }
+    },
+    "stimuli": []
+  },
+  "signs": {
+    "appetite": null,
+    "cues": []
   },
   "players": [
     {
