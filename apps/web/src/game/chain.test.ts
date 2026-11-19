@@ -53,9 +53,12 @@ describe('the chain as the client reads it', () => {
   it('lets a riding engineer start an unlock the stores can pay for', () => {
     const eng = staged({ role: 'engineer', at: 'creature', stores: { iron: 2, timber: 1 } });
     const hook = unlockOptions(eng.view, eng.me).find((o) => o.unlock.id === 'grappling-hook')!;
-    expect(hook).toMatchObject({ done: false, work: null, affordable: true, enabled: true });
+    expect(hook).toMatchObject({ done: false, work: null, missing: [], enabled: true });
     const lantern = unlockOptions(eng.view, eng.me).find((o) => o.unlock.id === 'lantern')!;
-    expect(lantern).toMatchObject({ affordable: false, enabled: false });
+    expect(lantern).toMatchObject({
+      missing: [{ material: 'stone', amount: 1 }],
+      enabled: false,
+    });
     // A scout cannot build, and a finished unlock is done.
     const scout = staged({ at: 'creature', stores: { iron: 2, timber: 1 }, unlocks: ['lantern'] });
     const options = unlockOptions(scout.view, scout.me);
