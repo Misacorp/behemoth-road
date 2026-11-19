@@ -116,6 +116,7 @@ describe('addCharacter', () => {
       joinedDay: 2,
       at: ON_CREATURE,
       actionsLeft: 3,
+      craftsToday: 0,
       status: 'active',
     });
     expect(state.characters).toHaveLength(0);

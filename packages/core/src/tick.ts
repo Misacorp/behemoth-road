@@ -4,11 +4,13 @@
  *
  * Order: the creature steps, carrying its riders; the window and fog update;
  * anyone standing on a hex the creature stepped onto is now riding it (no cost);
- * anyone left out of reach is lost; actions reset; lost tiles far behind are
+ * anyone left out of reach is lost; actions and craft counts reset; hexes new
+ * in view get their (hidden) features; lost tiles far behind are
  * pruned. Server only: it needs the seed.
  */
 
 import { chooseCreatureStep } from './creature.ts';
+import { addFeatures, keyToHex, pruneFeatures } from './features.ts';
 import { ON_CREATURE } from './places.ts';
 import type { Character, GameState } from './state.ts';
 import { isCreatureHex, isReachable, pruneLostTiles, updateTiles } from './window.ts';
@@ -18,16 +20,27 @@ export const nextDay = (state: GameState): GameState => {
   const step = chooseCreatureStep(state);
   const creature = { ...state.creature, centre: step.centre };
   const tiles = updateTiles(state.tiles, creature.centre, day, state.config, state.seed);
-  const moved: GameState = { ...state, day, creature, tiles };
+  const newHexes = Object.keys(tiles)
+    .filter((key) => !state.tiles[key])
+    .map(keyToHex);
+  const features = addFeatures(
+    state.features,
+    tiles,
+    newHexes,
+    state.seed,
+    state.config.featureChance,
+  );
+  const moved: GameState = { ...state, day, creature, tiles, features };
   const actionsLeft = state.config.actionsPerDay;
 
   const characters = state.characters.map((c): Character => {
-    if (c.status !== 'active') return { ...c, actionsLeft: 0 };
-    if (c.at.kind === 'creature') return { ...c, actionsLeft };
-    if (isCreatureHex(moved, c.at.hex)) return { ...c, at: ON_CREATURE, actionsLeft };
-    if (isReachable(moved, c.at.hex)) return { ...c, actionsLeft };
-    return { ...c, status: 'lost', actionsLeft: 0 };
+    if (c.status !== 'active') return { ...c, actionsLeft: 0, craftsToday: 0 };
+    const fresh = { ...c, actionsLeft, craftsToday: 0 };
+    if (c.at.kind === 'creature') return fresh;
+    if (isCreatureHex(moved, c.at.hex)) return { ...fresh, at: ON_CREATURE };
+    if (isReachable(moved, c.at.hex)) return fresh;
+    return { ...c, status: 'lost', actionsLeft: 0, craftsToday: 0 };
   });
   const settled = { ...moved, characters };
-  return { ...settled, tiles: pruneLostTiles(settled) };
+  return pruneFeatures({ ...settled, tiles: pruneLostTiles(settled) });
 };

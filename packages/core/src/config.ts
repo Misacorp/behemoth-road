@@ -28,6 +28,25 @@ export interface TuningConfig {
   readonly playerCap: number;
   /** How the creature chooses each day's step. */
   readonly veerWeights: VeerWeights;
+  /** Chance that a hex holds a feature (a node, site or trap), when one fits its terrain. */
+  readonly featureChance: number;
+  /** How far a scout senses hidden features (a glint, not what they are). */
+  readonly senseRadius: number;
+  /** Action costs. */
+  readonly gatherCost: number;
+  readonly craftCost: number;
+  readonly workSiteCost: number;
+  /** Crafts per character per day. */
+  readonly craftsPerDay: number;
+  /** A gathering specialist (role tag `gather`) multiplies the yield by this. */
+  readonly specialistYield: number;
+  /** A non-specialist (no role tag `craft`) pays this much more of a tier-1 recipe's first material. */
+  readonly nonSpecialistExtraMaterial: number;
+  /** Chance to work a site, by tier, for a specialist (role tag `sites`) and for anyone else. */
+  readonly siteChanceSpecialistTier1: number;
+  readonly siteChanceSpecialistTier2: number;
+  readonly siteChanceOtherTier1: number;
+  readonly siteChanceOtherTier2: number;
 }
 
 export const DEFAULT_CONFIG: TuningConfig = {
@@ -39,6 +58,18 @@ export const DEFAULT_CONFIG: TuningConfig = {
   lostTileRings: 4,
   playerCap: 15,
   veerWeights: { left: 1, straight: 2, right: 1 },
+  featureChance: 0.08,
+  senseRadius: 1,
+  gatherCost: 1,
+  craftCost: 1,
+  workSiteCost: 2,
+  craftsPerDay: 1,
+  specialistYield: 2,
+  nonSpecialistExtraMaterial: 1,
+  siteChanceSpecialistTier1: 0.7,
+  siteChanceSpecialistTier2: 0.5,
+  siteChanceOtherTier1: 0.35,
+  siteChanceOtherTier2: 0,
 };
 
 export type ConfigOverrides = Partial<Omit<TuningConfig, 'veerWeights'>> & {
@@ -62,6 +93,23 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
   if (!isCount(config.graceDays, 0)) problems.push('graceDays');
   if (!isCount(config.lostTileRings, 0)) problems.push('lostTileRings');
   if (!isCount(config.playerCap, 1)) problems.push('playerCap');
+  const chances = [
+    'featureChance',
+    'siteChanceSpecialistTier1',
+    'siteChanceSpecialistTier2',
+    'siteChanceOtherTier1',
+    'siteChanceOtherTier2',
+  ] as const;
+  for (const key of chances) {
+    const p = config[key];
+    if (!(Number.isFinite(p) && p >= 0 && p <= 1)) problems.push(key);
+  }
+  if (!isCount(config.senseRadius, 0)) problems.push('senseRadius');
+  for (const key of ['gatherCost', 'craftCost', 'workSiteCost', 'specialistYield'] as const) {
+    if (!isCount(config[key], 1)) problems.push(key);
+  }
+  if (!isCount(config.craftsPerDay, 0)) problems.push('craftsPerDay');
+  if (!isCount(config.nonSpecialistExtraMaterial, 0)) problems.push('nonSpecialistExtraMaterial');
   const w = config.veerWeights;
   const weights = [w.left, w.straight, w.right];
   if (weights.some((x) => !(Number.isFinite(x) && x >= 0)) || !weights.some((x) => x > 0)) {
