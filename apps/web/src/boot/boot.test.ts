@@ -57,6 +57,25 @@ describe('boot', () => {
     expect(s.paths).toEqual(['/api/config']);
   });
 
+  it('inside Discord, a server that may not play gets the not-allowed state and no game', async () => {
+    const paths: string[] = [];
+    const fetch: Fetch = (path) => {
+      paths.push(path);
+      if (path === '/api/config') return Promise.resolve(new Response(JSON.stringify(CONFIG)));
+      return Promise.resolve(
+        new Response(JSON.stringify({ error: 'guild_not_allowed' }), { status: 403 }),
+      );
+    };
+    const b = await boot({
+      api: createApiClient(fetch),
+      search: '?frame_id=f',
+      discord: () => Promise.resolve(fakeDiscord([])),
+      devSession: null,
+    });
+    expect(b.kind).toBe('not-allowed');
+    expect(paths).toEqual(['/api/config', '/api/auth/session']);
+  });
+
   it('inside Discord: ready, authorise, exchange the code, authenticate, then load the view', async () => {
     const s = server();
     const log: string[] = [];

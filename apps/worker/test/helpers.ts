@@ -23,10 +23,19 @@ export { DiscordError };
 
 /** A different guild id per call, so tests never share a Durable Object. */
 let guildCounter = 0;
+const madeGuilds: string[] = [];
 export function freshGuildId(): string {
   guildCounter += 1;
-  return `4${String(Date.now() % 1e9).padStart(9, '0')}${String(guildCounter).padStart(8, '0')}`;
+  const id = `4${String(Date.now() % 1e9).padStart(9, '0')}${String(guildCounter).padStart(8, '0')}`;
+  madeGuilds.push(id);
+  return id;
 }
+
+/** A guild id no test allows (not made by `freshGuildId`). */
+export const STRANGER_GUILD_ID = '777777777777777777';
+
+/** The allowlist the tests run with: the fixed test guild and every guild `freshGuildId` made. */
+export const testAllowlist = (): string => [GUILD_ID, ...madeGuilds].join(',');
 
 export interface FakeDiscordOptions {
   user?: DiscordUser;
@@ -126,7 +135,7 @@ export function callHandler(
   return Promise.resolve(
     handler.fetch(
       request as Request<unknown, IncomingRequestCfProperties>,
-      { ...env, ...envOverrides },
+      { ...env, ALLOWED_GUILDS: testAllowlist(), ...envOverrides },
       ctx,
     ),
   );

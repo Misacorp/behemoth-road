@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import wranglerText from '../wrangler.jsonc?raw';
+import { allowedGuilds } from '../src/allowlist.ts';
 import { DEV_GUILD_ID, createHandler } from '../src/index.ts';
 import { parseSessionToken } from '../src/session.ts';
 import { ORIGIN, callHandler } from './helpers.ts';
@@ -33,6 +34,14 @@ describe('wrangler.jsonc', () => {
   it('keeps the dev tools off in production and on in staging', () => {
     expect(wrangler.env['production']?.vars['DEV_TOOLS']).toBe('off');
     expect(wrangler.env['staging']?.vars['DEV_TOOLS']).toBe('on');
+  });
+
+  it('gives every deployed environment a non-empty list of real server ids that may play', () => {
+    for (const [name, environment] of Object.entries(wrangler.env)) {
+      const list = environment.vars['ALLOWED_GUILDS'] ?? '';
+      expect(list, name).toMatch(/^\d{17,20}(,\d{17,20})*$/);
+      expect(allowedGuilds(list).size, name).toBeGreaterThan(0);
+    }
   });
 
   it('gives every deployed environment its own real Discord client id', () => {

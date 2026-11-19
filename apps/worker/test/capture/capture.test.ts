@@ -6,6 +6,7 @@ import {
   MISA,
   ORIGIN,
   ROBIN,
+  STRANGER_GUILD_ID,
   USER_ID,
   callHandler,
   fakeDiscord,
@@ -30,17 +31,30 @@ describe('capture', () => {
     const errors: { route: string; status: number; body: unknown }[] = [];
     const requests: Record<string, { method: string; path: string; body: unknown }> = {};
 
+    const guildId = freshGuildId();
     const handler = createHandler({
       createDiscord: () =>
-        fakeDiscord({ instance: { location: { guild_id: freshGuildId() }, users: [USER_ID] } }),
+        fakeDiscord({ instance: { location: { guild_id: guildId }, users: [USER_ID] } }),
     });
     responses['config'] = await (
       await callHandler(handler, new Request(`${ORIGIN}/api/config`))
     ).json();
     const authBody = { code: 'oauth-code', instanceId: 'instance-1' };
     requests['auth-session'] = { method: 'POST', path: '/api/auth/session', body: authBody };
-    const auth = await (await postAuth(handler, authBody)).json<Record<string, unknown>>();
+    const signedIn = await postAuth(handler, authBody);
+    expect(signedIn.status).toBe(200);
+    const auth = await signedIn.json<Record<string, unknown>>();
     responses['auth-session'] = { ...auth, token: TOKEN };
+    const stranger = createHandler({
+      createDiscord: () =>
+        fakeDiscord({ instance: { location: { guild_id: STRANGER_GUILD_ID }, users: [USER_ID] } }),
+    });
+    const refusedSignIn = await postAuth(stranger, authBody);
+    errors.push({
+      route: 'POST /api/auth/session',
+      status: refusedSignIn.status,
+      body: await refusedSignIn.json(),
+    });
 
     await runGame(
       async (ctx) => {

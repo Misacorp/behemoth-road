@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { createHandler } from '../src/index.ts';
-import { ORIGIN, callHandler } from './helpers.ts';
+import { GUILD_ID, ORIGIN, STRANGER_GUILD_ID, callHandler } from './helpers.ts';
 
 const NOW = Date.UTC(2030, 0, 1);
 const handler = createHandler({ now: () => NOW });
@@ -100,14 +100,14 @@ describe('POST /api/discord/interactions', () => {
 
   it('launches the Activity from the entry point command and answers others privately', async () => {
     for (const body of [
-      { type: 2, data: { name: 'launch', type: 4 } },
-      { type: 2, data: { name: 'launch' } },
+      { type: 2, guild_id: GUILD_ID, data: { name: 'launch', type: 4 } },
+      { type: 2, guild_id: GUILD_ID, data: { name: 'launch' } },
     ]) {
       const res = await interact({ keys, body: JSON.stringify(body) }, keys.publicHex);
       expect(await res.json()).toEqual({ type: 12 });
     }
     const other = await interact(
-      { keys, body: JSON.stringify({ type: 2, data: { name: 'feedback' } }) },
+      { keys, body: JSON.stringify({ type: 2, guild_id: GUILD_ID, data: { name: 'feedback' } }) },
       keys.publicHex,
     );
     expect(await other.json()).toEqual({
@@ -118,5 +118,23 @@ describe('POST /api/discord/interactions', () => {
         allowed_mentions: { parse: [] },
       },
     });
+  });
+
+  it('answers Launch privately outside an allowed server: another server, a DM, a user install', async () => {
+    const unavailable = {
+      type: 4,
+      data: {
+        content: "That command isn't available here.",
+        flags: 64,
+        allowed_mentions: { parse: [] },
+      },
+    };
+    for (const body of [
+      { type: 2, guild_id: STRANGER_GUILD_ID, data: { name: 'launch', type: 4 } },
+      { type: 2, data: { name: 'launch', type: 4 } },
+    ]) {
+      const res = await interact({ keys, body: JSON.stringify(body) }, keys.publicHex);
+      expect(await res.json()).toEqual(unavailable);
+    }
   });
 });

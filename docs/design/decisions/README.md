@@ -49,8 +49,9 @@ Record a decision:
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
+- 2026-11-19 Only allowed Discord servers can play; the app itself is public \[Misa\]
 - 2026-11-19 The web client boots as an Activity, parses every response, and runs rules on the player view
-- 2026-11-19 Sign-in, interactions and the deploy's Discord steps follow creatures
+- 2026-11-19 Sign-in, interactions and the deploy's Discord steps follow creatures (amended)
 - 2026-11-19 The local dev login and the staging next day: who may use them
 - 2026-11-19 Joining and replacing pick an offered character by index; offers are in the player view
 - 2026-11-19 Missed day ticks catch up to seven at once; older ones are skipped

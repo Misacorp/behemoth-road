@@ -1,6 +1,7 @@
 // The Worker: serves the frontend (static assets, wrangler.jsonc) and the API under /api/*.
 // Only /api/* reaches this code; every other path is answered from the assets directly.
 import * as v from 'valibot';
+import { allowedGuilds } from './allowlist.ts';
 import { handleAuthSession } from './auth.ts';
 import { createDiscordApi, type DiscordApi } from './discord.ts';
 import { INTERACTIONS_PATH, handleInteraction } from './discord-interactions.ts';
@@ -85,6 +86,7 @@ export function createHandler(overrides: Partial<HandlerDeps> = {}): ExportedHan
         handleAuthSession(request, {
           discord: deps.createDiscord(env),
           limiters: authLimiters,
+          allowedGuilds: allowedGuilds(env.ALLOWED_GUILDS),
           createSession: (guildId, user) => guildWorld(env, guildId).createSession(guildId, user),
           formatToken: (guildId, secret) => signIn(env, guildId, secret),
         }),

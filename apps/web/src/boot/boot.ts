@@ -5,11 +5,13 @@
  * in with and shows only an "open from Discord" state. Local development (the Vite dev server only, never a
  * production build) signs in with a fake session against `wrangler dev`.
  */
-import type { ApiClient } from '../api/client.ts';
+import { ApiError, type ApiClient } from '../api/client.ts';
 import type { AppConfig, PlayerView, Session } from '../api/schema.ts';
 
 export type Boot =
   | { readonly kind: 'outside'; readonly config: AppConfig }
+  /** Inside Discord, but in a server that is not allowed to play (the server answered `guild_not_allowed`). */
+  | { readonly kind: 'not-allowed'; readonly config: AppConfig }
   | {
       readonly kind: 'ready';
       readonly config: AppConfig;
@@ -78,7 +80,15 @@ export async function boot(deps: BootDeps): Promise<Boot> {
     await sdk.commands.authenticate({ access_token: session.accessToken });
     return session;
   };
-  const session = await signIn();
+  let session: Session;
+  try {
+    session = await signIn();
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 403 && err.code === 'guild_not_allowed') {
+      return { kind: 'not-allowed', config };
+    }
+    throw err;
+  }
   // Sessions expire; a game lasts weeks. Sign in again silently when the server says so.
   api.setReauthenticator(async () => {
     await signIn();

@@ -18,9 +18,9 @@ Two Discord applications, one per environment, so staging never touches the prod
 - [x] **Create the application.** [Discord Developer Portal](https://discord.com/developers/applications), New Application. Names: `Behemoth Road` and `Behemoth Road (staging)`.
 - [x] **Activities.** Activities, Settings: turn on **Enable Activities**; Supported Platforms: Web, iOS, Android. Activities, URL Mappings: one row, prefix `/`, target `behemoth.misacorp.dev` (staging: `behemoth-staging.misacorp.dev`), no `https://`.
 - [x] **OAuth2.** OAuth2, Redirects: add `https://127.0.0.1` (Discord requires one; the Activity never uses it). Copy the **Client ID** (public) and **Reset Secret** to get the client secret.
-- [x] **Installation.** Installation Contexts: **Guild Install** only (untick User Install). Install Link: **None**, and save. (Discord refuses a private bot while the app has a Discord Provided Link.)
-- [x] **Bot.** Bot: **Reset Token** and copy it. Turn **Public Bot** off. No privileged intents are needed.
-- [x] **Add the app to your server.** OAuth2, URL Generator: scopes `bot` and `applications.commands`, integration type Guild Install, no permissions. Open the generated URL and add the app to your server (staging: a test server); as the owner you can install your private app this way.
+- [x] **Installation.** Installation Contexts: **Guild Install** and **User Install**. Install Link: **Discord Provided Link**. Default Install Settings, Guild Install: scopes `applications.commands` and `bot`, no permissions. Open the link and add the app to your server (staging: a test server).
+- [x] **Bot.** Bot: **Reset Token** and copy it. **Public Bot** on (Discord needs it for the provided install link). No privileged intents are needed. Anyone with the link can add the app, so only servers on the allowlist below can play.
+- [x] **Servers that may play.** Server Settings, Widget shows the **Server ID** (or right-click the server with Developer Mode on, Copy Server ID). Send it to an agent; it goes into `ALLOWED_GUILDS` in `apps/worker/wrangler.jsonc` for each environment. Any other server gets a refusal at sign-in and on Launch.
 - [ ] **Interactions Endpoint URL.** General Information: `https://behemoth.misacorp.dev/api/discord/interactions` (staging: `https://behemoth-staging.misacorp.dev/api/discord/interactions`). Discord checks it when you save, so set it **after** the first deploy with Milestone 2 is live; until then the deploy prints a warning and Launch uses Discord's default.
 - [ ] **Secrets into GitHub.** `node scripts/github-setup.mjs --user Misacorp` asks for `DISCORD_CLIENT_SECRET` and `DISCORD_BOT_TOKEN` for `production` and `staging`, with hidden input.
 - [x] **Client ids to an agent.** Send the two Client IDs (public, not secret); they go into `apps/worker/wrangler.jsonc` as `DISCORD_CLIENT_ID`.
@@ -29,6 +29,6 @@ Two Discord applications, one per environment, so staging never touches the prod
 
 Not checklist steps; how anyone tests from Discord ([Building an Activity](https://docs.discord.com/developers/activities/building-an-activity), [Local development](https://docs.discord.com/developers/activities/development-guides/local-development)):
 
-- **Developer Mode.** Every tester turns it on in Discord: desktop and web, User Settings, Advanced; mobile, Profile, Appearance. Discord launches an in-development Activity only with it on.
+- **Developer Mode.** Only for launching an in-development Activity: desktop and web, User Settings, Advanced; mobile, Profile, Appearance. It is not needed for normal play.
 - **Who can launch.** Until the app is published, only its owner and members of its developer team can launch it. Add friends who test to the team: Developer Portal, Teams.
 - **Finding it.** In a voice or text channel, open the App Launcher and search for the app by name.

@@ -8,7 +8,8 @@
  * - With no public key configured (`DISCORD_PUBLIC_KEY` empty or not 64 hex characters) the route is a 404.
  * - The body is capped at 64 KiB. Discord's payloads are parsed loosely (Discord adds fields), but every
  *   field that is read is checked.
- * - The entry point command is answered with LAUNCH_ACTIVITY, which opens the Activity and posts nothing.
+ * - The entry point command is answered with LAUNCH_ACTIVITY, which opens the Activity and posts nothing,
+ *   but only in a server on the allowlist (`ALLOWED_GUILDS`); anywhere else it gets a private reply.
  */
 import * as v from 'valibot';
 import {
@@ -19,6 +20,8 @@ import {
   parseJsonObject,
   readLimitedText,
 } from './http.ts';
+import { allowedGuilds } from './allowlist.ts';
+import { SNOWFLAKE_RE } from './schemas.ts';
 
 export const INTERACTIONS_PATH = '/api/discord/interactions';
 
@@ -87,6 +90,7 @@ async function signatureValid(
 const TypeOnlySchema = v.object({ type: v.pipe(v.number(), v.integer()) });
 
 const CommandSchema = v.object({
+  guild_id: v.optional(v.pipe(v.string(), v.regex(SNOWFLAKE_RE))),
   data: v.object({
     name: v.pipe(v.string(), v.maxLength(64)),
     type: v.optional(v.pipe(v.number(), v.integer())),
@@ -103,10 +107,12 @@ const unavailable = (): Response =>
     },
   });
 
-function handleCommand(payload: unknown): Response {
+function handleCommand(payload: unknown, allowed: ReadonlySet<string>): Response {
   const parsed = v.safeParse(CommandSchema, payload);
   if (!parsed.success) return errorResponse('invalid_interaction', 400);
-  const { data } = parsed.output;
+  const { data, guild_id: guildId } = parsed.output;
+  // Only an allowed server can play; a DM, a user install or another server gets the private reply.
+  if (guildId === undefined || !allowed.has(guildId)) return unavailable();
   if (data.type === PRIMARY_ENTRY_POINT || data.name === LAUNCH_COMMAND) {
     return json({ type: LAUNCH_ACTIVITY_RESPONSE });
   }
@@ -146,7 +152,7 @@ export async function handleInteraction(
     case PING:
       return json({ type: PONG_RESPONSE });
     case APPLICATION_COMMAND:
-      return handleCommand(payload);
+      return handleCommand(payload, allowedGuilds(env.ALLOWED_GUILDS));
     default:
       return errorResponse('invalid_interaction', 400);
   }

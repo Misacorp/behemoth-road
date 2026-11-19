@@ -1,5 +1,12 @@
 [
   {
+    "route": "POST /api/auth/session",
+    "status": 403,
+    "body": {
+      "error": "guild_not_allowed"
+    }
+  },
+  {
     "route": "POST /api/game/move",
     "status": 409,
     "body": {

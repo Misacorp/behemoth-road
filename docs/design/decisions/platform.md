@@ -4,6 +4,14 @@ Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: Only allowed Discord servers can play; the app itself is public **[Misa]**
+
+ID: `2026-11-19-only-allowed-discord-servers-can-play` · Status: current · Amends: `2026-11-19-sign-in-interactions-and-the-deploy`
+
+**Decision.** Both Discord applications use creatures' settings: Public Bot on, the Discord Provided install link, Guild Install and User Install. The Worker keeps play to known servers with `ALLOWED_GUILDS` in `wrangler.jsonc` (comma-separated guild ids per environment; staging and production both start with `215386000132669440`, local allows the dev login's server). `POST /api/auth/session` refuses any other guild with `403 { error: 'guild_not_allowed' }` before its Durable Object is addressed, and Launch from another server, a DM or a user install gets the private "not available" reply. An empty, malformed or oversized list allows no server (fail closed); a test pins a non-empty numeric list in every deployed environment. The web app shows its "open from Discord" state on the refusal.
+
+**Reasoning.** Misa switched the apps to the setup creatures uses, which lets anyone with the link add the app. Each allowed server costs a Durable Object and Discord calls, so an allowlist checked at sign-in, before any object exists, keeps strangers from creating games. Adding a server is a one-line config change.
+
 ## 2026-11-19: The web client boots as an Activity, parses every response, and runs rules on the player view
 
 ID: `2026-11-19-the-web-client-boots-as-an` · Status: current
@@ -14,7 +22,7 @@ ID: `2026-11-19-the-web-client-boots-as-an` · Status: current
 
 ## 2026-11-19: Sign-in, interactions and the deploy's Discord steps follow creatures
 
-ID: `2026-11-19-sign-in-interactions-and-the-deploy` · Status: current
+ID: `2026-11-19-sign-in-interactions-and-the-deploy` · Status: current, amended by `2026-11-19-only-allowed-discord-servers-can-play`
 
 **Decision.** The Worker reuses creatures' Activity sign-in (`auth.ts`, `discord.ts`, `session.ts`, `keys.ts`), with the session key derived under the label `behemoth-road/session`, so a creatures token never verifies here. `POST /api/auth/session` answers `{ token, accessToken, user: { id, name } }`. A launch with no guild (a DM or group DM) is refused with `guild_required`. Sign-in is rate limited per isolate three ways: overall, per client IP (`CF-Connecting-IP`) and per Activity instance, since the instance id is chosen by the client. The top level of `wrangler.jsonc` (local only) is named `behemoth-road-local` with no routes, so a `wrangler deploy` without `--env` cannot publish over production; a test pins this. The interactions endpoint answers only PING and the Activity's entry point (Launch, with LAUNCH_ACTIVITY); other commands get a private "not available". The deploy job reads the app's public key from Discord with the bot token (`scripts/discord-app.mjs public-key`), passes it as the `DISCORD_PUBLIC_KEY` var, and afterwards points Launch at our endpoint (`register`), only once the portal's Interactions Endpoint URL is this game's. `DISCORD_CLIENT_SECRET` and `DISCORD_BOT_TOKEN` are environment secrets, sent to wrangler in a temporary `--secrets-file`; the client id is a public var in `wrangler.jsonc`. The host for the endpoint check comes from `project.config.json`.
 

@@ -14,6 +14,8 @@ export interface AuthDeps {
   createSession(guildId: string, user: SessionUser): Promise<string>;
   /** Signs the secret into the final `s1.<guildId>.<secret>.<mac>` token. */
   formatToken(guildId: string, secret: string): Promise<string>;
+  /** The servers allowed to play (`ALLOWED_GUILDS`); any other guild is refused before its object is made. */
+  allowedGuilds: ReadonlySet<string>;
   /** Best-effort limiters (per isolate): all callers, per client IP, per Activity instance. */
   limiters: { global: TokenBucketLimiter; ip: TokenBucketLimiter; instance: TokenBucketLimiter };
 }
@@ -22,7 +24,8 @@ export interface AuthDeps {
  * `POST /api/auth/session`: the Activity's sign-in (creatures' flow). The Embedded App SDK's authorize
  * code is exchanged for an access token, the user is read with it, and the Activity instance is read
  * with the bot token. The guild comes only from Discord's answer about the instance, never from the
- * client, and the user must be in that instance. A DM or group DM launch has no guild and is refused.
+ * client, and the user must be in that instance. A DM or group DM launch has no guild and is refused, and
+ * so is a server that is not on the allowlist (`ALLOWED_GUILDS`).
  */
 export async function handleAuthSession(request: Request, deps: AuthDeps): Promise<Response> {
   const raw = await readJsonBody(request, MAX_AUTH_BODY_BYTES);
@@ -55,6 +58,7 @@ export async function handleAuthSession(request: Request, deps: AuthDeps): Promi
       return errorResponse('guild_required', 400);
     }
     if (!instance.users.includes(discordUser.id)) return errorResponse('not_in_instance', 401);
+    if (!deps.allowedGuilds.has(guildId)) return errorResponse('guild_not_allowed', 403);
 
     const globalName = discordUser.global_name;
     const user: SessionUser = {

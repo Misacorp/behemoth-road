@@ -30,6 +30,8 @@
   // Discord's verify_key; empty (or not 64 hex characters) turns POST /api/discord/interactions off (404).
   // DEV_TOOLS: "on" turns on /api/dev/* (the admin "next day"; staging and local only). Any other value,
   // production included, makes every /api/dev route answer 404. A test pins production to "off".
+  // ALLOWED_GUILDS: the Discord servers (guild ids, comma-separated) that may play. The app is public, so this
+  // list keeps the game to known servers; empty or malformed allows none. Locally: the dev login's server.
   // ENVIRONMENT "local" (this top level, used by wrangler dev and the tests) also turns on the dev login
   // (POST /api/dev/login) and makes every player an admin; each deployed environment sets its own name.
   // Vars are not inherited by environments: a var added here is added to each environment below too.
@@ -39,7 +41,8 @@
     "BRANCH": "dev",
     "DISCORD_CLIENT_ID": "000000000000000000",
     "DISCORD_PUBLIC_KEY": "",
-    "DEV_TOOLS": "on"
+    "DEV_TOOLS": "on",
+    "ALLOWED_GUILDS": "100000000000000000"
   },
   "env": {
     "staging": {
@@ -57,7 +60,8 @@
         "BRANCH": "dev",
         "DISCORD_CLIENT_ID": "1573039651172909057",
         "DISCORD_PUBLIC_KEY": "",
-        "DEV_TOOLS": "on"
+        "DEV_TOOLS": "on",
+        "ALLOWED_GUILDS": "215386000132669440"
       }
     },
     "production": {
@@ -75,7 +79,8 @@
         "BRANCH": "dev",
         "DISCORD_CLIENT_ID": "1573036223470247996",
         "DISCORD_PUBLIC_KEY": "",
-        "DEV_TOOLS": "off"
+        "DEV_TOOLS": "off",
+        "ALLOWED_GUILDS": "215386000132669440"
       }
     }
   }

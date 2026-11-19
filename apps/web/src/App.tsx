@@ -53,6 +53,8 @@ export function App(): JSX.Element {
 
   if (status.kind === 'loading') return <main class="game" />;
   if (status.kind === 'failed') return <StartFailed onRetry={() => setAttempt((n) => n + 1)} />;
-  if (status.boot.kind === 'outside') return <OpenFromDiscord />;
+  // A server that may not play sees the same state as outside Discord: the game opens elsewhere.
+  if (status.boot.kind === 'outside' || status.boot.kind === 'not-allowed')
+    return <OpenFromDiscord />;
   return <Game api={api} initial={status.boot.view} />;
 }
