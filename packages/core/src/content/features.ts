@@ -120,4 +120,16 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
     icon: 'pitfall',
     placement: { on: ['open', 'dry'], weight: 2 },
   },
+  // Last, so adding it left every earlier feature where it was. Weight 10: about
+  // 3 bushes in a new game's window and one more every two or three days of walking.
+  {
+    id: 'berry-bushes',
+    kind: 'node',
+    name: 'Berry bushes',
+    tags: ['food', 'forage'],
+    icon: 'berries',
+    placement: { on: ['wooded', 'open'], weight: 10 },
+    charges: 3,
+    yields: { material: 'forage', amount: 1 },
+  },
 ];

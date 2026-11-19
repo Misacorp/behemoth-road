@@ -23,6 +23,12 @@ describe('tuning config', () => {
       siteChanceSpecialistTier2: 0.5,
       siteChanceOtherTier1: 0.35,
       siteChanceOtherTier2: 0,
+      stimulusRange: 3,
+      stimulusPull: 6,
+      hungryVeerWeights: { left: 1, straight: 1, right: 1 },
+      lightFireCost: 1,
+      feedCost: 1,
+      lingerCost: 2,
     });
   });
 
@@ -40,6 +46,25 @@ describe('tuning config', () => {
     expect(() => resolveConfig({ veerWeights: { left: 0, straight: 0, right: 0 } })).toThrow(
       /veerWeights/,
     );
+    expect(() => resolveConfig({ hungryVeerWeights: { left: 0, straight: 0, right: 0 } })).toThrow(
+      /hungryVeerWeights/,
+    );
+    expect(() => resolveConfig({ hungryVeerWeights: { left: -1 } })).toThrow(/hungryVeerWeights/);
+    expect(() => resolveConfig({ stimulusRange: -1 })).toThrow(/stimulusRange/);
+    expect(() => resolveConfig({ stimulusRange: 1.5 })).toThrow(/stimulusRange/);
+    expect(() => resolveConfig({ stimulusPull: 0.5 })).toThrow(/stimulusPull/);
+    expect(() => resolveConfig({ stimulusPull: Infinity })).toThrow(/stimulusPull/);
+    for (const key of ['lightFireCost', 'feedCost', 'lingerCost'] as const) {
+      expect(() => resolveConfig({ [key]: 0 })).toThrow(new RegExp(key));
+    }
+  });
+
+  it('merges part of the hungry veer weights', () => {
+    expect(resolveConfig({ hungryVeerWeights: { straight: 3 } }).hungryVeerWeights).toEqual({
+      left: 1,
+      straight: 3,
+      right: 1,
+    });
   });
 
   it('is stored in the game, so every rule reads the same values', () => {

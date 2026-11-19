@@ -4,6 +4,7 @@
  */
 
 import type { TuningConfig } from './config.ts';
+import type { Reaction } from './content/creatures.ts';
 import type { Direction, Hex } from './hex.ts';
 import { isSeed, type Seed } from './random.ts';
 
@@ -31,6 +32,43 @@ export interface Creature {
   readonly centre: Hex;
   /** The general heading. Each step goes this way or one sixth of a turn to either side. */
   readonly heading: Direction;
+  /** A keeper asked it to stay put: it does not step at the next tick. Public. */
+  readonly lingering: boolean;
+  /** The last day it lingered (it cannot linger the day after), or null. */
+  readonly lingeredDay: number | null;
+}
+
+/** A stimulus set out on the map (a lit fire). Public: everyone sees it. */
+export interface Stimulus {
+  /** Content id (`STIMULUS_TYPES`). */
+  readonly type: string;
+  readonly hex: Hex;
+  /** The day it was set; it acts on that day's tick (and on later ones while it lasts). */
+  readonly litDay: number;
+}
+
+/** The creature's hidden nature, rolled from the seed when the game starts. Server only. */
+export interface Nature {
+  /** Content id (`CREATURE_TYPES`). */
+  readonly type: string;
+  /** Per stimulus tag, how this creature reacts. A tag not listed means indifferent. */
+  readonly reactions: Readonly<Record<string, Reaction>>;
+}
+
+/** What the creature felt about one stimulus at a tick. */
+export interface Cue {
+  readonly hex: Hex;
+  /** The stimulus's content id. */
+  readonly stimulus: string;
+  readonly reaction: Reaction;
+}
+
+/** The creature's hidden condition. Server only. */
+export interface Care {
+  /** Hunger: 0 (starving) to the creature type's `hunger.max`. */
+  readonly satiety: number;
+  /** Reactions felt at the last tick, shown to keepers on `day` (the day after). */
+  readonly cues: { readonly day: number; readonly list: readonly Cue[] };
 }
 
 export type CharacterStatus = 'active' | 'lost';
@@ -110,12 +148,21 @@ export interface GameStateView {
   readonly unlocks: readonly string[];
   /** The one unlock in progress, if any. */
   readonly project: Project | null;
+  /** Stimuli on the map now (lit fires). */
+  readonly stimuli: readonly Stimulus[];
 }
 
-/** The whole game, held only by the server: the view plus the seed that generates the map. */
+/**
+ * The whole game, held only by the server: the view plus the seed that generates
+ * the map and the creature's hidden nature and condition.
+ */
 export interface GameState extends GameStateView {
   /** 128 bits; never sent to players. */
   readonly seed: Seed;
+  /** Never sent to players. */
+  readonly nature: Nature;
+  /** Never sent to players. */
+  readonly care: Care;
 }
 
 export const hasSeed = (state: GameStateView): state is GameState =>
