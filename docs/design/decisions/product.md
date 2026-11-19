@@ -4,9 +4,31 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: Moving: tap your character, tap a tile, see the arrow, confirm **[Misa]**
+
+ID: `2026-11-19-moving-tap-your-character-tap-a` · Status: current · Amends: `2026-11-19-touch-first-drag-to-pan-pinch`
+
+**Decision.** Moving a character takes three taps:
+
+1. Tap your character. The tiles it can reach with the actions it has left light up.
+2. Tap one of those tiles. An arrow, drawn as a dashed ink line, runs along the path to it, with the cost shown as action pips. Where the path relies on something special, such as a rope over a cliff, a tunnel or a boat across a river, the arrow shows it with a small mark on that stretch, so the means of travel is visible in the arrow itself.
+3. Confirm the move in a small popover by the destination.
+
+Tapping elsewhere, or another reachable tile, changes or cancels the plan before anything is spent. This replaces the "Acting" bullet of the touch-first decision for movement; other actions still use tap-to-select and confirm in the popover.
+
+**Reasoning.** Misa's design: selecting the character first makes its range visible at a glance, and the arrow makes both the cost and the tools of travel readable without text, which suits later gear and vehicles (grappling hook, boats).
+
+## 2026-11-19: No focus outlines or other visible accessibility aids in the game **[Misa]**
+
+ID: `2026-11-19-no-focus-outlines-or-other-visible` · Status: current · Amends: `2026-11-19-accessibility-is-not-traded-away`
+
+**Decision.** Visible accessibility aids are not built into the game: no focus outlines or focus rings anywhere (`outline: none` on focus, including `:focus-visible`), and no other highlight that exists only for accessibility. Focus management stays: focus moves into a dialog, popover or drawer when it opens and back to where it was when it closes, without drawing a ring. Invisible extras that cost nothing (button elements, labels) are fine. The colour-plus-shape rule and `prefers-reduced-motion` are no longer requirements, though they may still be used where they help the look.
+
+**Reasoning.** Misa: this is a game, accessibility is not a priority, and focus outlines keep appearing where they spoil the look. Focus management still matters so dialogs behave.
+
 ## 2026-11-19: Touch first: drag to pan, pinch or wheel to zoom, tap or click to act **[Misa]**
 
-ID: `2026-11-19-touch-first-drag-to-pan-pinch` · Status: current
+ID: `2026-11-19-touch-first-drag-to-pan-pinch` · Status: current, amended by `2026-11-19-moving-tap-your-character-tap-a`
 
 **Decision.** The whole game is played with taps and drags; nothing needs a keyboard.
 
@@ -53,7 +75,7 @@ ID: `2026-11-19-phone-first-desktop-too` · Status: current
 
 ## 2026-11-19: Accessibility is not traded away
 
-ID: `2026-11-19-accessibility-is-not-traded-away` · Status: current
+ID: `2026-11-19-accessibility-is-not-traded-away` · Status: current, amended by `2026-11-19-no-focus-outlines-or-other-visible`
 
 **Decision.** Colour is never the only cue: a state or category also has an icon, a shape or a word. `prefers-reduced-motion` is respected everywhere, and every control has a spoken name. Only errors use `role="alert"`; other notices use `role="status"` so they never interrupt a screen reader.
 

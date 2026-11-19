@@ -31,6 +31,8 @@ These matter a great deal to Misa. Follow them strictly.
 - **Popovers** for small contextual things, on both screen sizes.
 - **Drawers** for larger views. Phone: one bottom drawer that swipes up and down, with step-by-step (wizard) navigation. Desktop: drawers from the left and right, with scrolling where it fits.
 - Desktop gets a full desktop experience, not a stretched phone layout.
+- **No focus outlines** or other visible accessibility aids; accessibility is not a priority for this game. Do keep focus management: focus moves into a dialog, popover or drawer when it opens and back when it closes, without a ring.
+- **Touch first:** drag to pan, pinch or wheel to zoom, tap or click to act; nothing needs a keyboard. Moving is tap the character, tap a tile, see the arrow and cost, confirm (decisions in `product.md`).
 
 ### Open design questions
 

@@ -80,12 +80,14 @@ Record a decision:
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
-- 2026-11-19 Touch first: drag to pan, pinch or wheel to zoom, tap or click to act \[Misa\]
+- 2026-11-19 Moving: tap your character, tap a tile, see the arrow, confirm \[Misa\]
+- 2026-11-19 No focus outlines or other visible accessibility aids in the game \[Misa\]
+- 2026-11-19 Touch first: drag to pan, pinch or wheel to zoom, tap or click to act \[Misa\] (amended)
 - 2026-11-19 The map starts isometric, with flat ground first and heights later \[Misa\]
 - 2026-11-19 Isometric 3D hexes are the long-term goal; the map is built to allow it \[Misa\] (amended)
 - 2026-11-19 The look is a light ink-and-wash atlas in pastel, broken colours \[Misa\]
 - 2026-11-19 Phone first, desktop too
-- 2026-11-19 Accessibility is not traded away
+- 2026-11-19 Accessibility is not traded away (amended)
 - 2026-11-19 Focus returns to the opener only for keyboard users
 - 2026-11-19 One overlay at a time
 - 2026-11-19 Don't choose for the user; destructive actions go last
