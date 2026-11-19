@@ -24,7 +24,6 @@ jobs:
       contents: read
     environment:
       name: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'production' || 'staging' }}
-      url: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'https://behemoth.misacorp.dev' || 'https://behemoth-staging.misacorp.dev' }}
     concurrency:
       group: deploy-${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'production' || 'staging' }}
       cancel-in-progress: ${{ !(github.event_name == 'push' && github.ref == 'refs/heads/main') }}

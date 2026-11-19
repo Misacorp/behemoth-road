@@ -48,6 +48,7 @@ Record a decision:
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
+- 2026-11-19 Hostnames stay out of the README and workflows
 - 2026-11-19 One Durable Object per Discord server holds the game; its alarm runs the day tick
 - 2026-11-19 The game core is its own pure package, imported by the Worker and the frontend
 - 2026-11-19 Players open the game as a Discord Activity, like creatures \[Misa\]

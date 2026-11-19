@@ -4,6 +4,14 @@ Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: Hostnames stay out of the README and workflows
+
+ID: `2026-11-19-hostnames-stay-out-of-the-readme` · Status: current
+
+**Decision.** The production and staging hostnames are not written in the README or in workflow files; the deploy job sets no environment URL. They stay only where deploys and checks need them: `apps/worker/wrangler.jsonc` (the Worker's custom domains), `project.config.json` (read by `scripts/deployed.mjs` and `scripts/github-setup.mjs`) and the setup checklist.
+
+**Reasoning.** Misa prefers not to advertise the URLs in a public repository. The hostnames are not secret (certificate transparency logs and Discord's URL mapping list them), so access control, not obscurity, protects the game; moving them out of `wrangler.jsonc` would add deploy-time templating for little gain.
+
 ## 2026-11-19: One Durable Object per Discord server holds the game; its alarm runs the day tick
 
 ID: `2026-11-19-one-durable-object-per-discord-server` · Status: current

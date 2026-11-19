@@ -13,8 +13,8 @@ Run the Worker (`pnpm dev` in `apps/worker`) and the frontend (`pnpm dev` in `ap
 
 ## Deploys
 
-- **Production** (`https://behemoth.misacorp.dev`): every merge to `main`.
-- **Staging** (`https://behemoth-staging.misacorp.dev`): Actions → deploy → Run workflow, on any branch.
+- **Production**: every merge to `main`.
+- **Staging**: Actions → deploy → Run workflow, on any branch.
 
 `node scripts/deployed.mjs` shows which commit is live.
 
