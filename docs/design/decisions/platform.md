@@ -12,9 +12,13 @@ ID: `2026-11-20-web-schema-defaults-the-m4-view` · Status: current
 
 **Reasoning.** The captured fixtures are Milestone 3's until the M4 Worker lands. Defaults keep the contract tests honest on both the old and the new fixtures, and the parsed type is still the core's `GameStateView` and `CreatureSigns` (checked in `viewState.ts`).
 
-## 2026-11-20: The core state holds exploration, packs, stores and unlocks; no glints, no migration
+## 2026-11-20: The player view carries each viewer's creature signs; the creature's nature and condition never leave the server
 
-ID: `2026-11-20-the-core-state-holds-exploration-packs-2` · Status: current
+ID: `2026-11-20-the-player-view-carries-each-viewer` · Status: current
+
+**Decision.** `POST /api/game/act` also takes `{ kind: 'light-fire' }`, `{ kind: 'feed' }` and `{ kind: 'linger' }`, strict like the others; their refusals and events pass through unchanged. Every player view (game, join, move, act, replace, next day) carries `signs`: the core's `creatureSigns` for the signed-in player's newest character when it is active, else `null` (a lost or absent character reads only what anyone may). It is computed per request and not cached; since it is a pure function of the stored state and the viewer, and every change to either (a tick, an action, a replace into another role) bumps the game version, `?since=` stays correct per viewer. The test client checks every response for the keys `nature`, `care`, `satiety` and `reactions`, and that `signs` equals exactly what the core allows that viewer (no cues for a non-keeper). Content version 5: a stored version-4 game is replaced through the existing outdated-game path. The fixture capture adds a keeper scenario (forage, fire, feed, linger, next day) with a keeper's and a non-keeper's view.
+
+**Reasoning.** The reaction a cue reveals is the keeper's role, so the server must never send it to anyone else, nor the hidden numbers it comes from. Checking every response in the shared test client, rather than one test per route, keeps any new route covered.
 
 ## 2026-11-20: The Worker replaces an outdated game on start and refuses an unreadable one with 503
 
@@ -24,7 +28,7 @@ ID: `2026-11-20-the-worker-replaces-an-outdated-game` · Status: current · Supe
 
 **Reasoning.** Misa chose wiping over migration before a stable release ("Before a stable release, older games are wiped, not migrated"). Leaving an unreadable game alone means a rollback never wipes a newer game, and a 503 says the game is temporarily out rather than failing in a loop.
 
-## 2026-11-20: Features live in the state per hex; the view carries revealed ones and team glints; version-2 games migrate
+## 2026-11-20: The core state holds exploration, packs, stores and unlocks; no glints, no migration
 
 ID: `2026-11-20-the-core-state-holds-exploration-packs` · Status: current · Supersedes: `2026-11-20-features-live-in-the-state-per`
 
@@ -436,14 +440,6 @@ ID: `2026-11-19-strict-security-headers-and-everything-served` · Status: curren
 
 # Superseded
 
-## 2026-11-20: Features live in the state per hex; the view carries revealed ones and team glints; version-2 games migrate
-
-ID: `2026-11-20-features-live-in-the-state-per` · Status: superseded by `2026-11-20-the-core-state-holds-exploration-packs`
-
-**Decision.** The state gains `features` (by hex key: type, revealed, what is `left`), `glints` (hex keys a scout has sensed), `inventory` (team materials and items) and `craftsToday` on each character. Features are generated on the server for each hex when it first comes into view, using known terrain, and pruned with their tiles. `toPlayerView` keeps only revealed features, plus glints and the inventory, which are public. Content version 3: `loadGame` migrates a version-2 game through `migrateGame`. New tuning values take their defaults, characters keep everything and get `craftsToday` 0, the team gets an empty inventory, and hexes already in view get their hidden features as if they had just come into view. A fixture captured from the version-2 code proves this.
-
-**Reasoning.** Hidden features are the point of fog and scouting, so they stay on the server like the seed. Generating per hex on first sight keeps the state small and lets the live production game continue on its existing map.
-
 ## 2026-11-20: Act and move answer the view with what happened; stored games are upgraded once on load
 
 ID: `2026-11-20-act-and-move-answer-the-view` · Status: superseded by `2026-11-20-the-worker-replaces-an-outdated-game`
@@ -451,3 +447,11 @@ ID: `2026-11-20-act-and-move-answer-the-view` · Status: superseded by `2026-11-
 **Decision.** `POST /api/game/act` (`{ version, action }`, one of three strict shapes, recipe ids from content) and `POST /api/game/move` answer the new player view plus `events` (the core's list, passed through) and `stopped` (where a trap ended a walk, or `null`); refusals stay `409 { error }` with the core's reason. Both run through one path in the Durable Object: the version check, the player's newest character, the rule, the write, in one transaction. When the object starts, a game stored with older content is upgraded through the core's `loadGame` (which runs `migrateGame`) and written back once, bumping the version so clients reload. Every test response is checked for the seed and for any feature the stored game still hides.
 
 **Reasoning.** One answer with the view and the moments saves a second request and lets the web show reveals, finds and traps exactly once. Upgrading at start, rather than on every read, keeps reads cheap and makes the upgrade a single recorded write; the live production game keeps its characters and map.
+
+## 2026-11-20: Features live in the state per hex; the view carries revealed ones and team glints; version-2 games migrate
+
+ID: `2026-11-20-features-live-in-the-state-per` · Status: superseded by `2026-11-20-the-core-state-holds-exploration-packs`
+
+**Decision.** The state gains `features` (by hex key: type, revealed, what is `left`), `glints` (hex keys a scout has sensed), `inventory` (team materials and items) and `craftsToday` on each character. Features are generated on the server for each hex when it first comes into view, using known terrain, and pruned with their tiles. `toPlayerView` keeps only revealed features, plus glints and the inventory, which are public. Content version 3: `loadGame` migrates a version-2 game through `migrateGame`. New tuning values take their defaults, characters keep everything and get `craftsToday` 0, the team gets an empty inventory, and hexes already in view get their hidden features as if they had just come into view. A fixture captured from the version-2 code proves this.
+
+**Reasoning.** Hidden features are the point of fog and scouting, so they stay on the server like the seed. Generating per hex on first sight keeps the state small and lets the live production game continue on its existing map.

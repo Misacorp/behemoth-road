@@ -50,9 +50,9 @@ Record a decision:
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 - 2026-11-20 Web schema defaults the M4 view fields until the fixtures are recaptured
-- 2026-11-20 The core state holds exploration, packs, stores and unlocks; no glints, no migration
+- 2026-11-20 The player view carries each viewer's creature signs; the creature's nature and condition never leave the server
 - 2026-11-20 The Worker replaces an outdated game on start and refuses an unreadable one with 503
-- 2026-11-20 Features live in the state per hex; the view carries revealed ones and team glints; version-2 games migrate
+- 2026-11-20 The core state holds exploration, packs, stores and unlocks; no glints, no migration
 - 2026-11-20 Before a stable release, older games are wiped, not migrated \[Misa\]
 - 2026-11-19 Only allowed Discord servers can play; the app itself is public \[Misa\]
 - 2026-11-19 The web client boots as an Activity, parses every response, and runs rules on the player view

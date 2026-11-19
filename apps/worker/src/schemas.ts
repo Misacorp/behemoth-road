@@ -54,7 +54,7 @@ export const MoveBodySchema = v.strictObject({
   path: v.pipe(v.array(PlaceSchema), v.minLength(1), v.maxLength(maxPathLength)),
 });
 
-/** An action by the player's own character: exactly one of the four shapes. */
+/** An action by the player's own character: exactly one of the shapes. */
 export const ActionSchema = v.variant('kind', [
   v.strictObject({
     kind: v.literal('survey'),
@@ -70,6 +70,10 @@ export const ActionSchema = v.variant('kind', [
       v.check((id) => UNLOCK_IDS.includes(id)),
     ),
   }),
+  // Milestone 4: the creature's care, at the character's place.
+  v.strictObject({ kind: v.literal('light-fire') }),
+  v.strictObject({ kind: v.literal('feed') }),
+  v.strictObject({ kind: v.literal('linger') }),
 ]);
 
 /** POST /api/game/act. */

@@ -47,5 +47,26 @@
     "body": {
       "error": "invalid_session"
     }
+  },
+  {
+    "route": "POST /api/game/act",
+    "status": 409,
+    "body": {
+      "error": "needs-keeper"
+    }
+  },
+  {
+    "route": "POST /api/game/act",
+    "status": 409,
+    "body": {
+      "error": "no-food"
+    }
+  },
+  {
+    "route": "POST /api/game/act",
+    "status": 409,
+    "body": {
+      "error": "lingered-yesterday"
+    }
   }
 ]
