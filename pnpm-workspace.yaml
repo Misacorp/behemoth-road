@@ -38,3 +38,8 @@ overrides:
   # GHSA-g3hv-75wg-m249 (minimatch < 11.0.1, ReDoS). eslint < 10.15.0 and typescript-eslint
   # < 8.73.0 still require minimatch 10; drop this when the catalog reaches those versions.
   'minimatch@>=7.0.0 <11.0.1': 11.0.8
+  # GHSA-mrhx-c7xc-m3w5 (zod < 4.6.6, memory exhaustion on oversized constrained collections). Only
+  # @discord/embedded-app-sdk 2.5.0 pulls zod 3, and only for its type declarations: its runtime code uses a
+  # copy of zod bundled inside the SDK, so this changes no shipped code. Drop it when a stable SDK release
+  # depends on zod >= 4.6.6.
+  'zod@<4.6.6': 4.6.6
