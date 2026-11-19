@@ -20,6 +20,38 @@ ID: `2026-11-20-features-glints-moments-and-the-via` · Status: current, amended
 
 **Reasoning.** Milestone 3's chain has to be readable on the map without text: what a hex holds, whether it is used up, and what just happened. Keying everything by content's icon names keeps content as data; staging marks as parts lets the web animate them without the art kit knowing about time.
 
+## 2026-11-20: Explored and unexplored hexes look clearly different **[Misa]**
+
+ID: `2026-11-20-explored-and-unexplored-hexes-look-clearly` · Status: current
+
+**Decision.** A hex in the window stays **unexplored** until a character enters or surveys it, then is **explored** for everyone. Unexplored hexes show their terrain under a light veil, clearly different from explored ground and from the blank paper beyond the window. Exploring reveals the hex's feature.
+
+**Reasoning.** Misa: revealing on entry needs a clear fog-of-war indicator of which hexes have been explored.
+
+## 2026-11-20: Characters carry packs; team stores live on the creature
+
+ID: `2026-11-20-characters-carry-packs-team-stores-live` · Status: current
+
+**Decision.** Gathering and finds go into the pack of the character who did them (capacity 6 units, config). The team's stores live on the creature: a character riding or boarding it puts their whole pack into the stores automatically. Unlocks are built only from the stores. A lost character's pack is lost. Unlocked equipment is common to the whole team.
+
+**Reasoning.** Misa asked whether resources are personal or shared. This was the lead's call. Packs plus stores on the creature make gathering a trip out and back, which suits a map that moves every day and the creature as the party's hub, and it gives a lost character a real cost. Revisit after playtests.
+
+## 2026-11-20: Engineers build permanent team unlocks with a cost and a duration **[Misa]**
+
+ID: `2026-11-20-engineers-build-permanent-team-unlocks-with` · Status: current
+
+**Decision.** Engineers build **unlocks**: permanent abilities or equipment for the whole team, such as the grappling hook, lantern and climbing spikes. Each unlock has its own material cost, taken from the team stores when work starts, and a duration in work: engineers riding the creature spend actions on it, one action per unit of work, and several engineers may work together. One unlock is in progress at a time. There is no per-day crafting limit and no crafting by other roles.
+
+**Reasoning.** Misa: engineers craft permanent unlocks for the entire team, each with its own crafting cost and duration. This replaces the night's first draft (one craft a day, non-specialists at a surcharge).
+
+## 2026-11-20: Everyone springs traps; scout and engineer bonuses come later as upgrades **[Misa]**
+
+ID: `2026-11-20-everyone-springs-traps-scout-and-engineer` · Status: current
+
+**Decision.** Everyone, scouts included, springs a hidden trap when entering its hex. For now a trap ends the character's day; trap effects are meant to vary a lot later. In this milestone the scout's base ability is **survey**: reveal an adjacent hex without entering it, 1 action for a scout and 2 for anyone else. A surveyed trap is harmless. The scout's trap sense, glints and immunity, and the engineer's better gathering, are future **upgrades**: kept in data, not active.
+
+**Reasoning.** Misa: scouts detect traps only as their skills and tools grow; engineers gather double only after upgrades. Survey gives the scout a role from day one ("basics for all, mastery for specialists") without pre-empting the upgrade system.
+
 ## 2026-11-19: Joining is a drawer wizard; characters look distinct on the map
 
 ID: `2026-11-19-joining-is-a-drawer-wizard-each` · Status: current

@@ -4,7 +4,8 @@
     "2026-11-19-2",
     "2026-11-19-3",
     "2026-11-19-4",
-    "2026-11-19-5"
+    "2026-11-19-5",
+    "2026-11-19-6"
   ],
   "items": [
     {
@@ -120,10 +121,10 @@
       "id": "sheet/fog",
       "group": "Sheets",
       "title": "Unseen, fading, lost, hint",
-      "version": "86fad2bf",
+      "version": "4a85f4e2",
       "kind": "glance",
-      "batch": "2026-11-19-3",
-      "file": "art/sheet-fog-86fad2bf.svg"
+      "batch": "2026-11-19-6",
+      "file": "art/sheet-fog-4a85f4e2.svg"
     },
     {
       "id": "facing/side",
@@ -163,10 +164,10 @@
       "id": "map/patch",
       "group": "Map",
       "title": "The map, Spring at tilt 0.8",
-      "version": "cb2ee06d",
+      "version": "a7f31fbe",
       "kind": "glance",
-      "batch": "2026-11-19-4",
-      "file": "art/map-patch-cb2ee06d.svg"
+      "batch": "2026-11-19-6",
+      "file": "art/map-patch-a7f31fbe.svg"
     },
     {
       "id": "creature/headings",
@@ -239,28 +240,55 @@
       "id": "icons/sheet",
       "group": "Icons",
       "title": "Every icon, and the fallback",
-      "version": "0fc8a90c",
+      "version": "73e36c77",
       "kind": "glance",
-      "batch": "2026-11-19-5",
-      "file": "art/icons-sheet-0fc8a90c.svg"
+      "batch": "2026-11-19-6",
+      "file": "art/icons-sheet-73e36c77.svg"
     },
     {
       "id": "characters/lineup",
       "group": "Characters",
       "title": "Fifteen rolled characters",
-      "version": "6edead14",
+      "version": "b6bb5fd0",
       "kind": "glance",
-      "batch": "2026-11-19-4",
-      "file": "art/characters-lineup-6edead14.svg"
+      "batch": "2026-11-19-6",
+      "file": "art/characters-lineup-b6bb5fd0.svg"
     },
     {
       "id": "characters/riders",
       "group": "Characters",
       "title": "Fifteen riders on the creature",
-      "version": "b98781d3",
+      "version": "65403c26",
       "kind": "glance",
-      "batch": "2026-11-19-4",
-      "file": "art/characters-riders-b98781d3.svg"
+      "batch": "2026-11-19-6",
+      "file": "art/characters-riders-65403c26.svg"
+    },
+    {
+      "id": "features/sheet",
+      "group": "Features",
+      "title": "Nodes, sites and traps, as found and used up",
+      "version": "c78bbad3",
+      "kind": "glance",
+      "batch": "2026-11-19-6",
+      "file": "art/features-sheet-c78bbad3.svg"
+    },
+    {
+      "id": "features/glint",
+      "group": "Features",
+      "title": "The glint on sensed tiles",
+      "version": "c9995758",
+      "kind": "glance",
+      "batch": "2026-11-19-6",
+      "file": "art/features-glint-c9995758.svg"
+    },
+    {
+      "id": "marks/moments",
+      "group": "Marks",
+      "title": "Reveal, find and trap moments; the hook on a path step",
+      "version": "8d872c43",
+      "kind": "glance",
+      "batch": "2026-11-19-6",
+      "file": "art/marks-moments-8d872c43.svg"
     }
   ]
 }
