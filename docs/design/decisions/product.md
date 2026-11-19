@@ -4,13 +4,29 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
-## 2026-11-19: Characters start together on the passable hex nearest the creature
+## 2026-11-19: Paths are planned by cheapest cost and walked all or nothing
 
-ID: `2026-11-19-characters-start-together-on-the-passable` · Status: current
+ID: `2026-11-19-paths-are-planned-by-cheapest-cost` · Status: current
 
-**Decision.** `createGame` puts every character on the same hex: the creature's centre if it is passable, otherwise the first passable hex found ring by ring outwards. Characters may share a hex.
+**Decision.** `planPath(state, id, to)` runs a uniform-cost search over reachable, passable hexes, breaking ties in a fixed order. It returns the steps and their total cost, or a refusal: `not-enough-actions` when the cheapest path costs more than the actions left, `no-path` when nothing connects. `moveAlong(state, id, path)` applies each step through `move` and returns either the final state or the refusal and the index of the refused step, changing nothing. Both refuse non-integer or non-finite coordinates (`invalid-hex`).
 
-**Reasoning.** Simplest start that is always legal. Spreading characters out or letting players choose a start can come later without changing the state shape.
+**Reasoning.** The interface previews a multi-hex path and its cost on a tap, then walks it on one confirm. Reusing `move` for each step keeps a single set of rules for the server to check.
+
+## 2026-11-19: Characters start on the creature's centre
+
+ID: `2026-11-19-characters-start-on-the-creature-s` · Status: current · Supersedes: `2026-11-19-characters-start-together-on-the-passable`
+
+**Decision.** `createGame` puts every character on the creature's centre. That hex is always passable, so no search for a nearby free hex is needed.
+
+**Reasoning.** Follows from the creature's hexes always being passable. It is the simplest start.
+
+## 2026-11-19: The creature's hexes are always passable to characters
+
+ID: `2026-11-19-the-creature-s-hexes-are-always` · Status: current · Amends: `2026-11-19-cliffs-are-impassable-to-characters-in`
+
+**Decision.** A character may enter any of the creature's hexes whatever terrain lies under it, cliffs included. Outside the creature, cliffs still block. Move cost is still the terrain's.
+
+**Reasoning.** The creature walks over any terrain, and characters can climb onto and through it, so its back is a way across a ridge. It also means the start hex (the creature's centre) is always legal.
 
 ## 2026-11-19: The window is always in play; lost characters stay lost
 
@@ -22,7 +38,7 @@ ID: `2026-11-19-the-window-is-always-in-play` · Status: current
 
 ## 2026-11-19: Cliffs are impassable to characters in Milestone 1
 
-ID: `2026-11-19-cliffs-are-impassable-to-characters-in` · Status: current
+ID: `2026-11-19-cliffs-are-impassable-to-characters-in` · Status: current, amended by `2026-11-19-the-creature-s-hexes-are-always`
 
 **Decision.** Terrain has a `passable` property; cliffs set it to false and no character can enter them. All terrain costs the base move cost (an `extraMoveCost` of 0 everywhere).
 
@@ -163,3 +179,15 @@ ID: `2026-11-19-counts-read-1-3-and-terms` · Status: current
 **Decision.** A count against a total is written with a spaced slash ("1 / 3", "200 / 2500 XP"), never "1 of 3", and a guard test checks the strings. A tappable term opens its explanation from the term itself (a chip, or a dotted underline on a word); no "?" icon is added to it. A small help button is kept only beside a heading or a control.
 
 **Reasoning.** Both are the owner's standing wording and style preferences. A guard test keeps the count rule from slipping back in new code.
+
+<!-- Superseded entries below: kept for history, no longer in force. -->
+
+# Superseded
+
+## 2026-11-19: Characters start together on the passable hex nearest the creature
+
+ID: `2026-11-19-characters-start-together-on-the-passable` · Status: superseded by `2026-11-19-characters-start-on-the-creature-s`
+
+**Decision.** `createGame` puts every character on the same hex: the creature's centre if it is passable, otherwise the first passable hex found ring by ring outwards. Characters may share a hex.
+
+**Reasoning.** Simplest start that is always legal. Spreading characters out or letting players choose a start can come later without changing the state shape.

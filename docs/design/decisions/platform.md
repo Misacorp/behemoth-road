@@ -4,9 +4,17 @@ Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: Terrain comes from seeded noise fields, with rivers and ridges on contour lines
+
+ID: `2026-11-19-terrain-comes-from-seeded-noise-fields` · Status: current · Amends: `2026-11-19-the-core-derives-terrain-from-a`
+
+**Decision.** Terrain is laid out by rules in `content/generation.ts`, read in order, first match wins, with plains as the fallback. Each rule reads a named, seeded value-noise field (`noise.ts`: lattice values from the hash, quintic smoothing, each octave rotated so the grid never shows). A rule claims a hex when the field is above or below a value (forest on wet ground, desert on dry), or when the hex is on a contour line: at or above the value with a neighbour below it. Rivers sit on one contour of a water field, and cliffs on a rock field's contour where a highland mask allows it. Contour ribbons are one hex wide and always connected. Tuned to about 65 to 70% plains, with regions a few hexes across and a river crossed every 15 to 20 hexes of walking north. `terrainAt(seed, hex)` stays pure and samples at most seven hexes per field.
+
+**Reasoning.** Per-hex picks looked speckled, and a fixed-width band around a contour gave blobs where the field was flat and gaps where it was steep. The contour test fixes both without any stored state, and the numbers stay in content data.
+
 ## 2026-11-19: The core derives terrain from a hash and stores only tile knowledge and the config
 
-ID: `2026-11-19-the-core-derives-terrain-from-a` · Status: current
+ID: `2026-11-19-the-core-derives-terrain-from-a` · Status: current, amended by `2026-11-19-terrain-comes-from-seeded-noise-fields`
 
 **Decision.** A hex's terrain is a weighted pick from the terrain data using a hash of (seed, q, r); each hex is independent, with no clustering yet. The game state stores the seed, the day, the creature, the characters, the tuning config the game was created with, and tile knowledge only for hexes that have been in view (`seen` with the day it left the window, or `lost`). Hidden is the absence of an entry. The state is plain JSON.
 
