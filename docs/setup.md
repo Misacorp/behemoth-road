@@ -24,3 +24,11 @@ Two Discord applications, one per environment, so staging never touches the prod
 - [ ] **Interactions Endpoint URL.** General Information: `https://behemoth.misacorp.dev/api/discord/interactions` (staging: `https://behemoth-staging.misacorp.dev/api/discord/interactions`). Discord checks it when you save, so set it **after** the first deploy with Milestone 2 is live; until then the deploy prints a warning and Launch uses Discord's default.
 - [ ] **Secrets into GitHub.** `node scripts/github-setup.mjs --user Misacorp` asks for `DISCORD_CLIENT_SECRET` and `DISCORD_BOT_TOKEN` for `production` and `staging`, with hidden input.
 - [x] **Client ids to an agent.** Send the two Client IDs (public, not secret); they go into `apps/worker/wrangler.jsonc` as `DISCORD_CLIENT_ID`.
+
+### Testing the Activity before it is published
+
+Not checklist steps; how anyone tests from Discord ([Building an Activity](https://docs.discord.com/developers/activities/building-an-activity), [Local development](https://docs.discord.com/developers/activities/development-guides/local-development)):
+
+- **Developer Mode.** Every tester turns it on in Discord: desktop and web, User Settings, Advanced; mobile, Profile, Appearance. Discord launches an in-development Activity only with it on.
+- **Who can launch.** Until the app is published, only its owner and members of its developer team can launch it. Add friends who test to the team: Developer Portal, Teams.
+- **Finding it.** In a voice or text channel, open the App Launcher and search for the app by name.
