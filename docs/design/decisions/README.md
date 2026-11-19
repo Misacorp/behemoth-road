@@ -88,6 +88,8 @@ Record a decision:
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-19 The creature is drawn from above, at the map's view angle \[Misa\]
+- 2026-11-19 Spring palette and a high view: tilt 0.8 \[Misa\]
 - 2026-11-19 Map popovers are drawn in SVG; the view follows the creature each day
 - 2026-11-19 Moving: tap your character, tap a tile, see the arrow, confirm \[Misa\]
 - 2026-11-19 No focus outlines or other visible accessibility aids in the game \[Misa\]
@@ -100,8 +102,8 @@ Record a decision:
 - 2026-11-19 The window is always in play; lost characters stay lost
 - 2026-11-19 Cliffs are impassable to characters in Milestone 1 (amended)
 - 2026-11-19 The creature veers by a seeded daily roll and ignores terrain for now
-- 2026-11-19 The creature faces where it walks; cliffs are escarpments
-- 2026-11-19 First map art: a squashed hex plane with open-edge sides, upright props and four fog states
+- 2026-11-19 The creature faces where it walks; cliffs are escarpments (amended)
+- 2026-11-19 First map art: a squashed hex plane with open-edge sides, upright props and four fog states (amended)
 - 2026-11-19 Isometric 3D hexes are the long-term goal; the map is built to allow it \[Misa\] (amended)
 - 2026-11-19 The look is a light ink-and-wash atlas in pastel, broken colours \[Misa\]
 - 2026-11-19 Phone first, desktop too

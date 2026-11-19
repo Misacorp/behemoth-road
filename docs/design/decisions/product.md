@@ -4,6 +4,22 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: The creature is drawn from above, at the map's view angle **[Misa]**
+
+ID: `2026-11-19-the-creature-is-drawn-from-above` · Status: current · Amends: `2026-11-19-the-creature-faces-where-it-walks`
+
+**Decision.** The creature is drawn from the same high viewpoint as the map, looking down on it at about the tilt the map uses, so its back and shape read from above and its head points where it walks. It replaces both the side view and the rear view. Props and characters stay upright but should be checked against the higher view and given a little top-down foreshortening where they look like cut-outs.
+
+**Reasoning.** Misa: the side view is very side-on; bringing the view angle upward makes the creature easier to draw and read, and it matches the higher map view.
+
+## 2026-11-19: Spring palette and a high view: tilt 0.8 **[Misa]**
+
+ID: `2026-11-19-spring-palette-and-a-high-view` · Status: current · Amends: `2026-11-19-first-map-art-a-squashed-hex`
+
+**Decision.** The game uses the Spring palette and a view tilt of 0.8 (vertical squash of the hex plane; 1 is top-down). Both are the defaults in the art kit and the map.
+
+**Reasoning.** Misa picked Spring because desert, plains and forest are the most clearly told apart. Top-down was too flat and 0.6 was the best of the samples, but they want the view higher up, at around 0.8.
+
 ## 2026-11-19: Map popovers are drawn in SVG; the view follows the creature each day
 
 ID: `2026-11-19-map-popovers-are-drawn-in-svg` · Status: current
@@ -115,7 +131,7 @@ ID: `2026-11-19-the-creature-veers-by-a-seeded` · Status: current
 
 ## 2026-11-19: The creature faces where it walks; cliffs are escarpments
 
-ID: `2026-11-19-the-creature-faces-where-it-walks` · Status: current
+ID: `2026-11-19-the-creature-faces-where-it-walks` · Status: current, amended by `2026-11-19-the-creature-is-drawn-from-above`
 
 **Decision.** The creature's side view mirrors to face the east or west part of its heading (`facingFor`). For a heading straight north there are two options, the side view facing right or a three-quarter view from behind walking up the screen, and Misa picks one in the review batch (pick `creature-facing`). Cliffs are drawn as an escarpment, a rock face with a plateau strip running across the tile, not a single standing rock.
 
@@ -123,7 +139,7 @@ ID: `2026-11-19-the-creature-faces-where-it-walks` · Status: current
 
 ## 2026-11-19: First map art: a squashed hex plane with open-edge sides, upright props and four fog states
 
-ID: `2026-11-19-first-map-art-a-squashed-hex` · Status: current
+ID: `2026-11-19-first-map-art-a-squashed-hex` · Status: current, amended by `2026-11-19-spring-palette-and-a-high-view`
 
 **Decision.** The first map art draws flat-top hexes on a plane squashed vertically (tilt 0.6 in `ART_TUNING`, Misa to pick against 0.5 and top-down). Each tile has a watercolour top and shows its thin side face only where no tile stands in front of it. Props, characters and the creature stand upright in side view and are drawn back to front. Unseen tiles are blank paper with a faint dotted outline; fading tiles are veiled with paper and their props half transparent; lost tiles are a fog wash with mist curls; the hint mark is a small glint that never says what is there. Three palettes (Morning, Mist, Spring) go to Misa as a pick; the first creature is a gentle, round, spotted beast with leaf ears, horn nubs and a small garden on its back.
 
