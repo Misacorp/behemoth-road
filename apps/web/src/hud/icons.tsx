@@ -5,7 +5,7 @@
 import {
   accentRamp,
   drawCharacter,
-  drawCreature,
+  drawCreatureIcon,
   GENTLE_AMBLER,
   type CharacterLook,
   type Drawn,
@@ -48,10 +48,10 @@ const CHARACTER = drawCharacter(
   1.3,
 );
 // The creature icon walks towards the viewer, so its face shows.
-const CREATURE = drawCreature(PALETTE, GENTLE_AMBLER, { x: 0, y: 0 }, 14, MAP_TUNING.tilt, 1.8, {
-  q: 0,
-  r: 1,
-});
+// The art kit's size-aware creature icon, drawn for the round button (about 40 px inside its padding).
+const CREATURE = toPreact(
+  drawCreatureIcon(PALETTE, GENTLE_AMBLER, 40, { squash: MAP_TUNING.tilt }),
+);
 
 export const CharacterIcon = (): JSX.Element => figure(CHARACTER, 2);
 
@@ -65,7 +65,7 @@ export function CharacterFigure({
 }): JSX.Element {
   return figure(drawCharacter(PALETTE, accent, { x: 0, y: 0 }, 40, MAP_TUNING.tilt, 1.3, look), 2);
 }
-export const CreatureIcon = (): JSX.Element => figure(CREATURE, 2);
+export const CreatureIcon = (): JSX.Element => CREATURE;
 
 /** The sun over the horizon: the day counter's mark. */
 export function SunIcon(): JSX.Element {
