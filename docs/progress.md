@@ -6,7 +6,8 @@ What has landed and what is next. Newest first. Update it when a step lands or t
 
 - Milestone 0 (foundations, `docs/PROTOTYPE_PLAN.md`): first deploy of the blank page; add the game core package with a test.
 - Graphical direction: research AI-assisted art workflows, then a session with Misa to choose a visual direction before any major graphics are built.
-- Milestone 1 (the walking map): game core and map interface, built in parallel, then joined.
+- Milestone 1 (the walking map): game core (`m1/core`) and art kit (`m1/art`) in parallel cloud sessions, then the map interface on top of both.
+- Before Milestone 2 persists games: pin the content (terrain table) a saved game was made with, so a later content change cannot alter it; and keep the per-tile record from growing without bound (lost tiles could be pruned).
 
 ## Done
 
