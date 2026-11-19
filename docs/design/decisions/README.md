@@ -49,7 +49,8 @@ Record a decision:
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
-- 2026-11-19 Game seeds are 128 bits, so the seed cannot be brute-forced from visible terrain
+- 2026-11-19 Drawing uses a separate public art seed
+- 2026-11-19 Game seeds are 128 bits, so the seed cannot be brute-forced from visible terrain (amended)
 - 2026-11-19 Games pin their content version and prune lost tiles beyond four rings
 - 2026-11-19 Rules read a seedless view; tiles carry their terrain
 - 2026-11-19 The server keeps the seed; clients get a player view with known terrain (amended)

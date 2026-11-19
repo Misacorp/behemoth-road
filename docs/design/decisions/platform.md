@@ -4,9 +4,17 @@ Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: Drawing uses a separate public art seed
+
+ID: `2026-11-19-drawing-uses-a-separate-public-art` · Status: current · Amends: `2026-11-19-game-seeds-are-128-bits-so`
+
+**Decision.** The state carries `artSeed`, a public random uint32 used only for cosmetic variety in drawing, and the view includes it. `createGame` takes it as an option and otherwise draws a fresh one with `newArtSeed()` (Web Crypto). It is never derived from the game seed, and the rules never read it.
+
+**Reasoning.** The art kit needs a stable per-game number, and the view has no seed. An independent random value cannot reveal anything about the map. Making it an option keeps `createGame` reproducible in tests.
+
 ## 2026-11-19: Game seeds are 128 bits, so the seed cannot be brute-forced from visible terrain
 
-ID: `2026-11-19-game-seeds-are-128-bits-so` · Status: current · Amends: `2026-11-19-the-server-keeps-the-seed-clients`
+ID: `2026-11-19-game-seeds-are-128-bits-so` · Status: current, amended by `2026-11-19-drawing-uses-a-separate-public-art` · Amends: `2026-11-19-the-server-keeps-the-seed-clients`
 
 **Decision.** A game's seed is four unsigned 32-bit words (`Seed`, a JSON array), made on the server with `newSeed()` (Web Crypto `getRandomValues`). Every hash keeps a 128-bit state: four lanes, one per seed word, each absorb every input and feed the next, and only the final step folds them to 32 bits. Mixing the words into one 32-bit state would leave a 32-bit equivalent key. `createGame` and the generators still accept a plain number for tests and local play (the other words are 0). This is `CONTENT_VERSION` 2, since every map differs from version 1. Version 1 was never stored, so it is not loadable.
 
