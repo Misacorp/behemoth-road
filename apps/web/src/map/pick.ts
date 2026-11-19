@@ -2,7 +2,13 @@
  * Tap picking. The map draws the scene's children straight into its world group (no viewBox), so world
  * px are the art kit's drawing coordinates and its `screenToHex` applies directly.
  */
-import { hexCenter, screenToHex, type Hex, type Projection } from '@behemoth-road/art';
+import {
+  figureAnchor,
+  screenToHex,
+  type FigureContext,
+  type Hex,
+  type Projection,
+} from '@behemoth-road/art';
 
 export interface Point {
   readonly x: number;
@@ -16,10 +22,9 @@ export const worldToHex = (p: Projection, point: Point): Hex => screenToHex(p, p
  * The hex a tap means. A character stands upright above its hex, so a tap on its figure picks the hex it
  * stands on, not the hex behind its head. Otherwise the hex under the point.
  */
-/** Where a character's feet are on its hex (matches the art kit's standee placement). */
-export function feetOf(p: Projection, h: Hex): Point {
-  const c = hexCenter(p, h.q, h.r);
-  return { x: c.x - 0.05 * p.size, y: c.y + 0.3 * p.size * p.squash };
+/** Where a character's feet are on its hex: the art kit's own standee placement (`figureAnchor`). */
+export function feetOf(p: Projection, h: Hex, slot = 0, context: FigureContext = {}): Point {
+  return figureAnchor(p, h, slot, context);
 }
 
 export function pickHex(p: Projection, point: Point, character: Hex | null): Hex {

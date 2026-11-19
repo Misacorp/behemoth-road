@@ -1,4 +1,5 @@
 export { ART_TUNING } from './config.ts';
+export { figureAnchor, type FigureContext } from './figure.ts';
 export { drawCharacter, type CharacterArt } from './character.ts';
 export { drawCreature, GENTLE_AMBLER, type CreatureArt, type CreatureLook } from './creature.ts';
 export {
@@ -28,7 +29,7 @@ export {
   type Hex,
   type Projection,
 } from './projection.ts';
-export { PROP_DRAWERS, type PropContext, type PropDraw, type Drawn } from './props.ts';
+export { PROP_DRAWERS, riseFor, type PropContext, type PropDraw, type Drawn } from './props.ts';
 export { buildReviewItems, type ReviewDraft } from './review.ts';
 export { samplePatch } from './sample.ts';
 export {

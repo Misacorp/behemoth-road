@@ -181,7 +181,9 @@ function lumpy(points: readonly Point[], amount: number, phase: number): Point[]
 function planeDirection(step: { q: number; r: number }): { x: number; y: number } {
   const x = 1.5 * step.q;
   const y = Math.sqrt(3) * (step.r + step.q / 2);
-  const len = Math.hypot(x, y) || 1;
+  const len = Math.hypot(x, y);
+  // A step that is zero or not a number faces north.
+  if (!Number.isFinite(len) || len <= 0) return { x: 0, y: -1 };
   return { x: x / len, y: y / len };
 }
 
@@ -199,9 +201,9 @@ export function drawCreature(
   const build = BUILDS[look.body] ?? BUILDS.broad;
   const S = Number.isFinite(look.scale) && look.scale > 0 ? look.scale : 1;
   const unit = size * S;
-  const t = squash;
+  const t = Number.isFinite(squash) ? Math.min(1, Math.max(0.2, squash)) : 0.8;
   const rise = Math.sqrt(Math.max(0, 1 - t * t));
-  const fwd = planeDirection(heading.q === 0 && heading.r === 0 ? { q: 0, r: -1 } : heading);
+  const fwd = planeDirection(heading);
   const right = { x: -fwd.y, y: fwd.x };
   // Creature frame (u forward, v to its right, z up; hex sizes at scale 1) to the world, then the screen.
   const world = (u: number, v: number, z: number): V3 => ({

@@ -4,7 +4,8 @@ import { PALETTES, paletteColours, MORNING } from '../src/palette.ts';
 import { DIRECTIONS, isometric, topDown } from '../src/projection.ts';
 import { samplePatch } from '../src/sample.ts';
 import { paperGrain, renderScene, renderSceneFramed, type SceneInput } from '../src/scene.ts';
-import { countNodes, toSvgString, walk, type SvgNode } from '../src/svg.ts';
+import { countNodes, el, toSvgString, walk, type SvgNode } from '../src/svg.ts';
+import { riseFor } from '../src/props.ts';
 import { FALLBACK_LOOK, TERRAIN_LOOKS, terrainLook } from '../src/terrain.ts';
 import { bigScene } from './fixtures.ts';
 
@@ -200,6 +201,53 @@ describe('the creature', () => {
     const extra = withChar.slice(without.length);
     expect(extra[0]?.attrs.fill).toBe(MORNING.shadow);
     expect(Number(extra[0]?.attrs.opacity)).toBeGreaterThan(0.3);
+  });
+});
+
+describe('creature guards and back order', () => {
+  it('faces north for a heading that is zero or not a number, and survives a bad squash', () => {
+    const draw = (heading: { q: number; r: number }, squash = 0.8): string =>
+      toSvgString(
+        el(
+          'g',
+          {},
+          drawCreature(MORNING, GENTLE_AMBLER, { x: 0, y: 0 }, 64, squash, 1.4, heading).nodes,
+        ),
+      );
+    const north = draw({ q: 0, r: -1 });
+    expect(draw({ q: Number.NaN, r: 0 })).toBe(north);
+    expect(draw({ q: 0, r: 0 })).toBe(north);
+    expect(draw({ q: Infinity, r: -1 })).toBe(north);
+    expect(draw({ q: 0, r: -1 }, Number.NaN)).not.toMatch(/NaN|Infinity/);
+  });
+
+  it('orders characters on its back by their own depth, not by list order', () => {
+    const cells = [{ q: 0, r: 0 }, ...DIRECTIONS].map((h) => ({
+      ...h,
+      terrain: 'plains',
+      props: [],
+    }));
+    const back = { id: 'back', q: 0, r: -1, accent: 'teal' };
+    const front = { id: 'front', q: 0, r: 1, accent: 'plum' };
+    const order = (characters: (typeof back)[]): string[] => {
+      const out: string[] = [];
+      walk(renderScene({ ...sample(), cells, characters }), (n) => {
+        if (n.attrs.fill === MORNING.accents.teal.base) out.push('back');
+        if (n.attrs.fill === MORNING.accents.plum.base) out.push('front');
+      });
+      return out;
+    };
+    expect(order([front, back])).toEqual(['back', 'front']);
+    expect(order([back, front])).toEqual(['back', 'front']);
+  });
+});
+
+describe('riseFor', () => {
+  it('is 1 at the reference tilt, 0.875 at 0.8 and shrinks towards top-down', () => {
+    expect(riseFor(0.6)).toBeCloseTo(1, 6);
+    expect(riseFor(0.8)).toBeCloseTo(0.875, 6);
+    expect(riseFor(1)).toBeCloseTo(0.5, 6);
+    expect(riseFor(0.3)).toBe(1);
   });
 });
 

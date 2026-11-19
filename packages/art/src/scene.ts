@@ -2,6 +2,7 @@
 import { drawCharacter, type CharacterArt } from './character.ts';
 import { ART_TUNING } from './config.ts';
 import { drawCreature, inFootprint, type CreatureArt } from './creature.ts';
+import { figureAnchor } from './figure.ts';
 import { artDefs, refUrl } from './filters.ts';
 import { ellipsePath, unionBox, type Box, type Point } from './geom.ts';
 import type { Palette } from './palette.ts';
@@ -189,13 +190,12 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
   }
   const sites = new Set(cells.filter((c) => c.site).map((c) => `${c.q},${c.r}`));
   const perTile = new Map<string, number>();
+  const creatureY = creature ? hexCenter(p, creature.q, creature.r).y : 0;
   for (const ch of input.characters ?? []) {
     const key = `${ch.q},${ch.r}`;
     const index = perTile.get(key) ?? 0;
     perTile.set(key, index + 1);
-    // Beside a site, stand to its front left; otherwise near the middle.
-    const dx = (sites.has(key) ? -0.5 : -0.05) + index * 0.32;
-    const c = onPlane(p, hexCenter(p, ch.q, ch.r), dx, 0.3 - index * 0.06);
+    const c = figureAnchor(p, ch, index, { site: sites.has(key) });
     if (creature && inFootprint(creature, ch)) {
       // Standing on the creature's back: drawn over it, with a firm contact shadow so it does not float.
       const drawn = drawCharacter(palette, ch.accent, c, p.size, p.squash, ink);
@@ -212,7 +212,8 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
       placed.push({
         at: c,
         drawn: { nodes: [contact, ...drawn.nodes], box: drawn.box },
-        after: hexCenter(p, creature.q, creature.r).y + 1e-3 + index * 1e-4,
+        // After the creature, and among themselves by their own depth.
+        after: creatureY + 1e-3 + (c.y - creatureY) * 1e-6,
       });
       continue;
     }

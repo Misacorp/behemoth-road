@@ -1,4 +1,4 @@
-import { hexCenter, isometric, topDown } from '@behemoth-road/art';
+import { figureAnchor, hexCenter, isometric, topDown } from '@behemoth-road/art';
 import { describe, expect, it } from 'vitest';
 import { feetOf, pickHex, worldToHex } from './pick.ts';
 
@@ -44,5 +44,29 @@ describe('screen-to-hex picking', () => {
     expect(worldToHex(p, head)).not.toEqual(me);
     expect(pickHex(p, head, me)).toEqual(me);
     expect(pickHex(p, head, null)).toEqual(worldToHex(p, head));
+  });
+
+  it('picks the character at the map tilt (0.8), also when it stands on the creature', () => {
+    const p = isometric(64, 0.8);
+    for (const me of [
+      { q: 2, r: -1 },
+      { q: 1, r: 0 }, // a creature footprint hex when the creature is at 0,0
+    ]) {
+      const feet = feetOf(p, me);
+      expect(feet).toEqual(figureAnchor(p, me));
+      expect(worldToHex(p, feet)).toEqual(me);
+      const head = { x: feet.x, y: feet.y - 0.6 * p.size };
+      expect(pickHex(p, head, me)).toEqual(me);
+      // Far above the figure, the tap goes to the hex under the point.
+      const above = { x: feet.x, y: feet.y - 1.6 * p.size };
+      expect(pickHex(p, above, me)).toEqual(worldToHex(p, above));
+    }
+  });
+
+  it('places feet like the art kit beside a site and for a second figure on a tile', () => {
+    const p = isometric(64, 0.8);
+    const h = { q: 0, r: 0 };
+    expect(feetOf(p, h, 0, { site: true })).toEqual(figureAnchor(p, h, 0, { site: true }));
+    expect(feetOf(p, h, 1).x).toBeGreaterThan(feetOf(p, h, 0).x);
   });
 });
