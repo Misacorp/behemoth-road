@@ -43,6 +43,8 @@ export interface Character {
   readonly trait: string | null;
   readonly quirk: string | null;
   readonly role: string;
+  /** Public: picks the figure's look. Rolled with the character, never from the map. */
+  readonly lookSeed: number;
   /** The day the character joined. */
   readonly joinedDay: number;
   readonly at: Place;

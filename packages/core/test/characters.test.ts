@@ -72,6 +72,22 @@ describe('rollCharacters', () => {
     expect([...counts].sort()).toEqual([3, 4]);
   });
 
+  it('gives each offer a look that stays with the character', () => {
+    const state = createGame(8);
+    const offers = characterOffers(state, '1001');
+    expect(characterOffers(state, '1001')).toEqual(offers);
+    for (const o of offers) {
+      expect(Number.isInteger(o.lookSeed) && o.lookSeed >= 0 && o.lookSeed <= 0xffffffff).toBe(
+        true,
+      );
+    }
+    expect(new Set(offers.map((o) => o.lookSeed)).size).toBe(offers.length);
+    for (const [i, offer] of offers.entries()) {
+      const joined = join(state, '1001', i).state.characters[0]!;
+      expect(joined.lookSeed).toBe(offer.lookSeed);
+    }
+  });
+
   it('differs by game, user and attempt', () => {
     const base = rollCharacters(42, 'user-1', 0);
     expect(rollCharacters(43, 'user-1', 0)).not.toEqual(base);
