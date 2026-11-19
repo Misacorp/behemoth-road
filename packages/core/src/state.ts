@@ -5,6 +5,7 @@
 
 import type { TuningConfig } from './config.ts';
 import type { Direction, Hex } from './hex.ts';
+import { isSeed, type Seed } from './random.ts';
 
 /** hidden: never in view. seen: in play (in the window or its grace). lost: gone to the fog. */
 export type Visibility = 'hidden' | 'seen' | 'lost';
@@ -70,11 +71,12 @@ export interface GameStateView {
 
 /** The whole game, held only by the server: the view plus the seed that generates the map. */
 export interface GameState extends GameStateView {
-  readonly seed: number;
+  /** 128 bits; never sent to players. */
+  readonly seed: Seed;
 }
 
 export const hasSeed = (state: GameStateView): state is GameState =>
-  typeof (state as Partial<GameState>).seed === 'number';
+  isSeed((state as Partial<GameState>).seed);
 
 export const findCharacter = (state: GameStateView, id: string): Character | undefined =>
   state.characters.find((c) => c.id === id);

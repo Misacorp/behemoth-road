@@ -4,6 +4,14 @@ Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: Game seeds are 128 bits, so the seed cannot be brute-forced from visible terrain
+
+ID: `2026-11-19-game-seeds-are-128-bits-so` · Status: current · Amends: `2026-11-19-the-server-keeps-the-seed-clients`
+
+**Decision.** A game's seed is four unsigned 32-bit words (`Seed`, a JSON array), made on the server with `newSeed()` (Web Crypto `getRandomValues`). Every hash keeps a 128-bit state: four lanes, one per seed word, each absorb every input and feed the next, and only the final step folds them to 32 bits. Mixing the words into one 32-bit state would leave a 32-bit equivalent key. `createGame` and the generators still accept a plain number for tests and local play (the other words are 0). This is `CONTENT_VERSION` 2, since every map differs from version 1. Version 1 was never stored, so it is not loadable.
+
+**Reasoning.** With a 32-bit seed, a player could find it from the terrain in their view by trying every value. One terrain check takes about 3.3 µs in Node on the session container, so all 2^32 seeds take about 4 hours on one core and minutes in parallel. That would reveal the map ahead and the creature's next step, undoing "the server keeps the seed". 2^128 makes that search impossible. The hash is a fast mixing hash, not a cryptographic one: it raises the cost of guessing beyond reach for this game, with no formal guarantee. Cost: `createGame` takes about 12 ms and `nextDay` about 0.7 ms.
+
 ## 2026-11-19: Games pin their content version and prune lost tiles beyond four rings
 
 ID: `2026-11-19-games-pin-their-content-version-and` · Status: current
@@ -22,7 +30,7 @@ ID: `2026-11-19-rules-read-a-seedless-view-tiles` · Status: current · Amends: 
 
 ## 2026-11-19: The server keeps the seed; clients get a player view with known terrain
 
-ID: `2026-11-19-the-server-keeps-the-seed-clients` · Status: current, amended by `2026-11-19-rules-read-a-seedless-view-tiles`
+ID: `2026-11-19-the-server-keeps-the-seed-clients` · Status: current, amended by `2026-11-19-game-seeds-are-128-bits-so`, `2026-11-19-rules-read-a-seedless-view-tiles`
 
 **Decision.** From Milestone 2 the game seed never leaves the server. Clients receive a player view: the core state without the seed, with the terrain of every known tile included, so they can draw the map and plan paths with the core. The core reads terrain from known tiles first and generates new tiles only on the server. Clients refresh the view after their own actions, on becoming visible and every 30 seconds while visible; a version number makes an unchanged view cheap. The contract is in `docs/design/m2-session.md`.
 

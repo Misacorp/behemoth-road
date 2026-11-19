@@ -62,7 +62,7 @@ describe('figure positions', () => {
       characters: characterArts(s),
       projection: p,
       palette: PALETTE,
-      seed: s.seed,
+      seed: s.seed.join('-'),
       frame: 'none',
     });
     for (const id of ['a', 'b', 'c', 'd'])

@@ -5,6 +5,7 @@
 import type { TuningConfig } from './config.ts';
 import { type Hex, hexDistance, hexesInRange, hexKey } from './hex.ts';
 import { terrainIdAt } from './map.ts';
+import type { Seed } from './random.ts';
 import type { GameStateView, TileKnowledge, Visibility } from './state.ts';
 
 /** The hexes the creature stands on. */
@@ -40,7 +41,7 @@ export const updateTiles = (
   centre: Hex,
   day: number,
   config: TuningConfig,
-  seed: number,
+  seed: Seed,
 ): Record<string, TileKnowledge> => {
   const next: Record<string, TileKnowledge> = {};
   for (const [key, tile] of Object.entries(tiles)) {

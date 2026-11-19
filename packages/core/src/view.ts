@@ -3,6 +3,7 @@
  */
 
 import { KNOWN_CONTENT_VERSIONS } from './content/index.ts';
+import { isSeed } from './random.ts';
 import type { GameState, GameStateView } from './state.ts';
 
 /**
@@ -40,6 +41,6 @@ export const loadGame = (stored: unknown): GameState => {
   if (!isKnownContentVersion(state.contentVersion)) {
     throw new UnknownContentVersionError(state.contentVersion);
   }
-  if (!Number.isInteger(state.seed)) throw new TypeError('A stored game needs its seed');
+  if (!isSeed(state.seed)) throw new TypeError('A stored game needs its seed');
   return state as GameState;
 };

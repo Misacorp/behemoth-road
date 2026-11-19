@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { createGame, type GameState, hex, legalMoves, move, nextDay } from '../src/index.ts';
+import {
+  createGame,
+  type GameState,
+  hex,
+  legalMoves,
+  loadGame,
+  move,
+  newSeed,
+  nextDay,
+} from '../src/index.ts';
 
 /** Plays `days` days; each day every character takes its first legal moves. */
 const play = (start: GameState, days: number): GameState => {
@@ -26,6 +35,13 @@ describe('createGame', () => {
     for (const c of state.characters) {
       expect(c).toMatchObject({ at: { kind: 'creature' }, actionsLeft: 3, status: 'active' });
     }
+  });
+
+  it('plays a game from a fresh 128-bit seed and stores it as JSON', () => {
+    const seed = newSeed();
+    const state = nextDay(createGame(seed, { characterIds: ['a'] }));
+    expect(state.seed).toEqual(seed);
+    expect(loadGame(JSON.parse(JSON.stringify(state)))).toEqual(state);
   });
 
   it('rejects bad seeds and characters', () => {

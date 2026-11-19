@@ -1,5 +1,15 @@
 export * from './hex.ts';
-export { createRng, hashInts, hashString, hashToUnit, pickWeighted } from './random.ts';
+export {
+  createRng,
+  hashInts,
+  hashString,
+  hashToUnit,
+  isSeed,
+  newSeed,
+  pickWeighted,
+  toSeed,
+  type Seed,
+} from './random.ts';
 export {
   DEFAULT_CONFIG,
   resolveConfig,

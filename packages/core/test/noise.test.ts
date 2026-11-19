@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { hex, hexDistance, hexesInRange, neighbours, noiseAt } from '../src/index.ts';
+import {
+  hex,
+  hexDistance,
+  hexesInRange,
+  neighbours,
+  noiseAt as noiseOf,
+  type NoiseField,
+  toSeed,
+} from '../src/index.ts';
+
+const noiseAt = (seed: number, stream: number, f: NoiseField, h: { q: number; r: number }) =>
+  noiseOf(toSeed(seed), stream, f, h);
 
 const field = { scale: 10, octaves: 2 };
 

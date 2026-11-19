@@ -6,6 +6,7 @@ import { type ConfigOverrides, resolveConfig } from './config.ts';
 import { type Direction, DIRECTIONS, type Hex, isValidHex } from './hex.ts';
 import { CONTENT_VERSION } from './content/index.ts';
 import { ON_CREATURE } from './places.ts';
+import { type Seed, toSeed } from './random.ts';
 import type { GameState } from './state.ts';
 import { updateTiles } from './window.ts';
 
@@ -27,10 +28,15 @@ const MAX_ID_LENGTH = 64;
 /** The role given to characters made by `characterIds`. */
 const DEV_ROLE = 'scout';
 
-export const createGame = (seed: number, options: CreateGameOptions = {}): GameState => {
-  if (!Number.isInteger(seed) || seed < 0 || seed > 0xffffffff) {
-    throw new RangeError('seed must be an integer from 0 to 2^32 - 1');
-  }
+/**
+ * A new game. Pass `newSeed()` for a real game; a plain number (0 to 2^32 - 1)
+ * is accepted for tests and local play.
+ */
+export const createGame = (
+  seedOrNumber: Seed | number,
+  options: CreateGameOptions = {},
+): GameState => {
+  const seed = toSeed(seedOrNumber);
   const config = resolveConfig(options.config);
   const heading = options.heading ?? 'n';
   if (!DIRECTIONS.includes(heading)) throw new RangeError(`Unknown heading: ${String(heading)}`);

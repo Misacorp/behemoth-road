@@ -197,7 +197,7 @@ export function MapView(props: MapViewProps): JSX.Element {
       characters: characterArts(state),
       projection: p,
       palette: PALETTE,
-      seed: state.seed,
+      seed: state.seed.join('-'),
       zoom: inkZoom,
       minInkPx: MAP_TUNING.minInkPx,
       // No page frame: its edges would show while panning. The grain is drawn over the screen instead.

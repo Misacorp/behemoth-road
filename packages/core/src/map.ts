@@ -15,7 +15,7 @@ import {
 } from './content/index.ts';
 import { type Hex, hexKey, neighbours } from './hex.ts';
 import { noiseAt } from './noise.ts';
-import { hashString } from './random.ts';
+import { hashString, type Seed, toSeed } from './random.ts';
 import { type GameStateView, hasSeed } from './state.ts';
 
 export interface MapContent {
@@ -28,10 +28,10 @@ export const DEFAULT_MAP_CONTENT: MapContent = {
   generation: TERRAIN_GENERATION,
 };
 
-const sample = (seed: number, field: FieldRef, h: Hex): number =>
+const sample = (seed: Seed, field: FieldRef, h: Hex): number =>
   noiseAt(seed, hashString(field.name), field, h);
 
-const meets = (seed: number, field: FieldRef, when: FieldCondition, h: Hex): boolean => {
+const meets = (seed: Seed, field: FieldRef, when: FieldCondition, h: Hex): boolean => {
   const value = sample(seed, field, h);
   if ('above' in when) return value > when.above;
   if ('below' in when) return value < when.below;
@@ -40,13 +40,14 @@ const meets = (seed: number, field: FieldRef, when: FieldCondition, h: Hex): boo
 
 /** The id of the terrain the generation rules place at a hex. */
 export const terrainIdAt = (
-  seed: number,
+  seed: Seed | number,
   h: Hex,
   generation: TerrainGeneration = TERRAIN_GENERATION,
 ): string => {
+  const key = toSeed(seed);
   for (const rule of generation.rules) {
-    if (!meets(seed, rule.field, rule.when, h)) continue;
-    if (rule.mask && !(sample(seed, rule.mask.field, h) > rule.mask.above)) continue;
+    if (!meets(key, rule.field, rule.when, h)) continue;
+    if (rule.mask && !(sample(key, rule.mask.field, h) > rule.mask.above)) continue;
     return rule.terrain;
   }
   return generation.fallback;
@@ -74,7 +75,7 @@ export const terrainById = (
 };
 
 export const terrainAt = (
-  seed: number,
+  seed: Seed | number,
   h: Hex,
   content: MapContent = DEFAULT_MAP_CONTENT,
 ): TerrainType => {

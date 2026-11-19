@@ -6,7 +6,7 @@
 
 import { BY_NAMES, NAME_ENDS, NAME_STARTS, QUIRKS, ROLES, TRAITS } from './content/index.ts';
 import { ON_CREATURE } from './places.ts';
-import { createRng, hashInts, hashString } from './random.ts';
+import { createRng, hashInts, hashString, type Seed, toSeed } from './random.ts';
 import type { Character, GameState } from './state.ts';
 
 /** One character a player can pick. The plain one has no trait and no quirk. */
@@ -61,8 +61,12 @@ const rollName = (rng: () => number): string => {
  * Two or three rolled characters (each with a trait and a quirk, none repeated)
  * followed by the plain one. The same seed, user and attempt give the same list.
  */
-export const rollCharacters = (seed: number, userId: string, attempt: number): CharacterOffer[] => {
-  const rng = createRng(hashInts(seed, ROLL_STREAM, hashString(userId), attempt));
+export const rollCharacters = (
+  seed: Seed | number,
+  userId: string,
+  attempt: number,
+): CharacterOffer[] => {
+  const rng = createRng(hashInts(toSeed(seed), ROLL_STREAM, hashString(userId), attempt));
   const count = rng() < 0.5 ? 2 : 3;
   const traits = pickDistinct(TRAITS, count, rng);
   const quirks = pickDistinct(QUIRKS, count, rng);

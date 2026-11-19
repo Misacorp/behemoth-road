@@ -46,7 +46,7 @@ describe('the player view', () => {
 
   it('is the same whatever the seed, given the same known world', () => {
     const state = played(5);
-    const other: GameState = { ...state, seed: 999 };
+    const other: GameState = { ...state, seed: [999, 1, 2, 3] };
     expect(toPlayerView(other)).toEqual(toPlayerView(state));
   });
 
