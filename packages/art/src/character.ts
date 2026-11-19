@@ -40,9 +40,9 @@ export interface CharacterArt {
   readonly look?: CharacterLook;
 }
 
-/** A look seeded by the character's id: the same id always looks the same. */
-export function characterLookFor(id: string): CharacterLook {
-  const rng = rngFor('character-look', id);
+/** A look seeded by the character's look seed (or id): the same seed always looks the same. */
+export function characterLookFor(seed: number | string): CharacterLook {
+  const rng = rngFor('character-look', seed);
   return {
     headwear: rng.pick(HEADWEAR),
     garment: rng.pick(GARMENTS),
@@ -52,15 +52,16 @@ export function characterLookFor(id: string): CharacterLook {
 }
 
 /**
- * Looks and accents for a list of characters, in list order (join order), such that no two share the same
- * accent, headwear and garment while there are combinations left (8 × 4 × 3 = 96). Each id tries its own
- * seeded order of combinations and takes the first one still free, so a character keeps its look as long as
- * the characters before it stay.
+ * Looks and accents for characters from their look seeds (content's public `lookSeed`), in join order, such
+ * that no two share the same accent, headwear and garment while there are combinations left (8 × 4 × 3 =
+ * 96). Each seed tries its own seeded order of combinations and takes the first one still free, so a
+ * character keeps its look as long as the characters before it stay. A join preview is
+ * `assignLooks([...partySeeds, offerSeed]).at(-1)`: exactly the look the character gets on joining.
  */
-export function assignLooks(ids: readonly string[]): { accent: string; look: CharacterLook }[] {
+export function assignLooks(seeds: readonly number[]): { accent: string; look: CharacterLook }[] {
   const taken = new Set<string>();
-  return ids.map((id) => {
-    const rng = rngFor('character-assign', id);
+  return seeds.map((seed) => {
+    const rng = rngFor('character-assign', seed);
     const combos: [string, CharacterLook['headwear'], CharacterLook['garment']][] = [];
     for (const a of ACCENTS)
       for (const h of HEADWEAR) for (const g of GARMENTS) combos.push([a, h, g]);
@@ -71,7 +72,7 @@ export function assignLooks(ids: readonly string[]): { accent: string; look: Cha
     }
     const free = combos.find(([a, h, g]) => !taken.has(`${a}|${h}|${g}`)) ?? combos[0]!;
     taken.add(free.join('|'));
-    const base = characterLookFor(id);
+    const base = characterLookFor(seed);
     return { accent: free[0], look: { ...base, headwear: free[1], garment: free[2] } };
   });
 }

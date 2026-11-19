@@ -103,6 +103,7 @@ Record a decision:
 [product.md](product.md): Features, UX and behaviour the users see.
 
 - 2026-11-19 Joining is a drawer wizard; characters look distinct on the map
+- 2026-11-19 Character looks come from content's look seeds, so a preview matches the joined look
 - 2026-11-19 Icons follow content's icon keys; quirks sit on a split tile
 - 2026-11-19 Role emblems share one frame; icons are drawn by key; characters vary by seeded look (amended)
 - 2026-11-19 Character choices are rolled from the game, the player and the attempt; players pick by index
