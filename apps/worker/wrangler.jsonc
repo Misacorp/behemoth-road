@@ -55,8 +55,7 @@
         "ENVIRONMENT": "staging",
         "VERSION": "dev",
         "BRANCH": "dev",
-        // TODO(setup): the staging application's Client ID (docs/setup.md).
-        "DISCORD_CLIENT_ID": "000000000000000000",
+        "DISCORD_CLIENT_ID": "1573039651172909057",
         "DISCORD_PUBLIC_KEY": "",
         "DEV_TOOLS": "on"
       }
@@ -74,8 +73,7 @@
         "ENVIRONMENT": "production",
         "VERSION": "dev",
         "BRANCH": "dev",
-        // TODO(setup): the production application's Client ID (docs/setup.md).
-        "DISCORD_CLIENT_ID": "000000000000000000",
+        "DISCORD_CLIENT_ID": "1573036223470247996",
         "DISCORD_PUBLIC_KEY": "",
         "DEV_TOOLS": "off"
       }

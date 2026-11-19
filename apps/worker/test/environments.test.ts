@@ -35,6 +35,15 @@ describe('wrangler.jsonc', () => {
     expect(wrangler.env['staging']?.vars['DEV_TOOLS']).toBe('on');
   });
 
+  it('gives every deployed environment its own real Discord client id', () => {
+    const ids = Object.values(wrangler.env).map((e) => e.vars['DISCORD_CLIENT_ID']);
+    for (const id of ids) {
+      expect(id).toMatch(/^\d{17,20}$/);
+      expect(id).not.toMatch(/^0+$/);
+    }
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
   it('names every deployed environment, so the local-only dev login never runs there', () => {
     expect(wrangler.vars['ENVIRONMENT']).toBe('local');
     expect(wrangler.env['production']?.vars['ENVIRONMENT']).toBe('production');
