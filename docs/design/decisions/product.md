@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: The creature is modelled as small solids and turns to all six headings; upright props shrink part way at the high view
+
+ID: `2026-11-19-the-creature-is-modelled-as-small` · Status: current · Amends: `2026-11-19-the-creature-faces-where-it-walks`
+
+**Decision.** The art kit draws the creature as a few soft solids (body, head, snout, legs, ears, tail) in its own frame, turned to its heading and projected like the ground, so one drawing covers all six hex directions and shows its back, spots and the garden on it from above. `CreatureArt` takes a `heading` (an axial step) instead of a facing; the side view, the view from behind and `facingFor` are gone. Upright props and characters keep their side view but shrink in height halfway between upright and the true foreshortening (`riseFor`, 0.875 at tilt 0.8), and tile side faces are thinner (`sideDepth` 0.26). The kit's defaults are now Spring and tilt 0.8, and the map uses them. Whether the creature's back is round or long is offered to Misa as a pick.
+
+**Reasoning.** This follows Misa's picks: a high view at 0.8 with the creature seen from above. Projecting solids gives correct turns and overlaps for every heading without hand-drawing six views. Fully foreshortened props looked like flat cut-outs from above, while unshrunk ones looked too tall, so they meet halfway.
+
 ## 2026-11-19: The creature is drawn from above, at the map's view angle **[Misa]**
 
 ID: `2026-11-19-the-creature-is-drawn-from-above` · Status: current · Amends: `2026-11-19-the-creature-faces-where-it-walks`
@@ -131,7 +139,7 @@ ID: `2026-11-19-the-creature-veers-by-a-seeded` · Status: current
 
 ## 2026-11-19: The creature faces where it walks; cliffs are escarpments
 
-ID: `2026-11-19-the-creature-faces-where-it-walks` · Status: current, amended by `2026-11-19-the-creature-is-drawn-from-above`
+ID: `2026-11-19-the-creature-faces-where-it-walks` · Status: current, amended by `2026-11-19-the-creature-is-drawn-from-above`, `2026-11-19-the-creature-is-modelled-as-small`
 
 **Decision.** The creature's side view mirrors to face the east or west part of its heading (`facingFor`). For a heading straight north there are two options, the side view facing right or a three-quarter view from behind walking up the screen, and Misa picks one in the review batch (pick `creature-facing`). Cliffs are drawn as an escarpment, a rock face with a plateau strip running across the tile, not a single standing rock.
 

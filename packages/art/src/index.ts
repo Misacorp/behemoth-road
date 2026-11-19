@@ -1,13 +1,6 @@
 export { ART_TUNING } from './config.ts';
 export { drawCharacter, type CharacterArt } from './character.ts';
-export {
-  drawCreature,
-  facingFor,
-  GENTLE_AMBLER,
-  type CreatureArt,
-  type CreatureFacing,
-  type CreatureLook,
-} from './creature.ts';
+export { drawCreature, GENTLE_AMBLER, type CreatureArt, type CreatureLook } from './creature.ts';
 export {
   ACCENTS,
   MATERIALS,

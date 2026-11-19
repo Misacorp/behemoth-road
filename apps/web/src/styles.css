@@ -20,7 +20,7 @@ body {
   height: 100%;
   overflow: hidden;
   overscroll-behavior: none;
-  background: #f4ecdc;
+  background: #f3f1e2;
   -webkit-tap-highlight-color: transparent;
   user-select: none;
   -webkit-user-select: none;
@@ -89,7 +89,7 @@ button svg,
   font-size: 1.25rem;
   font-variant-numeric: tabular-nums;
   font-weight: 600;
-  color: #6b5442;
+  color: #5c5a43;
   pointer-events: none;
 }
 
@@ -128,9 +128,9 @@ button svg,
   height: var(--round);
   padding: var(--space-2);
   border-radius: 50%;
-  background: #f4ecdc;
-  border: 1.5px solid #a08b74;
-  box-shadow: 1px 2px 0 #e4d6bc;
+  background: #f3f1e2;
+  border: 1.5px solid #9a9776;
+  box-shadow: 1px 2px 0 #e1ddc3;
 }
 
 .hud-dev {
@@ -146,8 +146,8 @@ button svg,
   height: 44px;
   padding: var(--space-1);
   border-radius: 10px;
-  border: 1.5px dashed #a08b74;
-  background: #f4ecdc;
+  border: 1.5px dashed #9a9776;
+  background: #f3f1e2;
   opacity: 0.85;
 }
 

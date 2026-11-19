@@ -7,7 +7,6 @@ import {
   topDown,
   type Projection,
 } from '../src/projection.ts';
-import { facingFor } from '../src/creature.ts';
 
 const projections: [string, Projection][] = [
   ['iso 0.6', isometric(64, 0.6)],
@@ -60,7 +59,7 @@ describe('screenToHex', () => {
 
 describe('screenToHex on a shared edge', () => {
   it('gives the same, pinned hex for a point exactly on each edge midpoint', () => {
-    const p = isometric();
+    const p = isometric(64, 0.6);
     const c = hexCenter(p, 0, 0);
     const corners = hexCorners(p, c);
     const edgeWinners = corners.map((a, i) => {
@@ -85,14 +84,5 @@ describe('screenToHex on a shared edge', () => {
         ),
       ).toEqual(edgeWinners);
     }
-  });
-});
-
-describe('facingFor', () => {
-  it('faces by the east or west part of the heading, and straight north by choice', () => {
-    expect(facingFor({ q: 1, r: -1 }, 'away')).toBe('right');
-    expect(facingFor({ q: -1, r: 0 }, 'away')).toBe('left');
-    expect(facingFor({ q: 0, r: -1 }, 'away')).toBe('away');
-    expect(facingFor({ q: 0, r: -1 }, 'side')).toBe('right');
   });
 });

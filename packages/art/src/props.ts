@@ -30,6 +30,18 @@ export interface PropContext {
   readonly squash: number;
   /** The scene's base ink width in px (already scaled and held at its screen minimum). */
   readonly ink: number;
+  /** Height scale for the view angle: 1 at a low view, less as the view looks further down. */
+  readonly rise: number;
+}
+
+/**
+ * How much upright things shrink in height at a plane squash: halfway between upright (1) and the true
+ * foreshortening √(1 − squash²), so props keep their old-map, side-view charm at a high view.
+ */
+export function riseFor(squash: number): number {
+  const reference = Math.sqrt(1 - 0.6 * 0.6);
+  const truth = Math.sqrt(Math.max(0, 1 - squash * squash));
+  return Math.min(1, (1 + truth / reference) / 2);
 }
 
 export interface Drawn {
@@ -71,7 +83,7 @@ export function groundShadow(c: PropContext, rx: number, ry: number, dx = 0): Sv
 }
 
 function shape(c: PropContext, raw: Raw, jitter = 0): Point[] {
-  const T = mapper(c.origin, c.k);
+  const T = mapper(c.origin, c.k, 1, c.k * c.rise);
   return raw.map(([x, y]) =>
     T(
       x + (jitter ? c.rng.range(-jitter, jitter) : 0),
@@ -194,7 +206,7 @@ const broadleaf: PropDraw = (c) => {
 const tuft: PropDraw = (c) => {
   const { rng, palette } = c;
   const blades = rng.int(3, 5);
-  const T = mapper(c.origin, c.k);
+  const T = mapper(c.origin, c.k, 1, c.k * c.rise);
   const parts: string[] = [];
   const pts: Point[] = [];
   for (let i = 0; i < blades; i += 1) {
@@ -219,7 +231,7 @@ const dune: PropDraw = (c) => {
   const w = rng.range(24, 34);
   const h = rng.range(8, 13);
   const px = rng.range(-0.2, 0.25) * w;
-  const T = mapper(c.origin, c.k);
+  const T = mapper(c.origin, c.k, 1, c.k * c.rise);
   const P = (x: number, y: number): string => {
     const p = T(x, y);
     return `${Math.round(p.x * 10) / 10} ${Math.round(p.y * 10) / 10}`;
@@ -368,7 +380,7 @@ const hill: PropDraw = (c) => {
   const ramp = palette.ramps.heath;
   const w = rng.range(22, 30);
   const h = rng.range(14, 20);
-  const T = mapper(c.origin, c.k);
+  const T = mapper(c.origin, c.k, 1, c.k * c.rise);
   const curve = (t: number): Point => {
     // A cubic hump from (-w, 0) to (w, 0) with controls at (-w*0.55, -h*1.3) and (w*0.5, -h*1.3).
     const u = 1 - t;
@@ -484,7 +496,7 @@ const ruin: PropDraw = (outer) => {
 /** The hint mark: something here is undiscovered. A small floating glint; it never says what. */
 export const hintMark: PropDraw = (c) => {
   const { palette } = c;
-  const T = mapper(c.origin, c.k);
+  const T = mapper(c.origin, c.k, 1, c.k * c.rise);
   const cy = -24;
   const star: Point[] = [];
   for (let i = 0; i < 8; i += 1) {

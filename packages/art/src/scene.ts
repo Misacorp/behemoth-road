@@ -9,6 +9,7 @@ import { drawOrder, hexCenter, hexDistance, onPlane, type Projection } from './p
 import {
   hintMark,
   inkWidth,
+  riseFor,
   PROP_DRAWERS,
   PROP_SPACING,
   type Drawn,
@@ -181,7 +182,7 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
     const c = onPlane(p, hexCenter(p, creature.q, creature.r), 0, 0.12);
     placed.push({
       at: c,
-      drawn: drawCreature(palette, creature.look, c, p.size, p.squash, ink, creature.facing),
+      drawn: drawCreature(palette, creature.look, c, p.size, p.squash, ink, creature.heading),
     });
   }
   const sites = new Set(cells.filter((c) => c.site).map((c) => `${c.q},${c.r}`));
@@ -233,6 +234,14 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
   return { svg, viewBox: frame };
 
   function ctx(origin: Point, rng: Rng, scale = 1) {
-    return { palette, rng, origin, k: p.k * scale, squash: p.squash, ink: ink * scale };
+    return {
+      palette,
+      rng,
+      origin,
+      k: p.k * scale,
+      squash: p.squash,
+      ink: ink * scale,
+      rise: riseFor(p.squash),
+    };
   }
 }

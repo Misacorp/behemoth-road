@@ -89,7 +89,15 @@ export function unionBox(boxes: readonly Box[]): Box {
   };
 }
 
-/** Maps local drawing units (y up is negative, base at 0,0) to the screen. `dir` -1 mirrors. */
-export function mapper(origin: Point, k: number, dir: 1 | -1 = 1): (x: number, y: number) => Point {
-  return (x, y) => ({ x: origin.x + dir * x * k, y: origin.y + y * k });
+/**
+ * Maps local drawing units (y up is negative, base at 0,0) to the screen. `dir` -1 mirrors; `ky` scales
+ * heights separately (foreshortening at a high view).
+ */
+export function mapper(
+  origin: Point,
+  k: number,
+  dir: 1 | -1 = 1,
+  ky: number = k,
+): (x: number, y: number) => Point {
+  return (x, y) => ({ x: origin.x + dir * x * k, y: origin.y + y * ky });
 }

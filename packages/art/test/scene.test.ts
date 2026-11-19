@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GENTLE_AMBLER, type CreatureLook } from '../src/creature.ts';
 import { PALETTES, paletteColours, MORNING } from '../src/palette.ts';
-import { isometric, topDown } from '../src/projection.ts';
+import { DIRECTIONS, isometric, topDown } from '../src/projection.ts';
 import { samplePatch } from '../src/sample.ts';
 import { paperGrain, renderScene, renderSceneFramed } from '../src/scene.ts';
 import { countNodes, toSvgString, walk, type SvgNode } from '../src/svg.ts';
@@ -96,9 +96,9 @@ describe('renderScene', () => {
       { ...GENTLE_AMBLER, markings: 'none' },
     ];
     for (const look of variants) {
-      for (const facing of ['left', 'right', 'away'] as const) {
+      for (const heading of DIRECTIONS) {
         const svg = toSvgString(
-          renderScene({ ...sample(), creature: { q: 0, r: 0, facing, look } }),
+          renderScene({ ...sample(), creature: { q: 0, r: 0, heading, look } }),
         );
         expect(svg).not.toMatch(/NaN|undefined/);
       }

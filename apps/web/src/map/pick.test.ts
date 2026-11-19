@@ -32,7 +32,8 @@ describe('screen-to-hex picking', () => {
   }
 
   it("picks the character's hex when its upright figure is tapped", () => {
-    const p = isometric(64);
+    // At a low view (0.6) the head reaches over the hex behind; at the map's 0.8 it mostly stays on its own.
+    const p = isometric(64, 0.6);
     const me = { q: 2, r: -1 };
     const c = hexCenter(p, me.q, me.r);
     // The head is drawn over the hex behind (north of) the character.

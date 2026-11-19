@@ -1,11 +1,11 @@
 /** Tuning for the art, in one place. Sizes in px are at the reference hex size and scale with it. */
 export const ART_TUNING = {
   /** Vertical squash of the isometric-style plane (1 would be top-down). */
-  tilt: 0.6,
+  tilt: 0.8,
   /** Hex circumradius in px at which line widths and prop sizes are designed. */
   hexSize: 64,
   /** Side face depth as a share of the hex size when the plane is fully tilted; shrinks as tilt nears 1. */
-  sideDepth: 0.32,
+  sideDepth: 0.26,
   /** Ink line width in px at the reference hex size. */
   inkWidth: 1.4,
   /** Thinnest ink line on screen in px, whatever the zoom (keeps faint details visible on phones). */
@@ -20,8 +20,7 @@ export const ART_TUNING = {
   /** Fading tiles: paper veil over the ground, and the opacity of their props. */
   fadingVeil: 0.55,
   fadingPropOpacity: 0.45,
-  /** Creature length (tail to snout) and character height, in hex sizes. */
-  creatureLength: 3.9,
+  /** Character height, in hex sizes. */
   characterHeight: 0.74,
   /** Space around a scene, in hex sizes. */
   padding: 0.45,
