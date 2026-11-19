@@ -14,6 +14,8 @@ export interface CharacterOffer {
   readonly name: string;
   readonly trait: string | null;
   readonly quirk: string | null;
+  /** Picks the figure's look (colours, hat, build) so the preview and the map agree. */
+  readonly lookSeed: number;
 }
 
 export type CharacterRefusal =
@@ -53,6 +55,8 @@ const pickDistinct = <T>(items: readonly T[], count: number, rng: () => number):
   return out;
 };
 
+const rollLook = (rng: () => number): number => Math.floor(rng() * 0x100000000);
+
 const rollName = (rng: () => number): string => {
   const name = pick(NAME_STARTS, rng) + pick(NAME_ENDS, rng);
   return rng() < 1 / 3 ? `${name} ${pick(BY_NAMES, rng)}` : name;
@@ -75,8 +79,9 @@ export const rollCharacters = (
     name: rollName(rng),
     trait: trait.id,
     quirk: quirks[i]?.id ?? null,
+    lookSeed: rollLook(rng),
   }));
-  return [...rolled, { name: rollName(rng), trait: null, quirk: null }];
+  return [...rolled, { name: rollName(rng), trait: null, quirk: null, lookSeed: rollLook(rng) }];
 };
 
 /** How many characters this user has had in this game. */
@@ -109,6 +114,7 @@ const create = (state: GameState, request: CharacterRequest): CharacterResult =>
     name: picked.name,
     trait: picked.trait,
     quirk: picked.quirk,
+    lookSeed: picked.lookSeed,
     role,
     joinedDay: state.day,
     at: ON_CREATURE,
