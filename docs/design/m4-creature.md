@@ -52,7 +52,7 @@ The creature's step (or its lingering) is chosen from the state before the tick,
 ## State, view and API
 
 - Core state: `GameState.nature`, `GameState.care` (server only); `GameStateView.stimuli`, `creature.lingering`, `creature.lingeredDay` (public). Content version 5; older games are wiped and recreated, as in Milestone 3.
-- Actions (`checkAction` / `act`): `{ kind: 'light-fire' }`, `{ kind: 'feed' }`, `{ kind: 'linger' }`. New refusals: `cannot-burn`, `fire-here`, `no-fuel`, `no-food`, `needs-keeper`, `lingered-yesterday`, `on-creature`. New events: `fire-lit`, `fed`, `linger`.
+- Actions (`checkAction` / `act`): `{ kind: 'light-fire' }`, `{ kind: 'feed' }`, `{ kind: 'linger' }`. New refusals: `cannot-burn`, `fire-here`, `no-fuel`, `no-food`, `needs-keeper`, `lingered-yesterday`, `on-creature`; a second linger on one day reuses `already-have`. New events: `fire-lit`, `fed`, `linger`.
 - `POST /api/game/act` accepts the three new actions (strict schemas). `PlayerView` gains `signs: CreatureSigns` for the signed-in player's active character (`null` viewer when they have none: no keeper detail).
 - Contract fixtures are recaptured from the Worker; never edited by hand.
 
