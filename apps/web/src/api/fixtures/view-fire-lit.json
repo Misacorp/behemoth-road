@@ -693,7 +693,8 @@
         "r": 2
       },
       "characterId": "111111111111111111.0",
-      "stimulus": "fire"
+      "stimulus": "fire",
+      "version": 6
     }
   ],
   "stopped": null

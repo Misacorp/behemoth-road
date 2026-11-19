@@ -686,7 +686,8 @@
       },
       "characterId": "111111111111111111.0",
       "material": "forage",
-      "amount": 1
+      "amount": 1,
+      "version": 5
     }
   ],
   "stopped": null

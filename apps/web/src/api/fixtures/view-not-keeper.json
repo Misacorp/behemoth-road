@@ -673,5 +673,7 @@
       "joinedDay": 1
     }
   ],
-  "devTools": true
+  "devTools": true,
+  "events": [],
+  "eventsTruncated": false
 }

@@ -686,7 +686,8 @@
   "events": [
     {
       "kind": "linger",
-      "characterId": "111111111111111111.0"
+      "characterId": "111111111111111111.0",
+      "version": 9
     }
   ],
   "stopped": null

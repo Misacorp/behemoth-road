@@ -687,7 +687,8 @@
     {
       "kind": "fed",
       "characterId": "111111111111111111.0",
-      "material": "forage"
+      "material": "forage",
+      "version": 8
     }
   ],
   "stopped": null
