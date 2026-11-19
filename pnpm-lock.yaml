@@ -217,6 +217,12 @@ importers:
 
   apps/web:
     dependencies:
+      '@behemoth-road/art':
+        specifier: workspace:*
+        version: link:../../packages/art
+      '@behemoth-road/core':
+        specifier: workspace:*
+        version: link:../../packages/core
       preact:
         specifier: 'catalog:'
         version: 11.0.1

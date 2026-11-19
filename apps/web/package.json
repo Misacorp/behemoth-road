@@ -8,9 +8,12 @@
     "build": "vite build",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "eslint --cache --cache-strategy content --cache-location node_modules/.cache/eslint/ .",
-    "test": "vitest run"
+    "test": "vitest run",
+    "screenshots": "node scripts/screenshots.mjs"
   },
   "dependencies": {
+    "@behemoth-road/art": "workspace:*",
+    "@behemoth-road/core": "workspace:*",
     "preact": "catalog:"
   },
   "devDependencies": {
