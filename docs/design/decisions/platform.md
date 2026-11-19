@@ -4,6 +4,30 @@ Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: One Durable Object per Discord server holds the game; its alarm runs the day tick
+
+ID: `2026-11-19-one-durable-object-per-discord-server` · Status: current
+
+**Decision.** Each Discord server's game lives in one SQLite-backed Durable Object, keyed by the server's guild id, as in creatures. The object runs one request at a time and writes in transactions; schema changes run through an in-code migration runner. The daily tick is the object's alarm, computed in the group's time zone; in local development and staging an admin "next day" calls the same tick function on demand. Milestone 1 needs no storage; this applies from Milestone 2.
+
+**Reasoning.** Creatures runs this way in production. One object per server matches "one session per server", serialised requests remove write races for a group of about 8, and D1 lacks interactive transactions. Cloudflare cron triggers are UTC only, which is why creatures moved to alarms.
+
+## 2026-11-19: The game core is its own pure package, imported by the Worker and the frontend
+
+ID: `2026-11-19-the-game-core-is-its-own` · Status: current
+
+**Decision.** All game rules live in `packages/core`: hex maths, map generation, the creature, the window, actions and the day tick, plus content data and one tuning config. It has no UI, network or storage code, takes a seed for all randomness, and exposes pure functions from state and input to new state. The Worker and the frontend import it as a workspace package.
+
+**Reasoning.** The same rules then validate actions on the server, predict outcomes in the client, and later run headless balancing simulations. Creatures splits its packages the same way.
+
+## 2026-11-19: Players open the game as a Discord Activity, like creatures **[Misa]**
+
+ID: `2026-11-19-players-open-the-game-as-a` · Status: current
+
+**Decision.** The game runs as a Discord Activity, launched from inside Discord on phone and desktop, with no separate website login. Sign-in reuses creatures' approach: the Embedded App SDK's authorize code is exchanged by the Worker, the Discord server comes from the Activity instance as reported to the bot, and the session is an HMAC-signed bearer token. The frontend keeps Discord-specific code at its edges so a browser login could be added later. Milestone 1 has no sign-in and is a plain page.
+
+**Reasoning.** Misa chose this over a website with "Sign in with Discord". Creatures' sign-in already works, and Discord vouches for which server a player is in, so no membership check is needed.
+
 ## 2026-11-19: Decisions live in docs/design/decisions, one file per topic
 
 ID: `2026-11-19-decisions-live-in-docs-design-decisions` · Status: current
