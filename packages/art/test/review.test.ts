@@ -12,7 +12,7 @@ describe('review batch', () => {
       if (i.kind === 'pick') picks.set(i.pick!, (picks.get(i.pick!) ?? new Set()).add(i.question));
       else expect(i.pick).toBeUndefined();
     }
-    expect([...picks.keys()]).toEqual(['style-palette', 'style-tilt', 'creature-facing']);
+    expect([...picks.keys()]).toEqual(['creature-shape']);
     for (const qs of picks.values()) expect(qs.size).toBe(1);
   });
 

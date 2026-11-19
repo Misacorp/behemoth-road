@@ -29,7 +29,7 @@ describe('scene cells', () => {
 
   it('find an art look for every core terrain id, and face the creature by its heading', () => {
     for (const t of TERRAIN_TYPES) expect(TERRAIN_LOOKS[t.id], t.id).toBeDefined();
-    expect(creatureArt(createGame(1, { heading: 'nw' })).facing).toBe('left');
-    expect(creatureArt(createGame(1, { heading: 'n' })).facing).toBe('right');
+    expect(creatureArt(createGame(1, { heading: 'nw' })).heading).toEqual({ q: -1, r: 0 });
+    expect(creatureArt(createGame(1, { heading: 'n' })).heading).toEqual({ q: 0, r: -1 });
   });
 });

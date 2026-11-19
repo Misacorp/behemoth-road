@@ -4,7 +4,7 @@
  * with a character beside it, and one hint mark.
  */
 import type { CharacterArt } from './character.ts';
-import { GENTLE_AMBLER, type CreatureArt, type CreatureFacing } from './creature.ts';
+import { GENTLE_AMBLER, type CreatureArt } from './creature.ts';
 import { hexDistance } from './projection.ts';
 import type { ArtCell } from './tile.ts';
 
@@ -32,7 +32,7 @@ const EXPLICIT: Readonly<Record<string, Partial<ArtCell>>> = {
   '-1,-2': { terrain: 'forest' },
 };
 
-export function samplePatch(facing: CreatureFacing = 'right'): {
+export function samplePatch(heading: { q: number; r: number } = { q: 0, r: -1 }): {
   cells: ArtCell[];
   creature: CreatureArt;
   characters: CharacterArt[];
@@ -50,7 +50,7 @@ export function samplePatch(facing: CreatureFacing = 'right'): {
   }
   return {
     cells,
-    creature: { q: 0, r: 0, facing, look: GENTLE_AMBLER },
+    creature: { q: 0, r: 0, heading, look: GENTLE_AMBLER },
     characters: [{ id: 'sample-scout', q: 1, r: 1, accent: 'rose' }],
   };
 }

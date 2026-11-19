@@ -18,7 +18,7 @@ export function bigScene(): SceneInput {
   }
   return {
     cells,
-    creature: { q: 0, r: 0, facing: 'right', look: GENTLE_AMBLER },
+    creature: { q: 0, r: 0, heading: { q: 0, r: -1 }, look: GENTLE_AMBLER },
     characters: [{ id: 'a', q: 2, r: 0, accent: 'teal' }],
     projection: isometric(),
     palette: MIST,

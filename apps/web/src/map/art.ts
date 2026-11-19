@@ -2,5 +2,5 @@
 import { isometric, paletteById } from '@behemoth-road/art';
 import { MAP_TUNING } from './config.ts';
 
-export const PROJECTION = isometric(MAP_TUNING.hexSize);
+export const PROJECTION = isometric(MAP_TUNING.hexSize, MAP_TUNING.tilt);
 export const PALETTE = paletteById(MAP_TUNING.paletteId);

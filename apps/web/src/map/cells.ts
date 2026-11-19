@@ -3,7 +3,7 @@
  * Reads the core only; the core never learns about the screen.
  */
 import type { ArtCell, CellState, CharacterArt, CreatureArt } from '@behemoth-road/art';
-import { facingFor, GENTLE_AMBLER } from '@behemoth-road/art';
+import { GENTLE_AMBLER } from '@behemoth-road/art';
 import {
   directionOffset,
   type GameState,
@@ -59,7 +59,7 @@ export function creatureArt(state: GameState): CreatureArt {
   return {
     q: state.creature.centre.q,
     r: state.creature.centre.r,
-    facing: facingFor(directionOffset(state.creature.heading), MAP_TUNING.creatureNorth),
+    heading: directionOffset(state.creature.heading),
     look: GENTLE_AMBLER,
   };
 }

@@ -9,10 +9,10 @@ export const MAP_TUNING = {
   characterId: 'you',
   /** Its cloak colour, an accent key from the art kit palette. */
   accent: 'rose',
-  /** Art kit palette id (`morning`, `mist`, `spring`). */
-  paletteId: 'morning',
-  /** How the creature faces when heading north: drawn side-on (`side`) or from behind (`away`). */
-  creatureNorth: 'side' as 'side' | 'away',
+  /** Art kit palette id (`morning`, `mist`, `spring`); Misa picked Spring. */
+  paletteId: 'spring',
+  /** Vertical squash of the map plane (1 is top-down); Misa picked a high view, 0.8. */
+  tilt: 0.8,
   /** Ink lines never get thinner than this on screen, in px (the scene is redrawn when zoom settles). */
   minInkPx: 1,
   /** Hex circumradius in world px at zoom 1. */

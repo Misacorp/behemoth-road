@@ -6,12 +6,13 @@ import { el, isometric, renderScene, type CellState } from '@behemoth-road/art';
 import type { JSX } from 'preact';
 import { Pips, TickMark } from '../hud/icons.tsx';
 import { PALETTE } from './art.ts';
+import { MAP_TUNING } from './config.ts';
 import { toPreact } from './svgToPreact.ts';
 
 export const INSPECT_SIZE = { width: 132, height: 76 } as const;
 export const CONFIRM_SIZE = { width: 150, height: 60 } as const;
 
-const MINI = isometric(24);
+const MINI = isometric(24, MAP_TUNING.tilt);
 
 function Card({ width, height }: { width: number; height: number }): JSX.Element {
   return (

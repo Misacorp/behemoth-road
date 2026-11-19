@@ -1,14 +1,16 @@
 /** A map patch as one SVG: paper, the ground under the wash filter, then every upright thing back to front. */
 import { drawCharacter, type CharacterArt } from './character.ts';
 import { ART_TUNING } from './config.ts';
-import { drawCreature, type CreatureArt } from './creature.ts';
+import { drawCreature, inFootprint, type CreatureArt } from './creature.ts';
+import { figureAnchor } from './figure.ts';
 import { artDefs, refUrl } from './filters.ts';
-import { unionBox, type Box, type Point } from './geom.ts';
+import { ellipsePath, unionBox, type Box, type Point } from './geom.ts';
 import type { Palette } from './palette.ts';
 import { drawOrder, hexCenter, hexDistance, onPlane, type Projection } from './projection.ts';
 import {
   hintMark,
   inkWidth,
+  riseFor,
   PROP_DRAWERS,
   PROP_SPACING,
   type Drawn,
@@ -50,6 +52,8 @@ interface Placed {
   readonly at: Point;
   readonly drawn: Drawn;
   readonly opacity?: number;
+  /** Draw after everything up to this screen y instead of `at.y` (a character standing on the creature). */
+  readonly after?: number;
 }
 
 /** Picks spots for a tile's props inside the hex, keeping each prop's spacing. */
@@ -178,25 +182,46 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
   }
 
   if (creature) {
-    const c = onPlane(p, hexCenter(p, creature.q, creature.r), 0, 0.12);
+    const c = hexCenter(p, creature.q, creature.r);
     placed.push({
       at: c,
-      drawn: drawCreature(palette, creature.look, c, p.size, p.squash, ink, creature.facing),
+      drawn: drawCreature(palette, creature.look, c, p.size, p.squash, ink, creature.heading),
     });
   }
   const sites = new Set(cells.filter((c) => c.site).map((c) => `${c.q},${c.r}`));
   const perTile = new Map<string, number>();
+  const creatureY = creature ? hexCenter(p, creature.q, creature.r).y : 0;
   for (const ch of input.characters ?? []) {
     const key = `${ch.q},${ch.r}`;
     const index = perTile.get(key) ?? 0;
     perTile.set(key, index + 1);
-    // Beside a site, stand to its front left; otherwise near the middle.
-    const dx = (sites.has(key) ? -0.5 : -0.05) + index * 0.32;
-    const c = onPlane(p, hexCenter(p, ch.q, ch.r), dx, 0.3 - index * 0.06);
+    const c = figureAnchor(p, ch, index, { site: sites.has(key) });
+    if (creature && inFootprint(creature, ch)) {
+      // Standing on the creature's back: drawn over it, with a firm contact shadow so it does not float.
+      const drawn = drawCharacter(palette, ch.accent, c, p.size, p.squash, ink);
+      const contact = el('path', {
+        d: ellipsePath(
+          c.x + 0.02 * p.size,
+          c.y + 0.01 * p.size,
+          0.2 * p.size,
+          0.07 * p.size * (p.squash / 0.6),
+        ),
+        fill: palette.shadow,
+        opacity: 0.38,
+      });
+      placed.push({
+        at: c,
+        drawn: { nodes: [contact, ...drawn.nodes], box: drawn.box },
+        // After the creature, and among themselves by their own depth.
+        after: creatureY + 1e-3 + (c.y - creatureY) * 1e-6,
+      });
+      continue;
+    }
     placed.push({ at: c, drawn: drawCharacter(palette, ch.accent, c, p.size, p.squash, ink) });
   }
 
-  placed.sort((a, b) => drawOrder(a.at, b.at));
+  const sortAt = (x: Placed): Point => (x.after === undefined ? x.at : { x: x.at.x, y: x.after });
+  placed.sort((a, b) => drawOrder(sortAt(a), sortAt(b)));
   const objects: SvgNode[] = placed.flatMap(({ drawn, opacity }) =>
     opacity === undefined ? drawn.nodes : [el('g', { opacity }, drawn.nodes)],
   );
@@ -233,6 +258,14 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
   return { svg, viewBox: frame };
 
   function ctx(origin: Point, rng: Rng, scale = 1) {
-    return { palette, rng, origin, k: p.k * scale, squash: p.squash, ink: ink * scale };
+    return {
+      palette,
+      rng,
+      origin,
+      k: p.k * scale,
+      squash: p.squash,
+      ink: ink * scale,
+      rise: riseFor(p.squash),
+    };
   }
 }

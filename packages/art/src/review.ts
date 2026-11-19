@@ -2,12 +2,14 @@
  * The review batch: the items Misa looks at, each as a self-contained SVG. `scripts/review.mjs` writes them
  * with `items.json`. Item ids are stable across batches.
  */
-import { ACCENTS, MIST, PALETTES, type Palette } from './palette.ts';
-import { isometric, topDown, type Projection } from './projection.ts';
+import { ACCENTS, SPRING } from './palette.ts';
+import { DIRECTIONS, isometric } from './projection.ts';
 import { samplePatch } from './sample.ts';
 import { renderScene } from './scene.ts';
 import { toSvgString } from './svg.ts';
-import { GENTLE_AMBLER, type CreatureFacing } from './creature.ts';
+import { ART_TUNING } from './config.ts';
+import { drawCreature, GENTLE_AMBLER, type CreatureLook } from './creature.ts';
+import type { PropDraw } from './props.ts';
 import { TERRAIN_LOOKS } from './terrain.ts';
 import type { ArtCell } from './tile.ts';
 
@@ -23,11 +25,7 @@ export interface ReviewDraft {
 }
 
 const SEED = 'style-sample-1';
-
-function patch(palette: Palette, projection: Projection, facing: CreatureFacing = 'right'): string {
-  const { cells, creature, characters } = samplePatch(facing);
-  return toSvgString(renderScene({ cells, creature, characters, projection, palette, seed: SEED }));
-}
+const PALETTE = SPRING;
 
 /** Cells in rows of `perRow`, one hex apart: index i sits at column i % perRow, row i / perRow. */
 function gridCell(i: number, perRow: number): { q: number; r: number } {
@@ -36,11 +34,37 @@ function gridCell(i: number, perRow: number): { q: number; r: number } {
   return { q: 2 * col, r: -col + 2 * row };
 }
 
+/** The seven hexes of a creature's footprint around (q, r), as plain ground. */
+function footprint(q: number, r: number): ArtCell[] {
+  return [{ q: 0, r: 0 }, ...DIRECTIONS].map((d) => ({
+    q: q + d.q,
+    r: r + d.r,
+    terrain: 'plains',
+    props: [],
+  }));
+}
+
+const NORTH = { q: 0, r: -1 };
+
+function mapPatch(): string {
+  const { cells, creature, characters } = samplePatch(NORTH);
+  return toSvgString(
+    renderScene({
+      cells,
+      creature,
+      characters,
+      projection: isometric(),
+      palette: PALETTE,
+      seed: SEED,
+    }),
+  );
+}
+
 function terrainSheet(): string {
   const ids = [...Object.keys(TERRAIN_LOOKS), 'unknown-terrain'];
   const cells: ArtCell[] = ids.map((terrain, i) => ({ ...gridCell(i, 5), terrain }));
   return toSvgString(
-    renderScene({ cells, projection: isometric(56), palette: MIST, seed: 'terrain-sheet' }),
+    renderScene({ cells, projection: isometric(56), palette: PALETTE, seed: 'terrain-sheet' }),
   );
 }
 
@@ -66,27 +90,73 @@ function propsSheet(): string {
     }
   });
   return toSvgString(
-    renderScene({ cells, projection: isometric(56), palette: MIST, seed: 'props-sheet' }),
+    renderScene({ cells, projection: isometric(56), palette: PALETTE, seed: 'props-sheet' }),
   );
 }
 
-function creatureSheet(facing: CreatureFacing): string {
-  const cells: ArtCell[] = [
-    { q: 0, r: 0 },
-    { q: 1, r: 0 },
-    { q: 1, r: -1 },
-    { q: 0, r: -1 },
-    { q: -1, r: 0 },
-    { q: -1, r: 1 },
-    { q: 0, r: 1 },
-  ].map((h) => ({ ...h, terrain: 'plains', props: [] }));
+/** The creature alone, large, walking north. */
+function creatureAlone(look: CreatureLook): string {
+  // Two rings of plain ground, the creature walking north-east (its shape reads best turned a little), and
+  // a character beside it for scale.
+  const cells: ArtCell[] = [];
+  for (let q = -2; q <= 2; q += 1) {
+    for (let r = -2; r <= 2; r += 1) {
+      if (Math.abs(q) + Math.abs(r) + Math.abs(q + r) <= 4)
+        cells.push({ q, r, terrain: 'plains', props: [] });
+    }
+  }
   return toSvgString(
     renderScene({
       cells,
-      creature: { q: 0, r: 0, facing, look: GENTLE_AMBLER },
-      projection: isometric(140),
-      palette: MIST,
+      creature: { q: 0, r: 0, heading: { q: 1, r: -1 }, look },
+      characters: [{ id: 'scale', q: -1, r: 2, accent: 'rose' }],
+      projection: isometric(78),
+      palette: PALETTE,
       seed: 'creature-sheet',
+    }),
+  );
+}
+
+/** The creature walking each of the six hex directions, north first, clockwise. */
+function headingsSheet(): string {
+  const headings = [
+    NORTH,
+    { q: 1, r: -1 },
+    { q: 1, r: 0 },
+    { q: 0, r: 1 },
+    { q: -1, r: 1 },
+    { q: -1, r: 0 },
+  ];
+  const centres = headings.map((_, i) => {
+    const col = i % 3;
+    const row = Math.floor(i / 3);
+    return { q: 5 * col, r: -Math.floor((5 * col) / 2) + 5 * row };
+  });
+  // Each creature is drawn through a prop override on its footprint's centre, so all six share one scene.
+  const overrides: Record<string, PropDraw> = {};
+  const cells = centres.flatMap((c, i) => {
+    const kind = `creature-${i}`;
+    overrides[kind] = (ctx) =>
+      drawCreature(
+        ctx.palette,
+        GENTLE_AMBLER,
+        ctx.origin,
+        ctx.k * ART_TUNING.hexSize,
+        ctx.squash,
+        ctx.ink,
+        headings[i]!,
+      );
+    return footprint(c.q, c.r).map((cell) =>
+      cell.q === c.q && cell.r === c.r ? { ...cell, props: [{ kind, dx: 0, dy: 0 }] } : cell,
+    );
+  });
+  return toSvgString(
+    renderScene({
+      cells,
+      projection: isometric(38),
+      palette: PALETTE,
+      seed: 'headings',
+      overrides,
     }),
   );
 }
@@ -103,7 +173,7 @@ function charactersSheet(): string {
       cells,
       characters,
       projection: isometric(110),
-      palette: MIST,
+      palette: PALETTE,
       seed: 'characters-sheet',
     }),
   );
@@ -117,81 +187,64 @@ function fogSheet(): string {
     { ...gridCell(3, 4), terrain: 'plains', hint: true, props: [] },
   ];
   return toSvgString(
-    renderScene({ cells, projection: isometric(72), palette: MIST, seed: 'fog-sheet' }),
+    renderScene({ cells, projection: isometric(72), palette: PALETTE, seed: 'fog-sheet' }),
   );
 }
 
 export function buildReviewItems(): ReviewDraft[] {
-  const palettePick = {
+  const shapePick = {
     kind: 'pick',
-    pick: 'style-palette',
-    question: 'Which palette should the game use?',
+    pick: 'creature-shape',
+    question: 'Which creature shape?',
   } as const;
-  const tiltPick = {
-    kind: 'pick',
-    pick: 'style-tilt',
-    question: 'How strong should the tilt be?',
-  } as const;
-  const facingPick = {
-    kind: 'pick',
-    pick: 'creature-facing',
-    question: 'Which way should the creature face when it walks north?',
-  } as const;
+  const glance = { kind: 'glance' } as const;
   return [
-    ...PALETTES.map((palette): ReviewDraft => ({
-      id: `style/${palette.id}`,
-      group: 'Style sample',
-      title: palette.name,
-      file: `style-${palette.id}.svg`,
-      ...palettePick,
-      svg: patch(palette, isometric()),
-    })),
     {
-      id: 'tilt/0-5',
-      group: 'Tilt',
-      title: 'Tilt 0.5',
-      file: 'tilt-0-5.svg',
-      ...tiltPick,
-      svg: patch(MIST, isometric(64, 0.5)),
+      id: 'map/patch',
+      group: 'Map',
+      title: 'The map, Spring at tilt 0.8',
+      file: 'map-patch.svg',
+      ...glance,
+      svg: mapPatch(),
     },
     {
-      id: 'tilt/0-6',
-      group: 'Tilt',
-      title: 'Tilt 0.6',
-      file: 'tilt-0-6.svg',
-      ...tiltPick,
-      svg: patch(MIST, isometric(64, 0.6)),
+      id: 'creature/headings',
+      group: 'Creature',
+      title: 'Walking the six directions',
+      file: 'creature-headings.svg',
+      ...glance,
+      svg: headingsSheet(),
     },
     {
-      id: 'tilt/top',
-      group: 'Tilt',
-      title: 'Top-down',
-      file: 'tilt-top.svg',
-      ...tiltPick,
-      svg: patch(MIST, topDown(64)),
+      id: 'creature-shape/broad',
+      group: 'Creature shape',
+      title: 'Broad, high back',
+      file: 'creature-shape-broad.svg',
+      ...shapePick,
+      svg: creatureAlone(GENTLE_AMBLER),
     },
     {
-      id: 'facing/side',
-      group: 'Creature facing',
-      title: 'Side view',
-      file: 'facing-side.svg',
-      ...facingPick,
-      svg: patch(MIST, isometric(), 'right'),
+      id: 'creature-shape/longneck',
+      group: 'Creature shape',
+      title: 'Long neck, long tail',
+      file: 'creature-shape-longneck.svg',
+      ...shapePick,
+      svg: creatureAlone({ ...GENTLE_AMBLER, body: 'longneck' }),
     },
     {
-      id: 'facing/away',
-      group: 'Creature facing',
-      title: 'From behind',
-      file: 'facing-away.svg',
-      ...facingPick,
-      svg: patch(MIST, isometric(), 'away'),
+      id: 'creature-shape/low',
+      group: 'Creature shape',
+      title: 'Low, wide and mossy',
+      file: 'creature-shape-low.svg',
+      ...shapePick,
+      svg: creatureAlone({ ...GENTLE_AMBLER, body: 'low' }),
     },
     {
       id: 'sheet/terrain',
       group: 'Sheets',
       title: 'Terrain tiles',
       file: 'sheet-terrain.svg',
-      kind: 'glance',
+      ...glance,
       svg: terrainSheet(),
     },
     {
@@ -199,31 +252,15 @@ export function buildReviewItems(): ReviewDraft[] {
       group: 'Sheets',
       title: 'Props',
       file: 'sheet-props.svg',
-      kind: 'glance',
+      ...glance,
       svg: propsSheet(),
-    },
-    {
-      id: 'creature/gentle-ambler',
-      group: 'Sheets',
-      title: 'The first creature',
-      file: 'creature-gentle-ambler.svg',
-      kind: 'glance',
-      svg: creatureSheet('right'),
-    },
-    {
-      id: 'creature/gentle-ambler-away',
-      group: 'Sheets',
-      title: 'The first creature from behind',
-      file: 'creature-gentle-ambler-away.svg',
-      kind: 'glance',
-      svg: creatureSheet('away'),
     },
     {
       id: 'sheet/characters',
       group: 'Sheets',
       title: 'Character standees',
       file: 'sheet-characters.svg',
-      kind: 'glance',
+      ...glance,
       svg: charactersSheet(),
     },
     {
@@ -231,7 +268,7 @@ export function buildReviewItems(): ReviewDraft[] {
       group: 'Sheets',
       title: 'Unseen, fading, lost, hint',
       file: 'sheet-fog.svg',
-      kind: 'glance',
+      ...glance,
       svg: fogSheet(),
     },
   ];

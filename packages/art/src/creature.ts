@@ -1,65 +1,193 @@
 /**
- * The creature, drawn upright in side view from named parts chosen by a data object. Hand-tuned hero art:
- * coordinates are written by hand in local units (ground at y 0, facing right, about 150 units long).
+ * The creature, seen from above at the map's view angle: an ancient walking hill. It is modelled as soft
+ * solids (a broad body, a long neck, a large head with swept horns, thick legs, a tapering tail) in its own
+ * frame, turned to its heading and projected like the ground: a point at plane position (X, Y) and height Z
+ * lands at (X, Y·squash − Z·√(1 − squash²)). So one drawing serves all six hex directions, and the moss,
+ * trees, rock and pond on its back face the viewer. At scale 1 the body fills its seven-hex footprint and
+ * the head and tail reach past it.
  */
-import { ART_TUNING } from './config.ts';
-import { boxOf, ellipsePath, mapper, poly, smoothClosed, smoothOpen, type Point } from './geom.ts';
+import { boxOf, ellipsePath, poly, smoothClosed, smoothOpen, type Point } from './geom.ts';
 import type { Palette } from './palette.ts';
 import { inkAttrs, type Drawn } from './props.ts';
 import { el, type SvgNode } from './svg.ts';
 
+export type CreatureBody = 'broad' | 'longneck' | 'low';
+
 export interface CreatureLook {
   readonly id: string;
-  readonly body: 'round' | 'long';
-  readonly legs: 'stumpy' | 'tall';
-  readonly markings: 'spots' | 'stripes' | 'none';
-  readonly ears: 'leaf' | 'round';
-  readonly horns: 'nubs' | 'none';
-  /** What grows on its back. */
-  readonly back: 'garden' | 'bare';
-  readonly tail: 'tuft' | 'short';
+  /**
+   * Its build: `broad` a high tortoise-like back and a strong neck; `longneck` a narrower body with a neck
+   * that rises high and a long tail; `low` a wide, low, mossy mound with its head held low.
+   */
+  readonly body: CreatureBody;
+  /** Size against its footprint: 1 fills the seven hexes. */
+  readonly scale: number;
+  readonly markings: 'spots' | 'none';
+  readonly horns: 'swept' | 'none';
+  /** What covers its back: a small landscape (moss, trees, a rock, a pond), only moss, or bare hide. */
+  readonly back: 'landscape' | 'moss' | 'bare';
+  readonly tail: 'tuft' | 'plain';
 }
 
-/** The first creature: tame, slow and gentle. */
+/** The first creature: tame, slow and gentle, and very large. */
 export const GENTLE_AMBLER: CreatureLook = {
   id: 'gentle-ambler',
-  body: 'round',
-  legs: 'stumpy',
+  body: 'broad',
+  scale: 1,
   markings: 'spots',
-  ears: 'leaf',
-  horns: 'nubs',
-  back: 'garden',
+  horns: 'swept',
+  back: 'landscape',
   tail: 'tuft',
 };
-
-export type CreatureFacing = 'left' | 'right' | 'away';
-
-/**
- * Which way to draw the creature for a heading (an axial step): side view by the heading's east or west part.
- * Straight north uses `north`: the side view facing right, or the view from behind.
- */
-export function facingFor(
-  heading: { q: number; r: number },
-  north: 'side' | 'away',
-): CreatureFacing {
-  if (heading.q > 0) return 'right';
-  if (heading.q < 0) return 'left';
-  return heading.r < 0 && north === 'away' ? 'away' : 'right';
-}
 
 export interface CreatureArt {
   /** Centre hex of its seven-hex footprint. */
   readonly q: number;
   readonly r: number;
-  /** Side view to the left or right, or a three-quarter view from behind, walking up the screen. */
-  readonly facing: CreatureFacing;
+  /** The axial step it walks along (one of the six neighbour offsets); its head points this way. */
+  readonly heading: { readonly q: number; readonly r: number };
   readonly look: CreatureLook;
 }
 
-type Raw = readonly (readonly [number, number])[];
+interface V3 {
+  readonly x: number;
+  readonly y: number;
+  readonly z: number;
+}
 
-/** Local units span this many units from tail to snout. */
-const LENGTH_UNITS = 150;
+/** An ellipsoid in the creature frame: centre (u, v, z), semi-axes a (forward), b (across), c (up). */
+interface Solid {
+  readonly u: number;
+  readonly v: number;
+  readonly z: number;
+  readonly a: number;
+  readonly b: number;
+  readonly c: number;
+}
+
+interface Build {
+  readonly body: Solid;
+  readonly legRadius: number;
+  readonly legSpread: readonly [number, number];
+  /** Neck from the shoulder to the head: start, end and radii (u, z, radius). */
+  readonly neck: readonly [readonly [number, number, number], readonly [number, number, number]];
+  readonly head: Solid;
+  readonly tail: readonly [readonly [number, number, number], readonly [number, number, number]];
+  readonly trees: number;
+  /** How far down the back the moss reaches: the least upward tilt of the surface it covers. */
+  readonly mossUp: number;
+}
+
+/** The three builds, in hex sizes at scale 1. */
+const BUILDS: Readonly<Record<CreatureBody, Build>> = {
+  broad: {
+    body: { u: 0, v: 0, z: 1.0, a: 2.0, b: 1.75, c: 1.4 },
+    legRadius: 0.56,
+    legSpread: [1.1, 1.0],
+    neck: [
+      [1.82, 1.5, 0.62],
+      [2.5, 1.85, 0.44],
+    ],
+    head: { u: 2.98, v: 0, z: 1.92, a: 0.62, b: 0.54, c: 0.46 },
+    tail: [
+      [-1.75, 1.05, 0.5],
+      [-2.8, 0.3, 0.14],
+    ],
+    trees: 3,
+    mossUp: 0.58,
+  },
+  longneck: {
+    body: { u: -0.15, v: 0, z: 1.2, a: 1.85, b: 1.3, c: 1.1 },
+    legRadius: 0.46,
+    legSpread: [1.05, 0.82],
+    neck: [
+      [1.62, 1.8, 0.5],
+      [2.75, 3.0, 0.3],
+    ],
+    head: { u: 3.1, v: 0, z: 3.15, a: 0.54, b: 0.42, c: 0.38 },
+    tail: [
+      [-1.7, 1.25, 0.46],
+      [-3.6, 0.3, 0.09],
+    ],
+    trees: 2,
+    mossUp: 0.62,
+  },
+  low: {
+    body: { u: 0, v: 0, z: 0.75, a: 2.2, b: 1.95, c: 1.0 },
+    legRadius: 0.58,
+    legSpread: [1.3, 1.22],
+    neck: [
+      [2.02, 0.98, 0.56],
+      [2.5, 1.0, 0.48],
+    ],
+    head: { u: 2.92, v: 0, z: 1.05, a: 0.6, b: 0.56, c: 0.42 },
+    tail: [
+      [-2.0, 0.75, 0.42],
+      [-2.75, 0.3, 0.16],
+    ],
+    trees: 3,
+    mossUp: 0.35,
+  },
+};
+
+/** Convex hull (monotone chain). */
+function hull(points: readonly Point[]): Point[] {
+  const pts = [...points].sort((a, b) => a.x - b.x || a.y - b.y);
+  if (pts.length < 3) return pts;
+  const cross = (o: Point, a: Point, b: Point): number =>
+    (a.x - o.x) * (b.y - o.y) - (a.y - o.y) * (b.x - o.x);
+  const lower: Point[] = [];
+  for (const p of pts) {
+    while (lower.length >= 2 && cross(lower[lower.length - 2]!, lower[lower.length - 1]!, p) <= 0)
+      lower.pop();
+    lower.push(p);
+  }
+  const upper: Point[] = [];
+  for (let i = pts.length - 1; i >= 0; i -= 1) {
+    const p = pts[i]!;
+    while (upper.length >= 2 && cross(upper[upper.length - 2]!, upper[upper.length - 1]!, p) <= 0)
+      upper.pop();
+    upper.push(p);
+  }
+  return [...lower.slice(0, -1), ...upper.slice(0, -1)];
+}
+
+/** Drops points closer than `min` to the previous one, so smoothed outlines stay calm. */
+function thin(points: readonly Point[], min: number): Point[] {
+  const out: Point[] = [];
+  for (const p of points) {
+    const last = out[out.length - 1];
+    if (!last || Math.hypot(p.x - last.x, p.y - last.y) >= min) out.push(p);
+  }
+  const first = out[0];
+  const last = out[out.length - 1];
+  if (out.length > 3 && first && last && Math.hypot(first.x - last.x, first.y - last.y) < min)
+    out.pop();
+  return out;
+}
+
+/** Pulls each point towards the centroid by a calm, repeatable wobble: a lumpy edge for moss. */
+function lumpy(points: readonly Point[], amount: number, phase: number): Point[] {
+  const cx = points.reduce((s, p) => s + p.x, 0) / Math.max(1, points.length);
+  const cy = points.reduce((s, p) => s + p.y, 0) / Math.max(1, points.length);
+  return points.map((p, i) => {
+    const f =
+      1 - amount * (0.5 + 0.5 * Math.sin(i * 2.4 + phase) * Math.cos(i * 0.9 + phase * 0.5));
+    return { x: cx + (p.x - cx) * f, y: cy + (p.y - cy) * f };
+  });
+}
+
+/** A unit vector along an axial step, on the ground plane (x east, y south). */
+function planeDirection(step: { q: number; r: number }): { x: number; y: number } {
+  const x = 1.5 * step.q;
+  const y = Math.sqrt(3) * (step.r + step.q / 2);
+  const len = Math.hypot(x, y);
+  // A step that is zero or not a number faces north.
+  if (!Number.isFinite(len) || len <= 0) return { x: 0, y: -1 };
+  return { x: x / len, y: y / len };
+}
+
+const fmt = (n: number): string => (Math.round(n * 10) / 10).toString();
 
 export function drawCreature(
   palette: Palette,
@@ -68,820 +196,487 @@ export function drawCreature(
   size: number,
   squash: number,
   ink: number,
-  facing: CreatureFacing,
+  heading: { q: number; r: number },
 ): Drawn {
-  if (facing === 'away') return drawCreatureAway(palette, look, origin, size, squash, ink);
-  const k = (size * ART_TUNING.creatureLength) / LENGTH_UNITS;
-  const T = mapper(origin, k, facing === 'left' ? -1 : 1);
-  const stretch = look.body === 'long' ? 1.15 : 1;
-  const lift = look.legs === 'tall' ? 10 : -9;
-  // Body-space points: stretched along x, lifted by the legs.
-  const B = (x: number, y: number): Point => T(x * stretch, y - lift);
-  const pts = (raw: Raw, map = B): Point[] => raw.map(([x, y]) => map(x, y));
+  const build = BUILDS[look.body] ?? BUILDS.broad;
+  const S = Number.isFinite(look.scale) && look.scale > 0 ? look.scale : 1;
+  const unit = size * S;
+  const t = Number.isFinite(squash) ? Math.min(1, Math.max(0.2, squash)) : 0.8;
+  const rise = Math.sqrt(Math.max(0, 1 - t * t));
+  const fwd = planeDirection(heading);
+  const right = { x: -fwd.y, y: fwd.x };
+  // Creature frame (u forward, v to its right, z up; hex sizes at scale 1) to the world, then the screen.
+  const world = (u: number, v: number, z: number): V3 => ({
+    x: (u * fwd.x + v * right.x) * S,
+    y: (u * fwd.y + v * right.y) * S,
+    z: z * S,
+  });
+  const screen = (p: V3): Point => ({
+    x: origin.x + p.x * size,
+    y: origin.y + (p.y * t - p.z * rise) * size,
+  });
+  const at = (u: number, v: number, z: number): Point => screen(world(u, v, z));
+  // Faces the viewer: the view direction is (0, rise, t) in world terms (south and up).
+  const faces = (n: V3): boolean => n.y * rise + n.z * t > 0.05;
+
   const hide = palette.ramps.hide;
-  const w = ink * 1.1;
-  const inkLine = (d: string, width = w, colour = palette.ink): SvgNode =>
+  const moss = palette.ramps.moss;
+  const w = ink * 1.15;
+  const line = (d: string, width = w, colour = palette.ink): SvgNode =>
     el('path', { d, ...inkAttrs(colour, width) });
   const fill = (d: string, colour: string, opacity = 1): SvgNode =>
     el('path', opacity === 1 ? { d, fill: colour } : { d, fill: colour, opacity });
-  const nodes: SvgNode[] = [];
   const everything: Point[] = [];
+  const minGap = unit * 0.05;
 
-  // Shadow.
-  nodes.push(
-    fill(
-      ellipsePath(origin.x, origin.y, 62 * k * stretch, 10 * k * (squash / 0.6)),
-      palette.shadow,
-      0.18,
-    ),
-  );
-
-  // Legs: the far pair first, in shade.
-  const legLen = 36 + lift;
-  const leg = (x: number): Raw => [
-    [x - 9.5, -legLen],
-    [x + 9.5, -legLen],
-    [x + 8.4, -9],
-    [x + 9.2, -2],
-    [x + 5, 0.4],
-    [x - 5, 0.4],
-    [x - 9.2, -2],
-    [x - 8.4, -9],
-  ];
-  const legPts = (x: number): Point[] => pts(leg(x * stretch), T);
-  for (const x of [-27, 27]) {
-    const p = legPts(x);
-    everything.push(...p);
-    nodes.push(fill(smoothClosed(p), hide.shade), inkLine(smoothClosed(p)));
-  }
-
-  // Tail, behind the body.
-  if (look.tail === 'tuft') {
-    const tail = pts([
-      [-46, -52],
-      [-56, -49],
-      [-63, -41],
-      [-65, -33],
-      [-61, -33],
-      [-58, -40],
-      [-50, -45],
-    ]);
-    const tip = B(-63.5, -30.5);
-    everything.push(...tail, tip);
-    nodes.push(fill(smoothClosed(tail), hide.base), inkLine(smoothClosed(tail)));
-    const tuft = pts([
-      [-63.5, -36],
-      [-59, -31],
-      [-61, -25],
-      [-66, -24],
-      [-68.5, -29],
-    ]);
-    nodes.push(fill(smoothClosed(tuft), palette.marking), inkLine(smoothClosed(tuft)));
-  } else {
-    const tail = pts([
-      [-46, -50],
-      [-56, -46],
-      [-58, -42],
-      [-48, -42],
-    ]);
-    everything.push(...tail);
-    nodes.push(fill(smoothClosed(tail), hide.base), inkLine(smoothClosed(tail)));
-  }
-
-  // Body.
-  const bodyRaw: Raw = [
-    [-50, -46],
-    [-44, -66],
-    [-24, -80],
-    [2, -83],
-    [26, -77],
-    [42, -62],
-    [46, -45],
-    [36, -31],
-    [10, -26],
-    [-20, -27],
-    [-42, -32],
-  ];
-  const body = pts(bodyRaw);
-  everything.push(...body);
-  nodes.push(fill(smoothClosed(pts(bodyRaw.map(([x, y]) => [x + 0.8, y + 0.6]))), hide.base));
-  nodes.push(
-    fill(
-      smoothClosed(
-        pts([
-          [-40, -35],
-          [-20, -29.5],
-          [10, -28.5],
-          [34, -33.5],
-          [30, -39],
-          [6, -35],
-          [-20, -36],
-          [-38, -40],
-        ]),
-      ),
-      palette.belly,
-      0.85,
-    ),
-  );
-  nodes.push(
-    fill(
-      smoothClosed(
-        pts([
-          [-38, -61],
-          [-22, -75],
-          [0, -78.5],
-          [-4, -71],
-          [-22, -65],
-          [-34, -55],
-        ]),
-      ),
-      hide.light,
-      0.75,
-    ),
-  );
-  nodes.push(
-    fill(
-      smoothClosed(
-        pts([
-          [-49, -45],
-          [-45, -35],
-          [-32, -30],
-          [-38, -37],
-          [-45, -47],
-        ]),
-      ),
-      hide.shade,
-      0.5,
-    ),
-  );
-
-  // Markings.
-  if (look.markings === 'spots') {
-    const spots: [number, number, number, number][] = [
-      [-30, -67, 5, 3.4],
-      [-14, -74, 6, 3.8],
-      [4, -75.5, 5.4, 3.6],
-      [20, -70, 4.4, 3.1],
-      [-22, -57, 3, 2.1],
-      [8, -64, 3.4, 2.4],
-      [-4, -66, 2.4, 1.7],
-    ];
-    const d = spots
-      .map(([x, y, rx, ry]) => {
-        const c = B(x, y);
-        return ellipsePath(c.x, c.y, rx * k * stretch, ry * k);
-      })
-      .join('');
-    nodes.push(fill(d, palette.marking, 0.7));
-  } else if (look.markings === 'stripes') {
-    const d = [-30, -16, -2, 12, 26]
-      .map((x) =>
-        smoothClosed(
-          pts([
-            [x - 3, -78 + Math.abs(x) * 0.08],
-            [x + 3, -78 + Math.abs(x) * 0.08],
-            [x + 5, -60],
-            [x + 1, -58],
-          ]),
-        ),
-      )
-      .join('');
-    nodes.push(fill(d, palette.marking, 0.6));
-  }
-  nodes.push(inkLine(smoothClosed(body)));
-
-  // Near legs over the body.
-  for (const x of [-36, 16]) {
-    const p = legPts(x);
-    everything.push(...p);
-    const toes = [x - 3.2, x + 0.6, x + 4.2]
-      .map((tx) => poly([T(tx * stretch, 0), T(tx * stretch, -2.6)], false))
-      .join('');
-    const open = smoothOpen([p[1]!, ...p.slice(2), p[0]!]);
-    nodes.push(
-      fill(smoothClosed(p), hide.base),
-      inkLine(open),
-      inkLine(toes, w * 0.7, palette.inkSoft),
-    );
-  }
-
-  // Back garden: a sapling and tufts growing on its back.
-  if (look.back === 'garden') {
-    const trunk = pts([
-      [-6.6, -82.5],
-      [-6, -92],
-      [-4.6, -92],
-      [-4, -82.5],
-    ]);
-    const lobes: Raw[] = [
-      [
-        [-16, -95],
-        [-13, -101],
-        [-7, -101],
-        [-6, -95],
-        [-11, -92],
-      ],
-      [
-        [-6, -96],
-        [-3, -102],
-        [3, -101],
-        [5, -95],
-        [-1, -92],
-      ],
-      [
-        [-12, -101],
-        [-8, -108],
-        [-1, -108],
-        [1, -101],
-        [-6, -98],
-      ],
-    ];
-    const crowns = lobes.map((l) => pts(l));
-    everything.push(...crowns.flat());
-    nodes.push(fill(poly(trunk), palette.ramps.bark.base), inkLine(poly(trunk), w * 0.7));
-    for (const crown of crowns) {
-      nodes.push(
-        fill(smoothClosed(crown), palette.ramps.foliage.base),
-        inkLine(smoothClosed(crown), w * 0.8),
-      );
-    }
-    nodes.push(
-      fill(
-        smoothClosed(
-          pts([
-            [-9, -104],
-            [-6, -106],
-            [-3, -105],
-            [-5, -102],
-          ]),
-        ),
-        palette.ramps.foliage.light,
-        0.85,
-      ),
-    );
-    const blades: string[] = [];
-    for (const [bx, by] of [
-      [-26, -78.5],
-      [14, -80],
-      [28, -74],
-    ] as const) {
-      for (let i = -1; i <= 1; i += 1) {
-        blades.push(
-          smoothOpen([B(bx + i * 1.6, by), B(bx + i * 2.4, by - 4), B(bx + i * 3.6, by - 7)]),
+  const surface = (s: Solid, theta: number, phi: number): { p: V3; n: V3 } => {
+    const cu = Math.cos(phi) * Math.cos(theta);
+    const cv = Math.cos(phi) * Math.sin(theta);
+    const cz = Math.sin(phi);
+    const p = world(s.u + s.a * cu, s.v + s.b * cv, s.z + s.c * cz);
+    const nl = world(cu / s.a, cv / s.b, 0);
+    const n = { x: nl.x, y: nl.y, z: (cz / s.c) * S };
+    const len = Math.hypot(n.x, n.y, n.z) || 1;
+    return { p, n: { x: n.x / len, y: n.y / len, z: n.z / len } };
+  };
+  const outline = (s: Solid, minPhi = -Math.PI / 2): Point[] => {
+    const pts: Point[] = [];
+    for (let i = 0; i < 32; i += 1) {
+      for (let j = 0; j <= 8; j += 1) {
+        pts.push(
+          screen(surface(s, (Math.PI * 2 * i) / 32, minPhi + ((Math.PI / 2 - minPhi) * j) / 8).p),
         );
       }
     }
-    nodes.push(inkLine(blades.join(''), w * 0.65, palette.inkSoft));
-    const f1 = B(-20, -80);
-    const f2 = B(20, -78.5);
-    nodes.push(
-      fill(ellipsePath(f1.x, f1.y, 1.8 * k, 1.8 * k), palette.accents.rose.base),
-      fill(ellipsePath(f2.x, f2.y, 1.6 * k, 1.6 * k), palette.accents.ochre.base),
+    const h = thin(hull(pts), minGap);
+    everything.push(...h);
+    return h;
+  };
+  /** Surface points of a solid whose normal points up at least `minUp`, as a hull. */
+  const cap = (s: Solid, minUp: number): Point[] => {
+    const pts: Point[] = [];
+    for (let i = 0; i < 32; i += 1) {
+      for (let j = 0; j <= 12; j += 1) {
+        const { p, n } = surface(s, (Math.PI * 2 * i) / 32, (Math.PI / 2) * (j / 12));
+        if (n.z >= minUp) pts.push(screen(p));
+      }
+    }
+    return thin(hull(pts), minGap);
+  };
+  /** A round patch lying on a solid's surface around (theta, phi), if it faces the viewer. */
+  const patch = (s: Solid, theta: number, phi: number, r: number): string => {
+    if (!faces(surface(s, theta, phi).n)) return '';
+    const pts: Point[] = [];
+    for (let i = 0; i < 8; i += 1) {
+      const a = (Math.PI * 2 * i) / 8;
+      pts.push(
+        screen(
+          surface(
+            s,
+            theta + (Math.cos(a) * r) / Math.max(0.25, Math.cos(phi)),
+            phi + Math.sin(a) * r,
+          ).p,
+        ),
+      );
+    }
+    return smoothClosed(pts);
+  };
+  /** A tapered tube between two points (u, z, radius) along the creature's midline, as a hull. */
+  const tube = (
+    from: readonly [number, number, number],
+    to: readonly [number, number, number],
+  ): Point[] => {
+    const pts: Point[] = [];
+    for (let k = 0; k <= 6; k += 1) {
+      const f = k / 6;
+      const u = from[0] + (to[0] - from[0]) * f;
+      const z = from[1] + (to[1] - from[1]) * f;
+      const r = from[2] + (to[2] - from[2]) * f;
+      for (let i = 0; i < 16; i += 1) {
+        const a = (Math.PI * 2 * i) / 16;
+        pts.push(at(u, Math.cos(a) * r, z + Math.sin(a) * r));
+      }
+    }
+    const h = thin(hull(pts), minGap);
+    everything.push(...h);
+    return h;
+  };
+
+  type Piece = { depth: number; nodes: SvgNode[] };
+  const pieces: Piece[] = [];
+  // Painter's depth: plane y (south is nearer); a hair of forward bias so body, neck and head stack in order.
+  const depthAt = (u: number, v: number): number => world(u, v, 0).y + u * 0.002;
+
+  const body = build.body;
+  const head = build.head;
+
+  // Shadow on the ground.
+  const shadow = Array.from({ length: 20 }, (_, i) => {
+    const a = (Math.PI * 2 * i) / 20;
+    return at(body.u + Math.cos(a) * (body.a + 0.5), Math.sin(a) * (body.b + 0.3), 0);
+  });
+  pieces.push({ depth: -1e6, nodes: [fill(smoothClosed(shadow), palette.shadow, 0.2)] });
+
+  // Legs: thick columns under the body with mossy feet; the body hides their tops.
+  const legTop = body.z;
+  const legs: Piece[] = [];
+  for (const [su, sv] of [
+    [1, 1],
+    [1, -1],
+    [-1, 1],
+    [-1, -1],
+  ] as const) {
+    const u = body.u + su * build.legSpread[0];
+    const v = sv * build.legSpread[1];
+    const r = build.legRadius;
+    const pts: Point[] = [];
+    for (let i = 0; i < 16; i += 1) {
+      const a = (Math.PI * 2 * i) / 16;
+      pts.push(
+        at(u + Math.cos(a) * r * 1.05, v + Math.sin(a) * r * 1.05, 0),
+        at(u + Math.cos(a) * r, v + Math.sin(a) * r, legTop),
+      );
+    }
+    const h = thin(hull(pts), minGap);
+    everything.push(...h);
+    const tufts: string[] = [];
+    const centreY = world(u, v, 0).y;
+    for (let i = 0; i < 12; i += 1) {
+      const a = (Math.PI * 2 * i) / 12;
+      const fu = u + Math.cos(a) * r * 1.06;
+      const fv = v + Math.sin(a) * r * 1.06;
+      // Only the side of the foot that faces the viewer shows its moss.
+      if (world(fu, fv, 0).y <= centreY) continue;
+      const q = at(fu, fv, 0.05);
+      tufts.push(ellipsePath(q.x, q.y, unit * 0.075, unit * 0.05));
+    }
+    legs.push({
+      depth: -1e5 + depthAt(u, v),
+      nodes: [
+        fill(smoothClosed(h), hide.shade),
+        line(smoothClosed(h)),
+        fill(tufts.join(''), moss.base, 0.9),
+      ],
+    });
+  }
+  pieces.push(...legs);
+
+  // Tail: a tapering tube, with a tuft at its tip.
+  const tailOutline = tube(build.tail[0], build.tail[1]);
+  const tailNodes = [fill(smoothClosed(tailOutline), hide.base), line(smoothClosed(tailOutline))];
+  if (look.tail === 'tuft') {
+    const tip = at(build.tail[1][0] - 0.05, 0, build.tail[1][1]);
+    const tuft = ellipsePath(tip.x, tip.y, unit * 0.16, unit * 0.13);
+    tailNodes.push(fill(tuft, moss.shade), line(tuft, w * 0.9));
+  }
+  // The tail hangs low, so the body always covers its root.
+  pieces.push({ depth: -5e4, nodes: tailNodes });
+
+  // Body: shaded rim, lit back, spots on the flanks, a moss blanket, and the landscape on top.
+  const bodyOutline = outline(body, -0.25);
+  const bodyNodes: SvgNode[] = [
+    fill(smoothClosed(bodyOutline), hide.shade),
+    fill(smoothClosed(cap(body, 0.3)), hide.base),
+  ];
+  if (look.markings === 'spots') {
+    const spots: [number, number, number][] = [
+      [0.5, 0.35, 0.1],
+      [1.2, 0.3, 0.08],
+      [2.2, 0.32, 0.09],
+      [2.9, 0.38, 0.08],
+      [3.6, 0.3, 0.1],
+      [4.4, 0.34, 0.08],
+      [5.1, 0.3, 0.09],
+      [5.8, 0.36, 0.08],
+    ];
+    bodyNodes.push(
+      fill(spots.map(([th, ph, r]) => patch(body, th, ph, r)).join(''), palette.marking, 0.6),
     );
   }
+  const top = (u: number, v: number): V3 => {
+    const k = 1 - ((u - body.u) / body.a) ** 2 - ((v - body.v) / body.b) ** 2;
+    return world(u, v, body.z + body.c * Math.sqrt(Math.max(0, k)));
+  };
+  if (look.back !== 'bare') {
+    const mossCap = lumpy(cap(body, build.mossUp), 0.16, 1.3);
+    // A darker moss edge shows the blanket's thickness; light on the upper left rounds the back.
+    const mossEdge = mossCap.map((p) => ({ x: p.x + unit * 0.03, y: p.y + unit * 0.07 }));
+    bodyNodes.push(
+      fill(smoothClosed(mossEdge), moss.shade, 0.85),
+      fill(smoothClosed(mossCap), moss.base),
+    );
+    const crown = cap(body, 0.86).map((p) => ({ x: p.x - unit * 0.35, y: p.y - unit * 0.18 }));
+    if (crown.length > 2)
+      bodyNodes.push(fill(smoothClosed(lumpy(crown, 0.12, 2.1)), moss.light, 0.75));
+    const lee = cap(body, 0.7).map((p) => ({ x: p.x + unit * 0.45, y: p.y + unit * 0.22 }));
+    if (lee.length > 2) bodyNodes.push(fill(smoothClosed(lumpy(lee, 0.2, 0.4)), moss.shade, 0.3));
+    // Moss texture: darker hollows and light tufts, laid on the back.
+    const dark: string[] = [];
+    const light: string[] = [];
+    const spots = [
+      [0.9, 0.4],
+      [0.2, -0.7],
+      [-0.6, 0.6],
+      [-1.1, -0.2],
+      [0.5, 0.9],
+      [1.2, -0.5],
+      [-0.3, -0.1],
+      [0.1, 0.35],
+      [-0.9, 0.9],
+      [0.7, -1.0],
+    ] as const;
+    spots.forEach(([fu, fv], i) => {
+      const p = screen(top(body.u + fu * body.a * 0.6, fv * body.b * 0.6));
+      const r = unit * (i % 3 === 0 ? 0.14 : 0.09);
+      (i % 2 ? light : dark).push(ellipsePath(p.x, p.y, r, r * t));
+    });
+    bodyNodes.push(fill(dark.join(''), moss.shade, 0.55), fill(light.join(''), moss.light, 0.7));
+  }
+  bodyNodes.push(line(smoothClosed(bodyOutline)));
 
-  // Neck: fill over the body's outline at the join, ink only on the top and bottom.
-  const neck = pts([
-    [28, -74],
-    [46, -73],
-    [58, -67],
-    [56, -52],
-    [46, -45],
-    [34, -48],
-  ]);
-  everything.push(...neck);
-  nodes.push(fill(smoothClosed(neck), hide.base));
-  nodes.push(
-    inkLine(
-      smoothOpen(
-        pts([
-          [34, -75.5],
-          [46, -73],
-          [55, -69],
+  if (look.back === 'landscape') {
+    // A tiny pond and a rock lying on the back.
+    const pondAt = screen(top(body.u - body.a * 0.35, body.b * 0.3));
+    const pond = ellipsePath(pondAt.x, pondAt.y, unit * 0.32, unit * 0.32 * t * 0.75);
+    bodyNodes.push(
+      fill(pond, palette.ramps.water.base),
+      fill(
+        ellipsePath(pondAt.x - unit * 0.06, pondAt.y - unit * 0.03, unit * 0.16, unit * 0.06),
+        palette.ramps.water.light,
+        0.9,
+      ),
+      line(pond, w * 0.85),
+    );
+    const rockAt = screen(top(body.u + body.a * 0.25, body.b * 0.42));
+    const rk = unit / 64;
+    const rock = [
+      { x: -11, y: 2 },
+      { x: -9, y: -6 },
+      { x: -2, y: -10 },
+      { x: 6, y: -8 },
+      { x: 11, y: -1 },
+      { x: 10, y: 3 },
+    ].map((p) => ({ x: rockAt.x + p.x * rk, y: rockAt.y + p.y * rk * rise * 1.4 }));
+    bodyNodes.push(
+      fill(poly(rock), palette.ramps.rock.light),
+      fill(
+        poly([
+          rock[2]!,
+          rock[3]!,
+          rock[4]!,
+          rock[5]!,
+          { x: rockAt.x + 1 * rk, y: rockAt.y + 2 * rk },
         ]),
-      ) +
-        smoothOpen(
-          pts([
-            [56, -53],
-            [52, -48.5],
-            [48, -46.5],
-          ]),
+        palette.ramps.rock.shade,
+        0.55,
+      ),
+      line(poly(rock), w * 0.9),
+    );
+    // Trees standing upright on the back, back to front.
+    const treeSpots: [number, number, number][] = [
+      [0.15, -0.35, 1],
+      [-0.45, -0.05, 0.8],
+      [0.55, 0.05, 0.7],
+    ].slice(0, build.trees) as [number, number, number][];
+    const trees = treeSpots
+      .map(([fu, fv, hgt]) => ({ base: screen(top(body.u + fu * body.a, fv * body.b)), hgt }))
+      .sort((a, b) => a.base.y - b.base.y);
+    for (const { base, hgt } of trees) {
+      const k = (unit / 64) * 1.25 * hgt;
+      const trunkTop = { x: base.x, y: base.y - 20 * k * rise };
+      const lobe = (dx: number, dy: number, r: number): string =>
+        smoothClosed(
+          Array.from({ length: 8 }, (_, i) => {
+            const a = (Math.PI * 2 * i) / 8;
+            const f = 1 + (i % 2 ? -0.08 : 0.06);
+            return {
+              x: trunkTop.x + (dx + Math.cos(a) * r * f) * k,
+              y: trunkTop.y + (dy + Math.sin(a) * r * 0.9 * f) * k,
+            };
+          }),
+        );
+      const lobes = [lobe(-7, -3, 9), lobe(7, -3, 9), lobe(0, -12, 10)];
+      everything.push({ x: trunkTop.x, y: trunkTop.y - 24 * k });
+      bodyNodes.push(
+        fill(ellipsePath(base.x + 3 * k, base.y + 1 * k, 14 * k, 5 * k), palette.shadow, 0.22),
+        line(
+          `M${fmt(base.x)} ${fmt(base.y)}L${fmt(trunkTop.x)} ${fmt(trunkTop.y)}`,
+          w * 2.2,
+          palette.ramps.bark.shade,
         ),
-    ),
-  );
+        ...lobes.map((d) => fill(d, palette.ramps.foliage.base)),
+        fill(lobe(-2, -14, 4.5), palette.ramps.foliage.light, 0.85),
+        line(lobes.join(''), w * 0.9),
+      );
+    }
+    // Grass tufts and two flowers.
+    const blades: string[] = [];
+    for (const [fu, fv] of [
+      [0.75, -0.45],
+      [-0.75, 0.45],
+      [0.3, 0.6],
+      [-0.2, -0.75],
+    ] as const) {
+      const b = screen(top(body.u + fu * body.a * 0.8, fv * body.b * 0.8));
+      const k = unit / 64;
+      for (let i = -1; i <= 1; i += 1) {
+        blades.push(
+          smoothOpen([
+            b,
+            { x: b.x + i * 2 * k, y: b.y - 4 * k },
+            { x: b.x + i * 3.6 * k, y: b.y - 7 * k },
+          ]),
+        );
+      }
+    }
+    const f1 = screen(top(body.u + body.a * 0.5, -body.b * 0.25));
+    const f2 = screen(top(body.u - body.a * 0.1, body.b * 0.55));
+    bodyNodes.push(
+      line(blades.join(''), w * 0.7, palette.inkSoft),
+      fill(ellipsePath(f1.x, f1.y, unit * 0.04, unit * 0.035), palette.accents.rose.base),
+      fill(ellipsePath(f2.x, f2.y, unit * 0.035, unit * 0.03), palette.accents.ochre.base),
+    );
+  }
+  pieces.push({ depth: depthAt(body.u, 0), nodes: bodyNodes });
 
-  // Far ear, behind the head.
-  if (look.ears === 'leaf') {
-    const farEar = pts([
-      [59, -72.5],
-      [53, -78],
-      [45.5, -81],
-      [50, -75],
-      [55.5, -70.5],
-    ]);
-    nodes.push(fill(smoothClosed(farEar), hide.shade), inkLine(smoothClosed(farEar)));
-    everything.push(...farEar);
+  // Neck: a strong tapering tube from the shoulder to the head.
+  const neckOutline = tube(build.neck[0], build.neck[1]);
+  pieces.push({
+    depth: depthAt((build.neck[0][0] + build.neck[1][0]) / 2, 0),
+    nodes: [
+      fill(smoothClosed(neckOutline), hide.base),
+      line(
+        smoothOpen(
+          [0, 0.5, 1].map((f) => {
+            const [u0, z0, r0] = build.neck[0];
+            const [u1, z1, r1] = build.neck[1];
+            const r = r0 + (r1 - r0) * f;
+            return at(u0 + (u1 - u0) * f, -r * 0.3, z0 + (z1 - z0) * f + r * 0.7);
+          }),
+        ),
+        unit * build.neck[1][2] * 0.35,
+        hide.light,
+      ),
+      line(smoothClosed(neckOutline)),
+    ],
+  });
+
+  // Head: large and calm, a pale muzzle, closed eyes, a blush; swept horns and small ears.
+  const snout: Solid = {
+    u: head.u + head.a * 0.75,
+    v: 0,
+    z: head.z - head.c * 0.3,
+    a: head.a * 0.45,
+    b: head.b * 0.6,
+    c: head.c * 0.5,
+  };
+  const headOutline = outline(head);
+  const headCore: SvgNode[] = [
+    fill(smoothClosed(headOutline), hide.base),
+    fill(smoothClosed(cap({ ...head, a: head.a * 0.6, b: head.b * 0.55 }, 0.55)), hide.light, 0.7),
+    line(smoothClosed(headOutline)),
+  ];
+  const face: string[] = [];
+  const blush: string[] = [];
+  for (const side of [1, -1]) {
+    const th = side * 0.75;
+    if (faces(surface(head, th, 0.3).n)) {
+      const a = screen(surface(head, th - 0.2 * side, 0.32).p);
+      const m = screen(surface(head, th, 0.22).p);
+      const b = screen(surface(head, th + 0.2 * side, 0.32).p);
+      face.push(smoothOpen([a, m, b]));
+    }
+    blush.push(patch(head, side * 0.95, -0.05, 0.16));
+    const nos = surface(snout, side * 0.4, 0.3);
+    if (faces(nos.n)) {
+      const p = screen(nos.p);
+      face.push(ellipsePath(p.x, p.y, unit * 0.018, unit * 0.014));
+    }
+  }
+  if (blush.join('')) headCore.push(fill(blush.join(''), palette.accents.rose.base, 0.4));
+  if (face.length) headCore.push(line(face.join(''), w * 1.1));
+  pieces.push({ depth: depthAt(head.u, 0) + 0.001, nodes: headCore });
+
+  const snoutOutline = outline(snout);
+  pieces.push({
+    depth: depthAt(snout.u, 0) + 0.002,
+    nodes: [
+      fill(smoothClosed(snoutOutline), palette.belly),
+      line(smoothClosed(snoutOutline), w * 0.95),
+    ],
+  });
+  // Re-draw the face on the muzzle side when the muzzle covers it (heading towards the viewer).
+  if (face.length && depthAt(snout.u, 0) > depthAt(head.u, 0)) {
+    const nostrils = face.filter((d) => d.includes('A'));
+    if (nostrils.length)
+      pieces.push({
+        depth: depthAt(snout.u, 0) + 0.003,
+        nodes: [line(nostrils.join(''), w * 1.1)],
+      });
   }
 
-  // Head.
-  const headRaw: Raw = [
-    [50, -64],
-    [54, -72],
-    [64, -76],
-    [75, -72],
-    [83, -64],
-    [86, -57],
-    [82, -51],
-    [72, -48.5],
-    [60, -50],
-    [52, -55],
-  ];
-  const head = pts(headRaw);
-  everything.push(...head);
-  nodes.push(fill(smoothClosed(head), hide.base));
-  nodes.push(
-    fill(
-      smoothClosed(
-        pts([
-          [74, -60],
-          [82, -61],
-          [85.5, -56],
-          [81, -51.5],
-          [73, -51],
-          [71, -55],
-        ]),
-      ),
-      palette.belly,
-      0.85,
-    ),
-  );
-  nodes.push(
-    fill(
-      smoothClosed(
-        pts([
-          [56, -69],
-          [63, -73.5],
-          [70, -72],
-          [64, -69],
-        ]),
-      ),
-      hide.light,
-      0.7,
-    ),
-  );
-  nodes.push(inkLine(smoothClosed(head)));
+  // Small ears low on the sides of the head.
+  for (const side of [1, -1]) {
+    const pts = [
+      at(head.u - head.a * 0.15, side * head.b * 0.75, head.z + head.c * 0.45),
+      at(head.u - head.a * 0.55, side * head.b * 1.2, head.z + head.c * 0.25),
+      at(head.u - head.a * 0.45, side * head.b * 0.8, head.z + head.c * 0.2),
+    ];
+    everything.push(...pts);
+    pieces.push({
+      depth: depthAt(head.u - head.a * 0.4, side * head.b) + 0.0005,
+      nodes: [fill(smoothClosed(pts), hide.shade), line(smoothClosed(pts), w * 0.85)],
+    });
+  }
 
-  // Horns: two small rounded nubs.
-  if (look.horns === 'nubs') {
-    for (const [hx, hy] of [
-      [69.5, -74.8],
-      [75.5, -71.8],
-    ] as const) {
-      const nub = pts([
-        [hx - 1.9, hy + 0.8],
-        [hx - 1.4, hy - 2.6],
-        [hx + 0.4, hy - 3.8],
-        [hx + 1.8, hy - 2.5],
-        [hx + 1.9, hy + 0.6],
-      ]);
-      everything.push(...nub);
-      nodes.push(fill(smoothClosed(nub), palette.horn), inkLine(smoothClosed(nub), w * 0.8));
+  // Swept horns: from the crown, curving back and a little up and out.
+  if (look.horns === 'swept') {
+    for (const side of [1, -1]) {
+      const path: V3[] = [];
+      for (let k = 0; k <= 6; k += 1) {
+        const f = k / 6;
+        path.push(
+          world(
+            head.u - head.a * (0.05 + 0.95 * f),
+            side * head.b * (0.38 + 0.35 * f),
+            head.z + head.c * (0.85 + 0.55 * Math.sin(f * Math.PI * 0.6)),
+          ),
+        );
+      }
+      const pts = path.map(screen);
+      const widthAt = (f: number): number => unit * 0.075 * (1 - f * 0.85);
+      const left: Point[] = [];
+      const rightSide: Point[] = [];
+      pts.forEach((p, i) => {
+        const nb = pts[Math.min(pts.length - 1, i + 1)]!;
+        const pb = pts[Math.max(0, i - 1)]!;
+        const dx = nb.x - pb.x;
+        const dy = nb.y - pb.y;
+        const len = Math.hypot(dx, dy) || 1;
+        const wd = widthAt(i / (pts.length - 1));
+        left.push({ x: p.x - (dy / len) * wd, y: p.y + (dx / len) * wd });
+        rightSide.push({ x: p.x + (dy / len) * wd, y: p.y - (dx / len) * wd });
+      });
+      const horn = [...left, ...rightSide.reverse()];
+      everything.push(...horn);
+      const mid = path[3]!;
+      pieces.push({
+        depth: mid.y + (head.u - head.a * 0.5) * 0.002 + 0.0007,
+        nodes: [fill(smoothOpen(horn) + 'Z', palette.horn), line(smoothOpen(horn) + 'Z', w * 0.9)],
+      });
     }
   }
 
-  // Near ear, drooping back over the neck.
-  if (look.ears === 'leaf') {
-    const ear = pts([
-      [58, -71],
-      [50, -76],
-      [41, -78],
-      [46, -72],
-      [54, -67.5],
-    ]);
-    const inner = pts([
-      [55, -70.5],
-      [49, -74.5],
-      [45, -75.5],
-      [49, -72],
-    ]);
-    everything.push(...ear);
-    nodes.push(
-      fill(smoothClosed(ear), hide.base),
-      fill(smoothClosed(inner), palette.accents.rose.light, 0.8),
-      inkLine(smoothClosed(ear)),
-    );
-  } else {
-    const c = B(56, -73);
-    nodes.push(
-      fill(ellipsePath(c.x, c.y, 5 * k, 5 * k), hide.base),
-      inkLine(ellipsePath(c.x, c.y, 5 * k, 5 * k)),
-    );
-  }
-
-  // Face: a content, half-closed eye, a cheek, a nostril and a small smile.
-  nodes.push(
-    inkLine(
-      smoothOpen(
-        pts([
-          [63.5, -63.5],
-          [67.2, -60.8],
-          [71, -63.5],
-        ]),
-      ),
-      w * 1.05,
-    ),
-  );
-  nodes.push(
-    inkLine(
-      poly(
-        pts([
-          [63, -66.5],
-          [61.8, -67.8],
-        ]),
-        false,
-      ) +
-        poly(
-          pts([
-            [66.5, -67.4],
-            [66.3, -69],
-          ]),
-          false,
-        ),
-      w * 0.6,
-      palette.inkSoft,
-    ),
-  );
-  const cheek = B(68.5, -56);
-  nodes.push(
-    fill(ellipsePath(cheek.x, cheek.y, 3.6 * k, 2.2 * k), palette.accents.rose.base, 0.45),
-  );
-  const nostril = B(82.6, -58.2);
-  nodes.push(fill(ellipsePath(nostril.x, nostril.y, 0.9 * k, 0.7 * k), palette.ink));
-  nodes.push(
-    inkLine(
-      smoothOpen(
-        pts([
-          [76, -53],
-          [79, -52],
-          [81.6, -53.6],
-        ]),
-      ),
-      w * 0.8,
-    ),
-  );
-
-  return { nodes, box: boxOf(everything) };
+  pieces.sort((a, b) => a.depth - b.depth);
+  return { nodes: pieces.flatMap((p) => p.nodes), box: boxOf(everything) };
 }
 
-/**
- * The creature from behind and a little to the right, walking up the screen: its rump and hind legs in front,
- * the back and its garden on top, the head small beyond. Same parts and colours as the side view.
- */
-function drawCreatureAway(
-  palette: Palette,
-  look: CreatureLook,
-  origin: Point,
-  size: number,
-  squash: number,
-  ink: number,
-): Drawn {
-  const k = (size * ART_TUNING.creatureLength) / LENGTH_UNITS;
-  const widen = look.body === 'long' ? 1.05 : 1;
-  const lift = look.legs === 'tall' ? 10 : -7;
-  const T = mapper(origin, k);
-  const B = (x: number, y: number): Point => T(x * widen, y - lift);
-  const pts = (raw: Raw, map = B): Point[] => raw.map(([x, y]) => map(x, y));
-  // Head parts are drawn around (34, -94); this places them behind the back, a little right of centre.
-  const H = (x: number, y: number): Point => B(18 + (x - 34) * 1.15, -95 + (y + 94) * 1.15);
-  const hide = palette.ramps.hide;
-  const w = ink * 1.1;
-  const inkLine = (d: string, width = w, colour = palette.ink): SvgNode =>
-    el('path', { d, ...inkAttrs(colour, width) });
-  const fill = (d: string, colour: string, opacity = 1): SvgNode =>
-    el('path', opacity === 1 ? { d, fill: colour } : { d, fill: colour, opacity });
-  const nodes: SvgNode[] = [];
-  const everything: Point[] = [];
-  const sq = squash / 0.6;
-
-  nodes.push(
-    fill(
-      ellipsePath(origin.x + 4 * k, origin.y - 8 * k * sq, 48 * k, 16 * k * sq),
-      palette.shadow,
-      0.18,
-    ),
-  );
-
-  // Front legs, further up the ground and mostly hidden.
-  for (const x of [-16, 26]) {
-    const footY = -16 * sq;
-    const leg = pts(
-      [
-        [x - 8, -50],
-        [x + 8, -50],
-        [x + 7.5, footY - 4],
-        [x + 4.5, footY + 0.4],
-        [x - 4.5, footY + 0.4],
-        [x - 7.5, footY - 4],
-      ],
-      T,
-    );
-    everything.push(...leg);
-    nodes.push(fill(smoothClosed(leg), hide.shade), inkLine(smoothClosed(leg)));
-  }
-
-  // Head beyond the body, turned a little to the right: the back of the head, ears, nubs and a snout tip.
-  const headRaw: Raw = [
-    [20, -96],
-    [26, -103],
-    [36, -104],
-    [44, -99],
-    [48, -92],
-    [44, -86],
-    [32, -84],
-    [22, -88],
-  ];
-  if (look.ears === 'leaf') {
-    for (const ear of [
-      [
-        [24, -98],
-        [15, -101],
-        [8, -99],
-        [14, -95],
-        [22, -94],
-      ],
-      [
-        [42, -98],
-        [51, -103],
-        [58, -102],
-        [53, -97],
-        [45, -94],
-      ],
-    ] as Raw[]) {
-      const e = pts(ear, H);
-      everything.push(...e);
-      nodes.push(fill(smoothClosed(e), hide.base), inkLine(smoothClosed(e)));
-    }
-  }
-  const head = pts(headRaw, H);
-  everything.push(...head);
-  const snout = pts(
-    [
-      [44, -94],
-      [48.5, -93],
-      [49, -89],
-      [45, -87.5],
-    ],
-    H,
-  );
-  nodes.push(fill(smoothClosed(snout), palette.belly), inkLine(smoothClosed(snout), w * 0.9));
-  nodes.push(fill(smoothClosed(head), hide.base));
-  nodes.push(
-    fill(
-      smoothClosed(
-        pts(
-          [
-            [26, -99],
-            [33, -102],
-            [38, -100],
-            [31, -97],
-          ],
-          H,
-        ),
-      ),
-      hide.light,
-      0.7,
-    ),
-  );
-  nodes.push(inkLine(smoothClosed(head)));
-  if (look.horns === 'nubs') {
-    for (const [hx, hy] of [
-      [29, -103],
-      [38, -103],
-    ] as const) {
-      const nub = pts(
-        [
-          [hx - 1.9, hy + 0.8],
-          [hx - 1.4, hy - 2.6],
-          [hx + 0.4, hy - 3.8],
-          [hx + 1.8, hy - 2.5],
-          [hx + 1.9, hy + 0.6],
-        ],
-        H,
-      );
-      everything.push(...nub);
-      nodes.push(fill(smoothClosed(nub), palette.horn), inkLine(smoothClosed(nub), w * 0.8));
-    }
-  }
-
-  // Body: a round back seen from behind, wider at the rump.
-  const bodyRaw: Raw = [
-    [-44, -38],
-    [-46, -60],
-    [-34, -80],
-    [-10, -91],
-    [16, -92],
-    [38, -84],
-    [50, -66],
-    [48, -42],
-    [34, -24],
-    [6, -18],
-    [-24, -22],
-  ];
-  const body = pts(bodyRaw);
-  everything.push(...body);
-  nodes.push(fill(smoothClosed(body), hide.base));
-  nodes.push(
-    fill(
-      smoothClosed(
-        pts([
-          [-36, -66],
-          [-24, -82],
-          [-4, -88],
-          [-8, -80],
-          [-24, -72],
-          [-32, -58],
-        ]),
-      ),
-      hide.light,
-      0.75,
-    ),
-  );
-  nodes.push(
-    fill(
-      smoothClosed(
-        pts([
-          [-42, -38],
-          [-26, -24],
-          [4, -20],
-          [32, -26],
-          [44, -40],
-          [30, -32],
-          [2, -28],
-          [-24, -31],
-        ]),
-      ),
-      hide.shade,
-      0.5,
-    ),
-  );
-  if (look.markings === 'spots') {
-    const spots: [number, number, number, number][] = [
-      [-22, -72, 5.6, 3.2],
-      [-2, -80, 6.4, 3.4],
-      [20, -80, 5.4, 3],
-      [34, -68, 4.2, 3],
-      [-30, -56, 3.4, 2.4],
-      [8, -66, 3.6, 2.2],
-    ];
-    nodes.push(
-      fill(
-        spots
-          .map(([x, y, rx, ry]) => {
-            const c = B(x, y);
-            return ellipsePath(c.x, c.y, rx * k, ry * k);
-          })
-          .join(''),
-        palette.marking,
-        0.7,
-      ),
-    );
-  } else if (look.markings === 'stripes') {
-    const d = [-24, -6, 12, 30]
-      .map((x) =>
-        smoothClosed(
-          pts([
-            [x - 3, -88 + Math.abs(x - 4) * 0.2],
-            [x + 3, -88 + Math.abs(x - 4) * 0.2],
-            [x + 6, -64],
-            [x + 2, -62],
-          ]),
-        ),
-      )
-      .join('');
-    nodes.push(fill(d, palette.marking, 0.6));
-  }
-  nodes.push(inkLine(smoothClosed(body)));
-
-  if (look.back === 'garden') {
-    const trunk = pts([
-      [-13.6, -86],
-      [-13, -96],
-      [-11.6, -96],
-      [-11, -86],
-    ]);
-    const lobes = (
-      [
-        [
-          [-22, -98],
-          [-19, -104],
-          [-13, -104],
-          [-12, -98],
-          [-17, -95],
-        ],
-        [
-          [-13, -99],
-          [-10, -105],
-          [-4, -104],
-          [-2, -98],
-          [-8, -95],
-        ],
-        [
-          [-18, -104],
-          [-14, -111],
-          [-7, -111],
-          [-5, -104],
-          [-12, -101],
-        ],
-      ] as Raw[]
-    ).map((l) => pts(l));
-    everything.push(...lobes.flat());
-    nodes.push(fill(poly(trunk), palette.ramps.bark.base), inkLine(poly(trunk), w * 0.7));
-    for (const crown of lobes) {
-      nodes.push(
-        fill(smoothClosed(crown), palette.ramps.foliage.base),
-        inkLine(smoothClosed(crown), w * 0.8),
-      );
-    }
-    const blades: string[] = [];
-    for (const [bx, by] of [
-      [-22, -84],
-      [24, -88],
-    ] as const) {
-      for (let i = -1; i <= 1; i += 1) {
-        blades.push(
-          smoothOpen([B(bx + i * 1.6, by), B(bx + i * 2.4, by - 4), B(bx + i * 3.6, by - 7)]),
-        );
-      }
-    }
-    nodes.push(inkLine(blades.join(''), w * 0.65, palette.inkSoft));
-    const f1 = B(-14, -86);
-    const f2 = B(32, -84);
-    nodes.push(
-      fill(ellipsePath(f1.x, f1.y, 1.8 * k, 1.8 * k), palette.accents.rose.base),
-      fill(ellipsePath(f2.x, f2.y, 1.6 * k, 1.6 * k), palette.accents.ochre.base),
-    );
-  }
-
-  // Hind legs in front: heavy, with the soles' pads just showing.
-  const legLen = 36 + lift;
-  for (const x of [-22, 22]) {
-    const leg = pts(
-      [
-        [x - 12.5, -legLen],
-        [x + 12.5, -legLen],
-        [x + 11, -8],
-        [x + 11.5, -2],
-        [x + 6.5, 0.4],
-        [x - 6.5, 0.4],
-        [x - 11.5, -2],
-        [x - 11, -8],
-      ],
-      T,
-    );
-    everything.push(...leg);
-    const open = smoothOpen([leg[1]!, ...leg.slice(2), leg[0]!]);
-    const pad = T(x, -2.4);
-    nodes.push(
-      fill(smoothClosed(leg), hide.base),
-      fill(ellipsePath(pad.x, pad.y, 6 * k, 2 * k), palette.belly, 0.9),
-      inkLine(open),
-    );
-  }
-
-  // Tail hanging down the middle of the rump.
-  if (look.tail === 'tuft') {
-    const tail = pts([
-      [-3, -52],
-      [2, -52],
-      [3, -40],
-      [1, -32],
-      [-2, -32],
-      [-3, -42],
-    ]);
-    const tuft = pts([
-      [-4.5, -34],
-      [3.5, -34],
-      [5, -27],
-      [0, -23],
-      [-5, -27],
-    ]);
-    everything.push(...tail, ...tuft);
-    nodes.push(
-      fill(smoothClosed(tail), hide.base),
-      inkLine(smoothClosed(tail)),
-      fill(smoothClosed(tuft), palette.marking),
-      inkLine(smoothClosed(tuft)),
-    );
-  } else {
-    const tail = pts([
-      [-3, -52],
-      [3, -52],
-      [2, -44],
-      [-2, -44],
-    ]);
-    everything.push(...tail);
-    nodes.push(fill(smoothClosed(tail), hide.base), inkLine(smoothClosed(tail)));
-  }
-
-  return { nodes, box: boxOf(everything) };
+/** Whether a hex lies in the creature's seven-hex footprint. */
+export function inFootprint(
+  creature: { q: number; r: number },
+  hex: { q: number; r: number },
+): boolean {
+  const dq = hex.q - creature.q;
+  const dr = hex.r - creature.r;
+  return (Math.abs(dq) + Math.abs(dr) + Math.abs(dq + dr)) / 2 <= 1;
 }

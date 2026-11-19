@@ -88,6 +88,8 @@ Record a decision:
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-19 The creature is a behemoth: it fills its footprint and carries a small landscape
+- 2026-11-19 The creature is modelled as small solids and turns to all six headings; upright props shrink part way at the high view (amended)
 - 2026-11-19 The creature is drawn from above, at the map's view angle \[Misa\]
 - 2026-11-19 Spring palette and a high view: tilt 0.8 \[Misa\]
 - 2026-11-19 Map popovers are drawn in SVG; the view follows the creature each day
