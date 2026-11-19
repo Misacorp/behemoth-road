@@ -23,6 +23,7 @@ export type {
   CharacterStatus,
   Creature,
   GameState,
+  Place,
   TileKnowledge,
   Visibility,
 } from './state.ts';
@@ -38,7 +39,9 @@ export {
 export { chooseCreatureStep, predictCreature, type CreatureStepOption } from './creature.ts';
 export {
   entryInto,
+  entryToPlace,
   isPassable,
+  isPlaceReachable,
   legalMoves,
   move,
   type ActionResult,
@@ -48,13 +51,25 @@ export {
 export {
   moveAlong,
   planPath,
-  reachableHexes,
+  reachablePlaces,
   type PathPlan,
   type PathRefusal,
   type PathResult,
   type PathStep,
-  type ReachableHex,
+  type ReachablePlace,
 } from './path.ts';
-export { isFreeHex, nearestFreeHex } from './placement.ts';
+export {
+  arePlacesAdjacent,
+  creatureEdge,
+  isBesideCreature,
+  ON_CREATURE,
+  onHex,
+  placeAt,
+  placeEquals,
+  placeHex,
+  placeKey,
+  placeNeighbours,
+  toPlace,
+} from './places.ts';
 export { nextDay } from './tick.ts';
 export { createGame, type CreateGameOptions } from './game.ts';

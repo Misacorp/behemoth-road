@@ -1,17 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import {
-  createGame,
-  creatureHexes,
   type GameState,
   type Hex,
   hex,
   hexDistance,
   hexesInRange,
-  isCreatureHex,
-  isPassable,
   legalMoves,
   move,
   neighbours,
+  onHex,
+  placeNeighbours,
   terrainAt,
 } from '../src/index.ts';
 import { findSeed, gameAt, nearP, P, withCharacter } from './helpers.ts';
@@ -42,8 +40,8 @@ describe('move', () => {
   it('moves one hex for one action and leaves the old state untouched', () => {
     const state = gameAt(findSeed(openNorth));
     const next = expectOk(move(state, 'a', north));
-    expect(next.characters[0]).toMatchObject({ position: north, actionsLeft: 2 });
-    expect(state.characters[0]).toMatchObject({ position: P, actionsLeft: 3 });
+    expect(next.characters[0]).toMatchObject({ at: onHex(north), actionsLeft: 2 });
+    expect(state.characters[0]).toMatchObject({ at: onHex(P), actionsLeft: 3 });
   });
 
   it('refuses a hex that is not adjacent', () => {
@@ -67,15 +65,6 @@ describe('move', () => {
     expect(move(gameAt(seed, from), 'a', cliff)).toEqual({ ok: false, reason: 'impassable' });
   });
 
-  it("refuses the creature's hexes, whatever lies under them", () => {
-    const state = createGame(1, { characterIds: ['a'] });
-    const start = state.characters[0]!.position;
-    const onto = neighbours(start).filter((h) => isCreatureHex(state, h));
-    expect(onto.length).toBeGreaterThan(0);
-    for (const h of creatureHexes(state)) expect(isPassable(state, h)).toBe(false);
-    for (const h of onto) expect(move(state, 'a', h)).toEqual({ ok: false, reason: 'impassable' });
-  });
-
   it('refuses a hex out of reach (hidden beyond the window)', () => {
     expect(move(gameAt(1, hex(0, -5)), 'a', hex(0, -6))).toEqual({
       ok: false,
@@ -88,8 +77,10 @@ describe('move', () => {
     const edge = hex(0, -5);
     const state = gameAt(seed, edge);
     expect(hexDistance(edge, state.creature.centre)).toBe(state.config.windowRadius);
-    expect(expectOk(move(state, 'a', hex(1, -5))).characters[0]?.position).toEqual(hex(1, -5));
-    expect(legalMoves(state, 'a').every((h) => hexDistance(h, hex(0, 0)) <= 5)).toBe(true);
+    expect(expectOk(move(state, 'a', hex(1, -5))).characters[0]?.at).toEqual(onHex(hex(1, -5)));
+    expect(
+      legalMoves(state, 'a').every((p) => p.kind === 'hex' && hexDistance(p.hex, hex(0, 0)) <= 5),
+    ).toBe(true);
   });
 
   it('refuses when the character has too few actions left', () => {
@@ -110,8 +101,8 @@ describe('move', () => {
     for (const seed of [1, 2, 3]) {
       for (const at of [P, hex(1, 1)]) {
         const state = gameAt(seed, at);
-        const expected = neighbours(at).filter(
-          (h) => !isCreatureHex(state, h) && terrainAt(seed, h).passable,
+        const expected = placeNeighbours(state, onHex(at)).filter((p) =>
+          p.kind === 'creature' ? true : terrainAt(seed, p.hex).passable,
         );
         expect(legalMoves(state, 'a')).toEqual(expected);
       }

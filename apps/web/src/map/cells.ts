@@ -10,6 +10,7 @@ import {
   hexDistance,
   hexesInRange,
   hexKey,
+  placeHex,
   terrainIdAt,
 } from '@behemoth-road/core';
 import { MAP_TUNING } from './config.ts';
@@ -39,7 +40,7 @@ export function sceneCells(state: GameState): ArtCell[] {
       keys.set(key, { q, r });
     }
   }
-  for (const c of state.characters) keys.set(hexKey(c.position), c.position);
+  for (const c of state.characters) if (c.at.kind === 'hex') keys.set(hexKey(c.at.hex), c.at.hex);
 
   const cells: ArtCell[] = [];
   for (const [key, h] of keys) {
@@ -68,5 +69,8 @@ export function creatureArt(state: GameState): CreatureArt {
 export function characterArts(state: GameState): CharacterArt[] {
   return state.characters
     .filter((c) => c.status === 'active')
-    .map((c) => ({ id: c.id, q: c.position.q, r: c.position.r, accent: MAP_TUNING.accent }));
+    .map((c) => {
+      const at = placeHex(state, c.at);
+      return { id: c.id, q: at.q, r: at.r, accent: MAP_TUNING.accent };
+    });
 }

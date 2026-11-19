@@ -5,7 +5,10 @@ import {
   nextDay,
   planPath,
   predictCreature,
-  reachableHexes,
+  creatureEdge,
+  isPassable,
+  onHex,
+  reachablePlaces,
   type GameState,
 } from '@behemoth-road/core';
 import { describe, expect, it } from 'vitest';
@@ -17,12 +20,20 @@ import { toPreact } from './svgToPreact.ts';
 
 const ID = 'you';
 
+/** A game with the character stepped off the creature onto the hex furthest behind it. */
+function offTheCreature(s: GameState): GameState {
+  const behind = creatureEdge(s)
+    .filter((h) => isPassable(s, h))
+    .sort((a, b) => 2 * b.r + b.q - (2 * a.r + a.q))[0]!;
+  return { ...s, characters: s.characters.map((c) => ({ ...c, at: onHex(behind) })) };
+}
+
 function overlays(state: GameState, flow: Flow) {
   return buildOverlays({
     state,
     flow,
     characterId: ID,
-    reachable: reachableHexes(state, ID),
+    reachable: reachablePlaces(state, ID),
     predicted: predictCreature(state),
     projection: PROJECTION,
     palette: MORNING,
@@ -43,8 +54,10 @@ function colours(nodes: SvgNode[]): string[] {
 }
 
 describe('overlays', () => {
-  const state = createGame(20261119, { characterIds: [ID] });
-  const to = reachableHexes(state, ID).find((r) => r.cost === 2)!.hex;
+  const state = offTheCreature(createGame(20261119, { characterIds: [ID] }));
+  const reached = reachablePlaces(state, ID).find((r) => r.cost === 2 && r.place.kind === 'hex');
+  if (reached?.place.kind !== 'hex') throw new Error('no hex at cost 2');
+  const to = reached.place.hex;
   const plan = planPath(state, ID, to);
   if (!plan.ok) throw new Error('no plan');
   const planned: Flow = { kind: 'planned', to, steps: plan.steps, cost: plan.cost };
@@ -76,7 +89,8 @@ describe('overlays', () => {
     expect(characterArts(s)).toHaveLength(0);
     expect(overlays(s, { kind: 'idle' }).over.length).toBeGreaterThan(0);
     // Its tile is still drawn, in the fog.
-    const pos = findCharacter(s, ID)!.position;
-    expect(sceneCells(s).find((c) => c.q === pos.q && c.r === pos.r)?.state).toBe('lost');
+    const at = findCharacter(s, ID)!.at;
+    if (at.kind !== 'hex') throw new Error('expected a hex');
+    expect(sceneCells(s).find((c) => c.q === at.hex.q && c.r === at.hex.r)?.state).toBe('lost');
   });
 });

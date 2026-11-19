@@ -1,20 +1,28 @@
 /**
- * Multi-hex movement: what a character can reach, the cheapest path to a hex,
- * and walking a path. Every step follows the same rules as `move`.
+ * Multi-step movement: what a character can reach, the cheapest path to a
+ * place, and walking a path. The creature is one place: a path may cross it by
+ * boarding and stepping off. Every step follows the same rules as `move`.
  */
 
-import { activeCharacter, type Entry, entryInto, move, type MoveRefusal } from './actions.ts';
-import { type Hex, hexEquals, hexKey, isValidHex, neighbours } from './hex.ts';
-import type { GameState } from './state.ts';
-import { isReachable } from './window.ts';
+import {
+  activeCharacter,
+  type Entry,
+  entryToPlace,
+  isPlaceReachable,
+  move,
+  type MoveRefusal,
+} from './actions.ts';
+import type { Hex } from './hex.ts';
+import { placeEquals, placeKey, placeNeighbours, toPlace } from './places.ts';
+import type { GameState, Place } from './state.ts';
 
-/** One step of a path: the hex stepped onto, what it costs, and what makes it possible. */
+/** One step of a path: the place stepped onto, what it costs, and what makes it possible. */
 export interface PathStep extends Entry {
-  readonly hex: Hex;
+  readonly place: Place;
 }
 
-export interface ReachableHex {
-  readonly hex: Hex;
+export interface ReachablePlace {
+  readonly place: Place;
   /** The cheapest total cost to get there. */
   readonly cost: number;
 }
@@ -41,7 +49,7 @@ export type PathResult =
     };
 
 interface Visit {
-  readonly hex: Hex;
+  readonly place: Place;
   readonly cost: number;
   /** The step that arrived here (null for the start). */
   readonly step: PathStep | null;
@@ -49,15 +57,15 @@ interface Visit {
 }
 
 /**
- * Cheapest-cost search (Dijkstra) from `start` over reachable hexes that can be
- * entered, up to `budget` actions. Ties are broken by direction order, so the
+ * Cheapest-cost search (Dijkstra) from `start` over places in reach that can be
+ * entered, up to `budget` actions. Ties are broken by neighbour order, so the
  * result is the same every time. Visits come back in the order they were settled.
  */
-const search = (state: GameState, start: Hex, budget: number): Map<string, Visit> => {
+const search = (state: GameState, start: Place, budget: number): Map<string, Visit> => {
   const settled = new Map<string, Visit>();
-  const origin: Visit = { hex: start, cost: 0, step: null, from: null };
-  const best = new Map<string, Visit>([[hexKey(start), origin]]);
-  // The reachable area is a few hundred hexes at most, so scanning the frontier
+  const origin: Visit = { place: start, cost: 0, step: null, from: null };
+  const best = new Map<string, Visit>([[placeKey(start), origin]]);
+  // The reachable area is a few hundred places at most, so scanning the frontier
   // for its cheapest entry is plenty. The first of equal costs wins: ties are stable.
   const frontier: Visit[] = [origin];
   for (;;) {
@@ -71,19 +79,19 @@ const search = (state: GameState, start: Hex, budget: number): Map<string, Visit
     }
     if (!current) break;
     frontier.splice(next, 1);
-    const key = hexKey(current.hex);
+    const key = placeKey(current.place);
     if (settled.has(key)) continue;
     settled.set(key, current);
-    for (const h of neighbours(current.hex)) {
-      const nextKey = hexKey(h);
-      if (settled.has(nextKey) || !isReachable(state, h)) continue;
-      const entry = entryInto(state, h);
+    for (const place of placeNeighbours(state, current.place)) {
+      const nextKey = placeKey(place);
+      if (settled.has(nextKey) || !isPlaceReachable(state, place)) continue;
+      const entry = entryToPlace(state, place);
       if (!entry) continue;
       const cost = current.cost + entry.cost;
       if (cost > budget) continue;
       const known = best.get(nextKey);
       if (known && known.cost <= cost) continue;
-      const visit: Visit = { hex: h, cost, step: { ...entry, hex: h }, from: key };
+      const visit: Visit = { place, cost, step: { ...entry, place }, from: key };
       best.set(nextKey, visit);
       frontier.push(visit);
     }
@@ -92,35 +100,36 @@ const search = (state: GameState, start: Hex, budget: number): Map<string, Visit
 };
 
 /**
- * Every hex a character can reach with the actions it has left, with the
- * cheapest cost, nearest first. Excludes where it stands. Empty for an unknown
- * or lost character.
+ * Every place a character can reach with the actions it has left (the creature
+ * included), with the cheapest cost, nearest first. Excludes where it is. Empty
+ * for an unknown or lost character.
  */
-export const reachableHexes = (state: GameState, characterId: string): ReachableHex[] => {
+export const reachablePlaces = (state: GameState, characterId: string): ReachablePlace[] => {
   const found = activeCharacter(state, characterId);
   if (!found.ok) return [];
-  const { position, actionsLeft } = found.character;
-  return [...search(state, position, actionsLeft).values()]
+  const { at, actionsLeft } = found.character;
+  return [...search(state, at, actionsLeft).values()]
     .filter((v) => v.step !== null)
-    .map((v) => ({ hex: v.hex, cost: v.cost }));
+    .map((v) => ({ place: v.place, cost: v.cost }));
 };
 
 /**
- * The cheapest path for a character to `to`, as steps with their costs. Refused
- * if the target cannot be entered, nothing connects to it, or the cheapest path
- * costs more than the actions left.
+ * The cheapest path for a character to a place (any footprint hex means the
+ * creature), as steps with their costs. Refused if the target cannot be entered,
+ * nothing connects to it, or the cheapest path costs more than the actions left.
  */
-export const planPath = (state: GameState, characterId: string, to: Hex): PathPlan => {
-  if (!isValidHex(to)) return { ok: false, reason: 'invalid-hex' };
+export const planPath = (state: GameState, characterId: string, to: Hex | Place): PathPlan => {
+  const target = toPlace(state, to);
+  if (!target) return { ok: false, reason: 'invalid-hex' };
   const found = activeCharacter(state, characterId);
   if (!found.ok) return found;
-  const start = found.character.position;
-  if (hexEquals(start, to)) return { ok: true, steps: [], cost: 0 };
-  if (!isReachable(state, to)) return { ok: false, reason: 'unreachable' };
-  if (!entryInto(state, to)) return { ok: false, reason: 'impassable' };
+  const start = found.character.at;
+  if (placeEquals(start, target)) return { ok: true, steps: [], cost: 0 };
+  if (!isPlaceReachable(state, target)) return { ok: false, reason: 'unreachable' };
+  if (!entryToPlace(state, target)) return { ok: false, reason: 'impassable' };
 
   const visits = search(state, start, Number.POSITIVE_INFINITY);
-  const end = visits.get(hexKey(to));
+  const end = visits.get(placeKey(target));
   if (!end) return { ok: false, reason: 'no-path' };
   if (end.cost > found.character.actionsLeft) return { ok: false, reason: 'not-enough-actions' };
   const steps: PathStep[] = [];
@@ -130,21 +139,23 @@ export const planPath = (state: GameState, characterId: string, to: Hex): PathPl
   return { ok: true, steps, cost: end.cost };
 };
 
+const isStep = (item: Hex | Place | PathStep): item is PathStep =>
+  typeof item === 'object' && item !== null && 'place' in item;
+
 /**
  * Walks a path through `move`: every step applies, or none does. Takes the
- * steps from `planPath` or bare hexes.
+ * steps from `planPath`, places, or bare hexes.
  */
 export const moveAlong = (
   state: GameState,
   characterId: string,
-  path: readonly (Hex | PathStep)[],
+  path: readonly (Hex | Place | PathStep)[],
 ): PathResult => {
   const found = activeCharacter(state, characterId);
   if (!found.ok) return { ok: false, reason: found.reason, step: 0 };
   let current = state;
   for (const [step, item] of path.entries()) {
-    const h = typeof item === 'object' && item !== null && 'hex' in item ? item.hex : item;
-    const result = move(current, characterId, h);
+    const result = move(current, characterId, isStep(item) ? item.place : item);
     if (!result.ok) return { ok: false, reason: result.reason, step };
     current = result.state;
   }

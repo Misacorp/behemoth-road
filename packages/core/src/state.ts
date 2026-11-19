@@ -25,9 +25,15 @@ export interface Creature {
 
 export type CharacterStatus = 'active' | 'lost';
 
+/**
+ * Where a character is: on a hex, or riding the creature. The creature's
+ * footprint is one place, not hexes to stand on.
+ */
+export type Place = { readonly kind: 'hex'; readonly hex: Hex } | { readonly kind: 'creature' };
+
 export interface Character {
   readonly id: string;
-  readonly position: Hex;
+  readonly at: Place;
   readonly actionsLeft: number;
   readonly status: CharacterStatus;
 }

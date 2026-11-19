@@ -22,7 +22,9 @@ import {
   type GameState,
   type Hex,
   type PathStep,
-  type ReachableHex,
+  type ReachablePlace,
+  creatureHexes,
+  placeHex,
 } from '@behemoth-road/core';
 import { MAP_TUNING } from './config.ts';
 import type { Flow } from './flow.ts';
@@ -32,7 +34,7 @@ export interface OverlayInput {
   readonly state: GameState;
   readonly flow: Flow;
   readonly characterId: string;
-  readonly reachable: readonly ReachableHex[];
+  readonly reachable: readonly ReachablePlace[];
   readonly predicted: readonly CreatureStepOption[];
   readonly projection: Projection;
   readonly palette: Palette;
@@ -57,7 +59,10 @@ function ellipse(c: Point, rx: number, ry: number): string {
 /** Reachable tiles: a soft light wash with a faint ink edge, one path for all of them. */
 function reachableWash(i: OverlayInput): SvgNode[] {
   if (i.reachable.length === 0) return [];
-  const d = i.reachable.map((r) => hexPath(i.projection, r.hex, 0.86)).join('');
+  const d = i.reachable
+    .flatMap((r) => (r.place.kind === 'hex' ? [r.place.hex] : creatureHexes(i.state)))
+    .map((h) => hexPath(i.projection, h, 0.86))
+    .join('');
   return [
     el('path', { d, fill: i.palette.paper, opacity: 0.42 }),
     el('path', {
@@ -132,7 +137,7 @@ function pawPrint(i: OverlayInput, at: Point, angle: number, opacity: number): S
 function pathArrow(i: OverlayInput, from: Hex, steps: readonly PathStep[]): SvgNode[] {
   const p = i.projection;
   const k = p.k;
-  const pts = [feetOf(p, from), ...steps.map((s) => feetOf(p, s.hex))];
+  const pts = [feetOf(p, from), ...steps.map((s) => feetOf(p, placeHex(i.state, s.place)))];
   const last = pts[pts.length - 1]!;
   const prev = pts[pts.length - 2]!;
   // Stop the line short of the destination so the arrowhead tip lands on it.
@@ -207,7 +212,7 @@ function lostCharacters(i: OverlayInput): SvgNode[] {
   return i.state.characters
     .filter((c) => c.status === 'lost')
     .flatMap((c) => {
-      const at = feetOf(p, c.position);
+      const at = feetOf(p, placeHex(i.state, c.at));
       const drawn = drawCharacter(
         i.palette,
         MAP_TUNING.accent,
@@ -234,12 +239,12 @@ export function buildOverlays(i: OverlayInput): Overlays {
   under.push(...creatureHints(i));
   if (i.flow.kind === 'selected' || i.flow.kind === 'planned') {
     under.push(...reachableWash(i));
-    if (me?.status === 'active') under.push(selectionRing(i, me.position));
+    if (me?.status === 'active') under.push(selectionRing(i, placeHex(i.state, me.at)));
   }
   if (i.flow.kind === 'inspect') under.push(hexOutline(i, i.flow.hex, i.palette.ink, 2.2));
   if (i.flow.kind === 'planned' && me) {
     under.push(hexOutline(i, i.flow.to, accentRamp(i.palette, MAP_TUNING.accent).shade, 2.6));
-    over.push(...pathArrow(i, me.position, i.flow.steps));
+    over.push(...pathArrow(i, placeHex(i.state, me.at), i.flow.steps));
   }
   over.push(...lostCharacters(i));
   return { under, over };

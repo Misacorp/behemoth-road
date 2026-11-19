@@ -1,4 +1,4 @@
-import { type Character, createGame, type GameState, type Hex } from '../src/index.ts';
+import { type Character, createGame, type GameState, type Hex, onHex } from '../src/index.ts';
 
 /** Returns a copy of the state with one character replaced. */
 export const withCharacter = (state: GameState, character: Character): GameState => ({
@@ -6,10 +6,11 @@ export const withCharacter = (state: GameState, character: Character): GameState
   characters: state.characters.map((c) => (c.id === character.id ? character : c)),
 });
 
-export const placeCharacter = (state: GameState, id: string, position: Hex): GameState => {
+/** Puts a character on a hex (off the creature). */
+export const placeCharacter = (state: GameState, id: string, h: Hex): GameState => {
   const c = state.characters.find((x) => x.id === id);
   if (!c) throw new Error(`no character ${id}`);
-  return withCharacter(state, { ...c, position });
+  return withCharacter(state, { ...c, at: onHex(h) });
 };
 
 /** The first seed in 0..1999 for which `test` holds. */

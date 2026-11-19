@@ -2,9 +2,10 @@
  * Player actions. Each returns a new state or the reason it was refused.
  */
 
-import { type Hex, isAdjacent, isValidHex, neighbours } from './hex.ts';
+import type { Hex } from './hex.ts';
 import { terrainAt } from './map.ts';
-import type { Character, GameState } from './state.ts';
+import { arePlacesAdjacent, placeNeighbours, toPlace } from './places.ts';
+import type { Character, GameState, Place } from './state.ts';
 import { isCreatureHex, isReachable } from './window.ts';
 
 export type MoveRefusal =
@@ -20,7 +21,7 @@ export type ActionResult =
   | { readonly ok: true; readonly state: GameState }
   | { readonly ok: false; readonly reason: MoveRefusal };
 
-/** How a character can enter a hex. */
+/** How a character can enter a place. */
 export interface Entry {
   /** Actions it costs to enter. */
   readonly cost: number;
@@ -33,8 +34,8 @@ export interface Entry {
 
 /**
  * Whether and how a character may enter a hex, ignoring reachability and actions.
- * The creature's hexes are occupied: nobody enters, stands on or passes through them.
- * Gear will plug in here, returning a `via`.
+ * The creature's footprint hexes are not hexes to stand on (the creature is
+ * entered as a whole, by boarding). Gear will plug in here, returning a `via`.
  */
 export const entryInto = (state: GameState, h: Hex): Entry | null => {
   if (isCreatureHex(state, h)) return null;
@@ -43,7 +44,16 @@ export const entryInto = (state: GameState, h: Hex): Entry | null => {
   return { cost: state.config.moveCost + terrain.extraMoveCost };
 };
 
+/** Whether and how a character may enter a place. Boarding the creature is one normal step. */
+export const entryToPlace = (state: GameState, place: Place): Entry | null =>
+  place.kind === 'creature' ? { cost: state.config.moveCost } : entryInto(state, place.hex);
+
+/** A hex can be stood on: passable and not under the creature. */
 export const isPassable = (state: GameState, h: Hex): boolean => entryInto(state, h) !== null;
+
+/** Whether a place is in reach: the creature always is (the window is centred on it). */
+export const isPlaceReachable = (state: GameState, place: Place): boolean =>
+  place.kind === 'creature' || isReachable(state, place.hex);
 
 export type CharacterLookup =
   | { readonly ok: true; readonly index: number; readonly character: Character }
@@ -57,30 +67,31 @@ export const activeCharacter = (state: GameState, characterId: string): Characte
   return { ok: true, index, character };
 };
 
-/** Moves a character one hex. */
-export const move = (state: GameState, characterId: string, to: Hex): ActionResult => {
-  if (!isValidHex(to)) return { ok: false, reason: 'invalid-hex' };
+/**
+ * Moves a character one step: to an adjacent hex, onto the creature from a hex
+ * beside it (any footprint hex means the creature), or off the creature onto a
+ * hex beside it.
+ */
+export const move = (state: GameState, characterId: string, to: Hex | Place): ActionResult => {
+  const target = toPlace(state, to);
+  if (!target) return { ok: false, reason: 'invalid-hex' };
   const found = activeCharacter(state, characterId);
   if (!found.ok) return found;
   const { index, character } = found;
-  if (!isAdjacent(character.position, to)) return { ok: false, reason: 'not-adjacent' };
-  if (!isReachable(state, to)) return { ok: false, reason: 'unreachable' };
-  const entry = entryInto(state, to);
+  if (!arePlacesAdjacent(state, character.at, target)) return { ok: false, reason: 'not-adjacent' };
+  if (!isPlaceReachable(state, target)) return { ok: false, reason: 'unreachable' };
+  const entry = entryToPlace(state, target);
   if (!entry) return { ok: false, reason: 'impassable' };
   if (character.actionsLeft < entry.cost) return { ok: false, reason: 'not-enough-actions' };
 
   const characters = state.characters.slice();
-  characters[index] = {
-    ...character,
-    position: { q: to.q, r: to.r },
-    actionsLeft: character.actionsLeft - entry.cost,
-  };
+  characters[index] = { ...character, at: target, actionsLeft: character.actionsLeft - entry.cost };
   return { ok: true, state: { ...state, characters } };
 };
 
-/** The hexes a character can move to with one step right now. */
-export const legalMoves = (state: GameState, characterId: string): Hex[] => {
+/** The places a character can move to with one step right now. */
+export const legalMoves = (state: GameState, characterId: string): Place[] => {
   const character = state.characters.find((c) => c.id === characterId);
   if (!character) return [];
-  return neighbours(character.position).filter((h) => move(state, characterId, h).ok);
+  return placeNeighbours(state, character.at).filter((p) => move(state, characterId, p).ok);
 };

@@ -8,6 +8,8 @@ import {
   type Hex,
   hexEquals,
   moveAlong,
+  placeAt,
+  placeEquals,
   type PathStep,
   planPath,
 } from '@behemoth-road/core';
@@ -34,7 +36,7 @@ const isSelecting = (flow: Flow): boolean => flow.kind === 'selected' || flow.ki
 export function tapHex(flow: Flow, state: GameState, characterId: string, hex: Hex): Flow {
   const me = findCharacter(state, characterId);
   // With no actions left there is nothing to plan: your own hex is inspected like any other.
-  if (me?.status === 'active' && me.actionsLeft > 0 && hexEquals(me.position, hex)) {
+  if (me?.status === 'active' && me.actionsLeft > 0 && placeEquals(me.at, placeAt(state, hex))) {
     return isSelecting(flow) ? IDLE : { kind: 'selected' };
   }
   if (isSelecting(flow)) {

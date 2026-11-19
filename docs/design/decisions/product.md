@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: A character's place is a hex or the creature; paths treat the creature as one node
+
+ID: `2026-11-19-a-character-s-place-is-a` · Status: current · Amends: `2026-11-19-characters-ride-the-creature-its-footprint`
+
+**Decision.** In the core, a character's `at` is a `Place`: `{ kind: 'hex', hex }` or `{ kind: 'creature' }`, plain JSON. Moves, paths and `reachablePlaces` (renamed from `reachableHexes`) work on places. A hex given as a target that lies under the footprint means the creature. The creature's neighbours are the ring of hexes beside the footprint, and boarding costs the base move cost, so the search crosses the creature when that is cheaper. Path steps carry `place` instead of `hex`, and `placeHex` gives the hex to draw a place at (the creature's centre for riders). Boarding sets no `via`. In the tick, riders move with the creature, a character on a hex now under the footprint becomes a rider, and only characters on hexes can be left behind. The start-next-to and push-aside code is removed.
+
+**Reasoning.** A tagged place lets the UI tell the creature apart from a hex without guessing from coordinates. Treating the creature as one node keeps one search for reach, paths and moves.
+
 ## 2026-11-19: Characters start riding the creature **[Misa]**
 
 ID: `2026-11-19-characters-start-riding-the-creature` · Status: current · Supersedes: `2026-11-19-characters-start-on-a-free-hex`
@@ -14,7 +22,7 @@ ID: `2026-11-19-characters-start-riding-the-creature` · Status: current · Supe
 
 ## 2026-11-19: Characters ride the creature; its footprint is one place, not seven hexes **[Misa]**
 
-ID: `2026-11-19-characters-ride-the-creature-its-footprint` · Status: current · Supersedes: `2026-11-19-the-creature-s-hexes-are-occupied`
+ID: `2026-11-19-characters-ride-the-creature-its-footprint` · Status: current, amended by `2026-11-19-a-character-s-place-is-a` · Supersedes: `2026-11-19-the-creature-s-hexes-are-occupied`
 
 **Decision.** The creature's 7 footprint hexes are not hexes a character stands on; together they are one place, "on the creature".
 

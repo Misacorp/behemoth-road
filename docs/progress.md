@@ -15,7 +15,7 @@ What has landed and what is next. Newest first. Update it when a step lands or t
 - 2026-11-19: Art kit (`packages/art`): code-drawn SVG in the ink-and-wash atlas look (palettes, paper and wash filters, isometric-style projection, tiles, props, the first creature, character standees, fog states) and a review export whose first batch is the style sample.
 - 2026-11-19: Art direction chosen (light ink-and-wash atlas, pastel broken colours, isometric with flat ground first, no money spent on art) and the art review page built (`tools/art-review/`); touch-first interaction and three-tap movement agreed.
 - 2026-11-19: Milestone 0: first production deploy of the blank page, verified live.
-- 2026-11-19: Milestone 1 game core in `packages/core`: flat-top hex maths, seeded terrain, the creature's veering step, window, fog and grace, moves and the day tick, with a 30-day scenario test (decisions in `product.md` and `platform.md`).
+- 2026-11-19: Milestone 1 game core in `packages/core`: flat-top hex maths, seeded terrain, the creature's veering step, window, fog and grace, moves and the day tick; characters ride the creature, with a 30-day scenario test (decisions in `product.md` and `platform.md`).
 - 2026-11-19: Stack agreed: a Discord Activity like creatures, one Worker with a Preact frontend, a pure `packages/core`, and one Durable Object per Discord server (decisions in `platform.md`).
 - 2026-11-19: Game design and prototype plan added from the handover (`docs/GAME_DESIGN.md`, `docs/PROTOTYPE_PLAN.md`), with the game's building rules in `CLAUDE.md`.
 - 2026-11-19: Project bootstrapped from the template (process, CI, security and agent tooling).

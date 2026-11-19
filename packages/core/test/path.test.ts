@@ -4,7 +4,6 @@ import {
   type GameState,
   hex,
   hexDistance,
-  hexEquals,
   hexesInRange,
   type Hex,
   isAdjacent,
@@ -13,7 +12,13 @@ import {
   moveAlong,
   neighbours,
   planPath,
-  reachableHexes,
+  ON_CREATURE,
+  onHex,
+  type Place,
+  placeAt,
+  placeEquals,
+  placeKey,
+  reachablePlaces,
   terrainAt,
 } from '../src/index.ts';
 import { findSeed, gameAt, nearP, P, withCharacter } from './helpers.ts';
@@ -22,6 +27,11 @@ const allPassable = (hexes: readonly Hex[]) => (s: number) =>
   hexes.every((h) => terrainAt(s, h).passable);
 
 const keys = (hexes: readonly Hex[]) => hexes.map((h) => `${h.q},${h.r}`);
+
+const hexOf = (place: Place): Hex => {
+  if (place.kind !== 'hex') throw new Error('expected a hex');
+  return place.hex;
+};
 
 describe('planPath', () => {
   it('finds a shortest path of adjacent, enterable steps with its cost', () => {
@@ -33,15 +43,16 @@ describe('planPath', () => {
         expect(['impassable', 'no-path', 'not-enough-actions']).toContain(plan.reason);
         continue;
       }
-      expect(plan.steps.at(-1)?.hex).toEqual(to);
+      expect(plan.steps.at(-1)?.place).toEqual(onHex(to));
       expect(plan.cost).toBe(plan.steps.reduce((sum, s) => sum + s.cost, 0));
       expect(plan.steps.length).toBeGreaterThanOrEqual(hexDistance(P, to));
       let from: Hex = P;
       for (const step of plan.steps) {
-        expect(isAdjacent(from, step.hex)).toBe(true);
-        expect(isPassable(state, step.hex)).toBe(true);
-        expect(step).toEqual({ hex: step.hex, cost: 1 }); // nothing sets `via` yet
-        from = step.hex;
+        const h = hexOf(step.place);
+        expect(isAdjacent(from, h)).toBe(true);
+        expect(isPassable(state, h)).toBe(true);
+        expect(step).toEqual({ place: onHex(h), cost: 1 }); // nothing sets `via` yet
+        from = h;
       }
     }
   });
@@ -55,22 +66,31 @@ describe('planPath', () => {
     );
     const plan = planPath(gameAt(seed, P, { config: { actionsPerDay: 4 } }), 'a', target);
     expect(plan).toMatchObject({ ok: true, cost: 4 });
-    if (plan.ok) expect(keys(plan.steps.map((s) => s.hex))).not.toContain(keys([cliff])[0]);
+    if (plan.ok)
+      expect(keys(plan.steps.map((s) => hexOf(s.place)))).not.toContain(keys([cliff])[0]);
   });
 
-  it('goes around the creature, never through it', () => {
-    // From west of the creature to east of it: the straight line crosses the footprint.
+  it('crosses the creature by boarding and stepping off', () => {
+    // From west of the creature to east of it: walking round costs 6, crossing costs 2.
     const from = hex(-2, 1);
     const to = hex(2, -1);
-    const ring = hexesInRange(hex(0, 0), 3).filter((h) => hexDistance(h, hex(0, 0)) >= 2);
-    const seed = findSeed(allPassable(ring));
-    const state = gameAt(seed, from, { config: { actionsPerDay: 10 } });
-    const plan = planPath(state, 'a', to);
-    expect(plan.ok).toBe(true);
-    if (!plan.ok) return;
-    expect(plan.steps.some((s) => isCreatureHex(state, s.hex))).toBe(false);
-    expect(plan.cost).toBeGreaterThan(hexDistance(from, to));
-    expect(planPath(state, 'a', hex(0, 0))).toEqual({ ok: false, reason: 'impassable' });
+    const seed = findSeed(allPassable([from, to]));
+    const state = gameAt(seed, from);
+    expect(planPath(state, 'a', to)).toEqual({
+      ok: true,
+      steps: [
+        { place: ON_CREATURE, cost: 1 },
+        { place: onHex(to), cost: 1 },
+      ],
+      cost: 2,
+    });
+  });
+
+  it('takes any footprint hex as the creature', () => {
+    const from = hex(-2, 1);
+    const state = gameAt(findSeed(allPassable([from])), from);
+    const plan = planPath(state, 'a', hex(1, -1)); // a footprint hex on the far side
+    expect(plan).toEqual({ ok: true, steps: [{ place: ON_CREATURE, cost: 1 }], cost: 1 });
   });
 
   it('gives an empty path to where the character stands', () => {
@@ -128,7 +148,7 @@ describe('moveAlong', () => {
     const walked = moveAlong(state, 'a', plan.steps);
     expect(walked.ok).toBe(true);
     if (walked.ok) {
-      expect(walked.state.characters[0]).toMatchObject({ position: line[2], actionsLeft: 0 });
+      expect(walked.state.characters[0]).toMatchObject({ at: onHex(line[2]!), actionsLeft: 0 });
     }
   });
 
@@ -146,44 +166,56 @@ describe('moveAlong', () => {
     const state = gameAt(seed);
     expect(moveAlong(state, 'a', [])).toEqual({ ok: true, state });
     expect(moveAlong(state, 'a', [nearP(0, -1)])).toMatchObject({ ok: true });
+    expect(moveAlong(state, 'a', [onHex(nearP(0, -1))])).toMatchObject({ ok: true });
     expect(moveAlong(state, 'b', [])).toEqual({ ok: false, reason: 'unknown-character', step: 0 });
   });
 });
 
-describe('reachableHexes', () => {
-  it('lists every hex within the actions left with its cheapest cost, nearest first', () => {
+describe('reachablePlaces', () => {
+  it('lists every place within the actions left with its cheapest cost, nearest first', () => {
     for (const seed of [1, 2, 3, 4]) {
-      const state = createGame(seed, { characterIds: ['a'] });
-      const start = state.characters[0]!.position;
-      const reach = reachableHexes(state, 'a');
-      expect(reach.length).toBeGreaterThan(3);
-      expect(reach.map((r) => r.cost)).toEqual(reach.map((r) => r.cost).sort((a, b) => a - b));
-      expect(reach.some((r) => hexEquals(r.hex, start))).toBe(false);
-      for (const r of reach) {
-        expect(isCreatureHex(state, r.hex)).toBe(false);
-        expect(r.cost).toBeLessThanOrEqual(3);
-        expect(r.cost).toBeGreaterThanOrEqual(hexDistance(start, r.hex));
-        // The same search as planPath: the plan to each hex costs exactly this.
-        expect(planPath(state, 'a', r.hex)).toMatchObject({ ok: true, cost: r.cost });
-      }
-      // And nothing within three steps that planPath can reach is missing.
-      const listed = new Set(keys(reach.map((r) => r.hex)));
-      for (const h of hexesInRange(start, 3)) {
-        if (hexEquals(h, start)) continue;
-        expect(listed.has(keys([h])[0]!)).toBe(planPath(state, 'a', h).ok);
+      for (const state of [createGame(seed, { characterIds: ['a'] }), gameAt(seed)]) {
+        const start = state.characters[0]!.at;
+        const reach = reachablePlaces(state, 'a');
+        expect(reach.length).toBeGreaterThan(3);
+        expect(reach.map((r) => r.cost)).toEqual(reach.map((r) => r.cost).sort((a, b) => a - b));
+        expect(reach.some((r) => placeEquals(r.place, start))).toBe(false);
+        for (const r of reach) {
+          expect(r.cost).toBeLessThanOrEqual(3);
+          if (r.place.kind === 'hex') expect(isCreatureHex(state, r.place.hex)).toBe(false);
+          // The same search as planPath: the plan to each place costs exactly this.
+          expect(planPath(state, 'a', r.place)).toMatchObject({ ok: true, cost: r.cost });
+        }
+        // And nothing within reach of a plan is missing.
+        const listed = new Set(reach.map((r) => placeKey(r.place)));
+        for (const h of hexesInRange(state.creature.centre, 5)) {
+          const place = placeAt(state, h);
+          if (placeEquals(place, start)) continue;
+          expect(listed.has(placeKey(place))).toBe(planPath(state, 'a', h).ok);
+        }
       }
     }
+  });
+
+  it('includes the creature, told apart from hexes', () => {
+    const from = hex(-2, 1);
+    const state = gameAt(findSeed(allPassable([from])), from);
+    expect(reachablePlaces(state, 'a')).toContainEqual({ place: { kind: 'creature' }, cost: 1 });
+    const fromCreature = reachablePlaces(createGame(1, { characterIds: ['a'] }), 'a');
+    expect(fromCreature.some((r) => r.place.kind === 'creature')).toBe(false);
   });
 
   it('shrinks as actions are spent and is empty for unknown or lost characters', () => {
     const state = gameAt(1);
     const c = state.characters[0]!;
-    expect(
-      reachableHexes(withCharacter(state, { ...c, actionsLeft: 1 }), 'a').map((r) => r.hex),
-    ).toEqual(neighbours(P).filter((h) => isPassable(state, h)));
-    expect(reachableHexes(withCharacter(state, { ...c, actionsLeft: 0 }), 'a')).toEqual([]);
-    expect(reachableHexes(state, 'nobody')).toEqual([]);
-    expect(reachableHexes(withCharacter(state, { ...c, status: 'lost' }), 'a')).toEqual([]);
+    expect(reachablePlaces(withCharacter(state, { ...c, actionsLeft: 1 }), 'a')).toEqual(
+      neighbours(P)
+        .filter((h) => isPassable(state, h))
+        .map((h) => ({ place: onHex(h), cost: 1 })),
+    );
+    expect(reachablePlaces(withCharacter(state, { ...c, actionsLeft: 0 }), 'a')).toEqual([]);
+    expect(reachablePlaces(state, 'nobody')).toEqual([]);
+    expect(reachablePlaces(withCharacter(state, { ...c, status: 'lost' }), 'a')).toEqual([]);
   });
 });
 
@@ -195,7 +227,7 @@ describe('path edge cases', () => {
       // Two steps away along two equal routes when both middles are open.
       const target = nearP(1, -2);
       expect(planPath(copy, 'a', target)).toEqual(planPath(state, 'a', target));
-      expect(reachableHexes(copy, 'a')).toEqual(reachableHexes(state, 'a'));
+      expect(reachablePlaces(copy, 'a')).toEqual(reachablePlaces(state, 'a'));
     }
   });
 
@@ -205,8 +237,8 @@ describe('path edge cases', () => {
     const state = gameAt(seed);
     expect(planPath(state, 'a', line[2]!)).toMatchObject({ ok: true, cost: 3 });
     expect(planPath(state, 'a', line[3]!)).toEqual({ ok: false, reason: 'not-enough-actions' });
-    const reach = reachableHexes(state, 'a');
-    expect(reach).toContainEqual({ hex: line[2], cost: 3 });
-    expect(reach.some((r) => hexEquals(r.hex, line[3]!))).toBe(false);
+    const reach = reachablePlaces(state, 'a');
+    expect(reach).toContainEqual({ place: onHex(line[2]!), cost: 3 });
+    expect(reach.some((r) => placeEquals(r.place, onHex(line[3]!)))).toBe(false);
   });
 });

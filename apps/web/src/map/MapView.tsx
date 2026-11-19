@@ -7,7 +7,8 @@ import {
   type GameState,
   type Hex,
   predictCreature,
-  reachableHexes,
+  placeHex,
+  reachablePlaces,
   terrainIdAt,
 } from '@behemoth-road/core';
 import type { JSX } from 'preact';
@@ -69,7 +70,7 @@ export function fitScale(screen: Size, windowRadius: number): number {
 
 function targetPoint(state: GameState, characterId: string, target: FocusTarget): Point {
   const me = state.characters.find((c) => c.id === characterId);
-  if (target === 'me' && me) return feetOf(p, me.position);
+  if (target === 'me' && me) return feetOf(p, placeHex(state, me.at));
   return hexCenter(p, state.creature.centre.q, state.creature.centre.r);
 }
 
@@ -120,7 +121,7 @@ export function MapView(props: MapViewProps): JSX.Element {
       state,
       flow,
       characterId,
-      reachable: selecting ? reachableHexes(state, characterId) : [],
+      reachable: selecting ? reachablePlaces(state, characterId) : [],
       predicted: predictCreature(state),
       projection: p,
       palette: PALETTE,
@@ -197,7 +198,9 @@ export function MapView(props: MapViewProps): JSX.Element {
         case 'tap': {
           const { state: s, characterId: id } = latest.current;
           const me = s.characters.find((c) => c.id === id && c.status === 'active');
-          latest.current.onTap(pickHex(p, toWorld(view.current, g.at), me?.position ?? null));
+          latest.current.onTap(
+            pickHex(p, toWorld(view.current, g.at), me ? placeHex(s, me.at) : null),
+          );
           break;
         }
         case 'end':

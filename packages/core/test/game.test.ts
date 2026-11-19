@@ -1,15 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  createGame,
-  type GameState,
-  hex,
-  hexDistance,
-  isCreatureHex,
-  terrainAt,
-  legalMoves,
-  move,
-  nextDay,
-} from '../src/index.ts';
+import { createGame, type GameState, hex, legalMoves, move, nextDay } from '../src/index.ts';
 
 /** Plays `days` days; each day every character takes its first legal moves. */
 const play = (start: GameState, days: number): GameState => {
@@ -30,28 +20,11 @@ const play = (start: GameState, days: number): GameState => {
 };
 
 describe('createGame', () => {
-  it('puts every character on one free hex next to the creature, with full actions', () => {
-    for (let seed = 0; seed < 50; seed++) {
-      const state = createGame(seed, { characterIds: ['a', 'b', 'c'] });
-      const start = state.characters[0]!.position;
-      expect(state.day).toBe(1);
-      expect(hexDistance(start, state.creature.centre)).toBe(state.config.creatureRadius + 1);
-      expect(isCreatureHex(state, start)).toBe(false);
-      expect(terrainAt(seed, start).passable).toBe(true);
-      for (const c of state.characters) {
-        expect(c.position).toEqual(start);
-        expect(c).toMatchObject({ actionsLeft: 3, status: 'active' });
-      }
-      expect(createGame(seed, { characterIds: ['x'] }).characters[0]?.position).toEqual(start);
-    }
-  });
-
-  it('starts beside the creature when that hex is free', () => {
-    // Heading north, the hexes level with the creature two steps out are (-2, 1) and (2, -1).
-    for (const seed of [0, 1, 2, 3, 4, 5, 6, 7]) {
-      const state = createGame(seed, { characterIds: ['a'] });
-      const beside = [hex(-2, 1), hex(2, -1)].filter((h) => terrainAt(seed, h).passable);
-      if (beside.length > 0) expect(state.characters[0]?.position).toEqual(beside[0]);
+  it('puts every character on the creature, riding it, with full actions', () => {
+    const state = createGame(5, { characterIds: ['a', 'b', 'c'] });
+    expect(state.day).toBe(1);
+    for (const c of state.characters) {
+      expect(c).toEqual({ id: c.id, at: { kind: 'creature' }, actionsLeft: 3, status: 'active' });
     }
   });
 
@@ -74,6 +47,14 @@ describe('determinism and serialisation', () => {
     expect(b).toEqual(a);
     const c = play(createGame(78, { characterIds: ['a', 'b'] }), 12);
     expect(c).not.toEqual(a);
+  });
+
+  it('keeps a riding character through a JSON round trip', () => {
+    const state = nextDay(createGame(3, { characterIds: ['rider'] }));
+    const copy = JSON.parse(JSON.stringify(state)) as GameState;
+    expect(copy.characters[0]?.at).toEqual({ kind: 'creature' });
+    expect(copy).toEqual(state);
+    expect(nextDay(copy)).toEqual(nextDay(state));
   });
 
   it('survives a JSON round trip and plays on identically', () => {
