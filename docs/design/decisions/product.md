@@ -4,21 +4,30 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
-## 2026-11-19: Pushed characters take the nearest free hex, beside before behind, or are lost if none is in reach
+## 2026-11-19: Characters start riding the creature **[Misa]**
 
-ID: `2026-11-19-pushed-characters-take-the-nearest-free` · Status: current · Amends: `2026-11-19-the-creature-s-hexes-are-occupied`
+ID: `2026-11-19-characters-start-riding-the-creature` · Status: current · Supersedes: `2026-11-19-characters-start-on-a-free-hex`
 
-**Decision.** `nearestFreeHex` searches outward from the character, ring by ring, for a hex in reach that can be entered and is not the creature's. Within a ring it ranks hexes by how far they lie along the creature's heading, worked out with whole numbers only: level with the creature first, then behind it (nearer the side first), then ahead; remaining ties follow the ring's fixed order. There is no radius limit inside what is in reach. If no free hex is in reach at all, the character is lost, so nobody is ever left standing on the creature. `createGame` uses the same search from the creature's centre, so characters start beside it when that hex is free.
+**Decision.** New characters start on the creature, riding it (see "Characters ride the creature…").
 
-**Reasoning.** This is one rule for both the start and the push, and it is deterministic without floating-point ties. Being lost when nothing is free can only happen on a map with no open ground, and it keeps the invariant simple.
+**Reasoning.** Misa: starting on the creature means no one spends a move to reach it.
 
-## 2026-11-19: Characters start on a free hex next to the creature **[Misa]**
+## 2026-11-19: Characters ride the creature; its footprint is one place, not seven hexes **[Misa]**
 
-ID: `2026-11-19-characters-start-on-a-free-hex` · Status: current · Supersedes: `2026-11-19-characters-start-on-the-creature-s`
+ID: `2026-11-19-characters-ride-the-creature-its-footprint` · Status: current · Supersedes: `2026-11-19-the-creature-s-hexes-are-occupied`
 
-**Decision.** New characters start on a free, passable hex next to the creature's footprint, chosen by a fixed order so it is deterministic. Several characters may share it.
+**Decision.** The creature's 7 footprint hexes are not hexes a character stands on; together they are one place, "on the creature".
 
-**Reasoning.** The creature's hexes are now off limits (see "The creature's hexes are occupied"), so the old start on its centre no longer works.
+- Characters start on the creature, riding it, and riders move with it each day, so they are never left behind.
+- Riders take no hex slot; they are drawn on its back, side by side.
+- Boarding from a hex next to the footprint costs one step, and so does stepping off onto any passable hex next to the footprint. A path may cross the creature by boarding and stepping off.
+- When the creature steps onto a hex where a character stands, that character ends up riding it, at no cost.
+- Tapping any footprint hex means the creature.
+- Players can do their duties from the creature's back (later milestones).
+
+This supersedes the rule that characters cannot enter the creature's hexes and the push-aside rule in it. It also replaces "Characters start on a free hex next to the creature".
+
+**Reasoning.** Misa: riding the creature is a thing in this game. It keeps characters off the hex grid while they travel with it, and starting on it means no one spends a move to get there.
 
 ## 2026-11-19: The creature stays mostly inside its footprint so the map stays readable **[Misa]**
 
@@ -27,14 +36,6 @@ ID: `2026-11-19-the-creature-stays-mostly-inside-its` · Status: current · Amen
 **Decision.** The creature is drawn smaller, between the broad high back and the long-neck, long-tail shapes. Its body stays mostly within its 7-hex footprint; the head, neck and tail may reach a little into neighbouring hexes, but never cover a whole hex outside the footprint. The footprint hexes are drawn in their own colour (ground the creature is standing on), so its size reads from the ground as well as the body. The map is not rotatable.
 
 **Reasoning.** Misa: a big creature hid the tiles behind it and its neck crossed other hexes, which hurts readability without a way to rotate the map. Marking the occupied hexes keeps it feeling huge while the drawing stays compact. Rotation (and true 3D) is not planned.
-
-## 2026-11-19: The creature's hexes are occupied: characters cannot enter them **[Misa]**
-
-ID: `2026-11-19-the-creature-s-hexes-are-occupied` · Status: current, amended by `2026-11-19-pushed-characters-take-the-nearest-free` · Supersedes: `2026-11-19-the-creature-s-hexes-are-always`
-
-**Decision.** The creature's hexes are occupied: characters cannot enter, stand on or pass through them, and they offer no actions. Paths go around the creature. Characters start on a free hex next to it. When the creature steps onto a hex where a character stands, the character is moved to the nearest free hex the character could stand on, preferring the hexes beside and behind the creature (a fixed order, so it is deterministic), and the move costs no actions.
-
-**Reasoning.** Misa: the occupied hexes are the creature's own ground; making them off limits lets the creature be drawn smaller without losing its size. Being pushed aside rather than lost or blocked keeps the daily step simple; the push rule was the lead's call.
 
 ## 2026-11-19: The creature is a behemoth: it fills its footprint and carries a small landscape
 
@@ -308,6 +309,22 @@ ID: `2026-11-19-counts-read-1-3-and-terms` · Status: current
 <!-- Superseded entries below: kept for history, no longer in force. -->
 
 # Superseded
+
+## 2026-11-19: Characters start on a free hex next to the creature **[Misa]**
+
+ID: `2026-11-19-characters-start-on-a-free-hex` · Status: superseded by `2026-11-19-characters-start-riding-the-creature` · Supersedes: `2026-11-19-characters-start-on-the-creature-s`
+
+**Decision.** New characters start on a free, passable hex next to the creature's footprint, chosen by a fixed order so it is deterministic. Several characters may share it.
+
+**Reasoning.** The creature's hexes are now off limits (see "The creature's hexes are occupied"), so the old start on its centre no longer works.
+
+## 2026-11-19: The creature's hexes are occupied: characters cannot enter them **[Misa]**
+
+ID: `2026-11-19-the-creature-s-hexes-are-occupied` · Status: superseded by `2026-11-19-characters-ride-the-creature-its-footprint` · Supersedes: `2026-11-19-the-creature-s-hexes-are-always`
+
+**Decision.** The creature's hexes are occupied: characters cannot enter, stand on or pass through them, and they offer no actions. Paths go around the creature. Characters start on a free hex next to it. When the creature steps onto a hex where a character stands, the character is moved to the nearest free hex the character could stand on, preferring the hexes beside and behind the creature (a fixed order, so it is deterministic), and the move costs no actions.
+
+**Reasoning.** Misa: the occupied hexes are the creature's own ground; making them off limits lets the creature be drawn smaller without losing its size. Being pushed aside rather than lost or blocked keeps the daily step simple; the push rule was the lead's call.
 
 ## 2026-11-19: Characters start on the creature's centre
 
