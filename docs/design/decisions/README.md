@@ -48,6 +48,8 @@ Record a decision:
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
+- 2026-11-19 Map ground merges into one path per paint; hexes are hit-tested by maths
+- 2026-11-19 The art kit is a pure package that returns an SVG element tree
 - 2026-11-19 Hostnames stay out of the README and workflows
 - 2026-11-19 One Durable Object per Discord server holds the game; its alarm runs the day tick
 - 2026-11-19 The game core is its own pure package, imported by the Worker and the frontend
@@ -79,6 +81,7 @@ Record a decision:
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-19 First map art: a squashed hex plane with open-edge sides, upright props and four fog states
 - 2026-11-19 Isometric 3D hexes are the long-term goal; the map is built to allow it \[Misa\]
 - 2026-11-19 The look is a light ink-and-wash atlas in pastel, broken colours \[Misa\]
 - 2026-11-19 Phone first, desktop too
