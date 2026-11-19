@@ -60,11 +60,7 @@ const activeCount = (state: GameState): number =>
   state.characters.filter((c) => c.status === 'active').length;
 
 /** STUB: adds a character riding the creature, refused at the player cap. */
-export function addCharacter(
-  state: GameState,
-  id: string,
-  offer: CharacterOffer,
-): CharacterResult {
+export function addCharacter(state: GameState, id: string, offer: CharacterOffer): CharacterResult {
   // STUB: the core's characters do not carry a name, trait or quirk yet, so the offer is not kept.
   void offer;
   if (state.characters.some((c) => c.id === id)) return { ok: false, reason: 'duplicate' };
