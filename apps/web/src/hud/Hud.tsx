@@ -2,9 +2,18 @@
  * The heads-up layer: day counter, action pips, recentre buttons, a way to join (or replace a lost
  * character) when you have none, and the staging-only "next day" for admins.
  */
+import type { CharacterLook } from '@behemoth-road/art';
 import type { JSX } from 'preact';
 import type { FocusTarget } from '../map/MapView.tsx';
-import { CharacterIcon, CreatureIcon, JoinIcon, NextDayIcon, Pips, SunIcon } from './icons.tsx';
+import {
+  CharacterFigure,
+  CharacterIcon,
+  CreatureIcon,
+  JoinIcon,
+  NextDayIcon,
+  Pips,
+  SunIcon,
+} from './icons.tsx';
 
 export interface HudProps {
   readonly day: number;
@@ -13,6 +22,8 @@ export interface HudProps {
   /** Actions the planned move would spend (shown hollow). */
   readonly planned: number;
   readonly lost: boolean;
+  /** How your character looks (the recentre button shows it); null before joining. */
+  readonly me: { readonly accent: string; readonly look: CharacterLook | undefined } | null;
   readonly onFocus: (target: FocusTarget) => void;
   /** Shown only when the server offers dev tools and you are an admin. */
   readonly onNextDay: (() => void) | null;
@@ -42,7 +53,14 @@ export function Hud(props: HudProps): JSX.Element {
           aria-label="Your character"
           onClick={() => props.onFocus('me')}
         >
-          <CharacterIcon />
+          {props.me ? (
+            <CharacterFigure
+              accent={props.me.accent}
+              {...(props.me.look ? { look: props.me.look } : {})}
+            />
+          ) : (
+            <CharacterIcon />
+          )}
         </button>
         <button
           type="button"

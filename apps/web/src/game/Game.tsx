@@ -164,6 +164,7 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         actionsPerDay={state.config.actionsPerDay}
         planned={flow.kind === 'planned' && isSelecting(flow) ? flow.cost : 0}
         lost={me?.status !== 'active'}
+        me={who.get(id) ?? null}
         onFocus={(target) => setFocus((f) => ({ target, n: f.n + 1 }))}
         onNextDay={
           showsNextDay(view)
