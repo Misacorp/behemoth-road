@@ -109,14 +109,15 @@ async function run() {
       const shot = (name) => page.screenshot({ path: join(out, `m1-map-${vp.name}-${name}.png`) });
       const cx = vp.width / 2;
       const cy = vp.height / 2;
-      const scale0 = (await nums('data-view'))[2];
-      // The first view centres on the character, who starts riding: tap its body to select it.
-      const tapMe = () => tap(cx, cy - 20 * scale0);
-      await tapMe();
-      await shot('2-selected-riding');
+      const has = async (kind) => (await page.locator(`[data-popover=${kind}]`).count()) > 0;
+      // The character starts riding: a tap anywhere on the creature selects it and opens the bubble.
+      const [q0, r0] = await creature();
+      const tapCreature = async () => tap(...(await hexOnScreen(q0, r0)));
+      await tapCreature();
+      if (!(await has('bubble'))) problems.push(`${vp.name}: no bubble while riding`);
+      await shot('2-bubble-riding');
 
       // Step off: try the hexes around the footprint, south side first.
-      const [q0, r0] = await creature();
       const ring = [
         [0, 2],
         [-1, 2],
@@ -134,7 +135,7 @@ async function run() {
           off = [q0 + dq, r0 + dr];
           break;
         }
-        await tapMe();
+        await tapCreature();
       }
       if (!off) problems.push(`${vp.name}: no hex to step off to`);
       await shot('3-plan-step-off');
@@ -142,7 +143,7 @@ async function run() {
       await page.waitForTimeout(200);
       await shot('4-stepped-off');
 
-      // Board again: the character stays selected after a move; tap a footprint hex away from the figure.
+      // Board again: the character stays selected after a move; tap any footprint hex.
       if (off) {
         await tap(...(await hexOnScreen(q0, r0 - 1)));
         if (!(await page.locator('[data-popover=confirm]').count()))
@@ -155,11 +156,12 @@ async function run() {
       await page.waitForTimeout(700);
       await shot('6-next-day-riding');
 
-      // The creature popover: tap the footprint hex nearest the viewer, below the riders on the raised back.
+      // The hub: the bubble's creature entry opens the creature card.
       const [q1, r1] = await creature();
-      await tap(...(await hexOnScreen(q1, r1 + 1)));
-      if (!(await page.locator('[data-popover=creature]').count()))
-        problems.push(`${vp.name}: no creature popover`);
+      await tap(...(await hexOnScreen(q1, r1)));
+      await page.locator('[data-popover=bubble] [aria-label=Behemoth]').click();
+      await page.waitForTimeout(150);
+      if (!(await has('creature'))) problems.push(`${vp.name}: no creature card`);
       await shot('7-creature');
       // Inspect a hex a few steps away.
       await tap(...(await hexOnScreen(q1 - 3, r1 + 1)));

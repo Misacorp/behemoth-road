@@ -3,8 +3,12 @@
  * miniature and a visibility mark for a hex, or the cost pips and a confirm button for a planned move.
  */
 import {
+  accentRamp,
   ART_TUNING,
+  drawCharacter,
   drawCreature,
+  type Drawn,
+  GENTLE_AMBLER,
   el,
   hexCenter,
   isometric,
@@ -220,6 +224,140 @@ export function CreatureCard({ state }: { state: GameState }): JSX.Element {
       <g transform="translate(110 37)">
         <HeadingMark heading={art.heading} />
       </g>
+    </g>
+  );
+}
+
+/** A drawing from the art kit, fitted into a box with a little padding. */
+function Fitted({
+  drawn,
+  x,
+  y,
+  width,
+  height,
+}: {
+  drawn: Drawn;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}) {
+  const { x0, y0, x1, y1 } = drawn.box;
+  const pad = 2;
+  const w = x1 - x0 + 2 * pad;
+  const h = y1 - y0 + 2 * pad;
+  return (
+    <svg
+      x={x}
+      y={y}
+      width={width}
+      height={height}
+      viewBox={`${x0 - pad} ${y0 - pad} ${w} ${h}`}
+      aria-hidden="true"
+    >
+      {drawn.nodes.map(toPreact)}
+    </svg>
+  );
+}
+
+const FIGURE_W = 34;
+const PLACE_W = 56;
+const BUBBLE_H = 64;
+
+/** The bubble's size for `count` characters and a place entry. */
+export function bubbleSize(count: number, place = true): { width: number; height: number } {
+  return { width: 16 + count * FIGURE_W + (place ? PLACE_W : 0), height: BUBBLE_H };
+}
+
+export interface BubbleCharacter {
+  readonly id: string;
+  /** Drawn with a selection ring (your own character, when the tap selected it). */
+  readonly selected: boolean;
+}
+
+/**
+ * The bubble by a place with characters: their figures in a row (inert for now; Milestone 2 opens a
+ * character's details), and, for a place like the creature, a round entry into it. Generic so any hex with
+ * several characters can use it later.
+ */
+export function Bubble({
+  characters,
+  place,
+  onOpenPlace,
+  placeRef,
+}: {
+  characters: readonly BubbleCharacter[];
+  place?: 'creature';
+  onOpenPlace: () => void;
+  placeRef: (el: SVGGElement | null) => void;
+}): JSX.Element {
+  const size = bubbleSize(characters.length, place !== undefined);
+  const ramp = accentRamp(PALETTE, MAP_TUNING.accent);
+  const ink = ART_TUNING.inkWidth * 0.7;
+  return (
+    <g data-popover="bubble">
+      <Card {...size} />
+      {characters.map((c, i) => {
+        const x = 8 + i * FIGURE_W;
+        return (
+          <g key={c.id} data-character={c.id} transform={`translate(${x} 6)`}>
+            {c.selected && (
+              <ellipse
+                cx={FIGURE_W / 2}
+                cy={44}
+                rx={13}
+                ry={5}
+                fill={ramp.light}
+                stroke={ramp.shade}
+                stroke-width={1.6}
+              />
+            )}
+            <Fitted
+              drawn={drawCharacter(
+                PALETTE,
+                MAP_TUNING.accent,
+                { x: 0, y: 0 },
+                40,
+                MAP_TUNING.tilt,
+                ink * 1.4,
+              )}
+              x={3}
+              y={0}
+              width={FIGURE_W - 6}
+              height={46}
+            />
+          </g>
+        );
+      })}
+      {place === 'creature' && (
+        <g
+          ref={placeRef}
+          class="svg-button"
+          role="button"
+          tabIndex={0}
+          aria-label="Behemoth"
+          transform={`translate(${size.width - PLACE_W / 2 - 6} ${BUBBLE_H / 2 - 1})`}
+          onClick={onOpenPlace}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              onOpenPlace();
+            }
+          }}
+        >
+          <circle r={23} fill={PALETTE.paper} stroke={PALETTE.inkSoft} stroke-width={1.4} />
+          <Fitted
+            drawn={drawCreature(PALETTE, GENTLE_AMBLER, { x: 0, y: 0 }, 14, MAP_TUNING.tilt, 1.8, {
+              q: 0,
+              r: 1,
+            })}
+            x={-17}
+            y={-17}
+            width={34}
+            height={34}
+          />
+        </g>
+      )}
     </g>
   );
 }

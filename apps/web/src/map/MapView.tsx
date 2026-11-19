@@ -17,12 +17,14 @@ import { PALETTE, PROJECTION } from './art.ts';
 import { cellStateAt, characterArts, creatureArt, sceneCells } from './cells.ts';
 import { placePopover, splitScene } from './compose.ts';
 import { MAP_TUNING } from './config.ts';
-import type { Flow } from './flow.ts';
+import { type Flow, isSelecting } from './flow.ts';
 import { GestureTracker, type Gesture } from './gestures.ts';
 import { buildOverlays } from './overlays.ts';
-import { figureFeet, otherFigureFeet, placePoint } from './figures.ts';
+import { figureFeet, pickableFeet, placePoint } from './figures.ts';
 import { pickTarget, type Point, type Target } from './pick.ts';
 import {
+  Bubble,
+  bubbleSize,
   CONFIRM_SIZE,
   ConfirmCard,
   CREATURE_SIZE,
@@ -53,6 +55,8 @@ export interface MapViewProps {
   readonly characterId: string;
   readonly onTap: (target: Target) => void;
   readonly onConfirm: () => void;
+  /** The bubble's way into the hub was tapped. */
+  readonly onOpenHub: () => void;
   /** Recentre requests: a new `n` animates the view to the target. */
   readonly focus: { readonly target: FocusTarget; readonly n: number };
 }
@@ -83,6 +87,10 @@ function targetPoint(state: GameState, characterId: string, target: FocusTarget)
   return hexCenter(p, state.creature.centre.q, state.creature.centre.r);
 }
 
+/** The characters riding the creature, in character order (the bubble lists them). */
+const ridersOf = (state: GameState) =>
+  state.characters.filter((c) => c.status === 'active' && c.at.kind === 'creature');
+
 /** Where a popover points: the top of what it is about, and how far below that the thing ends (world px). */
 interface Anchor {
   readonly key: string;
@@ -104,15 +112,15 @@ function popoverAnchor(state: GameState, flow: Flow, characterId: string): Ancho
       size: INSPECT_SIZE,
     };
   }
-  if (flow.kind === 'creature') {
+  if (flow.kind === 'creature' || flow.kind === 'bubble') {
     // Above the creature's back, clear of its footprint.
     const c = hexCenter(p, state.creature.centre.q, state.creature.centre.r);
     const lift = tile * 1.5 + 0.5 * p.size;
     return {
-      key: 'creature',
+      key: flow.kind,
       top: { x: c.x, y: c.y - lift },
       below: lift + tile,
-      size: CREATURE_SIZE,
+      size: flow.kind === 'bubble' ? bubbleSize(ridersOf(state).length) : CREATURE_SIZE,
     };
   }
   if (flow.kind === 'planned') {
@@ -176,7 +184,7 @@ export function MapView(props: MapViewProps): JSX.Element {
   }, [state, inkZoom]);
 
   const overlays = useMemo(() => {
-    const selecting = flow.kind === 'selected' || flow.kind === 'planned';
+    const selecting = isSelecting(flow);
     const o = buildOverlays({
       state,
       flow,
@@ -255,14 +263,8 @@ export function MapView(props: MapViewProps): JSX.Element {
           break;
         case 'tap': {
           const { state: s, characterId: id } = latest.current;
-          latest.current.onTap(
-            pickTarget(
-              p,
-              toWorld(view.current, g.at),
-              figureFeet(s, id, p),
-              otherFigureFeet(s, id, p),
-            ),
-          );
+          const feet = pickableFeet(s, id, p);
+          latest.current.onTap(pickTarget(p, toWorld(view.current, g.at), feet.mine, feet.others));
           break;
         }
         case 'end':
@@ -398,7 +400,8 @@ export function MapView(props: MapViewProps): JSX.Element {
   useLayoutEffect(() => {
     apply();
     if (popKey) {
-      const target = flow.kind === 'planned' ? confirmRef.current : popRef.current;
+      const target =
+        flow.kind === 'planned' || flow.kind === 'bubble' ? confirmRef.current : popRef.current;
       target?.focus({ preventScroll: true });
     } else if (popRef.current?.contains(document.activeElement)) {
       svgRef.current?.focus({ preventScroll: true });
@@ -427,6 +430,20 @@ export function MapView(props: MapViewProps): JSX.Element {
     );
   } else if (flow.kind === 'creature') {
     card = <CreatureCard state={state} />;
+  } else if (flow.kind === 'bubble') {
+    card = (
+      <Bubble
+        characters={ridersOf(state).map((c) => ({
+          id: c.id,
+          selected: c.id === characterId && flow.selecting,
+        }))}
+        place="creature"
+        onOpenPlace={props.onOpenHub}
+        placeRef={(el) => {
+          confirmRef.current = el;
+        }}
+      />
+    );
   } else if (flow.kind === 'planned') {
     card = (
       <ConfirmCard

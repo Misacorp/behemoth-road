@@ -100,9 +100,24 @@ export interface SceneFrame {
   readonly height: number;
 }
 
+/**
+ * Rider slots by character id: the characters `isRider` picks, numbered in the order given. The scene seats
+ * riders with this, and the map uses it to find a rider's figure (and the seat a boarding character takes).
+ */
+export function riderSeats<T extends { readonly id: string }>(
+  characters: readonly T[],
+  isRider: (c: T) => boolean,
+): Map<string, number> {
+  const seats = new Map<string, number>();
+  for (const c of characters) if (isRider(c)) seats.set(c.id, seats.size);
+  return seats;
+}
+
 export interface FramedScene {
   readonly svg: SvgNode;
   readonly viewBox: SceneFrame;
+  /** Where each character's figure was drawn (its feet), by id, in drawing coordinates. */
+  readonly figures: ReadonlyMap<string, Point>;
 }
 
 /** The scene as an SVG tree. */
@@ -207,19 +222,23 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
   }
   const sites = new Set(cells.filter((c) => c.site).map((c) => `${c.q},${c.r}`));
   const perTile = new Map<string, number>();
-  let riders = 0;
+  const seats = creature
+    ? riderSeats(input.characters ?? [], (ch) => inFootprint(creature, ch))
+    : new Map<string, number>();
+  const figures = new Map<string, Point>();
   for (const ch of input.characters ?? []) {
-    if (creature && inFootprint(creature, ch)) {
+    const seat = seats.get(ch.id);
+    if (creature && seat !== undefined) {
       // A rider: standing on the creature's back in the next free slot, with a firm contact shadow.
       const c = riderAnchor(
         creature.look,
         creature.heading,
-        riders,
+        seat,
         hexCenter(p, creature.q, creature.r),
         p.size,
         p.squash,
       );
-      riders += 1;
+      figures.set(ch.id, c);
       const drawn = drawCharacter(palette, ch.accent, c, p.size, p.squash, ink);
       const contact = el('path', {
         d: ellipsePath(
@@ -243,6 +262,7 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
     const index = perTile.get(key) ?? 0;
     perTile.set(key, index + 1);
     const c = figureAnchor(p, ch, index, { site: sites.has(key) });
+    figures.set(ch.id, c);
     placed.push({ at: c, drawn: drawCharacter(palette, ch.accent, c, p.size, p.squash, ink) });
   }
 
@@ -281,7 +301,7 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
     ),
     ...(lite || !page ? [] : [paperGrain(palette, prefix, frame)]),
   ]);
-  return { svg, viewBox: frame };
+  return { svg, viewBox: frame, figures };
 
   function ctx(origin: Point, rng: Rng, scale = 1) {
     return {

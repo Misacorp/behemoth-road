@@ -31,7 +31,7 @@ import {
 } from '@behemoth-road/core';
 import { MAP_TUNING } from './config.ts';
 import { figureFeet, placePoint } from './figures.ts';
-import type { Flow } from './flow.ts';
+import { type Flow, isSelecting } from './flow.ts';
 import { feetOf, type Point } from './pick.ts';
 
 export interface OverlayInput {
@@ -292,12 +292,12 @@ export function buildOverlays(i: OverlayInput): Overlays {
   under.push(...creatureHints(i));
   const feet = figureFeet(i.state, i.characterId, i.projection);
   const riding = me?.at.kind === 'creature';
-  if ((i.flow.kind === 'selected' || i.flow.kind === 'planned') && feet) {
+  if (isSelecting(i.flow) && feet) {
     under.push(...reachableWash(i));
     (riding ? over : under).push(selectionRing(i, feet, riding));
   }
   if (i.flow.kind === 'inspect') under.push(hexOutline(i, i.flow.hex, i.palette.ink, 2.2));
-  if (i.flow.kind === 'creature') {
+  if (i.flow.kind === 'creature' || i.flow.kind === 'bubble') {
     under.push(placeOutline(i, { kind: 'creature' }, i.palette.ink, 2.2));
   }
   if (i.flow.kind === 'planned' && feet) {

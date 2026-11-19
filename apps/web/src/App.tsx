@@ -2,7 +2,7 @@ import { createGame, findCharacter, type GameState, nextDay } from '@behemoth-ro
 import { useState } from 'preact/hooks';
 import { Hud } from './hud/Hud.tsx';
 import { MAP_TUNING } from './map/config.ts';
-import { confirmMove, type Flow, IDLE, tap } from './map/flow.ts';
+import { confirmMove, type Flow, IDLE, openHub, tap } from './map/flow.ts';
 import { type FocusTarget, MapView } from './map/MapView.tsx';
 import type { Target } from './map/pick.ts';
 
@@ -42,6 +42,7 @@ export function App() {
         characterId={id}
         onTap={onTap}
         onConfirm={onConfirm}
+        onOpenHub={() => setFlow(openHub())}
         focus={focus}
       />
       <Hud

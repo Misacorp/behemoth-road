@@ -4,9 +4,17 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: The map's hub bubble: a generic list of characters plus a place entry
+
+ID: `2026-11-19-the-map-s-hub-bubble-a` · Status: current · Amends: `2026-11-19-on-the-map-the-creature-is`
+
+**Decision.** This implements Misa's "The creature is the party's hub" on the map. A tap on the creature never lands on a rider's figure; riders are not tap targets. If you ride, it selects you (the step-off hexes light up) and opens a bubble above the creature. If you don't ride, it opens the same bubble without selecting anyone; if you are selected beside the creature, it plans boarding instead. The bubble (`Bubble` in `apps/web/src/map/Popover.tsx`) takes a list of characters (your own drawn with a selection ring, the others inert for now) and an optional place entry: a round creature mini that opens the creature card. A tap on your own hex selects your character. Rider seats come from the art kit's `riderSeats`, the same function the scene seats riders with, and a test checks every figure position the map computes against the positions the scene reports drawing.
+
+**Reasoning.** Keeping the bubble generic lets Milestone 2 reuse it for any hex with several characters. One seat function, plus a test against the scene's own output, keeps picking and drawing from drifting apart.
+
 ## 2026-11-19: On the map the creature is one place: one outline, a seat at the arrow's end, its own popover
 
-ID: `2026-11-19-on-the-map-the-creature-is` · Status: current
+ID: `2026-11-19-on-the-map-the-creature-is` · Status: current, amended by `2026-11-19-the-map-s-hub-bubble-a`
 
 **Decision.** When your character is selected and can board, the creature lights up as one target: a soft wash over its whole footprint and one dashed outline around its outside edge, not seven hex washes. Tapping any footprint hex plans to board. The arrow ends at the rider slot the character would take, and the confirm card shows the pip cost. A rider is selected by tapping its figure on the creature's back; the stepping-off hexes light up and the arrow starts from its seat. A selected rider's ring is drawn over the creature, as an outline only. Tapping the creature when not planning opens a small card with a drawing of the creature turned to its heading, plus a compass arrow for the heading. Tapping your own figure with no actions left looks at your place (the hex or the creature) instead of selecting it. The confirm card sits below the destination when the arrow arrives from above, so it never covers the arrow. "Recentre on me" centres on a rider's seat.
 

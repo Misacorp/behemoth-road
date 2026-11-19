@@ -44,6 +44,7 @@ export {
   paperGrain,
   renderScene,
   renderSceneFramed,
+  riderSeats,
   type FramedScene,
   type SceneFrame,
   type SceneInput,

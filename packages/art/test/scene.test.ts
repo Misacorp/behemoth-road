@@ -4,7 +4,7 @@ import type { CharacterArt } from '../src/character.ts';
 import { PALETTES, paletteColours, MORNING } from '../src/palette.ts';
 import { DIRECTIONS, hexCenter, isometric, topDown } from '../src/projection.ts';
 import { samplePatch } from '../src/sample.ts';
-import { paperGrain, renderScene, renderSceneFramed } from '../src/scene.ts';
+import { paperGrain, renderScene, renderSceneFramed, riderSeats } from '../src/scene.ts';
 import { countNodes, el, toSvgString, walk, type SvgNode } from '../src/svg.ts';
 import { riseFor } from '../src/props.ts';
 import { FALLBACK_LOOK, TERRAIN_LOOKS, terrainLook } from '../src/terrain.ts';
@@ -408,5 +408,37 @@ describe('scene frame', () => {
     });
     const { svg, viewBox } = renderSceneFramed(sample());
     expect(svg.children.at(-1)).toEqual(paperGrain(MORNING, 'br', viewBox));
+  });
+});
+
+describe('rider seats', () => {
+  it('numbers the riders in the order given, skipping others', () => {
+    const chars = [{ id: 'a' }, { id: 'x' }, { id: 'b' }, { id: 'c' }];
+    expect([...riderSeats(chars, (c) => c.id !== 'x')]).toEqual([
+      ['a', 0],
+      ['b', 1],
+      ['c', 2],
+    ]);
+  });
+
+  it('reports where it drew each figure: riders at their seat anchors', () => {
+    const { creature } = samplePatch();
+    const characters = ['a', 'b', 'c'].map((id) => ({
+      id,
+      q: creature.q,
+      r: creature.r,
+      accent: 'rose',
+    }));
+    const { figures } = renderSceneFramed({ ...sample(), characters });
+    const p = isometric();
+    const origin = {
+      x: 1.5 * p.size * creature.q,
+      y: p.size * Math.sqrt(3) * (creature.r + creature.q / 2) * p.squash,
+    };
+    characters.forEach((c, slot) => {
+      expect(figures.get(c.id)).toEqual(
+        riderAnchor(creature.look, creature.heading, slot, origin, p.size, p.squash),
+      );
+    });
   });
 });
