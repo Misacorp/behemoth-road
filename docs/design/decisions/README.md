@@ -48,6 +48,7 @@ Record a decision:
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
+- 2026-11-19 The core derives terrain from a hash and stores only tile knowledge and the config
 - 2026-11-19 Hostnames stay out of the README and workflows
 - 2026-11-19 One Durable Object per Discord server holds the game; its alarm runs the day tick
 - 2026-11-19 The game core is its own pure package, imported by the Worker and the frontend
@@ -79,6 +80,10 @@ Record a decision:
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-19 Characters start together on the passable hex nearest the creature
+- 2026-11-19 The window is always in play; lost characters stay lost
+- 2026-11-19 Cliffs are impassable to characters in Milestone 1
+- 2026-11-19 The creature veers by a seeded daily roll and ignores terrain for now
 - 2026-11-19 Isometric 3D hexes are the long-term goal; the map is built to allow it \[Misa\]
 - 2026-11-19 The look is a light ink-and-wash atlas in pastel, broken colours \[Misa\]
 - 2026-11-19 Phone first, desktop too

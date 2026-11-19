@@ -4,6 +4,14 @@ Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: The core derives terrain from a hash and stores only tile knowledge and the config
+
+ID: `2026-11-19-the-core-derives-terrain-from-a` · Status: current
+
+**Decision.** A hex's terrain is a weighted pick from the terrain data using a hash of (seed, q, r); each hex is independent, with no clustering yet. The game state stores the seed, the day, the creature, the characters, the tuning config the game was created with, and tile knowledge only for hexes that have been in view (`seen` with the day it left the window, or `lost`). Hidden is the absence of an entry. The state is plain JSON.
+
+**Reasoning.** The map is never stored whole and any tile can be generated on demand, as the design asks. Keeping the config in the state means every rule in a game reads the same numbers, and a stored game replays identically. Clustered terrain (rivers that flow, forests in patches) can replace the per-hex pick later without a state change.
+
 ## 2026-11-19: Hostnames stay out of the README and workflows
 
 ID: `2026-11-19-hostnames-stay-out-of-the-readme` · Status: current

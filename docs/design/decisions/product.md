@@ -4,6 +4,38 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: Characters start together on the passable hex nearest the creature
+
+ID: `2026-11-19-characters-start-together-on-the-passable` · Status: current
+
+**Decision.** `createGame` puts every character on the same hex: the creature's centre if it is passable, otherwise the first passable hex found ring by ring outwards. Characters may share a hex.
+
+**Reasoning.** Simplest start that is always legal. Spreading characters out or letting players choose a start can come later without changing the state shape.
+
+## 2026-11-19: The window is always in play; lost characters stay lost
+
+ID: `2026-11-19-the-window-is-always-in-play` · Status: current
+
+**Decision.** Every hex within the window radius of the creature's centre is `seen` and reachable, even one that was lost before and came back into range when the creature veered. A hex that leaves the window records the day it left and becomes `lost` once `graceDays` have passed (1: reachable for one more day). A character standing on a lost hex at the tick is lost for good, with no way back in Milestone 1. Hexes never in view are `hidden`.
+
+**Reasoning.** The design says trailing tiles are lost to the fog and left-behind characters are lost for good; it does not say what happens to a tile the window touches again. Keeping the whole window in play avoids holes in the area around the creature. A later rule (for example a fog that lingers) can still mark such hexes differently.
+
+## 2026-11-19: Cliffs are impassable to characters in Milestone 1
+
+ID: `2026-11-19-cliffs-are-impassable-to-characters-in` · Status: current
+
+**Decision.** Terrain has a `passable` property; cliffs set it to false and no character can enter them. All terrain costs the base move cost (an `extraMoveCost` of 0 everywhere).
+
+**Reasoning.** Milestone 3's grappling hook is meant to let everyone cross cliff edges, which needs cliffs to block first. Per-terrain costs exist as data so traits and gear can change them later.
+
+## 2026-11-19: The creature veers by a seeded daily roll and ignores terrain for now
+
+ID: `2026-11-19-the-creature-veers-by-a-seeded` · Status: current
+
+**Decision.** The creature keeps one general heading for the whole game (north by default). Each tick it steps one hex: anticlockwise of the heading, straight, or clockwise, picked by weight (1 : 2 : 1, in the tuning config) with a roll that is a pure hash of the seed and the day. It never turns back and walks over any terrain, cliffs included. `predictCreature` returns the three possible next centres with their chances.
+
+**Reasoning.** Matches the documented starting rule and keeps the step a function of (seed, day), so no random state is stored. Steering by stimuli (Milestone 4) can change the weights without changing the shape.
+
 ## 2026-11-19: Isometric 3D hexes are the long-term goal; the map is built to allow it **[Misa]**
 
 ID: `2026-11-19-isometric-3d-hexes-are-the-long` · Status: current
