@@ -1,23 +1,58 @@
-import { useEffect, useState } from 'preact/hooks';
-import { type BuildInfo, buildLabel, parseBuildInfo } from './build.ts';
+import { createGame, findCharacter, type GameState, type Hex, nextDay } from '@behemoth-road/core';
+import { useState } from 'preact/hooks';
+import { Hud } from './hud/Hud.tsx';
+import { MAP_TUNING } from './map/config.ts';
+import { confirmMove, type Flow, IDLE, tapHex } from './map/flow.ts';
+import { type FocusTarget, MapView } from './map/MapView.tsx';
+
+/** Game number `n` uses seed `MAP_TUNING.seed + n`, so every game can be replayed. */
+export function startGame(n: number): GameState {
+  return createGame((MAP_TUNING.seed + n) >>> 0, { characterIds: [MAP_TUNING.characterId] });
+}
 
 export function App() {
-  const [build, setBuild] = useState<BuildInfo | null>(null);
+  const id = MAP_TUNING.characterId;
+  const [game, setGame] = useState(() => ({ n: 0, state: startGame(0) }));
+  const [flow, setFlow] = useState<Flow>(IDLE);
+  const [focus, setFocus] = useState<{ target: FocusTarget; n: number }>({ target: 'me', n: 0 });
+  const { state } = game;
+  const me = findCharacter(state, id);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    fetch('/api/config', { signal: controller.signal })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((body: unknown) => setBuild(parseBuildInfo(body)))
-      .catch(() => setBuild(null));
-    return () => controller.abort();
-  }, []);
+  const onTap = (hex: Hex): void => setFlow((f) => tapHex(f, state, id, hex));
+  const onConfirm = (): void => {
+    const result = confirmMove(flow, state, id);
+    setFlow(result.flow);
+    if (result.state !== state) setGame((g) => ({ ...g, state: result.state }));
+  };
+  const onNextDay = (): void => {
+    setFlow(IDLE);
+    setGame((g) => ({ ...g, state: nextDay(g.state) }));
+  };
+  const onNewGame = (): void => {
+    setFlow(IDLE);
+    setGame((g) => ({ n: g.n + 1, state: startGame(g.n + 1) }));
+  };
 
   return (
-    <main>
-      <h1>{'Behemoth Road'}</h1>
-      <p>It works. Start building in apps/web/src and apps/worker/src.</p>
-      {build && <footer>{buildLabel(build)}</footer>}
+    <main class="game">
+      <MapView
+        state={state}
+        flow={flow}
+        characterId={id}
+        onTap={onTap}
+        onConfirm={onConfirm}
+        focus={focus}
+      />
+      <Hud
+        day={state.day}
+        actionsLeft={me?.actionsLeft ?? 0}
+        actionsPerDay={state.config.actionsPerDay}
+        planned={flow.kind === 'planned' ? flow.cost : 0}
+        lost={me?.status !== 'active'}
+        onFocus={(target) => setFocus((f) => ({ target, n: f.n + 1 }))}
+        onNextDay={onNextDay}
+        onNewGame={onNewGame}
+      />
     </main>
   );
 }
