@@ -54,7 +54,13 @@ export type GameEvent =
       readonly work: number;
       readonly needed: number;
     }
-  | { readonly kind: 'unlock-done'; readonly unlock: string };
+  | { readonly kind: 'unlock-done'; readonly unlock: string }
+  /** From the day tick: the creature's step (public: it shows on the map anyway). */
+  | { readonly kind: 'creature-step'; readonly from: Hex; readonly to: Hex }
+  /** From the day tick: a character left out of reach, where they stood. */
+  | { readonly kind: 'lost'; readonly characterId: string; readonly hex: Hex }
+  /** From the day tick: the new day. */
+  | { readonly kind: 'day'; readonly day: number };
 
 export const featureType = (id: string): FeatureType => {
   const type = FEATURE_TYPES.find((t) => t.id === id);

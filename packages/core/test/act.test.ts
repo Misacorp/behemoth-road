@@ -81,13 +81,25 @@ describe('survey', () => {
     let state = placeCharacter(chainGame(['scout']), 'scout', P);
     const check = (h: { q: number; r: number }) =>
       checkAction(state, 'scout', { kind: 'survey', hex: h });
-    expect(check(hex(3, -3))).toEqual({ ok: false, reason: 'not-adjacent' });
-    expect(check(hex(1, 0))).toEqual({ ok: false, reason: 'not-adjacent' });
-    expect(check(hex(0.5, 0))).toEqual({ ok: false, reason: 'invalid-hex' });
+    expect(check(hex(3, -3))).toMatchObject({
+      ok: false,
+      reason: 'not-adjacent',
+    });
+    expect(check(hex(1, 0))).toMatchObject({
+      ok: false,
+      reason: 'not-adjacent',
+    });
+    expect(check(hex(0.5, 0))).toMatchObject({
+      ok: false,
+      reason: 'invalid-hex',
+    });
     state = ok(state, 'scout', { kind: 'survey', hex: N }).state;
-    expect(check(N)).toEqual({ ok: false, reason: 'already-explored' });
+    expect(check(N)).toMatchObject({
+      ok: false,
+      reason: 'already-explored',
+    });
     const edge = placeCharacter(state, 'scout', hex(0, -5));
-    expect(checkAction(edge, 'scout', { kind: 'survey', hex: hex(0, -6) })).toEqual({
+    expect(checkAction(edge, 'scout', { kind: 'survey', hex: hex(0, -6) })).toMatchObject({
       ok: false,
       reason: 'unreachable',
     });
@@ -115,27 +127,36 @@ describe('gather', () => {
     const base = placeCharacter(chainGame(['engineer']), 'engineer', P);
     const gather = (s: GameState) => checkAction(s, 'engineer', { kind: 'gather' });
     const node = withFeature(base, P, 'iron-deposit', true);
-    expect(gather(withPack(node, 'engineer', { iron: 4, stone: 2 }))).toEqual({
+    expect(gather(withPack(node, 'engineer', { iron: 4, stone: 2 }))).toMatchObject({
       ok: false,
       reason: 'pack-full',
     });
     expect(gather(withPack(node, 'engineer', { iron: 5 }))).toMatchObject({ ok: true });
-    expect(gather(base)).toEqual({ ok: false, reason: 'nothing-here' });
-    expect(gather(withFeature(base, P, 'iron-deposit'))).toEqual({
+    expect(gather(base)).toMatchObject({
       ok: false,
       reason: 'nothing-here',
     });
-    expect(gather(withFeature(base, P, 'tomb', true))).toEqual({
+    expect(gather(withFeature(base, P, 'iron-deposit'))).toMatchObject({
       ok: false,
       reason: 'nothing-here',
     });
-    expect(gather(withFeature(base, P, 'iron-deposit', true, 0))).toEqual({
+    expect(gather(withFeature(base, P, 'tomb', true))).toMatchObject({
+      ok: false,
+      reason: 'nothing-here',
+    });
+    expect(gather(withFeature(base, P, 'iron-deposit', true, 0))).toMatchObject({
       ok: false,
       reason: 'depleted',
     });
-    expect(gather(riding(node, 'engineer'))).toEqual({ ok: false, reason: 'not-on-hex' });
+    expect(gather(riding(node, 'engineer'))).toMatchObject({
+      ok: false,
+      reason: 'not-on-hex',
+    });
     const tired = withCharacter(node, { ...node.characters[0]!, actionsLeft: 0 });
-    expect(gather(tired)).toEqual({ ok: false, reason: 'not-enough-actions' });
+    expect(gather(tired)).toMatchObject({
+      ok: false,
+      reason: 'not-enough-actions',
+    });
   });
 });
 
@@ -201,7 +222,7 @@ describe('work-site', () => {
         });
         expect(result.state.characters[0]?.pack).toEqual({ 'old-coin': 1 });
         expect(result.state.features[hexKey(P)]?.left).toBe(0);
-        expect(checkAction(result.state, 'scholar', { kind: 'work-site' })).toEqual({
+        expect(checkAction(result.state, 'scholar', { kind: 'work-site' })).toMatchObject({
           ok: false,
           reason: 'depleted',
         });
@@ -228,12 +249,14 @@ describe('work-site', () => {
     expect(checkAction(other, 'scout', { kind: 'work-site' })).toMatchObject({ chance: 0.35 });
 
     const deep = scholarAt('deep-tomb');
-    expect(checkAction(deep, 'scholar', { kind: 'work-site' })).toEqual({
+    expect(checkAction(deep, 'scholar', { kind: 'work-site' })).toMatchObject({
       ok: false,
       reason: 'needs-unlock',
     });
     // Whether the character could ever work it is said first.
-    expect(checkAction(placeCharacter(deep, 'scout', P), 'scout', { kind: 'work-site' })).toEqual({
+    expect(
+      checkAction(placeCharacter(deep, 'scout', P), 'scout', { kind: 'work-site' }),
+    ).toMatchObject({
       ok: false,
       reason: 'cannot-work',
     });
@@ -245,7 +268,7 @@ describe('work-site', () => {
     });
     expect(
       checkAction(withPack(lit, 'scholar', { iron: 6 }), 'scholar', { kind: 'work-site' }),
-    ).toEqual({
+    ).toMatchObject({
       ok: false,
       reason: 'pack-full',
     });
@@ -254,7 +277,10 @@ describe('work-site', () => {
   it('refuses a full pack before rolling, changing nothing', () => {
     const full = withPack(scholarAt('tomb'), 'scholar', { iron: 6 });
     const before = JSON.stringify(full);
-    expect(act(full, 'scholar', { kind: 'work-site' })).toEqual({ ok: false, reason: 'pack-full' });
+    expect(act(full, 'scholar', { kind: 'work-site' })).toMatchObject({
+      ok: false,
+      reason: 'pack-full',
+    });
     expect(JSON.stringify(full)).toBe(before);
   });
 
@@ -298,7 +324,7 @@ describe('build', () => {
     expect(last.state.unlocks).toEqual(['grappling-hook']);
     expect(last.state.project).toBeNull();
     expect(last.events).toContainEqual({ kind: 'unlock-done', unlock: 'grappling-hook' });
-    expect(checkAction(last.state, 'engineer', build('grappling-hook'))).toEqual({
+    expect(checkAction(last.state, 'engineer', build('grappling-hook'))).toMatchObject({
       ok: false,
       reason: 'already-have',
     });
@@ -318,33 +344,93 @@ describe('build', () => {
 
   it('is for engineers riding the creature, one unlock at a time, with the materials in store', () => {
     const state = engineers();
-    expect(checkAction(state, 'scout', build('lantern'))).toEqual({
+    expect(checkAction(state, 'scout', build('lantern'))).toMatchObject({
       ok: false,
       reason: 'needs-specialist',
     });
-    expect(checkAction(placeCharacter(state, 'engineer', P), 'engineer', build('lantern'))).toEqual(
-      {
-        ok: false,
-        reason: 'not-riding',
-      },
-    );
+    expect(
+      checkAction(placeCharacter(state, 'engineer', P), 'engineer', build('lantern')),
+    ).toMatchObject({
+      ok: false,
+      reason: 'not-riding',
+    });
     const started = ok(state, 'engineer', build('lantern')).state;
-    expect(checkAction(started, 'engineer', build('grappling-hook'))).toEqual({
+    expect(checkAction(started, 'engineer', build('grappling-hook'))).toMatchObject({
       ok: false,
       reason: 'busy',
     });
-    expect(checkAction(state, 'engineer', build('climbing-spikes'))).toEqual({
+    expect(checkAction(state, 'engineer', build('climbing-spikes'))).toMatchObject({
       ok: false,
       reason: 'missing-materials',
     });
-    expect(checkAction(state, 'engineer', build('catapult'))).toEqual({
+    expect(checkAction(state, 'engineer', build('catapult'))).toMatchObject({
       ok: false,
       reason: 'unknown-unlock',
     });
-    expect(checkAction(state, 'engineer', { kind: 'dance' } as unknown as Action)).toEqual({
+    expect(checkAction(state, 'engineer', { kind: 'dance' } as unknown as Action)).toMatchObject({
       ok: false,
       reason: 'invalid-action',
     });
+  });
+});
+
+describe('refusals still say the cost', () => {
+  it('for survey, gather, work-site and build, by role and config, with missing materials', () => {
+    const state = withStores(placeCharacter(chainGame(['scout', 'engineer']), 'scout', P), {
+      iron: 1,
+    });
+    // The scout is not next to (0, -4): refused, but the cost is the scout's.
+    expect(checkAction(state, 'scout', { kind: 'survey', hex: hex(0, -4) })).toEqual({
+      ok: false,
+      reason: 'not-adjacent',
+      cost: 1,
+    });
+    expect(checkAction(state, 'engineer', { kind: 'survey', hex: hex(0, -4) })).toEqual({
+      ok: false,
+      reason: 'not-adjacent',
+      cost: 2,
+    });
+    expect(checkAction(state, 'scout', { kind: 'gather' })).toEqual({
+      ok: false,
+      reason: 'nothing-here',
+      cost: 1,
+    });
+    expect(checkAction(state, 'scout', { kind: 'work-site' })).toEqual({
+      ok: false,
+      reason: 'nothing-here',
+      cost: 2,
+    });
+    expect(checkAction(state, 'engineer', { kind: 'build', unlock: 'grappling-hook' })).toEqual({
+      ok: false,
+      reason: 'missing-materials',
+      cost: 1,
+      missing: [
+        { material: 'iron', amount: 1 },
+        { material: 'timber', amount: 1 },
+      ],
+    });
+    // Not an engineer: still told the cost and what the stores lack.
+    expect(checkAction(state, 'scout', { kind: 'build', unlock: 'lantern' })).toEqual({
+      ok: false,
+      reason: 'needs-specialist',
+      cost: 1,
+      missing: [
+        { material: 'stone', amount: 1 },
+        { material: 'timber', amount: 1 },
+      ],
+    });
+    // Unknown things have no cost.
+    expect(checkAction(state, 'engineer', { kind: 'build', unlock: 'catapult' })).toEqual({
+      ok: false,
+      reason: 'unknown-unlock',
+    });
+  });
+
+  it('come through actionsHere for unavailable actions too', () => {
+    const state = placeCharacter(chainGame(['engineer']), 'engineer', P);
+    for (const { check } of actionsHere(toPlayerView(state), 'engineer')) {
+      expect(typeof check.cost).toBe('number');
+    }
   });
 });
 
@@ -370,7 +456,10 @@ describe('unlocks and movement', () => {
     withTerrain(placeCharacter(chainGame(['scout']), 'scout', P), cliff, 'cliff');
 
   it('lets everyone onto cliffs with the grappling hook, at 2, marked on the path', () => {
-    expect(move(cliffy(), 'scout', cliff)).toEqual({ ok: false, reason: 'impassable' });
+    expect(move(cliffy(), 'scout', cliff)).toMatchObject({
+      ok: false,
+      reason: 'impassable',
+    });
     const hooked = { ...cliffy(), unlocks: ['grappling-hook'] };
     expect(entryInto(hooked, cliff)).toEqual({ cost: 2, via: 'grappling-hook' });
     expect(planPath(hooked, 'scout', cliff)).toEqual({
