@@ -428,7 +428,10 @@ export class GuildGame {
     version: number,
     rule: (state: GameState, characterId: string) => EventResult,
   ): Promise<Response> {
-    let outcome: { events: readonly GameEvent[]; stopped: EventStop } = { events: [], stopped: null };
+    let outcome: { events: readonly GameEvent[]; stopped: EventStop } = {
+      events: [],
+      stopped: null,
+    };
     const refusal = this.storage.transactionSync((): string | null => {
       const game = this.readGame();
       if (game === null) return 'no_game';
