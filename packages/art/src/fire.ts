@@ -79,6 +79,10 @@ export const drawFire: PropDraw = (c) => {
     [2.5, -40],
   ]);
   const spark = T(6 + sway, -16);
+  const puffAt = [T(-1.5, -37), T(3, -43)];
+  const puffs = puffAt
+    .map((p, i) => ellipsePath(p.x, p.y, (2.6 + i) * c.k, (1.9 + i * 0.7) * c.k))
+    .join('');
   return {
     nodes: [
       glow,
@@ -97,12 +101,25 @@ export const drawFire: PropDraw = (c) => {
         'data-fire': 'flame',
       }),
       el('path', {
-        ...line(smoothOpen(smoke), 1.3, pal.inkSoft),
-        opacity: 0.55,
+        ...line(smoothOpen(smoke), 2.4, pal.ramps.rock.light),
+        opacity: 0.9,
+        'data-fire': 'smoke',
+      }),
+      el('path', {
+        ...line(smoothOpen(smoke), 1.5, pal.inkSoft),
+        opacity: 0.8,
+        'data-fire': 'smoke',
+      }),
+      el('path', {
+        d: puffs,
+        fill: pal.ramps.rock.light,
+        stroke: pal.inkSoft,
+        'stroke-width': c.ink * 0.8,
+        opacity: 0.8,
         'data-fire': 'smoke',
       }),
       ...stoneNodes(front),
     ],
-    box: boxOf([...flame, ...smoke, T(-13, 4), T(13, 4)]),
+    box: boxOf([...flame, ...smoke, T(-13, 4), T(13, 4), T(7, -46)]),
   };
 };

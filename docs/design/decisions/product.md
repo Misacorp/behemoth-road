@@ -10,11 +10,12 @@ ID: `2026-11-20-milestone-4-art-appetite-cues-lying` · Status: current
 
 **Decision.** The creature drawing takes a mood (`CreatureArt.appetite`, `pose`, `cues`; `drawCreature(..., stores, mood)`), and the scene draws it:
 
-- **Underfed:** head and tail droop, the body thins, a grey wash dulls hide and moss, the blush goes, and ribs show on the near flank, one per level.
-- **Overfed:** the body grows wider and sags, a sheen sits low on the flank, the eyes get heavy lids, and doze bubbles rise from the crown, one per level.
-- **Faint** (what non-keepers see): the same sign at half strength in lighter ink, so the count of ribs or bubbles still matches the level the core gives them.
-- **Cues** take the core's `{ hex, reaction }` (the scene turns hexes into offsets from the centre). Toward: the head turns to the first such fire, ears prick, and a dashed look-line with two alert strokes points at each such fire. Away: three coral shiver arcs off the rim on the fire's side, ears flat, head turned away. Unmoved: still sage rings on the ground on the fire's side, head straight.
-- **Lying** (`pose: 'lying'`): the body comes down to the ground, legs tucked with two front paws showing, head resting low, tail flat; riders sit lower (`riderAnchor` takes the same mood).
+- **Underfed:** a narrow, low, sunken body on thin legs, the moss shrunk back, head and tail drooping, a cool grey wash over hide and moss, no blush, and ribs on the near flank, one per level.
+- **Overfed:** a wide body bulging a little past the footprint on thicker legs, a sheen low on the flank, heavy lids, and large doze bubbles rising from the crown, one per level.
+- **Levels** step up by strength 0.4, 0.7 and 1 (`APPETITE_STEPS` in `creature.ts`), so each level is clearly stronger at map scale.
+- **Faint** (what non-keepers see): the shape at level-1 strength and the marks in lighter ink at full opacity, so it stays visible at map scale; the count of ribs or bubbles still matches the level the core gives them.
+- **Cues** take the core's `{ hex, reaction }` (the scene turns hexes into offsets from the centre). Toward: the head turns to the first such fire, ears prick, and a dashed look-line with two alert strokes points at each such fire. Away: three heavy coral shiver arcs outside the rim on the fire's side, ears flat, head turned away. Unmoved: still sage rings on the ground on the fire's side, head straight.
+- **Lying** (`pose: 'lying'`): the body flattens onto the ground in a wide shadow pool, legs tucked with two front paws showing, head resting low, tail flat; riders sit lower (`riderAnchor` takes the same mood).
 - **Fires:** `ArtCell.fire` draws a small campfire (stones, sticks, flame, glow, smoke with `data-fire` parts to animate) on its hex, in full even under the veil, clearing the terrain props like a feature does.
 - **Keys:** feature `berries` (bushes; picked bare when depleted), material `forage`, actions `light-fire`, `feed`, `linger` on a round tile with a dashed inner ring, moments `fire`, `feed`, `linger`, and `drawStayMark` for the step hint when the creature stays put (two paws side by side in a dashed ring; the paw-print hints live in the web app).
 

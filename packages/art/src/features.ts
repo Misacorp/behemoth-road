@@ -533,10 +533,11 @@ const pitfall: FeatureDraw = (c) => {
 const berryBushes: FeatureDraw = (c, state) => {
   const { fill, line, blob, T } = kit(c);
   const pal = c.palette;
+  // Low, wide, round shrubs hugging the ground: wider than tall, so they never read as trees.
   const bushes: [number, number, number, number][] = [
-    [-8, -6, 7.5, 6.5],
-    [7, -7, 8, 7],
-    [-0.5, -3.5, 7, 5.5],
+    [-9, -4.5, 9, 4.8],
+    [8, -5, 9.5, 5.2],
+    [-0.5, -2.8, 8.5, 4],
   ];
   const shapes = bushes.map(([x, y, rx, ry]) => blob(x, y, rx, ry));
   const nodes: SvgNode[] = [groundShadow(c, 17, 4.5, 1)];
@@ -556,9 +557,9 @@ const berryBushes: FeatureDraw = (c, state) => {
     // Picked bare: a few stalks, and leaves fallen at the foot.
     nodes.push(
       line(
-        poly([T(-9, -8), T(-11, -11)], false) +
-          poly([T(7, -9), T(9, -13)], false) +
-          poly([T(0, -6), T(-1, -9)], false),
+        poly([T(-9, -7), T(-11, -9.5)], false) +
+          poly([T(7, -8), T(9, -10.5)], false) +
+          poly([T(0, -5), T(-1, -7.5)], false),
         0.8,
         pal.ramps.bark.shade,
       ),
@@ -571,22 +572,25 @@ const berryBushes: FeatureDraw = (c, state) => {
       ),
     );
   } else {
-    const berries: [number, number][] = [
-      [-11, -8],
-      [-6, -10],
-      [-7, -4],
-      [4, -10],
-      [9, -11],
+    // Clusters of three berries, large enough to read at map scale.
+    const clusters: [number, number][] = [
+      [-12, -6],
+      [-6, -7.5],
+      [5, -8],
       [11, -6],
-      [6, -5],
-      [-2, -5],
-      [2, -2],
+      [-2, -3.5],
+      [3, -2.5],
     ];
-    const dots = berries.map(([x, y]) => blob(x, y, 1.7, 1.6));
-    const shine = berries.map(([x, y]) => blob(x - 0.5, y - 0.5, 0.5, 0.45));
+    const berries = clusters.flatMap<[number, number]>(([x, y]) => [
+      [x, y],
+      [x + 2.5, y + 0.4],
+      [x + 1.2, y - 2],
+    ]);
+    const dots = berries.map(([x, y]) => blob(x, y, 1.9, 1.8));
+    const shine = berries.map(([x, y]) => blob(x - 0.6, y - 0.6, 0.6, 0.5));
     nodes.push(
       fill(dots.map((d) => smoothClosed(d)).join(''), pal.accents.rose.base),
-      line(dots.map((d) => smoothClosed(d)).join(''), 0.6, pal.accents.rose.shade),
+      line(dots.map((d) => smoothClosed(d)).join(''), 0.8, pal.accents.rose.shade),
       fill(shine.map((d) => smoothClosed(d)).join(''), pal.paper, 0.85),
     );
   }

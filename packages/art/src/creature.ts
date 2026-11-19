@@ -116,7 +116,8 @@ function appetiteShow(mood: CreatureMood): {
     return { under: 0, over: 0, marks: 0, faint: false };
   const level = Number.isFinite(a.level) ? Math.min(3, Math.max(1, Math.round(a.level))) : 1;
   const faint = a.faint === true;
-  const s = (level / 3) * (faint ? 0.5 : 1);
+  // Each level a clear step; faint shows the level-1 strength of the same sign.
+  const s = faint ? APPETITE_STEPS[0] : APPETITE_STEPS[level - 1]!;
   return {
     under: a.kind === 'underfed' ? s : 0,
     over: a.kind === 'overfed' ? s : 0,
@@ -125,28 +126,38 @@ function appetiteShow(mood: CreatureMood): {
   };
 }
 
+/** How strongly each appetite level shows, from level 1 to 3. */
+const APPETITE_STEPS = [0.4, 0.7, 1] as const;
+
 /** The body cut: the body ellipsoid is drawn down to this angle below its equator; legs show beneath. */
 const BODY_CUT = -0.25;
 
 /** A build reshaped by the mood: thinner and drooping when underfed, rounder when overfed, low when lying. */
 function shapeBuild(base: Build, mood: CreatureMood): Build {
   const { under, over } = appetiteShow(mood);
+  // Underfed: a narrow, low, sunken body on thin legs, the moss shrunk back. Overfed: a wide, bulging body.
   let body: Solid = {
     ...base.body,
-    a: base.body.a * (1 + 0.05 * over),
-    b: base.body.b * (1 - 0.1 * under + 0.16 * over),
-    c: base.body.c * (1 - 0.06 * under + 0.05 * over),
-    z: base.body.z - 0.08 * over,
+    a: base.body.a * (1 - 0.06 * under + 0.12 * over),
+    b: base.body.b * (1 - 0.26 * under + 0.34 * over),
+    c: base.body.c * (1 - 0.22 * under + 0.1 * over),
+    z: base.body.z - 0.06 * under - 0.12 * over,
   };
   let head: Solid = {
     ...base.head,
-    u: base.head.u - 0.12 * under,
-    z: base.head.z - 0.5 * under - 0.08 * over,
+    u: base.head.u - 0.15 * under,
+    z: base.head.z - 0.62 * under - 0.08 * over,
   };
+  const legRadius = base.legRadius * (1 - 0.3 * under + 0.2 * over);
+  const legSpread: Build['legSpread'] = [
+    base.legSpread[0],
+    base.legSpread[1] * (1 - 0.2 * under + 0.25 * over),
+  ];
+  const mossUp = Math.min(0.92, base.mossUp + 0.3 * under);
   const [n0, n1] = base.neck;
   let neck: Build['neck'] = [
     [n0[0], n0[1] - 0.08 * over, n0[2]],
-    [n1[0] - 0.12 * under, n1[1] - 0.48 * under - 0.08 * over, n1[2] * (1 - 0.1 * under)],
+    [n1[0] - 0.15 * under, n1[1] - 0.6 * under - 0.08 * over, n1[2] * (1 - 0.15 * under)],
   ];
   const [t0, t1] = base.tail;
   let tail: Build['tail'] = [
@@ -154,8 +165,9 @@ function shapeBuild(base: Build, mood: CreatureMood): Build {
     [t1[0], Math.max(0.06, t1[1] - 0.18 * under), t1[2]],
   ];
   if (mood.pose === 'lying') {
-    // Lower everything until the body's lower edge rests on the ground; the head comes down to rest low.
-    const drop = Math.max(0, body.z + body.c * Math.sin(BODY_CUT) - 0.04);
+    // Flatten the body and lower everything until it rests on the ground; the head comes down to rest low.
+    body = { ...body, a: body.a * 1.06, b: body.b * 1.12, c: body.c * 0.68 };
+    const drop = Math.max(0, body.z + body.c * Math.sin(BODY_CUT) + 0.02);
     body = { ...body, z: body.z - drop };
     const headZ = Math.max(head.c + 0.06, head.z - drop - 0.3);
     head = { ...head, z: headZ, u: head.u - 0.08 };
@@ -168,7 +180,7 @@ function shapeBuild(base: Build, mood: CreatureMood): Build {
       [tail[1][0], 0.05, tail[1][2]],
     ];
   }
-  return { ...base, body, head, neck, tail };
+  return { ...base, body, head, neck, tail, legRadius, legSpread, mossUp };
 }
 
 interface V3 {
@@ -545,12 +557,12 @@ export function drawCreature(
   // Shadow on the ground: tighter and darker when it lies down.
   const shadow = Array.from({ length: 20 }, (_, i) => {
     const a = (Math.PI * 2 * i) / 20;
-    const grow = lying ? [0.3, 0.15] : [0.5, 0.3];
+    const grow = lying ? [0.75, 0.6] : [0.5, 0.3];
     return at(body.u + Math.cos(a) * (body.a + grow[0]!), Math.sin(a) * (body.b + grow[1]!), 0);
   });
   pieces.push({
     depth: -1e6,
-    nodes: [fill(smoothClosed(shadow), palette.shadow, lying ? 0.28 : 0.2)],
+    nodes: [fill(smoothClosed(shadow), palette.shadow, lying ? 0.34 : 0.2)],
   });
 
   // Legs: thick columns under the body with mossy feet; the body hides their tops.
@@ -701,7 +713,7 @@ export function drawCreature(
   // viewer, one per level. Overfed: a round sheen low on the near flank.
   const signInk = show.faint ? palette.inkSoft : palette.ink;
   if (show.under > 0) {
-    bodyNodes.push(fill(smoothClosed(bodyOutline), palette.ramps.neutral.base, 0.5 * show.under));
+    bodyNodes.push(fill(smoothClosed(bodyOutline), palette.accents.slate.base, 0.5 * show.under));
     const ribs: string[] = [];
     for (const side of [1, -1]) {
       if (!faces(surface(body, side * (Math.PI / 2), 0.1).n)) continue;
@@ -717,7 +729,6 @@ export function drawCreature(
         el('path', {
           d: ribs.join(''),
           ...inkAttrs(signInk, w * 1.3),
-          ...(show.faint ? { opacity: 0.7 } : {}),
           'data-sign': 'ribs',
         }),
       );
@@ -949,7 +960,7 @@ export function drawCreature(
   }
   if (blush.join('')) headCore.push(fill(blush.join(''), palette.accents.rose.base, 0.4));
   if (show.under > 0)
-    headCore.push(fill(smoothClosed(headOutline), palette.ramps.neutral.base, 0.5 * show.under));
+    headCore.push(fill(smoothClosed(headOutline), palette.accents.slate.base, 0.5 * show.under));
   if (lids.length)
     headCore.push(
       el('path', { d: lids.join(''), fill: hide.shade, 'data-sign': 'lids' }),
@@ -1041,9 +1052,9 @@ export function drawCreature(
   if (show.over > 0) {
     const crown = screen(hp(-head.a * 0.2, 0, head.z + head.c * 1.25));
     const bubbles = Array.from({ length: show.marks }, (_, i) => {
-      const x = crown.x + unit * (0.2 + 0.22 * i);
-      const y = crown.y - unit * (0.22 + 0.34 * i);
-      const r = unit * (0.07 + 0.04 * i);
+      const x = crown.x + unit * (0.24 + 0.3 * i);
+      const y = crown.y - unit * (0.26 + 0.44 * i);
+      const r = unit * (0.1 + 0.055 * i);
       everything.push({ x: x + r, y: y - r });
       return ellipsePath(x, y, r, r);
     });
@@ -1055,7 +1066,6 @@ export function drawCreature(
           fill: palette.paper,
           stroke: signInk,
           'stroke-width': w * 1.1,
-          ...(show.faint ? { opacity: 0.7 } : {}),
           'data-sign': 'doze',
         }),
       ],
@@ -1114,9 +1124,9 @@ export function drawCreature(
       );
     } else if (cue.reaction === 'away') {
       // A flinch: three short shiver arcs off the rim on the fire's side.
-      const z = body.z + body.c * 0.15;
-      const arcs = [0.16, 0.36, 0.56].map((d, i) => {
-        const spread = 0.42 - i * 0.08;
+      const z = body.z;
+      const arcs = [0.32, 0.6, 0.88].map((d, i) => {
+        const spread = 0.62 - i * 0.1;
         return smoothOpen(
           [-1, -0.5, 0, 0.5, 1].map((f) => {
             const ang = cue.angle + f * spread;
@@ -1125,12 +1135,12 @@ export function drawCreature(
           }),
         );
       });
-      const far = at(body.u + cue.u * (rim(cue.angle) + 0.5), cue.v * (rim(cue.angle) + 0.5), z);
+      const far = at(body.u + cue.u * (rim(cue.angle) + 1), cue.v * (rim(cue.angle) + 1), z);
       everything.push(far);
       cueNodes.push(
         el('path', {
           d: arcs.join(''),
-          ...inkAttrs(palette.accents.coral.shade, w * 1.7),
+          ...inkAttrs(palette.accents.coral.shade, w * 2.6),
           'data-cue': 'away',
         }),
       );

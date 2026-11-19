@@ -6,7 +6,8 @@
     "2026-11-19-4",
     "2026-11-19-5",
     "2026-11-19-6",
-    "2026-11-19-7"
+    "2026-11-19-7",
+    "2026-11-19-8"
   ],
   "items": [
     {
@@ -295,46 +296,46 @@
       "id": "creature/underfed",
       "group": "Creature care",
       "title": "Underfed: calm, levels 1 to 3, then faint at 2 and 3",
-      "version": "255860b5",
+      "version": "9562e9f4",
       "kind": "glance",
-      "batch": "2026-11-19-7",
-      "file": "art/creature-underfed-255860b5.svg"
+      "batch": "2026-11-19-8",
+      "file": "art/creature-underfed-9562e9f4.svg"
     },
     {
       "id": "creature/overfed",
       "group": "Creature care",
       "title": "Overfed: calm, levels 1 to 3, then faint at 2 and 3",
-      "version": "a90c03ff",
+      "version": "e5b6019b",
       "kind": "glance",
-      "batch": "2026-11-19-7",
-      "file": "art/creature-overfed-a90c03ff.svg"
+      "batch": "2026-11-19-8",
+      "file": "art/creature-overfed-e5b6019b.svg"
     },
     {
       "id": "creature/cues",
       "group": "Creature care",
       "title": "Keeper's cues: drawn to the fire, shying from it, unmoved; two at once",
-      "version": "07f13693",
+      "version": "92507ee7",
       "kind": "glance",
-      "batch": "2026-11-19-7",
-      "file": "art/creature-cues-07f13693.svg"
+      "batch": "2026-11-19-8",
+      "file": "art/creature-cues-92507ee7.svg"
     },
     {
       "id": "creature/linger",
       "group": "Creature care",
       "title": "Lying down to linger, beside standing",
-      "version": "d506f815",
+      "version": "e3a90eac",
       "kind": "glance",
-      "batch": "2026-11-19-7",
-      "file": "art/creature-linger-d506f815.svg"
+      "batch": "2026-11-19-8",
+      "file": "art/creature-linger-e3a90eac.svg"
     },
     {
       "id": "features/care",
       "group": "Creature care",
       "title": "Fires on four tiles and under the veil; berry bushes, picked bare, beside a fire",
-      "version": "172a5539",
+      "version": "2026261e",
       "kind": "glance",
-      "batch": "2026-11-19-7",
-      "file": "art/features-care-172a5539.svg"
+      "batch": "2026-11-19-8",
+      "file": "art/features-care-2026261e.svg"
     },
     {
       "id": "marks/care",
@@ -349,19 +350,19 @@
       "id": "map/care",
       "group": "Creature care",
       "title": "On the map: fires, berries, an underfed creature and two cues",
-      "version": "9260718c",
+      "version": "79b35f37",
       "kind": "glance",
-      "batch": "2026-11-19-7",
-      "file": "art/map-care-9260718c.svg"
+      "batch": "2026-11-19-8",
+      "file": "art/map-care-79b35f37.svg"
     },
     {
       "id": "map/care-lite",
       "group": "Creature care",
       "title": "The same in lite mode",
-      "version": "52f520ef",
+      "version": "1d145d38",
       "kind": "glance",
-      "batch": "2026-11-19-7",
-      "file": "art/map-care-lite-52f520ef.svg"
+      "batch": "2026-11-19-8",
+      "file": "art/map-care-lite-1d145d38.svg"
     },
     {
       "id": "features/veil",
