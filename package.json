@@ -17,8 +17,9 @@
     "decisions": "node scripts/decisions.mjs",
     "deployed": "node scripts/deployed.mjs",
     "worktrees:clean": "node scripts/worktrees.mjs",
-    "check": "pnpm format:check && pnpm decisions check && pnpm lint && pnpm typecheck && pnpm build && pnpm test",
-    "check:changed": "pnpm format:check && pnpm decisions check && pnpm -r --filter \"...[origin/main]\" --filter \"!{.}\" --if-present lint && pnpm -r --filter \"...[origin/main]\" --filter \"!{.}\" --if-present typecheck && pnpm -r --filter \"...[origin/main]\" --filter \"!{.}\" --if-present test"
+    "check": "pnpm format:check && pnpm decisions check && pnpm lint && pnpm typecheck && pnpm build && pnpm test && pnpm fixtures:capture --check",
+    "check:changed": "pnpm format:check && pnpm decisions check && pnpm -r --filter \"...[origin/main]\" --filter \"!{.}\" --if-present lint && pnpm -r --filter \"...[origin/main]\" --filter \"!{.}\" --if-present typecheck && pnpm -r --filter \"...[origin/main]\" --filter \"!{.}\" --if-present test",
+    "fixtures:capture": "pnpm --filter @behemoth-road/worker fixtures:capture"
   },
   "devDependencies": {
     "@eslint/js": "catalog:",

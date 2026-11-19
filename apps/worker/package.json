@@ -9,7 +9,8 @@
     "build": "wrangler deploy --dry-run --env production --outdir dist",
     "typecheck": "pnpm types && tsc --noEmit -p tsconfig.json",
     "lint": "pnpm types && eslint --cache --cache-strategy content --cache-location node_modules/.cache/eslint/ .",
-    "test": "vitest run"
+    "test": "vitest run && node --test 'scripts/*.test.mjs'",
+    "fixtures:capture": "node scripts/capture-fixtures.mjs"
   },
   "devDependencies": {
     "@cloudflare/vitest-plugin": "catalog:",

@@ -1,0 +1,47 @@
+{
+  "auth-session": {
+    "method": "POST",
+    "path": "/api/auth/session",
+    "body": {
+      "code": "oauth-code",
+      "instanceId": "instance-1"
+    }
+  },
+  "view-joined": {
+    "method": "POST",
+    "path": "/api/game/join",
+    "body": {
+      "role": "scout",
+      "choice": 1
+    }
+  },
+  "view-moved": {
+    "method": "POST",
+    "path": "/api/game/move",
+    "body": {
+      "version": 3,
+      "path": [
+        {
+          "kind": "hex",
+          "hex": {
+            "q": -2,
+            "r": 1
+          }
+        }
+      ]
+    }
+  },
+  "view-next-day": {
+    "method": "POST",
+    "path": "/api/dev/next-day",
+    "body": {}
+  },
+  "view-replaced": {
+    "method": "POST",
+    "path": "/api/game/replace",
+    "body": {
+      "role": "envoy",
+      "choice": 2
+    }
+  }
+}
