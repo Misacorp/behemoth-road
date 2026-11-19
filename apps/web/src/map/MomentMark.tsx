@@ -4,7 +4,8 @@
  * away (`drawVeilLift`), the survey and reveal blooms, the burst of a find with the material's icon rising,
  * the snap of a trap (`drawMoment`), a material dropping into the stores on the creature, a finished
  * unlock's sealed icon rising from the creature, and Milestone 4's fire lit, feeding (the food dropping in)
- * and linger (`drawMoment` fire, feed, linger).
+ * and linger (`drawMoment` fire, feed, linger), a fire going out (its mark lifting away) and the creature
+ * eating from the stores (the material rising off its back).
  */
 import { drawIcon, drawMoment, drawVeilLift, hexCenter, type SvgNode } from '@behemoth-road/art';
 import type { JSX } from 'preact';
@@ -59,6 +60,18 @@ export function MomentMark({ moment }: { moment: Moment }): JSX.Element {
     case 'deposit':
       body = (
         <Marked kind="drop">
+          {at(drawIcon(iconOf(moment.item), PALETTE, icon), c.x, c.y - 0.6 * p.size, icon)}
+        </Marked>
+      );
+      break;
+    case 'fire-out':
+      // The fire's mark drifting up and fading, like its last smoke.
+      body = <Marked kind="lift">{at(drawMoment('fire', PALETTE, size), c.x, c.y, size)}</Marked>;
+      break;
+    case 'ate':
+      // A material leaving the stores on the creature's back.
+      body = (
+        <Marked kind="rise">
           {at(drawIcon(iconOf(moment.item), PALETTE, icon), c.x, c.y - 0.6 * p.size, icon)}
         </Marked>
       );

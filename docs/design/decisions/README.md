@@ -51,6 +51,8 @@ Record a decision:
 
 - 2026-11-20 Web schema requires the M4 view fields now the fixtures carry them
 - 2026-11-20 The player view carries each viewer's creature signs; the creature's nature and condition never leave the server
+- 2026-11-20 The Durable Object keeps the last 100 game events for clients to replay
+- 2026-11-20 The core state holds exploration, packs, stores and unlocks; no glints, no migration
 - 2026-11-20 The Worker replaces an outdated game on start and refuses an unreadable one with 503
 - 2026-11-20 The core state holds exploration, packs, stores and unlocks; no glints, no migration
 - 2026-11-20 Before a stable release, older games are wiped, not migrated \[Misa\]
@@ -110,11 +112,14 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-20 Light a fire hints faded without fuel once you have seen a fire
 - 2026-11-20 A lingering creature's stay mark sits on its footprint's near edge
 - 2026-11-20 Feed and linger sit in the hub drawer as unlock-style cards
-- 2026-11-20 Light a fire shows on your hex's card only when you carry fuel
+- 2026-11-20 Light a fire shows on your hex's card only when you carry fuel (amended)
+- 2026-11-20 M4 tick events: a linger is a creature-step that stays; fire-out and creature-ate are public
 - 2026-11-20 Milestone 4 art: appetite, cues, lying down and fires are drawn by the art kit from the core's signs
-- 2026-11-20 The revised chain in the interface: survey in the inspect card, the pack on the HUD, stores and unlocks in the hub drawer
+- 2026-11-20 Moments play only from the server's event log, once per event
+- 2026-11-20 The revised chain in the interface: survey in the inspect card, the pack on the HUD, stores and unlocks in the hub drawer (amended)
 - 2026-11-20 The here card is compact and lets taps through its body; moments use the art kit's marks
 - 2026-11-20 Unexplored hexes sit under one hatched paper veil; packs, stores and unlocks have their own marks
 - 2026-11-20 M4 core: hunger cap in creature data, starving meals nourish, lingering twice refused

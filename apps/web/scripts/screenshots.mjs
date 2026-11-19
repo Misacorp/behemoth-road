@@ -34,7 +34,7 @@ if (!process.execArgv.includes('--experimental-transform-types')) {
   process.exit(res.status ?? 1);
 }
 const { SPRING } = await import('../../../packages/art/src/palette.ts');
-const { act, characterOf, moveAlong, nextDay } =
+const { act, characterOf, moveAlong, nextDayWithEvents } =
   await import('../../../packages/core/src/index.ts');
 const {
   CHAIN_SPOTS,
@@ -97,24 +97,32 @@ function serve() {
 class FakeServer {
   constructor() {
     this.scenario = notJoinedScenario();
+    this.log = [];
   }
 
   reset(scenario) {
     this.scenario = scenario;
+    this.log = [];
   }
 
   /** Answers one request: [status, body]. */
   answer(method, path, body) {
     const s = this.scenario;
-    const ok = (next, events) => {
+    // Like the Worker: each change's events are logged with its version; a move or an action answers its
+    // own, and a read with `since` answers every logged one after it.
+    const ok = (next, events = []) => {
       if (next) this.scenario = { ...next, version: next.version ?? s.version + 1 };
-      return [200, events ? { ...toView(this.scenario), events } : toView(this.scenario)];
+      const stamped = events.map((e) => ({ ...e, version: this.scenario.version }));
+      this.log.push(...stamped);
+      return [200, { ...toView(this.scenario), events: stamped }];
     };
     if (path === '/api/config') return [200, CONFIG];
     if (path === '/api/dev/login') return [200, SESSION];
     if (method === 'GET' && path === '/api/game') {
       const since = Number(new URL(`http://x${this.lastUrl}`).searchParams.get('since') ?? NaN);
-      return since === s.version ? [200, { unchanged: true }] : ok(null);
+      if (since === s.version) return [200, { unchanged: true }];
+      const events = Number.isNaN(since) ? [] : this.log.filter((e) => e.version > since);
+      return [200, { ...toView(s), events }];
     }
     if (path === '/api/game/join' || path === '/api/game/replace') {
       const base =
@@ -139,7 +147,10 @@ class FakeServer {
       return ok({ ...s, state: result.state, version: s.version + 1 }, result.events);
     }
     if (path === '/api/dev/next-day') {
-      return ok({ ...s, state: nextDay(s.state), version: s.version + 1 });
+      // Like the Worker, the tick answers the view alone; its events wait in the log.
+      const ticked = nextDayWithEvents(s.state);
+      ok({ ...s, state: ticked.state, version: s.version + 1 }, ticked.events);
+      return [200, toView(this.scenario)];
     }
     return [404, { error: 'not_found' }];
   }
@@ -609,6 +620,7 @@ async function run() {
 
         // Milestone 4: fires, the creature's signs, feeding and lingering.
         const shot4 = (name) => page.screenshot({ path: join(out, `m4-${vp.name}-${name}.png`) });
+        // The hidden state holds the core's Reaction (attracted); a keeper's signs read it as 'toward'.
         const cueAt = { at: { q: 3, r: -1 }, reaction: 'attracted' };
 
         // Carrying timber, your own hex offers a fire (its timber and pip); lighting it draws it on the map.
@@ -626,6 +638,15 @@ async function run() {
         await settle();
         await idle();
         await shot4('03-fire-burning');
+
+        // No timber, on a deposit, with a fire seen: the here card hints at a fire, faded, its timber faded.
+        await stage({ at: 'iron', explored: ['iron'], fires: [cueAt.at] });
+        await openHere();
+        if (
+          !(await page.locator('[data-popover=here] [data-action=light-fire] [data-short]').count())
+        )
+          problems.push(`${vp.name}: no faded fire hint without fuel`);
+        await shot4('03b-fire-hint');
 
         // A keeper: the hungry creature droops (level 2) and turns its head toward yesterday's fire.
         await stage({ role: 'keeper', satiety: 2, cues: [cueAt], fires: [cueAt.at] });

@@ -79,6 +79,8 @@ export function toView(s: Scenario): PlayerView {
       };
     }),
     devTools: true,
+    events: [],
+    eventsTruncated: false,
     // Per viewer, as the Worker computes them: for your active character, or no viewer.
     signs: creatureSigns(
       s.state,
@@ -161,7 +163,10 @@ export interface ChainStage {
   readonly fires?: readonly Hex[];
   /** The creature's hidden hunger (server only; drives the appetite sign). */
   readonly satiety?: number;
-  /** Reactions felt at the last tick (shown to keepers today), as offsets from the centre. */
+  /**
+   * Reactions felt at the last tick (shown to keepers today), as offsets from the centre. The hidden state
+   * holds the core's `Reaction` (attracted, repelled, indifferent); a keeper reads it as toward, away, unmoved.
+   */
   readonly cues?: readonly { readonly at: Hex; readonly reaction: Reaction }[];
   readonly lingering?: boolean;
   readonly lingeredDay?: number | null;

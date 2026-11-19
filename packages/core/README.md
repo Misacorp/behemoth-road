@@ -13,12 +13,13 @@ The game rules: pure, headless and seeded. No UI, network or storage code. Every
 - **Features** (`FEATURE_TYPES`: resource nodes, tomb sites in two tiers, traps) are generated on the server, sparsely and by terrain tags, as hexes come into view. They are stored in `features` by hex key as `{ type, revealed, left }`. A player view holds only revealed ones.
 - **Exploring:** a tile is `explored` once anyone enters it or surveys it, and exploring reveals its feature. Entering a hex with a hidden trap springs it, for anyone: the day ends (`trapped`). `moveAlong` checks the whole path first, then stops at a trap (`stopped: { step, reason: 'trap' }`). Results carry `events` (`explore`, `survey`, `reveal`, `trap`, `gather`, `find`, `site-failed`, `deposit`, `unlock-progress`, `unlock-done`).
 - **Packs and stores:** gathering and finds go into the character's `pack` (up to `packCapacity`). Boarding the creature, or being picked up by it, empties the pack into the team `stores`. A lost character's pack is lost.
-- **Actions:** `checkAction(view, id, action)` says what an action costs (actions, materials, published chance) or why it is refused. `actionsHere` (also `possibleActions`) lists them all for the interface. `act(state, id, action)` applies one on the server:
+- **Actions:** `checkAction(view, id, action)` says what an action costs (actions, materials, published chance) or why it is refused; a refusal still carries `cost` where known, and for a build the `missing` materials. `actionsHere` (also `possibleActions`) lists them all for the interface. `act(state, id, action)` applies one on the server:
   - `{ kind: 'survey', hex }`: an adjacent unexplored hex, cheaper for a role tagged `survey`.
   - `{ kind: 'gather' }`.
   - `{ kind: 'work-site' }`: a seeded roll per day, character and site.
   - `{ kind: 'build', unlock }`: engineers riding the creature; the first step takes the cost from the stores, and each step adds one work.
 - **Unlocks** (`UNLOCKS`) are permanent for the team (`unlocks`, with the one `project` in progress). An unlock's `movement` lets everyone onto matching terrain through `entryInto`, whose `via` is the unlock's id (the grappling hook over a cliff). Roles count by their tags; later upgrades sit in `ROLES[].perks` with `requiresUpgrade`.
+- **Day tick events:** `nextDayWithEvents(state)` returns `{ state, events }`: `creature-step { from, to }`, `deposit` for anyone picked up, `lost { characterId, hex }`, `day { day }`. `nextDay` returns the state alone.
 - **Storage:** content version 4. `loadGame` refuses an older game with `OutdatedGameError` (start a new game).
 
 ## API

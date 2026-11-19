@@ -63,7 +63,17 @@ export type GameEvent =
       readonly stimulus: string;
     }
   | { readonly kind: 'fed'; readonly characterId: string; readonly material: string }
-  | { readonly kind: 'linger'; readonly characterId: string };
+  | { readonly kind: 'linger'; readonly characterId: string }
+  /** From the day tick: the creature's step (public: it shows on the map anyway); `from` equals `to` when it lingered. */
+  | { readonly kind: 'creature-step'; readonly from: Hex; readonly to: Hex }
+  /** From the day tick: a character left out of reach, where they stood. */
+  | { readonly kind: 'lost'; readonly characterId: string; readonly hex: Hex }
+  /** From the day tick: the new day. */
+  | { readonly kind: 'day'; readonly day: number }
+  /** From the day tick: a starving creature ate one unit from the (public) stores. */
+  | { readonly kind: 'creature-ate'; readonly material: string }
+  /** From the day tick: a stimulus (a fire) burnt out. */
+  | { readonly kind: 'fire-out'; readonly hex: Hex; readonly stimulus: string };
 
 export const featureType = (id: string): FeatureType => {
   const type = FEATURE_TYPES.find((t) => t.id === id);

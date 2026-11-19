@@ -35,12 +35,10 @@ export interface HubDrawerProps {
 
 function UnlockCard({
   o,
-  stores,
   busy,
   onBuild,
 }: {
   o: UnlockOption;
-  stores: Readonly<Record<string, number>>;
   busy: boolean;
   onBuild: (unlock: string) => void;
 }): JSX.Element {
@@ -65,7 +63,7 @@ function UnlockCard({
                 key={c.material}
                 id={c.material}
                 count={c.amount}
-                short={(stores[c.material] ?? 0) < c.amount}
+                short={o.missing.some((m) => m.material === c.material)}
               />
             ))}
           </span>
@@ -170,13 +168,7 @@ export function HubDrawer(props: HubDrawerProps): JSX.Element | null {
         )}
         <div class="hub-unlocks">
           {props.unlocks.map((o) => (
-            <UnlockCard
-              key={o.unlock.id}
-              o={o}
-              stores={props.state.stores}
-              busy={props.busy}
-              onBuild={props.onBuild}
-            />
+            <UnlockCard key={o.unlock.id} o={o} busy={props.busy} onBuild={props.onBuild} />
           ))}
         </div>
       </div>

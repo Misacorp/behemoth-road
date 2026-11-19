@@ -41,7 +41,7 @@ import { getSettings } from '../settings.ts';
 /** The width from which the layout is the desktop one (`styles.css` media queries). */
 const DESKTOP_FROM = 900;
 import { identities, partySeeds, setAccents } from './identity.ts';
-import { MOMENT_MS, type Moment, momentsBetween, momentsFromEvents } from './moments.ts';
+import { eventKeys, MOMENT_MS, type Moment, momentsFromEvents } from './moments.ts';
 import { toGameState, toSigns } from './viewState.ts';
 
 export interface GameProps {
@@ -119,28 +119,30 @@ export function Game({ api, initial }: GameProps): JSX.Element {
   // The drawer opens by itself whenever a character is needed (first join, or after being lost).
   useEffect(() => setDrawerClosed(false), [need]);
 
-  // A plan made on an older view may no longer hold: drop it when the view changes under it.
-  // Moments: what changed between the last view and this one, shown briefly on the map.
+  // Moments: what happened, from the server's events that come with each view (your own move or action,
+  // and since your last view: others, the tick). Each event plays once, keyed by version and index; when
+  // some were dropped from the log (`eventsTruncated`), none play.
   const [moments, setMoments] = useState<readonly Moment[]>([]);
   const momentTimer = useRef(0);
-  const playMoments = (found: readonly Moment[]): void => {
+  const played = useRef(new Set<string>());
+  useEffect(() => () => window.clearTimeout(momentTimer.current), []);
+  useEffect(() => {
+    if (view.eventsTruncated || view.events.length === 0) return;
+    const keys = eventKeys(view.events);
+    const fresh = view.events.filter((_, i) => !played.current.has(keys[i]!));
+    for (const k of keys) played.current.add(k);
+    // Forget keys for versions long past, so the set stays small.
+    for (const k of played.current) {
+      if (Number(k.split(':')[0]) < view.version - 200) played.current.delete(k);
+    }
+    const found = momentsFromEvents(fresh, view.game.creature.centre, view.you.characterId ?? '');
     if (found.length === 0) return;
     window.clearTimeout(momentTimer.current);
     setMoments(found);
     momentTimer.current = window.setTimeout(() => setMoments([]), MOMENT_MS);
-  };
-  useEffect(() => () => window.clearTimeout(momentTimer.current), []);
-  // Changes others made (or the day's tick) show as moments from the difference between views; your own
-  // move or action brings its events instead (`ownAnswer`).
-  const shown = useRef(view);
-  const ownAnswer = useRef(-1);
-  useEffect(() => {
-    const before = shown.current;
-    shown.current = view;
-    if (before === view || ownAnswer.current === view.version) return;
-    playMoments(momentsBetween(before.game, view.game, view.you.characterId ?? ''));
   }, [view]);
 
+  // A plan made on an older view may no longer hold: drop it when the view changes under it.
   const planVersion = useRef(view.version);
   useEffect(() => {
     if (planVersion.current !== view.version) {
@@ -157,14 +159,8 @@ export function Game({ api, initial }: GameProps): JSX.Element {
     if (busy) return;
     setBusy(true);
     try {
-      const answer = await run();
-      const { events, ...next } = 'events' in answer ? answer : { ...answer, events: null };
+      const next = await run();
       planVersion.current = next.version;
-      if (events) {
-        // Your own move or action reports what happened itself: play those, not a guess from the views.
-        ownAnswer.current = next.version;
-        playMoments(momentsFromEvents(events, next.game.creature.centre));
-      }
       sync.current!.accept(next);
       setFlow(after(next));
     } catch (err) {
@@ -197,17 +193,25 @@ export function Game({ api, initial }: GameProps): JSX.Element {
 
   const drawerOpen = need !== 'none' && offers.length > 0 && !drawerClosed;
 
+  // Whether you have seen a fire on the map this session (kept in memory only): from then on, a here card
+  // that opens for something else also hints at lighting one, faded, when you carry no fuel.
+  const [sawFire, setSawFire] = useState(false);
+  useEffect(() => {
+    if (view.game.stimuli.length > 0) setSawFire(true);
+  }, [view]);
+
   // Milestone 3's chain: what you can do where you stand, a survey next to you, your pack, the hub.
-  // Milestone 4: lighting a fire where you stand (when you carry fuel), feeding and lingering in the hub.
+  // Milestone 4: lighting a fire where you stand, feeding and lingering in the hub.
   const here = useMemo((): Here | null => {
     if (me?.status !== 'active' || me.at.kind !== 'hex') return null;
     const feature = featureArtAt(state, hexKey(me.at.hex));
-    const fire = fireAction(state, me.id);
+    // Without fuel the fire never opens the card by itself: only a hint on a card open for a feature.
+    const fire = fireAction(state, me.id, feature !== null && sawFire);
     const actions = [...(feature ? actionsAt(state, me.id) : []), ...(fire ? [fire] : [])];
     if (!feature && actions.length === 0) return null;
     const terrain = terrainOf(state, me.at.hex)?.id ?? 'unknown';
     return { terrain, feature, actions };
-  }, [state, me]);
+  }, [state, me, sawFire]);
   const stillSelected = (next: PlayerView): Flow => {
     const mine = next.game.characters.find((c) => c.id === next.you.characterId);
     return mine && mine.actionsLeft > 0 ? { kind: 'selected' } : IDLE;
@@ -276,14 +280,19 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         actionsPerDay={state.config.actionsPerDay}
         planned={flow.kind === 'planned' && isSelecting(flow) ? flow.cost : 0}
         lost={me?.status !== 'active'}
-        snapped={moments.some((m) => m.kind === 'trap')}
+        snapped={moments.some((m) => m.kind === 'trap' && m.mine)}
         me={who.get(id) ?? null}
         onFocus={(target) => setFocus((f) => ({ target, n: f.n + 1 }))}
         onNextDay={
           showsNextDay(view)
             ? () =>
                 void act(
-                  () => api.nextDay(),
+                  async () => {
+                    // The tick's answer carries no events: read them from the log since this view.
+                    const ticked = await api.nextDay();
+                    const since = await api.game(view.version);
+                    return 'unchanged' in since ? ticked : since;
+                  },
                   () => IDLE,
                 )
             : null

@@ -152,6 +152,31 @@ export const OfferSchema = v.object({
   lookSeed: v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(0xffffffff)),
 });
 
+/** Something that happened in a move or an action, for the map's short moments (core event list). */
+export const GameEventSchema = v.object({
+  kind: v.pipe(v.string(), v.maxLength(40)),
+  hex: v.optional(hex),
+  /** Whose character the event is about. */
+  characterId: v.optional(id),
+  /** Content ids the event names: a revealed feature, a material, an unlock. */
+  feature: v.optional(id),
+  material: v.optional(id),
+  amount: v.optional(count),
+  unlock: v.optional(id),
+  /** A deposit's materials. */
+  materials: v.optional(counts),
+  /** Unlock progress: work done and needed. */
+  work: v.optional(count),
+  needed: v.optional(count),
+  /** A fire's stimulus id (fire-lit, fire-out). */
+  stimulus: v.optional(id),
+  /** A creature step's start and end (a linger: from equals to). */
+  from: v.optional(hex),
+  to: v.optional(hex),
+  /** The game version the event happened in (events are logged per change). */
+  version: count,
+});
+
 export const PlayerViewSchema = v.object({
   version: count,
   day: count,
@@ -164,7 +189,15 @@ export const PlayerViewSchema = v.object({
   players: v.pipe(v.array(player), v.maxLength(64)),
   devTools: v.boolean(),
   offers: v.nullable(v.pipe(v.array(OfferSchema), v.maxLength(8))),
+  /** What you read off the creature (for your active character; no keeper detail without one). */
   signs: SignsSchema,
+  /**
+   * What happened since the version the client asked from (`since`), or in its own move or action,
+   * oldest first. Empty on a first load.
+   */
+  events: v.optional(v.pipe(v.array(GameEventSchema), v.maxLength(500)), []),
+  /** Some events after `since` were no longer kept: the client skips the moments. */
+  eventsTruncated: v.optional(v.boolean(), false),
 });
 
 export const GameResponseSchema = v.union([
@@ -198,30 +231,9 @@ export type AppConfig = v.InferOutput<typeof ConfigSchema>;
 export type Session = v.InferOutput<typeof SessionSchema>;
 export type Signs = v.InferOutput<typeof SignsSchema>;
 
-/** Something that happened in a move or an action, for the map's short moments (core event list). */
-export const GameEventSchema = v.object({
-  kind: v.pipe(v.string(), v.maxLength(40)),
-  hex: v.optional(hex),
-  /** Whose character the event is about. */
-  characterId: v.optional(id),
-  /** Content ids the event names: a revealed feature, a material, an unlock. */
-  feature: v.optional(id),
-  material: v.optional(id),
-  amount: v.optional(count),
-  unlock: v.optional(id),
-  /** A deposit's materials. */
-  materials: v.optional(counts),
-  /** Unlock progress: work done and needed. */
-  work: v.optional(count),
-  needed: v.optional(count),
-  /** A lit fire's stimulus id. */
-  stimulus: v.optional(id),
-});
-
-/** The answer to a move or an action: the new view and what happened on the way. */
+/** The answer to a move or an action: the new view, what happened, and where a trap stopped a walk. */
 export const ActionAnswerSchema = v.object({
   ...PlayerViewSchema.entries,
-  events: v.optional(v.pipe(v.array(GameEventSchema), v.maxLength(64)), []),
   /** A walk a trap stopped: the step it stopped at. */
   stopped: v.optional(
     v.nullable(v.object({ step: count, reason: v.pipe(v.string(), v.maxLength(40)) })),

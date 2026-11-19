@@ -14,6 +14,18 @@ ID: `2026-11-20-web-schema-requires-the-m4-view` · Status: current · Supersede
 
 ## 2026-11-20: The player view carries each viewer's creature signs; the creature's nature and condition never leave the server
 
+ID: `2026-11-20-the-player-view-carries-each-viewer-2` · Status: current
+
+## 2026-11-20: The Durable Object keeps the last 100 game events for clients to replay
+
+ID: `2026-11-20-the-durable-object-keeps-the-last` · Status: current
+
+**Decision.** Every change that produces game events writes them to an `events` table, each stamped with the game version it produced (every catch-up tick is now its own version). The last 100 are kept (`SERVER_CONFIG.eventLogSize`); `events_pruned_through` on the game row remembers the highest dropped version. `GET /api/game?since=v` returns the view plus the kept events after `v` and `eventsTruncated` when the client missed some; a replaced game clears the log and marks everything before it as missed. Act and move answers stamp their own events with the version too. The tick's events (`creature-step`, `deposit`, `lost`, `day`) come from the core's `nextDayWithEvents` through one adapter (`tickWithEvents`).
+
+**Reasoning.** The web was guessing other players' moments from differences between views, which breaks as soon as two things change at once. A short server-side log is exact and cheap at this scale (a few changes a day per player); a client that falls far behind just reloads the view without the moments.
+
+## 2026-11-20: The core state holds exploration, packs, stores and unlocks; no glints, no migration
+
 ID: `2026-11-20-the-player-view-carries-each-viewer` · Status: current
 
 **Decision.** `POST /api/game/act` also takes `{ kind: 'light-fire' }`, `{ kind: 'feed' }` and `{ kind: 'linger' }`, strict like the others; their refusals and events pass through unchanged. Every player view (game, join, move, act, replace, next day) carries `signs`: the core's `creatureSigns` for the signed-in player's newest character when it is active, else `null` (a lost or absent character reads only what anyone may). It is computed per request and not cached; since it is a pure function of the stored state and the viewer, and every change to either (a tick, an action, a replace into another role) bumps the game version, `?since=` stays correct per viewer. The test client checks every response for the keys `nature`, `care`, `satiety` and `reactions`, and that `signs` equals exactly what the core allows that viewer (no cues for a non-keeper). Content version 5: a stored version-4 game is replaced through the existing outdated-game path. The fixture capture adds a keeper scenario (forage, fire, feed, linger, next day) with a keeper's and a non-keeper's view.

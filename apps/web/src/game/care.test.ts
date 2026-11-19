@@ -31,6 +31,18 @@ describe('lighting a fire where you stand', () => {
     expect(fireAction(empty.view, empty.me)).toBeNull();
   });
 
+  it('without fuel, hints faded with the timber faded only when asked to (a card open, a fire seen)', () => {
+    const { view, me } = staged({ pack: {} });
+    expect(fireAction(view, me, true)).toEqual({
+      kind: 'light-fire',
+      cost: view.config.lightFireCost,
+      enabled: false,
+      uses: 'timber',
+      short: true,
+    });
+    expect(fireAction(view, me, false)).toBeNull();
+  });
+
   it('is not offered where a fire burns, or while riding', () => {
     const lit = staged({ pack: { timber: 1 }, fires: [{ q: 1, r: 2 }] });
     expect(fireAction(lit.view, lit.me)).toBeNull();
@@ -43,7 +55,7 @@ describe('caring for the creature in the hub', () => {
   it('lets anyone riding feed it from the stores; keepers alone also see linger', () => {
     const scout = staged({ role: 'scout', at: 'creature', stores: { forage: 2 } });
     expect(careOptions(scout.view, scout.me)).toEqual([
-      { kind: 'feed', cost: 1, enabled: true, uses: 'forage', short: false },
+      { kind: 'feed', cost: 1, enabled: true, uses: 'forage' },
     ]);
     const keeper = staged({ role: 'keeper', at: 'creature', stores: { forage: 2 } });
     expect(careOptions(keeper.view, keeper.me).map((a) => [a.kind, a.enabled])).toEqual([

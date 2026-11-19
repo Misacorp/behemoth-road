@@ -100,7 +100,7 @@ describe('captured contract fixtures', () => {
   it('fire, feed and linger answers carry their events and moments', () => {
     const kinds = ['view-fire-lit', 'view-fed', 'view-lingered'].map((name) => {
       const a = v.parse(ActionAnswerSchema, fixture(name));
-      return momentsFromEvents(a.events, a.game.creature.centre).map((m) => m.kind);
+      return momentsFromEvents(a.events, a.game.creature.centre, '').map((m) => m.kind);
     });
     expect(kinds).toEqual([['fire'], ['feed'], ['linger']]);
     const lit = v.parse(PlayerViewSchema, fixture('view-fire-lit'));

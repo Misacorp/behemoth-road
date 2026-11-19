@@ -1,4 +1,4 @@
-import { checkAction, legalMoves } from '@behemoth-road/core';
+import { checkAction, creatureSigns, legalMoves } from '@behemoth-road/core';
 import { describe, expect, it } from 'vitest';
 import type { GameState } from '../src/game-core.ts';
 import type { PlayerView } from '../src/guild-game.ts';
@@ -166,6 +166,46 @@ describe('the done criterion through the API', () => {
 });
 
 describe('signs in the player view', () => {
+  it("each player's own session gets their own signs: a keeper's cue, a scout's faint appetite", async () => {
+    await runGame(
+      async (ctx) => {
+        const { misa, robin } = await team(ctx, 'keeper');
+        besideWithTimber(ctx);
+        expect((await act(ctx, misa, { kind: 'light-fire' })).status).toBe(200);
+        expect((await ctx.call(misa, 'POST', '/api/dev/next-day', {})).status).toBe(200);
+        // Underfed at level 2: a keeper sees it clearly, anyone else faintly.
+        edit(ctx.sql, (s) => ({ ...s, care: { ...s.care, satiety: 2 } }));
+
+        // Expected from the stored state and the known character ids, not from any response.
+        const stored = storedState(ctx.sql);
+        expect(stored.care.cues.list.length).toBeGreaterThan(0);
+        const keeperSigns = creatureSigns(stored, ME);
+        const scoutSigns = creatureSigns(stored, ROBIN_ID);
+        expect(keeperSigns.appetite).toEqual({ kind: 'underfed', level: 2, faint: false });
+        expect(keeperSigns.cues).toEqual(
+          stored.care.cues.list.map((c) => ({
+            hex: c.hex,
+            stimulus: 'fire',
+            reaction: expect.stringMatching(/^(toward|away|unmoved)$/) as string,
+          })),
+        );
+        expect(scoutSigns).toEqual({
+          appetite: { kind: 'underfed', level: 1, faint: true },
+          cues: [],
+        });
+
+        const keeper = (await ctx.call(misa, 'GET', '/api/game')).body as PlayerView;
+        const scout = (await ctx.call(robin, 'GET', '/api/game')).body as PlayerView;
+        expect(keeper.you.characterId).toBe(ME);
+        expect(scout.you.characterId).toBe(ROBIN_ID);
+        expect(keeper.version).toBe(scout.version);
+        expect(keeper.signs).toEqual(keeperSigns);
+        expect(scout.signs).toEqual(scoutSigns);
+      },
+      { everyoneIsAdmin: true },
+    );
+  });
+
   it('are in every view response: game, join, move, act, replace and next day', async () => {
     await runGame(
       async (ctx) => {

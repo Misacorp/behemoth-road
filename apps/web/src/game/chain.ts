@@ -85,9 +85,9 @@ export function actionsAt(game: GameStateView, characterId: string): PossibleAct
   const out: PossibleAction[] = [];
   for (const { action, check } of actionsHere(game, characterId)) {
     if (action.kind !== 'gather' && action.kind !== 'work-site') continue;
-    const cost = action.kind === 'gather' ? game.config.gatherCost : game.config.workSiteCost;
     if (check.ok) out.push({ kind: action.kind, cost: check.cost, enabled: true });
-    else if (NOT_NOW.has(check.reason)) out.push({ kind: action.kind, cost, enabled: false });
+    else if (NOT_NOW.has(check.reason) && check.cost !== undefined)
+      out.push({ kind: action.kind, cost: check.cost, enabled: false });
   }
   return out;
 }
@@ -100,13 +100,8 @@ export function surveyOf(
 ): { readonly cost: number; readonly enabled: boolean } | null {
   const check = checkAction(game, characterId, { kind: 'survey', hex: h });
   if (check.ok) return { cost: check.cost, enabled: true };
-  if (check.reason !== 'not-enough-actions') return null;
-  const me = game.characters.find((c) => c.id === characterId);
-  const scout = ROLES.find((r) => r.id === me?.role)?.tags.includes('survey') ?? false;
-  return {
-    cost: scout ? game.config.surveyCostSpecialist : game.config.surveyCostOther,
-    enabled: false,
-  };
+  if (check.reason !== 'not-enough-actions' || check.cost === undefined) return null;
+  return { cost: check.cost, enabled: false };
 }
 
 export interface UnlockOption {
@@ -114,8 +109,8 @@ export interface UnlockOption {
   readonly done: boolean;
   /** Work done, while it is the unlock in progress; null otherwise. */
   readonly work: number | null;
-  /** Whether the stores hold its cost (only matters before it starts). */
-  readonly affordable: boolean;
+  /** Materials the stores lack to start it (the core's answer); empty when they hold its cost. */
+  readonly missing: readonly { readonly material: string; readonly amount: number }[];
   /** Whether this character can start or work on it now. */
   readonly enabled: boolean;
   readonly cost: number;
@@ -130,10 +125,9 @@ export function unlockOptions(game: GameStateView, characterId: string): UnlockO
       unlock,
       done: game.unlocks.includes(unlock.id),
       work,
-      affordable:
-        work !== null || unlock.cost.every((c) => (game.stores[c.material] ?? 0) >= c.amount),
+      missing: check.ok ? [] : (check.missing ?? []),
       enabled: check.ok,
-      cost: check.ok ? check.cost : game.config.buildCost,
+      cost: check.cost ?? 0,
     };
   });
 }
@@ -145,31 +139,33 @@ export interface CostedAction {
   readonly enabled: boolean;
   /** The material it takes (fuel from your pack, food from the stores), or null. */
   readonly uses: string | null;
-  /** Feed: the stores hold no food. Drawn faded on the material. */
+  /** The material is missing (no fuel, no food): drawn faded. */
   readonly short?: boolean;
   /** Linger: already asked for today. */
   readonly done?: boolean;
 }
 
-const firstTagged = (tag: string, held: Readonly<Record<string, number>> = {}): string | null =>
-  (
-    MATERIALS.find((m) => m.tags.includes(tag) && (held[m.id] ?? 0) > 0) ??
-    MATERIALS.find((m) => m.tags.includes(tag))
-  )?.id ?? null;
-
-/** The material tag the creature eats (the core's `FOOD_TAG`, not exported from its index). */
-const FOOD_TAG = 'food';
-
-/** The stimulus a fire is (tagged `fire`) and its fuel tag: content, read by tag. */
+/** The stimulus a fire is (tagged `fire`), for its fuel tag: content, read by tag. */
 const FIRE = STIMULUS_TYPES.find((t) => t.tags.includes('fire')) ?? null;
 
+/** Materials that nourish the creature (content `nourishes`), in content order. */
+const FOODS: readonly string[] = MATERIALS.filter((m) => (m.nourishes ?? 0) > 0).map((m) => m.id);
+
+/** The first material held with this tag (in content order), or null. */
+const heldWith = (tag: string, held: Readonly<Record<string, number>>): string | null =>
+  MATERIALS.find((m) => m.tags.includes(tag) && (held[m.id] ?? 0) > 0)?.id ?? null;
+
 /**
- * Lighting a fire where you stand, for your own hex's card: offered when you carry its fuel, faded when your
- * actions are spent. Not offered without fuel (so the card does not open on every hex), on water, on the
- * creature, or where a fire already burns.
+ * Lighting a fire where you stand, for your own hex's card, from the core's check and its refusal cost and
+ * missing material. With fuel it is offered (faded when your actions are spent). Without fuel it is
+ * offered faded, its timber faded too, only as a hint (`hint`: the card is open for something else and you
+ * have seen a fire). Never on water, on the creature or where a fire already burns.
  */
-export function fireAction(game: GameStateView, characterId: string): CostedAction | null {
-  if (!FIRE) return null;
+export function fireAction(
+  game: GameStateView,
+  characterId: string,
+  hint = false,
+): CostedAction | null {
   const check = checkAction(game, characterId, { kind: 'light-fire' });
   if (check.ok) {
     return {
@@ -179,38 +175,58 @@ export function fireAction(game: GameStateView, characterId: string): CostedActi
       uses: check.uses[0]?.material ?? null,
     };
   }
-  if (check.reason !== 'not-enough-actions') return null;
-  const me = game.characters.find((c) => c.id === characterId);
-  return {
-    kind: 'light-fire',
-    cost: game.config.lightFireCost,
-    enabled: false,
-    uses: firstTagged(FIRE.fuel.tag, me?.pack),
-  };
+  if (check.cost === undefined) return null;
+  if (check.reason === 'not-enough-actions') {
+    const me = game.characters.find((c) => c.id === characterId);
+    const fuel = FIRE && me ? heldWith(FIRE.fuel.tag, me.pack) : null;
+    return { kind: 'light-fire', cost: check.cost, enabled: false, uses: fuel };
+  }
+  if (check.reason === 'no-fuel' && hint) {
+    return {
+      kind: 'light-fire',
+      cost: check.cost,
+      enabled: false,
+      uses: check.missing?.[0]?.material ?? null,
+      short: true,
+    };
+  }
+  return null;
 }
 
 /**
- * Feeding and lingering in the creature's hub. Feeding is for everyone (faded unless you ride, have the
- * actions and the stores hold food); lingering only for keepers (faded unless riding with the actions, and
- * not the day after a linger; marked done once asked for today).
+ * Feeding and lingering in the creature's hub, from the core's checks and their refusal cost and missing
+ * food. Feeding is for everyone (faded unless you ride, have the actions and the stores hold food; the food
+ * faded when they do not); lingering only for keepers (faded unless riding with the actions, and not the
+ * day after a linger; marked done once asked for today).
  */
 export function careOptions(game: GameStateView, characterId: string): CostedAction[] {
   const me = game.characters.find((c) => c.id === characterId);
   if (me?.status !== 'active') return [];
   const out: CostedAction[] = [];
   const feed = checkAction(game, characterId, { kind: 'feed' });
-  out.push({
-    kind: 'feed',
-    cost: feed.ok ? feed.cost : game.config.feedCost,
-    enabled: feed.ok,
-    uses: feed.ok ? (feed.uses[0]?.material ?? null) : firstTagged(FOOD_TAG, game.stores),
-    short: !feed.ok && feed.reason === 'no-food',
-  });
+  if (feed.ok) {
+    out.push({
+      kind: 'feed',
+      cost: feed.cost,
+      enabled: true,
+      uses: feed.uses[0]?.material ?? null,
+    });
+  } else if (feed.cost !== undefined) {
+    const missing = feed.missing?.[0]?.material ?? null;
+    const food = FOODS.find((id) => (game.stores[id] ?? 0) > 0) ?? null;
+    out.push({
+      kind: 'feed',
+      cost: feed.cost,
+      enabled: false,
+      uses: missing ?? food,
+      short: missing !== null,
+    });
+  }
   const linger = checkAction(game, characterId, { kind: 'linger' });
-  if (linger.ok || linger.reason !== 'needs-keeper') {
+  if (linger.ok || (linger.reason !== 'needs-keeper' && linger.cost !== undefined)) {
     out.push({
       kind: 'linger',
-      cost: linger.ok ? linger.cost : game.config.lingerCost,
+      cost: linger.cost ?? 0,
       enabled: linger.ok,
       uses: null,
       done: game.creature.lingering,

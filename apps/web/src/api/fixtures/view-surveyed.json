@@ -747,14 +747,16 @@
         "q": -2,
         "r": 1
       },
-      "characterId": "111111111111111111.0"
+      "characterId": "111111111111111111.0",
+      "version": 8
     },
     {
       "kind": "explore",
       "hex": {
         "q": -2,
         "r": 1
-      }
+      },
+      "version": 8
     }
   ],
   "stopped": null

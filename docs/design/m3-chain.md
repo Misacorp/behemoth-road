@@ -46,6 +46,8 @@ Anyone can try the basics; the specialist does it better.
 - Core state: per-tile `explored`, features, character `pack`, team `stores`, `unlocks` (done) and the one `project` in progress (unlock id and work done).
 - **No migration:** before a stable release, a stored game with an older content version is replaced by a new game (Misa: everything can be wiped).
 - `POST /api/game/act` with `{ version, action }`: `{ kind: 'survey', hex }`, `{ kind: 'gather' }`, `{ kind: 'work-site' }`, `{ kind: 'build', unlock }`. Act and move answer `{ ...PlayerView, events, stopped }`.
+- **Events:** each is the core's `GameEvent` plus the game `version` that produced it. Act and move answer their own events; `stopped` is `{ step, reason: 'trap' }` when a trap ended a walk, else `null`.
+- **Event log:** the server keeps the last 100 events (`SERVER_CONFIG.eventLogSize`), the day tick's included. `GET /api/game?since=v` answers `{ unchanged: true }`, or `{ ...PlayerView, events, eventsTruncated }` with every kept event after `v`, oldest first; `eventsTruncated` is true when some events after `v` were already dropped (or the game was replaced), so the client shows the new view without replaying. Without `since` (a first load), `events` is empty. Events never name a hidden feature and carry nothing the view does not already show.
 
 ## Interface
 

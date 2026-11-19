@@ -675,7 +675,8 @@
       "kind": "unlock-progress",
       "unlock": "grappling-hook",
       "work": 1,
-      "needed": 4
+      "needed": 4,
+      "version": 5
     }
   ],
   "stopped": null

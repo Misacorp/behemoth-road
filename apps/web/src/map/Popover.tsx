@@ -528,6 +528,8 @@ export interface HereAction {
   readonly enabled: boolean;
   /** A material it takes (a fire's timber), drawn small beside the pips. */
   readonly uses?: string | null;
+  /** The material is missing: drawn faded. */
+  readonly short?: boolean;
 }
 
 const ACTION_W = 54;
@@ -541,6 +543,7 @@ function ActionButton({
   x,
   y,
   uses = null,
+  short = false,
   onRun,
   buttonRef,
 }: {
@@ -552,6 +555,8 @@ function ActionButton({
   y: number;
   /** An art kit icon id for a material it takes, drawn before the pips. */
   uses?: string | null;
+  /** The material is missing: drawn faded. */
+  short?: boolean;
   onRun: () => void;
   buttonRef?: (el: SVGGElement | null) => void;
 }): JSX.Element {
@@ -582,7 +587,11 @@ function ActionButton({
     >
       <rect width={ACTION_W - 6} height={50} rx={9} fill={PALETTE.paperDeep} />
       <CardIcon id={icon} x={(ACTION_W - 6) / 2 - 14} y={3} size={28} />
-      {uses && <CardIcon id={uses} x={left} y={31} size={material} />}
+      {uses && (
+        <g opacity={short ? 0.45 : 1} data-short={short ? true : undefined}>
+          <CardIcon id={uses} x={left} y={31} size={material} />
+        </g>
+      )}
       <g transform={`translate(${left + row - cost * 10 - 2} 34)`}>
         <Pips total={cost} left={cost} size={9} />
       </g>
@@ -635,6 +644,7 @@ export function HereCard({
           x={56 + i * ACTION_W}
           y={5}
           uses={a.uses ? iconOf(a.uses) : null}
+          short={a.short ?? false}
           onRun={() => onAct(a.kind)}
           {...(i === 0 ? { buttonRef: firstRef } : {})}
         />

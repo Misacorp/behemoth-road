@@ -680,7 +680,8 @@
       "hex": {
         "q": -2,
         "r": 2
-      }
+      },
+      "version": 6
     }
   ],
   "stopped": null

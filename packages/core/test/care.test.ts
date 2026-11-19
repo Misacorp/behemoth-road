@@ -10,6 +10,7 @@ import {
   hex,
   type Hex,
   nextDay,
+  nextDayWithEvents,
   predictCreature,
   type Reaction,
   stepWeights,
@@ -197,18 +198,32 @@ describe('lighting a fire', () => {
     expect(checkAction(giveTimber(base(), 'scout'), 'scout', fire)).toEqual({
       ok: false,
       reason: 'on-creature',
+      cost: 1,
     });
-    expect(checkAction(standing(), 'scout', fire)).toEqual({ ok: false, reason: 'no-fuel' });
+    expect(checkAction(standing(), 'scout', fire)).toEqual({
+      ok: false,
+      reason: 'no-fuel',
+      cost: 1,
+      missing: [{ material: 'timber', amount: 1 }],
+    });
     const wet = withTerrain(giveTimber(standing(), 'scout'), LEFT_FIRE, 'river');
-    expect(checkAction(wet, 'scout', fire)).toEqual({ ok: false, reason: 'cannot-burn' });
+    expect(checkAction(wet, 'scout', fire)).toEqual({ ok: false, reason: 'cannot-burn', cost: 1 });
     const burning = withFire(giveTimber(standing(), 'scout'), LEFT_FIRE);
-    expect(checkAction(burning, 'scout', fire)).toEqual({ ok: false, reason: 'fire-here' });
+    expect(checkAction(burning, 'scout', fire)).toEqual({
+      ok: false,
+      reason: 'fire-here',
+      cost: 1,
+    });
     const tired = giveTimber(standing(), 'scout');
     const spent = {
       ...tired,
       characters: tired.characters.map((c) => ({ ...c, actionsLeft: 0 })),
     };
-    expect(checkAction(spent, 'scout', fire)).toEqual({ ok: false, reason: 'not-enough-actions' });
+    expect(checkAction(spent, 'scout', fire)).toEqual({
+      ok: false,
+      reason: 'not-enough-actions',
+      cost: 1,
+    });
   });
 
   it('burns one timber from the pack and lights a public fire that lasts one tick', () => {
@@ -235,11 +250,17 @@ describe('lighting a fire', () => {
 describe('feeding', () => {
   it('needs the feeder riding and food in the stores', () => {
     const feed = { kind: 'feed' } as const;
-    expect(checkAction(base(), 'scout', feed)).toEqual({ ok: false, reason: 'no-food' });
+    expect(checkAction(base(), 'scout', feed)).toEqual({
+      ok: false,
+      reason: 'no-food',
+      cost: 1,
+      missing: [{ material: 'forage', amount: 1 }],
+    });
     const stocked: GameState = { ...base(), stores: { forage: 1 } };
     expect(checkAction(placeCharacter(stocked, 'scout', LEFT_FIRE), 'scout', feed)).toEqual({
       ok: false,
       reason: 'not-riding',
+      cost: 1,
     });
     expect(checkAction(stocked, 'scout', feed)).toMatchObject({
       ok: true,
@@ -262,10 +283,15 @@ describe('feeding', () => {
 describe('lingering', () => {
   it('is for keepers riding, once, and not the day after', () => {
     const linger = { kind: 'linger' } as const;
-    expect(checkAction(base(), 'scout', linger)).toEqual({ ok: false, reason: 'needs-keeper' });
+    expect(checkAction(base(), 'scout', linger)).toEqual({
+      ok: false,
+      reason: 'needs-keeper',
+      cost: 2,
+    });
     expect(checkAction(placeCharacter(base(), 'keeper', LEFT_FIRE), 'keeper', linger)).toEqual({
       ok: false,
       reason: 'not-riding',
+      cost: 2,
     });
     expect(checkAction(base(), 'keeper', linger)).toMatchObject({ ok: true, cost: 2 });
     const r = act(base(), 'keeper', linger);
@@ -273,7 +299,11 @@ describe('lingering', () => {
     expect(r.ok && r.events).toEqual([{ kind: 'linger', characterId: 'keeper' }]);
     expect(lingering.creature.lingering).toBe(true);
     expect(lingering.characters.find((c) => c.id === 'keeper')?.actionsLeft).toBe(1);
-    expect(checkAction(lingering, 'keeper', linger)).toEqual({ ok: false, reason: 'already-have' });
+    expect(checkAction(lingering, 'keeper', linger)).toEqual({
+      ok: false,
+      reason: 'already-have',
+      cost: 2,
+    });
   });
 
   it('keeps the creature put for one tick, while the day still turns', () => {
@@ -291,6 +321,7 @@ describe('lingering', () => {
     expect(checkAction(day2, 'keeper', { kind: 'linger' })).toEqual({
       ok: false,
       reason: 'lingered-yesterday',
+      cost: 2,
     });
     const day3 = nextDay(day2);
     expect(day3.creature.centre).not.toEqual(hex(0, 0));
@@ -340,5 +371,24 @@ describe('the tick', () => {
       eaten.add(Object.keys(nextDay(s).stores).join());
     }
     expect([...eaten].sort()).toEqual(['iron', 'timber']);
+  });
+
+  it('reports public events only: a lingered step, what a starving creature ate, fires out', () => {
+    let state = withFire(withSatiety({ ...base(), stores: { forage: 1 } }, 2), LEFT_FIRE);
+    state = ok(act(state, 'keeper', { kind: 'linger' }));
+    const { events } = nextDayWithEvents(state);
+    expect(events).toEqual([
+      { kind: 'creature-step', from: hex(0, 0), to: hex(0, 0) },
+      { kind: 'creature-ate', material: 'forage' },
+      { kind: 'fire-out', hex: LEFT_FIRE, stimulus: 'fire' },
+      { kind: 'day', day: 2 },
+    ]);
+    const json = JSON.stringify(events);
+    for (const word of ['attracted', 'repelled', 'indifferent', 'satiety', 'cues', 'reaction']) {
+      expect(json).not.toContain(word);
+    }
+    // Nothing eaten, nothing burning: neither event.
+    const kinds = nextDayWithEvents(base()).events.map((e) => e.kind);
+    expect(kinds).toEqual(['creature-step', 'day']);
   });
 });
