@@ -24,15 +24,11 @@ export const MIGRATIONS: readonly Migration[] = [
       next_tick_at INTEGER NOT NULL,
       created_at INTEGER NOT NULL
     )`);
-    // Everyone who has signed in. `character_id`, `role` and `joined_day` are set once they pick a
-    // character, and change when a lost one is replaced. `attempts` counts the characters they have had.
+    // Everyone who has signed in, with their Discord display name. Their characters (name, role, the
+    // day they joined) are in the game state, keyed by user id.
     sql.exec(`CREATE TABLE players (
       user_id TEXT PRIMARY KEY,
       display_name TEXT NOT NULL,
-      character_id TEXT UNIQUE,
-      role TEXT,
-      joined_day INTEGER,
-      attempts INTEGER NOT NULL DEFAULT 0,
       created_at INTEGER NOT NULL,
       last_seen_at INTEGER NOT NULL
     )`);

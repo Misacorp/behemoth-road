@@ -33,7 +33,7 @@ export const SERVER_CONFIG = {
     maxCoordinate: 100_000,
     /** Most steps in one move request. */
     maxPathLength: 32,
-    /** Characters offered on joining, the plain one included (0..maxOffers-1). */
+    /** Most characters offered on joining, the plain one included (`offer` is 0..maxOffers-1). */
     maxOffers: 4,
   },
 } as const;

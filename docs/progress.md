@@ -6,7 +6,6 @@ What has landed and what is next. Newest first. Update it when a step lands or t
 
 - Milestone 2 (the session): plan and API contract in `docs/design/m2-session.md`; core, worker and web built in parallel on `m2/core`, `m2/worker` and `m2/web`, merged on `m2/integration`.
 - Phone performance: Misa felt input lag on a phone. Measure first (interaction latency and frame cost on a throttled phone profile), then cut the cost; options include rendering the static map layers to a bitmap once per day or zoom step and keeping only overlays as live SVG.
-- Milestone 2 server: swap the stubs in `apps/worker/src/game-core.ts` for the core's `toPlayerView`, character content and `addCharacter` / `replaceCharacter` when `m2/core` lands.
 - Milestone 2 setup: Misa's Discord steps in `docs/setup.md`, then the two client ids into `apps/worker/wrangler.jsonc`.
 - Before Milestone 2 persists games: pin the content (terrain table) a saved game was made with, so a later content change cannot alter it; and keep the per-tile record from growing without bound (lost tiles could be pruned).
 

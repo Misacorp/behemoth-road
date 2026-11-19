@@ -23,7 +23,7 @@ const asView = (body: unknown) => body as PlayerView;
 
 async function joined(ctx: GameContext, user = MISA, role = 'scout') {
   const token = await ctx.signIn(user);
-  const res = await ctx.call(token, 'POST', '/api/game/join', { role, choice: 0 });
+  const res = await ctx.call(token, 'POST', '/api/game/join', { role, offer: 0 });
   expect(res.status).toBe(200);
   return { token, view: asView(res.body) };
 }
@@ -32,16 +32,18 @@ describe('the game on first sign-in', () => {
   it('is created with a server-only seed and shows a view without it', async () => {
     await runGame(async (ctx) => {
       const token = await ctx.signIn(MISA);
-      expect(storedState(ctx.sql).seed).toBe(SEED);
+      expect(storedState(ctx.sql).seed).toEqual(SEED);
       const { status, body } = await ctx.call(token, 'GET', '/api/game');
       expect(status).toBe(200);
       const view = asView(body);
       expect(view.version).toBe(1);
       expect(view.day).toBe(1);
-      expect(view.you).toEqual({ userId: USER_ID, characterId: null });
+      expect(view.you).toEqual({ userId: USER_ID, characterId: null, admin: false });
       expect(view.players).toEqual([]);
-      expect(view.offers).toHaveLength(3);
-      expect(view.devTools).toBe(false);
+      // Two or three rolled characters, then the plain one.
+      expect(view.offers?.length).toBeGreaterThanOrEqual(3);
+      expect(view.offers?.at(-1)).toMatchObject({ trait: null, quirk: null });
+      expect(view.devTools).toBe(true);
       expect(view.game).not.toHaveProperty('seed');
       // Every known tile carries its terrain, so the client can draw and plan without the seed.
       const tiles = Object.values(view.game.tiles);
@@ -64,16 +66,27 @@ describe('POST /api/game/join', () => {
     await runGame(async (ctx) => {
       const { token, view } = await joined(ctx);
       expect(view.version).toBe(2);
-      expect(view.you.characterId).toBe(`${USER_ID}.1`);
+      expect(view.you.characterId).toBe(`${USER_ID}.0`);
       expect(view.offers).toBeNull();
       expect(view.players).toEqual([
-        { userId: USER_ID, name: 'Misa', characterId: `${USER_ID}.1`, role: 'scout', joinedDay: 1 },
+        { userId: USER_ID, name: 'Misa', characterId: `${USER_ID}.0`, role: 'scout', joinedDay: 1 },
       ]);
       expect(view.game.characters).toEqual([
-        { id: `${USER_ID}.1`, at: { kind: 'creature' }, actionsLeft: 3, status: 'active' },
+        {
+          id: `${USER_ID}.0`,
+          userId: USER_ID,
+          name: expect.any(String) as string,
+          trait: expect.any(String) as string,
+          quirk: expect.any(String) as string,
+          role: 'scout',
+          joinedDay: 1,
+          at: { kind: 'creature' },
+          actionsLeft: 3,
+          status: 'active',
+        },
       ]);
       // A second join changes nothing and answers the same view.
-      const again = await ctx.call(token, 'POST', '/api/game/join', { role: 'envoy', choice: 1 });
+      const again = await ctx.call(token, 'POST', '/api/game/join', { role: 'envoy', offer: 1 });
       expect(again.status).toBe(200);
       expect(asView(again.body).version).toBe(2);
       expect(asView(again.body).players[0]?.role).toBe('scout');
@@ -84,25 +97,30 @@ describe('POST /api/game/join', () => {
     await runGame(async (ctx) => {
       const token = await ctx.signIn(MISA);
       for (const body of [
-        { role: 'scout', choice: 0, userId: ROBIN.id },
-        { role: 'pathfinder', choice: 0 },
+        { role: 'scout', offer: 0, userId: ROBIN.id },
+        { role: 'pathfinder', offer: 0 },
         { role: 'scout' },
-        { role: 'scout', choice: -1 },
-        { role: 'scout', choice: 4 },
-        { role: 'scout', choice: 0.5 },
-        { role: 'scout', choice: '0' },
+        { role: 'scout', offer: -1 },
+        { role: 'scout', offer: 4 },
+        { role: 'scout', offer: 0.5 },
+        { role: 'scout', offer: '0' },
         [],
         'not json',
       ]) {
         const res = await ctx.call(token, 'POST', '/api/game/join', body);
         expect(res.status, JSON.stringify(body)).toBe(400);
       }
-      // In the schema's range but not offered.
+      // In the schema's range but past this player's offers (3 or 4 of them), unless all 4 are offered.
+      const count = asView((await ctx.call(token, 'GET', '/api/game')).body).offers?.length ?? 0;
       const unoffered = await ctx.call(token, 'POST', '/api/game/join', {
         role: 'scout',
-        choice: 3,
+        offer: count,
       });
-      expect(unoffered).toEqual({ status: 409, body: { error: 'invalid-choice' } });
+      expect(unoffered).toEqual(
+        count < SERVER_CONFIG.limits.maxOffers
+          ? { status: 409, body: { error: 'invalid-offer' } }
+          : { status: 400, body: { error: 'invalid_body' } },
+      );
     });
   });
 
@@ -116,8 +134,8 @@ describe('POST /api/game/join', () => {
           displayName: `P${String(i)}`,
         });
       }
-      const res = await ctx.call(misa, 'POST', '/api/game/join', { role: 'scout', choice: 0 });
-      expect(res).toEqual({ status: 409, body: { error: 'full' } });
+      const res = await ctx.call(misa, 'POST', '/api/game/join', { role: 'scout', offer: 0 });
+      expect(res).toEqual({ status: 409, body: { error: 'cap-reached' } });
     });
   });
 });
@@ -126,7 +144,7 @@ describe('POST /api/game/move', () => {
   it('moves the player own character and bumps the version', async () => {
     await runGame(async (ctx) => {
       const { token, view } = await joined(ctx);
-      const target = legalMoves(storedState(ctx.sql), `${USER_ID}.1`)[0];
+      const target = legalMoves(storedState(ctx.sql), `${USER_ID}.0`)[0];
       if (target === undefined) throw new Error('no legal move from the creature');
       const res = await ctx.call(token, 'POST', '/api/game/move', {
         version: view.version,
@@ -223,36 +241,35 @@ describe('POST /api/game/replace', () => {
     await runGame(async (ctx) => {
       const { token } = await joined(ctx);
       expect(
-        await ctx.call(token, 'POST', '/api/game/replace', { role: 'keeper', choice: 0 }),
+        await ctx.call(token, 'POST', '/api/game/replace', { role: 'keeper', offer: 0 }),
       ).toEqual({
         status: 409,
         body: { error: 'not-lost' },
       });
-      lose(ctx.sql, `${USER_ID}.1`);
+      lose(ctx.sql, `${USER_ID}.0`);
       const lostView = asView((await ctx.call(token, 'GET', '/api/game')).body);
-      expect(lostView.offers).toHaveLength(3);
+      expect(lostView.offers?.length).toBeGreaterThanOrEqual(3);
       // Join does not replace: it answers the view unchanged.
       expect(
-        asView(
-          (await ctx.call(token, 'POST', '/api/game/join', { role: 'keeper', choice: 0 })).body,
-        ).you.characterId,
-      ).toBe(`${USER_ID}.1`);
-      const res = await ctx.call(token, 'POST', '/api/game/replace', { role: 'keeper', choice: 1 });
+        asView((await ctx.call(token, 'POST', '/api/game/join', { role: 'keeper', offer: 0 })).body)
+          .you.characterId,
+      ).toBe(`${USER_ID}.0`);
+      const res = await ctx.call(token, 'POST', '/api/game/replace', { role: 'keeper', offer: 1 });
       expect(res.status).toBe(200);
       const view = asView(res.body);
-      expect(view.you.characterId).toBe(`${USER_ID}.2`);
+      expect(view.you.characterId).toBe(`${USER_ID}.1`);
       expect(view.players).toEqual([
         {
           userId: USER_ID,
           name: 'Misa',
-          characterId: `${USER_ID}.2`,
+          characterId: `${USER_ID}.1`,
           role: 'keeper',
           joinedDay: 1,
         },
       ]);
       expect(view.game.characters.map((c) => [c.id, c.status])).toEqual([
-        [`${USER_ID}.1`, 'lost'],
-        [`${USER_ID}.2`, 'active'],
+        [`${USER_ID}.0`, 'lost'],
+        [`${USER_ID}.1`, 'active'],
       ]);
       expect(view.offers).toBeNull();
     });
@@ -262,7 +279,7 @@ describe('POST /api/game/replace', () => {
     await runGame(async (ctx) => {
       const token = await ctx.signIn(MISA);
       expect(
-        (await ctx.call(token, 'POST', '/api/game/replace', { role: 'keeper', choice: 0 })).status,
+        (await ctx.call(token, 'POST', '/api/game/replace', { role: 'keeper', offer: 0 })).status,
       ).toBe(409);
     });
   });
@@ -338,6 +355,7 @@ describe('POST /api/dev/next-day', () => {
       async (ctx) => {
         const { token, view } = await joined(ctx);
         expect(view.devTools).toBe(true);
+        expect(view.you.admin).toBe(true);
         const alarm = await ctx.storage.getAlarm();
         const res = await ctx.call(token, 'POST', '/api/dev/next-day', {});
         expect(res.status).toBe(200);
@@ -358,7 +376,7 @@ describe('POST /api/dev/next-day', () => {
           status: 403,
           body: { error: 'forbidden' },
         });
-        expect(asView((await ctx.call(token, 'GET', '/api/game')).body).devTools).toBe(false);
+        expect(asView((await ctx.call(token, 'GET', '/api/game')).body).you.admin).toBe(false);
       },
       { guildApi: fakeGuildApi('600000000000000002', { ownerId: USER_ID }) },
     );
@@ -382,7 +400,9 @@ describe('POST /api/dev/next-day', () => {
           status: 404,
           body: { error: 'not_found' },
         });
-        expect(asView((await ctx.call(token, 'GET', '/api/game')).body).devTools).toBe(false);
+        const view = asView((await ctx.call(token, 'GET', '/api/game')).body);
+        expect(view.devTools).toBe(false);
+        expect(view.you.admin).toBe(false);
       },
       { guildId, devTools: false, guildApi: owner(guildId) },
     );

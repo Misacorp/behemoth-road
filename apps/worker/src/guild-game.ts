@@ -11,17 +11,18 @@ import { DiscordError } from './discord.ts';
 import { canManageGuild } from './discord-permissions.ts';
 import {
   addCharacter,
+  characterOf,
+  characterOffers,
   createGame,
+  loadGame,
   moveAlong,
   nextDay,
-  offersFor,
   replaceCharacter,
   toPlayerView,
   type CharacterOffer,
-  type CharacterResult,
   type GameState,
   type GameStateView,
-  type RoleId,
+  type Seed,
 } from './game-core.ts';
 import { errorResponse, json, notFound, parseBody } from './http.ts';
 import { applyMigrations } from './migrations.ts';
@@ -54,11 +55,12 @@ export interface PlayerEntry {
 export interface PlayerView {
   version: number;
   day: number;
-  you: { userId: string; characterId: string | null };
+  /** `admin`: may run the staging "next day"; always false with the dev tools off. */
+  you: { userId: string; characterId: string | null; admin: boolean };
+  /** The characters this player may pick (the rolls, then the plain one): only while they have no active character. */
+  offers: CharacterOffer[] | null;
   game: GameStateView;
   players: PlayerEntry[];
-  /** The characters this player may pick: only while they have no active character. */
-  offers: CharacterOffer[] | null;
   devTools: boolean;
 }
 
@@ -66,19 +68,16 @@ type Storage = Pick<DurableObjectStorage, 'sql' | 'transactionSync' | 'getAlarm'
 
 export interface GuildGameOptions {
   now(): number;
-  /** A fresh game seed, 0 to 2^32 - 1. Production: `crypto.getRandomValues`; tests pass a fixed one. */
-  newSeed(): number;
+  /** A fresh 128-bit game seed. Production: the core's `newSeed` (Web Crypto); tests pass a fixed one. */
+  newSeed(): Seed;
+  /** The public cosmetic seed of a new game. Production: the core's `newArtSeed`. */
+  newArtSeed(): number;
   /** DEV_TOOLS is on (staging and local only). */
   devTools: boolean;
   /** Read-only guild lookups for the admin check; null when there is no bot token (then nobody is admin). */
   guildApi: GuildApi | null;
   /** Local development only (`ENVIRONMENT` "local"): every player counts as a server admin. */
   everyoneIsAdmin: boolean;
-}
-
-/** The seed source of a deployed object: 32 random bits from the platform's CSPRNG. */
-export function randomSeed(): number {
-  return crypto.getRandomValues(new Uint32Array(1))[0] ?? 0;
 }
 
 interface GameRow {
@@ -90,10 +89,6 @@ interface GameRow {
 type PlayerRow = {
   user_id: string;
   display_name: string;
-  character_id: string | null;
-  role: string | null;
-  joined_day: number | null;
-  attempts: number;
 };
 
 const { tick, sessions, rateLimits, adminCacheMs, maxCatchUpTicks } = SERVER_CONFIG;
@@ -138,6 +133,7 @@ export class GuildGame {
         t - sessions.idleMs,
       );
       const before = this.player(user.id);
+      const game = this.readGame();
       this.sql.exec(
         `INSERT INTO players (user_id, display_name, created_at, last_seen_at) VALUES (?, ?, ?, ?)
          ON CONFLICT(user_id) DO UPDATE SET display_name = excluded.display_name, last_seen_at = excluded.last_seen_at`,
@@ -147,7 +143,12 @@ export class GuildGame {
         t,
       );
       // A new name of someone on the map changes what everyone sees.
-      if (before?.character_id != null && before.display_name !== user.displayName) {
+      if (
+        before !== null &&
+        before.display_name !== user.displayName &&
+        game !== null &&
+        characterOf(game.state, user.id) !== undefined
+      ) {
         this.sql.exec('UPDATE game SET version = version + 1 WHERE id = 1');
       }
       this.sql.exec(
@@ -220,7 +221,7 @@ export class GuildGame {
   private ensureGame(t: number): void {
     const exists = this.sql.exec('SELECT 1 FROM game WHERE id = 1').toArray().length > 0;
     if (exists) return;
-    const state = createGame(this.options.newSeed());
+    const state = createGame(this.options.newSeed(), { artSeed: this.options.newArtSeed() });
     this.sql.exec(
       'INSERT INTO game (id, state, version, next_tick_at, created_at) VALUES (1, ?, 1, ?, ?)',
       JSON.stringify(state),
@@ -237,7 +238,8 @@ export class GuildGame {
       .toArray()[0];
     if (row === undefined) return null;
     return {
-      state: JSON.parse(row.state) as GameState,
+      // Refuses a state made with content this build does not have, rather than misreading it.
+      state: loadGame(JSON.parse(row.state)),
       version: row.version,
       nextTickAt: row.next_tick_at,
     };
@@ -262,10 +264,7 @@ export class GuildGame {
   private player(userId: string): PlayerRow | null {
     return (
       this.sql
-        .exec<PlayerRow>(
-          'SELECT user_id, display_name, character_id, role, joined_day, attempts FROM players WHERE user_id = ?',
-          userId,
-        )
+        .exec<PlayerRow>('SELECT user_id, display_name FROM players WHERE user_id = ?', userId)
         .toArray()[0] ?? null
     );
   }
@@ -359,31 +358,14 @@ export class GuildGame {
     if (body === undefined) return errorResponse('invalid_body', 400);
     const refusal = this.storage.transactionSync((): string | null => {
       const game = this.readGame();
-      const player = this.player(user.id);
-      if (game === null || player === null) return 'no_game';
-      const current =
-        player.character_id === null
-          ? undefined
-          : game.state.characters.find((c) => c.id === player.character_id);
+      if (game === null) return 'no_game';
       // Join with a character already made answers the view unchanged, so a repeated tap is harmless.
-      if (kind === 'join' && player.character_id !== null) return null;
-      if (kind === 'replace' && current?.status !== 'lost') return 'not-lost';
-      const offer = offersFor(game.state, user.id, player.attempts)[body.choice];
-      if (offer === undefined) return 'invalid-choice';
-      const id = `${user.id}.${String(player.attempts + 1)}`;
-      const result: CharacterResult =
-        kind === 'join' || player.character_id === null
-          ? addCharacter(game.state, id, offer)
-          : replaceCharacter(game.state, player.character_id, id, offer);
+      if (kind === 'join' && characterOf(game.state, user.id) !== undefined) return null;
+      const request = { userId: user.id, offer: body.offer, role: body.role };
+      const result =
+        kind === 'join' ? addCharacter(game.state, request) : replaceCharacter(game.state, request);
       if (!result.ok) return result.reason;
       this.writeGame(result.state);
-      this.sql.exec(
-        'UPDATE players SET character_id = ?, role = ?, joined_day = ?, attempts = attempts + 1 WHERE user_id = ?',
-        id,
-        body.role satisfies RoleId,
-        result.state.day,
-        user.id,
-      );
       return null;
     });
     if (refusal !== null) return errorResponse(refusal, 409);
@@ -395,11 +377,12 @@ export class GuildGame {
     if (body === undefined) return errorResponse('invalid_body', 400);
     const refusal = this.storage.transactionSync((): string | null => {
       const game = this.readGame();
-      const characterId = this.player(user.id)?.character_id ?? null;
       if (game === null) return 'no_game';
       if (body.version !== game.version) return 'stale';
-      if (characterId === null) return 'no-character';
-      const result = moveAlong(game.state, characterId, body.path);
+      // The player's newest character: a lost one is refused by the core (`character-lost`).
+      const character = characterOf(game.state, user.id);
+      if (character === undefined) return 'no-character';
+      const result = moveAlong(game.state, character.id, body.path);
       if (!result.ok) return result.reason;
       this.writeGame(result.state);
       return null;
@@ -449,27 +432,30 @@ export class GuildGame {
   }
 
   private async view(user: SessionUser, game: GameRow): Promise<PlayerView> {
-    const rows = this.sql
-      .exec<PlayerRow>(
-        `SELECT user_id, display_name, character_id, role, joined_day, attempts FROM players
-         WHERE character_id IS NOT NULL ORDER BY joined_day, user_id`,
-      )
-      .toArray();
-    const players: PlayerEntry[] = rows.map((r) => ({
-      userId: r.user_id,
-      name: r.display_name,
-      characterId: r.character_id ?? '',
-      role: r.role ?? '',
-      joinedDay: r.joined_day ?? 0,
-    }));
-    const me = this.player(user.id);
-    const characterId = me?.character_id ?? null;
-    const mine =
-      characterId === null ? undefined : game.state.characters.find((c) => c.id === characterId);
-    let devTools = false;
+    const names = new Map(
+      this.sql
+        .exec<PlayerRow>('SELECT user_id, display_name FROM players')
+        .toArray()
+        .map((r) => [r.user_id, r.display_name]),
+    );
+    // One entry per player who has a character: their newest one.
+    const players: PlayerEntry[] = [];
+    for (const userId of new Set(game.state.characters.map((c) => c.userId))) {
+      const character = characterOf(game.state, userId);
+      if (character === undefined) continue;
+      players.push({
+        userId,
+        name: names.get(userId) ?? character.name,
+        characterId: character.id,
+        role: character.role,
+        joinedDay: character.joinedDay,
+      });
+    }
+    const mine = characterOf(game.state, user.id);
+    let admin = false;
     if (this.options.devTools) {
       try {
-        devTools = await this.isAdmin(user.id);
+        admin = await this.isAdmin(user.id);
       } catch {
         // Discord could not answer: the control stays hidden until it can.
       }
@@ -477,11 +463,11 @@ export class GuildGame {
     return {
       version: game.version,
       day: game.state.day,
-      you: { userId: user.id, characterId },
+      you: { userId: user.id, characterId: mine?.id ?? null, admin },
+      offers: mine?.status === 'active' ? null : characterOffers(game.state, user.id),
       game: toPlayerView(game.state),
       players,
-      offers: mine?.status === 'active' ? null : offersFor(game.state, user.id, me?.attempts ?? 0),
-      devTools,
+      devTools: this.options.devTools,
     };
   }
 }

@@ -12,7 +12,7 @@
     "path": "/api/game/join",
     "body": {
       "role": "scout",
-      "choice": 1
+      "offer": 1
     }
   },
   "view-moved": {
@@ -25,7 +25,7 @@
           "kind": "hex",
           "hex": {
             "q": -2,
-            "r": 1
+            "r": 2
           }
         }
       ]
@@ -41,7 +41,7 @@
     "path": "/api/game/replace",
     "body": {
       "role": "envoy",
-      "choice": 2
+      "offer": 2
     }
   }
 }

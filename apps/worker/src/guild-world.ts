@@ -1,6 +1,7 @@
 import { DurableObject } from 'cloudflare:workers';
 import { createGuildApi } from './discord.ts';
-import { GuildGame, randomSeed, type SessionUser } from './guild-game.ts';
+import { newArtSeed, newSeed } from './game-core.ts';
+import { GuildGame, type SessionUser } from './guild-game.ts';
 
 /**
  * One Durable Object per Discord server (`idFromName(guildId)`), holding that server's game in its
@@ -15,7 +16,8 @@ export class GuildWorld extends DurableObject<Env> {
     super(ctx, env);
     this.game = new GuildGame(ctx.storage, {
       now: () => Date.now(),
-      newSeed: randomSeed,
+      newSeed,
+      newArtSeed,
       devTools: env.DEV_TOOLS === 'on',
       everyoneIsAdmin: env.ENVIRONMENT === 'local',
       guildApi:

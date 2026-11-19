@@ -16,7 +16,7 @@ ID: `2026-11-19-sign-in-interactions-and-the-deploy` · Status: current
 
 ID: `2026-11-19-the-local-dev-login-and-the` · Status: current
 
-**Decision.** `POST /api/dev/login` (body `{ player: 1..9 }`) signs in a fake player of a fake server and exists only where `ENVIRONMENT` is `local` (the top level of `wrangler.jsonc`, used by `wrangler dev` and the tests); every deployed environment sets its own name, and a test pins that. Locally every player counts as a server admin. `POST /api/dev/next-day` exists only with `DEV_TOOLS` on (local and staging; production off, pinned by a test) and, in staging, only for the server's owner or a member with Administrator or Manage Server (creatures' `discord-permissions.ts`), cached ten minutes per player. The player view's `devTools` is true only when both hold, so the client shows the control without a second check. The tick it runs leaves the schedule alone.
+**Decision.** `POST /api/dev/login` (body `{ player: 1..9 }`) signs in a fake player of a fake server and exists only where `ENVIRONMENT` is `local` (the top level of `wrangler.jsonc`, used by `wrangler dev` and the tests); every deployed environment sets its own name, and a test pins that. Locally every player counts as a server admin. `POST /api/dev/next-day` exists only with `DEV_TOOLS` on (local and staging; production off, pinned by a test) and, in staging, only for the server's owner or a member with Administrator or Manage Server (creatures' `discord-permissions.ts`), cached ten minutes per player. The player view's `devTools` is the `DEV_TOOLS` flag and `you.admin` says whether this player passes the check (always false with the dev tools off, so production never asks Discord); the client shows the control only when both are true, and the route checks again. The tick it runs leaves the schedule alone.
 
 **Reasoning.** The web app must run outside Discord against `wrangler dev`, and a fake login is the least code for that; tying it to the environment name keeps it out of every deployed build. The admin check is the same one creatures uses for its dev panel.
 
@@ -24,9 +24,9 @@ ID: `2026-11-19-the-local-dev-login-and-the` · Status: current
 
 ID: `2026-11-19-joining-and-replacing-pick-an-offered` · Status: current
 
-**Decision.** `POST /api/game/join` and `/replace` take `{ role, choice }`: `choice` is an integer from 0 to 3 indexing the offers, offer 0 being the plain character. The player view carries `offers` (the rolled characters) while the player has no active character, and `null` otherwise. Offers are rolled on the server from the game seed, the user id and the attempt (how many characters the player has had). Character ids are `<userId>.<attempt>`. A join by a player who already has a character answers the view unchanged; only replace makes a new character, and only for a lost one. Until the core's character content lands, `apps/worker/src/game-core.ts` stands in for `toPlayerView`, the offers and `addCharacter` / `replaceCharacter`.
+**Decision.** `POST /api/game/join` and `/replace` take `{ role, offer }`: `offer` is an integer from 0 to 3 indexing the view's `offers`, the rolled characters first and the plain one last. The view carries `offers` while the player has no active character, and `null` otherwise. The core rolls them from the game seed, the user id and the attempt, and re-derives the roll when a player picks, so a client cannot forge a character. Character ids are the core's `<userId>.<attempt>`, counted from 0. Each character's name, trait, quirk, role and joining day live in the game state; the `players` table keeps only the Discord display name. A join by a player who already has a character answers the view unchanged; only replace makes a new character, and only for a lost one. Core refusals (`cap-reached`, `invalid-offer`, `not-lost`, `no-character`) are answered as `409 { error }`.
 
-**Reasoning.** The contract's join body (`{ role }`) had no way to say which rolled character was picked. An index keeps the body small and strict, and rolling on the server keeps the seed there. Ids built from the user id and attempt are stable and unique without a counter table. Proposed to the lead; the contract in `docs/design/m2-session.md` should follow.
+**Reasoning.** The first contract's join body (`{ role }`) had no way to say which rolled character was picked; the lead settled the field name and the order. Keeping characters in the state means one source of truth for the map and the roster.
 
 ## 2026-11-19: Missed day ticks catch up to seven at once; older ones are skipped
 
@@ -40,7 +40,7 @@ ID: `2026-11-19-missed-day-ticks-catch-up-to` · Status: current
 
 ID: `2026-11-19-the-game-is-created-on-a` · Status: current
 
-**Decision.** A server's game is created when its first player signs in, not when the first character joins, so every view (and the join drawer over the map) has a game. The seed is 32 bits from `crypto.getRandomValues`, made only inside the guild's Durable Object and stored in the game row's state JSON; only the core's player view leaves the object, and every route's test checks that no response carries the seed.
+**Decision.** A server's game is created when its first player signs in, not when the first character joins, so every view (and the join drawer over the map) has a game. The seed is the core's 128-bit `newSeed()` (Web Crypto), made only inside the guild's Durable Object and stored in the game row's state JSON; only the core's player view leaves the object, and every route's test checks that no response carries the seed.
 
 **Reasoning.** A player opening the Activity should see the map before they pick a character. The seed must never reach a client (decision "The server keeps the seed").
 

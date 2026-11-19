@@ -32,15 +32,20 @@ export const PlaceSchema = v.variant('kind', [
   v.strictObject({ kind: v.literal('creature') }),
 ]);
 
-export const RoleSchema = v.picklist(ROLE_IDS);
+/** One of the six role ids from content. */
+export const RoleSchema = v.pipe(
+  v.string(),
+  v.maxLength(32),
+  v.check((id) => ROLE_IDS.includes(id)),
+);
 
 /** The game version a client last saw. */
 export const VersionSchema = v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(2 ** 31));
 
-/** POST /api/game/join and /replace: a role, and which of the offered characters (0 is the plain one). */
+/** POST /api/game/join and /replace: a role, and the index of the picked character in the view's `offers`. */
 export const PickBodySchema = v.strictObject({
   role: RoleSchema,
-  choice: v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(maxOffers - 1)),
+  offer: v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(maxOffers - 1)),
 });
 
 /** POST /api/game/move. */

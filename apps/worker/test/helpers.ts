@@ -2,6 +2,7 @@ import { env } from 'cloudflare:workers';
 import { runInDurableObject } from 'cloudflare:test';
 import { expect } from 'vitest';
 import { DiscordError, type DiscordApi, type GuildApi } from '../src/discord.ts';
+import type { Seed } from '../src/game-core.ts';
 import { GuildGame, type GuildGameOptions, type SessionUser } from '../src/guild-game.ts';
 import { createHandler } from '../src/index.ts';
 import type { ActivityInstance, DiscordMember, DiscordRole, DiscordUser } from '../src/schemas.ts';
@@ -14,7 +15,9 @@ export const GUILD_ID = '333333333333333333';
 export const ACCESS_TOKEN = 'fake-access-token';
 /** 2030-06-01T12:00:00Z: a fixed start (in the future, so a real alarm never fires during a test) for the fake clock. */
 export const T0 = Date.UTC(2030, 5, 1, 12, 0, 0);
-export const SEED = 3141592653;
+/** A fixed 128-bit game seed: four distinctive words, none of which may appear in any response. */
+export const SEED: Seed = [3141592653, 2718281828, 1414213562, 1732050807];
+export const ART_SEED = 4242;
 
 export { DiscordError };
 
@@ -152,11 +155,12 @@ export async function tokenFor(guildId: string, secret: string): Promise<string>
   return formatSessionToken(await getSessionKey(env.DISCORD_CLIENT_SECRET), guildId, secret);
 }
 
-/** Fails the test if the body (any JSON) carries a `seed` key anywhere, or the seed's value as a number. */
-export function expectNoSeed(body: unknown, seed: number = SEED): void {
+/** Fails the test if the body (any JSON) carries a `seed` key anywhere, or any word of the seed. */
+export function expectNoSeed(body: unknown, seed: Seed = SEED): void {
   const text = JSON.stringify(body);
   expect(text).not.toMatch(/"seed"/);
-  expect(text).not.toMatch(new RegExp(`[^0-9]${String(seed)}[^0-9]`));
+  for (const word of seed)
+    expect(text).not.toMatch(new RegExp(`(^|[^0-9])${String(word)}([^0-9]|$)`));
 }
 
 export interface Called {
@@ -182,7 +186,7 @@ export interface GameContext {
  */
 export async function runGame<R>(
   fn: (ctx: GameContext) => Promise<R> | R,
-  options: Partial<GuildGameOptions> & { guildId?: string; seed?: number } = {},
+  options: Partial<GuildGameOptions> & { guildId?: string; seed?: Seed } = {},
 ): Promise<R> {
   const guildId = options.guildId ?? freshGuildId();
   const seed = options.seed ?? SEED;
@@ -191,6 +195,7 @@ export async function runGame<R>(
     const clock = { t: options.now?.() ?? T0 };
     const game = new GuildGame(state.storage, {
       newSeed: () => seed,
+      newArtSeed: () => ART_SEED,
       devTools: true,
       guildApi: null,
       everyoneIsAdmin: false,

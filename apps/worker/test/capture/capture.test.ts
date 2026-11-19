@@ -60,14 +60,14 @@ describe('capture', () => {
         };
 
         await ok('view-new', 'GET', '/api/game');
-        await ok('view-joined', 'POST', '/api/game/join', { role: 'scout', choice: 1 });
+        await ok('view-joined', 'POST', '/api/game/join', { role: 'scout', offer: 1 });
         expect(
-          (await ctx.call(robin, 'POST', '/api/game/join', { role: 'keeper', choice: 0 })).status,
+          (await ctx.call(robin, 'POST', '/api/game/join', { role: 'keeper', offer: 0 })).status,
         ).toBe(200);
         const state = JSON.parse(
           ctx.sql.exec<{ state: string }>('SELECT state FROM game').one().state,
         ) as GameState;
-        const target = legalMoves(state, `${USER_ID}.1`)[0];
+        const target = legalMoves(state, `${USER_ID}.0`)[0];
         const { version } = (await ctx.call(misa, 'GET', '/api/game')).body as PlayerView;
         const moved = await ok('view-moved', 'POST', '/api/game/move', { version, path: [target] });
         responses['unchanged'] = (
@@ -81,7 +81,7 @@ describe('capture', () => {
           path: [{ kind: 'hex', hex: { q: 40, r: 40 } }],
         });
         await refused(misa, 'POST', '/api/game/move', { version: 0, path: [], extra: true });
-        await refused(misa, 'POST', '/api/game/replace', { role: 'keeper', choice: 0 });
+        await refused(misa, 'POST', '/api/game/replace', { role: 'keeper', offer: 0 });
         await refused('not-a-token', 'GET', '/api/game');
 
         // Lose Misa's character as the tick would, then replace it.
@@ -91,12 +91,12 @@ describe('capture', () => {
         const lost = {
           ...now,
           characters: now.characters.map((c) =>
-            c.id === `${USER_ID}.1` ? { ...c, status: 'lost' } : c,
+            c.id === `${USER_ID}.0` ? { ...c, status: 'lost' } : c,
           ),
         };
         ctx.sql.exec('UPDATE game SET state = ?, version = version + 1', JSON.stringify(lost));
         await ok('view-lost', 'GET', '/api/game');
-        await ok('view-replaced', 'POST', '/api/game/replace', { role: 'envoy', choice: 2 });
+        await ok('view-replaced', 'POST', '/api/game/replace', { role: 'envoy', offer: 2 });
       },
       { everyoneIsAdmin: true },
     );
