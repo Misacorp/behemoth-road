@@ -25,7 +25,7 @@ These are guesses. Put all of them in one config and expect them to change.
 
 Goal: an agreed stack and an empty app that deploys.
 
-- Propose the tech stack and repo layout (see "First task" in `CLAUDE.md`). Get approval.
+- Propose the tech stack and repo layout, reusing the creatures app's Discord and hosting approach where sensible. Get approval.
 - Set up the game core as its own module with a test runner.
 - Set up a deploy path so every accepted change can be opened in a browser.
 

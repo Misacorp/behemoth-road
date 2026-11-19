@@ -13,9 +13,11 @@ The design is a concept, not a spec. Many numbers are guesses to be tuned by pla
 1. **Separate the game core from everything else.** All rules (map generation, movement, actions, the daily tick, creature behaviour) live in a pure, headless package with no UI, network or database code. It takes a state and an input and returns a new state.
 2. **Seed all randomness.** The core takes a seed. The same seed and the same inputs give the same result. This is required for tests now and for balancing simulations later.
 3. **The server is authoritative.** Clients send intended actions; the server validates and applies them through the core.
-4. **The day tick is a function, not a clock.** Production calls it on a schedule. Development calls it on demand ("skip to next day"), whether or not players have acted.
+4. **The day tick is a function, not a clock.** Production calls it on a schedule. Development (local and staging, never production) calls it on demand ("skip to next day"), whether or not players have acted.
 5. **Content is data.** Tiles, terrain types, sites, resource nodes, items, traits, quirks, creature properties and roles are defined as data with tags and properties. Rules read tags; they do not hard-code specific content. Example: a skill says "better against attackers tagged `flying`", never "better against pterodactyls".
-6. **Tuning values live in one config.** Actions per day, window size, creature footprint, grace period, player cap and similar numbers change in one place.
+6. **Tuning values live in one config.** Actions per day, window size, creature footprint, grace period, player cap and similar numbers must be changeable in one place.
+7. **Reuse the creatures app.** Misa's other game, `Misacorp/creatures` (public), has working Discord integration and the same hosting. Reuse its approach and code where sensible (sign-in, sessions, Durable Objects, alarms, Discord posts); do not invent a different approach without a reason.
+8. **Small scale.** One session is capped at 15 players, about 8 expected. Do not design for thousands of users.
 
 ### Game interface
 
