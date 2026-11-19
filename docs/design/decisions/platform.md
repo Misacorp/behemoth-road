@@ -44,9 +44,41 @@ ID: `2026-11-19-the-game-is-created-on-a` · Status: current
 
 **Reasoning.** A player opening the Activity should see the map before they pick a character. The seed must never reach a client (decision "The server keeps the seed").
 
+## 2026-11-19: Drawing uses a separate public art seed
+
+ID: `2026-11-19-drawing-uses-a-separate-public-art` · Status: current · Amends: `2026-11-19-game-seeds-are-128-bits-so`
+
+**Decision.** The state carries `artSeed`, a public random uint32 used only for cosmetic variety in drawing, and the view includes it. `createGame` takes it as an option and otherwise draws a fresh one with `newArtSeed()` (Web Crypto). It is never derived from the game seed, and the rules never read it.
+
+**Reasoning.** The art kit needs a stable per-game number, and the view has no seed. An independent random value cannot reveal anything about the map. Making it an option keeps `createGame` reproducible in tests.
+
+## 2026-11-19: Game seeds are 128 bits, so the seed cannot be brute-forced from visible terrain
+
+ID: `2026-11-19-game-seeds-are-128-bits-so` · Status: current, amended by `2026-11-19-drawing-uses-a-separate-public-art` · Amends: `2026-11-19-the-server-keeps-the-seed-clients`
+
+**Decision.** A game's seed is four unsigned 32-bit words (`Seed`, a JSON array), made on the server with `newSeed()` (Web Crypto `getRandomValues`). Every hash keeps a 128-bit state: four lanes, one per seed word, each absorb every input and feed the next, and only the final step folds them to 32 bits. Mixing the words into one 32-bit state would leave a 32-bit equivalent key. `createGame` and the generators still accept a plain number for tests and local play (the other words are 0). This is `CONTENT_VERSION` 2, since every map differs from version 1. Version 1 was never stored, so it is not loadable.
+
+**Reasoning.** With a 32-bit seed, a player could find it from the terrain in their view by trying every value. One terrain check takes about 3.3 µs in Node on the session container, so all 2^32 seeds take about 4 hours on one core and minutes in parallel. That would reveal the map ahead and the creature's next step, undoing "the server keeps the seed". 2^128 makes that search impossible. The hash is a fast mixing hash and has not been cryptographically reviewed. Trying every seed is infeasible, but cryptanalysis using many visible tiles is not ruled out. That is acceptable for a game among friends; if the seed ever guards something valuable, switch to a keyed cryptographic hash. Cost: `createGame` takes about 12 ms and `nextDay` about 0.7 ms.
+
+## 2026-11-19: Games pin their content version and prune lost tiles beyond four rings
+
+ID: `2026-11-19-games-pin-their-content-version-and` · Status: current
+
+**Decision.** A game records `contentVersion` (`CONTENT_VERSION` in `content/version.ts`; bump it when a content change would alter or break stored games). `loadGame` refuses a stored state whose version this code does not know, or one without its seed. Each tick drops lost tiles more than `lostTileRings` (config, 4) beyond the window, except a tile under a character, so a game's state stays bounded: at most the hexes within nine of the creature, about 270, plus one per lost character.
+
+**Reasoning.** Reading a game with the wrong content would silently change its map or its characters. The web draws the fog four rings beyond the window and under lost characters, so nothing further is needed. A pruned hex reads as hidden; if the window ever reaches it again, it is seen afresh with the same terrain.
+
+## 2026-11-19: Rules read a seedless view; tiles carry their terrain
+
+ID: `2026-11-19-rules-read-a-seedless-view-tiles` · Status: current · Amends: `2026-11-19-the-server-keeps-the-seed-clients`
+
+**Decision.** The core splits its state into `GameStateView` (everything a player may see) and `GameState` (the view plus the seed, server only). Every tile in `tiles` records its terrain id when it is first seen. Rules read terrain through `terrainOf`: known tiles first, generation only when the state has a seed. So every rule a client needs takes a view and gives the same result as on the server, and an unknown hex has no terrain on a view and cannot be entered. `toPlayerView` lists the view's fields one by one, so a server-only field added later is not sent by default. `chooseCreatureStep`, and therefore `nextDay`, refuse a state without a seed at runtime as well as in the types.
+
+**Reasoning.** This keeps one set of rules for client and server without sending the seed. Storing terrain per known tile costs a few bytes per tile and keeps the view independent of the seed. A test checks that two seeds with the same known world give identical views.
+
 ## 2026-11-19: The server keeps the seed; clients get a player view with known terrain
 
-ID: `2026-11-19-the-server-keeps-the-seed-clients` · Status: current
+ID: `2026-11-19-the-server-keeps-the-seed-clients` · Status: current, amended by `2026-11-19-game-seeds-are-128-bits-so`, `2026-11-19-rules-read-a-seedless-view-tiles`
 
 **Decision.** From Milestone 2 the game seed never leaves the server. Clients receive a player view: the core state without the seed, with the terrain of every known tile included, so they can draw the map and plan paths with the core. The core reads terrain from known tiles first and generates new tiles only on the server. Clients refresh the view after their own actions, on becoming visible and every 30 seconds while visible; a version number makes an unchanged view cheap. The contract is in `docs/design/m2-session.md`.
 

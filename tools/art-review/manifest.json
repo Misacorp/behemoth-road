@@ -2,7 +2,9 @@
   "batches": [
     "2026-11-19-1",
     "2026-11-19-2",
-    "2026-11-19-3"
+    "2026-11-19-3",
+    "2026-11-19-4",
+    "2026-11-19-5"
   ],
   "items": [
     {
@@ -109,10 +111,10 @@
       "id": "sheet/characters",
       "group": "Sheets",
       "title": "Character standees",
-      "version": "0a25f950",
+      "version": "ae715362",
       "kind": "glance",
-      "batch": "2026-11-19-3",
-      "file": "art/sheet-characters-0a25f950.svg"
+      "batch": "2026-11-19-4",
+      "file": "art/sheet-characters-ae715362.svg"
     },
     {
       "id": "sheet/fog",
@@ -161,19 +163,19 @@
       "id": "map/patch",
       "group": "Map",
       "title": "The map, Spring at tilt 0.8",
-      "version": "66f2eb48",
+      "version": "cb2ee06d",
       "kind": "glance",
-      "batch": "2026-11-19-3",
-      "file": "art/map-patch-66f2eb48.svg"
+      "batch": "2026-11-19-4",
+      "file": "art/map-patch-cb2ee06d.svg"
     },
     {
       "id": "creature/headings",
       "group": "Creature",
       "title": "Walking the six directions",
-      "version": "72e3676e",
+      "version": "36677bf7",
       "kind": "glance",
-      "batch": "2026-11-19-3",
-      "file": "art/creature-headings-72e3676e.svg"
+      "batch": "2026-11-19-4",
+      "file": "art/creature-headings-36677bf7.svg"
     },
     {
       "id": "creature-shape/broad",
@@ -184,7 +186,8 @@
       "pick": "creature-shape",
       "question": "Which creature shape?",
       "batch": "2026-11-19-3",
-      "file": "art/creature-shape-broad-92653e18.svg"
+      "file": "art/creature-shape-broad-92653e18.svg",
+      "removed": true
     },
     {
       "id": "creature-shape/longneck",
@@ -195,7 +198,8 @@
       "pick": "creature-shape",
       "question": "Which creature shape?",
       "batch": "2026-11-19-3",
-      "file": "art/creature-shape-longneck-4d43465e.svg"
+      "file": "art/creature-shape-longneck-4d43465e.svg",
+      "removed": true
     },
     {
       "id": "creature-shape/low",
@@ -206,7 +210,57 @@
       "pick": "creature-shape",
       "question": "Which creature shape?",
       "batch": "2026-11-19-3",
-      "file": "art/creature-shape-low-c7dc05d9.svg"
+      "file": "art/creature-shape-low-c7dc05d9.svg",
+      "removed": true
+    },
+    {
+      "id": "emblems/roundel",
+      "group": "Role emblems",
+      "title": "Round frame",
+      "version": "8a938674",
+      "kind": "pick",
+      "pick": "emblem-frame",
+      "question": "Which frame should the role emblems share?",
+      "batch": "2026-11-19-5",
+      "file": "art/emblems-roundel-8a938674.svg"
+    },
+    {
+      "id": "emblems/shield",
+      "group": "Role emblems",
+      "title": "Shield frame",
+      "version": "dbc8bdd4",
+      "kind": "pick",
+      "pick": "emblem-frame",
+      "question": "Which frame should the role emblems share?",
+      "batch": "2026-11-19-5",
+      "file": "art/emblems-shield-dbc8bdd4.svg"
+    },
+    {
+      "id": "icons/sheet",
+      "group": "Icons",
+      "title": "Every icon, and the fallback",
+      "version": "0fc8a90c",
+      "kind": "glance",
+      "batch": "2026-11-19-5",
+      "file": "art/icons-sheet-0fc8a90c.svg"
+    },
+    {
+      "id": "characters/lineup",
+      "group": "Characters",
+      "title": "Fifteen rolled characters",
+      "version": "6edead14",
+      "kind": "glance",
+      "batch": "2026-11-19-4",
+      "file": "art/characters-lineup-6edead14.svg"
+    },
+    {
+      "id": "characters/riders",
+      "group": "Characters",
+      "title": "Fifteen riders on the creature",
+      "version": "b98781d3",
+      "kind": "glance",
+      "batch": "2026-11-19-4",
+      "file": "art/characters-riders-b98781d3.svg"
     }
   ]
 }

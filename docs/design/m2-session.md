@@ -25,7 +25,7 @@ Every body is checked with a strict Valibot schema (unknown keys rejected, lengt
 | `POST /api/dev/next-day`         | admin, staging only | `{}`                         | `PlayerView`; runs the tick now                                                                                                                                |
 | `POST /api/discord/interactions` | Discord             | signed                       | Launch entry point                                                                                                                                             |
 
-`Place` is exactly `{ kind: 'hex', hex: { q, r } }` or `{ kind: 'creature' }` (integers, bounded). `role` is one of the six role ids from content.
+`Place` is exactly `{ kind: 'hex', hex: { q, r } }` or `{ kind: 'creature' }` (integers, bounded). `role` is one of the six role ids from content. `offer` is an index into the view's `offers`; the server re-derives the roll from the seed, so a forged character is impossible.
 
 `PlayerView`:
 
@@ -33,10 +33,11 @@ Every body is checked with a strict Valibot schema (unknown keys rejected, lengt
 {
   version: number,            // bumps on every change to the game
   day: number,
-  you: { userId, characterId | null },
-  game: GameStateView,        // the core state without the seed (tiles carry terrain)
+  you: { userId, characterId | null, admin: boolean },
+  offers: [{ name, trait | null, quirk | null }] | null,  // the 2–3 rolls plus the plain character; only when you have no active character
+  game: GameStateView,        // the core state without the seed (tiles carry terrain); each character carries name, trait and quirk (content ids or null)
   players: [{ userId, name, characterId, role, joinedDay }],  // Discord display names, rendered as text only
-  devTools: boolean           // the "next day" control shows only when true and the player is an admin
+  devTools: boolean           // the "next day" control shows only when devTools and you.admin are both true; the server enforces it regardless
 }
 ```
 
@@ -44,8 +45,8 @@ Contract fixtures for the web tests are captured from the real Worker code by on
 
 ## Characters (content as data)
 
-- Each character has a generated name, one trait and one quirk from small starter lists in `packages/core` content (tagged data; a quirk helps and hinders the character only). A plain character (no trait, no quirk) is always offered.
-- Joining shows two or three rolled characters plus the plain one; the player picks one and a starting role (Scout, Scholar, Keeper, Guardian, Engineer, Envoy). Rolls are seeded by the game seed, the user id and the attempt number, so a reload shows the same choices.
+- Each character has a generated name, one trait and one quirk from small starter lists in `packages/core` content (tagged data with an `icon` id each; a quirk helps and hinders the character only). Roles carry an `icon` id too; the art kit draws all icons (`drawIcon`). A plain character (no trait, no quirk) is always offered.
+- Joining shows two or three rolled characters plus the plain one (the view's `offers`, rolled on the server); the player picks one and a starting role (Scout, Scholar, Keeper, Guardian, Engineer, Envoy). Rolls are seeded by the game seed, the user id and the attempt number, so a reload shows the same choices.
 - The role is stored and shown; it has no mechanics yet.
 - Cap of 15 active characters per server (config).
 
