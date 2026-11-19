@@ -1,5 +1,5 @@
 import * as v from 'valibot';
-import { ROLE_IDS } from './game-core.ts';
+import { RECIPE_IDS, ROLE_IDS } from './game-core.ts';
 import { SERVER_CONFIG } from './server-config.ts';
 
 export const SNOWFLAKE_RE = /^\d{17,20}$/;
@@ -53,6 +53,23 @@ export const MoveBodySchema = v.strictObject({
   version: VersionSchema,
   path: v.pipe(v.array(PlaceSchema), v.minLength(1), v.maxLength(maxPathLength)),
 });
+
+/** An action at the player's own place: exactly one of the three shapes. */
+export const ActionSchema = v.variant('kind', [
+  v.strictObject({ kind: v.literal('gather') }),
+  v.strictObject({
+    kind: v.literal('craft'),
+    recipe: v.pipe(
+      v.string(),
+      v.maxLength(64),
+      v.check((id) => RECIPE_IDS.includes(id)),
+    ),
+  }),
+  v.strictObject({ kind: v.literal('work-site') }),
+]);
+
+/** POST /api/game/act. */
+export const ActBodySchema = v.strictObject({ version: VersionSchema, action: ActionSchema });
 
 /** POST /api/dev/next-day. */
 export const EmptyBodySchema = v.strictObject({});
