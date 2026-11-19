@@ -8,6 +8,7 @@
 import { ellipsePath, poly, type Point } from './geom.ts';
 import { ink, ITEM_MOTIFS, MATERIAL_MOTIFS, MOTIFS, solid, type IconMotif } from './icon-motifs.ts';
 import { accentRamp, type Palette } from './palette.ts';
+import { sealParts } from './team-marks.ts';
 import { el, type SvgNode } from './svg.ts';
 
 export type { IconMotif } from './icon-motifs.ts';
@@ -25,6 +26,8 @@ export interface IconOptions {
    * hinders); `trait` and `plain` draw a plain tile.
    */
   readonly tile?: 'trait' | 'quirk' | 'plain';
+  /** Marks an unlock as done: a wax seal at the icon's lower right. */
+  readonly done?: boolean;
 }
 
 const P = (x: number, y: number): Point => ({ x, y });
@@ -226,16 +229,10 @@ export function drawIcon(
 ): SvgNode {
   const px = Number.isFinite(size) && size > 0 ? size : 48;
   const role = roleOf(id);
-  // A key can name both a quirk and a material (`stone`): a trait or quirk tile asks for the trait and quirk
-  // drawing, anything else gets the material or item.
-  const personal = options.tile === 'quirk' || options.tile === 'trait';
-  const asMotif =
-    Object.hasOwn(ICON_MOTIFS, id) &&
-    (personal || !(Object.hasOwn(MATERIAL_MOTIFS, id) || Object.hasOwn(ITEM_MOTIFS, id)));
   let children: SvgNode[];
   if (role) {
     children = emblem(palette, role, options.frame ?? 'roundel');
-  } else if (asMotif) {
+  } else if (Object.hasOwn(ICON_MOTIFS, id)) {
     children = [
       el('path', {
         d: ellipsePath(24, 24, 20, 20),
@@ -275,5 +272,6 @@ export function drawIcon(
   } else {
     children = neutral(palette);
   }
+  if (options.done) children = [...children, ...sealParts(palette, 37, 37, 0.85)];
   return el('svg', { viewBox: '0 0 48 48', width: px, height: px }, children);
 }

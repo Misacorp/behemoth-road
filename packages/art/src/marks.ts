@@ -9,7 +9,7 @@ import { ellipsePath, poly, smoothClosed, smoothOpen, type Point } from './geom.
 import type { Palette } from './palette.ts';
 import { el, type AttrValue, type SvgNode } from './svg.ts';
 
-export const MOMENT_KINDS = ['reveal', 'find', 'trap'] as const;
+export const MOMENT_KINDS = ['reveal', 'find', 'trap', 'survey'] as const;
 export type MomentKind = (typeof MOMENT_KINDS)[number];
 
 const P = (x: number, y: number): Point => ({ x, y });
@@ -142,7 +142,44 @@ function trap(pal: Palette): SvgNode[] {
   ];
 }
 
-const MOMENTS: Readonly<Record<MomentKind, (p: Palette) => SvgNode[]>> = { reveal, find, trap };
+/** A survey: a spyglass at the lower left sweeping a fan of looking-lines over the hex. */
+function survey(pal: Palette): SvgNode[] {
+  const arc = (r: number): string => {
+    const a0 = -Math.PI * 0.42;
+    const a1 = -Math.PI * 0.08;
+    const p0 = P(-12 + Math.cos(a0) * r, 12 + Math.sin(a0) * r);
+    const p1 = P(-12 + Math.cos(a1) * r, 12 + Math.sin(a1) * r);
+    return `M${p0.x.toFixed(1)} ${p0.y.toFixed(1)}A${r} ${r} 0 0 1 ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`;
+  };
+  return [
+    el('path', {
+      d: 'M-12 12L-4.5 -12A25 25 0 0 1 12 4.5Z',
+      fill: pal.hint,
+      opacity: 0.18,
+      'data-part': '0',
+    }),
+    el('path', {
+      d: arc(14) + arc(21) + arc(28),
+      ...stroke(pal.inkSoft, 1.4, { 'stroke-dasharray': '2.5 3' }),
+      'data-part': '1',
+    }),
+    el('path', {
+      d: 'M-19 19l9-9 3 3-9 9zM-10 10l4-4 3 3-4 4z',
+      fill: pal.ramps.bark.base,
+      stroke: pal.ink,
+      'stroke-width': 1.2,
+      'stroke-linejoin': 'round',
+      'data-part': '2',
+    }),
+  ];
+}
+
+const MOMENTS: Readonly<Record<MomentKind, (p: Palette) => SvgNode[]>> = {
+  reveal,
+  find,
+  trap,
+  survey,
+};
 
 /** A moment mark as a centred `<svg>` of `size` px. Unknown kinds draw the reveal bloom. */
 export function drawMoment(kind: string, palette: Palette, size: number): SvgNode {

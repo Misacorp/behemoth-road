@@ -10,6 +10,7 @@ import { el, toSvgString, type SvgNode } from './svg.ts';
 import { assignLooks, drawCharacter } from './character.ts';
 import { drawIcon, ITEM_MOTIFS, MATERIAL_MOTIFS, ROLE_IDS, type EmblemFrame } from './icons.ts';
 import { drawMoment, drawViaMark, MOMENT_KINDS } from './marks.ts';
+import { drawPackIcon, drawStoresIcon, drawUnlockSeal, drawWorkBar } from './team-marks.ts';
 import { ART_TUNING } from './config.ts';
 import { drawCreature, GENTLE_AMBLER } from './creature.ts';
 import type { PropDraw } from './props.ts';
@@ -221,17 +222,44 @@ function glintSheet(): string {
   );
 }
 
-/** The moments as their finished frames, large, and the `via` hook at three sizes. */
+/** The moments as their finished frames, large, and the `via` marks at three sizes. */
 function marksSheet(): string {
   const nodes: SvgNode[] = MOMENT_KINDS.map((kind, i) =>
-    placed(drawMoment(kind, PALETTE, 150), 30 + i * 200, 24),
+    placed(drawMoment(kind, PALETTE, 130), 24 + i * 165, 24),
   );
   [24, 36, 48].forEach((size, i) =>
-    nodes.push(placed(drawViaMark('grappling-hook', PALETTE, size), 60 + i * 90, 210)),
+    nodes.push(placed(drawViaMark('grappling-hook', PALETTE, size), 60 + i * 90, 190)),
   );
-  nodes.push(placed(drawViaMark('climbing-spikes', PALETTE, 36), 340, 216));
-  nodes.push(placed(drawViaMark('unknown-via', PALETTE, 36), 430, 216));
-  return paperSheet(640, 290, nodes);
+  nodes.push(placed(drawViaMark('climbing-spikes', PALETTE, 36), 340, 196));
+  nodes.push(placed(drawViaMark('unknown-via', PALETTE, 36), 430, 196));
+  return paperSheet(690, 270, nodes);
+}
+
+/** Explored ground, the unexplored veil, blank paper and fading tiles, side by side, on two terrains. */
+function veilSheet(): string {
+  const states = ['seen', 'unexplored', 'unseen', 'fading'] as const;
+  const cells: ArtCell[] = (['forest', 'desert'] as const).flatMap((terrain, row) =>
+    states.map((state, col) => ({ ...gridCell(row * 4 + col, 4), terrain, state })),
+  );
+  return toSvgString(
+    renderScene({ cells, projection: isometric(66), palette: PALETTE, seed: 'veil' }),
+  );
+}
+
+/** A pack from empty to full, the stores, the unlocks (done with a seal) and work bars. */
+function teamSheet(): string {
+  const nodes: SvgNode[] = [];
+  for (let n = 0; n <= 6; n += 1) nodes.push(placed(drawPackIcon(PALETTE, 64, n), 24 + n * 90, 24));
+  nodes.push(placed(drawStoresIcon(PALETTE, 72), 24, 120));
+  (['hook', 'lantern', 'spikes'] as const).forEach((key, i) => {
+    nodes.push(placed(drawIcon(key, PALETTE, 72), 140 + i * 180, 120));
+    nodes.push(placed(drawIcon(key, PALETTE, 72, { done: true }), 230 + i * 180, 120));
+  });
+  [0, 0.25, 0.5, 1].forEach((f, i) =>
+    nodes.push(placed(drawWorkBar(PALETTE, 150, f, [4, 3, 6, 4][i]), 24 + i * 165, 230)),
+  );
+  nodes.push(placed(drawUnlockSeal(PALETTE, 40), 24, 260));
+  return paperSheet(700, 320, nodes);
 }
 
 /** A plain paper sheet of `width` × `height` holding `children`, no filters. */
@@ -289,7 +317,7 @@ const QUIRK_ICONS = [
   'feet',
   'feather',
   'owl',
-  'stone',
+  'boulder',
   'key',
   'charm',
   'jar',
@@ -420,9 +448,25 @@ export function buildReviewItems(): ReviewDraft[] {
       svg: glintSheet(),
     },
     {
+      id: 'features/veil',
+      group: 'Features',
+      title: 'Explored, unexplored, blank paper, fading',
+      file: 'features-veil.svg',
+      ...glance,
+      svg: veilSheet(),
+    },
+    {
+      id: 'team/marks',
+      group: 'Team',
+      title: 'Pack from empty to full, stores, unlocks done, work bars',
+      file: 'team-marks.svg',
+      ...glance,
+      svg: teamSheet(),
+    },
+    {
       id: 'marks/moments',
       group: 'Marks',
-      title: 'Reveal, find and trap moments; the hook on a path step',
+      title: 'Reveal, find, trap and survey moments; via marks on a path step',
       file: 'marks-moments.svg',
       ...glance,
       svg: marksSheet(),

@@ -167,7 +167,7 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
       : []),
     ...(input.occupied ?? []).map((h) => hexKey(h.q, h.r)),
   ]);
-  const ground = drawGround(cells, p, palette, seed, ink, occupied);
+  const ground = drawGround(cells, p, palette, seed, ink, occupied, prefix);
   const creature = input.creature ?? null;
   const placed: Placed[] = [];
 
@@ -189,7 +189,12 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
       (underCreature
         ? []
         : placeProps((cell.site && SITE_PROPS[cell.site]) || terrainLook(cell.terrain).props, rng));
-    const opacity = state === 'fading' ? ART_TUNING.fadingPropOpacity : undefined;
+    const opacity =
+      state === 'fading'
+        ? ART_TUNING.fadingPropOpacity
+        : state === 'unexplored'
+          ? ART_TUNING.veilPropOpacity
+          : undefined;
     for (const spot of spots) {
       const draw = drawers[spot.kind];
       if (!draw) continue;
@@ -209,7 +214,7 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
         ...(opacity === undefined ? {} : { opacity }),
       });
     }
-    if (cell.feature && !underCreature) {
+    if (cell.feature && !underCreature && state !== 'unexplored') {
       const at = onPlane(p, c, 0, 0.08);
       const draw = featureDrawer(cell.feature.look);
       const drawn = draw(
@@ -228,7 +233,16 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
     const c = hexCenter(p, creature.q, creature.r);
     placed.push({
       at: c,
-      drawn: drawCreature(palette, creature.look, c, p.size, p.squash, ink, creature.heading),
+      drawn: drawCreature(
+        palette,
+        creature.look,
+        c,
+        p.size,
+        p.squash,
+        ink,
+        creature.heading,
+        creature.stores ?? 0,
+      ),
     });
   }
   const sites = new Set(cells.filter((c) => c.site).map((c) => `${c.q},${c.r}`));

@@ -53,6 +53,7 @@ export const ALLOWED_TAGS: ReadonlySet<string> = new Set([
   'linearGradient',
   'radialGradient',
   'stop',
+  'pattern',
 ]);
 
 const NAME = /^[a-zA-Z][a-zA-Z0-9:-]*$/;

@@ -95,7 +95,10 @@ const eyeLine = {
   'stroke-linejoin': 'round',
 } as const;
 
-/** Visibility as a mark: open eye (in play), half-lidded (fading), mist (lost), dotted lid (never seen). */
+/**
+ * Visibility as a mark: open eye (in play), closed eye (not yet explored), half-lidded (fading), mist (lost),
+ * dotted lid (never seen).
+ */
 function VisibilityMark({ state }: { state: CellState }): JSX.Element {
   switch (state) {
     case 'seen':
@@ -121,6 +124,14 @@ function VisibilityMark({ state }: { state: CellState }): JSX.Element {
             {...eyeLine}
             stroke={PALETTE.inkSoft}
           />
+        </g>
+      );
+    case 'unexplored':
+      // A closed eye: the terrain is known, but no one has looked yet.
+      return (
+        <g>
+          <path d="M2 16Q18 30 34 16" {...eyeLine} />
+          <path d="M10 21.5l-1.5 3M18 23v3.4M26 21.5l1.5 3" {...eyeLine} stroke-width={1.4} />
         </g>
       );
     case 'unseen':

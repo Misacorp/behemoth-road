@@ -20,9 +20,25 @@ ID: `2026-11-20-chain-actions-live-in-the-popover` · Status: current, amended b
 
 **Reasoning.** This follows `docs/design/m3-chain.md` and the M1 rule that spending takes a second tap in the popover. The satchel keeps the map clear, and the drawer is the one already built for joining. Moments on a separate CSS-animated layer respect the earlier performance work (no per-frame Preact renders, no world-layer redraw).
 
+## 2026-11-20: Unexplored hexes sit under one hatched paper veil; packs, stores and unlocks have their own marks
+
+ID: `2026-11-20-unexplored-hexes-sit-under-one-hatched` · Status: current
+
+**Decision.** A new cell state, `unexplored`, draws a hex's terrain under a veil: one shared SVG `<pattern>` (paper at about 60 % with a fine slanted inkSoft hatch, in the scene's defs, also in lite mode) filling one merged path over every unexplored hex, with that hex's props at 60 % opacity and no feature. It is clearly unlike explored ground, blank paper (unseen) and the plain paper veil of fading tiles. `drawVeilLift(projection, hex)` gives one hex's veil (`data-veil="q,r"`) for the map to fade and lift when the hex becomes explored. `drawPackIcon(palette, px, units, capacity)` draws a satchel with a rising wash and one ochre pip per unit; `drawStoresIcon` draws crates and a basket, and `CreatureArt.stores` puts one to three crates on the creature's back near the tail, clear of the rider slots. Unlock icons stay hook, lantern and spikes; `drawIcon(key, …, { done: true })` adds a wax seal (`drawUnlockSeal` alone), and `drawWorkBar(palette, width, fraction, steps)` is an ink bar filled to a fraction with a tick per unit of work. The survey mark is a fourth moment kind (`drawMoment('survey')`): a spyglass sweeping a fan of looking-lines, in staged parts.
+
+**Reasoning.** Misa's revised Milestone 3 makes exploration visible on the map and moves materials through packs into the creature's stores. A single pattern on one path keeps 91 hexes cheap on phones; the per-hex lift element lets the web animate a reveal without the scene drawing hexes one by one.
+
+## 2026-11-20: The Stubborn quirk's icon is a boulder, so icon keys never clash
+
+ID: `2026-11-20-the-stubborn-quirk-s-icon-is` · Status: current · Amends: `2026-11-20-features-glints-moments-and-the-via`
+
+**Decision.** The quirk motif formerly keyed `stone` is keyed `boulder` (content renames the Stubborn quirk's icon to match), and `drawIcon` no longer chooses between a quirk and a material by the tile option: every icon key names one drawing. `stone` is the material.
+
+**Reasoning.** One key for one drawing is simpler and cannot surprise a caller that forgets the tile option.
+
 ## 2026-11-20: Features, glints, moments and the via mark are drawn by the art kit from content keys
 
-ID: `2026-11-20-features-glints-moments-and-the-via` · Status: current
+ID: `2026-11-20-features-glints-moments-and-the-via` · Status: current, amended by `2026-11-20-the-stubborn-quirk-s-icon-is`
 
 **Decision.** A revealed feature is drawn on its tile from the `icon` key content gives it (`ore`, `stones`, `logs`, `tomb`, `deep-tomb`, `snare`, `pitfall`; `ArtCell.feature = { look, state }`), upright like the props, 1.6 times their size (`ART_TUNING.featureScale`) so it reads on a phone, and it replaces the terrain's props on that tile. Nodes have a `depleted` look, tombs a `spent` one (the door open, the seal rolled aside); traps are drawn only once revealed, as a cut snare and a marked pit. Unknown keys draw a small cairn. The glint is the hint mark made quieter (a light four-point twinkle and two specks, parts tagged `data-glint` for the map to animate). Materials sit on a rounded-square tile and items on a double-ring roundel; where a key names both a quirk and a material (`stone`), a `quirk` or `trait` tile asks for the quirk drawing and anything else gets the material. Moments (`drawMoment`: an ink bloom for a reveal, a burst for a find, a snap for a trap) are finished frames in three parts tagged `data-part` for the map to stage. `drawViaMark` draws a hook for a step taken with the grappling hook, spikes for the climbing spikes, and a plain dot otherwise.
 

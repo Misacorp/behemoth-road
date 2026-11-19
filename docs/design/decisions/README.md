@@ -109,7 +109,9 @@ Superseded: 1 entry (see the topic file).
 
 - 2026-11-20 The here card is compact and lets taps through its body; moments use the art kit's marks
 - 2026-11-20 Chain actions live in the popover and the team inventory in a satchel drawer; moments come from events (amended)
-- 2026-11-20 Features, glints, moments and the via mark are drawn by the art kit from content keys
+- 2026-11-20 Unexplored hexes sit under one hatched paper veil; packs, stores and unlocks have their own marks
+- 2026-11-20 The Stubborn quirk's icon is a boulder, so icon keys never clash
+- 2026-11-20 Features, glints, moments and the via mark are drawn by the art kit from content keys (amended)
 - 2026-11-20 Milestone 3 rules after Misa's notes: the calls the plan left open
 - 2026-11-20 Features are placed by terrain tags with absolute weights
 - 2026-11-20 Explored and unexplored hexes look clearly different \[Misa\]
