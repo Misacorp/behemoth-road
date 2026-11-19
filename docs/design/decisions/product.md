@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: On the map the creature is one place: one outline, a seat at the arrow's end, its own popover
+
+ID: `2026-11-19-on-the-map-the-creature-is` · Status: current
+
+**Decision.** When your character is selected and can board, the creature lights up as one target: a soft wash over its whole footprint and one dashed outline around its outside edge, not seven hex washes. Tapping any footprint hex plans to board. The arrow ends at the rider slot the character would take, and the confirm card shows the pip cost. A rider is selected by tapping its figure on the creature's back; the stepping-off hexes light up and the arrow starts from its seat. A selected rider's ring is drawn over the creature, as an outline only. Tapping the creature when not planning opens a small card with a drawing of the creature turned to its heading, plus a compass arrow for the heading. Tapping your own figure with no actions left looks at your place (the hex or the creature) instead of selecting it. The confirm card sits below the destination when the arrow arrives from above, so it never covers the arrow. "Recentre on me" centres on a rider's seat.
+
+**Reasoning.** This follows the riding decision (the footprint is one place) and the lead's brief. Picking a figure before the hex under it is what lets a rider select itself while a tap anywhere else on the footprint means the creature.
+
 ## 2026-11-19: A character's place is a hex or the creature; paths treat the creature as one node
 
 ID: `2026-11-19-a-character-s-place-is-a-2` · Status: current

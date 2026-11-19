@@ -6,13 +6,16 @@ import {
   type Hex,
   isPassable,
   onHex,
+  ON_CREATURE,
   placeHex,
   reachablePlaces,
   windowHexes,
   type GameState,
 } from '@behemoth-road/core';
 import { describe, expect, it } from 'vitest';
-import { confirmMove, type Flow, IDLE, tapHex } from './flow.ts';
+import { confirmMove, type Flow, IDLE, tap, tapHex } from './flow.ts';
+
+const ME = { kind: 'me' } as const;
 
 const ID = 'you';
 /** A game with the character stepped off the creature onto the hex furthest behind it. */
@@ -36,7 +39,7 @@ function target(s: GameState, cost: number) {
 describe('move flow', () => {
   it('select, plan, confirm: the core moves the character and spends the cost', () => {
     const s = game();
-    let flow: Flow = tapHex(IDLE, s, ID, here(s));
+    let flow: Flow = tap(IDLE, s, ID, ME);
     expect(flow).toEqual({ kind: 'selected' });
     const to = target(s, 2);
     flow = tapHex(flow, s, ID, to);
@@ -100,6 +103,62 @@ describe('move flow', () => {
     const tired = confirmMove(tapHex({ kind: 'selected' }, s, ID, target(s, 3)), s, ID).state;
     expect(me(tired).actionsLeft).toBe(0);
     const spot = here(tired);
-    expect(tapHex(IDLE, tired, ID, spot)).toEqual({ kind: 'inspect', hex: spot });
+    expect(tap(IDLE, tired, ID, ME)).toEqual({ kind: 'inspect', hex: spot });
+  });
+});
+
+describe('riding the creature', () => {
+  const riding = (): GameState => createGame(20261119, { characterIds: [ID] });
+  const footprint = (s: GameState): Hex[] =>
+    windowHexes(s).filter((h) => hexDistance(h, s.creature.centre) <= s.config.creatureRadius);
+
+  it('a rider tapping themselves selects; tapping again, or tapping the creature, cancels', () => {
+    const s = riding();
+    expect(me(s).at).toEqual(ON_CREATURE);
+    const selected = tap(IDLE, s, ID, ME);
+    expect(selected).toEqual({ kind: 'selected' });
+    expect(tap(selected, s, ID, ME)).toEqual(IDLE);
+    expect(tapHex(selected, s, ID, s.creature.centre)).toEqual(IDLE);
+  });
+
+  it('tapping the creature when not planning looks at it, whichever footprint hex', () => {
+    const s = game();
+    for (const h of footprint(s)) expect(tapHex(IDLE, s, ID, h)).toEqual({ kind: 'creature' });
+    expect(tapHex({ kind: 'creature' }, s, ID, s.creature.centre)).toEqual(IDLE);
+  });
+
+  it('boards from beside the creature: any footprint hex plans one step onto the creature', () => {
+    const s = game();
+    const selected = tap(IDLE, s, ID, ME);
+    for (const h of footprint(s)) {
+      const plan = tapHex(selected, s, ID, h);
+      expect(plan).toMatchObject({ kind: 'planned', to: ON_CREATURE, cost: 1 });
+    }
+    const done = confirmMove(tapHex(selected, s, ID, s.creature.centre), s, ID);
+    expect(me(done.state).at).toEqual(ON_CREATURE);
+    expect(me(done.state).actionsLeft).toBe(s.config.actionsPerDay - 1);
+  });
+
+  it('steps off onto a passable edge hex for one action', () => {
+    const s = riding();
+    const edge = creatureEdge(s).find((h) => isPassable(s, h))!;
+    const plan = tapHex(tap(IDLE, s, ID, ME), s, ID, edge);
+    expect(plan).toMatchObject({ kind: 'planned', to: onHex(edge), cost: 1 });
+    const done = confirmMove(plan, s, ID);
+    expect(me(done.state).at).toEqual(onHex(edge));
+  });
+
+  it('crosses the creature in two steps: board, then step off on the far side', () => {
+    const s = game();
+    const start = here(s);
+    const c = s.creature.centre;
+    const far = { q: 2 * c.q - start.q, r: 2 * c.r - start.r };
+    expect(isPassable(s, far)).toBe(true);
+    const plan = tapHex(tap(IDLE, s, ID, ME), s, ID, far);
+    expect(plan.kind).toBe('planned');
+    if (plan.kind !== 'planned') return;
+    expect(plan.cost).toBe(2);
+    expect(plan.steps.map((st) => st.place)).toEqual([ON_CREATURE, onHex(far)]);
+    expect(me(confirmMove(plan, s, ID).state).at).toEqual(onHex(far));
   });
 });

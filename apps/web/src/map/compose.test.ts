@@ -34,6 +34,11 @@ describe('popover placement', () => {
     expect(placePopover({ x: 200, y: 50 }, 40, size, screen, 10).y).toBe(96);
   });
 
+  it('goes below when asked and there is room, else above', () => {
+    expect(placePopover({ x: 200, y: 400 }, 40, size, screen, 10, 'below').y).toBe(446);
+    expect(placePopover({ x: 200, y: 780 }, 40, size, screen, 10, 'below').y).toBe(698);
+  });
+
   it('stays on screen at the edges', () => {
     const left = placePopover({ x: 5, y: 400 }, 40, size, screen, 10);
     expect(left.x).toBe(10);

@@ -1,9 +1,10 @@
-import { createGame, findCharacter, type GameState, type Hex, nextDay } from '@behemoth-road/core';
+import { createGame, findCharacter, type GameState, nextDay } from '@behemoth-road/core';
 import { useState } from 'preact/hooks';
 import { Hud } from './hud/Hud.tsx';
 import { MAP_TUNING } from './map/config.ts';
-import { confirmMove, type Flow, IDLE, tapHex } from './map/flow.ts';
+import { confirmMove, type Flow, IDLE, tap } from './map/flow.ts';
 import { type FocusTarget, MapView } from './map/MapView.tsx';
+import type { Target } from './map/pick.ts';
 
 /** Game number `n` uses seed `MAP_TUNING.seed + n`, so every game can be replayed. */
 export function startGame(n: number): GameState {
@@ -18,7 +19,7 @@ export function App() {
   const { state } = game;
   const me = findCharacter(state, id);
 
-  const onTap = (hex: Hex): void => setFlow((f) => tapHex(f, state, id, hex));
+  const onTap = (target: Target): void => setFlow((f) => tap(f, state, id, target));
   const onConfirm = (): void => {
     const result = confirmMove(flow, state, id);
     setFlow(result.flow);

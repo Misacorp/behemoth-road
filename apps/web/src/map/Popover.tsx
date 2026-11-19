@@ -2,14 +2,25 @@
  * Popover contents, drawn in SVG in screen px (the map places and clamps them). Visual only: a terrain
  * miniature and a visibility mark for a hex, or the cost pips and a confirm button for a planned move.
  */
-import { el, isometric, renderScene, type CellState } from '@behemoth-road/art';
+import {
+  ART_TUNING,
+  drawCreature,
+  el,
+  hexCenter,
+  isometric,
+  renderScene,
+  type CellState,
+} from '@behemoth-road/art';
+import type { GameState } from '@behemoth-road/core';
 import type { JSX } from 'preact';
 import { Pips, TickMark } from '../hud/icons.tsx';
 import { PALETTE } from './art.ts';
+import { creatureArt } from './cells.ts';
 import { MAP_TUNING } from './config.ts';
 import { toPreact } from './svgToPreact.ts';
 
 export const INSPECT_SIZE = { width: 132, height: 76 } as const;
+export const CREATURE_SIZE = { width: 140, height: 76 } as const;
 export const CONFIRM_SIZE = { width: 150, height: 60 } as const;
 
 const MINI = isometric(24, MAP_TUNING.tilt);
@@ -156,6 +167,58 @@ export function ConfirmCard({
         }}
       >
         <TickMark r={r} />
+      </g>
+    </g>
+  );
+}
+
+/** The creature's heading as a compass mark: an ink arrow in a ring, pointing the way it walks on the map. */
+function HeadingMark({ heading }: { heading: { q: number; r: number } }): JSX.Element {
+  const d = hexCenter(MINI, heading.q, heading.r);
+  const len = Math.hypot(d.x, d.y) || 1;
+  const ux = d.x / len;
+  const uy = d.y / len;
+  const r = 14;
+  const tip = { x: ux * r * 0.8, y: uy * r * 0.8 };
+  const tail = { x: -ux * r * 0.6, y: -uy * r * 0.6 };
+  const side = (s: number) => ({
+    x: tip.x - ux * 6 + -uy * 4.5 * s,
+    y: tip.y - uy * 6 + ux * 4.5 * s,
+  });
+  const a = side(1);
+  const b = side(-1);
+  return (
+    <g>
+      <circle r={r + 4} {...eyeLine} stroke={PALETTE.inkSoft} stroke-dasharray="2 3" />
+      <path d={`M${tail.x} ${tail.y}L${tip.x} ${tip.y}`} {...eyeLine} stroke-width={2.2} />
+      <path d={`M${a.x} ${a.y}L${tip.x} ${tip.y}L${b.x} ${b.y}`} {...eyeLine} stroke-width={2.2} />
+    </g>
+  );
+}
+
+/** The creature: a small drawing of it, turned to its heading, and the heading as a compass mark. */
+export function CreatureCard({ state }: { state: GameState }): JSX.Element {
+  const art = creatureArt(state);
+  const drawn = drawCreature(
+    PALETTE,
+    art.look,
+    { x: 0, y: 0 },
+    MINI.size * 0.7,
+    MINI.squash,
+    ART_TUNING.inkWidth * MINI.k,
+    art.heading,
+  );
+  const { x0, y0, x1, y1 } = drawn.box;
+  const pad = 2;
+  const viewBox = `${x0 - pad} ${y0 - pad} ${x1 - x0 + 2 * pad} ${y1 - y0 + 2 * pad}`;
+  return (
+    <g data-popover="creature">
+      <Card {...CREATURE_SIZE} />
+      <svg x={8} y={8} width={80} height={58} viewBox={viewBox} aria-hidden="true">
+        {drawn.nodes.map(toPreact)}
+      </svg>
+      <g transform="translate(110 37)">
+        <HeadingMark heading={art.heading} />
       </g>
     </g>
   );

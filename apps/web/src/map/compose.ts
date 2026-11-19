@@ -28,7 +28,8 @@ export interface Rect {
 
 /**
  * Where a popover of `size` goes for a hex whose top edge is at `anchor` (screen px): centred above it,
- * or below when there is no room above, and always inside the screen with `margin` to spare.
+ * or below when asked (`prefer`) or when there is no room above, and always inside the screen with `margin`
+ * to spare.
  */
 export function placePopover(
   anchor: { x: number; y: number },
@@ -36,10 +37,14 @@ export function placePopover(
   size: { width: number; height: number },
   screen: { width: number; height: number },
   margin: number,
+  prefer: 'above' | 'below' = 'above',
 ): Rect {
   const gap = 6;
-  let y = anchor.y - gap - size.height;
-  if (y < margin) y = anchor.y + below + gap;
+  const above = anchor.y - gap - size.height;
+  const under = anchor.y + below + gap;
+  const fitsBelow = under + size.height <= screen.height - margin;
+  let y = prefer === 'below' && fitsBelow ? under : above;
+  if (y < margin) y = under;
   const clamp = (v: number, max: number): number => Math.min(Math.max(v, margin), max - margin);
   const x = clamp(anchor.x - size.width / 2, screen.width - size.width);
   y = clamp(y, screen.height - size.height);

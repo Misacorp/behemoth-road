@@ -8,12 +8,14 @@ import {
   creatureEdge,
   isPassable,
   onHex,
+  ON_CREATURE,
   reachablePlaces,
   type GameState,
 } from '@behemoth-road/core';
 import { describe, expect, it } from 'vitest';
 import { PROJECTION } from './art.ts';
 import { characterArts, sceneCells } from './cells.ts';
+import { placePoint } from './figures.ts';
 import type { Flow } from './flow.ts';
 import { buildOverlays } from './overlays.ts';
 import { toPreact } from './svgToPreact.ts';
@@ -60,7 +62,7 @@ describe('overlays', () => {
   const to = reached.place.hex;
   const plan = planPath(state, ID, to);
   if (!plan.ok) throw new Error('no plan');
-  const planned: Flow = { kind: 'planned', to, steps: plan.steps, cost: plan.cost };
+  const planned: Flow = { kind: 'planned', to: onHex(to), steps: plan.steps, cost: plan.cost };
 
   it('use palette colours only and pass the mapper', () => {
     const o = overlays(state, planned);
@@ -92,5 +94,25 @@ describe('overlays', () => {
     const at = findCharacter(s, ID)!.at;
     if (at.kind !== 'hex') throw new Error('expected a hex');
     expect(sceneCells(s).find((c) => c.q === at.hex.q && c.r === at.hex.r)?.state).toBe('lost');
+  });
+
+  it('light the creature as one place and end a boarding arrow at the free seat', () => {
+    const selected = overlays(state, { kind: 'selected' }).under;
+    const footprintEdge = selected.filter((n) => String(n.attrs['d']).split('M').length === 19);
+    // One outline around the footprint: its 18 outer edges in one path.
+    expect(footprintEdge).toHaveLength(1);
+    const plan = planPath(state, ID, ON_CREATURE);
+    if (!plan.ok) throw new Error('cannot board');
+    const o = overlays(state, {
+      kind: 'planned',
+      to: ON_CREATURE,
+      steps: plan.steps,
+      cost: plan.cost,
+    });
+    const seat = placePoint(state, ID, ON_CREATURE, PROJECTION);
+    const head = String(o.over[1]!.attrs['d']);
+    const tip = head.split('L')[1]!.split(' ').map(Number);
+    expect(tip[0]).toBeCloseTo(seat.x, 0);
+    expect(tip[1]).toBeCloseTo(seat.y, 0);
   });
 });

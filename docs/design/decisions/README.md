@@ -88,6 +88,7 @@ Record a decision:
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-19 On the map the creature is one place: one outline, a seat at the arrow's end, its own popover
 - 2026-11-19 A character's place is a hex or the creature; paths treat the creature as one node
 - 2026-11-19 Riders stand in numbered slots on the creature's back
 - 2026-11-19 The art kit draws a compact creature on trodden ground, measured against its footprint (amended)

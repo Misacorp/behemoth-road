@@ -1,6 +1,6 @@
 import { figureAnchor, hexCenter, isometric, topDown } from '@behemoth-road/art';
 import { describe, expect, it } from 'vitest';
-import { feetOf, pickHex, worldToHex } from './pick.ts';
+import { feetOf, pickTarget, worldToHex } from './pick.ts';
 
 const hexes = (): { q: number; r: number }[] => {
   const out = [];
@@ -31,7 +31,7 @@ describe('screen-to-hex picking', () => {
     });
   }
 
-  it("picks the character's hex when its upright figure is tapped", () => {
+  it('picks the character when its upright figure is tapped', () => {
     // At a low view (0.6) the head reaches over the hex behind; at the map's 0.8 it mostly stays on its own.
     const p = isometric(64, 0.6);
     const me = { q: 2, r: -1 };
@@ -42,8 +42,8 @@ describe('screen-to-hex picking', () => {
     expect(feet.y).toBeGreaterThan(c.y);
     const head = { x: feet.x, y: feet.y - 0.7 * p.size };
     expect(worldToHex(p, head)).not.toEqual(me);
-    expect(pickHex(p, head, me)).toEqual(me);
-    expect(pickHex(p, head, null)).toEqual(worldToHex(p, head));
+    expect(pickTarget(p, head, feet)).toEqual({ kind: 'me' });
+    expect(pickTarget(p, head, null)).toEqual({ kind: 'hex', hex: worldToHex(p, head) });
   });
 
   it('picks the character at the map tilt (0.8), also when it stands on the creature', () => {
@@ -56,10 +56,10 @@ describe('screen-to-hex picking', () => {
       expect(feet).toEqual(figureAnchor(p, me));
       expect(worldToHex(p, feet)).toEqual(me);
       const head = { x: feet.x, y: feet.y - 0.6 * p.size };
-      expect(pickHex(p, head, me)).toEqual(me);
+      expect(pickTarget(p, head, feet)).toEqual({ kind: 'me' });
       // Far above the figure, the tap goes to the hex under the point.
       const above = { x: feet.x, y: feet.y - 1.6 * p.size };
-      expect(pickHex(p, above, me)).toEqual(worldToHex(p, above));
+      expect(pickTarget(p, above, feet)).toEqual({ kind: 'hex', hex: worldToHex(p, above) });
     }
   });
 

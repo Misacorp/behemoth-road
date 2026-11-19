@@ -8,6 +8,7 @@
 import {
   accentRamp,
   ART_TUNING,
+  DIRECTIONS,
   drawCharacter,
   el,
   hexCenter,
@@ -22,11 +23,14 @@ import {
   type GameState,
   type Hex,
   type PathStep,
+  type Place,
   type ReachablePlace,
   creatureHexes,
+  hexKey,
   placeHex,
 } from '@behemoth-road/core';
 import { MAP_TUNING } from './config.ts';
+import { figureFeet, placePoint } from './figures.ts';
 import type { Flow } from './flow.ts';
 import { feetOf, type Point } from './pick.ts';
 
@@ -56,24 +60,56 @@ function ellipse(c: Point, rx: number, ry: number): string {
   return `M${n(c.x - rx)} ${n(c.y)}a${n(rx)} ${n(ry)} 0 1 0 ${n(2 * rx)} 0a${n(rx)} ${n(ry)} 0 1 0 ${n(-2 * rx)} 0Z`;
 }
 
-/** Reachable tiles: a soft light wash with a faint ink edge, one path for all of them. */
+const dashed = (i: OverlayInput): Record<string, string | number> => ({
+  fill: 'none',
+  stroke: i.palette.inkSoft,
+  'stroke-width': 1.2 * i.projection.k,
+  'stroke-dasharray': `${n(3 * i.projection.k)} ${n(4 * i.projection.k)}`,
+  'stroke-linejoin': 'round',
+  opacity: 0.8,
+});
+
+/** The creature's footprint as one shape: all its hexes filled as one path, and its outer edge. */
+function footprint(i: OverlayInput): { fill: string; edge: string } {
+  const p = i.projection;
+  const hexes = creatureHexes(i.state);
+  const inside = new Set(hexes.map(hexKey));
+  let edge = '';
+  for (const h of hexes) {
+    const corners = hexCorners(p, hexCenter(p, h.q, h.r));
+    DIRECTIONS.forEach((d, e) => {
+      if (inside.has(hexKey({ q: h.q + d.q, r: h.r + d.r }))) return;
+      const a = corners[e]!;
+      const b = corners[(e + 1) % 6]!;
+      edge += `M${n(a.x)} ${n(a.y)}L${n(b.x)} ${n(b.y)}`;
+    });
+  }
+  return { fill: hexes.map((h) => hexPath(p, h, 1)).join(''), edge };
+}
+
+/**
+ * Reachable places: a soft light wash with a faint dashed ink edge. Hexes are lit one by one; the creature
+ * is lit as one place, with a single outline around its footprint.
+ */
 function reachableWash(i: OverlayInput): SvgNode[] {
   if (i.reachable.length === 0) return [];
-  const d = i.reachable
-    .flatMap((r) => (r.place.kind === 'hex' ? [r.place.hex] : creatureHexes(i.state)))
-    .map((h) => hexPath(i.projection, h, 0.86))
-    .join('');
-  return [
-    el('path', { d, fill: i.palette.paper, opacity: 0.42 }),
-    el('path', {
-      d,
-      fill: 'none',
-      stroke: i.palette.inkSoft,
-      'stroke-width': 1.2 * i.projection.k,
-      'stroke-dasharray': `${n(3 * i.projection.k)} ${n(4 * i.projection.k)}`,
-      opacity: 0.8,
-    }),
-  ];
+  const hexes = i.reachable.flatMap((r) => (r.place.kind === 'hex' ? [r.place.hex] : []));
+  const d = hexes.map((h) => hexPath(i.projection, h, 0.86)).join('');
+  const out: SvgNode[] = [];
+  if (d) {
+    out.push(
+      el('path', { d, fill: i.palette.paper, opacity: 0.42 }),
+      el('path', { d, ...dashed(i) }),
+    );
+  }
+  if (i.reachable.some((r) => r.place.kind === 'creature')) {
+    const f = footprint(i);
+    out.push(
+      el('path', { d: f.fill, fill: i.palette.paper, opacity: 0.32 }),
+      el('path', { d: f.edge, ...dashed(i), 'stroke-width': 1.6 * i.projection.k }),
+    );
+  }
+  return out;
 }
 
 function hexOutline(i: OverlayInput, h: Hex, colour: string, width: number): SvgNode {
@@ -86,13 +122,29 @@ function hexOutline(i: OverlayInput, h: Hex, colour: string, width: number): Svg
   });
 }
 
-/** A ring at the selected character's feet. */
-function selectionRing(i: OverlayInput, at: Hex): SvgNode {
+/** The outline of a place: a hex, or the whole footprint for the creature. */
+function placeOutline(i: OverlayInput, place: Place, colour: string, width: number): SvgNode {
+  if (place.kind === 'hex') return hexOutline(i, place.hex, colour, width);
+  return el('path', {
+    d: footprint(i).edge,
+    fill: 'none',
+    stroke: colour,
+    'stroke-width': width * i.projection.k,
+    'stroke-linecap': 'round',
+  });
+}
+
+/**
+ * A ring at the selected character's feet: a soft disc on the ground for a character on a hex; for a
+ * rider, an outline only, drawn over the creature so its back does not hide it.
+ */
+function selectionRing(i: OverlayInput, feet: Point, riding: boolean): SvgNode {
   const p = i.projection;
   const ramp = accentRamp(i.palette, MAP_TUNING.accent);
+  const scale = riding ? 0.22 : 0.3;
   return el('path', {
-    d: ellipse(feetOf(p, at), 0.3 * p.size, 0.3 * p.size * p.squash),
-    fill: ramp.light,
+    d: ellipse(feet, scale * p.size, scale * p.size * p.squash),
+    fill: riding ? 'none' : ramp.light,
     'fill-opacity': 0.5,
     stroke: ramp.shade,
     'stroke-width': 2 * p.k,
@@ -134,10 +186,11 @@ function pawPrint(i: OverlayInput, at: Point, angle: number, opacity: number): S
 }
 
 /** The planned path: a dashed ink line with an arrowhead, a pip per action, and a mark where a step has `via`. */
-function pathArrow(i: OverlayInput, from: Hex, steps: readonly PathStep[]): SvgNode[] {
+function pathArrow(i: OverlayInput, from: Point, steps: readonly PathStep[]): SvgNode[] {
   const p = i.projection;
   const k = p.k;
-  const pts = [feetOf(p, from), ...steps.map((s) => feetOf(p, placeHex(i.state, s.place)))];
+  // On the creature, the arrow runs to (or from) the seat the character has or would take.
+  const pts = [from, ...steps.map((s) => placePoint(i.state, i.characterId, s.place, p))];
   const last = pts[pts.length - 1]!;
   const prev = pts[pts.length - 2]!;
   // Stop the line short of the destination so the arrowhead tip lands on it.
@@ -237,14 +290,19 @@ export function buildOverlays(i: OverlayInput): Overlays {
   const over: SvgNode[] = [];
   const me = i.state.characters.find((c) => c.id === i.characterId);
   under.push(...creatureHints(i));
-  if (i.flow.kind === 'selected' || i.flow.kind === 'planned') {
+  const feet = figureFeet(i.state, i.characterId, i.projection);
+  const riding = me?.at.kind === 'creature';
+  if ((i.flow.kind === 'selected' || i.flow.kind === 'planned') && feet) {
     under.push(...reachableWash(i));
-    if (me?.status === 'active') under.push(selectionRing(i, placeHex(i.state, me.at)));
+    (riding ? over : under).push(selectionRing(i, feet, riding));
   }
   if (i.flow.kind === 'inspect') under.push(hexOutline(i, i.flow.hex, i.palette.ink, 2.2));
-  if (i.flow.kind === 'planned' && me) {
-    under.push(hexOutline(i, i.flow.to, accentRamp(i.palette, MAP_TUNING.accent).shade, 2.6));
-    over.push(...pathArrow(i, placeHex(i.state, me.at), i.flow.steps));
+  if (i.flow.kind === 'creature') {
+    under.push(placeOutline(i, { kind: 'creature' }, i.palette.ink, 2.2));
+  }
+  if (i.flow.kind === 'planned' && feet) {
+    under.push(placeOutline(i, i.flow.to, accentRamp(i.palette, MAP_TUNING.accent).shade, 2.6));
+    over.push(...pathArrow(i, feet, i.flow.steps));
   }
   over.push(...lostCharacters(i));
   return { under, over };

@@ -62,18 +62,6 @@ const VIEWPORTS = [
   { name: 'desktop', width: 1440, height: 900, touch: false },
 ];
 
-/** Offsets (in hexes) to try for the move target, nearest-looking first. */
-const CANDIDATES = [
-  [0, -3],
-  [1, -3],
-  [-1, -2],
-  [2, -3],
-  [0, -2],
-  [1, -2],
-  [-2, -1],
-  [2, -2],
-];
-
 async function run() {
   if (!existsSync(join(dist, 'index.html')))
     throw new Error('Build first: pnpm --filter @behemoth-road/web build');
@@ -105,37 +93,79 @@ async function run() {
       const tap = async (x, y) => {
         if (vp.touch) await page.touchscreen.tap(x, y);
         else await page.mouse.click(x, y);
-        await page.waitForTimeout(120);
+        await page.waitForTimeout(150);
       };
+      const svg = page.locator('svg.map');
+      const nums = async (name) => (await svg.getAttribute(name)).split(' ').map(Number);
+      /** Screen position of a hex centre, plus an offset in hex sizes on the plane. */
+      const hexOnScreen = async (q, r, dx = 0, dy = 0) => {
+        const [vx, vy, scale] = await nums('data-view');
+        const [size, squash] = await nums('data-projection');
+        const x = size * 1.5 * q + dx * size;
+        const y = (size * Math.sqrt(3) * (r + q / 2) + dy * size) * squash;
+        return [vx + x * scale, vy + y * scale];
+      };
+      const creature = async () => nums('data-creature');
+      const shot = (name) => page.screenshot({ path: join(out, `m1-map-${vp.name}-${name}.png`) });
       const cx = vp.width / 2;
       const cy = vp.height / 2;
-      // The first view centres on the character's feet; tap its body.
-      await tap(cx, cy - 12);
-      const scale = Number(await page.locator('svg.map').getAttribute('data-scale'));
-      const size = 64 * scale;
-      let planned = false;
-      for (const [q, r] of CANDIDATES) {
-        const x = cx + 0.05 * size + 1.5 * size * q;
-        const y = cy - 0.3 * size * 0.6 + Math.sqrt(3) * size * (r + q / 2) * 0.6;
-        await tap(x, y);
+      const scale0 = (await nums('data-view'))[2];
+      // The first view centres on the character, who starts riding: tap its body to select it.
+      const tapMe = () => tap(cx, cy - 20 * scale0);
+      await tapMe();
+      await shot('2-selected-riding');
+
+      // Step off: try the hexes around the footprint, south side first.
+      const [q0, r0] = await creature();
+      const ring = [
+        [0, 2],
+        [-1, 2],
+        [1, 1],
+        [-2, 2],
+        [2, 0],
+        [-2, 1],
+        [2, -1],
+        [1, -2],
+      ];
+      let off = null;
+      for (const [dq, dr] of ring) {
+        await tap(...(await hexOnScreen(q0 + dq, r0 + dr)));
         if (await page.locator('[data-popover=confirm]').count()) {
-          planned = true;
+          off = [q0 + dq, r0 + dr];
           break;
         }
-        // Not reachable: that tap opened an inspect popover; reselect the character.
-        await tap(cx, cy - 12);
+        await tapMe();
       }
-      if (!planned) problems.push(`${vp.name}: no reachable target found`);
-      await page.screenshot({ path: join(out, `m1-map-${vp.name}-2-planned.png`) });
-      if (planned) await page.locator('[aria-label=Confirm]').click();
+      if (!off) problems.push(`${vp.name}: no hex to step off to`);
+      await shot('3-plan-step-off');
+      if (off) await page.locator('[aria-label=Confirm]').click();
       await page.waitForTimeout(200);
-      await page.screenshot({ path: join(out, `m1-map-${vp.name}-3-moved.png`) });
+      await shot('4-stepped-off');
+
+      // Board again: the character stays selected after a move; tap a footprint hex away from the figure.
+      if (off) {
+        await tap(...(await hexOnScreen(q0, r0 - 1)));
+        if (!(await page.locator('[data-popover=confirm]').count()))
+          problems.push(`${vp.name}: could not plan boarding`);
+        await shot('5-plan-board');
+        await page.locator('[aria-label=Confirm]').click();
+        await page.waitForTimeout(200);
+      }
       await page.locator('[aria-label="Next day"]').click();
       await page.waitForTimeout(700);
-      await page.screenshot({ path: join(out, `m1-map-${vp.name}-4-next-day.png`) });
-      // Inspect a hex: tap one up and left of the centre.
-      await tap(cx - 1.5 * size, cy - 2 * size * 0.6);
-      await page.screenshot({ path: join(out, `m1-map-${vp.name}-5-inspect.png`) });
+      await shot('6-next-day-riding');
+
+      // The creature popover: tap the footprint hex nearest the viewer, below the riders on the raised back.
+      const [q1, r1] = await creature();
+      await tap(...(await hexOnScreen(q1, r1 + 1)));
+      if (!(await page.locator('[data-popover=creature]').count()))
+        problems.push(`${vp.name}: no creature popover`);
+      await shot('7-creature');
+      // Inspect a hex a few steps away.
+      await tap(...(await hexOnScreen(q1 - 3, r1 + 1)));
+      if (!(await page.locator('[data-popover=inspect]').count()))
+        problems.push(`${vp.name}: no inspect popover`);
+      await shot('8-inspect');
 
       // Frame times during a drag, CPU slowed 4x.
       const cdp = await context.newCDPSession(page);
@@ -158,11 +188,11 @@ async function run() {
       await page.mouse.up();
       if ((await world.getAttribute('transform')) === before)
         problems.push(`${vp.name}: drag did not pan`);
-      const scaleBefore = await page.locator('svg.map').getAttribute('data-scale');
+      const scaleBefore = await svg.getAttribute('data-view');
       // Mobile emulation sends no wheel events; the desktop run checks wheel zoom.
       await page.mouse.wheel(0, -300);
       await page.waitForTimeout(100);
-      if (!vp.touch && (await page.locator('svg.map').getAttribute('data-scale')) === scaleBefore) {
+      if (!vp.touch && (await svg.getAttribute('data-view')) === scaleBefore) {
         problems.push(`${vp.name}: wheel did not zoom`);
       }
       const frames = await page.evaluate(() => window.__frames.slice(2));

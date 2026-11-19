@@ -5,9 +5,9 @@
 import { hexCenter, paperGrain, renderScene } from '@behemoth-road/art';
 import {
   type GameState,
-  type Hex,
   predictCreature,
-  placeHex,
+  hexKey,
+  placeKey,
   reachablePlaces,
   terrainIdAt,
 } from '@behemoth-road/core';
@@ -20,8 +20,16 @@ import { MAP_TUNING } from './config.ts';
 import type { Flow } from './flow.ts';
 import { GestureTracker, type Gesture } from './gestures.ts';
 import { buildOverlays } from './overlays.ts';
-import { feetOf, pickHex, type Point } from './pick.ts';
-import { CONFIRM_SIZE, ConfirmCard, INSPECT_SIZE, InspectCard } from './Popover.tsx';
+import { figureFeet, placePoint } from './figures.ts';
+import { pickTarget, type Point, type Target } from './pick.ts';
+import {
+  CONFIRM_SIZE,
+  ConfirmCard,
+  CREATURE_SIZE,
+  CreatureCard,
+  INSPECT_SIZE,
+  InspectCard,
+} from './Popover.tsx';
 import { toPreact } from './svgToPreact.ts';
 import {
   centreOn,
@@ -43,7 +51,7 @@ export interface MapViewProps {
   readonly state: GameState;
   readonly flow: Flow;
   readonly characterId: string;
-  readonly onTap: (hex: Hex) => void;
+  readonly onTap: (target: Target) => void;
   readonly onConfirm: () => void;
   /** Recentre requests: a new `n` animates the view to the target. */
   readonly focus: { readonly target: FocusTarget; readonly n: number };
@@ -69,9 +77,61 @@ export function fitScale(screen: Size, windowRadius: number): number {
 }
 
 function targetPoint(state: GameState, characterId: string, target: FocusTarget): Point {
-  const me = state.characters.find((c) => c.id === characterId);
-  if (target === 'me' && me) return feetOf(p, placeHex(state, me.at));
+  // A rider's figure is on the creature's back, so recentring on it centres on the creature.
+  const feet = target === 'me' ? figureFeet(state, characterId, p) : null;
+  if (feet) return feet;
   return hexCenter(p, state.creature.centre.q, state.creature.centre.r);
+}
+
+/** Where a popover points: the top of what it is about, and how far below that the thing ends (world px). */
+interface Anchor {
+  readonly key: string;
+  readonly top: Point;
+  readonly below: number;
+  readonly size: { readonly width: number; readonly height: number };
+  /** Below when the path arrives from above, so the card does not cover the arrow. */
+  readonly prefer?: 'above' | 'below';
+}
+
+function popoverAnchor(state: GameState, flow: Flow, characterId: string): Anchor | null {
+  const tile = 2 * p.size * p.squash;
+  if (flow.kind === 'inspect') {
+    const c = hexCenter(p, flow.hex.q, flow.hex.r);
+    return {
+      key: `inspect:${hexKey(flow.hex)}`,
+      top: { x: c.x, y: c.y - tile / 2 },
+      below: tile,
+      size: INSPECT_SIZE,
+    };
+  }
+  if (flow.kind === 'creature') {
+    // Above the creature's back, clear of its footprint.
+    const c = hexCenter(p, state.creature.centre.q, state.creature.centre.r);
+    const lift = tile * 1.5 + 0.5 * p.size;
+    return {
+      key: 'creature',
+      top: { x: c.x, y: c.y - lift },
+      below: lift + tile,
+      size: CREATURE_SIZE,
+    };
+  }
+  if (flow.kind === 'planned') {
+    // Above the figure's head where it would stand (its seat, for the creature).
+    const feet = placePoint(state, characterId, flow.to, p);
+    const head = 0.9 * p.size;
+    const last = flow.steps[flow.steps.length - 2];
+    const from = last
+      ? placePoint(state, characterId, last.place, p)
+      : (figureFeet(state, characterId, p) ?? feet);
+    return {
+      key: `planned:${placeKey(flow.to)}`,
+      top: { x: feet.x, y: feet.y - head },
+      below: head,
+      size: CONFIRM_SIZE,
+      prefer: from.y < feet.y ? 'below' : 'above',
+    };
+  }
+  return null;
 }
 
 const easeOut = (t: number): number => 1 - (1 - t) ** 3;
@@ -87,7 +147,7 @@ export function MapView(props: MapViewProps): JSX.Element {
   const tracker = useRef(new GestureTracker(MAP_TUNING.tapSlop));
   const frame = useRef(0);
   const animation = useRef(0);
-  const popover = useRef<{ hex: Hex; size: { width: number; height: number } } | null>(null);
+  const popover = useRef<Anchor | null>(null);
   // The zoom the scene's ink widths were drawn for; changes only when a gesture settles at a new step.
   const [inkZoom, setInkZoom] = useState(1);
   const settleZoom = (): void => setInkZoom(inkZoomFor(view.current.scale));
@@ -129,28 +189,26 @@ export function MapView(props: MapViewProps): JSX.Element {
     return { under: o.under.map(toPreact), over: o.over.map(toPreact) };
   }, [state, flow, characterId]);
 
-  popover.current =
-    flow.kind === 'inspect'
-      ? { hex: flow.hex, size: INSPECT_SIZE }
-      : flow.kind === 'planned'
-        ? { hex: flow.to, size: CONFIRM_SIZE }
-        : null;
+  popover.current = popoverAnchor(state, flow, characterId);
 
   function apply(): void {
     frame.current = 0;
     const v = view.current;
     worldRef.current?.setAttribute('transform', transformAttr(v));
-    svgRef.current?.setAttribute('data-scale', v.scale.toFixed(3));
+    // Read by the screenshot script to find hexes on screen.
+    svgRef.current?.setAttribute(
+      'data-view',
+      `${v.x.toFixed(2)} ${v.y.toFixed(2)} ${v.scale.toFixed(4)}`,
+    );
     const pop = popover.current;
     if (pop && popRef.current) {
-      const c = hexCenter(p, pop.hex.q, pop.hex.r);
-      const top = toScreen(v, { x: c.x, y: c.y - p.size * p.squash });
       const rect = placePopover(
-        top,
-        2 * p.size * p.squash * v.scale,
+        toScreen(v, pop.top),
+        pop.below * v.scale,
         pop.size,
         size.current,
         MAP_TUNING.popoverMargin,
+        pop.prefer,
       );
       popRef.current.setAttribute('transform', `translate(${rect.x} ${rect.y})`);
     }
@@ -197,10 +255,7 @@ export function MapView(props: MapViewProps): JSX.Element {
           break;
         case 'tap': {
           const { state: s, characterId: id } = latest.current;
-          const me = s.characters.find((c) => c.id === id && c.status === 'active');
-          latest.current.onTap(
-            pickHex(p, toWorld(view.current, g.at), me ? placeHex(s, me.at) : null),
-          );
+          latest.current.onTap(pickTarget(p, toWorld(view.current, g.at), figureFeet(s, id, p)));
           break;
         }
         case 'end':
@@ -332,9 +387,7 @@ export function MapView(props: MapViewProps): JSX.Element {
   }, [focusN]);
 
   // Place the popover, and move focus into it when it opens (out again when it closes).
-  const popKey = popover.current
-    ? `${flow.kind}:${popover.current.hex.q},${popover.current.hex.r}`
-    : '';
+  const popKey = popover.current?.key ?? '';
   useLayoutEffect(() => {
     apply();
     if (popKey) {
@@ -365,6 +418,8 @@ export function MapView(props: MapViewProps): JSX.Element {
         state={cellState}
       />
     );
+  } else if (flow.kind === 'creature') {
+    card = <CreatureCard state={state} />;
   } else if (flow.kind === 'planned') {
     card = (
       <ConfirmCard
@@ -381,6 +436,8 @@ export function MapView(props: MapViewProps): JSX.Element {
     <svg
       ref={svgRef}
       class="map"
+      data-creature={`${state.creature.centre.q} ${state.creature.centre.r}`}
+      data-projection={`${p.size} ${p.squash}`}
       tabIndex={-1}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}

@@ -18,21 +18,23 @@ export interface Point {
 /** The hex whose top face contains a world point. */
 export const worldToHex = (p: Projection, point: Point): Hex => screenToHex(p, point.x, point.y);
 
-/**
- * The hex a tap means. A character stands upright above its hex, so a tap on its figure picks the hex it
- * stands on, not the hex behind its head. Otherwise the hex under the point.
- */
+/** What a tap means: your own figure (wherever it stands, on a hex or on the creature's back), or a hex. */
+export type Target = { readonly kind: 'me' } | { readonly kind: 'hex'; readonly hex: Hex };
+
 /** Where a character's feet are on its hex: the art kit's own standee placement (`figureAnchor`). */
 export function feetOf(p: Projection, h: Hex, slot = 0, context: FigureContext = {}): Point {
   return figureAnchor(p, h, slot, context);
 }
 
-export function pickHex(p: Projection, point: Point, character: Hex | null): Hex {
-  if (character) {
-    const feet = feetOf(p, character);
+/**
+ * A character stands upright, so its figure covers the hex behind it: a tap on the figure (feet at
+ * `feet`) means the character. Anything else means the hex under the point.
+ */
+export function pickTarget(p: Projection, point: Point, feet: Point | null): Target {
+  if (feet) {
     const inX = Math.abs(point.x - feet.x) <= 0.3 * p.size;
     const inY = point.y <= feet.y + 0.12 * p.size && point.y >= feet.y - 0.85 * p.size;
-    if (inX && inY) return character;
+    if (inX && inY) return { kind: 'me' };
   }
-  return worldToHex(p, point);
+  return { kind: 'hex', hex: worldToHex(p, point) };
 }
