@@ -4,6 +4,14 @@ Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: Features live in the state per hex; the view carries revealed ones and team glints; version-2 games migrate
+
+ID: `2026-11-20-features-live-in-the-state-per` · Status: current
+
+**Decision.** The state gains `features` (by hex key: type, revealed, what is `left`), `glints` (hex keys a scout has sensed), `inventory` (team materials and items) and `craftsToday` on each character. Features are generated on the server for each hex when it first comes into view, using known terrain, and pruned with their tiles. `toPlayerView` keeps only revealed features, plus glints and the inventory, which are public. Content version 3: `loadGame` migrates a version-2 game through `migrateGame`. New tuning values take their defaults, characters keep everything and get `craftsToday` 0, the team gets an empty inventory, and hexes already in view get their hidden features as if they had just come into view. A fixture captured from the version-2 code proves this.
+
+**Reasoning.** Hidden features are the point of fog and scouting, so they stay on the server like the seed. Generating per hex on first sight keeps the state small and lets the live production game continue on its existing map.
+
 ## 2026-11-19: Only allowed Discord servers can play; the app itself is public **[Misa]**
 
 ID: `2026-11-19-only-allowed-discord-servers-can-play` · Status: current · Amends: `2026-11-19-sign-in-interactions-and-the-deploy`

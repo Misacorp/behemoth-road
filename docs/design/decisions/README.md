@@ -49,6 +49,7 @@ Record a decision:
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
+- 2026-11-20 Features live in the state per hex; the view carries revealed ones and team glints; version-2 games migrate
 - 2026-11-19 Only allowed Discord servers can play; the app itself is public \[Misa\]
 - 2026-11-19 The web client boots as an Activity, parses every response, and runs rules on the player view
 - 2026-11-19 Sign-in, interactions and the deploy's Discord steps follow creatures (amended)
@@ -103,6 +104,8 @@ Record a decision:
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-20 Features are placed by terrain tags with absolute weights
+- 2026-11-20 Milestone 3 rules: the calls the plan left open
 - 2026-11-19 Joining is a drawer wizard; characters look distinct on the map
 - 2026-11-19 Character looks come from content's look seeds, so a preview matches the joined look
 - 2026-11-19 Icons follow content's icon keys; quirks sit on a split tile

@@ -4,14 +4,13 @@
  * tags (`reveal` for the scout's perks), never by id.
  */
 
-import { FEATURE_TYPES, type FeatureType, ROLES } from './content/index.ts';
+import { FEATURE_TYPES, FEATURE_WEIGHT_SCALE, type FeatureType, ROLES } from './content/index.ts';
 import { type Hex, hexDistance, hexesInRange, hexKey, neighbours } from './hex.ts';
 import { terrainAt, terrainById } from './map.ts';
-import { hashString, hashToUnit, pickWeighted, type Seed } from './random.ts';
+import { hashString, hashToUnit, type Seed } from './random.ts';
 import type { Character, FeatureState, GameState, GameStateView, TileKnowledge } from './state.ts';
 
 const FEATURE_STREAM = hashString('feature');
-const FEATURE_KIND_STREAM = hashString('feature-kind');
 
 /** Something that happened, for the interface's short visual moments. */
 export type GameEvent =
@@ -53,7 +52,10 @@ export const generateFeature = (
   chance: number,
   terrainIdOf: (h: Hex) => string = (x) => terrainAt(seed, x).id,
 ): FeatureType | null => {
-  if (hashToUnit(seed, FEATURE_STREAM, h.q, h.r) >= chance) return null;
+  const roll = hashToUnit(seed, FEATURE_STREAM, h.q, h.r);
+  // Cheap early exit: no feature can be this likely (most hexes stop here).
+  const most = (chance * MAX_WEIGHT) / FEATURE_WEIGHT_SCALE;
+  if (roll >= most) return null;
   const terrain = terrainById(terrainIdOf(h));
   if (!terrain.passable) return null;
   let nearTags: Set<string> | null = null;
@@ -64,13 +66,16 @@ export const generateFeature = (
     nearTags ??= new Set(neighbours(h).flatMap((n) => terrainById(terrainIdOf(n)).tags));
     return near.some((tag) => nearTags?.has(tag));
   });
-  if (fits.length === 0) return null;
-  return pickWeighted(
-    fits,
-    (t) => t.placement.weight,
-    hashToUnit(seed, FEATURE_KIND_STREAM, h.q, h.r),
-  );
+  // Each feature that fits takes its own slice of the roll: `chance × weight / scale`.
+  let upTo = 0;
+  for (const t of fits) {
+    upTo += (chance * t.placement.weight) / FEATURE_WEIGHT_SCALE;
+    if (roll < upTo) return t;
+  }
+  return null;
 };
+
+const MAX_WEIGHT = FEATURE_TYPES.reduce((sum, t) => sum + t.placement.weight, 0);
 
 /** A fresh feature state for a type. */
 const freshFeature = (type: FeatureType): FeatureState => ({

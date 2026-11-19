@@ -43,6 +43,8 @@ export const MATERIALS: readonly Material[] = [
   { id: 'stone', name: 'Stone', tags: ['stone'], icon: 'stone' },
   { id: 'timber', name: 'Timber', tags: ['wood'], icon: 'timber' },
   { id: 'ancient-alloy', name: 'Ancient alloy', tags: ['metal', 'rare', 'ancient'], icon: 'alloy' },
+  // A tier-1 tomb's find: no recipe uses it yet (the Envoy's trade, later).
+  { id: 'old-coin', name: 'Old coin', tags: ['rare', 'ancient', 'trade'], icon: 'coin' },
 ];
 
 export const ITEMS: readonly Item[] = [

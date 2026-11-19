@@ -9,7 +9,11 @@ export interface FeaturePlacement {
   readonly on: readonly string[];
   /** Or a neighbouring hex's terrain has one of these tags (cliff edges, river banks). */
   readonly near?: readonly string[];
-  /** Relative chance among the features that fit a hex. */
+  /**
+   * How often it appears where it fits, against `FEATURE_WEIGHT_SCALE`: 20 means a
+   * hex holds it with `featureChance`, 40 twice that, 5 a quarter. Each feature
+   * that fits a hex takes its own slice, so they add up.
+   */
   readonly weight: number;
 }
 
@@ -44,6 +48,9 @@ export interface TrapType extends FeatureBase {
 
 export type FeatureType = NodeType | SiteType | TrapType;
 
+/** A feature with this weight appears with `featureChance` where it fits. */
+export const FEATURE_WEIGHT_SCALE = 20;
+
 export const FEATURE_TYPES: readonly FeatureType[] = [
   {
     id: 'iron-deposit',
@@ -51,7 +58,7 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
     name: 'Iron deposit',
     tags: ['ore', 'mine'],
     icon: 'ore',
-    placement: { on: ['dry'], near: ['steep'], weight: 20 },
+    placement: { on: ['dry'], near: ['steep'], weight: 30 },
     charges: 3,
     yields: { material: 'iron', amount: 1 },
   },
@@ -61,7 +68,7 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
     name: 'Sturdy river stones',
     tags: ['stone', 'quarry'],
     icon: 'stones',
-    placement: { on: ['water'], weight: 20 },
+    placement: { on: ['water'], near: ['water'], weight: 20 },
     charges: 3,
     yields: { material: 'stone', amount: 1 },
   },
@@ -71,7 +78,7 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
     name: 'Timber stand',
     tags: ['wood', 'fell'],
     icon: 'logs',
-    placement: { on: ['wooded'], weight: 20 },
+    placement: { on: ['wooded'], near: ['wooded'], weight: 40 },
     charges: 3,
     yields: { material: 'timber', amount: 1 },
   },
@@ -81,10 +88,10 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
     name: 'Tomb',
     tags: ['tomb', 'ancient'],
     icon: 'tomb',
-    placement: { on: ['open', 'dry'], weight: 6 },
+    placement: { on: ['open', 'dry'], weight: 2 },
     tier: 1,
     needs: [],
-    finds: { material: 'ancient-alloy', amount: 1 },
+    finds: { material: 'old-coin', amount: 1 },
   },
   {
     id: 'deep-tomb',
@@ -92,10 +99,10 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
     name: 'Deep tomb',
     tags: ['tomb', 'ancient', 'dark'],
     icon: 'deep-tomb',
-    placement: { on: ['open', 'dry'], weight: 5 },
+    placement: { on: ['open', 'dry'], weight: 4 },
     tier: 2,
     needs: ['light'],
-    finds: { material: 'ancient-alloy', amount: 2 },
+    finds: { material: 'ancient-alloy', amount: 1 },
   },
   {
     id: 'snare',
@@ -103,7 +110,7 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
     name: 'Snare',
     tags: ['trap', 'hidden'],
     icon: 'snare',
-    placement: { on: ['wooded', 'open'], weight: 6 },
+    placement: { on: ['wooded', 'open'], weight: 2 },
   },
   {
     id: 'pitfall',
@@ -111,6 +118,6 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
     name: 'Pitfall',
     tags: ['trap', 'hidden'],
     icon: 'pitfall',
-    placement: { on: ['open', 'dry'], weight: 5 },
+    placement: { on: ['open', 'dry'], weight: 2 },
   },
 ];

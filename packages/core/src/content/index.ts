@@ -12,6 +12,7 @@ export { QUIRKS, TRAITS, type Quirk, type Trait } from './traits.ts';
 export { CONTENT_VERSION, KNOWN_CONTENT_VERSIONS } from './version.ts';
 export {
   FEATURE_TYPES,
+  FEATURE_WEIGHT_SCALE,
   type FeaturePlacement,
   type FeatureType,
   type NodeType,
