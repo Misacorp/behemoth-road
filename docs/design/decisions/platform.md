@@ -4,6 +4,46 @@ Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: Sign-in, interactions and the deploy's Discord steps follow creatures
+
+ID: `2026-11-19-sign-in-interactions-and-the-deploy` · Status: current
+
+**Decision.** The Worker reuses creatures' Activity sign-in (`auth.ts`, `discord.ts`, `session.ts`, `keys.ts`), with the session key derived under the label `behemoth-road/session`, so a creatures token never verifies here. `POST /api/auth/session` answers `{ token, accessToken, user: { id, name } }`. A launch with no guild (a DM or group DM) is refused with `guild_required`. The interactions endpoint answers only PING and the Activity's entry point (Launch, with LAUNCH_ACTIVITY); other commands get a private "not available". The deploy job reads the app's public key from Discord with the bot token (`scripts/discord-app.mjs public-key`), passes it as the `DISCORD_PUBLIC_KEY` var, and afterwards points Launch at our endpoint (`register`), only once the portal's Interactions Endpoint URL is this game's. `DISCORD_CLIENT_SECRET` and `DISCORD_BOT_TOKEN` are environment secrets, sent to wrangler in a temporary `--secrets-file`; the client id is a public var in `wrangler.jsonc`. The host for the endpoint check comes from `project.config.json`.
+
+**Reasoning.** Creatures runs this flow in production; adapting it is less risk than a new one. Reading the public key at deploy time means nobody copies it by hand, and every Discord failure there is a warning so a portal step left undone never blocks a deploy.
+
+## 2026-11-19: The local dev login and the staging next day: who may use them
+
+ID: `2026-11-19-the-local-dev-login-and-the` · Status: current
+
+**Decision.** `POST /api/dev/login` (body `{ player: 1..9 }`) signs in a fake player of a fake server and exists only where `ENVIRONMENT` is `local` (the top level of `wrangler.jsonc`, used by `wrangler dev` and the tests); every deployed environment sets its own name, and a test pins that. Locally every player counts as a server admin. `POST /api/dev/next-day` exists only with `DEV_TOOLS` on (local and staging; production off, pinned by a test) and, in staging, only for the server's owner or a member with Administrator or Manage Server (creatures' `discord-permissions.ts`), cached ten minutes per player. The player view's `devTools` is true only when both hold, so the client shows the control without a second check. The tick it runs leaves the schedule alone.
+
+**Reasoning.** The web app must run outside Discord against `wrangler dev`, and a fake login is the least code for that; tying it to the environment name keeps it out of every deployed build. The admin check is the same one creatures uses for its dev panel.
+
+## 2026-11-19: Joining and replacing pick an offered character by index; offers are in the player view
+
+ID: `2026-11-19-joining-and-replacing-pick-an-offered` · Status: current
+
+**Decision.** `POST /api/game/join` and `/replace` take `{ role, choice }`: `choice` is an integer from 0 to 3 indexing the offers, offer 0 being the plain character. The player view carries `offers` (the rolled characters) while the player has no active character, and `null` otherwise. Offers are rolled on the server from the game seed, the user id and the attempt (how many characters the player has had). Character ids are `<userId>.<attempt>`. A join by a player who already has a character answers the view unchanged; only replace makes a new character, and only for a lost one. Until the core's character content lands, `apps/worker/src/game-core.ts` stands in for `toPlayerView`, the offers and `addCharacter` / `replaceCharacter`.
+
+**Reasoning.** The contract's join body (`{ role }`) had no way to say which rolled character was picked. An index keeps the body small and strict, and rolling on the server keeps the seed there. Ids built from the user id and attempt are stable and unique without a counter table. Proposed to the lead; the contract in `docs/design/m2-session.md` should follow.
+
+## 2026-11-19: Missed day ticks catch up to seven at once; older ones are skipped
+
+ID: `2026-11-19-missed-day-ticks-catch-up-to` · Status: current
+
+**Decision.** The day tick runs when the alarm fires and, as a safety net, at the start of every request and sign-in: every tick that is due runs, up to seven (`SERVER_CONFIG.maxCatchUpTicks`), and the next one is scheduled after now. The alarm is re-armed to the stored next tick whenever it differs. The tick time is 06:00 Europe/Helsinki (`SERVER_CONFIG.tick`), computed with creatures' DST-safe `time.ts`.
+
+**Reasoning.** Alarms are reliable but not guaranteed to the minute, and an object can be redeployed between alarms. Catching up keeps the creature walking one step per calendar day; the cap bounds the work after a long outage, when replaying weeks of steps nobody saw would surprise the group more than a skipped stretch.
+
+## 2026-11-19: The game is created on a server's first sign-in, with a seed from the platform's random source
+
+ID: `2026-11-19-the-game-is-created-on-a` · Status: current
+
+**Decision.** A server's game is created when its first player signs in, not when the first character joins, so every view (and the join drawer over the map) has a game. The seed is 32 bits from `crypto.getRandomValues`, made only inside the guild's Durable Object and stored in the game row's state JSON; only the core's player view leaves the object, and every route's test checks that no response carries the seed.
+
+**Reasoning.** A player opening the Activity should see the map before they pick a character. The seed must never reach a client (decision "The server keeps the seed").
+
 ## 2026-11-19: The server keeps the seed; clients get a player view with known terrain
 
 ID: `2026-11-19-the-server-keeps-the-seed-clients` · Status: current

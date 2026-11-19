@@ -49,6 +49,11 @@ Record a decision:
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
+- 2026-11-19 Sign-in, interactions and the deploy's Discord steps follow creatures
+- 2026-11-19 The local dev login and the staging next day: who may use them
+- 2026-11-19 Joining and replacing pick an offered character by index; offers are in the player view
+- 2026-11-19 Missed day ticks catch up to seven at once; older ones are skipped
+- 2026-11-19 The game is created on a server's first sign-in, with a seed from the platform's random source
 - 2026-11-19 The server keeps the seed; clients get a player view with known terrain
 - 2026-11-19 The world layer's bitmap is capped at 4096 px a side and 16 MP
 - 2026-11-19 The map pans a world layer by CSS transform; the scene stays memoised (amended)
