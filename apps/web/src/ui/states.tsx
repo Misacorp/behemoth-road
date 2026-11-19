@@ -1,7 +1,11 @@
 /** Full-page states before the game: outside Discord, and a failed start. Visual only, no prose. */
 import type { JSX } from 'preact';
-import { CreatureIcon } from '../hud/icons.tsx';
+import { drawCreatureIcon, GENTLE_AMBLER } from '@behemoth-road/art';
+import { toPreact } from '../map/svgToPreact.ts';
 import { PALETTE } from '../map/art.ts';
+
+/** The creature at page size, with ink chosen for 96 px (the art kit's size-aware icon). */
+const BIG_CREATURE = toPreact(drawCreatureIcon(PALETTE, GENTLE_AMBLER, 96));
 
 const line = {
   fill: 'none',
@@ -16,9 +20,7 @@ export function OpenFromDiscord(): JSX.Element {
   return (
     <main class="state" data-state="outside" aria-label="Open from Discord">
       <div class="state-art">
-        <span class="state-creature">
-          <CreatureIcon />
-        </span>
+        <span class="state-creature">{BIG_CREATURE}</span>
         <svg viewBox="0 0 64 64" class="state-door" aria-hidden="true">
           <path d="M18 58V10h28v48" {...line} fill={PALETTE.paperDeep} />
           <path d="M8 58h48" {...line} />
