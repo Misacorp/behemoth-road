@@ -89,6 +89,7 @@ Record a decision:
 [product.md](product.md): Features, UX and behaviour the users see.
 
 - 2026-11-19 On the map the creature is one place: one outline, a seat at the arrow's end, its own popover
+- 2026-11-19 The creature is the party's hub; a tap picks your own character first \[Misa\]
 - 2026-11-19 A character's place is a hex or the creature; paths treat the creature as one node
 - 2026-11-19 Riders stand in numbered slots on the creature's back
 - 2026-11-19 The art kit draws a compact creature on trodden ground, measured against its footprint (amended)
@@ -100,7 +101,7 @@ Record a decision:
 - 2026-11-19 The creature is drawn from above, at the map's view angle \[Misa\]
 - 2026-11-19 Spring palette and a high view: tilt 0.8 \[Misa\]
 - 2026-11-19 Map popovers are drawn in SVG; the view follows the creature each day
-- 2026-11-19 Moving: tap your character, tap a tile, see the arrow, confirm \[Misa\]
+- 2026-11-19 Moving: tap your character, tap a tile, see the arrow, confirm \[Misa\] (amended)
 - 2026-11-19 No focus outlines or other visible accessibility aids in the game \[Misa\]
 - 2026-11-19 Touch first: drag to pan, pinch or wheel to zoom, tap or click to act \[Misa\] (amended)
 - 2026-11-19 The map starts isometric, with flat ground first and heights later \[Misa\]

@@ -5,6 +5,7 @@ What has landed and what is next. Newest first. Update it when a step lands or t
 ## Next
 
 - Milestone 1 (the walking map): the map interface (`apps/web`, branch `m1/map`) is in review; then Misa tries it on a phone and a desktop.
+- Milestone 2 server: validate move intents with a strict schema for a place (`{ kind: 'hex', hex }` or `{ kind: 'creature' }`, one shape only), since the core's `toPlace` is lenient.
 - Before Milestone 2 persists games: pin the content (terrain table) a saved game was made with, so a later content change cannot alter it; and keep the per-tile record from growing without bound (lost tiles could be pruned).
 
 ## Done
