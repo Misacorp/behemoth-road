@@ -4,6 +4,14 @@ Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: The core state holds exploration, packs, stores and unlocks; no glints, no migration
+
+ID: `2026-11-20-the-core-state-holds-exploration-packs` · Status: current · Supersedes: `2026-11-20-features-live-in-the-state-per`
+
+**Decision.** Tiles carry `explored`. Characters carry a `pack`. The team has `stores`, `unlocks` (finished) and one `project` (`{ unlock, work }` or null). Features stay per hex, generated on the server as hexes come into view; the player view carries only revealed ones. Glints and the item inventory are gone from the state. Content version 4: `loadGame` throws `OutdatedGameError` for an older version, so the server starts a new game; `migrateGame` is removed. A test checks this against a game stored by the version-2 code.
+
+**Reasoning.** Misa's notes replaced crafting with unlocks and made glints a later upgrade. Before a stable release, older games are wiped rather than migrated (Misa's decision), so the migration and its upkeep go.
+
 ## 2026-11-20: Before a stable release, older games are wiped, not migrated **[Misa]**
 
 ID: `2026-11-20-before-a-stable-release-older-games` · Status: current
@@ -403,3 +411,15 @@ ID: `2026-11-19-strict-security-headers-and-everything-served` · Status: curren
 **Decision.** The frontend sends a strict CSP (`default-src 'self'`, no inline scripts or styles, `object-src 'none'`, `base-uri 'none'`) plus `nosniff`, a referrer policy, HSTS and a permissions policy, and fonts and other assets are self-hosted with their licence texts shipped. API responses carry `Cache-Control: no-store` and no CORS headers. Text is rendered as text only; `innerHTML` and `dangerouslySetInnerHTML` are banned by lint.
 
 **Reasoning.** Serving everything from one origin keeps the CSP simple and removes third-party requests. Banning raw HTML in lint makes the safe path the only one.
+
+<!-- Superseded entries below: kept for history, no longer in force. -->
+
+# Superseded
+
+## 2026-11-20: Features live in the state per hex; the view carries revealed ones and team glints; version-2 games migrate
+
+ID: `2026-11-20-features-live-in-the-state-per` · Status: superseded by `2026-11-20-the-core-state-holds-exploration-packs`
+
+**Decision.** The state gains `features` (by hex key: type, revealed, what is `left`), `glints` (hex keys a scout has sensed), `inventory` (team materials and items) and `craftsToday` on each character. Features are generated on the server for each hex when it first comes into view, using known terrain, and pruned with their tiles. `toPlayerView` keeps only revealed features, plus glints and the inventory, which are public. Content version 3: `loadGame` migrates a version-2 game through `migrateGame`. New tuning values take their defaults, characters keep everything and get `craftsToday` 0, the team gets an empty inventory, and hexes already in view get their hidden features as if they had just come into view. A fixture captured from the version-2 code proves this.
+
+**Reasoning.** Hidden features are the point of fog and scouting, so they stay on the server like the seed. Generating per hex on first sight keeps the state small and lets the live production game continue on its existing map.

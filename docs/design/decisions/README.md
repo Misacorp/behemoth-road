@@ -49,6 +49,7 @@ Record a decision:
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
+- 2026-11-20 The core state holds exploration, packs, stores and unlocks; no glints, no migration
 - 2026-11-20 Before a stable release, older games are wiped, not migrated \[Misa\]
 - 2026-11-19 Only allowed Discord servers can play; the app itself is public \[Misa\]
 - 2026-11-19 The web client boots as an Activity, parses every response, and runs rules on the player view
@@ -100,6 +101,8 @@ Record a decision:
 - 2026-11-19 One Worker serves the frontend and the API, configured as code
 - 2026-11-19 Strict security headers, and everything served from our own origin
 
+Superseded: 1 entry (see the topic file).
+
 ## Product
 
 [product.md](product.md): Features, UX and behaviour the users see.
@@ -107,6 +110,8 @@ Record a decision:
 - 2026-11-20 The here card is compact and lets taps through its body; moments use the art kit's marks
 - 2026-11-20 Chain actions live in the popover and the team inventory in a satchel drawer; moments come from events (amended)
 - 2026-11-20 Features, glints, moments and the via mark are drawn by the art kit from content keys
+- 2026-11-20 Milestone 3 rules after Misa's notes: the calls the plan left open
+- 2026-11-20 Features are placed by terrain tags with absolute weights
 - 2026-11-20 Explored and unexplored hexes look clearly different \[Misa\]
 - 2026-11-20 Characters carry packs; team stores live on the creature
 - 2026-11-20 Engineers build permanent team unlocks with a cost and a duration \[Misa\]
@@ -161,4 +166,4 @@ Record a decision:
 - 2026-11-19 Drag and drop always has a tap and keyboard alternative
 - 2026-11-19 Counts read "1 / 3", and terms explain themselves without "?" icons
 
-Superseded: 5 entries (see the topic file).
+Superseded: 6 entries (see the topic file).

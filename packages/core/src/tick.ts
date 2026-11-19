@@ -4,13 +4,14 @@
  *
  * Order: the creature steps, carrying its riders; the window and fog update;
  * anyone standing on a hex the creature stepped onto is now riding it (no cost);
- * anyone left out of reach is lost; actions and craft counts reset; hexes new
+ * anyone picked up empties their pack into the stores; anyone left out of
+ * reach is lost, with their pack; actions reset; hexes new
  * in view get their (hidden) features; lost tiles far behind are
  * pruned. Server only: it needs the seed.
  */
 
 import { chooseCreatureStep } from './creature.ts';
-import { addFeatures, keyToHex, pruneFeatures } from './features.ts';
+import { addFeatures, depositPack, keyToHex, pruneFeatures } from './features.ts';
 import { ON_CREATURE } from './places.ts';
 import type { Character, GameState } from './state.ts';
 import { isCreatureHex, isReachable, pruneLostTiles, updateTiles } from './window.ts';
@@ -34,13 +35,16 @@ export const nextDay = (state: GameState): GameState => {
   const actionsLeft = state.config.actionsPerDay;
 
   const characters = state.characters.map((c): Character => {
-    if (c.status !== 'active') return { ...c, actionsLeft: 0, craftsToday: 0 };
-    const fresh = { ...c, actionsLeft, craftsToday: 0 };
+    if (c.status !== 'active') return { ...c, actionsLeft: 0 };
+    const fresh = { ...c, actionsLeft };
     if (c.at.kind === 'creature') return fresh;
     if (isCreatureHex(moved, c.at.hex)) return { ...fresh, at: ON_CREATURE };
     if (isReachable(moved, c.at.hex)) return fresh;
-    return { ...c, status: 'lost', actionsLeft: 0, craftsToday: 0 };
+    // Lost for good, and the pack with them.
+    return { ...c, status: 'lost', actionsLeft: 0, pack: {} };
   });
-  const settled = { ...moved, characters };
+  // Anyone now on the creature (picked up by it today) empties their pack into the stores.
+  let settled: GameState = { ...moved, characters };
+  for (const c of characters) settled = depositPack(settled, c.id).state;
   return pruneFeatures({ ...settled, tiles: pruneLostTiles(settled) });
 };

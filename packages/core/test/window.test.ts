@@ -53,7 +53,7 @@ describe('window and fog of war', () => {
       ...state,
       tiles: {
         ...state.tiles,
-        [hexKey(hex(0, -6))]: { visibility: 'lost' as const, terrain: 'plains' },
+        [hexKey(hex(0, -6))]: { visibility: 'lost' as const, terrain: 'plains', explored: false },
       },
     };
     expect(visibilityAt(nextDay(lostAhead), hex(0, -6))).toBe('seen');
