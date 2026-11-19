@@ -7,18 +7,19 @@
  */
 import { hexCenter, paperGrain, renderSceneFramed, type SvgNode } from '@behemoth-road/art';
 import {
-  type GameState,
+  type GameStateView,
+  terrainOf,
   predictCreature,
   hexKey,
   placeKey,
   reachablePlaces,
-  terrainIdAt,
 } from '@behemoth-road/core';
 import { Component, type ComponentChildren, type JSX } from 'preact';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { PALETTE, PROJECTION } from './art.ts';
 import { cellStateAt, characterArts, creatureArt, sceneCells } from './cells.ts';
 import { chevronFor, placePopover, splitScene } from './compose.ts';
+import { accentOf, type Identity, lookOf } from '../game/identity.ts';
 import { MAP_TUNING } from './config.ts';
 import { type Flow, isSelecting } from './flow.ts';
 import { GestureTracker, type Gesture } from './gestures.ts';
@@ -27,6 +28,8 @@ import { figureFeet, pickableFeet, placePoint } from './figures.ts';
 import { pickTarget, type Point, type Target } from './pick.ts';
 import {
   Bubble,
+  CHARACTER_SIZE,
+  CharacterCard,
   bubbleSize,
   CONFIRM_SIZE,
   ConfirmCard,
@@ -55,17 +58,26 @@ import {
 export type FocusTarget = 'me' | 'creature';
 
 export interface MapViewProps {
-  readonly state: GameState;
+  readonly state: GameStateView;
   readonly flow: Flow;
   readonly characterId: string;
   readonly onTap: (target: Target) => void;
   readonly onConfirm: () => void;
   /** The bubble's way into the hub was tapped. */
   readonly onOpenHub: () => void;
+  /** Another player's character in the bubble was tapped. */
+  readonly onCharacter: (id: string) => void;
+  /** Who each character is (names, roles, traits, quirks), from the player view. */
+  readonly identities?: ReadonlyMap<string, Identity>;
   /** The map was right-clicked (the browser's menu is never shown over the map). */
   readonly onRightClick: () => void;
   /** Recentre requests: a new `n` animates the view to the target. */
   readonly focus: { readonly target: FocusTarget; readonly n: number };
+  /**
+   * Screen px covered at the bottom (a phone's half drawer). Centring then uses the space above it, and
+   * a change recentres on your character (or the creature before you have one).
+   */
+  readonly coverBottom?: number;
 }
 
 /** Paper grain over the whole screen; it uses the filter defs in the scene (default id prefix). */
@@ -87,7 +99,7 @@ export function fitScale(screen: Size, windowRadius: number): number {
   return clampScale(wide ? Math.min(fit, MAP_TUNING.wideMaxZoom) : fit, LIMITS);
 }
 
-function targetPoint(state: GameState, characterId: string, target: FocusTarget): Point {
+function targetPoint(state: GameStateView, characterId: string, target: FocusTarget): Point {
   // A rider's figure is on the creature's back, so recentring on it centres on the creature.
   const feet = target === 'me' ? figureFeet(state, characterId, p) : null;
   if (feet) return feet;
@@ -95,7 +107,7 @@ function targetPoint(state: GameState, characterId: string, target: FocusTarget)
 }
 
 /** The characters riding the creature, in character order (the bubble lists them). */
-const ridersOf = (state: GameState) =>
+const ridersOf = (state: GameStateView) =>
   state.characters.filter((c) => c.status === 'active' && c.at.kind === 'creature');
 
 /** Where a popover points: the top of what it is about, and how far below that the thing ends (world px). */
@@ -108,8 +120,20 @@ interface Anchor {
   readonly prefer?: 'above' | 'below';
 }
 
-function popoverAnchor(state: GameState, flow: Flow, characterId: string): Anchor | null {
+function popoverAnchor(state: GameStateView, flow: Flow, characterId: string): Anchor | null {
   const tile = 2 * p.size * p.squash;
+  if (flow.kind === 'character') {
+    // Above the character's head, wherever it stands (on a hex or on the creature's back).
+    const feet = figureFeet(state, flow.id, p);
+    if (!feet) return null;
+    const head = 0.9 * p.size;
+    return {
+      key: `character:${flow.id}`,
+      top: { x: feet.x, y: feet.y - head },
+      below: head,
+      size: CHARACTER_SIZE,
+    };
+  }
   if (flow.kind === 'inspect') {
     const c = hexCenter(p, flow.hex.q, flow.hex.r);
     return {
@@ -188,6 +212,11 @@ export function MapView(props: MapViewProps): JSX.Element {
   const settleZoom = (): void => setInkZoom(inkZoomFor(view.current.scale));
   const latest = useRef(props);
   latest.current = props;
+  /** The part of the screen the map is seen in: all of it, less what a drawer covers. */
+  const seen = (): Size => ({
+    width: size.current.width,
+    height: Math.max(1, size.current.height - (latest.current.coverBottom ?? 0)),
+  });
 
   // The scene depends on the game state only; overlays also on the flow.
   const layers = useMemo(() => {
@@ -197,7 +226,7 @@ export function MapView(props: MapViewProps): JSX.Element {
       characters: characterArts(state),
       projection: p,
       palette: PALETTE,
-      seed: state.seed,
+      seed: state.artSeed,
       zoom: inkZoom,
       minInkPx: MAP_TUNING.minInkPx,
       // No page frame: its edges would show while panning. The grain is drawn over the screen instead.
@@ -333,7 +362,7 @@ export function MapView(props: MapViewProps): JSX.Element {
     view.current = centreOn(
       targetPoint(s, latest.current.characterId, 'me'),
       fitScale(size.current, s.config.windowRadius),
-      size.current,
+      seen(),
     );
     apply();
     settleZoom();
@@ -392,18 +421,21 @@ export function MapView(props: MapViewProps): JSX.Element {
     };
   }, []);
 
-  // A new day: follow the creature so the map scrolls under it. A new game: jump to the character.
-  const previous = useRef({ seed: state.seed, centre: state.creature.centre, day: state.day });
+  // A new day: follow the creature so the map scrolls under it. A new game, or a new character of
+  // yours (joined or replaced): jump to it.
+  const snapshot = () => ({
+    game: state.artSeed,
+    me: characterId,
+    centre: state.creature.centre,
+    day: state.day,
+  });
+  const previous = useRef(snapshot());
   useEffect(() => {
     const before = previous.current;
-    previous.current = { seed: state.seed, centre: state.creature.centre, day: state.day };
-    if (before.seed !== state.seed || state.day < before.day) {
+    previous.current = snapshot();
+    if (before.game !== state.artSeed || before.me !== characterId || state.day < before.day) {
       stopAnimation();
-      view.current = centreOn(
-        targetPoint(state, characterId, 'me'),
-        view.current.scale,
-        size.current,
-      );
+      view.current = centreOn(targetPoint(state, characterId, 'me'), view.current.scale, seen());
       requestApply();
       return;
     }
@@ -417,7 +449,7 @@ export function MapView(props: MapViewProps): JSX.Element {
     const b = hexCenter(p, state.creature.centre.q, state.creature.centre.r);
     const v = view.current;
     animateTo(panBy(v, (a.x - b.x) * v.scale, (a.y - b.y) * v.scale), MAP_TUNING.followMs);
-  }, [state]);
+  }, [state, characterId]);
 
   // Recentre buttons.
   const focusN = props.focus.n;
@@ -425,10 +457,22 @@ export function MapView(props: MapViewProps): JSX.Element {
     if (focusN === 0) return;
     const { state: s, characterId: id, focus } = latest.current;
     animateTo(
-      centreOn(targetPoint(s, id, focus.target), view.current.scale, size.current),
+      centreOn(targetPoint(s, id, focus.target), view.current.scale, seen()),
       MAP_TUNING.followMs,
     );
   }, [focusN]);
+
+  // A drawer opened or closed over the map: keep what matters in the space still seen.
+  const cover = props.coverBottom ?? 0;
+  const firstCover = useRef(true);
+  useEffect(() => {
+    if (firstCover.current) {
+      firstCover.current = false;
+      return;
+    }
+    const { state: s, characterId: id } = latest.current;
+    animateTo(centreOn(targetPoint(s, id, 'me'), view.current.scale, seen()), MAP_TUNING.followMs);
+  }, [cover]);
 
   // A redrawn world layer (new zoom step or a new day) needs its transform in the same frame.
   useLayoutEffect(() => {
@@ -472,19 +516,26 @@ export function MapView(props: MapViewProps): JSX.Element {
     const known = cellState === 'seen' || cellState === 'fading';
     card = (
       <InspectCard
-        terrain={known ? terrainIdAt(state.seed, flow.hex) : 'unknown'}
+        terrain={known ? (terrainOf(state, flow.hex)?.id ?? 'unknown') : 'unknown'}
         state={cellState}
       />
     );
   } else if (flow.kind === 'creature') {
     card = <CreatureCard state={state} />;
+  } else if (flow.kind === 'character') {
+    const who = props.identities?.get(flow.id);
+    if (who) card = <CharacterCard who={who} />;
   } else if (flow.kind === 'bubble') {
     card = (
       <Bubble
         characters={ridersOf(state).map((c) => ({
           id: c.id,
+          accent: accentOf(c.id, MAP_TUNING.accent),
+          look: lookOf(c.id),
+          other: c.id !== characterId,
           selected: c.id === characterId && flow.selecting,
         }))}
+        onCharacter={(id) => props.onCharacter(id)}
         place="creature"
         onOpenPlace={props.onOpenHub}
         placeRef={(el) => {

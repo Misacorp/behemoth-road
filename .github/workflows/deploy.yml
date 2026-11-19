@@ -68,6 +68,15 @@ jobs:
 
       - run: pnpm build
 
+      # The app's public key (`verify_key`, not a secret) checks the signatures of Discord interactions
+      # (the Launch entry point). Read from Discord with the bot token, so nobody copies it by hand. A
+      # failure is a warning: the Worker then deploys with the key empty and the interactions route off.
+      - name: Read the Discord public key
+        id: discord
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+        run: node scripts/discord-app.mjs public-key "$TARGET_ENV"
+
       # wrangler runs from our own lockfile, not a third-party deploy action, so the Cloudflare token is only
       # handed to code we pinned (docs/security.md).
       - name: Deploy Worker
@@ -75,11 +84,14 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          DISCORD_CLIENT_SECRET: ${{ secrets.DISCORD_CLIENT_SECRET }}
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          DISCORD_PUBLIC_KEY: ${{ steps.discord.outputs.public_key }}
           GIT_SHA: ${{ github.sha }}
           BRANCH: ${{ github.ref_name }}
         run: |
           missing=""
-          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID; do
+          for name in CLOUDFLARE_API_TOKEN CLOUDFLARE_ACCOUNT_ID DISCORD_CLIENT_SECRET DISCORD_BOT_TOKEN; do
             if [ -z "${!name}" ]; then missing="$missing $name"; fi
           done
           if [ -n "$missing" ]; then
@@ -88,9 +100,15 @@ jobs:
           fi
           # Git ref names have no spaces or colons; anything outside this plain set is shown as "unknown".
           if ! [[ "$BRANCH" =~ ^[A-Za-z0-9._/-]{1,100}$ ]]; then BRANCH="unknown"; fi
-          # Worker secrets: add each to the environment's `secrets` in project.config.json, map it into `env:`
-          # above, write them to a temp JSON file and pass --secrets-file (never --var, which is public).
-          pnpm exec wrangler deploy --env "$TARGET_ENV" --var "VERSION:${GIT_SHA}" --var "BRANCH:${BRANCH}"
+          # Worker secrets go in a temp JSON file passed with --secrets-file (never --var, which is public).
+          secrets_file="$(mktemp -p "$RUNNER_TEMP" secrets.XXXXXX.json)"
+          trap 'rm -f "$secrets_file"' EXIT
+          jq -n --arg cs "$DISCORD_CLIENT_SECRET" --arg bt "$DISCORD_BOT_TOKEN" \
+            '{DISCORD_CLIENT_SECRET: $cs, DISCORD_BOT_TOKEN: $bt}' > "$secrets_file"
+          # The public key is 64 hex characters or nothing (then wrangler.jsonc's empty value stays).
+          key_var=()
+          if [[ "$DISCORD_PUBLIC_KEY" =~ ^[0-9a-f]{64}$ ]]; then key_var=(--var "DISCORD_PUBLIC_KEY:${DISCORD_PUBLIC_KEY}"); fi
+          pnpm exec wrangler deploy --env "$TARGET_ENV" --var "VERSION:${GIT_SHA}" --var "BRANCH:${BRANCH}" "${key_var[@]}" --secrets-file "$secrets_file"
 
       # Reads back what is live (the public /api/config) and fails the run unless it is this commit, so a green
       # run means users get exactly this build. Retries for up to two minutes.
@@ -98,3 +116,19 @@ jobs:
         env:
           GIT_SHA: ${{ github.sha }}
         run: node scripts/deployed.mjs --env "$TARGET_ENV" --expect "$GIT_SHA" --wait 120
+
+      # Points the Activity's Launch command at our interactions endpoint, once that URL is set in the
+      # Discord portal (docs/setup.md). Never fails the deploy (the script only warns).
+      - name: Point Launch at the interactions endpoint
+        if: steps.discord.outputs.public_key != ''
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+        run: node scripts/discord-app.mjs register "$TARGET_ENV"
+
+      # Prints non-secret facts about the Discord app (Activities flag, installs, the bot's servers, the Launch
+      # command) as notices, and warns on problems. Never fails the deploy.
+      - name: Discord status
+        if: ${{ !cancelled() }}
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+        run: node scripts/discord-app.mjs status "$TARGET_ENV"

@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { createGame, type GameState, hex, legalMoves, move, nextDay } from '../src/index.ts';
+import {
+  createGame,
+  type GameState,
+  hex,
+  legalMoves,
+  loadGame,
+  move,
+  newSeed,
+  nextDay,
+} from '../src/index.ts';
 
 /** Plays `days` days; each day every character takes its first legal moves. */
 const play = (start: GameState, days: number): GameState => {
@@ -24,8 +33,15 @@ describe('createGame', () => {
     const state = createGame(5, { characterIds: ['a', 'b', 'c'] });
     expect(state.day).toBe(1);
     for (const c of state.characters) {
-      expect(c).toEqual({ id: c.id, at: { kind: 'creature' }, actionsLeft: 3, status: 'active' });
+      expect(c).toMatchObject({ at: { kind: 'creature' }, actionsLeft: 3, status: 'active' });
     }
+  });
+
+  it('plays a game from a fresh 128-bit seed and stores it as JSON', () => {
+    const seed = newSeed();
+    const state = nextDay(createGame(seed, { characterIds: ['a'] }));
+    expect(state.seed).toEqual(seed);
+    expect(loadGame(JSON.parse(JSON.stringify(state)))).toEqual(state);
   });
 
   it('rejects bad seeds and characters', () => {
@@ -42,10 +58,10 @@ describe('createGame', () => {
 
 describe('determinism and serialisation', () => {
   it('gives identical states for the same seed and inputs', () => {
-    const a = play(createGame(77, { characterIds: ['a', 'b'] }), 12);
-    const b = play(createGame(77, { characterIds: ['a', 'b'] }), 12);
+    const a = play(createGame(77, { characterIds: ['a', 'b'], artSeed: 1 }), 12);
+    const b = play(createGame(77, { characterIds: ['a', 'b'], artSeed: 1 }), 12);
     expect(b).toEqual(a);
-    const c = play(createGame(78, { characterIds: ['a', 'b'] }), 12);
+    const c = play(createGame(78, { characterIds: ['a', 'b'], artSeed: 1 }), 12);
     expect(c).not.toEqual(a);
   });
 

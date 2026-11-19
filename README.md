@@ -9,7 +9,7 @@ pnpm install --frozen-lockfile
 pnpm check
 ```
 
-Run the Worker (`pnpm dev` in `apps/worker`) and the frontend (`pnpm dev` in `apps/web`) side by side; the frontend proxies `/api` to the Worker.
+Run the Worker (`pnpm dev` in `apps/worker`) and the frontend (`pnpm dev` in `apps/web`) side by side; the frontend proxies `/api` to the Worker. First copy `apps/worker/.dev.vars.example` to `apps/worker/.dev.vars`. Outside Discord, `POST /api/dev/login` with `{ "player": 1 }` (1 to 9) signs in a fake player of a local test server; it exists only under `wrangler dev`.
 
 ## Deploys
 

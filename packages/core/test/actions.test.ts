@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  type ActionResult,
   type GameState,
   type Hex,
   hex,
@@ -14,7 +15,7 @@ import {
 } from '../src/index.ts';
 import { findSeed, gameAt, nearP, P, withCharacter } from './helpers.ts';
 
-const expectOk = (result: ReturnType<typeof move>): GameState => {
+const expectOk = (result: ActionResult<GameState>): GameState => {
   if (!result.ok) throw new Error(`move refused: ${result.reason}`);
   return result.state;
 };

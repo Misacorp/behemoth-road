@@ -1,0 +1,44 @@
+[
+  {
+    "route": "POST /api/auth/session",
+    "status": 403,
+    "body": {
+      "error": "guild_not_allowed"
+    }
+  },
+  {
+    "route": "POST /api/game/move",
+    "status": 409,
+    "body": {
+      "error": "stale"
+    }
+  },
+  {
+    "route": "POST /api/game/move",
+    "status": 409,
+    "body": {
+      "error": "not-adjacent"
+    }
+  },
+  {
+    "route": "POST /api/game/move",
+    "status": 400,
+    "body": {
+      "error": "invalid_body"
+    }
+  },
+  {
+    "route": "POST /api/game/replace",
+    "status": 409,
+    "body": {
+      "error": "not-lost"
+    }
+  },
+  {
+    "route": "GET /api/game",
+    "status": 401,
+    "body": {
+      "error": "invalid_session"
+    }
+  }
+]

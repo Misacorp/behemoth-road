@@ -8,7 +8,7 @@
  */
 import {
   findCharacter,
-  type GameState,
+  type GameStateView,
   type Hex,
   hexEquals,
   moveAlong,
@@ -24,6 +24,8 @@ export type Flow =
   | { readonly kind: 'idle' }
   /** Looking at a hex: its popover shows what is known about it. */
   | { readonly kind: 'inspect'; readonly hex: Hex }
+  /** Looking at another player's character: its card shows who it is. */
+  | { readonly kind: 'character'; readonly id: string }
   /** Looking at the creature (the hub): its card shows it and its heading. */
   | { readonly kind: 'creature' }
   /**
@@ -53,7 +55,7 @@ function look(flow: Flow, hex: Hex): Flow {
 }
 
 /** A tap on the creature. */
-function tapCreature(flow: Flow, state: GameState, characterId: string): Flow {
+function tapCreature(flow: Flow, state: GameStateView, characterId: string): Flow {
   const me = findCharacter(state, characterId);
   const active = me?.status === 'active';
   if (active && me.at.kind === 'creature') {
@@ -75,10 +77,14 @@ function tapCreature(flow: Flow, state: GameState, characterId: string): Flow {
 }
 
 /** What a tap does. */
-export function tap(flow: Flow, state: GameState, characterId: string, target: Target): Flow {
+export function tap(flow: Flow, state: GameStateView, characterId: string, target: Target): Flow {
   const me = findCharacter(state, characterId);
   const active = me?.status === 'active';
   const mine: Place | null = active ? me.at : null;
+  if (target.kind === 'character') {
+    // Another player's character: show who it is (you can only move your own). Again closes.
+    return flow.kind === 'character' && flow.id === target.id ? IDLE : openCharacter(target.id);
+  }
   const hex = target.kind === 'hex' ? target.hex : null;
   const to = hex ? placeAt(state, hex) : mine;
   if (!to) return flow;
@@ -101,8 +107,11 @@ export function tap(flow: Flow, state: GameState, characterId: string, target: T
 }
 
 /** Tapping a hex (a shorthand for tests and callers without picking). */
-export const tapHex = (flow: Flow, state: GameState, characterId: string, hex: Hex): Flow =>
+export const tapHex = (flow: Flow, state: GameStateView, characterId: string, hex: Hex): Flow =>
   tap(flow, state, characterId, { kind: 'hex', hex });
+
+/** Another player's character card (from its figure or from the bubble). */
+export const openCharacter = (id: string): Flow => ({ kind: 'character', id });
 
 /** The bubble's way into the hub: the creature card. */
 export const openHub = (): Flow => ({ kind: 'creature' });
@@ -111,11 +120,11 @@ export const openHub = (): Flow => ({ kind: 'creature' });
  * Walks the planned path through the core. On success the character stays selected while it has actions
  * left; a refusal (the state changed under the plan) spends nothing and clears the plan.
  */
-export function confirmMove(
+export function confirmMove<S extends GameStateView>(
   flow: Flow,
-  state: GameState,
+  state: S,
   characterId: string,
-): { readonly flow: Flow; readonly state: GameState } {
+): { readonly flow: Flow; readonly state: S } {
   if (flow.kind !== 'planned') return { flow, state };
   const result = moveAlong(state, characterId, flow.steps);
   if (!result.ok) return { flow: IDLE, state };

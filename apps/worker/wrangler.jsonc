@@ -1,6 +1,10 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "behemoth-road",
+  // The top level is local development only (wrangler dev, tests): its own name, no routes, so a
+  // `wrangler deploy` without --env can never publish over production. Deploys always pass --env.
+  "name": "behemoth-road-local",
+  "workers_dev": false,
+  "preview_urls": false,
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
   "observability": { "enabled": true },
@@ -11,14 +15,34 @@
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*"]
   },
+  // One Durable Object per Discord server holds its game (src/guild-world.ts). Bindings are not inherited
+  // by environments, so each environment repeats them; migrations are inherited.
+  "durable_objects": {
+    "bindings": [{ "name": "GUILD_WORLD", "class_name": "GuildWorld" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["GuildWorld"] }],
   // Secrets are set by CI (deploy.yml, from the GitHub environment) or in .dev.vars locally; never committed.
+  "secrets": { "required": ["DISCORD_CLIENT_SECRET", "DISCORD_BOT_TOKEN"] },
   // VERSION and BRANCH are overridden at deploy time: wrangler deploy --var VERSION:<git sha>
   // --var BRANCH:<branch name>. /api/config shows them, and scripts/deployed.mjs reads them back.
+  // DISCORD_CLIENT_ID: the Discord application's id (public). One application per environment.
+  // DISCORD_PUBLIC_KEY: the application's public key (hex, not a secret). The deploy job fills it from
+  // Discord's verify_key; empty (or not 64 hex characters) turns POST /api/discord/interactions off (404).
+  // DEV_TOOLS: "on" turns on /api/dev/* (the admin "next day"; staging and local only). Any other value,
+  // production included, makes every /api/dev route answer 404. A test pins production to "off".
+  // ALLOWED_GUILDS: the Discord servers (guild ids, comma-separated) that may play. The app is public, so this
+  // list keeps the game to known servers; empty or malformed allows none. Locally: the dev login's server.
+  // ENVIRONMENT "local" (this top level, used by wrangler dev and the tests) also turns on the dev login
+  // (POST /api/dev/login) and makes every player an admin; each deployed environment sets its own name.
   // Vars are not inherited by environments: a var added here is added to each environment below too.
   "vars": {
     "ENVIRONMENT": "local",
     "VERSION": "dev",
-    "BRANCH": "dev"
+    "BRANCH": "dev",
+    "DISCORD_CLIENT_ID": "000000000000000000",
+    "DISCORD_PUBLIC_KEY": "",
+    "DEV_TOOLS": "on",
+    "ALLOWED_GUILDS": "100000000000000000"
   },
   "env": {
     "staging": {
@@ -26,10 +50,18 @@
       "workers_dev": false,
       "preview_urls": false,
       "routes": [{ "pattern": "behemoth-staging.misacorp.dev", "custom_domain": true }],
+      "durable_objects": {
+        "bindings": [{ "name": "GUILD_WORLD", "class_name": "GuildWorld" }]
+      },
+      "secrets": { "required": ["DISCORD_CLIENT_SECRET", "DISCORD_BOT_TOKEN"] },
       "vars": {
         "ENVIRONMENT": "staging",
         "VERSION": "dev",
-        "BRANCH": "dev"
+        "BRANCH": "dev",
+        "DISCORD_CLIENT_ID": "1573039651172909057",
+        "DISCORD_PUBLIC_KEY": "",
+        "DEV_TOOLS": "on",
+        "ALLOWED_GUILDS": "215386000132669440"
       }
     },
     "production": {
@@ -37,10 +69,18 @@
       "workers_dev": false,
       "preview_urls": false,
       "routes": [{ "pattern": "behemoth.misacorp.dev", "custom_domain": true }],
+      "durable_objects": {
+        "bindings": [{ "name": "GUILD_WORLD", "class_name": "GuildWorld" }]
+      },
+      "secrets": { "required": ["DISCORD_CLIENT_SECRET", "DISCORD_BOT_TOKEN"] },
       "vars": {
         "ENVIRONMENT": "production",
         "VERSION": "dev",
-        "BRANCH": "dev"
+        "BRANCH": "dev",
+        "DISCORD_CLIENT_ID": "1573036223470247996",
+        "DISCORD_PUBLIC_KEY": "",
+        "DEV_TOOLS": "off",
+        "ALLOWED_GUILDS": "215386000132669440"
       }
     }
   }

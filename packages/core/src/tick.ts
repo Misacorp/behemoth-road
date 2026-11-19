@@ -4,19 +4,20 @@
  *
  * Order: the creature steps, carrying its riders; the window and fog update;
  * anyone standing on a hex the creature stepped onto is now riding it (no cost);
- * anyone left out of reach is lost; actions reset.
+ * anyone left out of reach is lost; actions reset; lost tiles far behind are
+ * pruned. Server only: it needs the seed.
  */
 
 import { chooseCreatureStep } from './creature.ts';
 import { ON_CREATURE } from './places.ts';
 import type { Character, GameState } from './state.ts';
-import { isCreatureHex, isReachable, updateTiles } from './window.ts';
+import { isCreatureHex, isReachable, pruneLostTiles, updateTiles } from './window.ts';
 
 export const nextDay = (state: GameState): GameState => {
   const day = state.day + 1;
   const step = chooseCreatureStep(state);
   const creature = { ...state.creature, centre: step.centre };
-  const tiles = updateTiles(state.tiles, creature.centre, day, state.config);
+  const tiles = updateTiles(state.tiles, creature.centre, day, state.config, state.seed);
   const moved: GameState = { ...state, day, creature, tiles };
   const actionsLeft = state.config.actionsPerDay;
 
@@ -27,5 +28,6 @@ export const nextDay = (state: GameState): GameState => {
     if (isReachable(moved, c.at.hex)) return { ...c, actionsLeft };
     return { ...c, status: 'lost', actionsLeft: 0 };
   });
-  return { ...moved, characters };
+  const settled = { ...moved, characters };
+  return { ...settled, tiles: pruneLostTiles(settled) };
 };

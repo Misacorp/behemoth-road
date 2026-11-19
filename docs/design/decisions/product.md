@@ -4,6 +4,46 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: Joining is a drawer wizard; characters look distinct on the map
+
+ID: `2026-11-19-joining-is-a-drawer-wizard-each` · Status: current
+
+**Decision.** Joining and replacing a lost character share one drawer. On phones it is the bottom drawer, which can be dragged between half and full height and closed from half; it shows one step at a time (character, role, confirm) with a back arrow. On desktop it is a side drawer from the left showing every step at once. Characters are shown as figures with trait and quirk icons, and their names are the only text. Roles are six ink emblems: a spyglass, a book, a lantern, a shield, a cog and a pennant. The drawer opens by itself when you have no active character, and a round join button reopens it after you close it. On the map, characters' looks and cloak colours come from the art kit's `assignLooks` in join order, so no two look alike while combinations last. Each offer and character carries a public `lookSeed`; the map assigns looks over the party's seeds in join order, and the drawer previews an offer as the party's seeds plus its own, so the look shown when choosing is the look it keeps on the map. Another player's character opens a small card with its figure, name, role emblem, trait and quirk, from its figure on a hex or from the hub bubble. "Next day" shows only when the server offers dev tools and you are an admin; "New game" is gone.
+
+**Reasoning.** This follows the M2 plan and Misa's "show, don't tell". Players need to tell characters apart on a shared map; the art kit owns how distinct looks are assigned.
+
+## 2026-11-19: Character looks come from content's look seeds, so a preview matches the joined look
+
+ID: `2026-11-19-character-looks-come-from-content-s` · Status: current · Amends: `2026-11-19-role-emblems-share-one-frame-icons`
+
+**Decision.** `assignLooks` takes the public `lookSeed`s of the party's characters in join order (not ids), and `characterLookFor` takes a seed. A join preview is `assignLooks([...partySeeds, offerSeed]).at(-1)`, which is exactly the look the character gets on joining; earlier characters keep their looks and the party stays distinct. Icons of the creature come from `drawCreatureIcon(palette, look, px)`, which picks the ink for the size shown (about 1.1 px), so it stays light from a button to a 96 px page.
+
+**Reasoning.** The core gives offers and characters a public look seed so the look is the same from the join preview to the map. The fixed ink of the creature icon looked heavy at 96 px.
+
+## 2026-11-19: Icons follow content's icon keys; quirks sit on a split tile
+
+ID: `2026-11-19-icons-follow-content-s-icon-keys` · Status: current · Amends: `2026-11-19-role-emblems-share-one-frame-icons`
+
+**Decision.** `drawIcon` takes the `icon` keys that content gives roles, traits and quirks. A role's key (`spyglass`, `book`, `crook`, `shield`, `hammer`, `banner`) draws that role's emblem, as `role:<id>` does, so the keeper's motif is a crook, the guardian's a round shield, the engineer's a hammer and the envoy's a banner. The 12 trait and 12 quirk keys each have a motif on a plain round tile; with `{ tile: 'quirk' }` the tile gets a ring split into two colours (sage and coral), a wordless hint that a quirk helps and hinders. A web test checks that every content icon key has a drawing.
+
+**Reasoning.** Content is data and names its icons; the art follows it rather than inventing other keys. The split ring keeps the quirk's double nature visible without text.
+
+## 2026-11-19: Role emblems share one frame; icons are drawn by key; characters vary by seeded look
+
+ID: `2026-11-19-role-emblems-share-one-frame-icons` · Status: current, amended by `2026-11-19-character-looks-come-from-content-s`, `2026-11-19-icons-follow-content-s-icon-keys`
+
+**Decision.** The art kit draws icons by key with `drawIcon(id, palette, size)`, a self-contained `<svg>` on a 48-unit grid; unknown keys draw a neutral dotted mark. The six role emblems (`role:scout` … `role:envoy`) share one frame, round or shield (Misa picks; round is the default until then), each with its own tint and an ink motif: spyglass, open book, herb sprig, upright sword, cog, sealed scroll. Trait and quirk icons register under `trait:…` and `quirk:…` as content gains them. Characters take a look from data, `{ headwear, garment, carry, skin }`; `characterLookFor(id)` seeds one by id, and `assignLooks(ids)` gives characters in join order distinct accent, headwear and garment combinations (8 accents × 4 × 3). The palettes gain four accents (sage, slate, coral, sky) and three skin tones. A character without a look draws as the default explorer, so the current app is unchanged until it passes looks.
+
+**Reasoning.** The join drawer shows characters and roles with names as the only text, so icons must carry the meaning, read at 32 px and look like one set. Fifteen riders on the creature's back must tell apart at a glance; seeding by id keeps a character's look stable, and assigning in join order keeps it stable as others join.
+
+## 2026-11-19: Character choices are rolled from the game, the player and the attempt; players pick by index
+
+ID: `2026-11-19-character-choices-are-rolled-from-the` · Status: current
+
+**Decision.** `characterOffers(state, userId)` returns two or three characters, each with a generated name, a trait and a quirk (none repeated), followed by a plain one with a name only. The roll is seeded by the game seed, the user id and the number of characters that user has had, so a reload shows the same list and a replacement gets a fresh one. `addCharacter` and `replaceCharacter` take the index of the chosen entry and roll again on the server, so a client cannot invent a trait. Character ids are `<userId>.<attempt>`. The cap counts active characters only, so a lost character frees a place.
+
+**Reasoning.** Picking by index keeps the server authoritative over what was rolled. Because rolls need the seed, the server must send the choices to the joining player: the contract needs a field or a call for them.
+
 ## 2026-11-19: Popovers point at their subject; grace-day tiles and figures warn without words
 
 ID: `2026-11-19-popovers-point-at-their-subject-grace` · Status: current

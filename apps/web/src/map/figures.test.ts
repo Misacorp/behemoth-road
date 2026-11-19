@@ -62,7 +62,7 @@ describe('figure positions', () => {
       characters: characterArts(s),
       projection: p,
       palette: PALETTE,
-      seed: s.seed,
+      seed: s.artSeed,
       frame: 'none',
     });
     for (const id of ['a', 'b', 'c', 'd'])
@@ -79,6 +79,6 @@ describe('figure positions', () => {
     };
     const feet = pickableFeet(s, 'a', p);
     expect(feet.mine).toEqual(figureFeet(s, 'a', p));
-    expect(feet.others).toEqual([figureFeet(s, 'b', p)]);
+    expect(feet.others).toEqual([{ id: 'b', feet: figureFeet(s, 'b', p) }]);
   });
 });

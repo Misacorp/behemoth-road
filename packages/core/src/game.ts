@@ -4,25 +4,45 @@
 
 import { type ConfigOverrides, resolveConfig } from './config.ts';
 import { type Direction, DIRECTIONS, type Hex, isValidHex } from './hex.ts';
+import { CONTENT_VERSION } from './content/index.ts';
 import { ON_CREATURE } from './places.ts';
+import { hashInts, hashString, newArtSeed, type Seed, toSeed } from './random.ts';
 import type { GameState } from './state.ts';
 import { updateTiles } from './window.ts';
 
 export interface CreateGameOptions {
-  /** One character per id, all starting on the creature, riding it. Up to the player cap. */
+  /**
+   * Plain characters for tests and local play: one per id, its own user, all riding
+   * the creature. Real players join with `addCharacter`.
+   */
   readonly characterIds?: readonly string[];
   readonly config?: ConfigOverrides;
   /** The creature's general heading. Default north. */
   readonly heading?: Direction;
   /** The creature's starting centre. Default the origin. */
   readonly start?: Hex;
+  /** The public cosmetic seed (0 to 2^32 - 1). Default: a fresh random one, unrelated to `seed`. */
+  readonly artSeed?: number;
 }
 
 const MAX_ID_LENGTH = 64;
 
-export const createGame = (seed: number, options: CreateGameOptions = {}): GameState => {
-  if (!Number.isInteger(seed) || seed < 0 || seed > 0xffffffff) {
-    throw new RangeError('seed must be an integer from 0 to 2^32 - 1');
+/** The role given to characters made by `characterIds`. */
+const DEV_ROLE = 'scout';
+const LOOK_STREAM = hashString('dev-look');
+
+/**
+ * A new game. Pass `newSeed()` for a real game; a plain number (0 to 2^32 - 1)
+ * is accepted for tests and local play.
+ */
+export const createGame = (
+  seedOrNumber: Seed | number,
+  options: CreateGameOptions = {},
+): GameState => {
+  const seed = toSeed(seedOrNumber);
+  const artSeed = options.artSeed ?? newArtSeed();
+  if (!Number.isInteger(artSeed) || artSeed < 0 || artSeed > 0xffffffff) {
+    throw new RangeError('artSeed must be an integer from 0 to 2^32 - 1');
   }
   const config = resolveConfig(options.config);
   const heading = options.heading ?? 'n';
@@ -38,13 +58,22 @@ export const createGame = (seed: number, options: CreateGameOptions = {}): GameS
 
   const day = 1;
   return {
+    contentVersion: CONTENT_VERSION,
+    artSeed,
     seed,
     day,
     config,
     creature: { centre, heading },
-    tiles: updateTiles({}, centre, day, config),
+    tiles: updateTiles({}, centre, day, config, seed),
     characters: ids.map((id) => ({
       id,
+      userId: id,
+      name: id,
+      trait: null,
+      quirk: null,
+      lookSeed: hashInts(seed, LOOK_STREAM, hashString(id)),
+      role: DEV_ROLE,
+      joinedDay: day,
       at: ON_CREATURE,
       actionsLeft: config.actionsPerDay,
       status: 'active',
