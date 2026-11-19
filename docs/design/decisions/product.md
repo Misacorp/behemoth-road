@@ -4,9 +4,17 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: Riders stand in numbered slots on the creature's back
+
+ID: `2026-11-19-riders-stand-in-numbered-slots-on` · Status: current · Amends: `2026-11-19-the-art-kit-draws-a-compact`
+
+**Decision.** Characters on footprint hexes ride the creature. The art kit places riders by rider index, not by hex: slot 0 is the middle of the back, then a ring of six, then a wider ring of eight (fifteen, the player cap), shifted a little towards the viewer where the high view shows the back best (`riderSlot`, `riderAnchor`). Riders draw just after the creature, back to front among themselves, each with a firm contact shadow. The trees, rock and pond on the back sit out at the rim, clear of the inner slots. The footprint keeps its trodden-ground look. `riderAnchor(look, heading, index, origin, size, squash)` is exported so the map's picking finds riders where they are drawn.
+
+**Reasoning.** Misa: characters start on the creature, can board and step off, and end up on it when it walks onto them. Slots by index keep several riders apart whichever footprint hex the core records them on.
+
 ## 2026-11-19: The art kit draws a compact creature on trodden ground, measured against its footprint
 
-ID: `2026-11-19-the-art-kit-draws-a-compact` · Status: current · Amends: `2026-11-19-the-creature-stays-mostly-inside-its`
+ID: `2026-11-19-the-art-kit-draws-a-compact` · Status: current, amended by `2026-11-19-riders-stand-in-numbered-slots-on` · Amends: `2026-11-19-the-creature-stays-mostly-inside-its`
 
 **Decision.** The default build is `highback`: the high, mossy back with its trees, rock and pond, a moderately long neck and a longer tail, sized so that at `scale` 1 the body stays over its footprint. A test draws it for all six headings at tilt 0.8 and requires that no hex beyond the footprint has a third or more of its top face covered, that no such hex's centre is covered, and that the centre hex is covered. The seven footprint hexes are drawn as trodden ground (palette ramp `trodden`, scuffed earth) in place of their terrain. Characters are no longer drawn as riders: no contact shadow and no special order. The `broad`, `longneck` and `low` builds stay as data.
 

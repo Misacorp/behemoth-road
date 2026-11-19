@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { drawCreature, GENTLE_AMBLER, type CreatureLook } from '../src/creature.ts';
+import { drawCreature, GENTLE_AMBLER, riderAnchor, type CreatureLook } from '../src/creature.ts';
+import type { CharacterArt } from '../src/character.ts';
 import { PALETTES, paletteColours, MORNING } from '../src/palette.ts';
 import { DIRECTIONS, hexCenter, isometric, topDown } from '../src/projection.ts';
 import { samplePatch } from '../src/sample.ts';
@@ -278,6 +279,76 @@ describe('the creature on the map', () => {
     // Seven tops in the trodden paint: one path with seven closed hexagons.
     const m = new RegExp(`<path d="([^"]+)" fill="${MORNING.ramps.trodden.base}"`).exec(svg(true));
     expect(m?.[1]?.split('Z').filter(Boolean).length).toBe(7);
+  });
+});
+
+describe('riders', () => {
+  const p = isometric();
+  const cells = [{ q: 0, r: 0 }, ...DIRECTIONS].map((h) => ({
+    ...h,
+    terrain: 'plains',
+    props: [],
+  }));
+  const objects = (characters: CharacterArt[]): SvgNode[] => {
+    let layer: SvgNode | undefined;
+    walk(renderScene({ ...sample(), cells, characters }), (n) => {
+      if (n.attrs['data-layer'] === 'objects') layer = n;
+    });
+    return [...(layer?.children ?? [])];
+  };
+
+  it('stand in fifteen separate slots on the back, for every heading', () => {
+    for (const heading of DIRECTIONS) {
+      const at = Array.from({ length: 15 }, (_, i) =>
+        riderAnchor(GENTLE_AMBLER, heading, i, { x: 0, y: 0 }, p.size, p.squash),
+      );
+      for (let i = 0; i < at.length; i += 1) {
+        for (let j = i + 1; j < at.length; j += 1) {
+          const d = Math.hypot(at[i]!.x - at[j]!.x, at[i]!.y - at[j]!.y);
+          expect(d, `slots ${i} and ${j}`).toBeGreaterThan(0.2 * p.size);
+        }
+      }
+    }
+  });
+
+  it('are drawn over the creature by rider index, not by hex, each with a contact shadow', () => {
+    const without = objects([]);
+    const one = objects([{ id: 'a', q: 1, r: 0, accent: 'teal' }]);
+    expect(one.slice(0, without.length).map((n) => n.attrs.d)).toEqual(
+      without.map((n) => n.attrs.d),
+    );
+    const extra = one.slice(without.length);
+    expect(extra[0]?.attrs.fill).toBe(MORNING.shadow);
+    expect(Number(extra[0]?.attrs.opacity)).toBeGreaterThan(0.3);
+    // The same rider on another footprint hex stands in the same slot.
+    expect(objects([{ id: 'a', q: -1, r: 1, accent: 'teal' }]).map((n) => n.attrs.d)).toEqual(
+      one.map((n) => n.attrs.d),
+    );
+  });
+
+  it('draw back to front among themselves, whatever the list order', () => {
+    const a: CharacterArt = { id: 'a', q: 0, r: 0, accent: 'teal' };
+    const b: CharacterArt = { id: 'b', q: 0, r: 0, accent: 'plum' };
+    const order = (characters: CharacterArt[]): string[] => {
+      const out: string[] = [];
+      for (const n of objects(characters)) {
+        if (n.attrs.fill === MORNING.accents.teal.base) out.push('a');
+        if (n.attrs.fill === MORNING.accents.plum.base) out.push('b');
+      }
+      return out;
+    };
+    // Slot 0 is the middle of the back and slot 1 sits elsewhere; whichever is further back draws first.
+    const slot = (i: number) =>
+      riderAnchor(
+        GENTLE_AMBLER,
+        sample().creature.heading,
+        i,
+        hexCenter(p, 0, 0),
+        p.size,
+        p.squash,
+      );
+    const firstBack = slot(0).y < slot(1).y;
+    expect(order([a, b])).toEqual(firstBack ? ['a', 'b'] : ['b', 'a']);
   });
 });
 

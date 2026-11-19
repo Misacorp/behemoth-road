@@ -206,23 +206,20 @@ function planeDirection(step: { q: number; r: number }): { x: number; y: number 
 
 const fmt = (n: number): string => (Math.round(n * 10) / 10).toString();
 
-export function drawCreature(
-  palette: Palette,
+/** The creature's frame turned to its heading and projected: shared by the drawing and the rider anchors. */
+function creatureFrame(
   look: CreatureLook,
+  heading: { q: number; r: number },
   origin: Point,
   size: number,
   squash: number,
-  ink: number,
-  heading: { q: number; r: number },
-): Drawn & { readonly silhouettes: readonly (readonly Point[])[] } {
+) {
   const build = BUILDS[look.body] ?? BUILDS.highback;
   const S = Number.isFinite(look.scale) && look.scale > 0 ? look.scale : 1;
-  const unit = size * S;
   const t = Number.isFinite(squash) ? Math.min(1, Math.max(0.2, squash)) : 0.8;
   const rise = Math.sqrt(Math.max(0, 1 - t * t));
   const fwd = planeDirection(heading);
   const right = { x: -fwd.y, y: fwd.x };
-  // Creature frame (u forward, v to its right, z up; hex sizes at scale 1) to the world, then the screen.
   const world = (u: number, v: number, z: number): V3 => ({
     x: (u * fwd.x + v * right.x) * S,
     y: (u * fwd.y + v * right.y) * S,
@@ -232,6 +229,62 @@ export function drawCreature(
     x: origin.x + p.x * size,
     y: origin.y + (p.y * t - p.z * rise) * size,
   });
+  const body = build.body;
+  /** A point on top of the back, at (fu, fv) as shares of the body's half-length and half-width. */
+  const back = (fu: number, fv: number): V3 => {
+    const u = body.u + fu * body.a;
+    const v = fv * body.b;
+    const k = 1 - fu * fu - fv * fv;
+    return world(u, v, body.z + body.c * Math.sqrt(Math.max(0, k)));
+  };
+  return { build, S, t, rise, fwd, right, world, screen, back };
+}
+
+/**
+ * Where riders stand on the back, as shares of the body's half-length and half-width: the middle first,
+ * then a ring of six, then a wider ring of eight (fifteen in all, the player cap). The landscape on the
+ * back stays out at the rim, clear of these.
+ */
+export function riderSlot(index: number): { fu: number; fv: number } {
+  const i = Number.isFinite(index) && index > 0 ? Math.floor(index) % 15 : 0;
+  if (i === 0) return { fu: 0, fv: 0 };
+  if (i <= 6) {
+    const a = ((i - 1) * Math.PI) / 3 + Math.PI / 6;
+    return { fu: Math.cos(a) * 0.3, fv: Math.sin(a) * 0.34 };
+  }
+  const a = ((i - 7) * Math.PI) / 4;
+  return { fu: Math.cos(a) * 0.62, fv: Math.sin(a) * 0.66 };
+}
+
+/** The feet of the rider in slot `index` on the creature's back, in drawing coordinates. */
+export function riderAnchor(
+  look: CreatureLook,
+  heading: { q: number; r: number },
+  index: number,
+  origin: Point,
+  size: number,
+  squash: number,
+): Point {
+  const f = creatureFrame(look, heading, origin, size, squash);
+  const { fu, fv } = riderSlot(index);
+  // Shift the slots towards the viewer (world south), where the back is seen best from the high view.
+  const bias = 0.28;
+  return f.screen(f.back(fu + bias * f.fwd.y, fv + bias * f.right.y));
+}
+
+export function drawCreature(
+  palette: Palette,
+  look: CreatureLook,
+  origin: Point,
+  size: number,
+  squash: number,
+  ink: number,
+  heading: { q: number; r: number },
+): Drawn & { readonly silhouettes: readonly (readonly Point[])[] } {
+  // Creature frame (u forward, v to its right, z up; hex sizes at scale 1) to the world, then the screen.
+  const frame = creatureFrame(look, heading, origin, size, squash);
+  const { build, S, t, rise, world, screen } = frame;
+  const unit = size * S;
   const at = (u: number, v: number, z: number): Point => screen(world(u, v, z));
   // Faces the viewer: the view direction is (0, rise, t) in world terms (south and up).
   const faces = (n: V3): boolean => n.y * rise + n.z * t > 0.05;
@@ -458,7 +511,7 @@ export function drawCreature(
 
   if (look.back === 'landscape') {
     // A tiny pond and a rock lying on the back.
-    const pondAt = screen(top(body.u - body.a * 0.35, body.b * 0.3));
+    const pondAt = screen(frame.back(-0.62, 0.42));
     const pond = ellipsePath(pondAt.x, pondAt.y, unit * 0.32, unit * 0.32 * t * 0.75);
     bodyNodes.push(
       fill(pond, palette.ramps.water.base),
@@ -469,7 +522,7 @@ export function drawCreature(
       ),
       line(pond, w * 0.85),
     );
-    const rockAt = screen(top(body.u + body.a * 0.25, body.b * 0.42));
+    const rockAt = screen(frame.back(0.2, 0.74));
     const rk = unit / 64;
     const rock = [
       { x: -11, y: 2 },
@@ -496,12 +549,12 @@ export function drawCreature(
     );
     // Trees standing upright on the back, back to front.
     const treeSpots: [number, number, number][] = [
-      [0.15, -0.35, 1],
-      [-0.45, -0.05, 0.8],
-      [0.55, 0.05, 0.7],
+      [0.42, -0.6, 1],
+      [-0.55, -0.5, 0.85],
+      [0.7, 0.32, 0.7],
     ].slice(0, build.trees) as [number, number, number][];
     const trees = treeSpots
-      .map(([fu, fv, hgt]) => ({ base: screen(top(body.u + fu * body.a, fv * body.b)), hgt }))
+      .map(([fu, fv, hgt]) => ({ base: screen(frame.back(fu, fv)), hgt }))
       .sort((a, b) => a.base.y - b.base.y);
     for (const { base, hgt } of trees) {
       const k = (unit / 64) * 0.95 * hgt;

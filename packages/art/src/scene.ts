@@ -1,10 +1,10 @@
 /** A map patch as one SVG: paper, the ground under the wash filter, then every upright thing back to front. */
 import { drawCharacter, type CharacterArt } from './character.ts';
 import { ART_TUNING } from './config.ts';
-import { drawCreature, inFootprint, type CreatureArt } from './creature.ts';
+import { drawCreature, inFootprint, riderAnchor, type CreatureArt } from './creature.ts';
 import { figureAnchor } from './figure.ts';
 import { artDefs, refUrl } from './filters.ts';
-import { unionBox, type Box, type Point } from './geom.ts';
+import { ellipsePath, unionBox, type Box, type Point } from './geom.ts';
 import type { Palette } from './palette.ts';
 import {
   drawOrder,
@@ -62,6 +62,8 @@ interface Placed {
   readonly at: Point;
   readonly drawn: Drawn;
   readonly opacity?: number;
+  /** Sort at this screen y instead of `at.y` (riders sort just after the creature, among themselves by depth). */
+  readonly after?: number;
 }
 
 /** Picks spots for a tile's props inside the hex, keeping each prop's spacing. */
@@ -205,7 +207,38 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
   }
   const sites = new Set(cells.filter((c) => c.site).map((c) => `${c.q},${c.r}`));
   const perTile = new Map<string, number>();
+  let riders = 0;
   for (const ch of input.characters ?? []) {
+    if (creature && inFootprint(creature, ch)) {
+      // A rider: standing on the creature's back in the next free slot, with a firm contact shadow.
+      const c = riderAnchor(
+        creature.look,
+        creature.heading,
+        riders,
+        hexCenter(p, creature.q, creature.r),
+        p.size,
+        p.squash,
+      );
+      riders += 1;
+      const drawn = drawCharacter(palette, ch.accent, c, p.size, p.squash, ink);
+      const contact = el('path', {
+        d: ellipsePath(
+          c.x + 0.02 * p.size,
+          c.y + 0.01 * p.size,
+          0.17 * p.size,
+          0.06 * p.size * (p.squash / 0.6),
+        ),
+        fill: palette.shadow,
+        opacity: 0.38,
+      });
+      const creatureY = hexCenter(p, creature.q, creature.r).y;
+      placed.push({
+        at: c,
+        drawn: { nodes: [contact, ...drawn.nodes], box: drawn.box },
+        after: creatureY + 1e-3 + (c.y - creatureY + p.size * 10) * 1e-6,
+      });
+      continue;
+    }
     const key = `${ch.q},${ch.r}`;
     const index = perTile.get(key) ?? 0;
     perTile.set(key, index + 1);
@@ -213,7 +246,8 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
     placed.push({ at: c, drawn: drawCharacter(palette, ch.accent, c, p.size, p.squash, ink) });
   }
 
-  placed.sort((a, b) => drawOrder(a.at, b.at));
+  const sortAt = (x: Placed): Point => (x.after === undefined ? x.at : { x: x.at.x, y: x.after });
+  placed.sort((a, b) => drawOrder(sortAt(a), sortAt(b)));
   const objects: SvgNode[] = placed.flatMap(({ drawn, opacity }) =>
     opacity === undefined ? drawn.nodes : [el('g', { opacity }, drawn.nodes)],
   );

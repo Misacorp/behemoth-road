@@ -88,7 +88,8 @@ Record a decision:
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
-- 2026-11-19 The art kit draws a compact creature on trodden ground, measured against its footprint
+- 2026-11-19 Riders stand in numbered slots on the creature's back
+- 2026-11-19 The art kit draws a compact creature on trodden ground, measured against its footprint (amended)
 - 2026-11-19 Characters start on a free hex next to the creature \[Misa\]
 - 2026-11-19 The creature stays mostly inside its footprint so the map stays readable \[Misa\] (amended)
 - 2026-11-19 The creature's hexes are occupied: characters cannot enter them \[Misa\]
