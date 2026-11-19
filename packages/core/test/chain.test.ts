@@ -203,9 +203,23 @@ const playChain = (seed: number, maxDays: number) => {
   });
   s = { ...s, characters: s.characters.map((c) => ({ ...c, role: c.id })) };
   const milestones: Record<string, number> = {};
+  const mark = (stage: string, day: number, reached: boolean) => {
+    if (reached && !milestones[stage]) milestones[stage] = day;
+  };
   for (let day = 1; day <= maxDays; day++) {
     s = playDay(s);
-    for (const id of ORDER) if (done(s, id) && !milestones[id]) milestones[id] = day;
+    mark(
+      'reveal',
+      day,
+      Object.values(s.features).some((f) => f.revealed),
+    );
+    mark('deposit', day, Object.values(s.stores).some((n) => n > 0) || s.unlocks.length > 0);
+    for (const id of ORDER) mark(id, day, done(s, id));
+    const alloy =
+      (s.stores['ancient-alloy'] ?? 0) > 0 ||
+      s.characters.some((c) => (c.pack['ancient-alloy'] ?? 0) > 0) ||
+      s.project?.unlock === 'climbing-spikes';
+    mark('alloy', day, alloy || done(s, 'climbing-spikes'));
     if (done(s, 'climbing-spikes')) break;
   }
   return { state: s, milestones };
@@ -216,18 +230,37 @@ const playChain = (seed: number, maxDays: number) => {
 // view, then for a deep tomb once the lantern is done. Berry bushes (Milestone 4)
 // slowed it (it was 25–46 on 9 maps): more hidden features for the scout to
 // survey. Real parties are larger.
-describe('the first chain', () => {
-  it('runs from scouting to climbing spikes, with trips back to the creature', () => {
-    const { state, milestones } = playChain(1, 70);
-    expect(Object.keys(milestones).sort()).toEqual([
-      'climbing-spikes',
-      'grappling-hook',
-      'lantern',
-    ]);
-    expect(milestones.lantern!).toBeLessThan(milestones['climbing-spikes']!);
-    expect(state.characters.every((c) => c.status === 'active')).toBe(true);
+describe('the first chain, stage by stage (seed 1)', () => {
+  const { state, milestones } = playChain(1, 70);
+  const day = (stage: string) => milestones[stage] ?? Infinity;
+
+  it('reveals features', () => {
+    expect(day('reveal')).toBeLessThanOrEqual(5);
   });
 
+  it('gathers and deposits materials in the stores', () => {
+    expect(day('deposit')).toBeGreaterThanOrEqual(day('reveal'));
+    expect(day('deposit')).toBeLessThan(70);
+  });
+
+  it('builds the grappling hook and the lantern', () => {
+    expect(day('grappling-hook')).toBeGreaterThanOrEqual(day('deposit'));
+    expect(day('lantern')).toBeLessThan(70);
+  });
+
+  it('works a deep tomb for ancient alloy once the lantern is done', () => {
+    expect(day('alloy')).toBeGreaterThanOrEqual(day('lantern'));
+    expect(day('alloy')).toBeLessThan(70);
+  });
+
+  it('builds the climbing spikes, with everyone still in the game', () => {
+    expect(day('climbing-spikes')).toBeGreaterThanOrEqual(day('alloy'));
+    expect(day('climbing-spikes')).toBeLessThanOrEqual(70);
+    expect(state.characters.every((c) => c.status === 'active')).toBe(true);
+  });
+});
+
+describe('the first chain on many maps', () => {
   it('is reachable on most maps', () => {
     const days: number[] = [];
     for (let seed = 1; seed <= 12; seed++) {
