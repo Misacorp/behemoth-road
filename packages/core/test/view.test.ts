@@ -13,6 +13,7 @@ import {
   legalMoves,
   loadGame,
   move,
+  newSeed,
   nextDay,
   ON_CREATURE,
   onHex,
@@ -42,6 +43,21 @@ describe('the player view', () => {
     const view = toPlayerView(state);
     expect('seed' in view).toBe(false);
     expect(JSON.stringify(view)).not.toContain('123456789');
+  });
+
+  it('carries a public art seed that is unrelated to the game seed', () => {
+    const seed = newSeed();
+    const a = createGame(seed);
+    const b = createGame(seed);
+    // The same game seed gives different art seeds: nothing about one follows from the other.
+    expect(a.artSeed).not.toBe(b.artSeed);
+    expect(toPlayerView(a).artSeed).toBe(a.artSeed);
+    // Any art seed can go with any game seed, and choosing it leaves the game unchanged.
+    const pinned = createGame(seed, { artSeed: 12345 });
+    expect(pinned.artSeed).toBe(12345);
+    expect({ ...pinned, artSeed: a.artSeed }).toEqual(a);
+    expect(() => createGame(seed, { artSeed: -1 })).toThrow(RangeError);
+    expect(() => createGame(seed, { artSeed: 2 ** 32 })).toThrow(RangeError);
   });
 
   it('is the same whatever the seed, given the same known world', () => {

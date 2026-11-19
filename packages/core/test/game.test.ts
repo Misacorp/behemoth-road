@@ -58,10 +58,10 @@ describe('createGame', () => {
 
 describe('determinism and serialisation', () => {
   it('gives identical states for the same seed and inputs', () => {
-    const a = play(createGame(77, { characterIds: ['a', 'b'] }), 12);
-    const b = play(createGame(77, { characterIds: ['a', 'b'] }), 12);
+    const a = play(createGame(77, { characterIds: ['a', 'b'], artSeed: 1 }), 12);
+    const b = play(createGame(77, { characterIds: ['a', 'b'], artSeed: 1 }), 12);
     expect(b).toEqual(a);
-    const c = play(createGame(78, { characterIds: ['a', 'b'] }), 12);
+    const c = play(createGame(78, { characterIds: ['a', 'b'], artSeed: 1 }), 12);
     expect(c).not.toEqual(a);
   });
 

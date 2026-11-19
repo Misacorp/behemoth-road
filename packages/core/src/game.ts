@@ -6,7 +6,7 @@ import { type ConfigOverrides, resolveConfig } from './config.ts';
 import { type Direction, DIRECTIONS, type Hex, isValidHex } from './hex.ts';
 import { CONTENT_VERSION } from './content/index.ts';
 import { ON_CREATURE } from './places.ts';
-import { type Seed, toSeed } from './random.ts';
+import { newArtSeed, type Seed, toSeed } from './random.ts';
 import type { GameState } from './state.ts';
 import { updateTiles } from './window.ts';
 
@@ -21,6 +21,8 @@ export interface CreateGameOptions {
   readonly heading?: Direction;
   /** The creature's starting centre. Default the origin. */
   readonly start?: Hex;
+  /** The public cosmetic seed (0 to 2^32 - 1). Default: a fresh random one, unrelated to `seed`. */
+  readonly artSeed?: number;
 }
 
 const MAX_ID_LENGTH = 64;
@@ -37,6 +39,10 @@ export const createGame = (
   options: CreateGameOptions = {},
 ): GameState => {
   const seed = toSeed(seedOrNumber);
+  const artSeed = options.artSeed ?? newArtSeed();
+  if (!Number.isInteger(artSeed) || artSeed < 0 || artSeed > 0xffffffff) {
+    throw new RangeError('artSeed must be an integer from 0 to 2^32 - 1');
+  }
   const config = resolveConfig(options.config);
   const heading = options.heading ?? 'n';
   if (!DIRECTIONS.includes(heading)) throw new RangeError(`Unknown heading: ${String(heading)}`);
@@ -52,6 +58,7 @@ export const createGame = (
   const day = 1;
   return {
     contentVersion: CONTENT_VERSION,
+    artSeed,
     seed,
     day,
     config,

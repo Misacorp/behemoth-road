@@ -59,6 +59,11 @@ export interface Character {
 export interface GameStateView {
   /** The content the state was made with (`CONTENT_VERSION`). */
   readonly contentVersion: number;
+  /**
+   * A public random number for cosmetic variety in drawing (props, figures).
+   * Unrelated to the game seed, so it reveals nothing about the map.
+   */
+  readonly artSeed: number;
   /** Starts at 1 and goes up by one each tick. */
   readonly day: number;
   /** The tuning this game was created with; every rule reads it from here. */

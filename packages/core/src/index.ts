@@ -5,6 +5,7 @@ export {
   hashString,
   hashToUnit,
   isSeed,
+  newArtSeed,
   newSeed,
   pickWeighted,
   toSeed,

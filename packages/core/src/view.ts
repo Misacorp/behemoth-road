@@ -13,6 +13,7 @@ import type { GameState, GameStateView } from './state.ts';
 export const toPlayerView = (state: GameState): GameStateView => ({
   // Listed field by field, so a server-only field added later never leaks by default.
   contentVersion: state.contentVersion,
+  artSeed: state.artSeed,
   day: state.day,
   config: state.config,
   creature: state.creature,

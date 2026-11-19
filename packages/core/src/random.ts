@@ -32,6 +32,9 @@ export const toSeed = (seed: Seed | number): Seed => {
   return seed;
 };
 
+/** A fresh random 32-bit number for cosmetic use (`artSeed`), unrelated to any game seed. */
+export const newArtSeed = (): number => newSeed()[0];
+
 /** A fresh random seed from the platform's secure generator (server side). */
 export const newSeed = (): Seed => {
   // The core has no DOM or Node types; Workers, browsers and Node all provide Web Crypto.
