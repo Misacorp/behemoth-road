@@ -2,6 +2,7 @@
 import { DEFAULT_LOOK, drawCharacter, type CharacterArt } from './character.ts';
 import { ART_TUNING } from './config.ts';
 import { drawCreature, inFootprint, riderAnchor, type CreatureArt } from './creature.ts';
+import { featureDrawer } from './features.ts';
 import { figureAnchor } from './figure.ts';
 import { artDefs, refUrl } from './filters.ts';
 import { ellipsePath, unionBox, type Box, type Point } from './geom.ts';
@@ -184,6 +185,7 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
     const rng = rngFor(seed, 'props', cell.q, cell.r);
     const spots =
       cell.props ??
+      (cell.feature && !underCreature ? [] : undefined) ??
       (underCreature
         ? []
         : placeProps((cell.site && SITE_PROPS[cell.site]) || terrainLook(cell.terrain).props, rng));
@@ -206,6 +208,15 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
         drawn: draw(ctx(at, propRng, 'scale' in spot ? spot.scale : 1)),
         ...(opacity === undefined ? {} : { opacity }),
       });
+    }
+    if (cell.feature && !underCreature) {
+      const at = onPlane(p, c, 0, 0.08);
+      const draw = featureDrawer(cell.feature.look);
+      const drawn = draw(
+        ctx(at, rngFor(seed, 'feature', cell.q, cell.r), ART_TUNING.featureScale),
+        cell.feature.state ?? 'ready',
+      );
+      placed.push({ at, drawn, ...(opacity === undefined ? {} : { opacity }) });
     }
     if (cell.hint) {
       const at = onPlane(p, c, 0.05, 0.05);

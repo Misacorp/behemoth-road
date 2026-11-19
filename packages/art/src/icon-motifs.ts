@@ -58,6 +58,77 @@ export const scroll: IconMotif = (pal) => [
   solid(pal, ellipsePath(28, 30.5, 2.8, 2.8), pal.accents.rose.base, 1.6),
 ];
 
+/** Material motifs by content icon key: what the team gathers. */
+export const MATERIAL_MOTIFS: Readonly<Record<string, IconMotif>> = {
+  iron: (pal) => [
+    solid(pal, 'M12 31l4-10h16l4 10z', pal.ramps.rock.base),
+    solid(pal, 'M16 21l2-4h12l2 4z', pal.ramps.rock.light, 1.8),
+    ink(pal, 'M18 27h6M27 25.5h4', 1.3, pal.accents.coral.shade),
+  ],
+  stone: (pal) => [
+    solid(pal, 'M11 32c0-4 4-7 9-7s9 3 9 6-4 4-9 4-9-1-9-3z', pal.ramps.stone.base),
+    solid(pal, 'M21 24c0-4 4-7 8-7s8 3 8 6-3 5-8 5-8-1-8-4z', pal.ramps.stone.light),
+    ink(pal, 'M24 20.5c1.5-1 3.5-1.3 5-1', 1.3, pal.paper),
+  ],
+  timber: (pal) => [
+    solid(pal, 'M12 30l20-11 4 6-20 11z', pal.ramps.bark.base),
+    solid(pal, ellipsePath(14, 33, 3.6, 3.6), pal.ramps.sand.light, 1.8),
+    ink(pal, ellipsePath(14, 33, 1.5, 1.5), 1, pal.ramps.bark.shade),
+    ink(pal, 'M22 26l3 1.5M27 23l3 1.5', 1.2, pal.ramps.bark.shade),
+    solid(pal, leafPath(30, 19, -1.2, 7), pal.ramps.foliage.base, 1.5),
+  ],
+  alloy: (pal) => [
+    solid(pal, 'M12 30l5-11h14l5 11-12 5z', pal.accents.teal.light),
+    solid(pal, 'M17 19l7 5 7-5M24 24v11', pal.accents.teal.base, 1.6),
+    ink(
+      pal,
+      smoothOpen([
+        P(21.5, 29),
+        P(22.5, 27.5),
+        P(24, 28),
+        P(23.5, 30),
+        P(21.5, 30.5),
+        P(20, 28.5),
+        P(21.5, 26),
+      ]),
+      1.1,
+      pal.accents.teal.shade,
+    ),
+    ink(pal, 'M35 12v4M33 14h4M11 15v3M9.5 16.5h3', 1.3, pal.hint),
+  ],
+};
+
+/** Item motifs by content icon key: what the team crafts. */
+export const ITEM_MOTIFS: Readonly<Record<string, IconMotif>> = {
+  hook: (pal) => [
+    // Three prongs curling up from the foot of the shaft: left, right, and one towards the viewer.
+    ink(pal, 'M24 12v20M24 32c-6 0-10-4-10-9M24 32c6 0 10-4 10-9', 4.2),
+    ink(pal, 'M24 12v20M24 32c-6 0-10-4-10-9M24 32c6 0 10-4 10-9', 1.8, pal.ramps.stone.light),
+    ink(pal, 'M14 23l-2.2 2.4M34 23l2.2 2.4', 2.6),
+    solid(pal, ellipsePath(24, 32.5, 2.6, 2.6), pal.ramps.stone.base, 1.6),
+    ink(pal, ellipsePath(24, 10, 2.4, 2.4), 1.8),
+    ink(
+      pal,
+      smoothOpen([P(26, 10), P(32, 9), P(36, 13), P(33, 17), P(29, 15)]),
+      1.4,
+      pal.ramps.bark.base,
+    ),
+  ],
+  lantern: (pal) => [
+    el('path', { d: ellipsePath(24, 26, 9, 9), fill: pal.accents.ochre.light, opacity: 0.6 }),
+    ink(pal, 'M20 13c0-4 8-4 8 0', 1.6),
+    solid(pal, 'M18 16h12v3H18z', pal.ramps.bark.base, 1.6),
+    solid(pal, 'M19 19h10l-1 12h-8z', pal.accents.ochre.base, 1.8),
+    ink(pal, 'M24 19v12M20.5 25h7', 1.1, pal.ramps.bark.shade),
+    solid(pal, 'M18 31h12v3H18z', pal.ramps.bark.base, 1.6),
+  ],
+  spikes: (pal) => [
+    solid(pal, 'M12 22h24l-2 5H14z', pal.ramps.stone.light),
+    ink(pal, 'M15 27l1 7M20 27l.5 7M25 27v7M30 27l-.5 7M34 27l-1 7', 2, pal.ramps.stone.shade),
+    ink(pal, 'M16 22c0-6 16-6 16 0', 1.8, pal.ramps.bark.base),
+  ],
+};
+
 /** Trait and quirk motifs by content icon key. */
 export const MOTIFS: Readonly<Record<string, IconMotif>> = {
   // Traits.

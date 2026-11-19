@@ -12,6 +12,8 @@ export {
   drawIcon,
   hasIcon,
   ICON_MOTIFS,
+  ITEM_MOTIFS,
+  MATERIAL_MOTIFS,
   ROLE_ICON_KEYS,
   ROLE_IDS,
   type EmblemFrame,
@@ -83,3 +85,11 @@ export {
 } from './svg.ts';
 export { TERRAIN_LOOKS, terrainLook, type TerrainLook } from './terrain.ts';
 export type { ArtCell, CellState } from './tile.ts';
+export {
+  FEATURE_DRAWERS,
+  featureDrawer,
+  type FeatureArt,
+  type FeatureDraw,
+  type FeatureState,
+} from './features.ts';
+export { drawMoment, drawViaMark, MOMENT_KINDS, VIA_MARKS, type MomentKind } from './marks.ts';

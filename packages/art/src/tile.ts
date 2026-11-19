@@ -17,6 +17,7 @@ import {
 import { inkAttrs } from './props.ts';
 import { rngFor, type Rng } from './rng.ts';
 import { el, type AttrValue, type SvgNode } from './svg.ts';
+import type { FeatureArt } from './features.ts';
 import { terrainLook, TRODDEN_LOOK } from './terrain.ts';
 
 export type CellState = 'seen' | 'unseen' | 'fading' | 'lost';
@@ -30,8 +31,10 @@ export interface ArtCell {
   readonly state?: CellState;
   /** A site drawn on the tile (`SITE_PROPS`), such as `ruin`. */
   readonly site?: string;
-  /** Shows the hint mark: something here is undiscovered. */
+  /** Shows the glint (the hint mark): something here is undiscovered, never what. */
   readonly hint?: boolean;
+  /** A revealed feature on the tile (a resource node, a site, a trap); it replaces the terrain's props. */
+  readonly feature?: FeatureArt;
   /** Hand-placed props replacing the terrain's own: kind and offset from the centre in hex sizes. */
   readonly props?: readonly PropSpot[];
 }

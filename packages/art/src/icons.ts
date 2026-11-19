@@ -6,7 +6,7 @@
  * (`boot`, `owl`…).
  */
 import { ellipsePath, poly, type Point } from './geom.ts';
-import { ink, MOTIFS, solid, type IconMotif } from './icon-motifs.ts';
+import { ink, ITEM_MOTIFS, MATERIAL_MOTIFS, MOTIFS, solid, type IconMotif } from './icon-motifs.ts';
 import { accentRamp, type Palette } from './palette.ts';
 import { el, type SvgNode } from './svg.ts';
 
@@ -129,6 +129,8 @@ const ROLE_MOTIFS: Readonly<Record<RoleId, IconMotif>> = {
 
 /** Trait and quirk icons by the `icon` key content gives them; each motif follows the same 48-unit grid. */
 export const ICON_MOTIFS: Readonly<Record<string, IconMotif>> = MOTIFS;
+/** Materials sit on a rounded square tile, items on a round tile with a double ring. */
+export { ITEM_MOTIFS, MATERIAL_MOTIFS };
 
 /** Role icon keys as content names them, drawn as that role's emblem. */
 export const ROLE_ICON_KEYS: Readonly<Record<string, RoleId>> = {
@@ -207,7 +209,12 @@ function neutral(palette: Palette): SvgNode[] {
 
 /** Whether an id names an icon the kit draws (otherwise `drawIcon` draws the neutral mark). */
 export function hasIcon(id: string): boolean {
-  return roleOf(id) !== null || Object.hasOwn(ICON_MOTIFS, id);
+  return (
+    roleOf(id) !== null ||
+    Object.hasOwn(ICON_MOTIFS, id) ||
+    Object.hasOwn(MATERIAL_MOTIFS, id) ||
+    Object.hasOwn(ITEM_MOTIFS, id)
+  );
 }
 
 /** An icon as a self-contained `<svg>` of `size` px. */
@@ -219,10 +226,16 @@ export function drawIcon(
 ): SvgNode {
   const px = Number.isFinite(size) && size > 0 ? size : 48;
   const role = roleOf(id);
+  // A key can name both a quirk and a material (`stone`): a trait or quirk tile asks for the trait and quirk
+  // drawing, anything else gets the material or item.
+  const personal = options.tile === 'quirk' || options.tile === 'trait';
+  const asMotif =
+    Object.hasOwn(ICON_MOTIFS, id) &&
+    (personal || !(Object.hasOwn(MATERIAL_MOTIFS, id) || Object.hasOwn(ITEM_MOTIFS, id)));
   let children: SvgNode[];
   if (role) {
     children = emblem(palette, role, options.frame ?? 'roundel');
-  } else if (Object.hasOwn(ICON_MOTIFS, id)) {
+  } else if (asMotif) {
     children = [
       el('path', {
         d: ellipsePath(24, 24, 20, 20),
@@ -232,6 +245,32 @@ export function drawIcon(
       }),
       ...(options.tile === 'quirk' ? quirkRing(palette) : []),
       ...ICON_MOTIFS[id]!(palette),
+    ];
+  } else if (Object.hasOwn(MATERIAL_MOTIFS, id)) {
+    children = [
+      el('path', {
+        d: 'M12 5h24a7 7 0 0 1 7 7v24a7 7 0 0 1-7 7H12a7 7 0 0 1-7-7V12a7 7 0 0 1 7-7z',
+        fill: palette.paper,
+        stroke: palette.ink,
+        'stroke-width': 2.2,
+      }),
+      ...MATERIAL_MOTIFS[id]!(palette),
+    ];
+  } else if (Object.hasOwn(ITEM_MOTIFS, id)) {
+    children = [
+      el('path', {
+        d: ellipsePath(24, 24, 20, 20),
+        fill: palette.paper,
+        stroke: palette.ink,
+        'stroke-width': 2.2,
+      }),
+      el('path', {
+        d: ellipsePath(24, 24, 17.2, 17.2),
+        fill: 'none',
+        stroke: palette.inkSoft,
+        'stroke-width': 1,
+      }),
+      ...ITEM_MOTIFS[id]!(palette),
     ];
   } else {
     children = neutral(palette);

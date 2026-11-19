@@ -22,6 +22,8 @@ export const ART_TUNING = {
   fadingPropOpacity: 0.45,
   /** Character height, in hex sizes. */
   characterHeight: 0.74,
+  /** Revealed features (nodes, sites, traps) are the tile's focus: drawn this much larger than props. */
+  featureScale: 1.6,
   /** Space around a scene, in hex sizes. */
   padding: 0.45,
 } as const;
