@@ -107,12 +107,7 @@ export function HubDrawer(props: HubDrawerProps): JSX.Element | null {
         </div>
         <div class="hub-unlocks">
           {props.unlocks.map((o) => (
-            <UnlockCard
-              key={o.unlock.id}
-              o={o}
-              busy={props.busy}
-              onBuild={props.onBuild}
-            />
+            <UnlockCard key={o.unlock.id} o={o} busy={props.busy} onBuild={props.onBuild} />
           ))}
         </div>
       </div>
