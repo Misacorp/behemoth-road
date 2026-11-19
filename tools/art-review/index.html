@@ -355,13 +355,16 @@
 <script>
   (function () {
     'use strict';
+    var UNAVAILABLE =
+      "Your clicks can't be saved in this view. Open the page in Claude to like, pick or ask for changes.";
     var state = {
       manifest: null,
-      verdicts: {},
-      picks: {},
+      verdicts: Object.create(null),
+      picks: Object.create(null),
       db: null,
       dbReady: false,
       openNote: null,
+      draft: '',
     };
     var $ = function (id) {
       return document.getElementById(id);
@@ -376,21 +379,40 @@
     function docId(s) {
       return s.replace(/[^A-Za-z0-9_-]/g, '_');
     }
+    function pickDoc(key) {
+      return docId('pick-' + key);
+    }
 
     function batchIndex(b) {
-      return state.manifest.batches.indexOf(b);
+      return Math.max(0, state.manifest.batches.indexOf(b));
     }
     function currentBatch() {
       var b = state.manifest.batches;
       return b[b.length - 1];
     }
+    function live(item) {
+      return !item.removed;
+    }
 
     // Status of one glance item, from the manifest and Misa's verdicts.
     function glanceStatus(item) {
       var v = state.verdicts[docId(item.id)];
-      if (v && v.version === item.version) return v.verdict === 'like' ? 'liked' : 'changes';
-      if (item.batch === currentBatch()) return v && v.verdict === 'redo' ? 'revised' : 'new';
+      var latest = item.batch === currentBatch();
+      if (v && v.version === item.version) {
+        if (v.verdict === 'redo') return 'changes';
+        return latest ? 'liked-new' : 'liked';
+      }
+      if (latest) return v && v.verdict === 'redo' ? 'revised' : 'new';
       return v && v.verdict === 'like' ? 'liked' : 'accepted';
+    }
+
+    function chosenItem(key, items) {
+      var p = state.picks[pickDoc(key)];
+      if (!p) return null;
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].id === p.choice && items[i].version === p.version) return items[i];
+      }
+      return null;
     }
 
     function openZoom(item) {
@@ -414,64 +436,77 @@
       return b;
     }
 
+    function showBanner(t) {
+      var b = $('banner');
+      b.textContent = t;
+      b.hidden = false;
+    }
+    function hideBanner() {
+      $('banner').hidden = true;
+    }
+
     function save(path, data) {
-      if (!state.db) return Promise.resolve();
+      if (!state.db) return;
       data.at = new Date().toISOString();
-      return state.db
+      state.db
         .doc(path)
         .set(data)
-        .catch(function (e) {
-          showBanner("Couldn't save: " + (e && e.message ? e.message : 'try again'));
+        .then(hideBanner, function () {
+          showBanner("Couldn't save that click. Please try again.");
         });
     }
 
     function setVerdict(item, verdict, note) {
       var id = docId(item.id);
       var cur = state.verdicts[id];
-      if (cur && cur.version === item.version && cur.verdict === verdict && verdict === 'like') {
+      if (verdict === 'like' && cur && cur.version === item.version && cur.verdict === 'like') {
         delete state.verdicts[id];
         render();
         if (state.db)
           state.db
             .doc('verdicts/' + id)
             .delete()
-            .catch(function () {});
+            .then(hideBanner, function () {
+              showBanner("Couldn't save that click. Please try again.");
+            });
         return;
       }
       var data = { itemId: item.id, version: item.version, verdict: verdict, note: note || '' };
       state.verdicts[id] = data;
       state.openNote = null;
+      state.draft = '';
       render();
       save('verdicts/' + id, data);
     }
 
-    function noteBox(onSend, initial) {
+    function noteBox(item) {
       var wrap = el('div', 'body');
       var ta = el('textarea');
+      ta.id = 'note-' + docId(item.id);
       ta.placeholder = 'What should change?';
-      ta.value = initial || '';
-      ta.id = 'note-' + Math.random().toString(36).slice(2, 8);
       ta.setAttribute('aria-label', 'What should change');
+      ta.value = state.draft;
+      ta.addEventListener('input', function () {
+        state.draft = ta.value;
+      });
       var row = el('div', 'actions');
       var send = el('button', 'btn on', 'Send');
       send.type = 'button';
       var cancel = el('button', 'btn', 'Cancel');
       cancel.type = 'button';
       send.addEventListener('click', function () {
-        if (ta.value.trim()) onSend(ta.value.trim());
+        if (ta.value.trim()) setVerdict(item, 'redo', ta.value.trim());
         else ta.focus();
       });
       cancel.addEventListener('click', function () {
         state.openNote = null;
+        state.draft = '';
         render();
       });
       row.appendChild(send);
       row.appendChild(cancel);
       wrap.appendChild(ta);
       wrap.appendChild(row);
-      setTimeout(function () {
-        ta.focus();
-      }, 0);
       return wrap;
     }
 
@@ -490,7 +525,7 @@
       if (v && v.note && (status === 'revised' || status === 'changes'))
         body.appendChild(el('p', 'note-quote', v.note));
       var row = el('div', 'actions');
-      var liked = status === 'liked';
+      var liked = status === 'liked-new';
       var like = el('button', 'btn like' + (liked ? ' on' : ''), liked ? 'Liked' : 'Like');
       like.type = 'button';
       like.setAttribute('aria-pressed', liked ? 'true' : 'false');
@@ -498,58 +533,49 @@
       like.addEventListener('click', function () {
         setVerdict(item, 'like');
       });
+      var asking = status === 'changes';
       var ask = el(
         'button',
-        'btn' + (status === 'changes' ? ' on' : ''),
-        status === 'changes' ? 'Edit request' : 'Ask for changes',
+        'btn' + (asking ? ' on' : ''),
+        asking ? 'Edit request' : 'Ask for changes',
       );
       ask.type = 'button';
       ask.disabled = !state.dbReady;
       ask.addEventListener('click', function () {
         state.openNote = item.id;
+        state.draft = asking && v ? v.note : '';
         render();
+        var ta = $('note-' + docId(item.id));
+        if (ta) ta.focus();
       });
       row.appendChild(like);
       row.appendChild(ask);
       body.appendChild(row);
       c.appendChild(body);
-      if (state.openNote === item.id)
-        c.appendChild(
-          noteBox(
-            function (t) {
-              setVerdict(item, 'redo', t);
-            },
-            status === 'changes' && v ? v.note : '',
-          ),
-        );
+      if (state.openNote === item.id) c.appendChild(noteBox(item));
       return c;
     }
 
     function pickBlock(key, items) {
-      var p = state.picks[docId('pick-' + key)];
+      var chosen = chosenItem(key, items);
       var box = el('div', 'pick');
       box.appendChild(el('h3', null, items[0].question || 'Which one?'));
       var g = el('div', 'grid');
       items.forEach(function (item) {
-        var chosen = p && p.choice === item.id;
-        var c = el('article', 'card' + (chosen ? ' picked' : ''));
+        var on = chosen === item;
+        var c = el('article', 'card' + (on ? ' picked' : ''));
         c.appendChild(artButton(item));
         var body = el('div', 'body');
         body.appendChild(el('h3', null, item.title));
-        var b = el('button', 'btn' + (chosen ? ' on' : ''), chosen ? 'Chosen' : 'Choose this');
+        var b = el('button', 'btn' + (on ? ' on' : ''), on ? 'Chosen' : 'Choose this');
         b.type = 'button';
-        b.setAttribute('aria-pressed', chosen ? 'true' : 'false');
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
         b.disabled = !state.dbReady;
         b.addEventListener('click', function () {
-          var data = {
-            pick: key,
-            choice: item.id,
-            version: item.version,
-            note: (p && p.note) || '',
-          };
-          state.picks[docId('pick-' + key)] = data;
+          var data = { pick: key, choice: item.id, version: item.version, note: '' };
+          state.picks[pickDoc(key)] = data;
           render();
-          save('picks/' + docId('pick-' + key), data);
+          save('picks/' + pickDoc(key), data);
         });
         body.appendChild(b);
         c.appendChild(body);
@@ -561,62 +587,64 @@
 
     function render() {
       var m = state.manifest;
-      if (!m) return;
-      var picks = {},
-        fresh = [],
-        changes = [],
-        settled = [];
-      m.items.forEach(function (item) {
+      if (!m || !m.batches.length) return;
+      var focusedId = document.activeElement && document.activeElement.id;
+      var picks = new Map();
+      var fresh = [];
+      var changes = [];
+      var settled = [];
+      m.items.filter(live).forEach(function (item) {
         if (item.kind === 'pick') {
-          (picks[item.pick] = picks[item.pick] || []).push(item);
+          if (!picks.has(item.pick)) picks.set(item.pick, []);
+          picks.get(item.pick).push(item);
           return;
         }
         var s = glanceStatus(item);
-        if (s === 'new' || s === 'revised') fresh.push({ item: item, s: s });
+        if (s === 'new' || s === 'revised' || s === 'liked-new') fresh.push({ item: item, s: s });
         else if (s === 'changes') changes.push({ item: item, s: s });
         else settled.push({ item: item, s: s });
       });
-      var openPicks = [],
-        donePicks = [];
-      Object.keys(picks).forEach(function (k) {
-        var items = picks[k];
+      var openPicks = [];
+      var donePicks = [];
+      picks.forEach(function (items, k) {
         var newest = Math.max.apply(
           null,
           items.map(function (i) {
             return batchIndex(i.batch);
           }),
         );
-        var answered = state.picks[docId('pick-' + k)];
-        (answered && batchIndex(currentBatch()) > newest ? donePicks : openPicks).push({
-          key: k,
-          items: items,
-          newest: newest,
-        });
+        var chosen = chosenItem(k, items);
+        var p = { key: k, items: items, newest: newest, chosen: chosen };
+        (chosen && batchIndex(currentBatch()) > newest ? donePicks : openPicks).push(p);
       });
-      var byNewest = function (a, b) {
+      openPicks.sort(function (a, b) {
         return b.newest - a.newest;
-      };
-      openPicks.sort(byNewest);
+      });
+      var order = { revised: 0, new: 1, 'liked-new': 1 };
       var newestFirst = function (a, b) {
-        return batchIndex(b.item.batch) - batchIndex(a.item.batch) || (a.s === 'revised' ? -1 : 1);
+        return (
+          batchIndex(b.item.batch) - batchIndex(a.item.batch) ||
+          (order[a.s] || 0) - (order[b.s] || 0)
+        );
       };
       fresh.sort(newestFirst);
       changes.sort(newestFirst);
 
       var unanswered = openPicks.filter(function (p) {
-        return !state.picks[docId('pick-' + p.key)];
+        return !p.chosen;
       }).length;
       $('lede').textContent = 'Batch ' + currentBatch() + '. Newest at the top.';
       var st = $('status');
       st.textContent = '';
-      var c1 = el(
-        'span',
-        'chip' + (unanswered ? ' ask' : ''),
-        unanswered
-          ? unanswered + ' pick' + (unanswered > 1 ? 's' : '') + ' need you'
-          : 'No picks waiting',
+      st.appendChild(
+        el(
+          'span',
+          'chip' + (unanswered ? ' ask' : ''),
+          unanswered
+            ? unanswered + ' pick' + (unanswered > 1 ? 's' : '') + ' need you'
+            : 'No picks waiting',
+        ),
       );
-      st.appendChild(c1);
       if (fresh.length) st.appendChild(el('span', 'chip', fresh.length + ' new to glance at'));
       if (changes.length) st.appendChild(el('span', 'chip', changes.length + ' changes requested'));
 
@@ -643,30 +671,27 @@
 
       var sDiv = $('settled');
       sDiv.textContent = '';
-      var groups = {};
-      settled.forEach(function (x) {
-        (groups[x.item.group] = groups[x.item.group] || []).push(x);
-      });
+      var groups = new Map();
+      var add = function (x) {
+        if (!groups.has(x.item.group)) groups.set(x.item.group, []);
+        groups.get(x.item.group).push(x);
+      };
+      settled.forEach(add);
       donePicks.forEach(function (p) {
-        var ch = state.picks[docId('pick-' + p.key)];
-        p.items.forEach(function (i) {
-          if (i.id === ch.choice)
-            (groups[i.group] = groups[i.group] || []).push({ item: i, s: 'chosen' });
-        });
+        add({ item: p.chosen, s: 'chosen' });
       });
       var total = 0;
-      Object.keys(groups)
+      Array.from(groups.keys())
         .sort()
         .forEach(function (g) {
           sDiv.appendChild(el('h3', null, g));
           var list = el('div', 'settled-list');
-          groups[g].forEach(function (x) {
+          groups.get(g).forEach(function (x) {
             total++;
             var mini = el('div', 'mini');
             mini.appendChild(artButton(x.item));
             var lab = el('span');
-            var b = el('b', null, x.item.title);
-            lab.appendChild(b);
+            lab.appendChild(el('b', null, x.item.title));
             lab.appendChild(
               document.createTextNode(
                 x.s === 'liked' ? ' · liked' : x.s === 'chosen' ? ' · chosen' : '',
@@ -679,17 +704,21 @@
         });
       $('settled-section').hidden = !total;
       $('settled-summary').textContent = 'Settled (' + total + ')';
-    }
 
-    function showBanner(t) {
-      var b = $('banner');
-      b.textContent = t;
-      b.hidden = false;
+      // Re-rendering replaces the nodes; keep typing where it was.
+      if (focusedId) {
+        var again = $(focusedId);
+        if (again && again !== document.activeElement) {
+          again.focus();
+          if (again.tagName === 'TEXTAREA')
+            again.setSelectionRange(again.value.length, again.value.length);
+        }
+      }
     }
 
     fetch('items.json')
       .then(function (r) {
-        if (!r.ok) throw new Error(r.status);
+        if (!r.ok) throw new Error(String(r.status));
         return r.json();
       })
       .then(function (m) {
@@ -701,60 +730,46 @@
       });
 
     var timer = setTimeout(function () {
-      if (!state.dbReady)
-        showBanner(
-          "Your clicks can't be saved in this view. Open the page in Claude to like, pick or ask for changes.",
-        );
+      if (!state.dbReady) showBanner(UNAVAILABLE);
     }, 10000);
+    var unavailable = function () {
+      clearTimeout(timer);
+      showBanner(UNAVAILABLE);
+    };
     var claude = window.claude;
     if (claude && claude.use) {
       claude.use('db').then(function (db) {
-        if (!db) {
-          clearTimeout(timer);
-          showBanner(
-            "Your clicks can't be saved in this view. Open the page in Claude to like, pick or ask for changes.",
-          );
-          return;
-        }
+        if (!db) return unavailable();
         state.db = db;
-        var got = 0;
-        var ready = function () {
-          got++;
-          if (got === 2) {
-            clearTimeout(timer);
-            state.dbReady = true;
-            render();
-          }
+        var loaded = { verdicts: false, picks: false };
+        var failed = false;
+        var listen = function (name) {
+          db.collection(name).onSnapshot(
+            function (snap) {
+              var v = Object.create(null);
+              snap.docs.forEach(function (d) {
+                v[d.id] = d.data();
+              });
+              state[name] = v;
+              loaded[name] = true;
+              if (!state.dbReady && !failed && loaded.verdicts && loaded.picks) {
+                clearTimeout(timer);
+                hideBanner();
+                state.dbReady = true;
+              }
+              render();
+            },
+            function () {
+              failed = true;
+              state.dbReady = false;
+              unavailable();
+              render();
+            },
+          );
         };
-        db.collection('verdicts').onSnapshot(
-          function (snap) {
-            var v = {};
-            snap.docs.forEach(function (d) {
-              v[d.id] = d.data();
-            });
-            state.verdicts = v;
-            if (state.dbReady) render();
-            else ready();
-          },
-          function () {
-            ready();
-          },
-        );
-        db.collection('picks').onSnapshot(
-          function (snap) {
-            var v = {};
-            snap.docs.forEach(function (d) {
-              v[d.id] = d.data();
-            });
-            state.picks = v;
-            if (state.dbReady) render();
-            else ready();
-          },
-          function () {
-            ready();
-          },
-        );
-      });
+        listen('verdicts');
+        listen('picks');
+      }, unavailable);
     }
   })();
 </script>

@@ -42,8 +42,16 @@ function validate(exp) {
     if (it.kind === 'pick' && (!it.pick || !it.question)) {
       throw new Error(`export item ${it.id}: a pick needs pick and question`);
     }
-    if (seen.has(it.id)) throw new Error(`export: duplicate id ${it.id}`);
-    seen.add(it.id);
+    if (!/^[A-Za-z0-9][A-Za-z0-9/_-]*$/.test(it.id))
+      throw new Error(`export item: bad id ${it.id}`);
+    if (!/^[0-9a-f]{6,64}$/.test(it.version)) throw new Error(`export item ${it.id}: bad version`);
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]*\.svg$/.test(it.file) || it.file.includes('..')) {
+      throw new Error(`export item ${it.id}: bad file name`);
+    }
+    // Ids must stay distinct once made safe for file names and database keys.
+    const key = safeName(it.id);
+    if (seen.has(key)) throw new Error(`export: duplicate id ${it.id}`);
+    seen.add(key);
   }
 }
 
@@ -57,8 +65,10 @@ export function merge(manifest, exp) {
   const batch = nextBatch(prev.batches, exp.batch);
   const byId = new Map(prev.items.map((it) => [it.id, it]));
   const fresh = [];
+  let listChanged = false;
   for (const it of exp.items) {
     const old = byId.get(it.id);
+    if (old?.removed) listChanged = true;
     const entry = {};
     for (const k of ITEM_KEYS) if (it[k] !== undefined) entry[k] = it[k];
     if (old && old.version === it.version) {
@@ -70,8 +80,17 @@ export function merge(manifest, exp) {
     entry.file = artPath(entry);
     byId.set(it.id, entry);
   }
-  if (fresh.length === 0) return { manifest: prev, fresh };
-  return { manifest: { batches: [...prev.batches, batch], items: [...byId.values()] }, fresh };
+  // Items the export no longer has stay as history, marked removed so the page hides them.
+  const exported = new Set(exp.items.map((it) => it.id));
+  for (const [id, entry] of byId) {
+    if (!exported.has(id) && !entry.removed) {
+      byId.set(id, { ...entry, removed: true });
+      listChanged = true;
+    }
+  }
+  if (fresh.length === 0 && !listChanged) return { manifest: prev, fresh };
+  const batches = fresh.length ? [...prev.batches, batch] : prev.batches;
+  return { manifest: { batches, items: [...byId.values()] }, fresh };
 }
 
 /**
@@ -80,11 +99,12 @@ export function merge(manifest, exp) {
  */
 export function nextBatch(batches, wanted) {
   if (!batches.includes(wanted)) return wanted;
-  const date = wanted.replace(/-\d+$/, '');
+  const shape = /^(\d{4}-\d{2}-\d{2})(?:-(\d+))?$/;
+  const date = wanted.match(shape)?.[1] ?? wanted;
   let n = 0;
   for (const b of batches) {
-    const m = b.match(/^(.*)-(\d+)$/);
-    if (m && m[1] === date) n = Math.max(n, Number(m[2]));
+    const m = b.match(shape);
+    if (m && m[1] === date) n = Math.max(n, Number(m[2] ?? 0));
   }
   return `${date}-${n + 1}`;
 }
