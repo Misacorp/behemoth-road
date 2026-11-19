@@ -22,6 +22,7 @@ Record a decision:
 
 [direction.md](direction.md): Priorities, how the owner and agents work, naming and tone.
 
+- 2026-11-19 The art review page shows only what needs Misa; silence means accepted \[Misa\]
 - 2026-11-19 Art costs no money; code draws it, local generation is optional \[Misa\]
 - 2026-11-19 Agents commit as the owner \[Misa\]
 - 2026-11-19 Squash merges only; the PR title and description are the commit (amended)

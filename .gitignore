@@ -36,3 +36,4 @@ worker-configuration.d.ts
 
 # Agent screenshots for review pages (never committed)
 screenshots/
+tools/art-review/stage/
