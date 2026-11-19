@@ -79,7 +79,8 @@ Record a decision:
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
-- 2026-11-19 Isometric 3D hexes are the long-term goal; the map is built to allow it \[Misa\]
+- 2026-11-19 The map starts isometric, with flat ground first and heights later \[Misa\]
+- 2026-11-19 Isometric 3D hexes are the long-term goal; the map is built to allow it \[Misa\] (amended)
 - 2026-11-19 The look is a light ink-and-wash atlas in pastel, broken colours \[Misa\]
 - 2026-11-19 Phone first, desktop too
 - 2026-11-19 Accessibility is not traded away
