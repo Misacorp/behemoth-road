@@ -237,7 +237,7 @@ describe('capture', () => {
           action: { kind: 'feed' },
         });
         await refused(misa, { version: await versionNow(), action: { kind: 'feed' } });
-        await ok('view-lingered', misa, 'POST', '/api/game/act', {
+        const lingered = await ok('view-lingered', misa, 'POST', '/api/game/act', {
           version: await versionNow(),
           action: { kind: 'linger' },
         });
@@ -250,7 +250,34 @@ describe('capture', () => {
         expect(cue.signs.appetite).toMatchObject({ kind: 'underfed', faint: false });
         const other = await ok('view-not-keeper', robin, 'GET', '/api/game');
         expect(other.signs).toMatchObject({ cues: [], appetite: { level: 1, faint: true } });
+        // The tick's events from the log, as a client that saw the linger asks for them: the creature
+        // stays (a step from its centre to the same centre) and the fire goes out.
+        const tickEvents = await ok(
+          'view-care-since',
+          robin,
+          'GET',
+          `/api/game?since=${String(lingered.version)}`,
+        );
+        const kinds = (tickEvents as unknown as { events: { kind: string }[] }).events.map(
+          (e) => e.kind,
+        );
+        expect(kinds).toEqual(expect.arrayContaining(['creature-step', 'fire-out']));
         await refused(misa, { version: await versionNow(), action: { kind: 'linger' } });
+
+        // Starving with forage in the stores: the next tick it eats from them.
+        const before = await versionNow();
+        const hungry = read();
+        write({ ...hungry, stores: { forage: 1 }, care: { ...hungry.care, satiety: 2 } });
+        expect((await ctx.call(misa, 'POST', '/api/dev/next-day', {})).status).toBe(200);
+        const ate = await ok(
+          'view-creature-ate',
+          robin,
+          'GET',
+          `/api/game?since=${String(before)}`,
+        );
+        expect(
+          (ate as unknown as { events: { kind: string }[] }).events.map((e) => e.kind),
+        ).toContain('creature-ate');
       },
       { everyoneIsAdmin: true },
     );

@@ -126,18 +126,62 @@ describe('POST /api/game/act: the care actions', () => {
       const fed = await act(ctx, misa, { kind: 'feed' });
       expect(fed.status).toBe(200);
       expect((fed.body as Answer).events).toEqual([
-        { kind: 'fed', characterId: ME, material: 'forage' },
+        { kind: 'fed', characterId: ME, material: 'forage', version: (fed.body as Answer).version },
       ]);
       expect((fed.body as Answer).game.stores['forage'] ?? 0).toBe(0);
       const lingered = await act(ctx, misa, { kind: 'linger' });
       expect(lingered.status).toBe(200);
-      expect((lingered.body as Answer).events).toEqual([{ kind: 'linger', characterId: ME }]);
+      expect((lingered.body as Answer).events).toEqual([
+        { kind: 'linger', characterId: ME, version: (lingered.body as Answer).version },
+      ]);
       expect((lingered.body as Answer).game.creature.lingering).toBe(true);
     });
   });
 });
 
 describe('the done criterion through the API', () => {
+  it("the tick's care events reach the event log: a linger, a fire going out, a meal", async () => {
+    await runGame(
+      async (ctx) => {
+        const { misa, robin } = await team(ctx, 'keeper');
+        besideWithTimber(ctx);
+        expect((await act(ctx, misa, { kind: 'light-fire' })).status).toBe(200);
+        edit(ctx.sql, (s) => ({
+          ...withCharacter(s, ME, {
+            at: { kind: 'creature' },
+            actionsLeft: s.config.actionsPerDay,
+          }),
+          // Starving after the drain, with forage in the stores: it eats one.
+          stores: { forage: 1 },
+          care: { ...s.care, satiety: 2 },
+        }));
+        const lingered = await act(ctx, misa, { kind: 'linger' });
+        expect(lingered.status).toBe(200);
+        const seen = (lingered.body as Answer).version;
+        const centre = storedState(ctx.sql).creature.centre;
+
+        const next = (await ctx.call(misa, 'POST', '/api/dev/next-day', {})).body as PlayerView;
+        const since = await ctx.call(robin, 'GET', `/api/game?since=${String(seen)}`);
+        expect(since.status).toBe(200);
+        const events = (since.body as { events: { kind: string; version: number }[] }).events;
+        expect(events).toEqual(
+          expect.arrayContaining([
+            { kind: 'creature-step', from: centre, to: centre, version: next.version },
+            {
+              kind: 'fire-out',
+              hex: expect.anything() as unknown,
+              stimulus: 'fire',
+              version: next.version,
+            },
+            { kind: 'creature-ate', material: 'forage', version: next.version },
+          ]),
+        );
+        // ctx.call has walked these logged events for the creature's secrets too.
+      },
+      { everyoneIsAdmin: true },
+    );
+  });
+
   it('a keeper lights a fire; after the next day the keeper sees a cue and a non-keeper does not', async () => {
     await runGame(
       async (ctx) => {
