@@ -104,7 +104,8 @@ export function roundHex(q: number, r: number): Hex {
 }
 
 /**
- * The hex under a screen point (the inverse of `hexCenter`), for iso and top-down. A tap lands on a tile's top
+ * The hex under a point in drawing coordinates (the inverse of `hexCenter`), for iso and top-down. Convert a
+ * pointer position to drawing coordinates first with the scene's frame (`renderSceneFramed`). A tap lands on a tile's top
  * face; side faces are ignored, which is exact while every tile has the same height (heights will need a
  * search over the few hexes whose raised top could cover the point).
  */

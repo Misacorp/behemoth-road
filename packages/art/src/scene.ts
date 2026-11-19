@@ -72,14 +72,41 @@ function placeProps(rules: readonly PropRule[], rng: Rng): PropSpot[] {
   return out;
 }
 
+/** The drawing's frame in drawing coordinates (the SVG viewBox), for mapping pointer positions. */
+export interface SceneFrame {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+export interface FramedScene {
+  readonly svg: SvgNode;
+  readonly viewBox: SceneFrame;
+}
+
+/** The scene as an SVG tree. */
 export function renderScene(input: SceneInput): SvgNode {
+  return renderSceneFramed(input).svg;
+}
+
+/**
+ * The scene and its frame as numbers. A pointer at (px, py) on an element showing the SVG at `scale` screen px
+ * per drawing px is at drawing point (viewBox.x + px / scale, viewBox.y + py / scale), which `screenToHex` takes.
+ */
+export function renderSceneFramed(input: SceneInput): FramedScene {
   const { cells, projection: p, palette, seed } = input;
   const prefix = input.idPrefix ?? 'br';
   if (!/^[\w-]+$/.test(prefix)) throw new Error(`Bad idPrefix: ${prefix}`);
   const drawers = { ...PROP_DRAWERS, ...input.overrides };
   const lite = input.effects === 'lite';
-  const zoom = input.zoom && input.zoom > 0 ? input.zoom : 1;
-  const ink = inkWidth(p.k, zoom, input.minInkPx);
+  const zoom =
+    input.zoom !== undefined && Number.isFinite(input.zoom) && input.zoom > 0 ? input.zoom : 1;
+  const minInkPx =
+    input.minInkPx !== undefined && Number.isFinite(input.minInkPx) && input.minInkPx >= 0
+      ? input.minInkPx
+      : undefined;
+  const ink = inkWidth(p.k, zoom, minInkPx);
   const ground = drawGround(cells, p, palette, seed, ink);
   const creature = input.creature ?? null;
   const placed: Placed[] = [];
@@ -160,7 +187,7 @@ export function renderScene(input: SceneInput): SvgNode {
   const h = Math.ceil(box.y1 + pad) - y;
   const frame = { x, y, width: w, height: h };
 
-  return el('svg', { viewBox: `${x} ${y} ${w} ${h}`, width: w, height: h }, [
+  const svg = el('svg', { viewBox: `${x} ${y} ${w} ${h}`, width: w, height: h }, [
     artDefs(palette, prefix, p.k, !lite),
     el('rect', { ...frame, fill: palette.paper }),
     el('rect', { ...frame, fill: refUrl(prefix, 'vignette') }),
@@ -177,6 +204,7 @@ export function renderScene(input: SceneInput): SvgNode {
       ? []
       : [el('rect', { ...frame, fill: palette.paper, filter: refUrl(prefix, 'grain') })]),
   ]);
+  return { svg, viewBox: frame };
 
   function ctx(origin: Point, rng: Rng, scale = 1) {
     return { palette, rng, origin, k: p.k * scale, squash: p.squash, ink: ink * scale };

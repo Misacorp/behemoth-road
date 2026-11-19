@@ -38,13 +38,21 @@ export {
 export { PROP_DRAWERS, type PropContext, type PropDraw, type Drawn } from './props.ts';
 export { buildReviewItems, type ReviewDraft } from './review.ts';
 export { samplePatch } from './sample.ts';
-export { renderScene, type SceneInput } from './scene.ts';
+export {
+  renderScene,
+  renderSceneFramed,
+  type FramedScene,
+  type SceneFrame,
+  type SceneInput,
+} from './scene.ts';
 export {
   ALLOWED_TAGS,
   countNodes,
   el,
   isAllowedAttr,
+  isAllowedAttribute,
   isForbiddenAttr,
+  SVG_NAMESPACE,
   toSvgString,
   walk,
   type SvgNode,

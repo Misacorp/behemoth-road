@@ -56,7 +56,9 @@ export function inkAttrs(colour: string, width: number): Record<string, AttrValu
  * screen when the drawing is shown at `zoom` screen px per drawing px.
  */
 export function inkWidth(k: number, zoom = 1, minInkPx: number = ART_TUNING.minInkPx): number {
-  return Math.max(ART_TUNING.inkWidth * k, minInkPx / zoom);
+  const base = ART_TUNING.inkWidth * k;
+  if (!Number.isFinite(zoom) || zoom <= 0 || !Number.isFinite(minInkPx)) return base;
+  return Math.max(base, minInkPx / zoom);
 }
 
 /** A soft wash shadow on the ground, squashed with the plane. */

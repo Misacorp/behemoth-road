@@ -3,7 +3,7 @@ import { GENTLE_AMBLER, type CreatureLook } from '../src/creature.ts';
 import { PALETTES, paletteColours, MORNING } from '../src/palette.ts';
 import { isometric, topDown } from '../src/projection.ts';
 import { samplePatch } from '../src/sample.ts';
-import { renderScene } from '../src/scene.ts';
+import { renderScene, renderSceneFramed } from '../src/scene.ts';
 import { countNodes, toSvgString, walk, type SvgNode } from '../src/svg.ts';
 import { FALLBACK_LOOK, TERRAIN_LOOKS, terrainLook } from '../src/terrain.ts';
 import { bigScene } from './fixtures.ts';
@@ -112,6 +112,23 @@ describe('scene options', () => {
       expect(() => renderScene({ ...sample(), idPrefix }), idPrefix).toThrow(/idPrefix/);
     }
     expect(() => renderScene({ ...sample(), idPrefix: 'map_2-a' })).not.toThrow();
+  });
+
+  it('reports its frame as numbers matching the viewBox', () => {
+    const { svg, viewBox } = renderSceneFramed(sample());
+    expect(svg.attrs.viewBox).toBe(`${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`);
+    expect(svg.attrs.width).toBe(viewBox.width);
+    expect(toSvgString(svg)).toBe(toSvgString(renderScene(sample())));
+  });
+
+  it('ignores zoom and minInkPx that are not finite positive numbers', () => {
+    const plain = toSvgString(renderScene(sample()));
+    for (const zoom of [Number.NaN, Infinity, -1, 0]) {
+      expect(toSvgString(renderScene({ ...sample(), zoom }))).toBe(plain);
+    }
+    for (const minInkPx of [Number.NaN, Infinity, -2]) {
+      expect(toSvgString(renderScene({ ...sample(), minInkPx }))).toBe(plain);
+    }
   });
 
   it('lite effects leave out the filters but keep the drawing', () => {
