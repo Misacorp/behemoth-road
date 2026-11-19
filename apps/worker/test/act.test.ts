@@ -2,7 +2,6 @@ import { hexKey, hiddenFeatureKeys, legalMoves } from '@behemoth-road/core';
 import { describe, expect, it } from 'vitest';
 import { CONTENT_VERSION, type GameState } from '../src/game-core.ts';
 import type { PlayerView } from '../src/guild-game.ts';
-import v2Game from './fixtures/game-v2.json';
 import { MISA, ROBIN, USER_ID, runGame, type GameContext } from './helpers.ts';
 
 const asView = (body: unknown) => body as PlayerView & { events?: unknown[] };
@@ -169,28 +168,78 @@ describe('moves report what happened on the way', () => {
   });
 });
 
-describe('a stored game from older content', () => {
-  it('is brought up to this content version on load, keeping its characters, day and map', async () => {
+describe('a stored game this build cannot use as it is', () => {
+  const versionOf = (sql: SqlStorage) =>
+    sql.exec<{ version: number }>('SELECT version FROM game WHERE id = 1').one().version;
+
+  it('from older content is replaced by a new game; players stay and rejoin with new offers', async () => {
     await runGame(async (ctx) => {
-      const token = await ctx.signIn(MISA);
-      ctx.sql.exec('UPDATE game SET state = ?, version = 5 WHERE id = 1', JSON.stringify(v2Game));
-      ctx.game.migrate();
-      const stored = storedState(ctx.sql);
-      expect(stored.contentVersion).toBe(CONTENT_VERSION);
-      expect(stored.day).toBe(v2Game.day);
-      expect(stored.seed).toEqual(v2Game.seed);
-      expect(stored.characters.map((c) => c.id)).toEqual(v2Game.characters.map((c) => c.id));
-      for (const key of Object.keys(v2Game.tiles)) expect(stored.tiles).toHaveProperty([key]);
-      const version = ctx.sql.exec<{ version: number }>('SELECT version FROM game').one().version;
-      expect(version).toBe(CONTENT_VERSION > v2Game.contentVersion ? 6 : 5);
-      // Running again changes nothing.
-      ctx.game.migrate();
-      expect(ctx.sql.exec<{ version: number }>('SELECT version FROM game').one().version).toBe(
-        version,
+      const { token } = await joined(ctx);
+      const old = storedState(ctx.sql);
+      ctx.sql.exec(
+        'UPDATE game SET state = ?, version = 41 WHERE id = 1',
+        JSON.stringify({ ...old, contentVersion: CONTENT_VERSION - 1, day: 9 }),
       );
+      ctx.game.migrate();
+      const fresh = storedState(ctx.sql);
+      expect(fresh.contentVersion).toBe(CONTENT_VERSION);
+      expect(fresh.day).toBe(1);
+      expect(fresh.characters).toEqual([]);
+      expect(versionOf(ctx.sql)).toBe(42);
+      // Once only.
+      ctx.game.migrate();
+      expect(versionOf(ctx.sql)).toBe(42);
       const view = asView((await ctx.call(token, 'GET', '/api/game')).body);
-      expect(view.you.characterId).toBe(`${USER_ID}.0`);
-      expect(view.day).toBe(v2Game.day);
+      expect(view.version).toBe(42);
+      expect(view.you.characterId).toBeNull();
+      expect(view.offers?.length).toBeGreaterThan(0);
+      expect(ctx.sql.exec('SELECT COUNT(*) AS n FROM players').one().n).toBe(1);
+      const rejoined = await ctx.call(token, 'POST', '/api/game/join', { role: 'scout', offer: 0 });
+      expect(rejoined.status).toBe(200);
+    });
+  });
+
+  for (const [what, text] of [
+    ['corrupt', '{"contentVersion": 3, "day": '],
+    ['from newer content', JSON.stringify({ contentVersion: 999, seed: [1, 2, 3, 4], day: 5 })],
+  ] as const) {
+    it(`${what}: is kept as it is, answers 503 and never crashes the object`, async () => {
+      await runGame(async (ctx) => {
+        const token = await ctx.signIn(MISA);
+        ctx.sql.exec('UPDATE game SET state = ?, version = 7 WHERE id = 1', text);
+        expect(() => ctx.game.migrate()).not.toThrow();
+        expect(await ctx.call(token, 'GET', '/api/game')).toEqual({
+          status: 503,
+          body: { error: 'game_unavailable' },
+        });
+        await expect(ctx.game.alarm()).resolves.toBeUndefined();
+        // Sign-in still works, and nothing was overwritten.
+        await ctx.signIn(ROBIN);
+        expect(ctx.sql.exec<{ state: string }>('SELECT state FROM game').one().state).toBe(text);
+        expect(versionOf(ctx.sql)).toBe(7);
+      });
+    });
+  }
+});
+
+describe('requests at the same version', () => {
+  it('apply one change: the other is refused as stale', async () => {
+    await runGame(async (ctx) => {
+      const { token, version } = await joined(ctx);
+      edit(ctx.sql, (s) => ({ ...s, inventory: { materials: { iron: 3, timber: 2 }, items: {} } }));
+      const v = asView((await ctx.call(token, 'GET', '/api/game')).body).version;
+      expect(v).toBe(version + 1);
+      const hex = nextHex(ctx.sql);
+      const [a, b] = await Promise.all([
+        ctx.call(token, 'POST', '/api/game/move', { version: v, path: [{ kind: 'hex', hex }] }),
+        ctx.call(token, 'POST', '/api/game/act', {
+          version: v,
+          action: { kind: 'craft', recipe: 'grappling-hook' },
+        }),
+      ]);
+      const statuses = [a.status, b.status].sort();
+      expect(statuses).toEqual([200, 409]);
+      expect([a.body, b.body]).toContainEqual({ error: 'stale' });
     });
   });
 });
