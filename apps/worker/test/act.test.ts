@@ -395,3 +395,22 @@ describe('the event log', () => {
     });
   });
 });
+
+describe('the day tick in the event log', () => {
+  it("logs the tick's events with the tick's version", async () => {
+    await runGame(async (ctx) => {
+      const { token } = await joined(ctx);
+      const before = asView((await ctx.call(token, 'GET', '/api/game')).body).version;
+      // A day later (sessions idle out after an hour): Robin signs in, which runs the tick.
+      ctx.clock.t += 24 * 3600_000;
+      const fresh = await ctx.signIn(ROBIN);
+      const res = await ctx.call(fresh, 'GET', `/api/game?since=${String(before)}`);
+      const view = res.body as PlayerView & { events: { kind: string; version: number }[] };
+      expect(view.day).toBe(2);
+      const kinds = view.events.map((e) => e.kind);
+      expect(kinds).toContain('creature-step');
+      expect(kinds.at(-1)).toBe('day');
+      expect(view.events.every((e) => e.version === view.version)).toBe(true);
+    });
+  });
+});
