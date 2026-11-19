@@ -4,15 +4,15 @@
  * second tap, on the card's button. Icons only; counts are the only text.
  */
 import { drawIcon } from '@behemoth-road/art';
+import { iconOf, type CraftOption } from '../game/chain.ts';
 import type { JSX } from 'preact';
-import type { CraftOption } from '../game/chain.ts';
 import { Pips, TickMark } from '../hud/icons.tsx';
 import { PALETTE } from '../map/art.ts';
 import { toPreact } from '../map/svgToPreact.ts';
 import { Drawer } from '../ui/Drawer.tsx';
 
 function Icon({ id, size }: { id: string; size: number }): JSX.Element {
-  return toPreact(drawIcon(id, PALETTE, size));
+  return toPreact(drawIcon(iconOf(id), PALETTE, size));
 }
 
 function Stack({ id, count, extra = false }: { id: string; count: number; extra?: boolean }) {
@@ -66,7 +66,7 @@ export function InventoryDrawer(props: InventoryDrawerProps): JSX.Element | null
                 />
               </svg>
               <span class="recipe-output">
-                <Icon id={c.recipe.id} size={40} />
+                <Icon id={c.recipe.makes} size={40} />
               </span>
               <span class="recipe-cost">
                 <Pips total={c.cost} left={c.cost} size={10} />

@@ -10,7 +10,7 @@ import {
   ART_TUNING,
   DIRECTIONS,
   drawCharacter,
-  drawIcon,
+  drawViaMark,
   el,
   hexCenter,
   hexCorners,
@@ -233,26 +233,24 @@ function pathArrow(i: OverlayInput, from: Point, steps: readonly PathStep[]): Sv
 }
 
 /**
- * The mark on a stretch that relies on something special: the art kit's icon for the `via` tag (the
- * grappling hook on a cliff step) on a small paper disc, so the means of travel shows in the arrow itself.
- * An id the art kit does not know draws its neutral mark.
+ * The mark on a stretch that relies on something special: the art kit's `via` mark (a grappling hook on a
+ * paper disc for a cliff step), so the means of travel shows in the arrow itself. Unknown ids draw a dot.
  */
 function viaMark(i: OverlayInput, at: Point, via: string): SvgNode[] {
-  const k = i.projection.k;
-  const size = 20 * k;
-  const icon = drawIcon(via, i.palette, size);
+  const size = 24 * i.projection.k;
+  const mark = drawViaMark(via, i.palette, size);
   return [
-    el('path', {
-      d: ellipse(at, size * 0.62, size * 0.62),
-      fill: i.palette.paper,
-      stroke: i.palette.ink,
-      'stroke-width': 1.4 * k,
-      'data-mark': `via:${via}`,
-    }),
     el(
       'svg',
-      { ...icon.attrs, x: at.x - size / 2, y: at.y - size / 2, width: size, height: size },
-      [...icon.children],
+      {
+        ...mark.attrs,
+        x: at.x - size / 2,
+        y: at.y - size / 2,
+        width: size,
+        height: size,
+        'data-mark': `via:${via}`,
+      },
+      [...mark.children],
     ),
   ];
 }

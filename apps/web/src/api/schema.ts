@@ -35,6 +35,8 @@ const character = v.object({
   lookSeed: v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(0xffffffff)),
   at: PlaceSchema,
   actionsLeft: count,
+  /** Crafts made today (`craftsPerDay`). Absent from views written before Milestone 3. */
+  craftsToday: v.optional(count, 0),
   status: v.picklist(['active', 'lost']),
 });
 
@@ -47,7 +49,25 @@ const config = v.object({
   lostTileRings: count,
   playerCap: count,
   veerWeights: v.object({ left: v.number(), straight: v.number(), right: v.number() }),
+  featureChance: v.number(),
+  senseRadius: count,
+  gatherCost: count,
+  craftCost: count,
+  workSiteCost: count,
+  craftsPerDay: count,
+  specialistYield: count,
+  nonSpecialistExtraMaterial: count,
+  siteChanceSpecialistTier1: v.number(),
+  siteChanceSpecialistTier2: v.number(),
+  siteChanceOtherTier1: v.number(),
+  siteChanceOtherTier2: v.number(),
 });
+
+const hexKeyString = v.pipe(v.string(), v.regex(/^-?\d+,-?\d+$/), v.maxLength(24));
+const counts = v.pipe(
+  v.record(id, count),
+  v.check((r) => Object.keys(r).length <= 200, 'too many entries'),
+);
 
 /** The core state without the seed (the core's `GameStateView`): known tiles carry their terrain. */
 export const GameStateViewSchema = v.object({
@@ -62,6 +82,16 @@ export const GameStateViewSchema = v.object({
     v.check((t) => Object.keys(t).length <= 20_000, 'too many tiles'),
   ),
   characters: v.pipe(v.array(character), v.maxLength(64)),
+  /** Revealed features only (the server leaves hidden ones out). */
+  features: v.pipe(
+    v.record(hexKeyString, v.object({ type: id, revealed: v.boolean(), left: count })),
+    v.check((f) => Object.keys(f).length <= 20_000, 'too many features'),
+  ),
+  glints: v.pipe(
+    v.record(hexKeyString, v.literal(true)),
+    v.check((g) => Object.keys(g).length <= 20_000, 'too many glints'),
+  ),
+  inventory: v.object({ materials: counts, items: counts }),
 });
 
 const player = v.object({
@@ -129,8 +159,13 @@ export type Session = v.InferOutput<typeof SessionSchema>;
 export const GameEventSchema = v.object({
   kind: v.pipe(v.string(), v.maxLength(40)),
   hex: v.optional(hex),
-  /** What was found or revealed, as a content id, when the event names one. */
+  /** Content ids the event names: a revealed feature, a gathered or found material, a crafted item. */
+  feature: v.optional(id),
+  material: v.optional(id),
   item: v.optional(id),
+  amount: v.optional(count),
+  /** Whose character a trap caught. */
+  characterId: v.optional(id),
 });
 
 /** The answer to a move or an action: the new view and what happened on the way. */

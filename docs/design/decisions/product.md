@@ -4,9 +4,17 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: The here card is compact and lets taps through its body; moments use the art kit's marks
+
+ID: `2026-11-20-the-here-card-is-compact-and` · Status: current · Amends: `2026-11-20-chain-actions-live-in-the-popover`
+
+**Decision.** The here card is compact (a small drawing of your tile with its feature, then one 48 px action button each), and taps on its body pass through to the map, so only the action buttons catch them. Gather shows an open hand and working a site a key (art kit icons). The inspect card draws a revealed feature or the glint on its tile miniature instead of beside it. Moments use the art kit's marks (`drawMoment`): the reveal bloom grows, holds, then fades over 1.4 s; a find bursts and the found material's icon rises; the trap snaps. The art kit's staged parts appear a beat after the first. The via mark is the art kit's `drawViaMark`. What the client offers comes from the core's `actionsHere` (the same checks the server runs): an action refused for not enough actions, a missing item, a role that cannot work the site or a specialist-only recipe shows faded; any other refusal hides it.
+
+**Reasoning.** On a phone a wider card covered the neighbouring hexes above your figure, so you could not walk on from a feature. Making it pass through keeps the second-tap rule without a new step. Reading the rules from the core keeps the client and server in agreement.
+
 ## 2026-11-20: Chain actions live in the popover and the team inventory in a satchel drawer; moments come from events
 
-ID: `2026-11-20-chain-actions-live-in-the-popover` · Status: current
+ID: `2026-11-20-chain-actions-live-in-the-popover` · Status: current, amended by `2026-11-20-the-here-card-is-compact-and`
 
 **Decision.** Selecting your character on a hex with a revealed feature opens a "here" card above your figure: the feature's drawing and one button per possible action (gather, work the site), each with its action icon and cost pips. Tapping an action is the second tap that spends; an action you cannot take now (too few actions, a missing lantern, a tier your role cannot try) shows faded and does nothing. Tapping any other hex shows its terrain and fog state as before, plus the revealed feature, or the glint when the hex is only sensed. The team inventory opens from a round satchel button at the bottom left, with a small count of everything the team holds. Its drawer comes from the right on desktop and from the bottom on phones, and shows materials and items as icons with counts, then one card per recipe: inputs, an arrow, the output, the cost pips and a craft button. For a non-engineer the extra material sits inside a dashed ring. Moments are short CSS animations on their own map layer, so a running moment never redraws the map: an ink bloom for a reveal, the find's icon rising from the site, a snap mark plus your pips shaking for a trap. They come from the events the server returns with your own move or action, and otherwise from the difference between two views (what others did, the tick). They end after 1.4 seconds or at your next tap. The path arrow marks a step with a `via` with that thing's icon on a paper disc.
 

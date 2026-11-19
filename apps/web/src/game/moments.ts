@@ -28,15 +28,15 @@ export function momentsBetween(before: GameStateView, after: GameStateView, me: 
   for (const [key, f] of b.features) {
     const was = a.features.get(key);
     if (!was) {
-      out.push(
-        f.kind === 'trap' ? { kind: 'trap', hex: hexOf(key) } : { kind: 'reveal', hex: hexOf(key) },
-      );
+      out.push({ kind: f.type.kind === 'trap' ? 'trap' : 'reveal', hex: hexOf(key) });
       continue;
     }
-    if (f.kind === 'site' && f.spent && !was.spent) {
+    if (f.type.kind === 'site' && f.left === 0 && was.left > 0) {
       // A site opened: what came into the inventory is the find.
-      const found = [...b.inventory].find(([id, n]) => n > (a.inventory.get(id) ?? 0))?.[0];
-      out.push({ kind: 'find', hex: hexOf(key), item: found ?? f.id });
+      const found = Object.entries(after.inventory.materials).find(
+        ([id, n]) => n > (before.inventory.materials[id] ?? 0),
+      )?.[0];
+      if (found) out.push({ kind: 'find', hex: hexOf(key), item: found });
     }
   }
   // A trap shows only where it caught you: your day ended on a newly revealed trap.
@@ -60,24 +60,23 @@ export function momentsBetween(before: GameStateView, after: GameStateView, me: 
 }
 
 /**
- * Moments from the events the server returned with your own move or action (the core's event list), in
- * order. Unknown kinds are skipped, so new events never break the map.
+ * Moments from the events the server returned with your own move or action (the core's `GameEvent`s), in
+ * order. Kinds without a moment (sense, gather, craft, a failed site) and unknown kinds are skipped.
  */
 export function momentsFromEvents(
   events: readonly {
     readonly kind: string;
     readonly hex?: Hex | undefined;
-    readonly item?: string | undefined;
+    readonly material?: string | undefined;
   }[],
 ): Moment[] {
   const out: Moment[] = [];
   for (const e of events) {
     if (!e.hex) continue;
-    if (e.kind === 'revealed' || e.kind === 'reveal') out.push({ kind: 'reveal', hex: e.hex });
+    if (e.kind === 'reveal') out.push({ kind: 'reveal', hex: e.hex });
     else if (e.kind === 'trap') out.push({ kind: 'trap', hex: e.hex });
-    else if ((e.kind === 'found' || e.kind === 'find') && e.item) {
-      out.push({ kind: 'find', hex: e.hex, item: e.item });
-    }
+    else if (e.kind === 'find' && e.material)
+      out.push({ kind: 'find', hex: e.hex, item: e.material });
   }
   return out;
 }

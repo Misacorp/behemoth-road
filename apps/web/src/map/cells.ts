@@ -2,9 +2,10 @@
  * What the art kit draws for a game state: which hexes, in which fog state, with which terrain look.
  * Reads the core only; the core never learns about the screen.
  */
-import type { ArtCell, CellState, CharacterArt, CreatureArt } from '@behemoth-road/art';
+import type { ArtCell, CellState, FeatureArt, CharacterArt, CreatureArt } from '@behemoth-road/art';
 import { GENTLE_AMBLER } from '@behemoth-road/art';
 import {
+  featureType,
   directionOffset,
   type GameStateView,
   terrainOf,
@@ -47,14 +48,31 @@ export function sceneCells(state: GameStateView): ArtCell[] {
   for (const [key, h] of keys) {
     const cellState = cellStateAt(state, key);
     const known = cellState === 'seen' || cellState === 'fading';
+    const feature = known ? featureArtAt(state, key) : null;
     cells.push({
       q: h.q,
       r: h.r,
       state: cellState,
       terrain: known ? (terrainOf(state, h)?.id ?? 'unknown') : 'unknown',
+      ...(feature ? { feature } : {}),
+      ...(known && !feature && state.glints[key] ? { hint: true } : {}),
     });
   }
   return cells;
+}
+
+/** A revealed feature's drawing: its content icon key, and used up once nothing is left. */
+export function featureArtAt(state: GameStateView, key: string): FeatureArt | null {
+  const f = state.features[key];
+  if (!f?.revealed) return null;
+  let type;
+  try {
+    type = featureType(f.type);
+  } catch {
+    return { look: f.type };
+  }
+  if (f.left > 0 || type.kind === 'trap') return { look: type.icon };
+  return { look: type.icon, state: type.kind === 'node' ? 'depleted' : 'spent' };
 }
 
 export function creatureArt(state: GameStateView): CreatureArt {

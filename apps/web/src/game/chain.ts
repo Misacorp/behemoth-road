@@ -1,175 +1,143 @@
 /**
- * PROVISIONAL ADAPTER, until `m3/core` lands: the one module that knows how Milestone 3's chain appears in
- * the player view (revealed features, glints, the team inventory). Everything else in the web client reads
- * the chain through this file, so switching to the core's real types and rule functions is one edit here.
- *
- * Shape assumed (`docs/design/m3-chain.md` leaves it open): `game.features` maps a hex key to a revealed
- * feature, `game.glints` lists sensed hex keys, `game.inventory` maps content ids to counts.
+ * Milestone 3's chain as the web client reads it from the player view, on the core's own types and rules:
+ * revealed features, glints, the team inventory, what can be done where you stand (`actionsHere`) and how
+ * each recipe could be crafted. The client runs the same checks the server runs; the server re-checks.
  */
-import { hexKey, type Hex } from '@behemoth-road/core';
-
-export type FeatureKind = 'node' | 'site' | 'trap';
+import {
+  actionsHere,
+  type ActCheck,
+  type FeatureType,
+  featureType,
+  type GameStateView,
+  type Hex,
+  hexKey,
+  ITEMS,
+  MATERIALS,
+  RECIPES,
+  type Recipe,
+  ROLES,
+  roleHas,
+} from '@behemoth-road/core';
 
 export interface Feature {
-  readonly kind: FeatureKind;
-  /** Content id (`iron-deposit`, `tomb`, `snare`…). */
-  readonly id: string;
-  /** Nodes: gathers left. */
-  readonly charges?: number;
-  /** Sites: 1 or 2. */
-  readonly tier?: number;
-  /** Sites: opened (the find taken); nodes: no charges left. */
-  readonly spent?: boolean;
+  readonly type: FeatureType;
+  /** Charges left (nodes) or tries left before it is spent (sites). */
+  readonly left: number;
 }
 
 export interface Chain {
+  /** Revealed features by hex key (hidden ones never reach the client). */
   readonly features: ReadonlyMap<string, Feature>;
+  /** Hexes a scout has sensed something on. */
   readonly glints: ReadonlySet<string>;
-  readonly inventory: ReadonlyMap<string, number>;
+  /** Materials and items the team holds, with counts: materials first, in content order. */
+  readonly stock: readonly (readonly [string, number])[];
 }
 
-const isRecord = (x: unknown): x is Record<string, unknown> =>
-  typeof x === 'object' && x !== null && !Array.isArray(x);
-
-function asFeature(x: unknown): Feature | null {
-  if (!isRecord(x)) return null;
-  const { kind, id } = x;
-  if ((kind !== 'node' && kind !== 'site' && kind !== 'trap') || typeof id !== 'string')
-    return null;
-  const num = (v: unknown): number | undefined => (typeof v === 'number' ? v : undefined);
-  const charges = num(x['charges']);
-  const tier = num(x['tier']);
-  return {
-    kind,
-    id,
-    ...(charges === undefined ? {} : { charges }),
-    ...(tier === undefined ? {} : { tier }),
-    ...(x['spent'] === true ? { spent: true } : {}),
-  };
+function typeOf(id: string): FeatureType | null {
+  try {
+    return featureType(id);
+  } catch {
+    return null; // Content this build does not know: leave it out rather than break the map.
+  }
 }
 
-/** The chain parts of a view's game; absent parts are empty (a Milestone 2 view). */
-export function chainOf(game: unknown): Chain {
-  const g = isRecord(game) ? game : {};
+export function chainOf(game: GameStateView): Chain {
   const features = new Map<string, Feature>();
-  if (isRecord(g['features'])) {
-    for (const [key, raw] of Object.entries(g['features'])) {
-      const f = asFeature(raw);
-      if (f) features.set(key, f);
-    }
+  for (const [key, f] of Object.entries(game.features)) {
+    const type = f.revealed ? typeOf(f.type) : null;
+    if (type) features.set(key, { type, left: f.left });
   }
-  const glints = new Set<string>(
-    Array.isArray(g['glints']) ? g['glints'].filter((k): k is string => typeof k === 'string') : [],
-  );
-  const inventory = new Map<string, number>();
-  if (isRecord(g['inventory'])) {
-    for (const [id, n] of Object.entries(g['inventory'])) {
-      if (typeof n === 'number' && n > 0) inventory.set(id, n);
-    }
+  const stock: (readonly [string, number])[] = [];
+  for (const m of MATERIALS) {
+    const n = game.inventory.materials[m.id] ?? 0;
+    if (n > 0) stock.push([m.id, n]);
   }
-  return { features, glints, inventory };
+  for (const i of ITEMS) {
+    const n = game.inventory.items[i.id] ?? 0;
+    if (n > 0) stock.push([i.id, n]);
+  }
+  return { features, glints: new Set(Object.keys(game.glints)), stock };
 }
 
 export const featureAt = (chain: Chain, h: Hex): Feature | null =>
   chain.features.get(hexKey(h)) ?? null;
 
-// --- Provisional rules (replace with the core's own functions when `m3/core` lands) ---------------------
-
-export type ActionKind = 'gather' | 'work-site';
+/** The art kit icon key for a content id (material, item, recipe, role, feature), or the id itself. */
+export function iconOf(id: string): string {
+  const all: readonly { readonly id: string; readonly icon: string }[] = [
+    ...MATERIALS,
+    ...ITEMS,
+    ...RECIPES,
+    ...ROLES,
+  ];
+  return all.find((x) => x.id === id)?.icon ?? typeOf(id)?.icon ?? id;
+}
 
 export interface PossibleAction {
-  readonly kind: ActionKind;
-  /** Actions it costs. */
+  readonly kind: 'gather' | 'work-site';
   readonly cost: number;
-  /** False when it cannot be done now (not enough actions, a missing item, a tier this role cannot try). */
   readonly enabled: boolean;
 }
 
-/** What can be done where a character stands, from the starting values in `docs/design/m3-chain.md`. */
-export function actionsAt(
-  chain: Chain,
-  here: Hex | null,
-  role: string | null,
-  actionsLeft: number,
-): PossibleAction[] {
-  const f = here ? featureAt(chain, here) : null;
-  if (!f || f.spent) return [];
-  if (f.kind === 'node' && (f.charges ?? 1) > 0) {
-    return [{ kind: 'gather', cost: 1, enabled: actionsLeft >= 1 }];
-  }
-  if (f.kind === 'site') {
-    const tier2 = (f.tier ?? 1) >= 2;
-    const canTry = !tier2 || (role === 'scholar' && (chain.inventory.get('lantern') ?? 0) > 0);
-    return [{ kind: 'work-site', cost: 2, enabled: canTry && actionsLeft >= 2 }];
-  }
-  return [];
-}
+/** Refusals that mean "this exists here but cannot be done now": offered faded rather than hidden. */
+const NOT_NOW: ReadonlySet<string> = new Set([
+  'not-enough-actions',
+  'needs-item',
+  'cannot-work',
+  'needs-specialist',
+]);
 
-export interface Recipe {
-  readonly id: string;
-  readonly inputs: readonly (readonly [string, number])[];
-  readonly tier: number;
+/** Gather and work-site where the character stands: offered, offered faded, or not at all. */
+export function actionsAt(game: GameStateView, characterId: string): PossibleAction[] {
+  const out: PossibleAction[] = [];
+  for (const { action, check } of actionsHere(game, characterId)) {
+    if (action.kind === 'craft') continue;
+    const cost = action.kind === 'gather' ? game.config.gatherCost : game.config.workSiteCost;
+    if (check.ok) out.push({ kind: action.kind, cost: check.cost, enabled: true });
+    else if (NOT_NOW.has(check.reason)) out.push({ kind: action.kind, cost, enabled: false });
+  }
+  return out;
 }
-
-/** Recipes from the plan (content data in the core later). */
-export const RECIPES: readonly Recipe[] = [
-  {
-    id: 'grappling-hook',
-    inputs: [
-      ['iron', 2],
-      ['timber', 1],
-    ],
-    tier: 1,
-  },
-  {
-    id: 'lantern',
-    inputs: [
-      ['river-stone', 1],
-      ['timber', 1],
-    ],
-    tier: 1,
-  },
-  {
-    id: 'climbing-spikes',
-    inputs: [
-      ['ancient-alloy', 1],
-      ['iron', 1],
-    ],
-    tier: 2,
-  },
-];
 
 export interface CraftOption {
   readonly recipe: Recipe;
-  /** What crafting takes from the inventory for this character (with the extra material for non-engineers). */
+  /** What crafting takes from the inventory for this character. */
   readonly inputs: readonly (readonly [string, number])[];
-  /** The extra material a non-engineer pays, or null. */
+  /** The extra material a non-specialist pays, or null. */
   readonly extra: readonly [string, number] | null;
   readonly cost: number;
   readonly enabled: boolean;
+  /** The core's refusal when it cannot be crafted now. */
+  readonly refusal: string | null;
 }
 
-/** How a character could craft each recipe now. */
-export function craftOptions(
-  chain: Chain,
-  role: string | null,
-  actionsLeft: number,
-): CraftOption[] {
+/** How the character could craft each recipe now, from the core's own checks. */
+export function craftOptions(game: GameStateView, characterId: string): CraftOption[] {
+  const me = game.characters.find((c) => c.id === characterId);
+  const specialist = me ? roleHas(me, 'craft') : false;
+  const checks = new Map<string, ActCheck>();
+  for (const { action, check } of actionsHere(game, characterId)) {
+    if (action.kind === 'craft') checks.set(action.recipe, check);
+  }
   return RECIPES.map((recipe) => {
-    const engineer = role === 'engineer';
-    const allowed = engineer || recipe.tier === 1;
-    const first = recipe.inputs[0]!;
-    const extra: readonly [string, number] | null = engineer ? null : [first[0], 1];
-    const inputs = recipe.inputs.map(
-      ([id, n]) => [id, extra && id === extra[0] ? n + 1 : n] as const,
-    );
-    const affordable = inputs.every(([id, n]) => (chain.inventory.get(id) ?? 0) >= n);
+    const check: ActCheck = checks.get(recipe.id) ?? { ok: false, reason: 'unknown-character' };
+    const first = recipe.needs[0];
+    const extraAmount = specialist ? 0 : game.config.nonSpecialistExtraMaterial;
+    const extra: readonly [string, number] | null =
+      first && extraAmount > 0 ? [first.material, extraAmount] : null;
+    const inputs = check.ok
+      ? check.uses.map((u) => [u.material, u.amount] as const)
+      : recipe.needs.map(
+          (n, i) => [n.material, n.amount + (i === 0 && extra ? extra[1] : 0)] as const,
+        );
     return {
       recipe,
       inputs,
       extra,
-      cost: 1,
-      enabled: allowed && affordable && actionsLeft >= 1,
+      cost: check.ok ? check.cost : game.config.craftCost,
+      enabled: check.ok,
+      refusal: check.ok ? null : check.reason,
     };
   });
 }

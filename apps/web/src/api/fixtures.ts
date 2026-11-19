@@ -125,6 +125,61 @@ export function lostScenario(): Scenario {
   return { ...joined, state, version: 12 };
 }
 
+/** Hexes of the chain scenario, as offsets from the creature's centre. */
+export const CHAIN_SPOTS = {
+  /** Where you start. */
+  start: { q: 1, r: 2 },
+  /** A hidden iron deposit (glinting). */
+  iron: { q: 1, r: 3 },
+  /** A hidden tomb (glinting). */
+  tomb: { q: 2, r: 2 },
+  /** A hidden snare (glinting), beside both the start and the deposit. */
+  snare: { q: 0, r: 3 },
+  /** A cliff beside the deposit, only for climbers. */
+  cliff: { q: 1, r: 4 },
+} as const;
+
+/**
+ * Milestone 3's chain staged south of the creature: you stand as `role` on open ground beside a hidden
+ * iron deposit, a hidden tomb and a hidden snare (all glinting, as a scout would have sensed them), with a
+ * cliff beyond the deposit, and the team holds a little iron and timber. The seed's own features are
+ * cleared so only these show; the ground around them is set to plains and forest.
+ */
+export function chainScenario(role = 'scout'): Scenario {
+  const s = joinScenario(notJoinedScenario(), role, 0);
+  const c = s.state.creature.centre;
+  const abs = (h: Hex): Hex => ({ q: c.q + h.q, r: c.r + h.r });
+  const key = (h: Hex): string => `${c.q + h.q},${c.r + h.r}`;
+  const tiles = { ...s.state.tiles };
+  for (let dq = -1; dq <= 3; dq += 1) {
+    for (let dr = 1; dr <= 5; dr += 1) {
+      const k = key({ q: dq, r: dr });
+      const known = tiles[k];
+      if (known) tiles[k] = { ...known, terrain: (dq + dr) % 3 === 0 ? 'forest' : 'plains' };
+    }
+  }
+  const cliff = tiles[key(CHAIN_SPOTS.cliff)];
+  if (cliff) tiles[key(CHAIN_SPOTS.cliff)] = { ...cliff, terrain: 'cliff' };
+  const hidden = (type: string, left: number) => ({ type, revealed: false, left });
+  let state: GameState = {
+    ...s.state,
+    tiles,
+    features: {
+      [key(CHAIN_SPOTS.iron)]: hidden('iron-deposit', 3),
+      [key(CHAIN_SPOTS.tomb)]: hidden('tomb', 1),
+      [key(CHAIN_SPOTS.snare)]: hidden('snare', 1),
+    },
+    glints: {
+      [key(CHAIN_SPOTS.iron)]: true,
+      [key(CHAIN_SPOTS.tomb)]: true,
+      [key(CHAIN_SPOTS.snare)]: true,
+    },
+    inventory: { materials: { iron: 2, timber: 1 }, items: {} },
+  };
+  state = place(state, MISA, abs(CHAIN_SPOTS.start));
+  return { ...s, state, version: s.version + 1 };
+}
+
 export const notJoined = (): PlayerView => toView(notJoinedScenario());
 export const joined = (): PlayerView => toView(joinedScenario());
 export const lost = (): PlayerView => toView(lostScenario());

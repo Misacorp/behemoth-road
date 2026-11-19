@@ -4,7 +4,7 @@
  * applies each move. The view is refreshed after your own actions, when the page becomes visible and every
  * 30 seconds while it is visible.
  */
-import { findCharacter } from '@behemoth-road/core';
+import { findCharacter, hexKey, terrainOf } from '@behemoth-road/core';
 import type { JSX } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { ApiError, type ApiClient } from '../api/client.ts';
@@ -24,7 +24,8 @@ import {
 } from '../map/flow.ts';
 import { type FocusTarget, type Here, MapView } from '../map/MapView.tsx';
 import { InventoryDrawer } from '../inventory/InventoryDrawer.tsx';
-import { actionsAt, chainOf, craftOptions, featureAt } from './chain.ts';
+import { featureArtAt } from '../map/cells.ts';
+import { actionsAt, chainOf, craftOptions } from './chain.ts';
 import type { Target } from '../map/pick.ts';
 import { getSettings } from '../settings.ts';
 
@@ -187,15 +188,15 @@ export function Game({ api, initial }: GameProps): JSX.Element {
   const drawerOpen = need !== 'none' && offers.length > 0 && !drawerClosed;
 
   // Milestone 3's chain: what is where, what you can do here, and the team inventory.
-  const chain = useMemo(() => chainOf(view.game), [view]);
-  const role = who.get(id)?.role ?? null;
+  const chain = useMemo(() => chainOf(state), [state]);
   const [inventoryOpen, setInventoryOpen] = useState(false);
   const here = useMemo((): Here | null => {
     if (me?.status !== 'active' || me.at.kind !== 'hex') return null;
-    const f = featureAt(chain, me.at.hex);
-    if (!f) return null;
-    return { feature: f.id, actions: actionsAt(chain, me.at.hex, role, me.actionsLeft) };
-  }, [chain, me, role]);
+    const feature = featureArtAt(state, hexKey(me.at.hex));
+    if (!feature) return null;
+    const terrain = terrainOf(state, me.at.hex)?.id ?? 'unknown';
+    return { terrain, feature, actions: actionsAt(state, me.id) };
+  }, [state, me]);
   const stillSelected = (next: PlayerView): Flow => {
     const mine = next.game.characters.find((c) => c.id === next.you.characterId);
     return mine && mine.actionsLeft > 0 ? { kind: 'selected' } : IDLE;
@@ -231,7 +232,6 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         onRightClick={() => setFlow((f) => rightClick(f, getSettings()))}
         focus={focus}
         coverBottom={anyDrawer ? halfDrawerCover(window.innerWidth, window.innerHeight) : 0}
-        chain={chain}
         here={here}
         onAct={onAct}
       />
@@ -255,13 +255,13 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         }
         onJoin={need !== 'none' && offers.length > 0 ? () => setDrawerClosed(false) : null}
         onInventory={need === 'none' ? () => setInventoryOpen((o) => !o) : null}
-        inventoryCount={[...chain.inventory.values()].reduce((a, b) => a + b, 0)}
+        inventoryCount={chain.stock.reduce((a, [, n]) => a + n, 0)}
       />
       <InventoryDrawer
         open={inventoryOpen && need === 'none'}
         onClose={() => setInventoryOpen(false)}
-        stock={[...chain.inventory]}
-        crafts={craftOptions(chain, role, me?.status === 'active' ? me.actionsLeft : 0)}
+        stock={chain.stock}
+        crafts={me ? craftOptions(state, me.id) : []}
         busy={busy}
         onCraft={onCraft}
       />

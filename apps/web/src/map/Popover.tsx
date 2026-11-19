@@ -16,6 +16,7 @@ import {
   isometric,
   renderScene,
   type CellState,
+  type FeatureArt,
 } from '@behemoth-road/art';
 import type { GameStateView } from '@behemoth-road/core';
 import type { JSX } from 'preact';
@@ -55,14 +56,25 @@ function Miniature({
   state,
   x,
   y,
+  feature = null,
+  hint = false,
+  scale = 1,
 }: {
   terrain: string;
   state: CellState;
   x: number;
   y: number;
+  /** 1 draws it 64 × 56 px. */
+  scale?: number;
+  /** A revealed feature, drawn on the tile as the map draws it. */
+  feature?: FeatureArt | null;
+  /** The glint: something sensed here. */
+  hint?: boolean;
 }) {
   const scene = renderScene({
-    cells: [{ q: 0, r: 0, terrain, state }],
+    cells: [
+      { q: 0, r: 0, terrain, state, ...(feature ? { feature } : {}), ...(hint ? { hint } : {}) },
+    ],
     projection: MINI,
     palette: PALETTE,
     seed: terrain,
@@ -70,7 +82,9 @@ function Miniature({
     // On the card, a page frame would show as a box.
     frame: 'none',
   });
-  return toPreact(el('svg', { ...scene.attrs, x, y, width: 64, height: 56 }, scene.children));
+  return toPreact(
+    el('svg', { ...scene.attrs, x, y, width: 64 * scale, height: 56 * scale }, scene.children),
+  );
 }
 
 const eyeLine = {
@@ -139,10 +153,7 @@ function CardIcon({
   return toPreact({ ...icon, attrs: { ...icon.attrs, x, y, width: size, height: size } });
 }
 
-/** The inspect card, wider when it also shows a revealed feature or a sensed glint. */
-export const inspectSize = (extra: boolean): { width: number; height: number } =>
-  extra ? { width: INSPECT_SIZE.width + 44, height: INSPECT_SIZE.height } : INSPECT_SIZE;
-
+/** The inspect card: the tile as the map draws it (with its revealed feature or glint) and its visibility. */
 export function InspectCard({
   terrain,
   state,
@@ -151,24 +162,18 @@ export function InspectCard({
 }: {
   terrain: string;
   state: CellState;
-  /** A revealed feature on the hex (its content id), drawn beside the terrain. */
-  feature?: string | null;
+  /** A revealed feature on the hex, drawn on the tile. */
+  feature?: FeatureArt | null;
   /** The hex is sensed: something is there, not what. */
   glint?: boolean;
 }): JSX.Element {
-  const extra = feature !== null || glint;
   return (
-    <g
-      data-popover="inspect"
-      data-feature={feature ?? undefined}
-      data-glint={glint ? true : undefined}
-    >
-      <Card {...inspectSize(extra)} />
-      <Miniature terrain={terrain} state={state} x={6} y={8} />
+    <g data-popover="inspect" data-feature={feature?.look} data-glint={glint ? true : undefined}>
+      <Card {...INSPECT_SIZE} />
+      <Miniature terrain={terrain} state={state} x={6} y={8} feature={feature} hint={glint} />
       <g transform="translate(84 22)">
         <VisibilityMark state={state} />
       </g>
-      {extra && <CardIcon id={feature ?? 'glint'} x={128} y={20} size={36} />}
     </g>
   );
 }
@@ -477,11 +482,15 @@ export interface HereAction {
   readonly enabled: boolean;
 }
 
-const ACTION_W = 64;
+const ACTION_W = 54;
 
+/** The art kit icon each action shows (an open hand to gather, a key to work a site). */
+const ACTION_ICONS: Readonly<Record<string, string>> = { gather: 'hand', 'work-site': 'key' };
+
+// Compact, so the neighbours up-left and up-right of your figure stay tappable on a phone.
 export const hereSize = (count: number): { width: number; height: number } => ({
-  width: 64 + count * ACTION_W,
-  height: 74,
+  width: 58 + count * ACTION_W,
+  height: 62,
 });
 
 /**
@@ -489,21 +498,26 @@ export const hereSize = (count: number): { width: number; height: number } => ({
  * button with its action icon and cost pips. Tapping an action is the second tap that spends.
  */
 export function HereCard({
+  terrain,
   feature,
   actions,
   onAct,
   firstRef,
 }: {
-  feature: string;
+  terrain: string;
+  feature: FeatureArt;
   actions: readonly HereAction[];
   onAct: (kind: string) => void;
   firstRef: (el: SVGGElement | null) => void;
 }): JSX.Element {
   const size = hereSize(actions.length);
   return (
-    <g data-popover="here" data-feature={feature}>
-      <Card {...size} />
-      <CardIcon id={feature} x={10} y={16} size={42} />
+    <g data-popover="here" data-feature={feature.look}>
+      {/* Taps on the card body reach the map below (a neighbour's hex); only the actions catch them. */}
+      <g class="pass-through">
+        <Card {...size} />
+        <Miniature terrain={terrain} state="seen" x={4} y={9} feature={feature} scale={0.78} />
+      </g>
       {actions.map((a, i) => {
         const run = (): void => {
           if (a.enabled) onAct(a.kind);
@@ -518,7 +532,7 @@ export function HereCard({
             aria-label={a.kind}
             aria-disabled={!a.enabled}
             data-action={a.kind}
-            transform={`translate(${60 + i * ACTION_W} 6)`}
+            transform={`translate(${56 + i * ACTION_W} 5)`}
             opacity={a.enabled ? 1 : 0.4}
             onClick={run}
             onKeyDown={(e) => {
@@ -528,9 +542,14 @@ export function HereCard({
               }
             }}
           >
-            <rect width={ACTION_W - 6} height={60} rx={10} fill={PALETTE.paperDeep} />
-            <CardIcon id={a.kind} x={(ACTION_W - 6) / 2 - 16} y={4} size={32} />
-            <g transform={`translate(${(ACTION_W - 6) / 2 - (a.cost * 10) / 2 - 2} 42)`}>
+            <rect width={ACTION_W - 6} height={50} rx={9} fill={PALETTE.paperDeep} />
+            <CardIcon
+              id={ACTION_ICONS[a.kind] ?? a.kind}
+              x={(ACTION_W - 6) / 2 - 14}
+              y={3}
+              size={28}
+            />
+            <g transform={`translate(${(ACTION_W - 6) / 2 - (a.cost * 10) / 2 - 2} 34)`}>
               <Pips total={a.cost} left={a.cost} size={9} />
             </g>
           </g>

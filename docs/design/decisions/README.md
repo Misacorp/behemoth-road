@@ -103,7 +103,8 @@ Record a decision:
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
-- 2026-11-20 Chain actions live in the popover and the team inventory in a satchel drawer; moments come from events
+- 2026-11-20 The here card is compact and lets taps through its body; moments use the art kit's marks
+- 2026-11-20 Chain actions live in the popover and the team inventory in a satchel drawer; moments come from events (amended)
 - 2026-11-20 Features, glints, moments and the via mark are drawn by the art kit from content keys
 - 2026-11-19 Joining is a drawer wizard; characters look distinct on the map
 - 2026-11-19 Character looks come from content's look seeds, so a preview matches the joined look
