@@ -241,8 +241,8 @@ function summariseTrace(json) {
   const bucket = (name) => {
     if (/^(UpdateLayoutTree|RecalculateStyles|ParseAuthorStyleSheet)$/.test(name)) return 'style';
     if (/^(Layout|UpdateLayerTree|LayoutShift)$/.test(name)) return 'layout';
-    if (/^(PrePaint|Paint|PaintImage|Layerize|Commit|UpdateLayer|CompositeLayers)$/.test(name))
-      return 'paint';
+    if (/^(PrePaint|Paint|PaintImage)$/.test(name)) return 'paint';
+    if (/^(Layerize|Commit|UpdateLayer|CompositeLayers)$/.test(name)) return 'composite';
     if (
       /^(FunctionCall|EvaluateScript|v8\.|RunMicrotasks|TimerFire|FireAnimationFrame|EventDispatch|V8\.)/.test(
         name,
@@ -252,7 +252,7 @@ function summariseTrace(json) {
     if (/^(MajorGC|MinorGC|V8\.GC)/.test(name)) return 'gc';
     return null;
   };
-  const totals = { script: 0, style: 0, layout: 0, paint: 0, gc: 0, raster: 0 };
+  const totals = { script: 0, style: 0, layout: 0, paint: 0, composite: 0, gc: 0, raster: 0 };
   for (const key of main) {
     const list = events
       .filter((e) => `${e.pid}:${e.tid}` === key)
@@ -305,7 +305,7 @@ async function measure(browser, url, experiment, rate) {
   const page = await context.newPage();
   await page.addInitScript(harness);
   await page.goto(url);
-  await page.waitForSelector('svg.map g');
+  await page.waitForSelector('.map-world svg g, svg.map > g');
   await page.waitForTimeout(400);
   const fn = EXPERIMENTS[experiment];
   if (fn) {
@@ -440,7 +440,7 @@ async function measure(browser, url, experiment, rate) {
   const day = (await events()).filter((e) => /^(click|pointerup|pointerdown)$/.test(e.name));
   const nextDay = Math.max(0, ...day.map((e) => e.duration));
 
-  const nodes = await page.evaluate(() => document.querySelectorAll('svg.map *').length);
+  const nodes = await page.evaluate(() => document.querySelectorAll('.map-root svg *').length);
   await context.close();
   return {
     experiment,
@@ -504,25 +504,25 @@ async function run() {
   console.log(
     '\nWhere time goes during six taps (ms; main-thread self time, raster on all threads):\n',
   );
-  console.log('| experiment | CPU | script | style | layout | paint | raster |');
-  console.log('|---|---|---|---|---|---|---|');
+  console.log('| experiment | CPU | script | style | layout | paint | layerize+commit | raster |');
+  console.log('|---|---|---|---|---|---|---|---|');
   for (const r of results) {
     const t = r.taps;
     console.log(
-      `| ${r.experiment} | ${r.rate}× | ${f(t.script)} | ${f(t.style)} | ${f(t.layout)} | ${f(t.paint)} | ${f(t.raster)} |`,
+      `| ${r.experiment} | ${r.rate}× | ${f(t.script)} | ${f(t.style)} | ${f(t.layout)} | ${f(t.paint)} | ${f(t.composite)} | ${f(t.raster)} |`,
     );
   }
   console.log(
     '\nWhere time goes during the drag and its release (ms; main-thread self time, raster on all threads):\n',
   );
   console.log(
-    '| experiment | CPU | script | style | layout | paint | raster | main-thread rAF p50/p95 |',
+    '| experiment | CPU | script | style | layout | paint | layerize+commit | raster | main-thread rAF p50/p95 |',
   );
-  console.log('|---|---|---|---|---|---|---|---|');
+  console.log('|---|---|---|---|---|---|---|---|---|');
   for (const r of results) {
     const t = r.drag;
     console.log(
-      `| ${r.experiment} | ${r.rate}× | ${f(t.script)} | ${f(t.style)} | ${f(t.layout)} | ${f(t.paint)} | ${f(t.raster)} | ${f(r.dragP50)}/${f(r.dragP95)} |`,
+      `| ${r.experiment} | ${r.rate}× | ${f(t.script)} | ${f(t.style)} | ${f(t.layout)} | ${f(t.paint)} | ${f(t.composite)} | ${f(t.raster)} | ${f(r.dragP50)}/${f(r.dragP95)} |`,
     );
   }
   writeFileSync(join(out, 'perf.json'), `${JSON.stringify(results, null, 2)}\n`);

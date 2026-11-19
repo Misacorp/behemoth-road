@@ -4,6 +4,14 @@ Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: The map pans a world layer by CSS transform; the scene stays memoised
+
+ID: `2026-11-19-the-map-pans-a-world-layer` · Status: current
+
+**Decision.** The map draws the scene and its overlays into one world `<svg>` inside an HTML `div` with `will-change: transform`. Pan and zoom set that div's CSS transform (`layerTransform`, written through the CSSOM in `cssTransform.ts`, the one exemption from the inline-style guard; the CSP allows CSSOM writes). The world `<svg>` is drawn at the current ink-zoom step and redrawn only when a gesture settles at a new step or the game state changes. The paper grain sits in its own static `<svg>` above it, and a full-screen `svg.map` on top takes the pointer and holds the popover. Filters stay on during gestures (the old `lite` toggle is gone, since toggling forced a full redraw on release). The scene layers render through a component that skips re-rendering unless they change, and the bubble's figure and creature drawings are module constants.
+
+**Reasoning.** Measured with `apps/web/scripts/perf.mjs` (Pixel 7 profile, CPU 4× and 6×): panning re-rasterised the whole SVG every frame, about 1.1 s of raster per drag, while filters, grain or half the paths saved only 15–25%. A CSS transform on an HTML layer lets the compositor move the finished bitmap: raster during a drag went from about 1.2 s to 0, tap latency from 120/160 ms to 64/88 ms, release from about 55 ms to 22 ms, and dropped frames from 5–6 to 1–2 per drag. `will-change` on an SVG `<g>` would only help in Chromium; the HTML layer works in WebKit too. The settled look is unchanged: screenshots before and after differ only in single grain pixels (0.03–0.05%), also at another zoom step.
+
 ## 2026-11-19: Art terrain looks are keyed by the core's terrain ids
 
 ID: `2026-11-19-art-terrain-looks-are-keyed-by` · Status: current

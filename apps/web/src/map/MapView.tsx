@@ -1,8 +1,11 @@
 /**
- * The map: the art kit's scene and the overlays in one SVG, panned and zoomed by a transform on one group.
+ * The map: the art kit's scene and the overlays drawn into one world SVG inside an HTML layer, which pans
+ * and zooms by a CSS transform, so the compositor moves the finished drawing instead of redrawing it every
+ * frame. The world SVG is redrawn crisp when a gesture settles at a new zoom step. Above it, a static SVG
+ * carries the paper grain and a full-screen SVG (`svg.map`) takes the pointer and holds the popover.
  * Gestures update the view imperatively (no re-render per frame); taps find their hex by maths.
  */
-import { hexCenter, paperGrain, renderScene } from '@behemoth-road/art';
+import { hexCenter, paperGrain, renderSceneFramed, type SvgNode } from '@behemoth-road/art';
 import {
   type GameState,
   predictCreature,
@@ -11,7 +14,7 @@ import {
   reachablePlaces,
   terrainIdAt,
 } from '@behemoth-road/core';
-import type { JSX } from 'preact';
+import { Component, type ComponentChildren, type JSX } from 'preact';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { PALETTE, PROJECTION } from './art.ts';
 import { cellStateAt, characterArts, creatureArt, sceneCells } from './cells.ts';
@@ -32,17 +35,18 @@ import {
   INSPECT_SIZE,
   InspectCard,
 } from './Popover.tsx';
+import { setCssTransform } from './cssTransform.ts';
 import { toPreact } from './svgToPreact.ts';
 import {
   centreOn,
   clampScale,
   inkZoomFor,
+  layerTransform,
   lerpView,
   panBy,
   type Size,
   toScreen,
   toWorld,
-  transformAttr,
   type View,
   zoomAt,
 } from './view.ts';
@@ -146,10 +150,26 @@ function popoverAnchor(state: GameState, flow: Flow, characterId: string): Ancho
 
 const easeOut = (t: number): number => 1 - (1 - t) ** 3;
 
+/**
+ * Renders its `nodes` and re-renders only when they are a new array, so a tap that changes the flow does not
+ * make Preact walk the hundreds of scene elements again.
+ */
+class Static extends Component<{ nodes: ComponentChildren }> {
+  override shouldComponentUpdate(next: { nodes: ComponentChildren }): boolean {
+    return next.nodes !== this.props.nodes;
+  }
+  override render(): ComponentChildren {
+    return this.props.nodes;
+  }
+}
+
+/** Room around the scene's own frame for overlays that reach past it (world px, in hex sizes). */
+const LAYER_MARGIN = 2;
+
 export function MapView(props: MapViewProps): JSX.Element {
   const { state, flow, characterId } = props;
   const svgRef = useRef<SVGSVGElement>(null);
-  const worldRef = useRef<SVGGElement>(null);
+  const worldRef = useRef<HTMLDivElement>(null);
   const popRef = useRef<SVGGElement>(null);
   // The popover's chevron: its path data is set with the card's position, every frame it moves.
   const chevronFillRef = useRef<SVGPathElement>(null);
@@ -170,7 +190,7 @@ export function MapView(props: MapViewProps): JSX.Element {
 
   // The scene depends on the game state only; overlays also on the flow.
   const layers = useMemo(() => {
-    const scene = renderScene({
+    const { svg: scene, viewBox } = renderSceneFramed({
       cells: sceneCells(state),
       creature: creatureArt(state),
       characters: characterArts(state),
@@ -183,11 +203,22 @@ export function MapView(props: MapViewProps): JSX.Element {
       frame: 'none',
     });
     const split = splitScene(scene);
+    const m = LAYER_MARGIN * p.size;
     return {
-      ground: split.ground.map(toPreact),
-      figures: split.figures.map(toPreact),
+      ground: split.ground.map((n: SvgNode) => toPreact(n)),
+      figures: split.figures.map((n: SvgNode) => toPreact(n)),
+      // The world layer: this box of world px, drawn at `raster` CSS px per world px.
+      box: {
+        x: viewBox.x - m,
+        y: viewBox.y - m,
+        width: viewBox.width + 2 * m,
+        height: viewBox.height + 2 * m,
+      },
+      raster: inkZoom,
     };
   }, [state, inkZoom]);
+  const layerRef = useRef(layers);
+  layerRef.current = layers;
 
   const overlays = useMemo(() => {
     const selecting = isSelecting(flow);
@@ -209,7 +240,9 @@ export function MapView(props: MapViewProps): JSX.Element {
   function apply(): void {
     frame.current = 0;
     const v = view.current;
-    worldRef.current?.setAttribute('transform', transformAttr(v));
+    const world = worldRef.current;
+    const layer = layerRef.current;
+    if (world) setCssTransform(world, layerTransform(v, layer.raster, layer.box));
     // Read by the screenshot script to find hexes on screen.
     svgRef.current?.setAttribute(
       'data-view',
@@ -254,16 +287,11 @@ export function MapView(props: MapViewProps): JSX.Element {
     animation.current = requestAnimationFrame(step);
   }
 
-  function setLite(on: boolean): void {
-    svgRef.current?.classList.toggle('lite', on);
-  }
-
   function handle(gestures: readonly Gesture[]): void {
     for (const g of gestures) {
       switch (g.type) {
         case 'start':
           stopAnimation();
-          setLite(true);
           break;
         case 'pan':
           view.current = panBy(view.current, g.dx, g.dy);
@@ -278,7 +306,6 @@ export function MapView(props: MapViewProps): JSX.Element {
           break;
         }
         case 'end':
-          setLite(false);
           settleZoom();
           break;
       }
@@ -348,12 +375,8 @@ export function MapView(props: MapViewProps): JSX.Element {
     const onWheel = (e: WheelEvent): void => {
       e.preventDefault();
       stopAnimation();
-      setLite(true);
       window.clearTimeout(idle);
-      idle = window.setTimeout(() => {
-        setLite(false);
-        settleZoom();
-      }, 160);
+      idle = window.setTimeout(settleZoom, 160);
       const perPixel = e.ctrlKey ? MAP_TUNING.pinchWheelZoomPerPixel : MAP_TUNING.wheelZoomPerPixel;
       const lines = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? size.current.height : 1;
       const factor = Math.exp(-e.deltaY * lines * perPixel);
@@ -404,6 +427,11 @@ export function MapView(props: MapViewProps): JSX.Element {
       MAP_TUNING.followMs,
     );
   }, [focusN]);
+
+  // A redrawn world layer (new zoom step or a new day) needs its transform in the same frame.
+  useLayoutEffect(() => {
+    apply();
+  }, [layers]);
 
   // Place the popover, and move focus into it when it opens (out again when it closes).
   const popKey = popover.current?.key ?? '';
@@ -474,55 +502,66 @@ export function MapView(props: MapViewProps): JSX.Element {
     );
   }
 
+  const { box, raster } = layers;
   return (
-    <svg
-      ref={svgRef}
-      class="map"
-      data-creature={`${state.creature.centre.q} ${state.creature.centre.r}`}
-      data-projection={`${p.size} ${p.squash}`}
-      tabindex={-1}
-      onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={onPointerUp}
-      onPointerCancel={onPointerCancel}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        props.onRightClick();
-      }}
-      onLostPointerCapture={onPointerCancel}
-    >
-      <rect width="100%" height="100%" fill={PALETTE.paper} />
-      <g ref={worldRef}>
-        {layers.ground}
-        {overlays.under}
-        {layers.figures}
-        {overlays.over}
-      </g>
-      <g class="grain">{GRAIN}</g>
-      <g
-        ref={popRef}
-        class="popover"
+    <div class="map-root">
+      <div ref={worldRef} class="map-world">
+        <svg
+          viewBox={`${box.x} ${box.y} ${box.width} ${box.height}`}
+          width={box.width * raster}
+          height={box.height * raster}
+          aria-hidden="true"
+        >
+          <Static nodes={layers.ground} />
+          {overlays.under}
+          <Static nodes={layers.figures} />
+          {overlays.over}
+        </svg>
+      </div>
+      <svg class="map-grain" aria-hidden="true">
+        {GRAIN}
+      </svg>
+      <svg
+        ref={svgRef}
+        class="map"
+        data-creature={`${state.creature.centre.q} ${state.creature.centre.r}`}
+        data-projection={`${p.size} ${p.squash}`}
         tabindex={-1}
-        onPointerDown={(e) => {
-          // A lone press on the card stays on the card (its button clicks); a finger landing on it
-          // while another is down on the map joins the pinch.
-          if (tracker.current.count === 0) e.stopPropagation();
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerCancel}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          props.onRightClick();
         }}
+        onLostPointerCapture={onPointerCancel}
       >
-        {card}
-        {card && (
-          <>
-            <path ref={chevronFillRef} fill={PALETTE.paper} />
-            <path
-              ref={chevronEdgeRef}
-              fill="none"
-              stroke={PALETTE.inkSoft}
-              stroke-width={1.2}
-              stroke-linejoin="round"
-            />
-          </>
-        )}
-      </g>
-    </svg>
+        <g
+          ref={popRef}
+          class="popover"
+          tabindex={-1}
+          onPointerDown={(e) => {
+            // A lone press on the card stays on the card (its button clicks); a finger landing on it
+            // while another is down on the map joins the pinch.
+            if (tracker.current.count === 0) e.stopPropagation();
+          }}
+        >
+          {card}
+          {card && (
+            <>
+              <path ref={chevronFillRef} fill={PALETTE.paper} />
+              <path
+                ref={chevronEdgeRef}
+                fill="none"
+                stroke={PALETTE.inkSoft}
+                stroke-width={1.2}
+                stroke-linejoin="round"
+              />
+            </>
+          )}
+        </g>
+      </svg>
+    </div>
   );
 }

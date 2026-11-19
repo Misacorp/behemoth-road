@@ -38,7 +38,40 @@ body {
   inset: 0;
 }
 
+/* The map: a world layer that pans and zooms by a CSS transform, the static grain, and the pointer layer. */
+.map-root {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #f3f1e2;
+}
+
+.map-world {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+  will-change: transform;
+  pointer-events: none;
+}
+
+.map-world > svg {
+  display: block;
+  overflow: visible;
+}
+
+.map-grain {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
 .map {
+  position: absolute;
+  inset: 0;
   display: block;
   width: 100%;
   height: 100%;
@@ -48,11 +81,6 @@ body {
 
 .map:active {
   cursor: grabbing;
-}
-
-/* While a gesture runs, the map drops its SVG filters so panning stays smooth on phones. */
-.map.lite .fx {
-  filter: none;
 }
 
 .svg-button {
@@ -160,8 +188,4 @@ button svg,
   :root {
     --round: 56px;
   }
-}
-
-.map .grain {
-  pointer-events: none;
 }

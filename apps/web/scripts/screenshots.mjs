@@ -86,7 +86,7 @@ async function run() {
       });
       page.on('pageerror', (e) => problems.push(`${vp.name}: ${e.message}`));
       await page.goto(url);
-      await page.waitForSelector('svg.map g');
+      await page.waitForSelector('.map-world svg g');
       await page.waitForTimeout(300);
       await page.screenshot({ path: join(out, `m1-map-${vp.name}-1-start.png`) });
 
@@ -245,13 +245,13 @@ async function run() {
         };
         requestAnimationFrame(tick);
       });
-      const world = page.locator('svg.map > g').first();
-      const before = await world.getAttribute('transform');
+      // The view the map reports (it pans its world layer by a CSS transform).
+      const before = await svg.getAttribute('data-view');
       await page.mouse.move(cx, cy);
       await page.mouse.down();
       for (let i = 0; i < 60; i += 1) await page.mouse.move(cx - i * 4, cy - i * 2);
       await page.mouse.up();
-      if ((await world.getAttribute('transform')) === before)
+      if ((await svg.getAttribute('data-view')) === before)
         problems.push(`${vp.name}: drag did not pan`);
       const scaleBefore = await svg.getAttribute('data-view');
       // Mobile emulation sends no wheel events; the desktop run checks wheel zoom.
@@ -268,7 +268,7 @@ async function run() {
       report.push(
         `${vp.name}: drag at 4x CPU slowdown, ${frames.length} frames, median ${pct(0.5)} ms, p95 ${pct(0.95)} ms`,
       );
-      const nodes = await page.evaluate(() => document.querySelectorAll('svg.map *').length);
+      const nodes = await page.evaluate(() => document.querySelectorAll('.map-root svg *').length);
       report.push(`${vp.name}: ${nodes} SVG elements in the map`);
       await context.close();
     }
