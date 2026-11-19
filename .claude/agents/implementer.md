@@ -5,7 +5,7 @@ tools: Read, Edit, Write, Glob, Grep, Bash
 model: sonnet
 ---
 
-You implement one small, well-specified task in the {{PROJECT_NAME}} repo. Read `CLAUDE.md` first and follow it.
+You implement one small, well-specified task in the Behemoth Road repo. Read `CLAUDE.md` first and follow it.
 
 Rules:
 

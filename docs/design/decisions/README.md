@@ -22,7 +22,8 @@ Record a decision:
 
 [direction.md](direction.md): Priorities, how the owner and agents work, naming and tone.
 
-- 2026-11-19 Agents commit as the owner \[{{OWNER_NAME}}\]
+- 2026-11-19 Art costs no money; code draws it, local generation is optional \[Misa\]
+- 2026-11-19 Agents commit as the owner \[Misa\]
 - 2026-11-19 Squash merges only; the PR title and description are the commit (amended)
 - 2026-11-19 Agents make small calls themselves; the owner keeps the large direction
 - 2026-11-19 Open questions go in one numbered list, asked once
@@ -41,11 +42,16 @@ Record a decision:
 - 2026-11-19 Screenshots that belong together form one labelled sheet, and every picture enlarges on tap
 - 2026-11-19 A polish night starts with read-only audits
 - 2026-11-19 Retros turn friction into proposals; procedures become skills
+- 2026-11-19 Design variants ship only to staging until the owner picks one
 
 ## Platform and tooling
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
+- 2026-11-19 Hostnames stay out of the README and workflows
+- 2026-11-19 One Durable Object per Discord server holds the game; its alarm runs the day tick
+- 2026-11-19 The game core is its own pure package, imported by the Worker and the frontend
+- 2026-11-19 Players open the game as a Discord Activity, like creatures \[Misa\]
 - 2026-11-19 Decisions live in docs/design/decisions, one file per topic
 - 2026-11-19 Agents never merge; main accepts changes only through PRs
 - 2026-11-19 CI runs parallel jobs behind one required gate job
@@ -59,11 +65,22 @@ Record a decision:
 - 2026-11-19 In a public repo, logs, summaries and artifacts are public too
 - 2026-11-19 Limit what a fooled agent can do
 - 2026-11-19 Migrations apply by recorded version, and a released number is never reused
+- 2026-11-19 Production deploys only from main; staging only from a manual run
+- 2026-11-19 Dev tools exist only in staging and fail closed
+- 2026-11-19 Large reworks run behind a staging-only flag
+- 2026-11-19 Destructive one-off operations are built inert
+- 2026-11-19 A script tells agents which commit is deployed
+- 2026-11-19 Client-server contract fixtures are captured from the real server
+- 2026-11-19 Measure costs before guessing, and price work that repeats
+- 2026-11-19 One Worker serves the frontend and the API, configured as code
+- 2026-11-19 Strict security headers, and everything served from our own origin
 
 ## Product
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-19 Isometric 3D hexes are the long-term goal; the map is built to allow it \[Misa\]
+- 2026-11-19 The look is a light ink-and-wash atlas in pastel, broken colours \[Misa\]
 - 2026-11-19 Phone first, desktop too
 - 2026-11-19 Accessibility is not traded away
 - 2026-11-19 Focus returns to the opener only for keyboard users

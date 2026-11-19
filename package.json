@@ -1,5 +1,5 @@
 {
-  "name": "{{PROJECT_SLUG}}",
+  "name": "behemoth-road",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -8,7 +8,7 @@
     "node": ">=22.12.0"
   },
   "scripts": {
-    "build": "pnpm --filter @{{PROJECT_SLUG}}/web build && pnpm --filter @{{PROJECT_SLUG}}/worker build",
+    "build": "pnpm --filter @behemoth-road/web build && pnpm --filter @behemoth-road/worker build",
     "typecheck": "pnpm -r --if-present typecheck",
     "lint": "pnpm -r --workspace-concurrency=2 lint && eslint --cache --cache-strategy content --cache-location node_modules/.cache/eslint/root scripts .claude eslint.config.js",
     "test": "pnpm -r --if-present test && node --test 'scripts/*.test.mjs'",

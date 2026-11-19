@@ -4,6 +4,38 @@ Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: Hostnames stay out of the README and workflows
+
+ID: `2026-11-19-hostnames-stay-out-of-the-readme` · Status: current
+
+**Decision.** The production and staging hostnames are not written in the README or in workflow files; the deploy job sets no environment URL. They stay only where deploys and checks need them: `apps/worker/wrangler.jsonc` (the Worker's custom domains), `project.config.json` (read by `scripts/deployed.mjs` and `scripts/github-setup.mjs`) and the setup checklist.
+
+**Reasoning.** Misa prefers not to advertise the URLs in a public repository. The hostnames are not secret (certificate transparency logs and Discord's URL mapping list them), so access control, not obscurity, protects the game; moving them out of `wrangler.jsonc` would add deploy-time templating for little gain.
+
+## 2026-11-19: One Durable Object per Discord server holds the game; its alarm runs the day tick
+
+ID: `2026-11-19-one-durable-object-per-discord-server` · Status: current
+
+**Decision.** Each Discord server's game lives in one SQLite-backed Durable Object, keyed by the server's guild id, as in creatures. The object runs one request at a time and writes in transactions; schema changes run through an in-code migration runner. The daily tick is the object's alarm, computed in the group's time zone; in local development and staging an admin "next day" calls the same tick function on demand. Milestone 1 needs no storage; this applies from Milestone 2.
+
+**Reasoning.** Creatures runs this way in production. One object per server matches "one session per server", serialised requests remove write races for a group of about 8, and D1 lacks interactive transactions. Cloudflare cron triggers are UTC only, which is why creatures moved to alarms.
+
+## 2026-11-19: The game core is its own pure package, imported by the Worker and the frontend
+
+ID: `2026-11-19-the-game-core-is-its-own` · Status: current
+
+**Decision.** All game rules live in `packages/core`: hex maths, map generation, the creature, the window, actions and the day tick, plus content data and one tuning config. It has no UI, network or storage code, takes a seed for all randomness, and exposes pure functions from state and input to new state. The Worker and the frontend import it as a workspace package.
+
+**Reasoning.** The same rules then validate actions on the server, predict outcomes in the client, and later run headless balancing simulations. Creatures splits its packages the same way.
+
+## 2026-11-19: Players open the game as a Discord Activity, like creatures **[Misa]**
+
+ID: `2026-11-19-players-open-the-game-as-a` · Status: current
+
+**Decision.** The game runs as a Discord Activity, launched from inside Discord on phone and desktop, with no separate website login. Sign-in reuses creatures' approach: the Embedded App SDK's authorize code is exchanged by the Worker, the Discord server comes from the Activity instance as reported to the bot, and the session is an HMAC-signed bearer token. The frontend keeps Discord-specific code at its edges so a browser login could be added later. Milestone 1 has no sign-in and is a plain page.
+
+**Reasoning.** Misa chose this over a website with "Sign in with Discord". Creatures' sign-in already works, and Discord vouches for which server a player is in, so no membership check is needed.
+
 ## 2026-11-19: Decisions live in docs/design/decisions, one file per topic
 
 ID: `2026-11-19-decisions-live-in-docs-design-decisions` · Status: current
@@ -107,3 +139,75 @@ ID: `2026-11-19-migrations-apply-by-recorded-version-and` · Status: current
 **Decision.** The migration runner applies every migration whose version is not yet recorded, not "everything above the highest recorded version". A released migration number is never reused or edited. When parallel agents or branches add migrations, the lead assigns the numbers.
 
 **Reasoning.** Branches merge in any order, so production can hold a higher number while lower ones are still unmerged; a highest-version runner would skip those forever. Parallel agents otherwise take the same next number.
+
+## 2026-11-19: Production deploys only from main; staging only from a manual run
+
+ID: `2026-11-19-production-deploys-only-from-main-staging` · Status: current
+
+**Decision.** A merge to `main` deploys production, and nothing else does: a guard step fails the deploy job if the target is production for anything but a push to `main`. Staging changes only when the deploy workflow is run by hand on a chosen branch; pushing a branch deploys nothing. Agents start that manual run only when the owner asks for it in that session, then wait until it is live and say so.
+
+**Reasoning.** When every push deployed staging, parallel sessions took turns overwriting it and it was unclear what the owner was testing. The owner wants to decide what is on staging; a guard step keeps a manual run from ever reaching production.
+
+## 2026-11-19: Dev tools exist only in staging and fail closed
+
+ID: `2026-11-19-dev-tools-exist-only-in-staging` · Status: current
+
+**Decision.** Dev routes and the dev panel are switched on by one runtime variable that is on only in the staging config, and a test pins it off in production; with it off, every dev route answers a plain 404 before any other check, at every layer. The panel's code is a separate chunk left out of the production build, and a build test checks production output has none of it. Dev tools are for the owner and admins only and fail closed when that cannot be checked.
+
+**Reasoning.** Tools that set state for testing are dangerous in production. Checking first at each layer means the gate holds even if one layer is bypassed, and a build test proves production users never download the code.
+
+## 2026-11-19: Large reworks run behind a staging-only flag
+
+ID: `2026-11-19-large-reworks-run-behind-a-staging` · Status: current
+
+**Decision.** A large rework is built behind a runtime flag that is on in staging and pinned off in production by a test. Anything long-lived (a run, a period, a stored job) records which rules version it started under, and the client follows that stored version, not the flag. The flag is read only when something starts.
+
+**Reasoning.** Storing the version at the start means a flag flip never changes work already under way, and old records still replay under their own rules. The rework can merge to `main` early without changing production.
+
+## 2026-11-19: Destructive one-off operations are built inert
+
+ID: `2026-11-19-destructive-one-off-operations-are-built` · Status: current
+
+**Decision.** A destructive one-off (a data wipe, a bulk migration, a reset) merges with nothing in production able to call it, and staging gets a read-only dry run. The wipe refuses to run without proof that the backup step succeeded for the same data, and a test scans the source so no route, timer or tool can reach it unnoticed. The release that turns it on is a small, explicit wiring PR that must also change that test.
+
+**Reasoning.** The owner wants to review such work on staging before it can touch real users. Making "back up first, then wipe" a property of the code, not of whoever triggers it, means a mistake in the trigger cannot lose data.
+
+## 2026-11-19: A script tells agents which commit is deployed
+
+ID: `2026-11-19-a-script-tells-agents-which-commit` · Status: current
+
+**Decision.** A small script reads the deployed branch and commit from the public config endpoint of the fixed production and staging hosts (read-only, no URL from the caller), compares them with a ref and can wait until a commit is live. The deploy workflow's last step runs the same check, so a green run means the commit is live. The page also carries the branch and commit in meta tags.
+
+**Reasoning.** Without it, every deploy ended with asking the owner to read a footer. A fixed host list keeps the script from becoming a general fetch tool for agents that are otherwise denied curl.
+
+## 2026-11-19: Client-server contract fixtures are captured from the real server
+
+ID: `2026-11-19-client-server-contract-fixtures-are-captured` · Status: current
+
+**Decision.** The fixtures the client tests read are captured by one command that plays seeded scenarios against the real server code, writes the files whole and maps random ids to stable ones; they are never edited by hand. Its `--check` mode runs in CI and fails if a capture would change a file, and after a capture the PR says what moved and why. The server proves its responses match the fixtures and the client proves it parses every one.
+
+**Reasoning.** Hand-kept fixtures drifted on `main` and carried hand-typed numbers. Captured fixtures keep the two sides in sync without end-to-end browser tests, and stable ids make a re-capture show only real changes.
+
+## 2026-11-19: Measure costs before guessing, and price work that repeats
+
+ID: `2026-11-19-measure-costs-before-guessing-and-price` · Status: current
+
+**Decision.** Performance and quota work starts from a measurement on realistic data, and the probe becomes a test with a budget (about 1.5x the measured value, kept next to it; raising one needs a reason in the PR). Work that repeats on a timer, a poll or every request is priced per day before it ships, remembering that staging counts against the same account quotas. Nothing that must last between requests lives in memory, because the runtime may drop it seconds after a request.
+
+**Reasoning.** Guesses were wrong twice in one week, and a free-tier limit was hit twice by small work that ran every minute, not by big tables. Memory "caches" were recomputed on almost every request because instances sleep and restart.
+
+## 2026-11-19: One Worker serves the frontend and the API, configured as code
+
+ID: `2026-11-19-one-worker-serves-the-frontend-and` · Status: current
+
+**Decision.** One Cloudflare Worker serves the static frontend and the API under `/api/*` on one origin, so the frontend uses relative URLs; the frontend is Vite, Preact and strict TypeScript, and request bodies are checked with strict Valibot schemas. Infrastructure is declared in `wrangler.jsonc` and applied by CI, which runs `wrangler` from the project's own lockfile rather than a marketplace deploy action; only one-time tokens are set up by hand. The project starts on the Workers Free plan and upgrades only when a measured limit blocks it.
+
+**Reasoning.** One origin and one deploy pipeline mean one set of credentials and one place to look when something breaks. Running the deploy CLI from the lockfile hands the Cloudflare token only to pinned, aged code. Preact and Valibot keep bundles small, and JSX escapes text by default.
+
+## 2026-11-19: Strict security headers, and everything served from our own origin
+
+ID: `2026-11-19-strict-security-headers-and-everything-served` · Status: current
+
+**Decision.** The frontend sends a strict CSP (`default-src 'self'`, no inline scripts or styles, `object-src 'none'`, `base-uri 'none'`) plus `nosniff`, a referrer policy, HSTS and a permissions policy, and fonts and other assets are self-hosted with their licence texts shipped. API responses carry `Cache-Control: no-store` and no CORS headers. Text is rendered as text only; `innerHTML` and `dangerouslySetInnerHTML` are banned by lint.
+
+**Reasoning.** Serving everything from one origin keeps the CSP simple and removes third-party requests. Banning raw HTML in lint makes the safe path the only one.
