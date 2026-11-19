@@ -24,6 +24,11 @@ export function safeName(id) {
   return id.replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '');
 }
 
+/** The review page's database key for an id (tools/art-review/index.html `docId`); must stay in step. */
+export function docKey(id) {
+  return id.replace(/[^A-Za-z0-9_-]/g, '_');
+}
+
 export function artPath(item) {
   return `art/${safeName(item.id)}-${item.version}.svg`;
 }
@@ -33,6 +38,7 @@ function validate(exp) {
     throw new Error('export: expected { batch, items[] }');
   }
   const seen = new Set();
+  const pickKeys = new Map();
   for (const it of exp.items) {
     for (const k of ['id', 'group', 'title', 'file', 'version', 'kind']) {
       if (typeof it[k] !== 'string' || !it[k]) throw new Error(`export item: missing ${k}`);
@@ -48,10 +54,21 @@ function validate(exp) {
     if (!/^[A-Za-z0-9][A-Za-z0-9._-]*\.svg$/.test(it.file) || it.file.includes('..')) {
       throw new Error(`export item ${it.id}: bad file name`);
     }
-    // Ids must stay distinct once made safe for file names and database keys.
-    const key = safeName(it.id);
-    if (seen.has(key)) throw new Error(`export: duplicate id ${it.id}`);
-    seen.add(key);
+    // Ids must stay distinct once made safe for file names and for the page's database keys.
+    for (const key of [`file:${safeName(it.id)}`, `doc:${docKey(it.id)}`]) {
+      if (seen.has(key)) throw new Error(`export: duplicate id ${it.id}`);
+      seen.add(key);
+    }
+    if (it.kind === 'pick') {
+      if (!/^[A-Za-z0-9][A-Za-z0-9_-]*$/.test(it.pick)) {
+        throw new Error(`export item ${it.id}: bad pick key`);
+      }
+      const owner = pickKeys.get(docKey(it.pick));
+      if (owner !== undefined && owner !== it.pick) {
+        throw new Error(`export: pick keys ${owner} and ${it.pick} collide`);
+      }
+      pickKeys.set(docKey(it.pick), it.pick);
+    }
   }
 }
 

@@ -97,6 +97,18 @@ describe('merge', () => {
     );
   });
 
+  test('rejects ids and pick keys that collide as database keys', () => {
+    assert.throws(
+      () => merge(null, { batch: 'b1', items: [item('a/b', V1), item('a_b', V1)] }),
+      /duplicate/,
+    );
+    const pick = (id, key) => item(id, V1, { kind: 'pick', pick: key, question: 'Which?' });
+    assert.throws(() => merge(null, { batch: 'b1', items: [pick('p', 'a b')] }), /bad pick key/);
+    assert.doesNotThrow(() =>
+      merge(null, { batch: 'b1', items: [pick('p1', 'palette'), pick('p2', 'palette')] }),
+    );
+  });
+
   test('rejects versions and file names that could leave their folder', () => {
     assert.throws(() => merge(null, { batch: 'b1', items: [item('a', '../../x')] }), /bad version/);
     assert.throws(
