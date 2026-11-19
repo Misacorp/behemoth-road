@@ -49,6 +49,8 @@ Record a decision:
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
+- 2026-11-19 Terrain comes from seeded noise fields, with rivers and ridges on contour lines
+- 2026-11-19 The core derives terrain from a hash and stores only tile knowledge and the config (amended)
 - 2026-11-19 Hostnames stay out of the README and workflows
 - 2026-11-19 One Durable Object per Discord server holds the game; its alarm runs the day tick
 - 2026-11-19 The game core is its own pure package, imported by the Worker and the frontend
@@ -84,6 +86,13 @@ Record a decision:
 - 2026-11-19 No focus outlines or other visible accessibility aids in the game \[Misa\]
 - 2026-11-19 Touch first: drag to pan, pinch or wheel to zoom, tap or click to act \[Misa\] (amended)
 - 2026-11-19 The map starts isometric, with flat ground first and heights later \[Misa\]
+- 2026-11-19 Movement reads one entry rule that can name what makes a step possible
+- 2026-11-19 Paths are planned by cheapest cost and walked all or nothing (amended)
+- 2026-11-19 Characters start on the creature's centre
+- 2026-11-19 The creature's hexes are always passable to characters
+- 2026-11-19 The window is always in play; lost characters stay lost
+- 2026-11-19 Cliffs are impassable to characters in Milestone 1 (amended)
+- 2026-11-19 The creature veers by a seeded daily roll and ignores terrain for now
 - 2026-11-19 Isometric 3D hexes are the long-term goal; the map is built to allow it \[Misa\] (amended)
 - 2026-11-19 The look is a light ink-and-wash atlas in pastel, broken colours \[Misa\]
 - 2026-11-19 Phone first, desktop too
@@ -100,3 +109,5 @@ Record a decision:
 - 2026-11-19 Shared components are listed, guarded and reused
 - 2026-11-19 Drag and drop always has a tap and keyboard alternative
 - 2026-11-19 Counts read "1 / 3", and terms explain themselves without "?" icons
+
+Superseded: 1 entry (see the topic file).

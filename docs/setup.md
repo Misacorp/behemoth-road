@@ -7,6 +7,6 @@ One-time steps that only Misa can do, written when the project was bootstrapped.
 
 - [x] **What the project is.** Tell an agent in a paragraph; it fills the TODOs in `CLAUDE.md`, `README.md` and `docs/progress.md`.
 
-- [ ] **The domain on Cloudflare.** `behemoth.misacorp.dev` and `behemoth-staging.misacorp.dev` must be in a zone on your Cloudflare account (the Worker claims the hostname itself on the first deploy).
+- [x] **The domain on Cloudflare.** `behemoth.misacorp.dev` and `behemoth-staging.misacorp.dev` must be in a zone on your Cloudflare account (the Worker claims the hostname itself on the first deploy).
 - [x] **Cloudflare credentials in GitHub.** Create an API token from the "Edit Cloudflare Workers" template, limited to your account and that zone, and copy your account ID (Workers & Pages overview). Re-run `node scripts/github-setup.mjs --user Misacorp`; it asks for `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` for production and staging, with hidden input.
-- [ ] **First deploy.** Merge a PR into `main` (or Actions, deploy, Run workflow on `main`). The run ends by checking that the live commit is the merged one; `node scripts/deployed.mjs --prod` shows it any time.
+- [x] **First deploy.** Merge a PR into `main` (or Actions, deploy, Run workflow on `main`). The run ends by checking that the live commit is the merged one; `node scripts/deployed.mjs --prod` shows it any time.
