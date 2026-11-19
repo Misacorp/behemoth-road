@@ -1,5 +1,5 @@
 /** A map patch as one SVG: paper, the ground under the wash filter, then every upright thing back to front. */
-import { drawCharacter, type CharacterArt } from './character.ts';
+import { DEFAULT_LOOK, drawCharacter, type CharacterArt } from './character.ts';
 import { ART_TUNING } from './config.ts';
 import { drawCreature, inFootprint, riderAnchor, type CreatureArt } from './creature.ts';
 import { figureAnchor } from './figure.ts';
@@ -239,7 +239,15 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
         p.squash,
       );
       figures.set(ch.id, c);
-      const drawn = drawCharacter(palette, ch.accent, c, p.size, p.squash, ink);
+      const drawn = drawCharacter(
+        palette,
+        ch.accent,
+        c,
+        p.size,
+        p.squash,
+        ink,
+        ch.look ?? DEFAULT_LOOK,
+      );
       const contact = el('path', {
         d: ellipsePath(
           c.x + 0.02 * p.size,
@@ -263,7 +271,10 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
     perTile.set(key, index + 1);
     const c = figureAnchor(p, ch, index, { site: sites.has(key) });
     figures.set(ch.id, c);
-    placed.push({ at: c, drawn: drawCharacter(palette, ch.accent, c, p.size, p.squash, ink) });
+    placed.push({
+      at: c,
+      drawn: drawCharacter(palette, ch.accent, c, p.size, p.squash, ink, ch.look ?? DEFAULT_LOOK),
+    });
   }
 
   const sortAt = (x: Placed): Point => (x.after === undefined ? x.at : { x: x.at.x, y: x.after });

@@ -12,6 +12,22 @@ ID: `2026-11-19-joining-is-a-drawer-wizard-each` · Status: current
 
 **Reasoning.** This follows the M2 plan and Misa's "show, don't tell". Players need to tell characters apart on a shared map, and a name-based colour needs no new field in the contract.
 
+## 2026-11-19: Icons follow content's icon keys; quirks sit on a split tile
+
+ID: `2026-11-19-icons-follow-content-s-icon-keys` · Status: current · Amends: `2026-11-19-role-emblems-share-one-frame-icons`
+
+**Decision.** `drawIcon` takes the `icon` keys that content gives roles, traits and quirks. A role's key (`spyglass`, `book`, `crook`, `shield`, `hammer`, `banner`) draws that role's emblem, as `role:<id>` does, so the keeper's motif is a crook, the guardian's a round shield, the engineer's a hammer and the envoy's a banner. The 12 trait and 12 quirk keys each have a motif on a plain round tile; with `{ tile: 'quirk' }` the tile gets a ring split into two colours (sage and coral), a wordless hint that a quirk helps and hinders. A web test checks that every content icon key has a drawing.
+
+**Reasoning.** Content is data and names its icons; the art follows it rather than inventing other keys. The split ring keeps the quirk's double nature visible without text.
+
+## 2026-11-19: Role emblems share one frame; icons are drawn by key; characters vary by seeded look
+
+ID: `2026-11-19-role-emblems-share-one-frame-icons` · Status: current, amended by `2026-11-19-icons-follow-content-s-icon-keys`
+
+**Decision.** The art kit draws icons by key with `drawIcon(id, palette, size)`, a self-contained `<svg>` on a 48-unit grid; unknown keys draw a neutral dotted mark. The six role emblems (`role:scout` … `role:envoy`) share one frame, round or shield (Misa picks; round is the default until then), each with its own tint and an ink motif: spyglass, open book, herb sprig, upright sword, cog, sealed scroll. Trait and quirk icons register under `trait:…` and `quirk:…` as content gains them. Characters take a look from data, `{ headwear, garment, carry, skin }`; `characterLookFor(id)` seeds one by id, and `assignLooks(ids)` gives characters in join order distinct accent, headwear and garment combinations (8 accents × 4 × 3). The palettes gain four accents (sage, slate, coral, sky) and three skin tones. A character without a look draws as the default explorer, so the current app is unchanged until it passes looks.
+
+**Reasoning.** The join drawer shows characters and roles with names as the only text, so icons must carry the meaning, read at 32 px and look like one set. Fifteen riders on the creature's back must tell apart at a glance; seeding by id keeps a character's look stable, and assigning in join order keeps it stable as others join.
+
 ## 2026-11-19: Character choices are rolled from the game, the player and the attempt; players pick by index
 
 ID: `2026-11-19-character-choices-are-rolled-from-the` · Status: current
