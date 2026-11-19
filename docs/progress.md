@@ -4,12 +4,15 @@ What has landed and what is next. Newest first. Update it when a step lands or t
 
 ## Next
 
+- Milestone 1 polish (from Misa's first play, 19 November): Escape and right-click close popovers on desktop; a pointer on popovers and bubbles towards what they belong to; make the grace day before being left behind easy to read.
+- Phone performance: Misa felt input lag on a phone. Measure first (interaction latency and frame cost on a throttled phone profile), then cut the cost; options include rendering the static map layers to a bitmap once per day or zoom step and keeping only overlays as live SVG.
 - Milestone 1 (the walking map): the map interface (`apps/web`, branch `m1/map`) is in review; then Misa tries it on a phone and a desktop.
 - Milestone 2 server: validate move intents with a strict schema for a place (`{ kind: 'hex', hex }` or `{ kind: 'creature' }`, one shape only), since the core's `toPlace` is lenient.
 - Before Milestone 2 persists games: pin the content (terrain table) a saved game was made with, so a later content change cannot alter it; and keep the per-tile record from growing without bound (lost tiles could be pruned).
 
 ## Done
 
+- 2026-11-19: Milestone 1 merged and live: the walking map with riding, the hub bubble, the Spring palette at a high view and the compact creature (PR #4).
 - 2026-11-19: The creature made compact per Misa's pick (high back, moderate neck, longer tail, mostly inside its footprint), standing on trodden ground drawn in its own colour.
 - 2026-11-19: The creature redrawn as a behemoth that fills its seven-hex footprint, a mossy walking hill with trees, a rock and a pond on its back; characters on its back get a contact shadow.
 - 2026-11-19: Misa's art picks applied: Spring palette, tilt 0.8, and the creature redrawn from above as small solids that turn to all six headings; props shrink part way at the high view.

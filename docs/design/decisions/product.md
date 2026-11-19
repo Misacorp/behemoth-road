@@ -4,6 +4,22 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: Three actions a day, and moving costs actions **[Misa]**
+
+ID: `2026-11-19-three-actions-a-day-and-moving` · Status: current
+
+**Decision.** A character keeps three actions a day, and moving one hex costs one of them. The alternative, three free moves plus one action on top, is not used.
+
+**Reasoning.** Misa tried the prototype: three actions is hard to judge before there is more to do, but one budget for everything is much simpler than separate move and action budgets, so the game works within it.
+
+## 2026-11-19: Escape and right-click close popovers on desktop; right-click is a setting **[Misa]**
+
+ID: `2026-11-19-escape-and-right-click-close-popovers` · Status: current · Amends: `2026-11-19-touch-first-drag-to-pan-pinch`
+
+**Decision.** On desktop, Escape closes the open popover or bubble, and right-clicking anywhere on the map closes it too (and never opens the browser's menu over the map). Right-click closing sits behind a player setting that is on by default; for now the setting lives in the map's settings module, and an options screen can expose it later. Nothing else needs a keyboard.
+
+**Reasoning.** Misa asked for both as desktop conveniences, with right-click closing switchable because some players may dislike it.
+
 ## 2026-11-19: The map's hub bubble: a generic list of characters plus a place entry
 
 ID: `2026-11-19-the-map-s-hub-bubble-a` · Status: current · Amends: `2026-11-19-on-the-map-the-creature-is`
@@ -151,7 +167,7 @@ ID: `2026-11-19-no-focus-outlines-or-other-visible` · Status: current · Amends
 
 ## 2026-11-19: Touch first: drag to pan, pinch or wheel to zoom, tap or click to act **[Misa]**
 
-ID: `2026-11-19-touch-first-drag-to-pan-pinch` · Status: current, amended by `2026-11-19-moving-tap-your-character-tap-a`
+ID: `2026-11-19-touch-first-drag-to-pan-pinch` · Status: current, amended by `2026-11-19-escape-and-right-click-close-popovers`, `2026-11-19-moving-tap-your-character-tap-a`
 
 **Decision.** The whole game is played with taps and drags; nothing needs a keyboard.
 

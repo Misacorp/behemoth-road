@@ -88,6 +88,8 @@ Record a decision:
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-19 Three actions a day, and moving costs actions \[Misa\]
+- 2026-11-19 Escape and right-click close popovers on desktop; right-click is a setting \[Misa\]
 - 2026-11-19 The map's hub bubble: a generic list of characters plus a place entry
 - 2026-11-19 On the map the creature is one place: one outline, a seat at the arrow's end, its own popover (amended)
 - 2026-11-19 The creature is the party's hub; a tap picks your own character first \[Misa\]
