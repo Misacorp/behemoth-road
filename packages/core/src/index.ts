@@ -37,17 +37,23 @@ export {
 } from './window.ts';
 export { chooseCreatureStep, predictCreature, type CreatureStepOption } from './creature.ts';
 export {
+  entryInto,
   isPassable,
   legalMoves,
   move,
-  moveAlong,
-  moveCost,
-  planPath,
   type ActionResult,
+  type Entry,
   type MoveRefusal,
+} from './actions.ts';
+export {
+  moveAlong,
+  planPath,
+  reachableHexes,
   type PathPlan,
   type PathRefusal,
   type PathResult,
-} from './actions.ts';
+  type PathStep,
+  type ReachableHex,
+} from './path.ts';
 export { nextDay } from './tick.ts';
 export { createGame, type CreateGameOptions } from './game.ts';

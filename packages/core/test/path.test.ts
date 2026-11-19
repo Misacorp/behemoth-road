@@ -3,12 +3,15 @@ import {
   createGame,
   hex,
   hexDistance,
+  hexEquals,
+  hexesInRange,
   type Hex,
   isAdjacent,
   isPassable,
   moveAlong,
   neighbours,
   planPath,
+  reachableHexes,
   terrainAt,
 } from '../src/index.ts';
 import { findSeed, placeCharacter, withCharacter } from './helpers.ts';
@@ -23,14 +26,15 @@ describe('planPath', () => {
         expect(['impassable', 'no-path', 'not-enough-actions']).toContain(plan.reason);
         continue;
       }
-      expect(plan.path.at(-1)).toEqual(to);
-      expect(plan.cost).toBe(plan.path.length);
-      expect(plan.path.length).toBeGreaterThanOrEqual(hexDistance(hex(0, 0), to));
+      expect(plan.steps.at(-1)?.hex).toEqual(to);
+      expect(plan.cost).toBe(plan.steps.reduce((sum, s) => sum + s.cost, 0));
+      expect(plan.steps.length).toBeGreaterThanOrEqual(hexDistance(hex(0, 0), to));
       let from: Hex = hex(0, 0);
-      for (const h of plan.path) {
-        expect(isAdjacent(from, h)).toBe(true);
-        expect(isPassable(state, h)).toBe(true);
-        from = h;
+      for (const step of plan.steps) {
+        expect(isAdjacent(from, step.hex)).toBe(true);
+        expect(isPassable(state, step.hex)).toBe(true);
+        expect(step).toEqual({ hex: step.hex, cost: 1 }); // nothing sets `via` yet
+        from = step.hex;
       }
     }
   });
@@ -44,12 +48,12 @@ describe('planPath', () => {
     const state = createGame(seed, { characterIds: ['a'], config: { actionsPerDay: 4 } });
     const plan = planPath(state, 'a', hex(0, -3));
     expect(plan).toMatchObject({ ok: true, cost: 4 });
-    if (plan.ok) expect(plan.path.map((h) => `${h.q},${h.r}`)).not.toContain('0,-2');
+    if (plan.ok) expect(plan.steps.map((s) => `${s.hex.q},${s.hex.r}`)).not.toContain('0,-2');
   });
 
   it('gives an empty path to where the character stands', () => {
     const state = createGame(1, { characterIds: ['a'] });
-    expect(planPath(state, 'a', hex(0, 0))).toEqual({ ok: true, path: [], cost: 0 });
+    expect(planPath(state, 'a', hex(0, 0))).toEqual({ ok: true, steps: [], cost: 0 });
   });
 
   it('says not-enough-actions when a path exists but costs too much', () => {
@@ -102,7 +106,7 @@ describe('moveAlong', () => {
     const state = createGame(seed, { characterIds: ['a'] });
     const plan = planPath(state, 'a', hex(0, -3));
     if (!plan.ok) throw new Error(plan.reason);
-    const walked = moveAlong(state, 'a', plan.path);
+    const walked = moveAlong(state, 'a', plan.steps);
     expect(walked.ok).toBe(true);
     if (walked.ok) {
       expect(walked.state.characters[0]).toMatchObject({ position: hex(0, -3), actionsLeft: 0 });
@@ -121,6 +125,46 @@ describe('moveAlong', () => {
   it('accepts an empty path for an active character only', () => {
     const state = createGame(1, { characterIds: ['a'] });
     expect(moveAlong(state, 'a', [])).toEqual({ ok: true, state });
+    expect(moveAlong(state, 'a', [hex(0, -1)])).toMatchObject({ ok: true }); // bare hexes work too
     expect(moveAlong(state, 'b', [])).toEqual({ ok: false, reason: 'unknown-character', step: 0 });
+  });
+});
+
+describe('reachableHexes', () => {
+  it('lists every hex within the actions left with its cheapest cost, nearest first', () => {
+    for (const seed of [1, 2, 3, 4]) {
+      const state = createGame(seed, { characterIds: ['a'] });
+      const reach = reachableHexes(state, 'a');
+      expect(reach.length).toBeGreaterThan(6);
+      expect(reach.map((r) => r.cost)).toEqual(reach.map((r) => r.cost).sort((a, b) => a - b));
+      expect(reach.some((r) => hexEquals(r.hex, hex(0, 0)))).toBe(false);
+      for (const r of reach) {
+        expect(r.cost).toBeLessThanOrEqual(3);
+        expect(r.cost).toBeGreaterThanOrEqual(hexDistance(hex(0, 0), r.hex));
+        // The same search as planPath: the plan to each hex costs exactly this.
+        expect(planPath(state, 'a', r.hex)).toMatchObject({ ok: true, cost: r.cost });
+      }
+      // And nothing within three steps that planPath can reach is missing.
+      const listed = new Set(reach.map((r) => `${r.hex.q},${r.hex.r}`));
+      for (const h of hexesInRange(hex(0, 0), 3)) {
+        if (hexEquals(h, hex(0, 0))) continue;
+        expect(listed.has(`${h.q},${h.r}`)).toBe(planPath(state, 'a', h).ok);
+      }
+    }
+  });
+
+  it('shrinks as actions are spent and is empty for unknown or lost characters', () => {
+    const state = createGame(1, { characterIds: ['a'] });
+    const tired = withCharacter(state, { ...state.characters[0]!, actionsLeft: 1 });
+    expect(reachableHexes(tired, 'a').map((r) => r.hex)).toEqual(
+      neighbours(hex(0, 0)).filter((h) => isPassable(state, h)),
+    );
+    expect(
+      reachableHexes(withCharacter(state, { ...state.characters[0]!, actionsLeft: 0 }), 'a'),
+    ).toEqual([]);
+    expect(reachableHexes(state, 'nobody')).toEqual([]);
+    expect(
+      reachableHexes(withCharacter(state, { ...state.characters[0]!, status: 'lost' }), 'a'),
+    ).toEqual([]);
   });
 });

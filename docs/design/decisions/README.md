@@ -81,7 +81,8 @@ Record a decision:
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
-- 2026-11-19 Paths are planned by cheapest cost and walked all or nothing
+- 2026-11-19 Movement reads one entry rule that can name what makes a step possible
+- 2026-11-19 Paths are planned by cheapest cost and walked all or nothing (amended)
 - 2026-11-19 Characters start on the creature's centre
 - 2026-11-19 The creature's hexes are always passable to characters
 - 2026-11-19 The window is always in play; lost characters stay lost
