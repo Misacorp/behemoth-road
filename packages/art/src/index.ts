@@ -84,7 +84,7 @@ export {
   type SvgNode,
 } from './svg.ts';
 export { TERRAIN_LOOKS, terrainLook, type TerrainLook } from './terrain.ts';
-export type { ArtCell, CellState } from './tile.ts';
+export { drawVeilLift, type ArtCell, type CellState } from './tile.ts';
 export {
   FEATURE_DRAWERS,
   featureDrawer,
@@ -93,3 +93,4 @@ export {
   type FeatureState,
 } from './features.ts';
 export { drawMoment, drawViaMark, MOMENT_KINDS, VIA_MARKS, type MomentKind } from './marks.ts';
+export { drawPackIcon, drawStoresIcon, drawUnlockSeal, drawWorkBar } from './team-marks.ts';

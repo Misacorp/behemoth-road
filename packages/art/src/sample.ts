@@ -43,14 +43,16 @@ export function samplePatch(heading: { q: number; r: number } = { q: 0, r: -1 })
       if (hexDistance({ q, r }, { q: 0, r: 0 }) > 3) continue;
       const key = `${q},${r}`;
       const row = r + q / 2;
-      const state = row <= -2.5 ? 'unseen' : row >= 2.5 ? 'fading' : 'seen';
+      // Ahead of the creature: blank paper at the window's edge, then a band not yet explored.
+      const state =
+        row <= -2.5 ? 'unseen' : row <= -1.5 ? 'unexplored' : row >= 2.5 ? 'fading' : 'seen';
       const terrain = RIVER.has(key) ? 'river' : 'plains';
       cells.push({ q, r, terrain, state, ...EXPLICIT[key] });
     }
   }
   return {
     cells,
-    creature: { q: 0, r: 0, heading, look: GENTLE_AMBLER },
+    creature: { q: 0, r: 0, heading, look: GENTLE_AMBLER, stores: 6 },
     characters: [
       { id: 'sample-scout', q: 1, r: 1, accent: 'rose' },
       // Two riders on the creature's back.

@@ -104,6 +104,7 @@ Record a decision:
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-20 Unexplored hexes sit under one hatched paper veil; packs, stores and unlocks have their own marks
 - 2026-11-20 The Stubborn quirk's icon is a boulder, so icon keys never clash
 - 2026-11-20 Features, glints, moments and the via mark are drawn by the art kit from content keys (amended)
 - 2026-11-20 Explored and unexplored hexes look clearly different \[Misa\]

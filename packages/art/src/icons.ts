@@ -8,6 +8,7 @@
 import { ellipsePath, poly, type Point } from './geom.ts';
 import { ink, ITEM_MOTIFS, MATERIAL_MOTIFS, MOTIFS, solid, type IconMotif } from './icon-motifs.ts';
 import { accentRamp, type Palette } from './palette.ts';
+import { sealParts } from './team-marks.ts';
 import { el, type SvgNode } from './svg.ts';
 
 export type { IconMotif } from './icon-motifs.ts';
@@ -25,6 +26,8 @@ export interface IconOptions {
    * hinders); `trait` and `plain` draw a plain tile.
    */
   readonly tile?: 'trait' | 'quirk' | 'plain';
+  /** Marks an unlock as done: a wax seal at the icon's lower right. */
+  readonly done?: boolean;
 }
 
 const P = (x: number, y: number): Point => ({ x, y });
@@ -269,5 +272,6 @@ export function drawIcon(
   } else {
     children = neutral(palette);
   }
+  if (options.done) children = [...children, ...sealParts(palette, 37, 37, 0.85)];
   return el('svg', { viewBox: '0 0 48 48', width: px, height: px }, children);
 }

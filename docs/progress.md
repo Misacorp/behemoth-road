@@ -9,6 +9,7 @@ What has landed and what is next. Newest first. Update it when a step lands or t
 
 ## Done
 
+- 2026-11-19: Art for the revised Milestone 3: the unexplored veil (one shared pattern, a per-hex lift for the reveal), pack, stores and unlock marks (fill level, crates on the creature, done seal, work bar) and a survey moment.
 - 2026-11-19: Art for Milestone 3: feature drawings (ore, river stones, timber, two tombs, snare, pitfall) with used-up looks, a quieter glint, material and item icons, moment marks (reveal, find, trap) and via marks for the path arrow.
 - 2026-11-19: Milestone 2 merged and live (PR #7): Discord Activity sign-in, one game per allowed server, joining with rolled characters and roles, other players on the map, the daily tick; tried on staging by Misa.
 - 2026-11-19: Milestone 2 web client (branch `m2/web`): Activity boot with a dev-only fake session, a typed and parsed API client with polling, the map on the player view, the join and replace drawer, other players and their cards, and next day for admins with dev tools. Hand-written fixtures stand in for the worker's captured ones until they exist.
