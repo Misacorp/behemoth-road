@@ -16,7 +16,7 @@ import {
   createGame,
   loadGame,
   actWithEvents,
-  CONTENT_VERSION,
+  OutdatedGameError,
   moveWithEvents,
   type EventResult,
   type GameEvent,
@@ -150,14 +150,13 @@ export class GuildGame {
         .exec<{ state: string; version: number }>('SELECT state, version FROM game WHERE id = 1')
         .toArray()[0];
       if (row === undefined) return;
-      let contentVersion: unknown;
       try {
-        contentVersion = (JSON.parse(row.state) as { contentVersion?: unknown } | null)
-          ?.contentVersion;
-      } catch {
+        loadGame(JSON.parse(row.state));
         return;
+      } catch (err) {
+        // Only an older content version is replaced; anything else is left for `readGame` to refuse.
+        if (!(err instanceof OutdatedGameError)) return;
       }
-      if (typeof contentVersion !== 'number' || contentVersion >= CONTENT_VERSION) return;
       const state = createGame(this.options.newSeed(), { artSeed: this.options.newArtSeed() });
       this.writeGame(state);
     });

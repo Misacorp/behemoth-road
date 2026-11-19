@@ -43,9 +43,14 @@ describe('POST /api/game/act', () => {
         { action: { kind: 'gather' } },
         { version, action: { kind: 'dig' } },
         { version, action: { kind: 'gather', hex: { q: 0, r: 0 } } },
-        { version, action: { kind: 'craft' } },
-        { version, action: { kind: 'craft', recipe: 'warp-drive' } },
-        { version, action: { kind: 'craft', recipe: 'x'.repeat(65) } },
+        { version, action: { kind: 'craft', recipe: 'grappling-hook' } },
+        { version, action: { kind: 'build' } },
+        { version, action: { kind: 'build', unlock: 'warp-drive' } },
+        { version, action: { kind: 'build', unlock: 'x'.repeat(65) } },
+        { version, action: { kind: 'survey' } },
+        { version, action: { kind: 'survey', hex: { q: 0.5, r: 0 } } },
+        { version, action: { kind: 'survey', hex: { q: 0, r: 0, s: 0 } } },
+        { version, action: { kind: 'survey', hex: { q: 1e9, r: 0 } } },
         { version, action: { kind: 'work-site', site: 'tomb' } },
         { version, action: { kind: 'gather' }, characterId: `${ROBIN.id}.0` },
         { version: -1, action: { kind: 'gather' } },
@@ -89,20 +94,24 @@ describe('POST /api/game/act', () => {
 });
 
 describe('actions that succeed', () => {
-  it('crafts from the team inventory and answers the craft event', async () => {
+  it('starts an unlock from the team stores and answers its progress', async () => {
     await runGame(async (ctx) => {
       const { token } = await joined(ctx);
-      edit(ctx.sql, (s) => ({ ...s, inventory: { materials: { iron: 2, timber: 1 }, items: {} } }));
+      edit(ctx.sql, (s) => ({ ...s, stores: { iron: 2, timber: 1 } }));
       const version = asView((await ctx.call(token, 'GET', '/api/game')).body).version;
       const res = await ctx.call(token, 'POST', '/api/game/act', {
         version,
-        action: { kind: 'craft', recipe: 'grappling-hook' },
+        action: { kind: 'build', unlock: 'grappling-hook' },
       });
       expect(res.status).toBe(200);
-      const view = asView(res.body) as PlayerView & { events: unknown[]; stopped: unknown };
-      expect(view.events).toEqual([{ kind: 'craft', item: 'grappling-hook' }]);
+      const view = asView(res.body) as PlayerView & {
+        events: { kind: string }[];
+        stopped: unknown;
+      };
+      expect(view.events.map((e) => e.kind)).toContain('unlock-progress');
       expect(view.stopped).toBeNull();
-      expect(view.game.inventory.items['grappling-hook']).toBe(1);
+      expect(view.game.project?.unlock).toBe('grappling-hook');
+      expect(view.game.stores['iron'] ?? 0).toBe(0);
       expect(view.version).toBe(version + 1);
     });
   });
@@ -127,9 +136,16 @@ describe('actions that succeed', () => {
       expect(res.status).toBe(200);
       const view = asView(res.body);
       expect(view.events).toEqual([
-        { kind: 'gather', hex, material: 'iron', amount: expect.any(Number) as number },
+        {
+          kind: 'gather',
+          hex,
+          characterId: ME,
+          material: 'iron',
+          amount: expect.any(Number) as number,
+        },
       ]);
-      expect(view.game.inventory.materials['iron']).toBeGreaterThan(0);
+      const me = view.game.characters.find((c) => c.id === ME);
+      expect(me?.pack['iron']).toBeGreaterThan(0);
       expect(view.game.features[hexKey(hex)]?.left).toBe(2);
     });
   });
@@ -154,6 +170,39 @@ describe('moves report what happened on the way', () => {
       expect(view.stopped).toEqual({ step: 0, reason: 'trap' });
       expect(view.events).toContainEqual({ kind: 'trap', hex, characterId: ME });
       expect(view.game.characters.find((c) => c.id === ME)?.actionsLeft).toBe(0);
+    });
+  });
+
+  it('reveals only what was entered or surveyed, and no event names a hidden feature', async () => {
+    await runGame(async (ctx) => {
+      const { token } = await joined(ctx);
+      const hex = nextHex(ctx.sql);
+      // A harmless node on the hex walked into, and hidden features on every other known hex.
+      edit(ctx.sql, (s) => {
+        const features: Record<string, { type: string; revealed: boolean; left: number }> = {};
+        for (const key of Object.keys(s.tiles))
+          features[key] = { type: 'timber-stand', revealed: false, left: 2 };
+        features[hexKey(hex)] = { type: 'iron-deposit', revealed: false, left: 3 };
+        return { ...s, features };
+      });
+      const version = asView((await ctx.call(token, 'GET', '/api/game')).body).version;
+      const res = await ctx.call(token, 'POST', '/api/game/move', {
+        version,
+        path: [{ kind: 'hex', hex }],
+      });
+      expect(res.status).toBe(200);
+      const view = asView(res.body) as PlayerView & {
+        events: { kind: string; hex?: unknown; feature?: string }[];
+      };
+      expect(Object.keys(view.game.features)).toEqual([hexKey(hex)]);
+      for (const event of view.events) {
+        if (event.hex !== undefined) expect(event.hex).toEqual(hex);
+      }
+      expect(view.events.filter((e) => e.kind === 'reveal')).toEqual([
+        { kind: 'reveal', hex, feature: 'iron-deposit' },
+      ]);
+      expect(JSON.stringify(view.events)).not.toContain('timber-stand');
+      // ctx.call has also checked the whole view against the stored hidden features.
     });
   });
 
@@ -226,7 +275,7 @@ describe('requests at the same version', () => {
   it('apply one change: the other is refused as stale', async () => {
     await runGame(async (ctx) => {
       const { token, version } = await joined(ctx);
-      edit(ctx.sql, (s) => ({ ...s, inventory: { materials: { iron: 3, timber: 2 }, items: {} } }));
+      edit(ctx.sql, (s) => ({ ...s, stores: { iron: 2, timber: 1 } }));
       const v = asView((await ctx.call(token, 'GET', '/api/game')).body).version;
       expect(v).toBe(version + 1);
       const hex = nextHex(ctx.sql);
@@ -234,7 +283,7 @@ describe('requests at the same version', () => {
         ctx.call(token, 'POST', '/api/game/move', { version: v, path: [{ kind: 'hex', hex }] }),
         ctx.call(token, 'POST', '/api/game/act', {
           version: v,
-          action: { kind: 'craft', recipe: 'grappling-hook' },
+          action: { kind: 'build', unlock: 'grappling-hook' },
         }),
       ]);
       const statuses = [a.status, b.status].sort();

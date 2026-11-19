@@ -6,7 +6,7 @@
 import {
   act,
   moveAlong,
-  RECIPES,
+  UNLOCKS,
   ROLES,
   type Action,
   type GameEvent,
@@ -17,6 +17,7 @@ import {
 export {
   addCharacter,
   CONTENT_VERSION,
+  OutdatedGameError,
   characterOf,
   characterOffers,
   createGame,
@@ -41,8 +42,8 @@ export const ROLE_IDS: readonly string[] = ROLES.map((r) => r.id);
 
 // --- Milestone 3: actions, events and the content migration ---
 
-/** The recipe ids from content, for the request schema. */
-export const RECIPE_IDS: readonly string[] = RECIPES.map((r) => r.id);
+/** The unlock ids from content, for the request schema. */
+export const UNLOCK_IDS: readonly string[] = UNLOCKS.map((u) => u.id);
 
 /** A rule's result as the Worker answers it: the new state, what happened, and whether a trap stopped a walk. */
 export type EventResult =

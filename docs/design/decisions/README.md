@@ -49,7 +49,7 @@ Record a decision:
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
-- 2026-11-20 Act and move answer the view with what happened; stored games are upgraded once on load
+- 2026-11-20 The Worker replaces an outdated game on start and refuses an unreadable one with 503
 - 2026-11-20 Features live in the state per hex; the view carries revealed ones and team glints; version-2 games migrate
 - 2026-11-20 Before a stable release, older games are wiped, not migrated \[Misa\]
 - 2026-11-19 Only allowed Discord servers can play; the app itself is public \[Misa\]
@@ -101,6 +101,8 @@ Record a decision:
 - 2026-11-19 Measure costs before guessing, and price work that repeats
 - 2026-11-19 One Worker serves the frontend and the API, configured as code
 - 2026-11-19 Strict security headers, and everything served from our own origin
+
+Superseded: 1 entry (see the topic file).
 
 ## Product
 

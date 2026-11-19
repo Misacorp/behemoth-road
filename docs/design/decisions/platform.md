@@ -4,13 +4,13 @@ Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
-## 2026-11-20: Act and move answer the view with what happened; stored games are upgraded once on load
+## 2026-11-20: The Worker replaces an outdated game on start and refuses an unreadable one with 503
 
-ID: `2026-11-20-act-and-move-answer-the-view` · Status: current
+ID: `2026-11-20-the-worker-replaces-an-outdated-game` · Status: current · Supersedes: `2026-11-20-act-and-move-answer-the-view`
 
-**Decision.** `POST /api/game/act` (`{ version, action }`, one of three strict shapes, recipe ids from content) and `POST /api/game/move` answer the new player view plus `events` (the core's list, passed through) and `stopped` (where a trap ended a walk, or `null`); refusals stay `409 { error }` with the core's reason. Both run through one path in the Durable Object: the version check, the player's newest character, the rule, the write, in one transaction. When the object starts, a game stored with older content is upgraded through the core's `loadGame` (which runs `migrateGame`) and written back once, bumping the version so clients reload. Every test response is checked for the seed and for any feature the stored game still hides.
+**Decision.** `POST /api/game/act` takes `{ version, action }` with exactly one of `survey { hex }`, `gather`, `work-site` or `build { unlock }` (unlock ids from content). Act and move answer the player view plus `events` and `stopped` through one path in the Durable Object (version check, newest character, rule, write, one transaction). When the object starts, a stored game the core refuses as outdated (`OutdatedGameError`) is replaced by a new game for that server in one transaction: players stay and rejoin with new offers, and the game version keeps counting up so no client's `since` matches the new game. A stored game that is corrupt or from newer content is left untouched: game requests answer `503 game_unavailable`, sign-in still works, and the start and the alarm never throw, so the object never crash-loops. Tests check every response for the seed and for features the stored game still hides, and the fixture capture now removes (or, with `--check`, reports) fixture files it no longer writes.
 
-**Reasoning.** One answer with the view and the moments saves a second request and lets the web show reveals, finds and traps exactly once. Upgrading at start, rather than on every read, keeps reads cheap and makes the upgrade a single recorded write; the live production game keeps its characters and map.
+**Reasoning.** Misa chose wiping over migration before a stable release ("Before a stable release, older games are wiped, not migrated"). Leaving an unreadable game alone means a rollback never wipes a newer game, and a 503 says the game is temporarily out rather than failing in a loop.
 
 ## 2026-11-20: Features live in the state per hex; the view carries revealed ones and team glints; version-2 games migrate
 
@@ -419,3 +419,15 @@ ID: `2026-11-19-strict-security-headers-and-everything-served` · Status: curren
 **Decision.** The frontend sends a strict CSP (`default-src 'self'`, no inline scripts or styles, `object-src 'none'`, `base-uri 'none'`) plus `nosniff`, a referrer policy, HSTS and a permissions policy, and fonts and other assets are self-hosted with their licence texts shipped. API responses carry `Cache-Control: no-store` and no CORS headers. Text is rendered as text only; `innerHTML` and `dangerouslySetInnerHTML` are banned by lint.
 
 **Reasoning.** Serving everything from one origin keeps the CSP simple and removes third-party requests. Banning raw HTML in lint makes the safe path the only one.
+
+<!-- Superseded entries below: kept for history, no longer in force. -->
+
+# Superseded
+
+## 2026-11-20: Act and move answer the view with what happened; stored games are upgraded once on load
+
+ID: `2026-11-20-act-and-move-answer-the-view` · Status: superseded by `2026-11-20-the-worker-replaces-an-outdated-game`
+
+**Decision.** `POST /api/game/act` (`{ version, action }`, one of three strict shapes, recipe ids from content) and `POST /api/game/move` answer the new player view plus `events` (the core's list, passed through) and `stopped` (where a trap ended a walk, or `null`); refusals stay `409 { error }` with the core's reason. Both run through one path in the Durable Object: the version check, the player's newest character, the rule, the write, in one transaction. When the object starts, a game stored with older content is upgraded through the core's `loadGame` (which runs `migrateGame`) and written back once, bumping the version so clients reload. Every test response is checked for the seed and for any feature the stored game still hides.
+
+**Reasoning.** One answer with the view and the moments saves a second request and lets the web show reveals, finds and traps exactly once. Upgrading at start, rather than on every read, keeps reads cheap and makes the upgrade a single recorded write; the live production game keeps its characters and map.
