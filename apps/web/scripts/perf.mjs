@@ -1,0 +1,534 @@
+#!/usr/bin/env node
+/* global URL, console, process, window, document, performance, requestAnimationFrame, PerformanceObserver,
+   XMLSerializer, Image, MutationObserver */
+/**
+ * Phone performance measurements for the map (measure first, no fixes). Loads the built app (apps/web/dist)
+ * in Chromium as a Pixel 7 with the CPU slowed down, and measures:
+ *   - tap latency: a tap on the creature until the bubble popover is painted (Event Timing `pointerup`);
+ *   - frame times and move-to-frame lag during a synthesised touch drag and a pinch (the `lite` phase), and
+ *     the frame after release (filters back on, scene redrawn at the new zoom step);
+ *   - redraw cost: the `pointerup` that ends a pinch at a new zoom step, and the "Next day" click;
+ *   - where main-thread time goes during a drag and release (a trace, self time by kind), and raster time.
+ * Experiments change the page after load, never the app: see EXPERIMENTS below.
+ *
+ * Usage: pnpm --filter @behemoth-road/web build && node apps/web/scripts/perf.mjs
+ *   [--rates 4,6] [--only baseline,filters-off]   (PERF_TRACE_OUT=<path prefix> keeps the raw traces)
+ * Writes a Markdown table to stdout and the raw numbers to screenshots/perf.json (gitignored).
+ * Not part of the unit test run. Needs the pre-installed Playwright (require('playwright')).
+ */
+import {
+  createReadStream,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
+import { createServer } from 'node:http';
+import { createRequire } from 'node:module';
+import { dirname, extname, join, normalize, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const here = dirname(fileURLToPath(import.meta.url));
+const web = resolve(here, '..');
+const dist = join(web, 'dist');
+const out = resolve(web, '../../screenshots');
+const require = createRequire(import.meta.url);
+const { chromium, devices } = require('playwright');
+
+const args = process.argv.slice(2);
+const arg = (name) => {
+  const i = args.indexOf(name);
+  return i === -1 ? undefined : args[i + 1];
+};
+const RATES = (arg('--rates') ?? '4,6').split(',').map(Number);
+const ONLY = arg('--only')?.split(',');
+
+const TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'text/javascript',
+  '.css': 'text/css',
+  '.svg': 'image/svg+xml',
+  '.json': 'application/json',
+};
+
+function readHeaders() {
+  const headers = {};
+  for (const line of readFileSync(join(web, 'public/_headers'), 'utf8').split('\n')) {
+    const m = /^\s+([A-Za-z-]+):\s*(.+)$/.exec(line);
+    if (m) headers[m[1]] = m[2].trim();
+  }
+  return headers;
+}
+
+function serve() {
+  const headers = readHeaders();
+  const server = createServer((req, res) => {
+    const path = normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname));
+    let file = join(dist, path);
+    if (!file.startsWith(dist) || !existsSync(file) || statSync(file).isDirectory()) {
+      file = join(dist, 'index.html');
+    }
+    res.writeHead(200, {
+      ...headers,
+      'Content-Type': TYPES[extname(file)] ?? 'application/octet-stream',
+    });
+    createReadStream(file).pipe(res);
+  });
+  return new Promise((ok) => server.listen(0, '127.0.0.1', () => ok(server)));
+}
+
+/**
+ * Page-side experiments. Each runs once after load, in the page. They hide or add elements through the
+ * CSSOM and the DOM (the app's own nodes stay in place for Preact) and are never part of the app.
+ */
+const EXPERIMENTS = {
+  baseline: null,
+  // Every SVG filter off, always (not only while a gesture runs).
+  'filters-off': () => {
+    const s = document.createElement('style');
+    s.textContent = 'svg.map [filter], svg.map .fx, svg.map .grain-fx { filter: none !important; }';
+    document.head.append(s);
+  },
+  // Only the screen-wide paper grain off.
+  'grain-off': () => {
+    const s = document.createElement('style');
+    s.textContent = 'svg.map .grain { display: none !important; }';
+    document.head.append(s);
+  },
+  // Half of the drawn paths hidden (every other path in the map's world group).
+  'half-nodes': () => {
+    const world = document.querySelector('svg.map > g');
+    [...world.querySelectorAll('path')].forEach((el, i) => {
+      if (i % 2) el.style.display = 'none';
+    });
+  },
+  // A compositor hint on the panned group.
+  'will-change': () => {
+    const s = document.createElement('style');
+    s.textContent = 'svg.map > g:first-of-type { will-change: transform; }';
+    document.head.append(s);
+  },
+  // The pan and zoom as a CSS transform on the map's <svg> element (a compositor layer), instead of the SVG
+  // transform on its world group: emulates moving the map in an HTML layer that the compositor slides
+  // without re-rasterising. The world group keeps the transform it had when the experiment started.
+  'css-layer': () => {
+    const svg = document.querySelector('svg.map');
+    const world = svg.querySelector(':scope > g');
+    const parse = (v) =>
+      (/matrix\(([^)]+)\)/.exec(v ?? '')?.[1] ?? '1 0 0 1 0 0').split(/[ ,]+/).map(Number);
+    const [s0, , , , x0, y0] = parse(world.getAttribute('transform'));
+    svg.style.transformOrigin = '0 0';
+    svg.style.willChange = 'transform';
+    const set = world.setAttribute.bind(world);
+    world.setAttribute = (name, value) => {
+      if (name !== 'transform') return set(name, value);
+      const [s, , , , x, y] = parse(value);
+      const k = s / s0;
+      svg.style.transform = `translate(${x - k * x0}px, ${y - k * y0}px) scale(${k})`;
+    };
+  },
+  // The static ground (defs, the washed tiles and the dotted outlines) drawn once into an <image> holding the
+  // same SVG as a data URL (`img`), or rasterised once to a PNG on a canvas at the current zoom (`bitmap`).
+  'ground-img': () => window.__groundToImage('svg'),
+  'ground-bitmap': () => window.__groundToImage('png'),
+};
+
+/** Installed before the app loads: frame timing, input lag, Event Timing, and the ground-to-image helper. */
+function harness() {
+  const perf = { frames: [], lags: [], events: [], lastMove: 0, recording: false };
+  window.__perf = perf;
+  new PerformanceObserver((list) => {
+    for (const e of list.getEntries()) {
+      perf.events.push({
+        name: e.name,
+        start: e.startTime,
+        duration: e.duration,
+        processing: e.processingEnd - e.processingStart,
+        delay: e.processingStart - e.startTime,
+      });
+    }
+  }).observe({ type: 'event', durationThreshold: 16, buffered: true });
+  window.addEventListener(
+    'pointermove',
+    (e) => {
+      perf.lastMove = e.timeStamp;
+    },
+    { capture: true },
+  );
+  let last = 0;
+  let seenMove = 0;
+  const tick = (now) => {
+    if (perf.recording) {
+      if (last) perf.frames.push({ at: now, dt: now - last });
+      if (perf.lastMove && perf.lastMove !== seenMove) {
+        perf.lags.push(now - perf.lastMove);
+        seenMove = perf.lastMove;
+      }
+    }
+    last = now;
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+
+  window.__groundToImage = async (kind) => {
+    const svg = document.querySelector('svg.map');
+    const world = svg.querySelector(':scope > g');
+    const defs = world.querySelector(':scope > defs');
+    const wash = [...world.children].find((c) => /wash\)$/.test(c.getAttribute('filter') ?? ''));
+    const parts = [defs, wash];
+    let next = wash.nextElementSibling;
+    while (next && next.tagName === 'path' && next.getAttribute('stroke-dasharray')) {
+      parts.push(next);
+      next = next.nextElementSibling;
+    }
+    const box = wash.getBBox();
+    const pad = 40;
+    const x = box.x - pad;
+    const y = box.y - pad;
+    const w = box.width + pad * 2;
+    const h = box.height + pad * 2;
+    const ser = new XMLSerializer();
+    const text =
+      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x} ${y} ${w} ${h}" width="${w}" height="${h}">` +
+      parts.map((p) => ser.serializeToString(p)).join('') +
+      '</svg>';
+    let href = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(text)}`;
+    if (kind === 'png') {
+      const scale = Number(svg.getAttribute('data-view').split(' ')[2]) * window.devicePixelRatio;
+      const img = new Image();
+      img.src = href;
+      await img.decode();
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.ceil(w * scale);
+      canvas.height = Math.ceil(h * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      href = canvas.toDataURL('image/png');
+    }
+    const ns = 'http://www.w3.org/2000/svg';
+    const layer = document.createElementNS(ns, 'g');
+    const image = document.createElementNS(ns, 'image');
+    for (const [k, v] of Object.entries({ href, x, y, width: w, height: h }))
+      image.setAttribute(k, v);
+    layer.append(image);
+    // Outside the app's world group (Preact owns it), following its transform.
+    world.before(layer);
+    const follow = () => layer.setAttribute('transform', world.getAttribute('transform') ?? '');
+    follow();
+    new MutationObserver(follow).observe(world, {
+      attributes: true,
+      attributeFilter: ['transform'],
+    });
+    for (const p of parts.slice(1)) p.style.display = 'none';
+  };
+}
+
+const pct = (values, q) => {
+  if (!values.length) return NaN;
+  const s = [...values].sort((a, b) => a - b);
+  return s[Math.min(s.length - 1, Math.floor(q * s.length))];
+};
+const med = (v) => pct(v, 0.5);
+
+/** Main-thread self time by kind, and raster time, from a Chromium trace. */
+function summariseTrace(json) {
+  const events = (json.traceEvents ?? json).filter((e) => e.ph === 'X' && e.dur !== undefined);
+  const threads = new Map();
+  for (const e of json.traceEvents ?? json) {
+    if (e.ph === 'M' && e.name === 'thread_name') threads.set(`${e.pid}:${e.tid}`, e.args.name);
+  }
+  const main = [...threads.entries()].filter(([, n]) => n === 'CrRendererMain').map(([k]) => k);
+  const bucket = (name) => {
+    if (/^(UpdateLayoutTree|RecalculateStyles|ParseAuthorStyleSheet)$/.test(name)) return 'style';
+    if (/^(Layout|UpdateLayerTree|LayoutShift)$/.test(name)) return 'layout';
+    if (/^(PrePaint|Paint|PaintImage|Layerize|Commit|UpdateLayer|CompositeLayers)$/.test(name))
+      return 'paint';
+    if (
+      /^(FunctionCall|EvaluateScript|v8\.|RunMicrotasks|TimerFire|FireAnimationFrame|EventDispatch|V8\.)/.test(
+        name,
+      )
+    )
+      return 'script';
+    if (/^(MajorGC|MinorGC|V8\.GC)/.test(name)) return 'gc';
+    return null;
+  };
+  const totals = { script: 0, style: 0, layout: 0, paint: 0, gc: 0, raster: 0 };
+  for (const key of main) {
+    const list = events
+      .filter((e) => `${e.pid}:${e.tid}` === key)
+      .sort((a, b) => a.ts - b.ts || b.dur - a.dur);
+    const stack = [];
+    const self = new Map();
+    for (const e of list) {
+      while (stack.length && stack[stack.length - 1].ts + stack[stack.length - 1].dur <= e.ts)
+        stack.pop();
+      const parent = stack[stack.length - 1];
+      if (parent) self.set(parent, (self.get(parent) ?? parent.dur) - e.dur);
+      self.set(e, self.get(e) ?? e.dur);
+      stack.push(e);
+    }
+    for (const [e, t] of self) {
+      const b = bucket(e.name);
+      if (b) totals[b] += Math.max(0, t) / 1000;
+    }
+  }
+  for (const e of events) {
+    if (/^(RasterTask|ImageDecodeTask|GpuRasterization)$/.test(e.name))
+      totals.raster += e.dur / 1000;
+  }
+  // Input to presentation, per touch event (EventLatency), and presented versus dropped frames.
+  const open = new Map();
+  const latency = { TOUCH_MOVED: [], TOUCH_RELEASED: [], TOUCH_PRESSED: [] };
+  const frames = { presented: 0, dropped: 0 };
+  for (const e of json.traceEvents ?? json) {
+    if (e.name === 'EventLatency') {
+      const key = `${e.pid}:${e.id2?.local ?? e.id}`;
+      if (e.ph === 'b') open.set(key, e);
+      else if (e.ph === 'e' && open.has(key)) {
+        const b = open.get(key);
+        open.delete(key);
+        const type = b.args?.event_latency?.event_type;
+        if (latency[type]) latency[type].push((e.ts - b.ts) / 1000);
+      }
+    }
+    if (e.name === 'PipelineReporter' && e.ph === 'b') {
+      const state = e.args?.frame_reporter?.state ?? '';
+      if (/PRESENTED/.test(state)) frames.presented += 1;
+      else if (/DROPPED/.test(state)) frames.dropped += 1;
+    }
+  }
+  return { ...totals, latency, frames };
+}
+
+async function measure(browser, url, experiment, rate) {
+  const context = await browser.newContext({ ...devices['Pixel 7'], bypassCSP: true });
+  const page = await context.newPage();
+  await page.addInitScript(harness);
+  await page.goto(url);
+  await page.waitForSelector('svg.map g');
+  await page.waitForTimeout(400);
+  const fn = EXPERIMENTS[experiment];
+  if (fn) {
+    await page.evaluate(fn);
+    await page.waitForTimeout(300);
+  }
+  const cdp = await context.newCDPSession(page);
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate });
+  const vp = page.viewportSize();
+  const svg = page.locator('svg.map');
+  const nums = async (name) => (await svg.getAttribute(name)).split(' ').map(Number);
+  const hexOnScreen = async (q, r) => {
+    const [vx, vy, scale] = await nums('data-view');
+    const [size, squash] = await nums('data-projection');
+    return [vx + size * 1.5 * q * scale, vy + size * Math.sqrt(3) * (r + q / 2) * squash * scale];
+  };
+  const events = () => page.evaluate(() => window.__perf.events.splice(0));
+  const record = (on) =>
+    page.evaluate((v) => {
+      window.__perf.recording = v;
+      if (v) {
+        window.__perf.frames = [];
+        window.__perf.lags = [];
+      }
+    }, on);
+  const settle = () => page.waitForTimeout(600);
+
+  const traced = async (action) => {
+    await browser.startTracing(page, {
+      categories: [
+        'devtools.timeline',
+        'disabled-by-default-devtools.timeline',
+        'disabled-by-default-devtools.timeline.frame',
+        'v8',
+        'cc',
+        'benchmark',
+        'input',
+        'gpu',
+      ],
+    });
+    const result = await action();
+    const raw = JSON.parse((await browser.stopTracing()).toString('utf8'));
+    if (process.env.PERF_TRACE_OUT)
+      writeFileSync(
+        `${process.env.PERF_TRACE_OUT}-${experiment}-${rate}.json`,
+        JSON.stringify(raw),
+      );
+    return { result, trace: summariseTrace(raw) };
+  };
+
+  // (a) Tap latency: open and close the bubble on the creature, several times.
+  const [cq, cr] = await nums('data-creature');
+  const taps = [];
+  await events();
+  const tapTraced = await traced(async () => {
+    for (let i = 0; i < 6; i += 1) {
+      const [x, y] = await hexOnScreen(cq, cr);
+      await page.touchscreen.tap(x, y);
+      await page.waitForTimeout(350);
+      const ups = (await events()).filter((e) => e.name === 'pointerup');
+      const opened = (await page.locator('[data-popover]').count()) > 0;
+      if (opened && ups.length) taps.push(Math.max(...ups.map((e) => e.duration)));
+      else if (opened) taps.push(16); // under the Event Timing threshold
+    }
+  });
+  if ((await page.locator('[data-popover]').count()) > 0) {
+    const [x, y] = await hexOnScreen(cq, cr);
+    await page.touchscreen.tap(x, y);
+    await page.waitForTimeout(300);
+  }
+
+  // (b) A touch drag: frames and move-to-frame lag while it runs, then the frames after release.
+  await settle();
+  await events();
+  const dragTraced = await traced(async () => {
+    await record(true);
+    await cdp.send('Input.synthesizeScrollGesture', {
+      x: Math.round(vp.width / 2),
+      y: Math.round(vp.height / 2),
+      xDistance: -160,
+      yDistance: -220,
+      speed: 600,
+      gestureSourceType: 'touch',
+      repeatCount: 1,
+    });
+    const dragEnd = await page.evaluate(() => performance.now());
+    await settle();
+    await record(false);
+    return dragEnd;
+  });
+  const dragEnd = dragTraced.result;
+  const drag = await page.evaluate(() => ({
+    frames: window.__perf.frames,
+    lags: window.__perf.lags,
+  }));
+  const dragFrames = drag.frames.filter((f) => f.at <= dragEnd).map((f) => f.dt);
+  const releaseFrame = Math.max(0, ...drag.frames.filter((f) => f.at > dragEnd).map((f) => f.dt));
+  const dragUp = (await events()).filter((e) => e.name === 'pointerup').map((e) => e.duration);
+
+  // A pinch out (zooms in by a step, so the scene redraws on release).
+  const pinchTraced = await traced(async () => {
+    await record(true);
+    await cdp.send('Input.synthesizePinchGesture', {
+      x: Math.round(vp.width / 2),
+      y: Math.round(vp.height / 2),
+      scaleFactor: 1.6,
+      relativeSpeed: 400,
+      gestureSourceType: 'touch',
+    });
+    const pinchEnd = await page.evaluate(() => performance.now());
+    await settle();
+    await record(false);
+    return pinchEnd;
+  });
+  const pinchEnd = pinchTraced.result;
+  const pinch = await page.evaluate(() => ({
+    frames: window.__perf.frames,
+    lags: window.__perf.lags,
+  }));
+  const pinchFrames = pinch.frames.filter((f) => f.at <= pinchEnd).map((f) => f.dt);
+  const pinchRelease = Math.max(0, ...pinch.frames.filter((f) => f.at > pinchEnd).map((f) => f.dt));
+  const pinchEvents = await events();
+  // (c) The redraw at the new zoom step happens in the pointerup that ends the pinch.
+  const zoomRedraw = Math.max(
+    0,
+    ...pinchEvents.filter((e) => e.name === 'pointerup').map((e) => e.duration),
+  );
+
+  // (c) Next day: the click redraws the whole scene.
+  await page.locator('[aria-label="Next day"]').click();
+  await settle();
+  const day = (await events()).filter((e) => /^(click|pointerup|pointerdown)$/.test(e.name));
+  const nextDay = Math.max(0, ...day.map((e) => e.duration));
+
+  const nodes = await page.evaluate(() => document.querySelectorAll('svg.map *').length);
+  await context.close();
+  return {
+    experiment,
+    rate,
+    nodes,
+    tap: med(taps),
+    dragP50: med(dragFrames),
+    dragP95: pct(dragFrames, 0.95),
+    dragLag: med(drag.lags),
+    dragLagP95: pct(drag.lags, 0.95),
+    dragRelease: releaseFrame,
+    dragUp: Math.max(0, ...dragUp),
+    pinchP50: med(pinchFrames),
+    pinchP95: pct(pinchFrames, 0.95),
+    pinchRelease,
+    zoomRedraw,
+    nextDay,
+    taps: tapTraced.trace,
+    drag: dragTraced.trace,
+    pinch: pinchTraced.trace,
+  };
+}
+
+async function run() {
+  if (!existsSync(join(dist, 'index.html')))
+    throw new Error('Build first: pnpm --filter @behemoth-road/web build');
+  mkdirSync(out, { recursive: true });
+  const server = await serve();
+  const url = `http://127.0.0.1:${server.address().port}/`;
+  const browser = await chromium.launch();
+  const results = [];
+  try {
+    for (const experiment of Object.keys(EXPERIMENTS)) {
+      if (ONLY && !ONLY.includes(experiment)) continue;
+      for (const rate of RATES) {
+        const r = await measure(browser, url, experiment, rate);
+        results.push(r);
+        console.error(`done: ${experiment} at ${rate}x`);
+      }
+    }
+  } finally {
+    await browser.close();
+    server.close();
+  }
+  const f = (n) => (Number.isFinite(n) ? n.toFixed(0) : '–');
+  const lat = (t, type, q) => pct(t.latency[type], q);
+  console.log(
+    'Input to presentation (EventLatency, ms) and frames, from traces of a touch drag and a pinch:\n',
+  );
+  console.log(
+    '| experiment | CPU | tap ms | drag move→screen p50/p95 | drag release | drag frames shown/dropped | pinch move→screen p50/p95 | pinch release (zoom redraw) | next day ms | nodes |',
+  );
+  console.log('|---|---|---|---|---|---|---|---|---|---|');
+  for (const r of results) {
+    const d = r.drag;
+    const p = r.pinch;
+    console.log(
+      `| ${r.experiment} | ${r.rate}× | ${f(r.tap)} | ${f(lat(d, 'TOUCH_MOVED', 0.5))}/${f(lat(d, 'TOUCH_MOVED', 0.95))} | ${f(lat(d, 'TOUCH_RELEASED', 0.5))} | ${d.frames.presented}/${d.frames.dropped} | ${f(lat(p, 'TOUCH_MOVED', 0.5))}/${f(lat(p, 'TOUCH_MOVED', 0.95))} | ${f(Math.max(lat(p, 'TOUCH_RELEASED', 0.5), r.zoomRedraw))} | ${f(r.nextDay)} | ${r.nodes} |`,
+    );
+  }
+  console.log(
+    '\nWhere time goes during six taps (ms; main-thread self time, raster on all threads):\n',
+  );
+  console.log('| experiment | CPU | script | style | layout | paint | raster |');
+  console.log('|---|---|---|---|---|---|---|');
+  for (const r of results) {
+    const t = r.taps;
+    console.log(
+      `| ${r.experiment} | ${r.rate}× | ${f(t.script)} | ${f(t.style)} | ${f(t.layout)} | ${f(t.paint)} | ${f(t.raster)} |`,
+    );
+  }
+  console.log(
+    '\nWhere time goes during the drag and its release (ms; main-thread self time, raster on all threads):\n',
+  );
+  console.log(
+    '| experiment | CPU | script | style | layout | paint | raster | main-thread rAF p50/p95 |',
+  );
+  console.log('|---|---|---|---|---|---|---|---|');
+  for (const r of results) {
+    const t = r.drag;
+    console.log(
+      `| ${r.experiment} | ${r.rate}× | ${f(t.script)} | ${f(t.style)} | ${f(t.layout)} | ${f(t.paint)} | ${f(t.raster)} | ${f(r.dragP50)}/${f(r.dragP95)} |`,
+    );
+  }
+  writeFileSync(join(out, 'perf.json'), `${JSON.stringify(results, null, 2)}\n`);
+}
+
+run().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
