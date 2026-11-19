@@ -22,6 +22,7 @@ Record a decision:
 
 [direction.md](direction.md): Priorities, how the owner and agents work, naming and tone.
 
+- 2026-11-19 Art costs no money; code draws it, local generation is optional \[Misa\]
 - 2026-11-19 Agents commit as the owner \[Misa\]
 - 2026-11-19 Squash merges only; the PR title and description are the commit (amended)
 - 2026-11-19 Agents make small calls themselves; the owner keeps the large direction
@@ -77,6 +78,8 @@ Record a decision:
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-19 Isometric 3D hexes are the long-term goal; the map is built to allow it \[Misa\]
+- 2026-11-19 The look is a light ink-and-wash atlas in pastel, broken colours \[Misa\]
 - 2026-11-19 Phone first, desktop too
 - 2026-11-19 Accessibility is not traded away
 - 2026-11-19 Focus returns to the opener only for keyboard users

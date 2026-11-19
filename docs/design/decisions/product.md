@@ -4,6 +4,22 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: Isometric 3D hexes are the long-term goal; the map is built to allow it **[Misa]**
+
+ID: `2026-11-19-isometric-3d-hexes-are-the-long` · Status: current
+
+**Decision.** The long-term goal is an isometric 3D hex map with tile heights; the first milestones use a flat top-down view. To keep the way open, the game core knows only hex coordinates and never screen positions, the map renderer converts coordinates to the screen through one projection function, tiles draw their top face separately from any sides, and props (trees, hills, ruins, the creature) are drawn upright in side view, as on old maps, so they can stand on a tilted map later.
+
+**Reasoning.** Misa would like the hex grid to become isometric 3D eventually, but not to start there. Keeping projection in one place and drawing props upright costs little now and avoids redrawing every asset later.
+
+## 2026-11-19: The look is a light ink-and-wash atlas in pastel, broken colours **[Misa]**
+
+ID: `2026-11-19-the-look-is-a-light-ink` · Status: current
+
+**Decision.** The game looks like an explorer's atlas drawn in ink and watercolour wash, in a light, approachable palette of pastel, broken (slightly greyed) colours on paper, closer to a storybook than to retro or high-contrast games. Unexplored land is blank paper. Pixel art and dark, contrasty looks are out.
+
+**Reasoning.** Misa chose the ink-atlas and storybook directions over flat vector and pixel art, because retro and pixel styles tend towards darker, more contrasty moods than this game wants.
+
 ## 2026-11-19: Phone first, desktop too
 
 ID: `2026-11-19-phone-first-desktop-too` · Status: current

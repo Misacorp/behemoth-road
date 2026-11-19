@@ -4,6 +4,14 @@ Priorities, how the owner and agents work, naming and tone.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: Art costs no money; code draws it, local generation is optional **[Misa]**
+
+ID: `2026-11-19-art-costs-no-money-code-draws` · Status: current
+
+**Decision.** The project spends no money on art. Art is drawn by code: deterministic SVG drawing functions built from parts, palette ramps and seeded variation, with paper, wash and ink effects as SVG filters, reviewed by Misa in a gallery with like and redo verdicts, as creatures does for its pixel art. Hand-written SVG pieces can override generated ones for hero art such as the creature. Images Misa makes with local tools (for example DiffusionBee) are an optional input: references, textures and decals brought in through an import script, never a dependency. No paid image APIs.
+
+**Reasoning.** Misa does not want to spend money on image generation. Creatures shows that agents can draw good art as code with a review loop, and found that generated pieces can look plain beside hand-made ones, hence the override. Code-drawn art also follows content tags and data directly.
+
 ## 2026-11-19: Agents commit as the owner **[Misa]**
 
 ID: `2026-11-19-agents-commit-as-the-owner` · Status: current · Amends: `2026-11-19-squash-merges-only-the-pr-title`
