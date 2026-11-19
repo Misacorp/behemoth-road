@@ -51,6 +51,13 @@ describe('merge', () => {
     );
   });
 
+  test('a reused batch name from the export gets the next number', () => {
+    const first = merge(null, { batch: '2026-11-19-1', items: [item('a', 'v1')] });
+    const { manifest } = merge(first.manifest, { batch: '2026-11-19-1', items: [item('a', 'v2')] });
+    assert.deepEqual(manifest.batches, ['2026-11-19-1', '2026-11-19-2']);
+    assert.equal(manifest.items[0].batch, '2026-11-19-2');
+  });
+
   test('an export with nothing new adds no batch', () => {
     const first = merge(null, { batch: 'b1', items: [item('a', 'v1')] });
     const again = merge(first.manifest, { batch: 'b2', items: [item('a', 'v1')] });

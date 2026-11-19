@@ -4,7 +4,7 @@ What has landed and what is next. Newest first. Update it when a step lands or t
 
 ## Next
 
-- Milestone 1 (the walking map): Misa picks a palette and a tilt from the first art review batch; the art kit gets a second round (screen-to-hex picking, hardening, creature facing, cliffs, phone legibility); the map interface (`apps/web`, branch `m1/map`) is in review; then Misa tries it on a phone and a desktop.
+- Milestone 1 (the walking map): Misa picks a palette, a tilt and the creature's facing from the art review batches; the map interface (`apps/web`, branch `m1/map`) is in review; then Misa tries it on a phone and a desktop.
 - Before Milestone 2 persists games: pin the content (terrain table) a saved game was made with, so a later content change cannot alter it; and keep the per-tile record from growing without bound (lost tiles could be pruned).
 
 ## Done

@@ -1,118 +1,150 @@
 {
   "batches": [
-    "2026-11-19-1"
+    "2026-11-19-1",
+    "2026-11-19-2"
   ],
   "items": [
     {
       "id": "style/morning",
       "group": "Style sample",
       "title": "Morning",
-      "version": "5f498b60",
+      "version": "c6194e25",
       "kind": "pick",
       "pick": "style-palette",
       "question": "Which palette should the game use?",
-      "batch": "2026-11-19-1",
-      "file": "art/style-morning-5f498b60.svg"
+      "batch": "2026-11-19-2",
+      "file": "art/style-morning-c6194e25.svg"
     },
     {
       "id": "style/mist",
       "group": "Style sample",
       "title": "Mist",
-      "version": "2e3622c7",
+      "version": "5213be32",
       "kind": "pick",
       "pick": "style-palette",
       "question": "Which palette should the game use?",
-      "batch": "2026-11-19-1",
-      "file": "art/style-mist-2e3622c7.svg"
+      "batch": "2026-11-19-2",
+      "file": "art/style-mist-5213be32.svg"
     },
     {
       "id": "style/spring",
       "group": "Style sample",
       "title": "Spring",
-      "version": "b7a68159",
+      "version": "1386c0a1",
       "kind": "pick",
       "pick": "style-palette",
       "question": "Which palette should the game use?",
-      "batch": "2026-11-19-1",
-      "file": "art/style-spring-b7a68159.svg"
+      "batch": "2026-11-19-2",
+      "file": "art/style-spring-1386c0a1.svg"
     },
     {
       "id": "tilt/0-5",
       "group": "Tilt",
       "title": "Tilt 0.5",
-      "version": "f5eca776",
+      "version": "eb3b0006",
       "kind": "pick",
       "pick": "style-tilt",
       "question": "How strong should the tilt be?",
-      "batch": "2026-11-19-1",
-      "file": "art/tilt-0-5-f5eca776.svg"
+      "batch": "2026-11-19-2",
+      "file": "art/tilt-0-5-eb3b0006.svg"
     },
     {
       "id": "tilt/0-6",
       "group": "Tilt",
       "title": "Tilt 0.6",
-      "version": "2e3622c7",
+      "version": "5213be32",
       "kind": "pick",
       "pick": "style-tilt",
       "question": "How strong should the tilt be?",
-      "batch": "2026-11-19-1",
-      "file": "art/tilt-0-6-2e3622c7.svg"
+      "batch": "2026-11-19-2",
+      "file": "art/tilt-0-6-5213be32.svg"
     },
     {
       "id": "tilt/top",
       "group": "Tilt",
       "title": "Top-down",
-      "version": "0c4d3ddf",
+      "version": "686d1e86",
       "kind": "pick",
       "pick": "style-tilt",
       "question": "How strong should the tilt be?",
-      "batch": "2026-11-19-1",
-      "file": "art/tilt-top-0c4d3ddf.svg"
+      "batch": "2026-11-19-2",
+      "file": "art/tilt-top-686d1e86.svg"
     },
     {
       "id": "sheet/terrain",
       "group": "Sheets",
       "title": "Terrain tiles",
-      "version": "c0569fae",
+      "version": "95392b2f",
       "kind": "glance",
-      "batch": "2026-11-19-1",
-      "file": "art/sheet-terrain-c0569fae.svg"
+      "batch": "2026-11-19-2",
+      "file": "art/sheet-terrain-95392b2f.svg"
     },
     {
       "id": "sheet/props",
       "group": "Sheets",
       "title": "Props",
-      "version": "6b2bc429",
+      "version": "3859b6c6",
       "kind": "glance",
-      "batch": "2026-11-19-1",
-      "file": "art/sheet-props-6b2bc429.svg"
+      "batch": "2026-11-19-2",
+      "file": "art/sheet-props-3859b6c6.svg"
     },
     {
       "id": "creature/gentle-ambler",
       "group": "Sheets",
       "title": "The first creature",
-      "version": "34f5c1bd",
+      "version": "734549bb",
       "kind": "glance",
-      "batch": "2026-11-19-1",
-      "file": "art/creature-gentle-ambler-34f5c1bd.svg"
+      "batch": "2026-11-19-2",
+      "file": "art/creature-gentle-ambler-734549bb.svg"
     },
     {
       "id": "sheet/characters",
       "group": "Sheets",
       "title": "Character standees",
-      "version": "ddd63a14",
+      "version": "d7d1382c",
       "kind": "glance",
-      "batch": "2026-11-19-1",
-      "file": "art/sheet-characters-ddd63a14.svg"
+      "batch": "2026-11-19-2",
+      "file": "art/sheet-characters-d7d1382c.svg"
     },
     {
       "id": "sheet/fog",
       "group": "Sheets",
       "title": "Unseen, fading, lost, hint",
-      "version": "d37eccd3",
+      "version": "e366e017",
       "kind": "glance",
-      "batch": "2026-11-19-1",
-      "file": "art/sheet-fog-d37eccd3.svg"
+      "batch": "2026-11-19-2",
+      "file": "art/sheet-fog-e366e017.svg"
+    },
+    {
+      "id": "facing/side",
+      "group": "Creature facing",
+      "title": "Side view",
+      "version": "5213be32",
+      "kind": "pick",
+      "pick": "creature-facing",
+      "question": "Which way should the creature face when it walks north?",
+      "batch": "2026-11-19-2",
+      "file": "art/facing-side-5213be32.svg"
+    },
+    {
+      "id": "facing/away",
+      "group": "Creature facing",
+      "title": "From behind",
+      "version": "db306566",
+      "kind": "pick",
+      "pick": "creature-facing",
+      "question": "Which way should the creature face when it walks north?",
+      "batch": "2026-11-19-2",
+      "file": "art/facing-away-db306566.svg"
+    },
+    {
+      "id": "creature/gentle-ambler-away",
+      "group": "Sheets",
+      "title": "The first creature from behind",
+      "version": "9d5c123b",
+      "kind": "glance",
+      "batch": "2026-11-19-2",
+      "file": "art/creature-gentle-ambler-away-9d5c123b.svg"
     }
   ]
 }

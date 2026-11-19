@@ -54,6 +54,7 @@ function validate(exp) {
 export function merge(manifest, exp) {
   validate(exp);
   const prev = manifest ?? { batches: [], items: [] };
+  const batch = nextBatch(prev.batches, exp.batch);
   const byId = new Map(prev.items.map((it) => [it.id, it]));
   const fresh = [];
   for (const it of exp.items) {
@@ -63,15 +64,29 @@ export function merge(manifest, exp) {
     if (old && old.version === it.version) {
       entry.batch = old.batch;
     } else {
-      entry.batch = exp.batch;
+      entry.batch = batch;
       fresh.push(it);
     }
     entry.file = artPath(entry);
     byId.set(it.id, entry);
   }
   if (fresh.length === 0) return { manifest: prev, fresh };
-  const batches = prev.batches.includes(exp.batch) ? prev.batches : [...prev.batches, exp.batch];
-  return { manifest: { batches, items: [...byId.values()] }, fresh };
+  return { manifest: { batches: [...prev.batches, batch], items: [...byId.values()] }, fresh };
+}
+
+/**
+ * The manifest owns batch names: the export's name is used unless the manifest already has it, in which
+ * case the number after the date goes up past the highest one seen for that date.
+ */
+export function nextBatch(batches, wanted) {
+  if (!batches.includes(wanted)) return wanted;
+  const date = wanted.replace(/-\d+$/, '');
+  let n = 0;
+  for (const b of batches) {
+    const m = b.match(/^(.*)-(\d+)$/);
+    if (m && m[1] === date) n = Math.max(n, Number(m[2]));
+  }
+  return `${date}-${n + 1}`;
 }
 
 function main(argv) {
@@ -85,7 +100,7 @@ function main(argv) {
   const exp = JSON.parse(readFileSync(join(exportDir, 'items.json'), 'utf8'));
   const prev = existsSync(MANIFEST) ? JSON.parse(readFileSync(MANIFEST, 'utf8')) : null;
   const { manifest, fresh } = merge(prev, exp);
-  console.log(`${fresh.length} new or changed item(s) in batch ${exp.batch}`);
+  console.log(`${fresh.length} new or changed item(s) in batch ${manifest.batches.at(-1)}`);
   for (const it of fresh) console.log(`  ${it.id} -> ${artPath(it)}`);
   if (dry || fresh.length === 0) return;
   mkdirSync(join(stage, 'art'), { recursive: true });

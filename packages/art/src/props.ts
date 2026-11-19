@@ -28,6 +28,8 @@ export interface PropContext {
   readonly k: number;
   /** Vertical squash of the ground plane (for shadows). */
   readonly squash: number;
+  /** The scene's base ink width in px (already scaled and held at its screen minimum). */
+  readonly ink: number;
 }
 
 export interface Drawn {
@@ -49,8 +51,14 @@ export function inkAttrs(colour: string, width: number): Record<string, AttrValu
   };
 }
 
-export function inkWidth(k: number): number {
-  return ART_TUNING.inkWidth * k;
+/**
+ * The base ink width for a scene: the tuned width at this hex size, but never thinner than `minInkPx` on
+ * screen when the drawing is shown at `zoom` screen px per drawing px.
+ */
+export function inkWidth(k: number, zoom = 1, minInkPx: number = ART_TUNING.minInkPx): number {
+  const base = ART_TUNING.inkWidth * k;
+  if (!Number.isFinite(zoom) || zoom <= 0 || !Number.isFinite(minInkPx)) return base;
+  return Math.max(base, minInkPx / zoom);
 }
 
 /** A soft wash shadow on the ground, squashed with the plane. */
@@ -77,7 +85,7 @@ function wash(d: string, fill: string, opacity = 1): SvgNode {
 }
 
 function ink(c: PropContext, d: string, scale = 1, colour?: string): SvgNode {
-  return el('path', { d, ...inkAttrs(colour ?? c.palette.ink, inkWidth(c.k) * scale) });
+  return el('path', { d, ...inkAttrs(colour ?? c.palette.ink, c.ink * scale) });
 }
 
 const conifer: PropDraw = (c) => {
@@ -200,7 +208,7 @@ const tuft: PropDraw = (c) => {
     pts.push(a, b);
   }
   return {
-    nodes: [el('path', { d: parts.join(''), ...inkAttrs(palette.inkSoft, inkWidth(c.k) * 0.8) })],
+    nodes: [el('path', { d: parts.join(''), ...inkAttrs(palette.inkSoft, c.ink * 0.8) })],
     box: boxOf(pts),
   };
 };
@@ -223,7 +231,7 @@ const dune: PropDraw = (c) => {
     nodes: [
       el('path', { d: `${top}Z`, fill: ramp.light }),
       el('path', { d: lee, fill: ramp.shade, opacity: 0.55 }),
-      el('path', { d: ripple, ...inkAttrs(palette.inkSoft, inkWidth(c.k) * 0.6) }),
+      el('path', { d: ripple, ...inkAttrs(palette.inkSoft, c.ink * 0.6) }),
       ink(c, top),
     ],
     box: boxOf([T(-w, 0), T(w, 0), T(px, -h)]),
@@ -268,78 +276,90 @@ const rock: PropDraw = (c) => {
   };
 };
 
+/** An escarpment: a rock face running across the tile, a strip of plateau on top and rubble at its foot. */
 const cliff: PropDraw = (c) => {
   const { rng, palette } = c;
   const ramp = palette.ramps.rock;
-  const w = rng.range(36, 42);
-  const h = rng.range(40, 50);
-  const raw: Raw = [
-    [-w, 0],
-    [-w * 0.92, -h * 0.42],
-    [-w * 0.62, -h * 0.48],
-    [-w * 0.52, -h * 0.84],
-    [-w * 0.15, -h],
-    [w * 0.22, -h * 0.9],
-    [w * 0.36, -h * 0.6],
-    [w * 0.72, -h * 0.55],
-    [w * 0.86, -h * 0.22],
-    [w, 0],
-  ];
-  const outline = shape(c, raw, 1.2);
-  const lightRaw: Raw = [
-    [-w * 0.52, -h * 0.84],
-    [-w * 0.15, -h],
-    [w * 0.22, -h * 0.9],
-    [w * 0.05, -h * 0.78],
-    [-w * 0.3, -h * 0.74],
-  ];
-  const shadeRaw: Raw = [
-    [w * 0.22, -h * 0.9],
-    [w * 0.36, -h * 0.6],
-    [w * 0.72, -h * 0.55],
-    [w * 0.86, -h * 0.22],
-    [w, 0],
-    [w * 0.3, 0],
-    [w * 0.12, -h * 0.5],
-  ];
-  const strata: string[] = [];
-  for (let i = 0; i < 4; i += 1) {
-    const y = -h * (0.18 + i * 0.17) + rng.range(-2, 2);
-    const x0 = -w * rng.range(0.3, 0.7) * (1 - i * 0.12);
-    const x1 = x0 + w * rng.range(0.35, 0.6);
-    strata.push(
-      smoothOpen(
+  const w = rng.range(44, 50);
+  const h = rng.range(22, 28);
+  const n = 11;
+  // The jagged top edge of the face, low at both ends where the ridge meets the ground.
+  const edge: [number, number][] = [];
+  for (let i = 0; i <= n; i += 1) {
+    const t = i / n;
+    const x = -w + 2 * w * t;
+    // Flat along the ridge, dropping steeply at both ends.
+    const end = Math.min(1, t / 0.14, (1 - t) / 0.14);
+    const rise = end * end * (3 - 2 * end);
+    edge.push([x, -(h + rng.range(-2.2, 2.2)) * rise - 0.5]);
+  }
+  const back = 9;
+  // The plateau's back edge: the top edge raised, pulled in at the ends.
+  const top: [number, number][] = edge.map(([x, y], i) => {
+    const t = i / n;
+    const inset = Math.min(1, t / 0.2, (1 - t) / 0.2);
+    return [x * (1 - 0.05 * inset) + back * 0.25 * inset, y - back * inset];
+  });
+  const face: Raw = [...edge, [w, 0], [-w, 0]];
+  const plateau: Raw = [...edge, ...top.slice().reverse()];
+  const shade: Raw = [...edge.slice(Math.floor(n * 0.62)), [w, 0], [w * 0.22, 0]];
+  const fissures: string[] = [];
+  for (let i = 1; i < n; i += 1) {
+    if (!rng.chance(0.55)) continue;
+    const [x, y] = edge[i]!;
+    const len = -y * rng.range(0.45, 0.85);
+    fissures.push(
+      poly(
         shape(c, [
-          [x0, y],
-          [(x0 + x1) / 2, y + rng.range(-1.5, 1.5)],
-          [x1, y + rng.range(-1, 1)],
+          [x + rng.range(-1, 1), y + 2],
+          [x + rng.range(-2, 2), y + 2 + len * 0.5],
+          [x + rng.range(-1.5, 1.5), y + 2 + len],
         ]),
+        false,
       ),
     );
   }
-  const cracks = [
-    poly(
-      shape(c, [
-        [w * 0.12, -h * 0.5],
-        [w * 0.18, -h * 0.3],
-        [w * 0.3, 0],
-      ]),
-      false,
-    ),
-  ];
+  const ledge = smoothOpen(
+    shape(c, [
+      [-w * 0.7, -h * 0.42],
+      [-w * 0.2, -h * 0.5 + rng.range(-2, 2)],
+      [w * 0.3, -h * 0.46],
+      [w * 0.62, -h * 0.4],
+    ]),
+  );
+  const rubble: string[] = [];
+  const rubblePts: Point[] = [];
+  for (let i = 0; i < 3; i += 1) {
+    const x = rng.range(-w * 0.8, w * 0.8);
+    const r = rng.range(2, 3.6);
+    const p = shape(c, [
+      [x - r, 2.5],
+      [x - r * 0.6, 2.5 - r * 0.9],
+      [x + r * 0.5, 2.5 - r],
+      [x + r, 2.5],
+    ]);
+    rubble.push(poly(p));
+    rubblePts.push(...p);
+  }
+  const faceS = shape(c, face);
+  const plateauS = shape(c, plateau);
   return {
     nodes: [
-      groundShadow(c, w * 1.05, w * 0.22, 3),
-      wash(poly(shape(c, raw, 1)), ramp.base),
-      wash(poly(shape(c, lightRaw)), ramp.light, 0.85),
-      wash(poly(shape(c, shadeRaw)), ramp.shade, 0.55),
-      el('path', {
-        d: strata.join('') + cracks.join(''),
-        ...inkAttrs(palette.inkSoft, inkWidth(c.k) * 0.7),
-      }),
-      ink(c, poly(outline)),
+      groundShadow(c, w * 1.02, 7, 0),
+      wash(poly(shape(c, face, 0.8)), ramp.base),
+      wash(poly(plateauS), palette.ramps.heath.light),
+      wash(poly(shape(c, shade)), ramp.shade, 0.55),
+      el('path', { d: fissures.join('') + ledge, ...inkAttrs(palette.inkSoft, c.ink * 0.75) }),
+      wash(rubble.join(''), ramp.shade, 0.7),
+      ink(c, poly(plateauS)),
+      ink(
+        c,
+        poly(faceS.slice(0, n + 1).concat([faceS[n + 1]!]), false) +
+          poly([faceS[0]!, faceS[n + 2]!], false),
+        1,
+      ),
     ],
-    box: boxOf(outline),
+    box: boxOf([...faceS, ...plateauS, ...rubblePts]),
   };
 };
 
@@ -375,7 +395,7 @@ const hill: PropDraw = (c) => {
         fill: ramp.shade,
         opacity: 0.5,
       }),
-      el('path', { d: hachures.join(''), ...inkAttrs(palette.inkSoft, inkWidth(c.k) * 0.75) }),
+      el('path', { d: hachures.join(''), ...inkAttrs(palette.inkSoft, c.ink * 0.75) }),
       ink(c, smoothOpen(topScreen)),
     ],
     box: boxOf(topScreen),
@@ -383,7 +403,7 @@ const hill: PropDraw = (c) => {
 };
 
 const ruin: PropDraw = (outer) => {
-  const c = { ...outer, k: outer.k * 1.3 };
+  const c = { ...outer, k: outer.k * 1.55, ink: outer.ink * 1.15 };
   const { rng, palette } = c;
   const ramp = palette.ramps.stone;
   const tall = rng.range(28, 34);
@@ -454,7 +474,7 @@ const ruin: PropDraw = (outer) => {
         ramp.shade,
         0.55,
       ),
-      el('path', { d: lines.join(''), ...inkAttrs(palette.inkSoft, inkWidth(c.k) * 0.7) }),
+      el('path', { d: lines.join(''), ...inkAttrs(palette.inkSoft, c.ink * 0.7) }),
       ink(c, all.map((pts) => poly(pts)).join('')),
     ],
     box: boxOf(all.flat()),
@@ -484,7 +504,7 @@ export const hintMark: PropDraw = (c) => {
       el('path', {
         d: poly(star),
         fill: palette.hint,
-        ...{ stroke: palette.ink, 'stroke-width': inkWidth(c.k) * 0.8, 'stroke-linejoin': 'round' },
+        ...{ stroke: palette.ink, 'stroke-width': c.ink * 0.8, 'stroke-linejoin': 'round' },
       }),
       el('path', {
         d:
@@ -515,7 +535,7 @@ export const PROP_SPACING: Readonly<Record<string, number>> = {
   tuft: 0.14,
   dune: 0.42,
   rock: 0.24,
-  cliff: 0.6,
+  cliff: 0.9,
   hill: 0.44,
   ruin: 0.6,
 };
