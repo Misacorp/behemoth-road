@@ -49,6 +49,8 @@ Record a decision:
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
+- 2026-11-19 The map pans by one transformed group and drops its SVG filters during gestures
+- 2026-11-19 Milestone 1 dev controls show in every environment
 - 2026-11-19 Terrain comes from seeded noise fields, with rivers and ridges on contour lines
 - 2026-11-19 The core derives terrain from a hash and stores only tile knowledge and the config (amended)
 - 2026-11-19 Map ground merges into one path per paint; hexes are hit-tested by maths
@@ -71,7 +73,7 @@ Record a decision:
 - 2026-11-19 Limit what a fooled agent can do
 - 2026-11-19 Migrations apply by recorded version, and a released number is never reused
 - 2026-11-19 Production deploys only from main; staging only from a manual run
-- 2026-11-19 Dev tools exist only in staging and fail closed
+- 2026-11-19 Dev tools exist only in staging and fail closed (amended)
 - 2026-11-19 Large reworks run behind a staging-only flag
 - 2026-11-19 Destructive one-off operations are built inert
 - 2026-11-19 A script tells agents which commit is deployed
@@ -84,6 +86,7 @@ Record a decision:
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-19 Map popovers are drawn in SVG; the view follows the creature each day
 - 2026-11-19 Moving: tap your character, tap a tile, see the arrow, confirm \[Misa\]
 - 2026-11-19 No focus outlines or other visible accessibility aids in the game \[Misa\]
 - 2026-11-19 Touch first: drag to pan, pinch or wheel to zoom, tap or click to act \[Misa\] (amended)

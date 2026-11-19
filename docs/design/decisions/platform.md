@@ -4,6 +4,22 @@ Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: The map pans by one transformed group and drops its SVG filters during gestures
+
+ID: `2026-11-19-the-map-pans-by-one-transformed` · Status: current
+
+**Decision.** The art kit's scene and the overlays sit in one `<g>` whose `transform` attribute is set directly in a requestAnimationFrame callback, without re-rendering Preact per frame. Taps find their hex by inverting the projection. While a drag, pinch or wheel zoom runs, a `lite` class switches off the wash and ink filters by CSS; they return when the gesture ends. The paper grain covers the screen rather than the scene's frame, and the scene's page vignette is left out, so no frame edge shows while panning. `SvgNode` trees reach the page only through an allowlisting mapper (`apps/web/src/map/svgToPreact.ts`, with its lists in `svgAllow.ts`) that refuses other tags, `on*`, `href`, `style` and non-local `url()` values.
+
+**Reasoning.** Displacement filters are the expensive part of the art and are re-run when the transformed content changes; dropping them during a gesture keeps panning smooth on phones at the cost of a brief flatter look. Measured in headless Chromium with the CPU slowed 4x: median frame 16.7 ms on both sizes, p95 16.7 ms on the phone size and 50 ms on the desktop size. The allowlist and inverse projection are local until the art kit exports its own.
+
+## 2026-11-19: Milestone 1 dev controls show in every environment
+
+ID: `2026-11-19-milestone-1-dev-controls-show-in` · Status: current · Amends: `2026-11-19-dev-tools-exist-only-in-staging`
+
+**Decision.** In Milestone 1 the whole page is a local, single-player prototype: the game state lives in the browser and nothing reaches the server. So the "next day" and "new game" controls show in every environment, production included, as two small dashed buttons in the top-right corner. "New game" uses the next seed (`MAP_TUNING.seed + n`), so every game can be replayed. Milestone 2 moves the day tick to the server and hides these controls in production, as the staging-only rule requires.
+
+**Reasoning.** Misa tests the prototype wherever it is deployed, and skipping days and starting over after getting lost on purpose are what Milestone 1 is for. With no server state there is nothing a dev control could damage.
+
 ## 2026-11-19: Terrain comes from seeded noise fields, with rivers and ridges on contour lines
 
 ID: `2026-11-19-terrain-comes-from-seeded-noise-fields` · Status: current · Amends: `2026-11-19-the-core-derives-terrain-from-a`
@@ -182,7 +198,7 @@ ID: `2026-11-19-production-deploys-only-from-main-staging` · Status: current
 
 ## 2026-11-19: Dev tools exist only in staging and fail closed
 
-ID: `2026-11-19-dev-tools-exist-only-in-staging` · Status: current
+ID: `2026-11-19-dev-tools-exist-only-in-staging` · Status: current, amended by `2026-11-19-milestone-1-dev-controls-show-in`
 
 **Decision.** Dev routes and the dev panel are switched on by one runtime variable that is on only in the staging config, and a test pins it off in production; with it off, every dev route answers a plain 404 before any other check, at every layer. The panel's code is a separate chunk left out of the production build, and a build test checks production output has none of it. Dev tools are for the owner and admins only and fail closed when that cannot be checked.
 
