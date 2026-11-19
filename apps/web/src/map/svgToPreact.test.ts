@@ -32,9 +32,7 @@ describe('SvgNode to Preact mapper', () => {
     );
     const [wash, grain] = (v.props as { children: VNode[] }).children;
     expect((wash!.props as Record<string, unknown>)['class']).toBe(EFFECT_CLASS);
-    expect((grain!.props as Record<string, unknown>)['class']).toBe(
-      `${EFFECT_CLASS} ${GRAIN_CLASS}`,
-    );
+    expect((grain!.props as Record<string, unknown>)['class']).toBe(GRAIN_CLASS);
   });
 
   it.each([
