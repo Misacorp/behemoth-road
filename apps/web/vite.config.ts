@@ -10,6 +10,10 @@ export default defineConfig({
     // The CSP (public/_headers) forbids inline resources: never inline assets.
     assetsInlineLimit: 0,
   },
+  test: {
+    // The stylesheet guard (src/styles.test.ts) reads styles.css as text.
+    css: { include: [/styles\.css/] },
+  },
   server: {
     // `pnpm dev` in apps/worker serves the API on 8787.
     proxy: { '/api': 'http://localhost:8787' },

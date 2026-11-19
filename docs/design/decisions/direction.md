@@ -4,6 +4,21 @@ Priorities, how the owner and agents work, naming and tone.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: The art review page shows only what needs Misa; silence means accepted **[Misa]**
+
+ID: `2026-11-19-the-art-review-page-shows-only` · Status: current
+
+**Decision.** Art is reviewed on one page (`tools/art-review/index.html`, published by the lead as a claude.ai artifact; Misa's clicks are stored in its database). Art arrives in numbered batches, and the page orders itself by what needs Misa, newest first:
+
+- **Your pick**: real choices between options, each with a question. They stay at the top until Misa chooses, and move to the settled list after the next batch.
+- **New since last batch**: everything drawn or changed in the latest batch, including pieces revised after a note. Nothing here needs a click; Misa can like something or ask for changes with a note.
+- **Changes you asked for**: notes waiting for a revision.
+- **Settled**, folded away: older pieces, liked or not. A piece Misa left alone is accepted when the next batch arrives.
+
+`scripts/art-review.mjs` merges the art kit's export into `tools/art-review/manifest.json`, so an unchanged drawing keeps its first batch and only changed drawings come back to the top. Agents ask for a pick only when there is a real choice to make.
+
+**Reasoning.** Misa found that creatures' review page grew large and made it hard to find what needed attention, and that most pieces get no opinion at all. Treating silence as acceptance and asking only explicit questions keeps the page short and the top of it current.
+
 ## 2026-11-19: Art costs no money; code draws it, local generation is optional **[Misa]**
 
 ID: `2026-11-19-art-costs-no-money-code-draws` · Status: current

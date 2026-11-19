@@ -1,0 +1,775 @@
+<title>Behemoth Road Art Review</title>
+<meta name="claude:viewport-fit-sides" content="cover" />
+<link
+  rel="stylesheet"
+  href="https://fonts.googleapis.com/css2?family=Alegreya+SC:wght@500;700&family=Alegreya+Sans:wght@400;500;700&display=swap"
+/>
+<style>
+  /* Layout: one column, ordered by what needs Misa first: picks, then new work, then requested changes; everything settled is folded away at the bottom. */
+  :root {
+    --bg: #eef0ea;
+    --surface: #f9faf6;
+    --paper: #f6efe0;
+    --fg: #22281f;
+    --muted: #5d6658;
+    --line: #ccd3c6;
+    --accent: #3b6a5b;
+    --accent-soft: #dbe8e1;
+    --like: #b04a5a;
+    --ask: #8a5a12;
+    --font-display: 'Alegreya SC', 'Palatino Linotype', Georgia, serif;
+    --font-body: 'Alegreya Sans', 'Segoe UI', system-ui, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme='light']) {
+      --bg: #131813;
+      --surface: #1b211b;
+      --paper: #efe7d6;
+      --fg: #e4e9e0;
+      --muted: #9da899;
+      --line: #2d362d;
+      --accent: #8cc7b3;
+      --accent-soft: #20372f;
+      --like: #e48a98;
+      --ask: #e2b56c;
+      color-scheme: dark;
+    }
+  }
+  :root[data-theme='dark'] {
+    --bg: #131813;
+    --surface: #1b211b;
+    --paper: #efe7d6;
+    --fg: #e4e9e0;
+    --muted: #9da899;
+    --line: #2d362d;
+    --accent: #8cc7b3;
+    --accent-soft: #20372f;
+    --like: #e48a98;
+    --ask: #e2b56c;
+    color-scheme: dark;
+  }
+  * {
+    box-sizing: border-box;
+  }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-body);
+    font-size: 17px;
+    line-height: 1.5;
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-block: 28px 64px;
+  }
+  main {
+    max-width: 980px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+  }
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    margin: 0;
+    line-height: 1.15;
+    text-wrap: balance;
+  }
+  h1 {
+    font-size: clamp(1.9rem, 5vw, 2.6rem);
+  }
+  h2 {
+    font-size: 1.45rem;
+  }
+  h3 {
+    font-size: 1.15rem;
+  }
+  p {
+    margin: 0;
+    max-width: 65ch;
+  }
+  header {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .status {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .chip {
+    font-size: 0.9rem;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+  }
+  .chip.ask {
+    border-color: var(--ask);
+    color: var(--ask);
+    font-weight: 700;
+  }
+  .muted {
+    color: var(--muted);
+  }
+  section {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 16px;
+  }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+  .card.picked {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent);
+  }
+  .art {
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: var(--paper);
+    cursor: zoom-in;
+    border-radius: 6px 6px 0 0;
+  }
+  .art img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .body {
+    padding: 10px 12px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    align-items: baseline;
+  }
+  .group {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+  }
+  .flag {
+    font-size: 0.8rem;
+    color: var(--ask);
+  }
+  .note-quote {
+    font-size: 0.92rem;
+    color: var(--muted);
+    border-left: 2px solid var(--line);
+    padding-left: 8px;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  button {
+    font: inherit;
+    cursor: pointer;
+  }
+  .btn {
+    font-size: 0.95rem;
+    padding: 6px 14px;
+    min-height: 40px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    color: var(--fg);
+  }
+  .btn:hover {
+    border-color: var(--accent);
+  }
+  .btn.on {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--bg);
+  }
+  .btn.like.on {
+    background: var(--like);
+    border-color: var(--like);
+  }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+  }
+  button:focus,
+  textarea:focus,
+  summary:focus {
+    outline: none;
+  }
+  textarea {
+    font: inherit;
+    font-size: 0.95rem;
+    width: 100%;
+    min-height: 72px;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid var(--line);
+    background: var(--bg);
+    color: var(--fg);
+    resize: vertical;
+  }
+  .pick {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--ask);
+    border-radius: 6px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .pick .grid {
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  }
+  .pick .card {
+    background: var(--bg);
+  }
+  .empty {
+    padding: 14px;
+    border: 1px dashed var(--line);
+    border-radius: 6px;
+    color: var(--muted);
+  }
+  details.settled {
+    border-top: 1px solid var(--line);
+    padding-top: 12px;
+  }
+  details.settled summary {
+    cursor: pointer;
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+  }
+  .settled-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+    margin-top: 14px;
+  }
+  .mini {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+  .mini .art {
+    border-radius: 4px;
+  }
+  .mini span {
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .mini span b {
+    color: var(--fg);
+    font-weight: 500;
+  }
+  dialog {
+    border: 0;
+    padding: 0;
+    background: var(--paper);
+    max-width: min(96vw, 1200px);
+    max-height: 92vh;
+    border-radius: 6px;
+  }
+  dialog::backdrop {
+    background: rgba(10, 14, 10, 0.72);
+  }
+  dialog img {
+    display: block;
+    max-width: 100%;
+    max-height: 86vh;
+  }
+  dialog form {
+    display: flex;
+    justify-content: flex-end;
+    padding: 6px;
+    background: var(--surface);
+  }
+  .banner {
+    padding: 10px 12px;
+    border-radius: 6px;
+    background: var(--accent-soft);
+    font-size: 0.95rem;
+  }
+</style>
+
+<main>
+  <header>
+    <h1>Art Review</h1>
+    <p class="muted" id="lede">Loading the latest batch…</p>
+    <div class="status" id="status"></div>
+    <p class="banner" id="banner" hidden></p>
+  </header>
+
+  <section id="picks-section" hidden>
+    <h2>Your pick</h2>
+    <div id="picks"></div>
+  </section>
+
+  <section id="new-section" hidden>
+    <h2>New since last batch</h2>
+    <p class="muted">
+      Nothing here needs a click. Like what you love, ask for changes where you want them; the rest
+      is accepted when the next batch arrives.
+    </p>
+    <div class="grid" id="new"></div>
+  </section>
+
+  <section id="changes-section" hidden>
+    <h2>Changes you asked for</h2>
+    <p class="muted">These come back in a later batch, marked as revised.</p>
+    <div class="grid" id="changes"></div>
+  </section>
+
+  <details class="settled" id="settled-section" hidden>
+    <summary id="settled-summary">Settled</summary>
+    <div id="settled"></div>
+  </details>
+</main>
+
+<dialog id="zoom" aria-label="Enlarged art">
+  <img id="zoom-img" alt="" />
+  <form method="dialog"><button class="btn" type="submit">Close</button></form>
+</dialog>
+
+<script>
+  (function () {
+    'use strict';
+    var UNAVAILABLE =
+      "Your clicks can't be saved in this view. Open the page in Claude to like, pick or ask for changes.";
+    var state = {
+      manifest: null,
+      verdicts: Object.create(null),
+      picks: Object.create(null),
+      db: null,
+      dbReady: false,
+      openNote: null,
+      draft: '',
+    };
+    var $ = function (id) {
+      return document.getElementById(id);
+    };
+
+    function el(tag, cls, text) {
+      var e = document.createElement(tag);
+      if (cls) e.className = cls;
+      if (text != null) e.textContent = text;
+      return e;
+    }
+    function docId(s) {
+      return s.replace(/[^A-Za-z0-9_-]/g, '_');
+    }
+    function pickDoc(key) {
+      return docId('pick-' + key);
+    }
+
+    function batchIndex(b) {
+      return Math.max(0, state.manifest.batches.indexOf(b));
+    }
+    function currentBatch() {
+      var b = state.manifest.batches;
+      return b[b.length - 1];
+    }
+    function live(item) {
+      return !item.removed;
+    }
+
+    // Status of one glance item, from the manifest and Misa's verdicts.
+    function glanceStatus(item) {
+      var v = state.verdicts[docId(item.id)];
+      var latest = item.batch === currentBatch();
+      if (v && v.version === item.version) {
+        if (v.verdict === 'redo') return 'changes';
+        return latest ? 'liked-new' : 'liked';
+      }
+      if (latest) return v && v.verdict === 'redo' ? 'revised' : 'new';
+      return v && v.verdict === 'like' ? 'liked' : 'accepted';
+    }
+
+    function chosenItem(key, items) {
+      var p = state.picks[pickDoc(key)];
+      if (!p) return null;
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].id === p.choice && items[i].version === p.version) return items[i];
+      }
+      return null;
+    }
+
+    function openZoom(item) {
+      $('zoom-img').src = item.file;
+      $('zoom-img').alt = item.title;
+      $('zoom').showModal();
+    }
+
+    function artButton(item) {
+      var b = el('button', 'art');
+      b.type = 'button';
+      b.setAttribute('aria-label', 'Enlarge ' + item.title);
+      var img = el('img');
+      img.src = item.file;
+      img.alt = item.title;
+      img.loading = 'lazy';
+      b.appendChild(img);
+      b.addEventListener('click', function () {
+        openZoom(item);
+      });
+      return b;
+    }
+
+    function showBanner(t) {
+      var b = $('banner');
+      b.textContent = t;
+      b.hidden = false;
+    }
+    function hideBanner() {
+      $('banner').hidden = true;
+    }
+
+    function save(path, data) {
+      if (!state.db) return;
+      data.at = new Date().toISOString();
+      state.db
+        .doc(path)
+        .set(data)
+        .then(hideBanner, function () {
+          showBanner("Couldn't save that click. Please try again.");
+        });
+    }
+
+    function setVerdict(item, verdict, note) {
+      var id = docId(item.id);
+      var cur = state.verdicts[id];
+      if (verdict === 'like' && cur && cur.version === item.version && cur.verdict === 'like') {
+        delete state.verdicts[id];
+        render();
+        if (state.db)
+          state.db
+            .doc('verdicts/' + id)
+            .delete()
+            .then(hideBanner, function () {
+              showBanner("Couldn't save that click. Please try again.");
+            });
+        return;
+      }
+      var data = { itemId: item.id, version: item.version, verdict: verdict, note: note || '' };
+      state.verdicts[id] = data;
+      state.openNote = null;
+      state.draft = '';
+      render();
+      save('verdicts/' + id, data);
+    }
+
+    function noteBox(item) {
+      var wrap = el('div', 'body');
+      var ta = el('textarea');
+      ta.id = 'note-' + docId(item.id);
+      ta.placeholder = 'What should change?';
+      ta.setAttribute('aria-label', 'What should change');
+      ta.value = state.draft;
+      ta.addEventListener('input', function () {
+        state.draft = ta.value;
+      });
+      var row = el('div', 'actions');
+      var send = el('button', 'btn on', 'Send');
+      send.type = 'button';
+      var cancel = el('button', 'btn', 'Cancel');
+      cancel.type = 'button';
+      send.addEventListener('click', function () {
+        if (ta.value.trim()) setVerdict(item, 'redo', ta.value.trim());
+        else ta.focus();
+      });
+      cancel.addEventListener('click', function () {
+        state.openNote = null;
+        state.draft = '';
+        render();
+      });
+      row.appendChild(send);
+      row.appendChild(cancel);
+      wrap.appendChild(ta);
+      wrap.appendChild(row);
+      return wrap;
+    }
+
+    function glanceCard(item, status) {
+      var c = el('article', 'card');
+      c.appendChild(artButton(item));
+      var body = el('div', 'body');
+      var meta = el('div', 'meta');
+      var left = el('div');
+      left.appendChild(el('div', 'group', item.group));
+      left.appendChild(el('h3', null, item.title));
+      meta.appendChild(left);
+      if (status === 'revised') meta.appendChild(el('span', 'flag', 'Revised after your note'));
+      body.appendChild(meta);
+      var v = state.verdicts[docId(item.id)];
+      if (v && v.note && (status === 'revised' || status === 'changes'))
+        body.appendChild(el('p', 'note-quote', v.note));
+      var row = el('div', 'actions');
+      var liked = status === 'liked-new';
+      var like = el('button', 'btn like' + (liked ? ' on' : ''), liked ? 'Liked' : 'Like');
+      like.type = 'button';
+      like.setAttribute('aria-pressed', liked ? 'true' : 'false');
+      like.disabled = !state.dbReady;
+      like.addEventListener('click', function () {
+        setVerdict(item, 'like');
+      });
+      var asking = status === 'changes';
+      var ask = el(
+        'button',
+        'btn' + (asking ? ' on' : ''),
+        asking ? 'Edit request' : 'Ask for changes',
+      );
+      ask.type = 'button';
+      ask.disabled = !state.dbReady;
+      ask.addEventListener('click', function () {
+        state.openNote = item.id;
+        state.draft = asking && v ? v.note : '';
+        render();
+        var ta = $('note-' + docId(item.id));
+        if (ta) ta.focus();
+      });
+      row.appendChild(like);
+      row.appendChild(ask);
+      body.appendChild(row);
+      c.appendChild(body);
+      if (state.openNote === item.id) c.appendChild(noteBox(item));
+      return c;
+    }
+
+    function pickBlock(key, items) {
+      var chosen = chosenItem(key, items);
+      var box = el('div', 'pick');
+      box.appendChild(el('h3', null, items[0].question || 'Which one?'));
+      var g = el('div', 'grid');
+      items.forEach(function (item) {
+        var on = chosen === item;
+        var c = el('article', 'card' + (on ? ' picked' : ''));
+        c.appendChild(artButton(item));
+        var body = el('div', 'body');
+        body.appendChild(el('h3', null, item.title));
+        var b = el('button', 'btn' + (on ? ' on' : ''), on ? 'Chosen' : 'Choose this');
+        b.type = 'button';
+        b.setAttribute('aria-pressed', on ? 'true' : 'false');
+        b.disabled = !state.dbReady;
+        b.addEventListener('click', function () {
+          var data = { pick: key, choice: item.id, version: item.version, note: '' };
+          state.picks[pickDoc(key)] = data;
+          render();
+          save('picks/' + pickDoc(key), data);
+        });
+        body.appendChild(b);
+        c.appendChild(body);
+        g.appendChild(c);
+      });
+      box.appendChild(g);
+      return box;
+    }
+
+    function render() {
+      var m = state.manifest;
+      if (!m || !m.batches.length) return;
+      var focusedId = document.activeElement && document.activeElement.id;
+      var picks = new Map();
+      var fresh = [];
+      var changes = [];
+      var settled = [];
+      m.items.filter(live).forEach(function (item) {
+        if (item.kind === 'pick') {
+          if (!picks.has(item.pick)) picks.set(item.pick, []);
+          picks.get(item.pick).push(item);
+          return;
+        }
+        var s = glanceStatus(item);
+        if (s === 'new' || s === 'revised' || s === 'liked-new') fresh.push({ item: item, s: s });
+        else if (s === 'changes') changes.push({ item: item, s: s });
+        else settled.push({ item: item, s: s });
+      });
+      var openPicks = [];
+      var donePicks = [];
+      picks.forEach(function (items, k) {
+        var newest = Math.max.apply(
+          null,
+          items.map(function (i) {
+            return batchIndex(i.batch);
+          }),
+        );
+        var chosen = chosenItem(k, items);
+        var p = { key: k, items: items, newest: newest, chosen: chosen };
+        (chosen && batchIndex(currentBatch()) > newest ? donePicks : openPicks).push(p);
+      });
+      openPicks.sort(function (a, b) {
+        return b.newest - a.newest;
+      });
+      var order = { revised: 0, new: 1, 'liked-new': 1 };
+      var newestFirst = function (a, b) {
+        return (
+          batchIndex(b.item.batch) - batchIndex(a.item.batch) ||
+          (order[a.s] || 0) - (order[b.s] || 0)
+        );
+      };
+      fresh.sort(newestFirst);
+      changes.sort(newestFirst);
+
+      var unanswered = openPicks.filter(function (p) {
+        return !p.chosen;
+      }).length;
+      $('lede').textContent = 'Batch ' + currentBatch() + '. Newest at the top.';
+      var st = $('status');
+      st.textContent = '';
+      st.appendChild(
+        el(
+          'span',
+          'chip' + (unanswered ? ' ask' : ''),
+          unanswered
+            ? unanswered + ' pick' + (unanswered > 1 ? 's' : '') + ' need you'
+            : 'No picks waiting',
+        ),
+      );
+      if (fresh.length) st.appendChild(el('span', 'chip', fresh.length + ' new to glance at'));
+      if (changes.length) st.appendChild(el('span', 'chip', changes.length + ' changes requested'));
+
+      $('picks-section').hidden = !openPicks.length;
+      var pk = $('picks');
+      pk.textContent = '';
+      openPicks.forEach(function (p) {
+        pk.appendChild(pickBlock(p.key, p.items));
+      });
+
+      $('new-section').hidden = !fresh.length;
+      var nw = $('new');
+      nw.textContent = '';
+      fresh.forEach(function (x) {
+        nw.appendChild(glanceCard(x.item, x.s));
+      });
+
+      $('changes-section').hidden = !changes.length;
+      var ch = $('changes');
+      ch.textContent = '';
+      changes.forEach(function (x) {
+        ch.appendChild(glanceCard(x.item, x.s));
+      });
+
+      var sDiv = $('settled');
+      sDiv.textContent = '';
+      var groups = new Map();
+      var add = function (x) {
+        if (!groups.has(x.item.group)) groups.set(x.item.group, []);
+        groups.get(x.item.group).push(x);
+      };
+      settled.forEach(add);
+      donePicks.forEach(function (p) {
+        add({ item: p.chosen, s: 'chosen' });
+      });
+      var total = 0;
+      Array.from(groups.keys())
+        .sort()
+        .forEach(function (g) {
+          sDiv.appendChild(el('h3', null, g));
+          var list = el('div', 'settled-list');
+          groups.get(g).forEach(function (x) {
+            total++;
+            var mini = el('div', 'mini');
+            mini.appendChild(artButton(x.item));
+            var lab = el('span');
+            lab.appendChild(el('b', null, x.item.title));
+            lab.appendChild(
+              document.createTextNode(
+                x.s === 'liked' ? ' · liked' : x.s === 'chosen' ? ' · chosen' : '',
+              ),
+            );
+            mini.appendChild(lab);
+            list.appendChild(mini);
+          });
+          sDiv.appendChild(list);
+        });
+      $('settled-section').hidden = !total;
+      $('settled-summary').textContent = 'Settled (' + total + ')';
+
+      // Re-rendering replaces the nodes; keep typing where it was.
+      if (focusedId) {
+        var again = $(focusedId);
+        if (again && again !== document.activeElement) {
+          again.focus();
+          if (again.tagName === 'TEXTAREA')
+            again.setSelectionRange(again.value.length, again.value.length);
+        }
+      }
+    }
+
+    fetch('items.json')
+      .then(function (r) {
+        if (!r.ok) throw new Error(String(r.status));
+        return r.json();
+      })
+      .then(function (m) {
+        state.manifest = m;
+        render();
+      })
+      .catch(function () {
+        $('lede').textContent = 'No batch has been published yet.';
+      });
+
+    var timer = setTimeout(function () {
+      if (!state.dbReady) showBanner(UNAVAILABLE);
+    }, 10000);
+    var unavailable = function () {
+      clearTimeout(timer);
+      showBanner(UNAVAILABLE);
+    };
+    var claude = window.claude;
+    if (claude && claude.use) {
+      claude.use('db').then(function (db) {
+        if (!db) return unavailable();
+        state.db = db;
+        var loaded = { verdicts: false, picks: false };
+        var failed = false;
+        var listen = function (name) {
+          db.collection(name).onSnapshot(
+            function (snap) {
+              var v = Object.create(null);
+              snap.docs.forEach(function (d) {
+                v[d.id] = d.data();
+              });
+              state[name] = v;
+              loaded[name] = true;
+              if (!state.dbReady && !failed && loaded.verdicts && loaded.picks) {
+                clearTimeout(timer);
+                hideBanner();
+                state.dbReady = true;
+              }
+              render();
+            },
+            function () {
+              failed = true;
+              state.dbReady = false;
+              unavailable();
+              render();
+            },
+          );
+        };
+        listen('verdicts');
+        listen('picks');
+      }, unavailable);
+    }
+  })();
+</script>

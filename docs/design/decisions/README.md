@@ -22,6 +22,7 @@ Record a decision:
 
 [direction.md](direction.md): Priorities, how the owner and agents work, naming and tone.
 
+- 2026-11-19 The art review page shows only what needs Misa; silence means accepted \[Misa\]
 - 2026-11-19 Art costs no money; code draws it, local generation is optional \[Misa\]
 - 2026-11-19 Agents commit as the owner \[Misa\]
 - 2026-11-19 Squash merges only; the PR title and description are the commit (amended)
@@ -48,6 +49,14 @@ Record a decision:
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
+- 2026-11-19 Art terrain looks are keyed by the core's terrain ids
+- 2026-11-19 The map pans by one transformed group and drops its SVG filters during gestures
+- 2026-11-19 Milestone 1 dev controls show in every environment
+- 2026-11-19 Terrain comes from seeded noise fields, with rivers and ridges on contour lines
+- 2026-11-19 The core derives terrain from a hash and stores only tile knowledge and the config (amended)
+- 2026-11-19 Art output is held to a tag and attribute allowlist, with a lite mode for slow phones
+- 2026-11-19 Map ground merges into one path per paint; hexes are hit-tested by maths
+- 2026-11-19 The art kit is a pure package that returns an SVG element tree
 - 2026-11-19 Hostnames stay out of the README and workflows
 - 2026-11-19 One Durable Object per Discord server holds the game; its alarm runs the day tick
 - 2026-11-19 The game core is its own pure package, imported by the Worker and the frontend
@@ -66,7 +75,7 @@ Record a decision:
 - 2026-11-19 Limit what a fooled agent can do
 - 2026-11-19 Migrations apply by recorded version, and a released number is never reused
 - 2026-11-19 Production deploys only from main; staging only from a manual run
-- 2026-11-19 Dev tools exist only in staging and fail closed
+- 2026-11-19 Dev tools exist only in staging and fail closed (amended)
 - 2026-11-19 Large reworks run behind a staging-only flag
 - 2026-11-19 Destructive one-off operations are built inert
 - 2026-11-19 A script tells agents which commit is deployed
@@ -79,10 +88,35 @@ Record a decision:
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
-- 2026-11-19 Isometric 3D hexes are the long-term goal; the map is built to allow it \[Misa\]
+- 2026-11-19 The map's hub bubble: a generic list of characters plus a place entry
+- 2026-11-19 On the map the creature is one place: one outline, a seat at the arrow's end, its own popover (amended)
+- 2026-11-19 The creature is the party's hub; a tap picks your own character first \[Misa\]
+- 2026-11-19 A character's place is a hex or the creature; paths treat the creature as one node
+- 2026-11-19 Riders stand in numbered slots on the creature's back
+- 2026-11-19 The art kit draws a compact creature on trodden ground, measured against its footprint (amended)
+- 2026-11-19 Characters start riding the creature \[Misa\]
+- 2026-11-19 Characters ride the creature; its footprint is one place, not seven hexes \[Misa\]
+- 2026-11-19 The creature stays mostly inside its footprint so the map stays readable \[Misa\] (amended)
+- 2026-11-19 The creature is a behemoth: it fills its footprint and carries a small landscape (amended)
+- 2026-11-19 The creature is modelled as small solids and turns to all six headings; upright props shrink part way at the high view (amended)
+- 2026-11-19 The creature is drawn from above, at the map's view angle \[Misa\]
+- 2026-11-19 Spring palette and a high view: tilt 0.8 \[Misa\]
+- 2026-11-19 Map popovers are drawn in SVG; the view follows the creature each day
+- 2026-11-19 Moving: tap your character, tap a tile, see the arrow, confirm \[Misa\] (amended)
+- 2026-11-19 No focus outlines or other visible accessibility aids in the game \[Misa\]
+- 2026-11-19 Touch first: drag to pan, pinch or wheel to zoom, tap or click to act \[Misa\] (amended)
+- 2026-11-19 The map starts isometric, with flat ground first and heights later \[Misa\]
+- 2026-11-19 Movement reads one entry rule that can name what makes a step possible
+- 2026-11-19 Paths are planned by cheapest cost and walked all or nothing (amended)
+- 2026-11-19 The window is always in play; lost characters stay lost
+- 2026-11-19 Cliffs are impassable to characters in Milestone 1 (amended)
+- 2026-11-19 The creature veers by a seeded daily roll and ignores terrain for now
+- 2026-11-19 The creature faces where it walks; cliffs are escarpments (amended)
+- 2026-11-19 First map art: a squashed hex plane with open-edge sides, upright props and four fog states (amended)
+- 2026-11-19 Isometric 3D hexes are the long-term goal; the map is built to allow it \[Misa\] (amended)
 - 2026-11-19 The look is a light ink-and-wash atlas in pastel, broken colours \[Misa\]
 - 2026-11-19 Phone first, desktop too
-- 2026-11-19 Accessibility is not traded away
+- 2026-11-19 Accessibility is not traded away (amended)
 - 2026-11-19 Focus returns to the opener only for keyboard users
 - 2026-11-19 One overlay at a time
 - 2026-11-19 Don't choose for the user; destructive actions go last
@@ -95,3 +129,5 @@ Record a decision:
 - 2026-11-19 Shared components are listed, guarded and reused
 - 2026-11-19 Drag and drop always has a tap and keyboard alternative
 - 2026-11-19 Counts read "1 / 3", and terms explain themselves without "?" icons
+
+Superseded: 5 entries (see the topic file).

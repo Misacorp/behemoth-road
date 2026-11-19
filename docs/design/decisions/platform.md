@@ -4,6 +4,70 @@ Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: Art terrain looks are keyed by the core's terrain ids
+
+ID: `2026-11-19-art-terrain-looks-are-keyed-by` · Status: current
+
+**Decision.** Each art kit terrain look (`TERRAIN_LOOKS`) is keyed by a core terrain id, so the map passes the core's id straight through. The look for open grassland is renamed from `meadow` to `plains`. Looks with no core terrain yet (`pines`, `hills`, `rocks`, `lake`) stay, and unknown ids still fall back to the neutral look. A web test checks every core terrain id has a look.
+
+**Reasoning.** One name per terrain avoids a mapping table that would drift as terrains are added. Renaming changes the review sheets that drew `meadow` tiles, so their items count as changed in the next review export.
+
+## 2026-11-19: The map pans by one transformed group and drops its SVG filters during gestures
+
+ID: `2026-11-19-the-map-pans-by-one-transformed` · Status: current
+
+**Decision.** The art kit's scene and the overlays sit in one `<g>` whose `transform` attribute is set directly in a requestAnimationFrame callback, without re-rendering Preact per frame. While a drag, pinch or wheel zoom runs, a `lite` class switches off the wash and ink filters by CSS; they return when the gesture ends. This class does the same as the art kit's `effects: 'lite'`, without redrawing the scene at each gesture's start and end. The map draws its scene with the art kit's new `frame: 'none'` option (no page paper, vignette or grain over the scene's box, whose edge would show while panning) and draws `paperGrain` once over the whole screen, outside the moving group. The scene is drawn for the current zoom (`zoom`, `minInkPx: 1`), rounded to half powers of two and updated when a gesture settles, so ink never thins below one screen pixel. Taps use the art kit's `screenToHex` directly: the map draws the scene's children without its viewBox, so world px are drawing coordinates. `SvgNode` trees reach the page only through a mapper (`apps/web/src/map/svgToPreact.ts`) that applies the art kit's `ALLOWED_TAGS` and `isAllowedAttribute`, and adds `svgAllow.ts`: only local `url(#id)` references, no markup or `javascript:` in values, and none of Preact's own props (`dangerouslySetInnerHTML`, `ref`, `key`, `children`, `class`). The art kit's `isForbiddenAttr` now refuses those names too.
+
+**Reasoning.** The art kit's name check is written for `toSvgString` and would pass `dangerouslySetInnerHTML`, which Preact turns into innerHTML, so the page keeps its own check of Preact props. Displacement filters are the expensive part of the art and are re-run when the transformed content changes; dropping them during a gesture keeps panning smooth on phones at the cost of a brief flatter look. Measured in headless Chromium with the CPU slowed 4x: median frame 16.7 ms on both sizes, p95 16.7 ms on the phone size and 50 ms on the desktop size.
+
+## 2026-11-19: Milestone 1 dev controls show in every environment
+
+ID: `2026-11-19-milestone-1-dev-controls-show-in` · Status: current · Amends: `2026-11-19-dev-tools-exist-only-in-staging`
+
+**Decision.** In Milestone 1 the whole page is a local, single-player prototype: the game state lives in the browser and nothing reaches the server. So the "next day" and "new game" controls show in every environment, production included, as two small dashed buttons in the top-right corner. "New game" uses the next seed (`MAP_TUNING.seed + n`), so every game can be replayed. Milestone 2 moves the day tick to the server and hides these controls in production, as the staging-only rule requires.
+
+**Reasoning.** Misa tests the prototype wherever it is deployed, and skipping days and starting over after getting lost on purpose are what Milestone 1 is for. With no server state there is nothing a dev control could damage.
+
+## 2026-11-19: Terrain comes from seeded noise fields, with rivers and ridges on contour lines
+
+ID: `2026-11-19-terrain-comes-from-seeded-noise-fields` · Status: current · Amends: `2026-11-19-the-core-derives-terrain-from-a`
+
+**Decision.** Terrain is laid out by rules in `content/generation.ts`, read in order, first match wins, with plains as the fallback. Each rule reads a named, seeded value-noise field (`noise.ts`: lattice values from the hash, quintic smoothing, each octave rotated so the grid never shows). A rule claims a hex when the field is above or below a value (forest on wet ground, desert on dry), or when the hex is on a contour line: at or above the value with a neighbour below it. Rivers sit on one contour of a water field, and cliffs on a rock field's contour where a highland mask allows it. Contour ribbons are one hex wide and always connected. Tuned to about 65 to 70% plains, with regions a few hexes across and a river crossed every 15 to 20 hexes of walking north. `terrainAt(seed, hex)` stays pure and samples at most seven hexes per field.
+
+**Reasoning.** Per-hex picks looked speckled, and a fixed-width band around a contour gave blobs where the field was flat and gaps where it was steep. The contour test fixes both without any stored state, and the numbers stay in content data.
+
+## 2026-11-19: The core derives terrain from a hash and stores only tile knowledge and the config
+
+ID: `2026-11-19-the-core-derives-terrain-from-a` · Status: current, amended by `2026-11-19-terrain-comes-from-seeded-noise-fields`
+
+**Decision.** A hex's terrain is a weighted pick from the terrain data using a hash of (seed, q, r); each hex is independent, with no clustering yet. The game state stores the seed, the day, the creature, the characters, the tuning config the game was created with, and tile knowledge only for hexes that have been in view (`seen` with the day it left the window, or `lost`). Hidden is the absence of an entry. The state is plain JSON.
+
+**Reasoning.** The map is never stored whole and any tile can be generated on demand, as the design asks. Keeping the config in the state means every rule in a game reads the same numbers, and a stored game replays identically. Clustered terrain (rivers that flow, forests in patches) can replace the per-hex pick later without a state change.
+
+## 2026-11-19: Art output is held to a tag and attribute allowlist, with a lite mode for slow phones
+
+ID: `2026-11-19-art-output-is-held-to-a` · Status: current
+
+**Decision.** `toSvgString` accepts only the tags in `ALLOWED_TAGS` (shapes, groups, gradients and the three filter primitives in use) and refuses attribute names starting with `on`, `href`, `xlink:href` and `style`; both lists are exported so the web app's Preact mapper enforces the same. `renderScene` refuses an `idPrefix` outside `[\w-]+`. Scenes take `effects: 'full' | 'lite'`: `lite` drops the displacement, turbulence and grain filters for panning or slow phones, and `full` stays the default. Ink width has a floor in screen pixels (`ART_TUNING.minInkPx`, 1 px) given the scene's `zoom`, so faint lines survive zooming out. `screenToHex` inverts the projection for taps; it ignores side faces while all tiles share one height.
+
+**Reasoning.** The tree reaches the page without `innerHTML`, but an allowlist keeps a future data-driven drawing from emitting scripts or links. Filters are the most expensive part of the art on phones, so the map needs a way to switch them off. At 390 px the review showed dotted outlines and the ruin nearly vanishing.
+
+## 2026-11-19: Map ground merges into one path per paint; hexes are hit-tested by maths
+
+ID: `2026-11-19-map-ground-merges-into-one-path` · Status: current
+
+**Decision.** The ground layer merges every shape with the same paint (tile tops of one terrain, side faces, washes, marks, river strokes, outlines) into one `<path>`, and the paper, wash and ink effects are SVG filters applied once per layer, never per tile. Tiles are not separate elements, so the map finds the tapped hex from the pointer position with hex maths. A 91-hex isometric scene with every terrain, the creature and a character measured 837 nodes; a test holds it under 1250.
+
+**Reasoning.** Phones were the worry: per-tile elements and per-tile filters multiply DOM size and filter cost by the number of hexes. Hex picking by maths is exact and also works for the isometric view through the one projection function.
+
+## 2026-11-19: The art kit is a pure package that returns an SVG element tree
+
+ID: `2026-11-19-the-art-kit-is-a-pure` · Status: current
+
+**Decision.** The game's art lives in `packages/art` (`@behemoth-road/art`): pure TypeScript with no DOM and no runtime dependencies. Drawing functions return a small element tree (`SvgNode = { tag, attrs, children }`), not strings; `toSvgString` serialises it for export files and tests, and the web app will map nodes to Preact elements. Art keys off plain data (terrain id strings, cell states, seeds) and does not import `packages/core`. Colours are written only in `palette.ts` (a test checks both the source and every colour in the output). `pnpm --filter @behemoth-road/art review` writes a review batch to `packages/art/review-out/` (gitignored) using Node's built-in type stripping, so it needs Node 22.18 or later.
+
+**Reasoning.** The web app bans `innerHTML`, so strings could not reach the page safely; a tree maps to Preact directly. Keeping art free of the core lets both be built in parallel and lets the review export run without a browser or a build step.
+
 ## 2026-11-19: Hostnames stay out of the README and workflows
 
 ID: `2026-11-19-hostnames-stay-out-of-the-readme` · Status: current
@@ -150,7 +214,7 @@ ID: `2026-11-19-production-deploys-only-from-main-staging` · Status: current
 
 ## 2026-11-19: Dev tools exist only in staging and fail closed
 
-ID: `2026-11-19-dev-tools-exist-only-in-staging` · Status: current
+ID: `2026-11-19-dev-tools-exist-only-in-staging` · Status: current, amended by `2026-11-19-milestone-1-dev-controls-show-in`
 
 **Decision.** Dev routes and the dev panel are switched on by one runtime variable that is on only in the staging config, and a test pins it off in production; with it off, every dev route answers a plain 404 before any other check, at every layer. The panel's code is a separate chunk left out of the production build, and a build test checks production output has none of it. Dev tools are for the owner and admins only and fail closed when that cannot be checked.
 

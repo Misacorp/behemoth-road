@@ -23,7 +23,7 @@ Every decision is tested against these.
 ### The window
 
 - The map is a hex grid. Only a window of hexes around the creature is in play.
-- The creature occupies a cluster of about seven hexes, shaped like one large hex. Characters can pass through it. Other shapes (a long serpent) may come later.
+- The creature occupies a cluster of about seven hexes, shaped like one large hex. Its hexes are one place, "on the creature": characters can ride it, start on it, board it and step off it, and they do not take a hex while riding (decision of 19 November 2026). Other shapes (a long serpent) may come later.
 - The creature moves one hex per day. It keeps a general heading and veers only to either side (heading north, it goes north, north-east or north-west). It never turns back. Players can predict its path and plan trips out and back.
 - New tiles appear at the leading edge. Tiles that fall behind stay reachable for one more day, then are lost to the fog.
 - A character still outside the window after the grace day is lost for good.
