@@ -152,6 +152,8 @@ export {
   act,
   actionsHere,
   checkAction,
+  craftCost,
+  possibleActions,
   type Action,
   type ActCheck,
   type ActRefusal,

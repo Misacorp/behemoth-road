@@ -4,6 +4,7 @@ import {
   type Action,
   actionsHere,
   checkAction,
+  craftCost,
   entryInto,
   type GameState,
   hex,
@@ -12,6 +13,7 @@ import {
   nextDay,
   ON_CREATURE,
   planPath,
+  possibleActions,
   toPlayerView,
 } from '../src/index.ts';
 import { chainGame, placeCharacter, withFeature, withTerrain } from './helpers.ts';
@@ -243,6 +245,27 @@ describe('items and movement', () => {
   it('works on a player view too (the inventory is public)', () => {
     const hooked = stock(cliffy(), {}, { 'grappling-hook': 1 });
     expect(entryInto(toPlayerView(hooked), cliff)).toEqual({ cost: 2, via: 'grappling-hook' });
+  });
+});
+
+describe('view helpers for the interface', () => {
+  it('give the craft cost with the surcharge, and the possible actions, on a view', () => {
+    const state = stock(chainGame(['scout']), { iron: 3, timber: 1 });
+    expect(craftCost(toPlayerView(state), 'scout', 'grappling-hook')).toEqual({
+      ok: true,
+      cost: 1,
+      uses: [
+        { material: 'iron', amount: 3 },
+        { material: 'timber', amount: 1 },
+      ],
+    });
+    expect(craftCost(toPlayerView(state), 'scout', 'climbing-spikes')).toEqual({
+      ok: false,
+      reason: 'needs-specialist',
+    });
+    expect(possibleActions(toPlayerView(state), 'scout')).toEqual(
+      actionsHere(toPlayerView(state), 'scout'),
+    );
   });
 });
 

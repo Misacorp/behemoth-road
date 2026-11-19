@@ -246,3 +246,26 @@ export const actionsHere = (
   ];
   return options.map((action) => ({ action, check: checkAction(state, characterId, action) }));
 };
+
+/** Which of gather, work-site and each craft are possible now, with costs or refusals. Runs on a view. */
+export const possibleActions = actionsHere;
+
+/**
+ * What crafting a recipe would take from this character: the materials (with a
+ * non-specialist's surcharge) and the action cost, or why it cannot be crafted now.
+ * Runs on a view.
+ */
+export const craftCost = (
+  state: GameStateView,
+  characterId: string,
+  recipe: string,
+):
+  | {
+      readonly ok: true;
+      readonly cost: number;
+      readonly uses: readonly { readonly material: string; readonly amount: number }[];
+    }
+  | { readonly ok: false; readonly reason: ActRefusal } => {
+  const check = checkAction(state, characterId, { kind: 'craft', recipe });
+  return check.ok ? { ok: true, cost: check.cost, uses: check.uses } : check;
+};
