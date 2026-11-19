@@ -124,8 +124,11 @@ describe('addCharacter', () => {
     expect(ask('1001', 9, 'scout')).toEqual({ ok: false, reason: 'invalid-offer' });
     expect(ask('1001', -1, 'scout')).toEqual({ ok: false, reason: 'invalid-offer' });
     expect(ask('1001', 0.5, 'scout')).toEqual({ ok: false, reason: 'invalid-offer' });
-    expect(ask('', 0, 'scout')).toEqual({ ok: false, reason: 'invalid-user' });
-    expect(ask('x'.repeat(33), 0, 'scout')).toEqual({ ok: false, reason: 'invalid-user' });
+    // Discord snowflakes only: digits, 1 to 20 of them.
+    for (const bad of ['', 'abc', '12.3', '1 2', '-5', '1'.repeat(21), '１２３']) {
+      expect(ask(bad, 0, 'scout')).toEqual({ ok: false, reason: 'invalid-user' });
+    }
+    expect(ask('1'.repeat(20), 0, 'scout').ok).toBe(true);
   });
 
   it('stops at the player cap of active characters', () => {
@@ -137,6 +140,24 @@ describe('addCharacter', () => {
       reason: 'cap-reached',
     });
     expect(createGame(3).config.playerCap).toBe(15);
+  });
+});
+
+describe('refusals', () => {
+  it('leave the offers as they were', () => {
+    const start = createGame(3, { config: { playerCap: 1 } });
+    const { state } = join(start, '1');
+    const before = characterOffers(state, '2');
+    const refused = [
+      addCharacter(state, { userId: '2', offer: 0, role: 'scout' }), // cap reached
+      addCharacter(state, { userId: '2', offer: 0, role: 'nobody' }),
+      addCharacter(state, { userId: '2', offer: 99, role: 'scout' }),
+      replaceCharacter(state, { userId: '1', offer: 0, role: 'scout' }), // not lost
+      replaceCharacter(state, { userId: '2', offer: 0, role: 'scout' }), // no character
+    ];
+    for (const r of refused) expect(r.ok).toBe(false);
+    expect(characterOffers(state, '2')).toEqual(before);
+    expect(characterOffers(state, '1')).toEqual(characterOffers(join(start, '1').state, '1'));
   });
 });
 

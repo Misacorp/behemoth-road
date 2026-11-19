@@ -1,0 +1,105 @@
+import * as v from 'valibot';
+import { ROLE_IDS } from './game-core.ts';
+import { SERVER_CONFIG } from './server-config.ts';
+
+export const SNOWFLAKE_RE = /^\d{17,20}$/;
+
+const snowflake = v.pipe(v.string(), v.regex(SNOWFLAKE_RE));
+
+// --- Request bodies: strict, unknown keys rejected, every length and number bounded ---
+
+/** Request body of POST /api/auth/session. */
+export const AuthSessionBodySchema = v.strictObject({
+  code: v.pipe(v.string(), v.minLength(1), v.maxLength(512)),
+  instanceId: v.pipe(v.string(), v.minLength(1), v.maxLength(128)),
+});
+
+const { maxCoordinate, maxPathLength, maxOffers } = SERVER_CONFIG.limits;
+
+const coordinate = v.pipe(
+  v.number(),
+  v.integer(),
+  v.minValue(-maxCoordinate),
+  v.maxValue(maxCoordinate),
+);
+
+/** A place: exactly `{ kind: 'hex', hex: { q, r } }` or `{ kind: 'creature' }`. */
+export const PlaceSchema = v.variant('kind', [
+  v.strictObject({
+    kind: v.literal('hex'),
+    hex: v.strictObject({ q: coordinate, r: coordinate }),
+  }),
+  v.strictObject({ kind: v.literal('creature') }),
+]);
+
+/** One of the six role ids from content. */
+export const RoleSchema = v.pipe(
+  v.string(),
+  v.maxLength(32),
+  v.check((id) => ROLE_IDS.includes(id)),
+);
+
+/** The game version a client last saw. */
+export const VersionSchema = v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(2 ** 31));
+
+/** POST /api/game/join and /replace: a role, and the index of the picked character in the view's `offers`. */
+export const PickBodySchema = v.strictObject({
+  role: RoleSchema,
+  offer: v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(maxOffers - 1)),
+});
+
+/** POST /api/game/move. */
+export const MoveBodySchema = v.strictObject({
+  version: VersionSchema,
+  path: v.pipe(v.array(PlaceSchema), v.minLength(1), v.maxLength(maxPathLength)),
+});
+
+/** POST /api/dev/next-day. */
+export const EmptyBodySchema = v.strictObject({});
+
+/** `?since=<version>` of GET /api/game: digits only, bounded. */
+export const SINCE_RE = /^\d{1,10}$/;
+
+// --- Discord responses: lenient about extra keys (Discord adds fields), strict about the ones read ---
+
+export const DiscordTokenResponseSchema = v.object({
+  access_token: v.pipe(v.string(), v.minLength(1)),
+});
+
+export const DiscordUserSchema = v.object({
+  id: snowflake,
+  username: v.string(),
+  global_name: v.nullish(v.string()),
+});
+export type DiscordUser = v.InferOutput<typeof DiscordUserSchema>;
+
+export const ActivityInstanceSchema = v.object({
+  location: v.object({
+    guild_id: v.nullish(v.string()),
+    channel_id: v.nullish(v.string()),
+  }),
+  users: v.array(v.string()),
+});
+export type ActivityInstance = v.InferOutput<typeof ActivityInstanceSchema>;
+
+/** A permission bit field as Discord sends it: a decimal string of an unsigned 64-bit integer. */
+const permissionString = v.pipe(v.string(), v.regex(/^\d{1,20}$/));
+
+/** Discord allows 250 roles per guild; the limit here is generous but bounded. */
+const MAX_ROLES = 1000;
+
+/** `GET /guilds/{guild.id}`: only the owner matters. */
+export const DiscordGuildSchema = v.object({ owner_id: snowflake });
+
+/** `GET /guilds/{guild.id}/roles`: id and permission bits of every role (the @everyone role included). */
+export const DiscordRolesSchema = v.pipe(
+  v.array(v.object({ id: snowflake, permissions: permissionString })),
+  v.maxLength(MAX_ROLES),
+);
+export type DiscordRole = v.InferOutput<typeof DiscordRolesSchema>[number];
+
+/** `GET /guilds/{guild.id}/members/{user.id}`: the ids of the member's roles. */
+export const DiscordMemberSchema = v.object({
+  roles: v.pipe(v.array(snowflake), v.maxLength(MAX_ROLES)),
+});
+export type DiscordMember = v.InferOutput<typeof DiscordMemberSchema>;

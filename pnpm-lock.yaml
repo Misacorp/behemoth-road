@@ -164,6 +164,9 @@ settings:
 
 catalogs:
   default:
+    '@cloudflare/vitest-plugin':
+      specifier: 1.8.1
+      version: 1.8.1
     '@discord/embedded-app-sdk':
       specifier: 2.5.0
       version: 2.5.0
@@ -256,7 +259,17 @@ importers:
         version: 5.1.0(vite@8.3.8(esbuild@0.28.2))
 
   apps/worker:
+    dependencies:
+      '@behemoth-road/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      valibot:
+        specifier: 'catalog:'
+        version: 1.5.0(typescript@6.0.3)
     devDependencies:
+      '@cloudflare/vitest-plugin':
+        specifier: 'catalog:'
+        version: 1.8.1(vitest@5.1.0(vite@8.3.8(esbuild@0.28.2)))
       typescript:
         specifier: 'catalog:'
         version: 6.0.3
@@ -398,6 +411,11 @@ packages:
     peerDependenciesMeta:
       workerd:
         optional: true
+
+  '@cloudflare/vitest-plugin@1.8.1':
+    resolution: {integrity: sha512-YVrXJcU89Vol5oIsksBJgyOpiqTIDAW1V8SWDNu+Un2LN92ponHroUjmPwXjRf0DTW9czbrwiZgi7Ukjw+Ic4w==}
+    peerDependencies:
+      vitest: ^4.1.0 || ^5.0.0
 
   '@cloudflare/workerd-darwin-64@1.20261110.1':
     resolution: {integrity: sha512-RazOdADqTgwYhE60+i6c/R5BA1J5aC//39oousnWBxmoVAiqUh1qsXNCGMbaEV6UC5RnZyWsIBRIcAYNDe1xTg==}
@@ -1184,6 +1202,9 @@ packages:
     resolution: {integrity: sha512-XWAtwJ6OHO+tj0EKCs0Y2UamnyOxseZWltU4x2U2wh8g4AigdjwvtUjvLP2tqkA/avxHEtzxNaqGq/YGNwckKg==}
     engines: {node: '>=18'}
 
+  cjs-module-lexer@1.2.3:
+    resolution: {integrity: sha512-0TNiGstbQmCFwt4akjjBg5pLRTSyj/PkWQ1ZoO2zntmg9yLqSRxwEa4iCfQLGjqhiqBfOJa7W/E8wfGrTDmlZQ==}
+
   convert-source-map@2.0.0:
     resolution: {integrity: sha512-Kvp459HrV2FEJ1CAsi1Ku+MY3kasH19TFykTz2xWmMeq6bk2NU3XXvfJ+Q61m0xktWwt+1HSYf3JZsTms3aRJg==}
 
@@ -1890,6 +1911,9 @@ packages:
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
+  zod@4.6.6:
+    resolution: {integrity: sha512-4UmzQUF5fxvfcYHlbjBmejU+w+hbDnWFx4aS8kBx7nPBHcO2SqPbpAG8snbdg+Xse4pRefR98hgjFgIMCI/UhA==}
+
 snapshots:
 
   '@babel/code-frame@7.29.7':
@@ -2040,6 +2064,21 @@ snapshots:
       unenv: 2.0.0-rc.24
     optionalDependencies:
       workerd: 1.20261110.1
+
+  '@cloudflare/vitest-plugin@1.8.1(vitest@5.1.0(vite@8.3.8(esbuild@0.28.2)))':
+    dependencies:
+      cjs-module-lexer: 1.2.3
+      esbuild: 0.28.2
+      miniflare: 5.20261110.2-beta
+      vitest: 5.1.0(vite@8.3.8(esbuild@0.28.2))
+      wrangler: 4.161.0
+      zod: 4.6.6
+    transitivePeerDependencies:
+      - '@cloudflare/workers-types'
+      - '@types/node'
+      - bufferutil
+      - kerberos
+      - utf-8-validate
 
   '@cloudflare/workerd-darwin-64@1.20261110.1':
     optional: true
@@ -2672,6 +2711,8 @@ snapshots:
 
   chai@6.3.0: {}
 
+  cjs-module-lexer@1.2.3: {}
+
   convert-source-map@2.0.0: {}
 
   cookie@1.1.1: {}
@@ -3303,3 +3344,5 @@ snapshots:
   zimmerframe@1.1.5: {}
 
   zod@3.25.76: {}
+
+  zod@4.6.6: {}

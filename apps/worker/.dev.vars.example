@@ -1,0 +1,5 @@
+# Copy to .dev.vars (gitignored) for `wrangler dev`. Local values only; never a real secret here.
+# Any long random string works for the dev login (it keys the session MAC).
+DISCORD_CLIENT_SECRET=local-dev-only-change-me
+# Leave empty locally: no Discord calls are made with the dev login.
+DISCORD_BOT_TOKEN=

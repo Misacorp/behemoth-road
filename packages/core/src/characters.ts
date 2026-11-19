@@ -36,7 +36,8 @@ export interface CharacterRequest {
   readonly role: string;
 }
 
-const MAX_USER_ID_LENGTH = 32;
+/** Discord user ids (snowflakes): digits only, so `<userId>.<n>` ids never collide. */
+const USER_ID = /^\d{1,20}$/;
 const ROLL_STREAM = hashString('characters');
 
 const pick = <T>(items: readonly T[], rng: () => number): T =>
@@ -92,9 +93,8 @@ export const characterOf = (state: GameState, userId: string): Character | undef
 
 const create = (state: GameState, request: CharacterRequest): CharacterResult => {
   const { userId, offer, role } = request;
-  if (typeof userId !== 'string' || userId.length === 0 || userId.length > MAX_USER_ID_LENGTH) {
+  if (typeof userId !== 'string' || !USER_ID.test(userId))
     return { ok: false, reason: 'invalid-user' };
-  }
   if (!ROLES.some((r) => r.id === role)) return { ok: false, reason: 'unknown-role' };
   const offers = characterOffers(state, userId);
   const picked = Number.isInteger(offer) ? offers[offer] : undefined;

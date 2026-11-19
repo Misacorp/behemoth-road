@@ -99,6 +99,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
+      # The web app's contract fixtures must be what the Worker really answers (apps/worker/scripts/capture-fixtures.mjs).
+      - run: pnpm fixtures:capture --check
 
   security:
     name: security

@@ -3,7 +3,8 @@
     "2026-11-19-1",
     "2026-11-19-2",
     "2026-11-19-3",
-    "2026-11-19-4"
+    "2026-11-19-4",
+    "2026-11-19-5"
   ],
   "items": [
     {
@@ -216,32 +217,32 @@
       "id": "emblems/roundel",
       "group": "Role emblems",
       "title": "Round frame",
-      "version": "e1edf764",
+      "version": "8a938674",
       "kind": "pick",
       "pick": "emblem-frame",
       "question": "Which frame should the role emblems share?",
-      "batch": "2026-11-19-4",
-      "file": "art/emblems-roundel-e1edf764.svg"
+      "batch": "2026-11-19-5",
+      "file": "art/emblems-roundel-8a938674.svg"
     },
     {
       "id": "emblems/shield",
       "group": "Role emblems",
       "title": "Shield frame",
-      "version": "2191b1a7",
+      "version": "dbc8bdd4",
       "kind": "pick",
       "pick": "emblem-frame",
       "question": "Which frame should the role emblems share?",
-      "batch": "2026-11-19-4",
-      "file": "art/emblems-shield-2191b1a7.svg"
+      "batch": "2026-11-19-5",
+      "file": "art/emblems-shield-dbc8bdd4.svg"
     },
     {
       "id": "icons/sheet",
       "group": "Icons",
       "title": "Every icon, and the fallback",
-      "version": "85167ba0",
+      "version": "0fc8a90c",
       "kind": "glance",
-      "batch": "2026-11-19-4",
-      "file": "art/icons-sheet-85167ba0.svg"
+      "batch": "2026-11-19-5",
+      "file": "art/icons-sheet-0fc8a90c.svg"
     },
     {
       "id": "characters/lineup",

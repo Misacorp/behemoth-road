@@ -10,16 +10,20 @@ import type { GameState, GameStateView } from './state.ts';
  * The game as a player may see it: the state without the seed. Known tiles carry
  * their terrain, so the client can draw and plan; nothing unknown can be derived.
  */
-export const toPlayerView = (state: GameState): GameStateView => ({
+export const toPlayerView = (state: GameState): GameStateView => {
   // Listed field by field, so a server-only field added later never leaks by default.
-  contentVersion: state.contentVersion,
-  artSeed: state.artSeed,
-  day: state.day,
-  config: state.config,
-  creature: state.creature,
-  tiles: state.tiles,
-  characters: state.characters,
-});
+  const view: GameStateView = {
+    contentVersion: state.contentVersion,
+    artSeed: state.artSeed,
+    day: state.day,
+    config: state.config,
+    creature: state.creature,
+    tiles: state.tiles,
+    characters: state.characters,
+  };
+  // A deep copy, so nothing done to the view can reach the server's state.
+  return JSON.parse(JSON.stringify(view)) as GameStateView;
+};
 
 export class UnknownContentVersionError extends Error {
   constructor(readonly version: unknown) {

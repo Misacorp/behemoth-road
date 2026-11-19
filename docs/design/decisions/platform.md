@@ -12,6 +12,46 @@ ID: `2026-11-19-the-web-client-boots-as-an` · Status: current
 
 **Reasoning.** This follows the M2 contract (`docs/design/m2-session.md`) and creatures' proven Activity flow. Dropping unknown keys rather than rejecting them keeps clients working while a deploy rolls out. Strictness against forged input belongs on the server.
 
+## 2026-11-19: Sign-in, interactions and the deploy's Discord steps follow creatures
+
+ID: `2026-11-19-sign-in-interactions-and-the-deploy` · Status: current
+
+**Decision.** The Worker reuses creatures' Activity sign-in (`auth.ts`, `discord.ts`, `session.ts`, `keys.ts`), with the session key derived under the label `behemoth-road/session`, so a creatures token never verifies here. `POST /api/auth/session` answers `{ token, accessToken, user: { id, name } }`. A launch with no guild (a DM or group DM) is refused with `guild_required`. The interactions endpoint answers only PING and the Activity's entry point (Launch, with LAUNCH_ACTIVITY); other commands get a private "not available". The deploy job reads the app's public key from Discord with the bot token (`scripts/discord-app.mjs public-key`), passes it as the `DISCORD_PUBLIC_KEY` var, and afterwards points Launch at our endpoint (`register`), only once the portal's Interactions Endpoint URL is this game's. `DISCORD_CLIENT_SECRET` and `DISCORD_BOT_TOKEN` are environment secrets, sent to wrangler in a temporary `--secrets-file`; the client id is a public var in `wrangler.jsonc`. The host for the endpoint check comes from `project.config.json`.
+
+**Reasoning.** Creatures runs this flow in production; adapting it is less risk than a new one. Reading the public key at deploy time means nobody copies it by hand, and every Discord failure there is a warning so a portal step left undone never blocks a deploy.
+
+## 2026-11-19: The local dev login and the staging next day: who may use them
+
+ID: `2026-11-19-the-local-dev-login-and-the` · Status: current
+
+**Decision.** `POST /api/dev/login` (body `{ player: 1..9 }`) signs in a fake player of a fake server and exists only where `ENVIRONMENT` is `local` (the top level of `wrangler.jsonc`, used by `wrangler dev` and the tests); every deployed environment sets its own name, and a test pins that. Locally every player counts as a server admin. `POST /api/dev/next-day` exists only with `DEV_TOOLS` on (local and staging; production off, pinned by a test) and, in staging, only for the server's owner or a member with Administrator or Manage Server (creatures' `discord-permissions.ts`), cached ten minutes per player. The player view's `devTools` is the `DEV_TOOLS` flag and `you.admin` says whether this player passes the check (always false with the dev tools off, so production never asks Discord); the client shows the control only when both are true, and the route checks again. The tick it runs leaves the schedule alone.
+
+**Reasoning.** The web app must run outside Discord against `wrangler dev`, and a fake login is the least code for that; tying it to the environment name keeps it out of every deployed build. The admin check is the same one creatures uses for its dev panel.
+
+## 2026-11-19: Joining and replacing pick an offered character by index; offers are in the player view
+
+ID: `2026-11-19-joining-and-replacing-pick-an-offered` · Status: current
+
+**Decision.** `POST /api/game/join` and `/replace` take `{ role, offer }`: `offer` is an integer from 0 to 3 indexing the view's `offers`, the rolled characters first and the plain one last. The view carries `offers` while the player has no active character, and `null` otherwise. The core rolls them from the game seed, the user id and the attempt, and re-derives the roll when a player picks, so a client cannot forge a character. Character ids are the core's `<userId>.<attempt>`, counted from 0. Each character's name, trait, quirk, role and joining day live in the game state; the `players` table keeps only the Discord display name. A join by a player who already has a character answers the view unchanged; only replace makes a new character, and only for a lost one. Core refusals (`cap-reached`, `invalid-offer`, `not-lost`, `no-character`) are answered as `409 { error }`.
+
+**Reasoning.** The first contract's join body (`{ role }`) had no way to say which rolled character was picked; the lead settled the field name and the order. Keeping characters in the state means one source of truth for the map and the roster.
+
+## 2026-11-19: Missed day ticks catch up to seven at once; older ones are skipped
+
+ID: `2026-11-19-missed-day-ticks-catch-up-to` · Status: current
+
+**Decision.** The day tick runs when the alarm fires and, as a safety net, at the start of every request and sign-in: every tick that is due runs, up to seven (`SERVER_CONFIG.maxCatchUpTicks`), and the next one is scheduled after now. The alarm is re-armed to the stored next tick whenever it differs. The tick time is 06:00 Europe/Helsinki (`SERVER_CONFIG.tick`), computed with creatures' DST-safe `time.ts`.
+
+**Reasoning.** Alarms are reliable but not guaranteed to the minute, and an object can be redeployed between alarms. Catching up keeps the creature walking one step per calendar day; the cap bounds the work after a long outage, when replaying weeks of steps nobody saw would surprise the group more than a skipped stretch.
+
+## 2026-11-19: The game is created on a server's first sign-in, with a seed from the platform's random source
+
+ID: `2026-11-19-the-game-is-created-on-a` · Status: current
+
+**Decision.** A server's game is created when its first player signs in, not when the first character joins, so every view (and the join drawer over the map) has a game. The seed is the core's 128-bit `newSeed()` (Web Crypto), made only inside the guild's Durable Object and stored in the game row's state JSON; only the core's player view leaves the object, and every route's test checks that no response carries the seed.
+
+**Reasoning.** A player opening the Activity should see the map before they pick a character. The seed must never reach a client (decision "The server keeps the seed").
+
 ## 2026-11-19: Drawing uses a separate public art seed
 
 ID: `2026-11-19-drawing-uses-a-separate-public-art` · Status: current · Amends: `2026-11-19-game-seeds-are-128-bits-so`
@@ -26,7 +66,7 @@ ID: `2026-11-19-game-seeds-are-128-bits-so` · Status: current, amended by `2026
 
 **Decision.** A game's seed is four unsigned 32-bit words (`Seed`, a JSON array), made on the server with `newSeed()` (Web Crypto `getRandomValues`). Every hash keeps a 128-bit state: four lanes, one per seed word, each absorb every input and feed the next, and only the final step folds them to 32 bits. Mixing the words into one 32-bit state would leave a 32-bit equivalent key. `createGame` and the generators still accept a plain number for tests and local play (the other words are 0). This is `CONTENT_VERSION` 2, since every map differs from version 1. Version 1 was never stored, so it is not loadable.
 
-**Reasoning.** With a 32-bit seed, a player could find it from the terrain in their view by trying every value. One terrain check takes about 3.3 µs in Node on the session container, so all 2^32 seeds take about 4 hours on one core and minutes in parallel. That would reveal the map ahead and the creature's next step, undoing "the server keeps the seed". 2^128 makes that search impossible. The hash is a fast mixing hash, not a cryptographic one: it raises the cost of guessing beyond reach for this game, with no formal guarantee. Cost: `createGame` takes about 12 ms and `nextDay` about 0.7 ms.
+**Reasoning.** With a 32-bit seed, a player could find it from the terrain in their view by trying every value. One terrain check takes about 3.3 µs in Node on the session container, so all 2^32 seeds take about 4 hours on one core and minutes in parallel. That would reveal the map ahead and the creature's next step, undoing "the server keeps the seed". 2^128 makes that search impossible. The hash is a fast mixing hash and has not been cryptographically reviewed. Trying every seed is infeasible, but cryptanalysis using many visible tiles is not ruled out. That is acceptable for a game among friends; if the seed ever guards something valuable, switch to a keyed cryptographic hash. Cost: `createGame` takes about 12 ms and `nextDay` about 0.7 ms.
 
 ## 2026-11-19: Games pin their content version and prune lost tiles beyond four rings
 

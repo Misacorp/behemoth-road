@@ -39,10 +39,28 @@ const played = (seed: number): GameState => {
 
 describe('the player view', () => {
   it('carries no seed', () => {
-    const state = createGame(123456789, { characterIds: ['a'] });
+    const seed = newSeed();
+    const state = createGame(seed, { characterIds: ['a'] });
     const view = toPlayerView(state);
     expect('seed' in view).toBe(false);
-    expect(JSON.stringify(view)).not.toContain('123456789');
+    const json = JSON.stringify(view);
+    for (const word of seed) expect(json).not.toMatch(new RegExp(`\\b${word}\\b`));
+  });
+
+  it('is a deep copy: changing it never reaches the server state', () => {
+    const state = played(3);
+    const before = JSON.stringify(state);
+    const view = toPlayerView(state) as unknown as {
+      creature: { centre: { q: number } };
+      characters: { actionsLeft: number }[];
+      tiles: Record<string, { terrain: string }>;
+      config: { actionsPerDay: number };
+    };
+    view.creature.centre.q = 99;
+    view.characters[0]!.actionsLeft = 99;
+    Object.values(view.tiles)[0]!.terrain = 'cliff';
+    view.config.actionsPerDay = 99;
+    expect(JSON.stringify(state)).toBe(before);
   });
 
   it('carries a public art seed that is unrelated to the game seed', () => {

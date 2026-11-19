@@ -18,6 +18,7 @@ allowBuilds:
 
 # Shared exact versions (every entry is >= 7 days old at the time of pinning).
 catalog:
+  '@cloudflare/vitest-plugin': 1.8.1
   '@discord/embedded-app-sdk': 2.5.0
   '@eslint/js': 10.0.1
   '@preact/preset-vite': 2.10.6
