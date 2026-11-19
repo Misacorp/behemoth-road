@@ -10,7 +10,7 @@ function withChain(
   chain: { features?: object; inventory?: object },
   patch: Partial<GameStateView> = {},
 ): GameStateView {
-  return { ...v, ...patch, ...chain } as GameStateView;
+  return { ...v, ...patch, ...chain };
 }
 
 describe('moments between two views', () => {

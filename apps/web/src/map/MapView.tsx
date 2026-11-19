@@ -20,6 +20,7 @@ import { PALETTE, PROJECTION } from './art.ts';
 import { cellStateAt, characterArts, creatureArt, sceneCells } from './cells.ts';
 import { chevronFor, placePopover, splitScene } from './compose.ts';
 import { accentOf, type Identity, lookOf } from '../game/identity.ts';
+import type { Chain } from '../game/chain.ts';
 import type { Moment } from '../game/moments.ts';
 import { MomentMark } from './MomentMark.tsx';
 import { MAP_TUNING } from './config.ts';
@@ -29,6 +30,10 @@ import { buildOverlays } from './overlays.ts';
 import { figureFeet, pickableFeet, placePoint } from './figures.ts';
 import { pickTarget, type Point, type Target } from './pick.ts';
 import {
+  HereCard,
+  type HereAction,
+  hereSize,
+  inspectSize,
   Bubble,
   CHARACTER_SIZE,
   CharacterCard,
@@ -37,7 +42,6 @@ import {
   ConfirmCard,
   CREATURE_SIZE,
   CreatureCard,
-  INSPECT_SIZE,
   InspectCard,
 } from './Popover.tsx';
 import { setCssTransform } from './cssTransform.ts';
@@ -59,6 +63,12 @@ import {
 
 export type FocusTarget = 'me' | 'creature';
 
+/** Your own hex in the "here" card: its revealed feature and the actions it offers. */
+export interface Here {
+  readonly feature: string;
+  readonly actions: readonly HereAction[];
+}
+
 export interface MapViewProps {
   readonly state: GameStateView;
   readonly flow: Flow;
@@ -67,6 +77,12 @@ export interface MapViewProps {
   readonly onConfirm: () => void;
   /** The bubble's way into the hub was tapped. */
   readonly onOpenHub: () => void;
+  /** The chain parts of the view (revealed features, glints, inventory), for the hex cards. */
+  readonly chain?: Chain;
+  /** Your own hex's revealed feature and the actions there, shown while you are selected. */
+  readonly here?: Here | null;
+  /** An action in the "here" card was tapped (the second tap that spends). */
+  readonly onAct?: (kind: string) => void;
   /** Short visual beats to play on the map (reveals, finds, a trap); they end by themselves. */
   readonly moments?: readonly Moment[];
   /** Another player's character in the bubble was tapped. */
@@ -124,7 +140,13 @@ interface Anchor {
   readonly prefer?: 'above' | 'below';
 }
 
-function popoverAnchor(state: GameStateView, flow: Flow, characterId: string): Anchor | null {
+function popoverAnchor(
+  state: GameStateView,
+  flow: Flow,
+  characterId: string,
+  here: Here | null,
+  extra: boolean,
+): Anchor | null {
   const tile = 2 * p.size * p.squash;
   if (flow.kind === 'character') {
     // Above the character's head, wherever it stands (on a hex or on the creature's back).
@@ -144,7 +166,7 @@ function popoverAnchor(state: GameStateView, flow: Flow, characterId: string): A
       key: `inspect:${hexKey(flow.hex)}`,
       top: { x: c.x, y: c.y - tile / 2 },
       below: tile,
-      size: INSPECT_SIZE,
+      size: inspectSize(extra),
     };
   }
   if (flow.kind === 'creature' || flow.kind === 'bubble') {
@@ -157,6 +179,19 @@ function popoverAnchor(state: GameStateView, flow: Flow, characterId: string): A
       below: lift + tile,
       size: flow.kind === 'bubble' ? bubbleSize(ridersOf(state).length) : CREATURE_SIZE,
     };
+  }
+  if (flow.kind === 'selected' && here) {
+    // Your own hex's feature and actions, above your figure.
+    const feet = figureFeet(state, characterId, p);
+    if (feet) {
+      const head = 0.9 * p.size;
+      return {
+        key: `here:${here.feature}:${here.actions.map((a) => a.kind).join(',')}`,
+        top: { x: feet.x, y: feet.y - head },
+        below: head,
+        size: hereSize(here.actions.length),
+      };
+    }
   }
   if (flow.kind === 'planned') {
     // Above the figure's head where it would stand (its seat, for the creature).
@@ -270,7 +305,17 @@ export function MapView(props: MapViewProps): JSX.Element {
     return { under: o.under.map(toPreact), over: o.over.map(toPreact) };
   }, [state, flow, characterId, inkZoom]);
 
-  popover.current = popoverAnchor(state, flow, characterId);
+  const inspected =
+    flow.kind === 'inspect' && props.chain ? props.chain.features.get(hexKey(flow.hex)) : undefined;
+  const glinting =
+    flow.kind === 'inspect' && props.chain ? props.chain.glints.has(hexKey(flow.hex)) : false;
+  popover.current = popoverAnchor(
+    state,
+    flow,
+    characterId,
+    props.here ?? null,
+    inspected !== undefined || glinting,
+  );
 
   function apply(): void {
     frame.current = 0;
@@ -489,7 +534,7 @@ export function MapView(props: MapViewProps): JSX.Element {
     apply();
     if (popKey) {
       const target =
-        flow.kind === 'planned' || flow.kind === 'bubble'
+        flow.kind === 'planned' || flow.kind === 'bubble' || flow.kind === 'selected'
           ? popoverFocusRef.current
           : popRef.current;
       target?.focus({ preventScroll: true });
@@ -522,6 +567,19 @@ export function MapView(props: MapViewProps): JSX.Element {
       <InspectCard
         terrain={known ? (terrainOf(state, flow.hex)?.id ?? 'unknown') : 'unknown'}
         state={cellState}
+        feature={inspected?.id ?? null}
+        glint={glinting && !inspected}
+      />
+    );
+  } else if (flow.kind === 'selected' && props.here) {
+    card = (
+      <HereCard
+        feature={props.here.feature}
+        actions={props.here.actions}
+        onAct={(kind) => props.onAct?.(kind)}
+        firstRef={(el) => {
+          popoverFocusRef.current = el;
+        }}
       />
     );
   } else if (flow.kind === 'creature') {

@@ -6,6 +6,7 @@ import type { CharacterLook } from '@behemoth-road/art';
 import type { JSX } from 'preact';
 import type { FocusTarget } from '../map/MapView.tsx';
 import {
+  SatchelIcon,
   CharacterFigure,
   CharacterIcon,
   CreatureIcon,
@@ -29,6 +30,10 @@ export interface HudProps {
   readonly onFocus: (target: FocusTarget) => void;
   /** Shown only when the server offers dev tools and you are an admin. */
   readonly onNextDay: (() => void) | null;
+  /** Opens the team inventory; null hides the satchel (no character yet). */
+  readonly onInventory: (() => void) | null;
+  /** How many things the team holds (a small count on the satchel). */
+  readonly inventoryCount: number;
   /** Shown when you have no active character: opens the join (or replace) drawer. */
   readonly onJoin: (() => void) | null;
 }
@@ -76,6 +81,17 @@ export function Hud(props: HudProps): JSX.Element {
           <CreatureIcon />
         </button>
       </div>
+      {props.onInventory && (
+        <button
+          type="button"
+          class="round hud-satchel"
+          aria-label="Inventory"
+          onClick={props.onInventory}
+        >
+          <SatchelIcon />
+          {props.inventoryCount > 0 && <span class="hud-badge">{props.inventoryCount}</span>}
+        </button>
+      )}
       {props.onJoin && (
         <button type="button" class="round hud-join" aria-label="Join" onClick={props.onJoin}>
           <JoinIcon />

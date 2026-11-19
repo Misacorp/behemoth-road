@@ -570,3 +570,108 @@ button svg,
     transform: translateX(-2px);
   }
 }
+
+/* The team inventory: a satchel button, and a drawer of stacks and recipe cards. */
+.hud-satchel {
+  position: absolute;
+  left: var(--gutter);
+  bottom: calc(var(--space-4) + var(--safe-bottom));
+}
+
+.hud-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 var(--space-1);
+  border-radius: 10px;
+  background: #5c5a43;
+  color: #f3f1e2;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 20px;
+  text-align: center;
+}
+
+.inventory {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.inventory-stock {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-height: 36px;
+}
+
+.stack {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: #5c5a43;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.stack svg {
+  width: 28px;
+  height: 28px;
+}
+
+/* The extra material a non-engineer pays: marked with a dashed ring. */
+.stack.is-extra {
+  padding: 0 var(--space-1);
+  border: 1.5px dashed #d6a26f;
+  border-radius: 8px;
+}
+
+.inventory-recipes {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.recipe {
+  display: grid;
+  grid-template-columns: 1fr auto auto auto 52px;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border: 1.5px solid #e1ddc3;
+  border-radius: 12px;
+}
+
+.recipe.is-off {
+  opacity: 0.55;
+}
+
+.recipe-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.recipe-arrow {
+  width: 24px;
+  height: 12px;
+}
+
+.recipe-output svg {
+  width: 40px;
+  height: 40px;
+}
+
+.recipe-go {
+  width: 52px;
+  height: 52px;
+}
+
+.recipe-go:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.svg-button.is-off {
+  cursor: default;
+}

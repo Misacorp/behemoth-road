@@ -7,6 +7,7 @@ import {
   ART_TUNING,
   drawCharacter,
   drawCreature,
+  drawIcon,
   type CharacterLook,
   type Drawn,
   GENTLE_AMBLER,
@@ -122,20 +123,52 @@ function VisibilityMark({ state }: { state: CellState }): JSX.Element {
   }
 }
 
+/** An art kit icon (`drawIcon`), placed at (x, y) in a card. */
+function CardIcon({
+  id,
+  x,
+  y,
+  size,
+}: {
+  id: string;
+  x: number;
+  y: number;
+  size: number;
+}): JSX.Element {
+  const icon = drawIcon(id, PALETTE, size);
+  return toPreact({ ...icon, attrs: { ...icon.attrs, x, y, width: size, height: size } });
+}
+
+/** The inspect card, wider when it also shows a revealed feature or a sensed glint. */
+export const inspectSize = (extra: boolean): { width: number; height: number } =>
+  extra ? { width: INSPECT_SIZE.width + 44, height: INSPECT_SIZE.height } : INSPECT_SIZE;
+
 export function InspectCard({
   terrain,
   state,
+  feature = null,
+  glint = false,
 }: {
   terrain: string;
   state: CellState;
+  /** A revealed feature on the hex (its content id), drawn beside the terrain. */
+  feature?: string | null;
+  /** The hex is sensed: something is there, not what. */
+  glint?: boolean;
 }): JSX.Element {
+  const extra = feature !== null || glint;
   return (
-    <g data-popover="inspect">
-      <Card {...INSPECT_SIZE} />
+    <g
+      data-popover="inspect"
+      data-feature={feature ?? undefined}
+      data-glint={glint ? true : undefined}
+    >
+      <Card {...inspectSize(extra)} />
       <Miniature terrain={terrain} state={state} x={6} y={8} />
       <g transform="translate(84 22)">
         <VisibilityMark state={state} />
       </g>
+      {extra && <CardIcon id={feature ?? 'glint'} x={128} y={20} size={36} />}
     </g>
   );
 }
@@ -433,6 +466,76 @@ export function CharacterCard({ who }: { who: Identity }): JSX.Element {
       <g transform="translate(120 43)">
         <QuirkIcon id={who.quirk} size={22} />
       </g>
+    </g>
+  );
+}
+
+/** One action offered where you stand: its kind (an art kit icon id) and cost. */
+export interface HereAction {
+  readonly kind: string;
+  readonly cost: number;
+  readonly enabled: boolean;
+}
+
+const ACTION_W = 64;
+
+export const hereSize = (count: number): { width: number; height: number } => ({
+  width: 64 + count * ACTION_W,
+  height: 74,
+});
+
+/**
+ * Your own hex: the revealed feature there and the actions it offers (gather, work the site), each a
+ * button with its action icon and cost pips. Tapping an action is the second tap that spends.
+ */
+export function HereCard({
+  feature,
+  actions,
+  onAct,
+  firstRef,
+}: {
+  feature: string;
+  actions: readonly HereAction[];
+  onAct: (kind: string) => void;
+  firstRef: (el: SVGGElement | null) => void;
+}): JSX.Element {
+  const size = hereSize(actions.length);
+  return (
+    <g data-popover="here" data-feature={feature}>
+      <Card {...size} />
+      <CardIcon id={feature} x={10} y={16} size={42} />
+      {actions.map((a, i) => {
+        const run = (): void => {
+          if (a.enabled) onAct(a.kind);
+        };
+        return (
+          <g
+            key={a.kind}
+            {...(i === 0 ? { ref: firstRef } : {})}
+            class={a.enabled ? 'svg-button' : 'svg-button is-off'}
+            role="button"
+            tabindex={0}
+            aria-label={a.kind}
+            aria-disabled={!a.enabled}
+            data-action={a.kind}
+            transform={`translate(${60 + i * ACTION_W} 6)`}
+            opacity={a.enabled ? 1 : 0.4}
+            onClick={run}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                run();
+              }
+            }}
+          >
+            <rect width={ACTION_W - 6} height={60} rx={10} fill={PALETTE.paperDeep} />
+            <CardIcon id={a.kind} x={(ACTION_W - 6) / 2 - 16} y={4} size={32} />
+            <g transform={`translate(${(ACTION_W - 6) / 2 - (a.cost * 10) / 2 - 2} 42)`}>
+              <Pips total={a.cost} left={a.cost} size={9} />
+            </g>
+          </g>
+        );
+      })}
     </g>
   );
 }

@@ -22,7 +22,9 @@ import {
   rightClick,
   tap,
 } from '../map/flow.ts';
-import { type FocusTarget, MapView } from '../map/MapView.tsx';
+import { type FocusTarget, type Here, MapView } from '../map/MapView.tsx';
+import { InventoryDrawer } from '../inventory/InventoryDrawer.tsx';
+import { actionsAt, chainOf, craftOptions, featureAt } from './chain.ts';
 import type { Target } from '../map/pick.ts';
 import { getSettings } from '../settings.ts';
 
@@ -184,6 +186,32 @@ export function Game({ api, initial }: GameProps): JSX.Element {
 
   const drawerOpen = need !== 'none' && offers.length > 0 && !drawerClosed;
 
+  // Milestone 3's chain: what is where, what you can do here, and the team inventory.
+  const chain = useMemo(() => chainOf(view.game), [view]);
+  const role = who.get(id)?.role ?? null;
+  const [inventoryOpen, setInventoryOpen] = useState(false);
+  const here = useMemo((): Here | null => {
+    if (me?.status !== 'active' || me.at.kind !== 'hex') return null;
+    const f = featureAt(chain, me.at.hex);
+    if (!f) return null;
+    return { feature: f.id, actions: actionsAt(chain, me.at.hex, role, me.actionsLeft) };
+  }, [chain, me, role]);
+  const stillSelected = (next: PlayerView): Flow => {
+    const mine = next.game.characters.find((c) => c.id === next.you.characterId);
+    return mine && mine.actionsLeft > 0 ? { kind: 'selected' } : IDLE;
+  };
+  const onAct = (kind: string): void => {
+    if (kind !== 'gather' && kind !== 'work-site') return;
+    void act(() => api.act(view.version, { kind }), stillSelected);
+  };
+  const onCraft = (recipe: string): void => {
+    void act(
+      () => api.act(view.version, { kind: 'craft', recipe }),
+      () => IDLE,
+    );
+  };
+  const anyDrawer = drawerOpen || (inventoryOpen && need === 'none');
+
   return (
     <main class="game">
       <MapView
@@ -202,7 +230,10 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         onCharacter={(other) => setFlow(openCharacter(other))}
         onRightClick={() => setFlow((f) => rightClick(f, getSettings()))}
         focus={focus}
-        coverBottom={drawerOpen ? halfDrawerCover(window.innerWidth, window.innerHeight) : 0}
+        coverBottom={anyDrawer ? halfDrawerCover(window.innerWidth, window.innerHeight) : 0}
+        chain={chain}
+        here={here}
+        onAct={onAct}
       />
       <Hud
         day={view.day}
@@ -223,6 +254,16 @@ export function Game({ api, initial }: GameProps): JSX.Element {
             : null
         }
         onJoin={need !== 'none' && offers.length > 0 ? () => setDrawerClosed(false) : null}
+        onInventory={need === 'none' ? () => setInventoryOpen((o) => !o) : null}
+        inventoryCount={[...chain.inventory.values()].reduce((a, b) => a + b, 0)}
+      />
+      <InventoryDrawer
+        open={inventoryOpen && need === 'none'}
+        onClose={() => setInventoryOpen(false)}
+        stock={[...chain.inventory]}
+        crafts={craftOptions(chain, role, me?.status === 'active' ? me.actionsLeft : 0)}
+        busy={busy}
+        onCraft={onCraft}
       />
       <JoinDrawer
         open={drawerOpen}
