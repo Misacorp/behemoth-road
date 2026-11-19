@@ -28,7 +28,7 @@ import { getSettings } from '../settings.ts';
 
 /** The width from which the layout is the desktop one (`styles.css` media queries). */
 const DESKTOP_FROM = 900;
-import { identities, setAccents } from './identity.ts';
+import { identities, partySeeds, setAccents } from './identity.ts';
 import { toGameState } from './viewState.ts';
 
 export interface GameProps {
@@ -193,6 +193,7 @@ export function Game({ api, initial }: GameProps): JSX.Element {
       <JoinDrawer
         open={drawerOpen}
         offers={offers}
+        party={partySeeds(view)}
         busy={busy}
         onConfirm={onJoin}
         onClose={() => setDrawerClosed(true)}

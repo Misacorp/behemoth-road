@@ -1,7 +1,7 @@
 /**
  * Who each character is, from the player view: name, role, trait, quirk, the player's display name, and
- * how it looks. Looks and cloak colours come from the art kit's `assignLooks` in join order, so no two
- * characters on the map look alike while combinations last.
+ * how it looks. Looks and cloak colours come from the art kit's `assignLooks` over the characters' look
+ * seeds in join order, so no two characters on the map look alike while combinations last.
  */
 import { ACCENTS, assignLooks, type CharacterLook } from '@behemoth-road/art';
 import type { PlayerView } from '../api/schema.ts';
@@ -18,19 +18,27 @@ export interface Identity {
   readonly look: CharacterLook | undefined;
 }
 
-/** A stable accent for a name: an offered character's cloak in the join drawer, before it has an id. */
-export function accentForName(name: string): string {
-  let h = 2166136261;
-  for (let i = 0; i < name.length; i += 1) {
-    h ^= name.charCodeAt(i);
-    h = Math.imul(h, 16777619);
-  }
-  return ACCENTS[(h >>> 0) % ACCENTS.length]!;
+/** The look seeds of the party in join order: what the map assigns looks from. */
+export const partySeeds = (view: PlayerView): number[] =>
+  view.game.characters.map((c) => c.lookSeed);
+
+/**
+ * How an offered character will look once it joins: the art kit assigns looks in join order, so the
+ * preview is the party's seeds plus the offer's, last.
+ */
+export function offerLook(
+  party: readonly number[],
+  lookSeed: number,
+): {
+  accent: string;
+  look: CharacterLook;
+} {
+  return assignLooks([...party, lookSeed]).at(-1)!;
 }
 
 export function identities(view: PlayerView): Map<string, Identity> {
   const chars = view.game.characters;
-  const looks = assignLooks(chars.map((c) => c.id));
+  const looks = assignLooks(chars.map((c) => c.lookSeed));
   const out = new Map<string, Identity>();
   chars.forEach((c, i) => {
     const owner = view.players.find((p) => p.userId === c.userId) ?? null;

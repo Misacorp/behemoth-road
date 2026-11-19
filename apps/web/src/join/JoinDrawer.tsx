@@ -2,11 +2,10 @@
  * Joining (and replacing a lost character): pick one of the offered characters, then a role, then
  * confirm. Figures, trait and quirk icons and role emblems; the characters' names are the only text.
  */
-import { characterLookFor } from '@behemoth-road/art';
 import type { JSX } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import type { Offer } from '../api/schema.ts';
-import { accentForName } from '../game/identity.ts';
+import { offerLook } from '../game/identity.ts';
 import { CharacterFigure, TickMark } from '../hud/icons.tsx';
 import { PALETTE } from '../map/art.ts';
 import { Drawer } from '../ui/Drawer.tsx';
@@ -16,6 +15,8 @@ import { ready, START, wizard, type Wizard } from './wizard.ts';
 export interface JoinDrawerProps {
   readonly open: boolean;
   readonly offers: readonly Offer[];
+  /** The party's look seeds in join order, so an offer previews the look it will have on the map. */
+  readonly party: readonly number[];
   /** True while the join or replace request is in flight. */
   readonly busy: boolean;
   readonly onConfirm: (role: string, offer: number) => void;
@@ -37,11 +38,18 @@ function BackIcon(): JSX.Element {
   );
 }
 
-export function OfferCard({ offer }: { offer: Offer }): JSX.Element {
+export function OfferCard({
+  offer,
+  party,
+}: {
+  offer: Offer;
+  party: readonly number[];
+}): JSX.Element {
+  const { accent, look } = offerLook(party, offer.lookSeed);
   return (
     <>
       <span class="offer-figure">
-        <CharacterFigure accent={accentForName(offer.name)} look={characterLookFor(offer.name)} />
+        <CharacterFigure accent={accent} look={look} />
       </span>
       <span class="offer-name">{offer.name}</span>
       <span class="offer-icons">
@@ -78,7 +86,7 @@ export function JoinDrawer(props: JoinDrawerProps): JSX.Element | null {
               data-autofocus={i === 0 ? true : undefined}
               onClick={() => setW((s) => wizard(s, { kind: 'offer', index: i }))}
             >
-              <OfferCard offer={o} />
+              <OfferCard offer={o} party={props.party} />
             </button>
           ))}
         </div>
@@ -116,7 +124,7 @@ export function JoinDrawer(props: JoinDrawerProps): JSX.Element | null {
             <BackIcon />
           </button>
           <div class="join-choice">
-            {chosen && <OfferCard offer={chosen} />}
+            {chosen && <OfferCard offer={chosen} party={props.party} />}
             {w.role && <RoleEmblem role={w.role} size={44} />}
           </div>
           <button

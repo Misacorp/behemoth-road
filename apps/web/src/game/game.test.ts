@@ -3,7 +3,7 @@ import { terrainOf } from '@behemoth-road/core';
 import { characterIdOf, joined, lost, notJoined, USERS } from '../api/fixtures.ts';
 import { IDLE, openCharacter, tap } from '../map/flow.ts';
 import { characterNeed, halfDrawerCover, showsNextDay } from './Game.tsx';
-import { accentForName, identities } from './identity.ts';
+import { identities, offerLook, partySeeds } from './identity.ts';
 import { toGameState } from './viewState.ts';
 
 describe('playing from the player view', () => {
@@ -31,7 +31,16 @@ describe('playing from the player view', () => {
       (w) => `${w.accent}|${w.look?.headwear}|${w.look?.garment}`,
     );
     expect(new Set(looks).size).toBe(looks.length);
-    expect(accentForName('Ola')).toBe(accentForName('Ola'));
+  });
+
+  it('previews an offer with the look it will have on the map once it joins', () => {
+    const before = notJoined();
+    const offer = before.offers![0]!;
+    const preview = offerLook(partySeeds(before), offer.lookSeed);
+    const after = joined();
+    const mine = identities(after).get(characterIdOf(after, USERS.MISA))!;
+    expect(mine.accent).toBe(preview.accent);
+    expect(mine.look).toEqual(preview.look);
   });
 
   it("reads terrain from the view's tiles: the view has no seed", () => {

@@ -31,6 +31,8 @@ const character = v.object({
   quirk: v.nullable(id),
   role: id,
   joinedDay: count,
+  /** Public seed for the character's look (`assignLooks`); unrelated to the game seed. */
+  lookSeed: v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(0xffffffff)),
   at: PlaceSchema,
   actionsLeft: count,
   status: v.picklist(['active', 'lost']),
@@ -76,6 +78,7 @@ export const OfferSchema = v.object({
   name: text,
   trait: v.nullable(id),
   quirk: v.nullable(id),
+  lookSeed: v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(0xffffffff)),
 });
 
 export const PlayerViewSchema = v.object({
