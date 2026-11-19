@@ -4,12 +4,13 @@ What has landed and what is next. Newest first. Update it when a step lands or t
 
 ## Next
 
-- Milestone 2 (the session): plan and API contract in `docs/design/m2-session.md`; core, worker and web built in parallel on `m2/core`, `m2/worker` and `m2/web`, merged on `m2/integration`.
-- Milestone 2 setup: the Discord secrets into GitHub, then the Interactions Endpoint URL after the first deploy (`docs/setup.md`).
+- Milestone 3 (the first chain: Scout, Engineer, Scholar): plan in `docs/design/m3-chain.md`; core, worker, web and art on `m3/*`, merged on `m3/integration`.
+- Production Discord app: set the Interactions Endpoint URL to `https://behemoth.misacorp.dev/api/discord/interactions` (Misa).
 - Before Milestone 2 persists games: pin the content (terrain table) a saved game was made with, so a later content change cannot alter it; and keep the per-tile record from growing without bound (lost tiles could be pruned).
 
 ## Done
 
+- 2026-11-19: Milestone 2 merged and live (PR #7): Discord Activity sign-in, one game per allowed server, joining with rolled characters and roles, other players on the map, the daily tick; tried on staging by Misa.
 - 2026-11-19: Milestone 2 web client (branch `m2/web`): Activity boot with a dev-only fake session, a typed and parsed API client with polling, the map on the player view, the join and replace drawer, other players and their cards, and next day for admins with dev tools. Hand-written fixtures stand in for the worker's captured ones until they exist.
 - 2026-11-19: Milestone 2 server on `m2/worker`: Discord Activity sign-in (from creatures), one `GuildWorld` Durable Object per server with the game, players and sessions in SQLite, the game API with strict Valibot schemas (move intents take exactly one place shape), the 06:00 Helsinki day tick as the object's alarm with catch-up, the staging-only admin "next day", the Launch interactions endpoint and the deploy's Discord steps, a local dev login, and contract fixtures for the web app captured from the Worker (`pnpm fixtures:capture`, checked in CI).
 - 2026-11-19: Art for Milestone 2: role emblems in a shared frame, an icon system by content icon key with a neutral fallback, icons for the 12 traits and 12 quirks, and varied character looks (headwear, garment, carry, skin; eight accents) seeded by id.
