@@ -21,6 +21,9 @@ describe('day tick', () => {
     const a = nextDay(idle);
     const b = nextDay(acted);
     expect(b.creature).toEqual(a.creature);
-    expect(b.tiles).toEqual(a.tiles);
+    // The same tiles; only where the character stepped is explored.
+    const plain = (tiles: typeof a.tiles) =>
+      Object.fromEntries(Object.entries(tiles).map(([k, t]) => [k, { ...t, explored: false }]));
+    expect(plain(b.tiles)).toEqual(plain(a.tiles));
   });
 });

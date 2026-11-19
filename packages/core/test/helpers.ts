@@ -45,7 +45,7 @@ export const withTerrain = (state: GameState, h: Hex, terrain: string): GameStat
   ...state,
   tiles: {
     ...state.tiles,
-    [`${h.q},${h.r}`]: { visibility: 'seen', terrain, leftWindowOnDay: null },
+    [`${h.q},${h.r}`]: { visibility: 'seen', terrain, explored: false, leftWindowOnDay: null },
   },
 });
 

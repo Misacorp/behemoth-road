@@ -8,13 +8,18 @@ The game rules: pure, headless and seeded. No UI, network or storage code. Every
 - Server only (need the seed): `createGame`, `nextDay`, `chooseCreatureStep`, `rollCharacters`, `characterOffers`, `addCharacter`, `replaceCharacter`, `loadGame`.
 - **Storage:** a game records `contentVersion` (`CONTENT_VERSION`). `loadGame(json)` refuses a state with an unknown version (`UnknownContentVersionError`) or without its seed. `nextDay` prunes lost tiles more than `lostTileRings` beyond the window, except under a character.
 
-## Features, items and actions (Milestone 3)
+## Exploring, features, packs and unlocks (Milestone 3)
 
-- **Features** (`FEATURE_TYPES`: resource nodes, tomb sites in two tiers, traps) are generated on the server, sparsely and by terrain tags, as hexes come into view. They are stored in `features` by hex key as `{ type, revealed, left }`. A player view holds only revealed ones, plus `glints` (hexes a scout has sensed) and the team `inventory`.
-- **Entering a hex** (`move`, `moveAlong`) reveals its feature for everyone. A hidden trap ends a non-scout's day (`trapped`), and a scout senses hidden features within `senseRadius`. Results carry `events` (`reveal`, `sense`, `trap`, `gather`, `craft`, `find`, `site-failed`). `moveAlong` checks the whole path first, then stops at a trap (`stopped: { step, reason: 'trap' }`).
-- **Actions:** `checkAction(view, id, action)` says what an action costs (actions, materials, chance) or why it is refused, and `actionsHere` lists them all for the interface. `act(state, id, action)` applies one on the server: `{ kind: 'gather' }`, `{ kind: 'craft', recipe }` or `{ kind: 'work-site' }` (a seeded roll). Roles count by their tags (`reveal`, `gather`, `craft`, `sites`).
-- **Items** (`ITEMS`, `RECIPES`, `MATERIALS`) belong to the team. An item's `movement` lets everyone onto matching terrain through `entryInto`, whose `via` is the item's id (the grappling hook over a cliff).
-- **Storage:** content version 3. `loadGame` migrates a version-2 game (`migrateGame`): its map and characters stay, and hexes in view get their features.
+- **Features** (`FEATURE_TYPES`: resource nodes, tomb sites in two tiers, traps) are generated on the server, sparsely and by terrain tags, as hexes come into view. They are stored in `features` by hex key as `{ type, revealed, left }`. A player view holds only revealed ones.
+- **Exploring:** a tile is `explored` once anyone enters it or surveys it, and exploring reveals its feature. Entering a hex with a hidden trap springs it, for anyone: the day ends (`trapped`). `moveAlong` checks the whole path first, then stops at a trap (`stopped: { step, reason: 'trap' }`). Results carry `events` (`explore`, `survey`, `reveal`, `trap`, `gather`, `find`, `site-failed`, `deposit`, `unlock-progress`, `unlock-done`).
+- **Packs and stores:** gathering and finds go into the character's `pack` (up to `packCapacity`). Boarding the creature, or being picked up by it, empties the pack into the team `stores`. A lost character's pack is lost.
+- **Actions:** `checkAction(view, id, action)` says what an action costs (actions, materials, published chance) or why it is refused. `actionsHere` (also `possibleActions`) lists them all for the interface. `act(state, id, action)` applies one on the server:
+  - `{ kind: 'survey', hex }`: an adjacent unexplored hex, cheaper for a role tagged `survey`.
+  - `{ kind: 'gather' }`.
+  - `{ kind: 'work-site' }`: a seeded roll per day, character and site.
+  - `{ kind: 'build', unlock }`: engineers riding the creature; the first step takes the cost from the stores, and each step adds one work.
+- **Unlocks** (`UNLOCKS`) are permanent for the team (`unlocks`, with the one `project` in progress). An unlock's `movement` lets everyone onto matching terrain through `entryInto`, whose `via` is the unlock's id (the grappling hook over a cliff). Roles count by their tags; later upgrades sit in `ROLES[].perks` with `requiresUpgrade`.
+- **Storage:** content version 4. `loadGame` refuses an older game with `OutdatedGameError` (start a new game).
 
 ## API
 
