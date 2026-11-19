@@ -23,7 +23,16 @@ describe('page guards', () => {
   it('sets no inline style anywhere (the CSP forbids it)', () => {
     expect(Object.keys(sources).length).toBeGreaterThan(10);
     for (const [file, text] of Object.entries(sources)) {
+      // The world layer's CSS transform is the one CSSOM write (allowed by the CSP), kept in one file.
+      if (file === './map/cssTransform.ts') continue;
       expect(text, file).not.toMatch(/\bstyle=|\.style\b|setAttribute\(\s*['"]style/);
     }
+  });
+
+  it('writes CSS from script only as the world transform, through the CSSOM', () => {
+    const text = sources['./map/cssTransform.ts'] ?? '';
+    expect(text.match(/\.style\b/g)).toEqual(['.style']);
+    expect(text).toMatch(/\.style\.transform = value/);
+    expect(text).not.toMatch(/style=|setAttribute|cssText/);
   });
 });

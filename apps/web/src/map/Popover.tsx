@@ -261,6 +261,27 @@ function Fitted({
 }
 
 const FIGURE_W = 34;
+// Drawn once: the bubble's figures and its creature entry never change (no per-tap drawing).
+const BUBBLE_FIGURE = drawCharacter(
+  PALETTE,
+  MAP_TUNING.accent,
+  { x: 0, y: 0 },
+  40,
+  MAP_TUNING.tilt,
+  ART_TUNING.inkWidth * 0.7 * 1.4,
+);
+const BUBBLE_CREATURE = drawCreature(
+  PALETTE,
+  GENTLE_AMBLER,
+  { x: 0, y: 0 },
+  14,
+  MAP_TUNING.tilt,
+  1.8,
+  {
+    q: 0,
+    r: 1,
+  },
+);
 const PLACE_W = 56;
 const BUBBLE_H = 64;
 
@@ -293,7 +314,6 @@ export function Bubble({
 }): JSX.Element {
   const size = bubbleSize(characters.length, place !== undefined);
   const ramp = accentRamp(PALETTE, MAP_TUNING.accent);
-  const ink = ART_TUNING.inkWidth * 0.7;
   return (
     <g data-popover="bubble">
       <Card {...size} />
@@ -312,20 +332,7 @@ export function Bubble({
                 stroke-width={1.6}
               />
             )}
-            <Fitted
-              drawn={drawCharacter(
-                PALETTE,
-                MAP_TUNING.accent,
-                { x: 0, y: 0 },
-                40,
-                MAP_TUNING.tilt,
-                ink * 1.4,
-              )}
-              x={3}
-              y={0}
-              width={FIGURE_W - 6}
-              height={46}
-            />
+            <Fitted drawn={BUBBLE_FIGURE} x={3} y={0} width={FIGURE_W - 6} height={46} />
           </g>
         );
       })}
@@ -346,16 +353,7 @@ export function Bubble({
           }}
         >
           <circle r={23} fill={PALETTE.paper} stroke={PALETTE.inkSoft} stroke-width={1.4} />
-          <Fitted
-            drawn={drawCreature(PALETTE, GENTLE_AMBLER, { x: 0, y: 0 }, 14, MAP_TUNING.tilt, 1.8, {
-              q: 0,
-              r: 1,
-            })}
-            x={-17}
-            y={-17}
-            width={34}
-            height={34}
-          />
+          <Fitted drawn={BUBBLE_CREATURE} x={-17} y={-17} width={34} height={34} />
         </g>
       )}
     </g>

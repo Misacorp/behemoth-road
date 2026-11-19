@@ -2,11 +2,12 @@ import { describe, expect, it } from 'vitest';
 import {
   centreOn,
   inkZoomFor,
+  layerRaster,
+  layerTransform,
   lerpView,
   panBy,
   toScreen,
   toWorld,
-  transformAttr,
   zoomAt,
 } from './view.ts';
 
@@ -52,7 +53,6 @@ describe('view transform', () => {
     const a = { x: 0, y: 0, scale: 1 };
     expect(panBy(a, 5, -3)).toEqual({ x: 5, y: -3, scale: 1 });
     expect(lerpView(a, { x: 10, y: 20, scale: 2 }, 0.5)).toEqual({ x: 5, y: 10, scale: 1.5 });
-    expect(transformAttr({ x: 5, y: -3, scale: 1.5 })).toBe('matrix(1.5 0 0 1.5 5 -3)');
   });
 
   it('steps the ink zoom in half powers of two', () => {
@@ -60,5 +60,57 @@ describe('view transform', () => {
     expect(inkZoomFor(1.1)).toBe(1);
     expect(inkZoomFor(0.37)).toBeCloseTo(Math.SQRT1_2 / 2, 9);
     expect(inkZoomFor(2.3)).toBe(2);
+  });
+});
+
+describe('layerTransform', () => {
+  it('puts every world point where the view puts it, for the layer drawn at any raster scale', () => {
+    const parse = (t: string): number[] => (t.match(/-?\d+(\.\d+)?/g) ?? []).map(Number);
+    for (const v of [
+      { x: 120, y: -40, scale: 0.75 },
+      { x: -300, y: 260, scale: 1.9 },
+    ]) {
+      for (const raster of [0.5, 1, 1.4142]) {
+        const origin = { x: -500, y: -320 };
+        const [tx, ty, k] = parse(layerTransform(v, raster, origin)) as [number, number, number];
+        for (const w of [
+          { x: 0, y: 0 },
+          { x: 210, y: -95 },
+        ]) {
+          // The layer draws world point w at ((w - origin) · raster); the transform maps that to the screen.
+          const sx = tx + k * (w.x - origin.x) * raster;
+          const sy = ty + k * (w.y - origin.y) * raster;
+          const want = toScreen(v, w);
+          expect(sx).toBeCloseTo(want.x, 1);
+          expect(sy).toBeCloseTo(want.y, 1);
+        }
+      }
+    }
+  });
+});
+
+describe('layerRaster', () => {
+  const limits = { maxSide: 4096, maxPixels: 16_000_000 };
+  it('keeps the wanted step while the bitmap fits', () => {
+    expect(layerRaster(1, { width: 1500, height: 1000 }, 2, limits)).toBe(1);
+  });
+
+  it('lowers the raster so neither side passes the limit', () => {
+    const r = layerRaster(2.8, { width: 1500, height: 900 }, 3, limits);
+    expect(1500 * r * 3).toBeLessThanOrEqual(4096 + 1e-6);
+    expect(900 * r * 3).toBeLessThanOrEqual(4096);
+    expect(r).toBeLessThan(2.8);
+  });
+
+  it('lowers the raster so the area stays within the limit', () => {
+    const r = layerRaster(4, { width: 1300, height: 1300 }, 1, {
+      maxSide: 1e9,
+      maxPixels: 16_000_000,
+    });
+    expect(1300 * 1300 * r * r).toBeCloseTo(16_000_000, -3);
+  });
+
+  it('treats a missing device pixel ratio as 1', () => {
+    expect(layerRaster(1, { width: 1000, height: 1000 }, Number.NaN, limits)).toBe(1);
   });
 });

@@ -50,3 +50,37 @@ export function placePopover(
   y = clamp(y, screen.height - size.height);
   return { x, y, width: size.width, height: size.height };
 }
+
+/** The chevron on a popover's edge, in the popover's own px: a paper fill and its two ink sides. */
+export interface Chevron {
+  readonly fill: string;
+  readonly edge: string;
+}
+
+const CHEVRON_HALF = 8;
+/** As deep as the gap `placePopover` leaves, so the tip just meets the thing. */
+const CHEVRON_DEPTH = 6;
+/** Keep the chevron clear of the card's rounded corners. */
+const CHEVRON_INSET = 18;
+
+/**
+ * A small chevron on the popover edge facing what it belongs to, sliding along the edge to point at it
+ * when the card is clamped to the screen. `anchor` is the top of the thing, `below` its height (screen px).
+ * The card body spans `height - 2` px (the last 2 px are its shadow).
+ */
+export function chevronFor(rect: Rect, anchor: { x: number; y: number }, below: number): Chevron {
+  const bottom = rect.height - 2;
+  const pointsDown = rect.y + bottom <= anchor.y + below / 2;
+  const half = Math.min(CHEVRON_HALF, (rect.width - 2 * CHEVRON_INSET) / 2);
+  const x = Math.min(
+    Math.max(anchor.x - rect.x, CHEVRON_INSET + half),
+    rect.width - 2 - CHEVRON_INSET - half,
+  );
+  const n = (v: number): string => (Math.round(v * 10) / 10).toString();
+  // The base sits just inside the card so the fill hides the card's border under the chevron.
+  const [base, tip] = pointsDown ? [bottom - 1, bottom + CHEVRON_DEPTH] : [1, -CHEVRON_DEPTH];
+  const a = `${n(x - half)} ${n(base)}`;
+  const t = `${n(x)} ${n(tip)}`;
+  const b = `${n(x + half)} ${n(base)}`;
+  return { fill: `M${a}L${t}L${b}Z`, edge: `M${a}L${t}L${b}` };
+}

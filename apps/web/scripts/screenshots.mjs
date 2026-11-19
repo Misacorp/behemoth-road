@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* global URL, console, process, window, document, performance, requestAnimationFrame */
+/* global URL, console, process, window, document, performance, requestAnimationFrame, MouseEvent */
 /**
  * Loads the built app (apps/web/dist) in Chromium at a phone and a desktop size, plays a scripted
  * tap, tap, confirm move and a next day, and writes screenshots to screenshots/ at the repo root
@@ -14,6 +14,7 @@ import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
 import { dirname, extname, join, normalize, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { SPRING } from '../../../packages/art/src/palette.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const web = resolve(here, '..');
@@ -86,7 +87,7 @@ async function run() {
       });
       page.on('pageerror', (e) => problems.push(`${vp.name}: ${e.message}`));
       await page.goto(url);
-      await page.waitForSelector('svg.map g');
+      await page.waitForSelector('.map-world svg g');
       await page.waitForTimeout(300);
       await page.screenshot({ path: join(out, `m1-map-${vp.name}-1-start.png`) });
 
@@ -183,6 +184,54 @@ async function run() {
       if (!(await page.locator('[data-popover=inspect]').count()))
         problems.push(`${vp.name}: no inspect popover`);
       await shot('8-inspect');
+      // Escape closes it; on desktop a right-click closes it too, with the browser menu suppressed.
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(100);
+      if (await has('inspect')) problems.push(`${vp.name}: Escape did not close the popover`);
+      if (!vp.touch) {
+        const spot = await hexOnScreen(q1 - 3, r1 + 1);
+        await tap(...spot);
+        const blocked = await page.evaluate(
+          ([x, y]) =>
+            !document.elementFromPoint(x, y).dispatchEvent(
+              new MouseEvent('contextmenu', {
+                bubbles: true,
+                cancelable: true,
+                clientX: x,
+                clientY: y,
+              }),
+            ),
+          spot,
+        );
+        await page.waitForTimeout(100);
+        if (!blocked) problems.push(`${vp.name}: right-click menu not suppressed`);
+        if (await has('inspect'))
+          problems.push(`${vp.name}: right-click did not close the popover`);
+      }
+
+      // The grace day: a new game, step off behind the creature, walk further back, and let days pass
+      // until the character's hex leaves the window (warning mark on the figure), then screenshot.
+      await page.locator('[aria-label="New game"]').click();
+      await page.waitForTimeout(300);
+      const [gq, gr] = await creature();
+      await tap(...(await hexOnScreen(gq, gr)));
+      for (const [dq, dr] of [
+        [0, 2],
+        [0, 3],
+      ]) {
+        await tap(...(await hexOnScreen(gq + dq, gr + dr)));
+        if (await has('confirm')) await page.locator('[aria-label=Confirm]').click();
+        await page.waitForTimeout(150);
+      }
+      await page.keyboard.press('Escape');
+      let warned = false;
+      for (let d = 0; d < 6 && !warned; d += 1) {
+        await page.locator('[aria-label="Next day"]').click();
+        await page.waitForTimeout(700);
+        warned = (await page.locator('[data-mark=grace-warning]').count()) > 0;
+      }
+      if (!warned) problems.push(`${vp.name}: never saw the grace-day warning`);
+      await shot('9-grace-day');
 
       // Frame times during a drag, CPU slowed 4x.
       const cdp = await context.newCDPSession(page);
@@ -197,13 +246,13 @@ async function run() {
         };
         requestAnimationFrame(tick);
       });
-      const world = page.locator('svg.map > g').first();
-      const before = await world.getAttribute('transform');
+      // The view the map reports (it pans its world layer by a CSS transform).
+      const before = await svg.getAttribute('data-view');
       await page.mouse.move(cx, cy);
       await page.mouse.down();
       for (let i = 0; i < 60; i += 1) await page.mouse.move(cx - i * 4, cy - i * 2);
       await page.mouse.up();
-      if ((await world.getAttribute('transform')) === before)
+      if ((await svg.getAttribute('data-view')) === before)
         problems.push(`${vp.name}: drag did not pan`);
       const scaleBefore = await svg.getAttribute('data-view');
       // Mobile emulation sends no wheel events; the desktop run checks wheel zoom.
@@ -211,6 +260,50 @@ async function run() {
       await page.waitForTimeout(100);
       if (!vp.touch && (await svg.getAttribute('data-view')) === scaleBefore) {
         problems.push(`${vp.name}: wheel did not zoom`);
+      }
+      // No jump when a zoom settles: the world layer is redrawn at a new ink-zoom step, and known world
+      // points (the creature's trodden footprint, your figure's cloak) must stay put on screen.
+      if (!vp.touch) {
+        await page.waitForTimeout(400);
+        const marks = () =>
+          page.evaluate(
+            ({ trodden, cloak }) => {
+              const box = (el) => {
+                const r = el.getBoundingClientRect();
+                return { x: r.x + r.width / 2, y: r.y + r.height / 2, w: r.width, h: r.height };
+              };
+              const world = document.querySelector('.map-world svg');
+              const foot = world.querySelector(`[fill="${trodden}"]`);
+              const cloaks = [...world.querySelectorAll(`[fill="${cloak}"]`)].map(box);
+              cloaks.sort((a, b) => b.w * b.h - a.w * a.h);
+              return { width: world.getAttribute('width'), points: [box(foot), cloaks[0]] };
+            },
+            { trodden: SPRING.ramps.trodden.base, cloak: SPRING.accents.rose.base },
+          );
+        await page.mouse.move(cx, cy);
+        // A zoom out by more than a half power of two always crosses an ink-zoom step.
+        await page.mouse.wheel(0, 320);
+        await page.waitForTimeout(60);
+        const pre = await marks();
+        await page.waitForTimeout(700);
+        const post = await marks();
+        if (pre.width === post.width) problems.push(`${vp.name}: no redraw after the zoom settled`);
+        pre.points.forEach((a, i) => {
+          const b = post.points[i];
+          const moved = Math.max(
+            Math.abs(a.x - b.x),
+            Math.abs(a.y - b.y),
+            Math.abs(a.w - b.w),
+            Math.abs(a.h - b.h),
+          );
+          if (!(moved <= 1))
+            problems.push(`${vp.name}: point ${i} jumped ${moved.toFixed(2)} px at a zoom settle`);
+        });
+        report.push(
+          `${vp.name}: zoom settle redraw, largest shift ${Math.max(
+            ...pre.points.map((a, i) => Math.hypot(a.x - post.points[i].x, a.y - post.points[i].y)),
+          ).toFixed(2)} px`,
+        );
       }
       const frames = await page.evaluate(() => window.__frames.slice(2));
       await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
@@ -220,7 +313,7 @@ async function run() {
       report.push(
         `${vp.name}: drag at 4x CPU slowdown, ${frames.length} frames, median ${pct(0.5)} ms, p95 ${pct(0.95)} ms`,
       );
-      const nodes = await page.evaluate(() => document.querySelectorAll('svg.map *').length);
+      const nodes = await page.evaluate(() => document.querySelectorAll('.map-root svg *').length);
       report.push(`${vp.name}: ${nodes} SVG elements in the map`);
       await context.close();
     }
