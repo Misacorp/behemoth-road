@@ -14,13 +14,23 @@
     "production": {
       "deploysFrom": "push to main",
       "branches": ["main"],
-      "secrets": ["CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"],
+      "secrets": [
+        "CLOUDFLARE_API_TOKEN",
+        "CLOUDFLARE_ACCOUNT_ID",
+        "DISCORD_CLIENT_SECRET",
+        "DISCORD_BOT_TOKEN"
+      ],
       "url": "https://behemoth.misacorp.dev"
     },
     "staging": {
       "deploysFrom": "manual run",
       "branches": [],
-      "secrets": ["CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"],
+      "secrets": [
+        "CLOUDFLARE_API_TOKEN",
+        "CLOUDFLARE_ACCOUNT_ID",
+        "DISCORD_CLIENT_SECRET",
+        "DISCORD_BOT_TOKEN"
+      ],
       "url": "https://behemoth-staging.misacorp.dev"
     }
   }
