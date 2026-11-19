@@ -26,7 +26,7 @@ export const MATERIALS = [
 ] as const;
 export type Material = (typeof MATERIALS)[number];
 
-export const ACCENTS = ['rose', 'ochre', 'teal', 'plum'] as const;
+export const ACCENTS = ['rose', 'ochre', 'teal', 'plum', 'sage', 'slate', 'coral', 'sky'] as const;
 export type Accent = (typeof ACCENTS)[number];
 
 export interface Palette {
@@ -40,6 +40,8 @@ export interface Palette {
   readonly fog: string;
   readonly hint: string;
   readonly skin: string;
+  /** Skin tones for characters (the first is `skin`). */
+  readonly skins: readonly string[];
   readonly belly: string;
   readonly marking: string;
   readonly horn: string;
@@ -61,6 +63,7 @@ export const MORNING: Palette = {
   fog: '#ebe4d6',
   hint: '#c98f6b',
   skin: '#f0d8c0',
+  skins: ['#f0d8c0', '#d9b48f', '#a97d5c'],
   belly: '#f0e0cb',
   marking: '#a8846f',
   horn: '#efe3cb',
@@ -85,6 +88,10 @@ export const MORNING: Palette = {
     ochre: r('#efd9a8', '#ddba7c', '#b99a5e'),
     teal: r('#c3dbd5', '#93bdb5', '#729a93'),
     plum: r('#d6c9dc', '#b5a0bf', '#917e9c'),
+    sage: r('#d6e2c6', '#adc497', '#8ba376'),
+    slate: r('#d0d6de', '#a0abbb', '#7f8a9b'),
+    coral: r('#f2cbbb', '#e4a28b', '#c0826c'),
+    sky: r('#cde1ef', '#9cc2dc', '#7ca2bc'),
   },
 };
 
@@ -100,6 +107,7 @@ export const MIST: Palette = {
   fog: '#e3e7e5',
   hint: '#8fa8c9',
   skin: '#eedcd0',
+  skins: ['#eedcd0', '#d4b296', '#a07c62'],
   belly: '#e8e5ee',
   marking: '#8f89a8',
   horn: '#ecebe2',
@@ -124,6 +132,10 @@ export const MIST: Palette = {
     ochre: r('#ece0bd', '#dcc58e', '#b9a36f'),
     teal: r('#c4dcdb', '#8fbcbc', '#6f9a9b'),
     plum: r('#d3cce2', '#ab9ec4', '#8a7ea3'),
+    sage: r('#d6e2c6', '#adc497', '#8ba376'),
+    slate: r('#d0d6de', '#a0abbb', '#7f8a9b'),
+    coral: r('#f2cbbb', '#e4a28b', '#c0826c'),
+    sky: r('#cde1ef', '#9cc2dc', '#7ca2bc'),
   },
 };
 
@@ -139,6 +151,7 @@ export const SPRING: Palette = {
   fog: '#e9e8db',
   hint: '#d6a26f',
   skin: '#f1dcc0',
+  skins: ['#f1dcc0', '#d8b48e', '#a77c58'],
   belly: '#f2e6d0',
   marking: '#a88f6c',
   horn: '#efe6c8',
@@ -163,6 +176,10 @@ export const SPRING: Palette = {
     ochre: r('#f0dcab', '#e3c27c', '#bf9f5f'),
     teal: r('#c5e0d7', '#8fc2b4', '#6f9f93'),
     plum: r('#dccfe2', '#b9a3c6', '#9583a2'),
+    sage: r('#d6e2c6', '#adc497', '#8ba376'),
+    slate: r('#d0d6de', '#a0abbb', '#7f8a9b'),
+    coral: r('#f2cbbb', '#e4a28b', '#c0826c'),
+    sky: r('#cde1ef', '#9cc2dc', '#7ca2bc'),
   },
 };
 
@@ -188,6 +205,7 @@ export function paletteColours(palette: Palette): Set<string> {
   for (const [key, value] of Object.entries(palette)) {
     if (key === 'id' || key === 'name') continue;
     if (typeof value === 'string') add(value);
+    else if (Array.isArray(value)) for (const v of value) if (typeof v === 'string') add(v);
   }
   for (const ramp of [...Object.values(palette.ramps), ...Object.values(palette.accents)]) {
     add(ramp.light);

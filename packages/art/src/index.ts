@@ -1,6 +1,23 @@
 export { ART_TUNING } from './config.ts';
 export { figureAnchor, type FigureContext } from './figure.ts';
-export { drawCharacter, type CharacterArt } from './character.ts';
+export {
+  assignLooks,
+  characterLookFor,
+  DEFAULT_LOOK,
+  drawCharacter,
+  type CharacterArt,
+  type CharacterLook,
+} from './character.ts';
+export {
+  drawIcon,
+  hasIcon,
+  ICON_MOTIFS,
+  ROLE_IDS,
+  type EmblemFrame,
+  type IconMotif,
+  type IconOptions,
+  type RoleId,
+} from './icons.ts';
 export {
   drawCreature,
   GENTLE_AMBLER,

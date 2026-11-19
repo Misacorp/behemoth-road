@@ -92,6 +92,7 @@ Record a decision:
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-19 Role emblems share one frame; icons are drawn by key; characters vary by seeded look
 - 2026-11-19 Popovers point at their subject; grace-day tiles and figures warn without words
 - 2026-11-19 Three actions a day, and moving costs actions \[Misa\]
 - 2026-11-19 Escape and right-click close popovers on desktop; right-click is a setting \[Misa\]

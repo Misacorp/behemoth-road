@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: Role emblems share one frame; icons are drawn by key; characters vary by seeded look
+
+ID: `2026-11-19-role-emblems-share-one-frame-icons` · Status: current
+
+**Decision.** The art kit draws icons by key with `drawIcon(id, palette, size)`, a self-contained `<svg>` on a 48-unit grid; unknown keys draw a neutral dotted mark. The six role emblems (`role:scout` … `role:envoy`) share one frame, round or shield (Misa picks; round is the default until then), each with its own tint and an ink motif: spyglass, open book, herb sprig, upright sword, cog, sealed scroll. Trait and quirk icons register under `trait:…` and `quirk:…` as content gains them. Characters take a look from data, `{ headwear, garment, carry, skin }`; `characterLookFor(id)` seeds one by id, and `assignLooks(ids)` gives characters in join order distinct accent, headwear and garment combinations (8 accents × 4 × 3). The palettes gain four accents (sage, slate, coral, sky) and three skin tones. A character without a look draws as the default explorer, so the current app is unchanged until it passes looks.
+
+**Reasoning.** The join drawer shows characters and roles with names as the only text, so icons must carry the meaning, read at 32 px and look like one set. Fifteen riders on the creature's back must tell apart at a glance; seeding by id keeps a character's look stable, and assigning in join order keeps it stable as others join.
+
 ## 2026-11-19: Popovers point at their subject; grace-day tiles and figures warn without words
 
 ID: `2026-11-19-popovers-point-at-their-subject-grace` · Status: current
