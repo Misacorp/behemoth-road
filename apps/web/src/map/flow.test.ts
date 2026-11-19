@@ -128,9 +128,25 @@ describe('the creature as the hub', () => {
     const edge = creatureEdge(s).find((h) => isPassable(s, h))!;
     const plan = tapHex(tapHex(IDLE, s, ID, s.creature.centre), s, ID, edge);
     expect(plan).toMatchObject({ kind: 'planned', to: onHex(edge), cost: 1 });
-    expect(tapHex(plan, s, ID, s.creature.centre)).toEqual(IDLE);
+    // The creature again drops the plan and reopens the bubble with you selected.
+    expect(tapHex(plan, s, ID, s.creature.centre)).toEqual({ kind: 'bubble', selecting: true });
     const done = confirmMove(plan, s, ID);
     expect(me(done.state).at).toEqual(onHex(edge));
+  });
+
+  it('riding and already selected (no bubble): the creature opens the bubble, keeping you selected', () => {
+    const s = riding();
+    expect(tapHex({ kind: 'selected' }, s, ID, s.creature.centre)).toEqual({
+      kind: 'bubble',
+      selecting: true,
+    });
+  });
+
+  it('riding: a tap on the creature while the bubble or the hub card is open closes everything', () => {
+    const s = riding();
+    for (const open of [{ kind: 'bubble', selecting: true }, openHub()] as const) {
+      expect(tapHex(open, s, ID, s.creature.centre)).toEqual(IDLE);
+    }
   });
 
   it('riding with no actions left: the bubble opens without selecting', () => {

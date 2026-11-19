@@ -149,7 +149,8 @@ export function MapView(props: MapViewProps): JSX.Element {
   const svgRef = useRef<SVGSVGElement>(null);
   const worldRef = useRef<SVGGElement>(null);
   const popRef = useRef<SVGGElement>(null);
-  const confirmRef = useRef<SVGGElement | null>(null);
+  // The control that takes focus when a popover opens (the confirm button, the bubble's hub entry).
+  const popoverFocusRef = useRef<SVGGElement | null>(null);
   const view = useRef<View>({ x: 0, y: 0, scale: 1 });
   const size = useRef<Size>({ width: 0, height: 0 });
   const tracker = useRef(new GestureTracker(MAP_TUNING.tapSlop));
@@ -401,15 +402,23 @@ export function MapView(props: MapViewProps): JSX.Element {
     apply();
     if (popKey) {
       const target =
-        flow.kind === 'planned' || flow.kind === 'bubble' ? confirmRef.current : popRef.current;
+        flow.kind === 'planned' || flow.kind === 'bubble'
+          ? popoverFocusRef.current
+          : popRef.current;
       target?.focus({ preventScroll: true });
-    } else if (popRef.current?.contains(document.activeElement)) {
-      svgRef.current?.focus({ preventScroll: true });
+    } else {
+      // The popover's content is already gone, so its focused control may have dropped focus to the body.
+      const a = document.activeElement;
+      if (!a || a === document.body || popRef.current?.contains(a)) {
+        svgRef.current?.focus({ preventScroll: true });
+      }
     }
   }, [popKey]);
 
   const onPointerDown = (e: PointerEvent): void => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
+    // No compatibility mouse-down: its default focus move would pull focus out of a popover the tap opens.
+    e.preventDefault();
     svgRef.current?.setPointerCapture(e.pointerId);
     handle(tracker.current.down(e.pointerId, local(e)));
   };
@@ -440,7 +449,7 @@ export function MapView(props: MapViewProps): JSX.Element {
         place="creature"
         onOpenPlace={props.onOpenHub}
         placeRef={(el) => {
-          confirmRef.current = el;
+          popoverFocusRef.current = el;
         }}
       />
     );
@@ -450,7 +459,7 @@ export function MapView(props: MapViewProps): JSX.Element {
         cost={flow.cost}
         onConfirm={props.onConfirm}
         buttonRef={(el) => {
-          confirmRef.current = el;
+          popoverFocusRef.current = el;
         }}
       />
     );
@@ -462,7 +471,7 @@ export function MapView(props: MapViewProps): JSX.Element {
       class="map"
       data-creature={`${state.creature.centre.q} ${state.creature.centre.r}`}
       data-projection={`${p.size} ${p.squash}`}
-      tabIndex={-1}
+      tabindex={-1}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
@@ -480,7 +489,7 @@ export function MapView(props: MapViewProps): JSX.Element {
       <g
         ref={popRef}
         class="popover"
-        tabIndex={-1}
+        tabindex={-1}
         onPointerDown={(e) => {
           // A lone press on the card stays on the card (its button clicks); a finger landing on it
           // while another is down on the map joins the pinch.

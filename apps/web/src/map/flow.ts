@@ -57,8 +57,9 @@ function tapCreature(flow: Flow, state: GameState, characterId: string): Flow {
   const me = findCharacter(state, characterId);
   const active = me?.status === 'active';
   if (active && me.at.kind === 'creature') {
-    // You ride: the tap selects you and opens the bubble; tapping the creature again closes everything.
-    if (flow.kind !== 'idle' && flow.kind !== 'inspect') return IDLE;
+    // You ride: the tap selects you and opens the bubble (also from a selection or a plan). Only a tap
+    // while the bubble or the hub card is open closes everything.
+    if (flow.kind === 'bubble' || flow.kind === 'creature') return IDLE;
     return { kind: 'bubble', selecting: me.actionsLeft > 0 };
   }
   if (active && isSelecting(flow)) {

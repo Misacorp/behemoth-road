@@ -116,6 +116,21 @@ async function run() {
       await tapCreature();
       if (!(await has('bubble'))) problems.push(`${vp.name}: no bubble while riding`);
       await shot('2-bubble-riding');
+      // Focus moves into the bubble when it opens, and back to the map when it closes.
+      const focused = () =>
+        page.evaluate(() => {
+          const a = document.activeElement;
+          if (a?.closest('.popover')) return 'popover';
+          return a?.matches('svg.map')
+            ? 'map'
+            : `${a?.tagName ?? 'none'}.${a?.getAttribute('class') ?? ''}`;
+        });
+      if ((await focused()) !== 'popover')
+        problems.push(`${vp.name}: focus not in the bubble (${await focused()})`);
+      await tapCreature();
+      if (await has('bubble')) problems.push(`${vp.name}: bubble did not close`);
+      if ((await focused()) !== 'map') problems.push(`${vp.name}: focus not back on the map`);
+      await tapCreature();
 
       // Step off: try the hexes around the footprint, south side first.
       const ring = [

@@ -159,7 +159,7 @@ export function ConfirmCard({
         ref={buttonRef}
         class="svg-button"
         role="button"
-        tabIndex={0}
+        tabindex={0}
         aria-label="Confirm"
         transform={`translate(${cx} ${cy})`}
         onClick={onConfirm}
@@ -334,7 +334,7 @@ export function Bubble({
           ref={placeRef}
           class="svg-button"
           role="button"
-          tabIndex={0}
+          tabindex={0}
           aria-label="Behemoth"
           transform={`translate(${size.width - PLACE_W / 2 - 6} ${BUBBLE_H / 2 - 1})`}
           onClick={onOpenPlace}
