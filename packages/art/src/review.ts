@@ -96,11 +96,21 @@ function propsSheet(): string {
 
 /** The creature alone, large, walking north. */
 function creatureAlone(look: CreatureLook): string {
+  // Two rings of plain ground, the creature walking north-east (its shape reads best turned a little), and
+  // a character beside it for scale.
+  const cells: ArtCell[] = [];
+  for (let q = -2; q <= 2; q += 1) {
+    for (let r = -2; r <= 2; r += 1) {
+      if (Math.abs(q) + Math.abs(r) + Math.abs(q + r) <= 4)
+        cells.push({ q, r, terrain: 'plains', props: [] });
+    }
+  }
   return toSvgString(
     renderScene({
-      cells: footprint(0, 0),
-      creature: { q: 0, r: 0, heading: NORTH, look },
-      projection: isometric(120),
+      cells,
+      creature: { q: 0, r: 0, heading: { q: 1, r: -1 }, look },
+      characters: [{ id: 'scale', q: -1, r: 2, accent: 'rose' }],
+      projection: isometric(78),
       palette: PALETTE,
       seed: 'creature-sheet',
     }),
@@ -120,7 +130,7 @@ function headingsSheet(): string {
   const centres = headings.map((_, i) => {
     const col = i % 3;
     const row = Math.floor(i / 3);
-    return { q: 3 * col, r: -Math.floor((3 * col) / 2) + 3 * row };
+    return { q: 5 * col, r: -Math.floor((5 * col) / 2) + 5 * row };
   });
   // Each creature is drawn through a prop override on its footprint's centre, so all six share one scene.
   const overrides: Record<string, PropDraw> = {};
@@ -143,7 +153,7 @@ function headingsSheet(): string {
   return toSvgString(
     renderScene({
       cells,
-      projection: isometric(52),
+      projection: isometric(38),
       palette: PALETTE,
       seed: 'headings',
       overrides,
@@ -206,20 +216,28 @@ export function buildReviewItems(): ReviewDraft[] {
       svg: headingsSheet(),
     },
     {
-      id: 'creature-shape/round',
+      id: 'creature-shape/broad',
       group: 'Creature shape',
-      title: 'Round back',
-      file: 'creature-shape-round.svg',
+      title: 'Broad, high back',
+      file: 'creature-shape-broad.svg',
       ...shapePick,
       svg: creatureAlone(GENTLE_AMBLER),
     },
     {
-      id: 'creature-shape/long',
+      id: 'creature-shape/longneck',
       group: 'Creature shape',
-      title: 'Long back',
-      file: 'creature-shape-long.svg',
+      title: 'Long neck, long tail',
+      file: 'creature-shape-longneck.svg',
       ...shapePick,
-      svg: creatureAlone({ ...GENTLE_AMBLER, body: 'long' }),
+      svg: creatureAlone({ ...GENTLE_AMBLER, body: 'longneck' }),
+    },
+    {
+      id: 'creature-shape/low',
+      group: 'Creature shape',
+      title: 'Low, wide and mossy',
+      file: 'creature-shape-low.svg',
+      ...shapePick,
+      svg: creatureAlone({ ...GENTLE_AMBLER, body: 'low' }),
     },
     {
       id: 'sheet/terrain',

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { GENTLE_AMBLER, type CreatureLook } from '../src/creature.ts';
+import { drawCreature, GENTLE_AMBLER, type CreatureLook } from '../src/creature.ts';
 import { PALETTES, paletteColours, MORNING } from '../src/palette.ts';
 import { DIRECTIONS, isometric, topDown } from '../src/projection.ts';
 import { samplePatch } from '../src/sample.ts';
-import { paperGrain, renderScene, renderSceneFramed } from '../src/scene.ts';
+import { paperGrain, renderScene, renderSceneFramed, type SceneInput } from '../src/scene.ts';
 import { countNodes, toSvgString, walk, type SvgNode } from '../src/svg.ts';
 import { FALLBACK_LOOK, TERRAIN_LOOKS, terrainLook } from '../src/terrain.ts';
 import { bigScene } from './fixtures.ts';
@@ -55,7 +55,7 @@ describe('renderScene', () => {
     for (const svg of svgs) expect(svg).not.toMatch(/NaN|undefined|Infinity|null/);
   });
 
-  it('stays under the node budget for a 91-hex isometric scene (measured 859)', () => {
+  it('stays under the node budget for a 91-hex isometric scene (measured 879)', () => {
     expect(countNodes(renderScene(bigScene()))).toBeLessThanOrEqual(1250);
   });
 
@@ -85,15 +85,14 @@ describe('renderScene', () => {
       GENTLE_AMBLER,
       {
         ...GENTLE_AMBLER,
-        body: 'long',
-        legs: 'tall',
-        markings: 'stripes',
-        ears: 'round',
+        body: 'longneck',
+        markings: 'none',
         horns: 'none',
         back: 'bare',
-        tail: 'short',
+        tail: 'plain',
       },
-      { ...GENTLE_AMBLER, markings: 'none' },
+      { ...GENTLE_AMBLER, body: 'low', back: 'moss', scale: 0.6 },
+      { ...GENTLE_AMBLER, scale: Number.NaN },
     ];
     for (const look of variants) {
       for (const heading of DIRECTIONS) {
@@ -154,6 +153,53 @@ describe('scene options', () => {
     const far = widths(0.4);
     expect(Math.min(...far) * 0.4).toBeGreaterThanOrEqual(0.5);
     expect(Math.max(...far)).toBeGreaterThan(near);
+  });
+});
+
+describe('the creature', () => {
+  it('fills its seven-hex footprint at scale 1, and scale sizes it', () => {
+    const p = isometric();
+    const width = (scale: number): number => {
+      const { box } = drawCreature(
+        MORNING,
+        { ...GENTLE_AMBLER, scale },
+        { x: 0, y: 0 },
+        p.size,
+        p.squash,
+        1.4,
+        { q: 1, r: 0 },
+      );
+      return box.x1 - box.x0;
+    };
+    // The footprint is about three hexes (about 4 hex sizes) across; head and tail reach past it.
+    expect(width(1)).toBeGreaterThan(4 * p.size);
+    expect(width(0.5)).toBeCloseTo(width(1) / 2, -1);
+  });
+
+  it('draws a character on its back over it, with a contact shadow', () => {
+    const cells = [{ q: 0, r: 0 }, ...DIRECTIONS].map((h) => ({
+      ...h,
+      terrain: 'plains',
+      props: [],
+    }));
+    const base: SceneInput = { ...sample(), cells, characters: [] };
+    const on: SceneInput = { ...base, characters: [{ id: 'c', q: 1, r: 0, accent: 'teal' }] };
+    const objects = (input: SceneInput): SvgNode[] => {
+      let layer: SvgNode | undefined;
+      walk(renderScene(input), (n) => {
+        if (n.attrs['data-layer'] === 'objects') layer = n;
+      });
+      return [...(layer?.children ?? [])];
+    };
+    const without = objects(base);
+    const withChar = objects(on);
+    // Everything the creature scene drew comes first; the character (and its shadow) after it.
+    expect(withChar.slice(0, without.length).map((n) => n.attrs.d)).toEqual(
+      without.map((n) => n.attrs.d),
+    );
+    const extra = withChar.slice(without.length);
+    expect(extra[0]?.attrs.fill).toBe(MORNING.shadow);
+    expect(Number(extra[0]?.attrs.opacity)).toBeGreaterThan(0.3);
   });
 });
 
