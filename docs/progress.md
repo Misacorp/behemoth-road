@@ -5,7 +5,6 @@ What has landed and what is next. Newest first. Update it when a step lands or t
 ## Next
 
 - Milestone 3 (the first chain: Scout, Engineer, Scholar): plan in `docs/design/m3-chain.md`; core, worker, web and art on `m3/*`, merged on `m3/integration`.
-- Production Discord app: set the Interactions Endpoint URL to `https://behemoth.misacorp.dev/api/discord/interactions` (Misa).
 - Before Milestone 2 persists games: pin the content (terrain table) a saved game was made with, so a later content change cannot alter it; and keep the per-tile record from growing without bound (lost tiles could be pruned).
 
 ## Done
