@@ -49,7 +49,7 @@ Record a decision:
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
-- 2026-11-20 Web schema defaults the M4 view fields until the fixtures are recaptured
+- 2026-11-20 Web schema requires the M4 view fields now the fixtures carry them
 - 2026-11-20 The player view carries each viewer's creature signs; the creature's nature and condition never leave the server
 - 2026-11-20 The Worker replaces an outdated game on start and refuses an unreadable one with 503
 - 2026-11-20 The core state holds exploration, packs, stores and unlocks; no glints, no migration
@@ -104,7 +104,7 @@ Record a decision:
 - 2026-11-19 One Worker serves the frontend and the API, configured as code
 - 2026-11-19 Strict security headers, and everything served from our own origin
 
-Superseded: 2 entries (see the topic file).
+Superseded: 3 entries (see the topic file).
 
 ## Product
 

@@ -4,13 +4,13 @@ Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
-## 2026-11-20: Web schema defaults the M4 view fields until the fixtures are recaptured
+## 2026-11-20: Web schema requires the M4 view fields now the fixtures carry them
 
-ID: `2026-11-20-web-schema-defaults-the-m4-view` · Status: current
+ID: `2026-11-20-web-schema-requires-the-m4-view` · Status: current · Supersedes: `2026-11-20-web-schema-defaults-the-m4-view`
 
-**Decision.** The web client's response schema reads Milestone 4's fields (`stimuli`, `creature.lingering`, `creature.lingeredDay`, the new config costs, `PlayerView.signs`), each optional with a default (empty, false, null, the core's `DEFAULT_CONFIG`, no signs) until the Worker's recaptured fixtures carry them; then they become required.
+**Decision.** `stimuli`, `creature.lingering`, `creature.lingeredDay`, the Milestone 4 config costs and `PlayerView.signs` are required in the web client's schema, with no defaults. The contract test covers the fire, feed, linger, keeper-cue and not-keeper fixtures and the act request bodies.
 
-**Reasoning.** The captured fixtures are Milestone 3's until the M4 Worker lands. Defaults keep the contract tests honest on both the old and the new fixtures, and the parsed type is still the core's `GameStateView` and `CreatureSigns` (checked in `viewState.ts`).
+**Reasoning.** The Worker's recaptured fixtures carry them, so a missing field is now a contract break to catch, not an older server to tolerate.
 
 ## 2026-11-20: The player view carries each viewer's creature signs; the creature's nature and condition never leave the server
 
@@ -439,6 +439,14 @@ ID: `2026-11-19-strict-security-headers-and-everything-served` · Status: curren
 <!-- Superseded entries below: kept for history, no longer in force. -->
 
 # Superseded
+
+## 2026-11-20: Web schema defaults the M4 view fields until the fixtures are recaptured
+
+ID: `2026-11-20-web-schema-defaults-the-m4-view` · Status: superseded by `2026-11-20-web-schema-requires-the-m4-view`
+
+**Decision.** The web client's response schema reads Milestone 4's fields (`stimuli`, `creature.lingering`, `creature.lingeredDay`, the new config costs, `PlayerView.signs`), each optional with a default (empty, false, null, the core's `DEFAULT_CONFIG`, no signs) until the Worker's recaptured fixtures carry them; then they become required.
+
+**Reasoning.** The captured fixtures are Milestone 3's until the M4 Worker lands. Defaults keep the contract tests honest on both the old and the new fixtures, and the parsed type is still the core's `GameStateView` and `CreatureSigns` (checked in `viewState.ts`).
 
 ## 2026-11-20: Act and move answer the view with what happened; stored games are upgraded once on load
 

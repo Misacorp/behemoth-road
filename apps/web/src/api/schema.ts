@@ -3,7 +3,6 @@
  * use: a wrong type throws. Objects ignore keys they do not know, so a newer server can add fields
  * without breaking an open client; requests are the server's to check strictly.
  */
-import { DEFAULT_CONFIG } from '@behemoth-road/core';
 import * as v from 'valibot';
 
 const id = v.pipe(v.string(), v.minLength(1), v.maxLength(64));
@@ -75,13 +74,12 @@ const config = v.object({
   siteChanceSpecialistTier2: v.number(),
   siteChanceOtherTier1: v.number(),
   siteChanceOtherTier2: v.number(),
-  // Milestone 4. Defaulted until the Worker's captured fixtures carry them (`docs/design/m4-creature.md`).
-  stimulusRange: v.optional(count, DEFAULT_CONFIG.stimulusRange),
-  stimulusPull: v.optional(v.number(), DEFAULT_CONFIG.stimulusPull),
-  hungryVeerWeights: v.optional(weights, { ...DEFAULT_CONFIG.hungryVeerWeights }),
-  lightFireCost: v.optional(count, DEFAULT_CONFIG.lightFireCost),
-  feedCost: v.optional(count, DEFAULT_CONFIG.feedCost),
-  lingerCost: v.optional(count, DEFAULT_CONFIG.lingerCost),
+  stimulusRange: count,
+  stimulusPull: v.number(),
+  hungryVeerWeights: weights,
+  lightFireCost: count,
+  feedCost: count,
+  lingerCost: count,
 });
 
 /** The core state without the seed (the core's `GameStateView`): known tiles carry their terrain. */
@@ -95,9 +93,9 @@ export const GameStateViewSchema = v.object({
     centre: hex,
     heading: direction,
     /** A keeper asked it to stay put at the next tick. */
-    lingering: v.optional(v.boolean(), false),
+    lingering: v.boolean(),
     /** The last day it lingered, or null. */
-    lingeredDay: v.optional(v.nullable(count), null),
+    lingeredDay: v.nullable(count),
   }),
   tiles: v.pipe(
     v.record(v.pipe(v.string(), v.regex(/^-?\d+,-?\d+$/), v.maxLength(24)), tile),
@@ -116,10 +114,7 @@ export const GameStateViewSchema = v.object({
   /** The one unlock in progress. */
   project: v.nullable(v.object({ unlock: id, work: count })),
   /** Lit fires (public): each burns through the tick that ends the day it was lit. */
-  stimuli: v.optional(
-    v.pipe(v.array(v.object({ type: id, hex, litDay: count })), v.maxLength(200)),
-    [],
-  ),
+  stimuli: v.pipe(v.array(v.object({ type: id, hex, litDay: count })), v.maxLength(200)),
 });
 
 /**
@@ -139,9 +134,6 @@ export const SignsSchema = v.object({
     v.maxLength(64),
   ),
 });
-
-/** No signs: what a viewer without a character sees of a comfortable creature. */
-export const NO_SIGNS: v.InferOutput<typeof SignsSchema> = { appetite: null, cues: [] };
 
 const player = v.object({
   userId: id,
@@ -172,8 +164,7 @@ export const PlayerViewSchema = v.object({
   players: v.pipe(v.array(player), v.maxLength(64)),
   devTools: v.boolean(),
   offers: v.nullable(v.pipe(v.array(OfferSchema), v.maxLength(8))),
-  /** Defaulted until the Worker's captured fixtures carry it. */
-  signs: v.optional(SignsSchema, NO_SIGNS),
+  signs: SignsSchema,
 });
 
 export const GameResponseSchema = v.union([

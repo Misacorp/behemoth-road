@@ -6,7 +6,15 @@
 import * as v from 'valibot';
 import { describe, expect, it } from 'vitest';
 import { ApiError, createApiClient, type Fetch } from './client.ts';
-import { ConfigSchema, GameResponseSchema, PlayerViewSchema, SessionSchema } from './schema.ts';
+import { momentsFromEvents } from '../game/moments.ts';
+import {
+  ActionAnswerSchema,
+  ConfigSchema,
+  type GameAction,
+  GameResponseSchema,
+  PlayerViewSchema,
+  SessionSchema,
+} from './schema.ts';
 
 const files = import.meta.glob<unknown>('./fixtures/*.json', { eager: true, import: 'default' });
 const fixture = (name: string): unknown => {
@@ -45,7 +53,17 @@ const bodyOf = (init: RequestInit | undefined): unknown =>
 describe('captured contract fixtures', () => {
   it('include the views the client reads', () => {
     expect(views).toEqual(
-      expect.arrayContaining(['view-new', 'view-joined', 'view-moved', 'view-lost']),
+      expect.arrayContaining([
+        'view-new',
+        'view-joined',
+        'view-moved',
+        'view-lost',
+        'view-fire-lit',
+        'view-fed',
+        'view-lingered',
+        'view-keeper-cue',
+        'view-not-keeper',
+      ]),
     );
   });
 
@@ -70,6 +88,26 @@ describe('captured contract fixtures', () => {
     expect(joined.offers).toBeNull();
   });
 
+  it('a keeper reads the appetite and the cues; anyone else only a faint sign', () => {
+    const keeper = v.parse(PlayerViewSchema, fixture('view-keeper-cue'));
+    expect(keeper.signs.appetite?.faint).toBe(false);
+    expect(keeper.signs.cues.length).toBeGreaterThan(0);
+    const other = v.parse(PlayerViewSchema, fixture('view-not-keeper'));
+    expect(other.signs.appetite?.faint).toBe(true);
+    expect(other.signs.cues).toEqual([]);
+  });
+
+  it('fire, feed and linger answers carry their events and moments', () => {
+    const kinds = ['view-fire-lit', 'view-fed', 'view-lingered'].map((name) => {
+      const a = v.parse(ActionAnswerSchema, fixture(name));
+      return momentsFromEvents(a.events, a.game.creature.centre).map((m) => m.kind);
+    });
+    expect(kinds).toEqual([['fire'], ['feed'], ['linger']]);
+    const lit = v.parse(PlayerViewSchema, fixture('view-fire-lit'));
+    expect(lit.game.stimuli.length).toBe(1);
+    expect(v.parse(PlayerViewSchema, fixture('view-lingered')).game.creature.lingering).toBe(true);
+  });
+
   it.each(errors.map((e) => [e.route, e.status, e.body] as const))(
     '%s %s reaches the caller as an ApiError with its code',
     async (route, status, body) => {
@@ -79,7 +117,9 @@ describe('captured contract fixtures', () => {
         ? api.game()
         : route.endsWith('/replace')
           ? api.replace('scout', 0)
-          : api.move(1, [{ kind: 'creature' }]);
+          : route.endsWith('/act')
+            ? api.act(1, { kind: 'feed' })
+            : api.move(1, [{ kind: 'creature' }]);
       const err = await call.catch((e: unknown) => e);
       expect(err).toBeInstanceOf(ApiError);
       expect((err as ApiError).status).toBe(status);
@@ -98,6 +138,8 @@ describe('captured contract fixtures', () => {
         cases.push([name, (a) => a.replace(b.role as string, b.offer as number)]);
       if (req.path === '/api/game/move')
         cases.push([name, (a) => a.move(b.version as number, b.path as never)]);
+      if (req.path === '/api/game/act')
+        cases.push([name, (a) => a.act(b.version as number, b.action as GameAction)]);
       if (req.path === '/api/dev/next-day') cases.push([name, (a) => a.nextDay()]);
       if (req.path === '/api/auth/session')
         cases.push([name, (a) => a.signIn(b.code as string, b.instanceId as string)]);
