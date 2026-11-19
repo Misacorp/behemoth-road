@@ -44,6 +44,20 @@ export interface TuningConfig {
   readonly siteChanceSpecialistTier2: number;
   readonly siteChanceOtherTier1: number;
   readonly siteChanceOtherTier2: number;
+  /** Stimuli (fires) within this distance of the creature's centre sway its step. */
+  readonly stimulusRange: number;
+  /**
+   * How strongly a stimulus sways the step: each step option's weight is multiplied
+   * by this to the power of its score (closer +1, farther −1, per stimulus in range).
+   */
+  readonly stimulusPull: number;
+  /** The step weights while the creature is underfed (erratic). Stimuli still pull. */
+  readonly hungryVeerWeights: VeerWeights;
+  /** Action costs of the creature-care actions. */
+  readonly lightFireCost: number;
+  readonly feedCost: number;
+  /** Keepers only: the creature stays put at the next tick. */
+  readonly lingerCost: number;
 }
 
 export const DEFAULT_CONFIG: TuningConfig = {
@@ -66,10 +80,23 @@ export const DEFAULT_CONFIG: TuningConfig = {
   siteChanceSpecialistTier2: 0.5,
   siteChanceOtherTier1: 0.35,
   siteChanceOtherTier2: 0,
+  stimulusRange: 3,
+  stimulusPull: 6,
+  hungryVeerWeights: { left: 1, straight: 1, right: 1 },
+  lightFireCost: 1,
+  feedCost: 1,
+  lingerCost: 2,
 };
 
-export type ConfigOverrides = Partial<Omit<TuningConfig, 'veerWeights'>> & {
+export type ConfigOverrides = Partial<Omit<TuningConfig, 'veerWeights' | 'hungryVeerWeights'>> & {
   readonly veerWeights?: Partial<VeerWeights>;
+  readonly hungryVeerWeights?: Partial<VeerWeights>;
+};
+
+/** Weights the creature can step with: finite, not negative, at least one above zero. */
+const validWeights = (w: VeerWeights): boolean => {
+  const weights = [w.left, w.straight, w.right];
+  return weights.every((x) => Number.isFinite(x) && x >= 0) && weights.some((x) => x > 0);
 };
 
 const isCount = (n: number, min: number): boolean => Number.isInteger(n) && n >= min;
@@ -80,6 +107,7 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     ...DEFAULT_CONFIG,
     ...overrides,
     veerWeights: { ...DEFAULT_CONFIG.veerWeights, ...overrides.veerWeights },
+    hungryVeerWeights: { ...DEFAULT_CONFIG.hungryVeerWeights, ...overrides.hungryVeerWeights },
   };
   const problems: string[] = [];
   if (!isCount(config.actionsPerDay, 0)) problems.push('actionsPerDay');
@@ -107,12 +135,16 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     'gatherCost',
     'workSiteCost',
     'buildCost',
+    'lightFireCost',
+    'feedCost',
+    'lingerCost',
   ] as const;
   for (const key of costs) if (!isCount(config[key], 1)) problems.push(key);
-  const w = config.veerWeights;
-  const weights = [w.left, w.straight, w.right];
-  if (weights.some((x) => !(Number.isFinite(x) && x >= 0)) || !weights.some((x) => x > 0)) {
-    problems.push('veerWeights');
+  if (!validWeights(config.veerWeights)) problems.push('veerWeights');
+  if (!validWeights(config.hungryVeerWeights)) problems.push('hungryVeerWeights');
+  if (!isCount(config.stimulusRange, 0)) problems.push('stimulusRange');
+  if (!(Number.isFinite(config.stimulusPull) && config.stimulusPull >= 1)) {
+    problems.push('stimulusPull');
   }
   if (problems.length > 0) throw new RangeError(`Invalid tuning config: ${problems.join(', ')}`);
   return config;

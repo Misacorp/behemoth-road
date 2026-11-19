@@ -54,7 +54,16 @@ export type GameEvent =
       readonly work: number;
       readonly needed: number;
     }
-  | { readonly kind: 'unlock-done'; readonly unlock: string };
+  | { readonly kind: 'unlock-done'; readonly unlock: string }
+  | {
+      readonly kind: 'fire-lit';
+      readonly hex: Hex;
+      readonly characterId: string;
+      /** The stimulus's content id. */
+      readonly stimulus: string;
+    }
+  | { readonly kind: 'fed'; readonly characterId: string; readonly material: string }
+  | { readonly kind: 'linger'; readonly characterId: string };
 
 export const featureType = (id: string): FeatureType => {
   const type = FEATURE_TYPES.find((t) => t.id === id);

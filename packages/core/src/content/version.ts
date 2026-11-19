@@ -8,8 +8,9 @@
  * 3: features, items and recipes (an overnight draft, never released).
  * 4: features, exploration, packs, team stores and unlocks. Before a stable
  *    release, older games are not migrated: the server starts a new game.
+ * 5: the living creature: its hidden nature and hunger, fires, food and lingering.
  */
-export const CONTENT_VERSION = 4;
+export const CONTENT_VERSION = 5;
 
 /** Content versions this code can load. */
 export const KNOWN_CONTENT_VERSIONS: readonly number[] = [CONTENT_VERSION];

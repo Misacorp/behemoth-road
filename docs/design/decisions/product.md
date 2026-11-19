@@ -4,6 +4,21 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: M4 core: hunger cap in creature data, starving meals nourish, lingering twice refused
+
+ID: `2026-11-20-m4-core-hunger-cap-in-creature` · Status: current
+
+**Decision.** Calls the M4 contract left open, made in the core:
+
+- The hunger cap (10), start, drain and comfortable band live in the creature type's data (`hunger.max` and so on), not in the tuning config: they are properties of the creature, and later creatures differ. The appetite levels derive from the band (level = distance outside it, up to 3).
+- A starving creature (underfed level 3 after the drain) that eats a food unit gets its nourishment, as if fed; a non-food unit just goes. The non-food pick is seeded by the game seed and day among the materials held.
+- Lingering again on a day the creature already lingers is refused with the existing `already-have`, rather than a new refusal.
+- A step option for a lingering creature is `{ direction: heading, centre: current centre, chance: 1, stay: true }`; other options have no `stay`, so existing callers keep working.
+- A creature's reaction to a stimulus is found by the stimulus's tags (the first the nature lists); a tag it has none for is indifference. Fire is found by its `fire` tag, fuel by the stimulus's fuel tag, food by `food`, the keeper by the role tag `tend`.
+- Berry bushes have placement weight 10 (about 3 in a new game's window, one more every two or three days). They slow the scripted M3 chain test (spikes by day 70 on 10 of 12 maps, was 46 on 9), so its bound moved to 70 days.
+
+**Reasoning.** Each is the simplest option that keeps the others possible, and every number stays in one place (content or tuning config).
+
 ## 2026-11-20: Lingering is the keeper's action and never runs two days in a row
 
 ID: `2026-11-20-lingering-is-the-keeper-s-action` · Status: current

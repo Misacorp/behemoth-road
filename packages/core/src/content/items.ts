@@ -10,6 +10,8 @@ export interface Material {
   readonly name: string;
   readonly tags: readonly string[];
   readonly icon: string;
+  /** Satiety one unit adds when the creature eats it (materials tagged `food`). */
+  readonly nourishes?: number;
 }
 
 export interface UnlockMovement {
@@ -38,6 +40,7 @@ export const MATERIALS: readonly Material[] = [
   { id: 'ancient-alloy', name: 'Ancient alloy', tags: ['metal', 'rare', 'ancient'], icon: 'alloy' },
   // A tier-1 tomb's find: nothing uses it yet (the Envoy's trade, later).
   { id: 'old-coin', name: 'Old coin', tags: ['rare', 'ancient', 'trade'], icon: 'coin' },
+  { id: 'forage', name: 'Forage', tags: ['food'], icon: 'forage', nourishes: 2 },
 ];
 
 export const UNLOCKS: readonly Unlock[] = [

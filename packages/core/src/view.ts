@@ -7,7 +7,8 @@ import { isSeed } from './random.ts';
 import type { GameState, GameStateView } from './state.ts';
 
 /**
- * The game as a player may see it: the state without the seed. Known tiles carry
+ * The game as a player may see it: the state without the seed and without the
+ * creature's nature and care (its reactions and hunger). Known tiles carry
  * their terrain, so the client can draw and plan; nothing unknown can be derived.
  */
 export const toPlayerView = (state: GameState): GameStateView => {
@@ -25,6 +26,7 @@ export const toPlayerView = (state: GameState): GameStateView => {
     stores: state.stores,
     unlocks: state.unlocks,
     project: state.project,
+    stimuli: state.stimuli,
   };
   // A deep copy, so nothing done to the view can reach the server's state.
   return JSON.parse(JSON.stringify(view)) as GameStateView;

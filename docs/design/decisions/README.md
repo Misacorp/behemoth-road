@@ -107,6 +107,7 @@ Superseded: 1 entry (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-20 M4 core: hunger cap in creature data, starving meals nourish, lingering twice refused
 - 2026-11-20 Lingering is the keeper's action and never runs two days in a row
 - 2026-11-20 Hunger has a comfortable band; underfed is erratic, overfed is sluggish; anyone can feed
 - 2026-11-20 Symptoms are computed per viewer; keepers see them earlier and see reaction cues
