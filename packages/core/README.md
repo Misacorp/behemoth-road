@@ -8,6 +8,14 @@ The game rules: pure, headless and seeded. No UI, network or storage code. Every
 - Server only (need the seed): `createGame`, `nextDay`, `chooseCreatureStep`, `rollCharacters`, `characterOffers`, `addCharacter`, `replaceCharacter`, `loadGame`.
 - **Storage:** a game records `contentVersion` (`CONTENT_VERSION`). `loadGame(json)` refuses a state with an unknown version (`UnknownContentVersionError`) or without its seed. `nextDay` prunes lost tiles more than `lostTileRings` beyond the window, except under a character.
 
+## Features, items and actions (Milestone 3)
+
+- **Features** (`FEATURE_TYPES`: resource nodes, tomb sites in two tiers, traps) are generated on the server, sparsely and by terrain tags, as hexes come into view. They are stored in `features` by hex key as `{ type, revealed, left }`. A player view holds only revealed ones, plus `glints` (hexes a scout has sensed) and the team `inventory`.
+- **Entering a hex** (`move`, `moveAlong`) reveals its feature for everyone. A hidden trap ends a non-scout's day (`trapped`), and a scout senses hidden features within `senseRadius`. Results carry `events` (`reveal`, `sense`, `trap`, `gather`, `craft`, `find`, `site-failed`). `moveAlong` checks the whole path first, then stops at a trap (`stopped: { step, reason: 'trap' }`).
+- **Actions:** `checkAction(view, id, action)` says what an action costs (actions, materials, chance) or why it is refused, and `actionsHere` lists them all for the interface. `act(state, id, action)` applies one on the server: `{ kind: 'gather' }`, `{ kind: 'craft', recipe }` or `{ kind: 'work-site' }` (a seeded roll). Roles count by their tags (`reveal`, `gather`, `craft`, `sites`).
+- **Items** (`ITEMS`, `RECIPES`, `MATERIALS`) belong to the team. An item's `movement` lets everyone onto matching terrain through `entryInto`, whose `via` is the item's id (the grappling hook over a cliff).
+- **Storage:** content version 3. `loadGame` migrates a version-2 game (`migrateGame`): its map and characters stay, and hexes in view get their features.
+
 ## API
 
 - **Characters:** a character has an `id`, `userId`, `name`, `trait`, `quirk` (null for the plain one), `role`, `lookSeed` (public, picks the figure's look; rolled with the offer, so the preview and the map agree), `joinedDay`, `at`, `actionsLeft` and `status`. `characterOffers(state, userId)` gives two or three rolled characters plus the plain one, seeded by the game, the user and their attempt, so a reload shows the same list (`rollCharacters(seed, userId, attempt)` underneath). `addCharacter(state, { userId, offer, role })` adds the chosen one (by index), riding the creature, one per user, up to `playerCap` active characters. `replaceCharacter` does the same only when the user's character is lost; the lost one stays. Refusals: `invalid-user`, `unknown-role`, `invalid-offer`, `has-character`, `no-character`, `not-lost`, `cap-reached`. `characterOf(state, userId)` is the user's newest character.

@@ -4,6 +4,31 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: Features are placed by terrain tags with absolute weights
+
+ID: `2026-11-20-features-are-placed-by-terrain-tags` · Status: current
+
+**Decision.** Each feature type has a placement: terrain tags it sits `on`, optionally tags it sits `near` (cliff edges, river banks, forest edges), and a weight against a scale of 20. A hex holds a given fitting feature with probability `featureChance × weight / 20`, and the fitting features' slices add up, so a rare feature stays rare wherever it fits. Starting values: `featureChance` 0.08; iron 30 (desert, cliff edges), stones 20 (river and banks), timber 40 (forest and edges), tomb 2, deep tomb 4, snare 2, pitfall 2 (open or dry ground). That leaves about 88% of hexes empty. A resource node and a tomb are in view from the first day, and a deep tomb typically within a few days. A scripted party of three (scout, engineer, scholar) completes the chain to climbing spikes on 10 of 12 maps, on days 21–45 (median about 34). Most of the wait is for timber and iron to come into view, then for a deep tomb after the lantern.
+
+**Reasoning.** Relative weights let plains (most of the map) fill up with tombs and traps, because nothing else fits there. Absolute weights keep each feature's frequency under control on its own. The chain timing is a tuning question for Misa: raising `featureChance` or the node weights shortens it.
+
+## 2026-11-20: Milestone 3 rules: the calls the plan left open
+
+ID: `2026-11-20-milestone-3-rules-the-calls-the` · Status: current
+
+**Decision.**
+
+- Roles are read by their tags: `reveal` (Scout: reveals, senses within `senseRadius`, never triggers a trap), `gather` (Engineer: yield × `specialistYield`), `craft` (Engineer: every recipe at its listed cost), `sites` (Scholar: the better site chances, tier 2 allowed).
+- Every character may craft at most `craftsPerDay` (1) times a day, not just engineers. Others may craft tier-1 recipes only, paying `nonSpecialistExtraMaterial` (1) more of the recipe's first material.
+- Items marked `unique` (all three now) cannot be crafted twice; the craft is refused (`already-have`) rather than wasting materials.
+- A tier-1 tomb finds an old coin, a new rare material with no recipe yet (kept for the Envoy's trade). Only a tier-2 tomb finds ancient alloy, so the climbing spikes need the lantern, as the chain intends.
+- A site roll is seeded by game seed, day, character and site, so a second try by the same character on the same day gives the same result (and costs 2 actions of 3, so there is rarely time anyway).
+- Crafting works from anywhere, riding included. Gathering and working a site need the character on the hex.
+- A path walk is checked as a whole first (all or nothing). It then reveals step by step, and a hidden trap stops it there: the result says `stopped: { step, reason: 'trap' }`, and the rest is not taken or spent. Entering a revealed trap is harmless.
+- Glints belong to the team: one scout's sensing shows for everyone.
+
+**Reasoning.** The plan fixed the chain and the perks but left these open. Each is the simplest choice that keeps the chain intact and leaves room to change it. The old coin is the one addition to the content list: without it, a tier-1 tomb would make the lantern pointless.
+
 ## 2026-11-20: Explored and unexplored hexes look clearly different **[Misa]**
 
 ID: `2026-11-20-explored-and-unexplored-hexes-look-clearly` · Status: current

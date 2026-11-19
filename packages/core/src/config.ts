@@ -30,19 +30,16 @@ export interface TuningConfig {
   readonly veerWeights: VeerWeights;
   /** Chance that a hex holds a feature (a node, site or trap), when one fits its terrain. */
   readonly featureChance: number;
-  /** How far a scout senses hidden features (a glint, not what they are). */
-  readonly senseRadius: number;
-  /** Action costs. */
+  /** Units a character's pack holds. */
+  readonly packCapacity: number;
+  /** Action costs. Surveying an adjacent hex costs less for a role tagged `survey`. */
+  readonly surveyCostSpecialist: number;
+  readonly surveyCostOther: number;
   readonly gatherCost: number;
-  readonly craftCost: number;
   readonly workSiteCost: number;
-  /** Crafts per character per day. */
-  readonly craftsPerDay: number;
-  /** A gathering specialist (role tag `gather`) multiplies the yield by this. */
-  readonly specialistYield: number;
-  /** A non-specialist (no role tag `craft`) pays this much more of a tier-1 recipe's first material. */
-  readonly nonSpecialistExtraMaterial: number;
-  /** Chance to work a site, by tier, for a specialist (role tag `sites`) and for anyone else. */
+  /** Actions one build step costs; each step adds one work to the unlock in progress. */
+  readonly buildCost: number;
+  /** Chance to work a site, by tier, for a role tagged `sites` and for anyone else. */
   readonly siteChanceSpecialistTier1: number;
   readonly siteChanceSpecialistTier2: number;
   readonly siteChanceOtherTier1: number;
@@ -59,13 +56,12 @@ export const DEFAULT_CONFIG: TuningConfig = {
   playerCap: 15,
   veerWeights: { left: 1, straight: 2, right: 1 },
   featureChance: 0.08,
-  senseRadius: 1,
+  packCapacity: 6,
+  surveyCostSpecialist: 1,
+  surveyCostOther: 2,
   gatherCost: 1,
-  craftCost: 1,
   workSiteCost: 2,
-  craftsPerDay: 1,
-  specialistYield: 2,
-  nonSpecialistExtraMaterial: 1,
+  buildCost: 1,
   siteChanceSpecialistTier1: 0.7,
   siteChanceSpecialistTier2: 0.5,
   siteChanceOtherTier1: 0.35,
@@ -104,12 +100,15 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     const p = config[key];
     if (!(Number.isFinite(p) && p >= 0 && p <= 1)) problems.push(key);
   }
-  if (!isCount(config.senseRadius, 0)) problems.push('senseRadius');
-  for (const key of ['gatherCost', 'craftCost', 'workSiteCost', 'specialistYield'] as const) {
-    if (!isCount(config[key], 1)) problems.push(key);
-  }
-  if (!isCount(config.craftsPerDay, 0)) problems.push('craftsPerDay');
-  if (!isCount(config.nonSpecialistExtraMaterial, 0)) problems.push('nonSpecialistExtraMaterial');
+  const costs = [
+    'packCapacity',
+    'surveyCostSpecialist',
+    'surveyCostOther',
+    'gatherCost',
+    'workSiteCost',
+    'buildCost',
+  ] as const;
+  for (const key of costs) if (!isCount(config[key], 1)) problems.push(key);
   const w = config.veerWeights;
   const weights = [w.left, w.straight, w.right];
   if (weights.some((x) => !(Number.isFinite(x) && x >= 0)) || !weights.some((x) => x > 0)) {

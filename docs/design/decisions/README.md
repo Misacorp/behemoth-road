@@ -50,6 +50,7 @@ Record a decision:
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 - 2026-11-20 Act and move answer the view with what happened; stored games are upgraded once on load
+- 2026-11-20 Features live in the state per hex; the view carries revealed ones and team glints; version-2 games migrate
 - 2026-11-20 Before a stable release, older games are wiped, not migrated \[Misa\]
 - 2026-11-19 Only allowed Discord servers can play; the app itself is public \[Misa\]
 - 2026-11-19 The web client boots as an Activity, parses every response, and runs rules on the player view
@@ -105,6 +106,8 @@ Record a decision:
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-20 Features are placed by terrain tags with absolute weights
+- 2026-11-20 Milestone 3 rules: the calls the plan left open
 - 2026-11-20 Explored and unexplored hexes look clearly different \[Misa\]
 - 2026-11-20 Characters carry packs; team stores live on the creature
 - 2026-11-20 Engineers build permanent team unlocks with a cost and a duration \[Misa\]

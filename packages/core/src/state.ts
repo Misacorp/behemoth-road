@@ -10,15 +10,22 @@ import { isSeed, type Seed } from './random.ts';
 /** hidden: never in view. seen: in play (in the window or its grace). lost: gone to the fog. */
 export type Visibility = 'hidden' | 'seen' | 'lost';
 
-/** What is known of a hex that has been in view. `terrain` is its terrain id. */
+/**
+ * What is known of a hex that has been in view. `terrain` is its terrain id.
+ * `explored`: someone has entered or surveyed it (its feature, if any, is revealed).
+ */
 export type TileKnowledge =
   | {
       readonly visibility: 'seen';
       readonly terrain: string;
+      readonly explored: boolean;
       /** The day the hex left the window, or null while it is in the window. */
       readonly leftWindowOnDay: number | null;
     }
-  | { readonly visibility: 'lost'; readonly terrain: string };
+  | { readonly visibility: 'lost'; readonly terrain: string; readonly explored: boolean };
+
+/** Material counts by content id (a pack, the team stores). */
+export type Materials = Readonly<Record<string, number>>;
 
 export interface Creature {
   readonly centre: Hex;
@@ -49,8 +56,8 @@ export interface Character {
   readonly joinedDay: number;
   readonly at: Place;
   readonly actionsLeft: number;
-  /** Crafts made today (reset by the tick). */
-  readonly craftsToday: number;
+  /** What the character carries (gathered and found), up to `packCapacity` units. */
+  readonly pack: Materials;
   readonly status: CharacterStatus;
 }
 
@@ -64,10 +71,10 @@ export interface FeatureState {
   readonly left: number;
 }
 
-/** The team's shared materials and items, by content id. */
-export interface Inventory {
-  readonly materials: Readonly<Record<string, number>>;
-  readonly items: Readonly<Record<string, number>>;
+/** The unlock the engineers are working on, and the work done so far. */
+export interface Project {
+  readonly unlock: string;
+  readonly work: number;
 }
 
 /**
@@ -97,9 +104,12 @@ export interface GameStateView {
    * view holds only revealed ones.
    */
   readonly features: Readonly<Record<string, FeatureState>>;
-  /** Hexes a scout has sensed something on, by `hexKey` (what it is stays hidden). */
-  readonly glints: Readonly<Record<string, true>>;
-  readonly inventory: Inventory;
+  /** The team stores, on the creature: packs are emptied into them on boarding. */
+  readonly stores: Materials;
+  /** Unlocks the team has finished (permanent), by content id. */
+  readonly unlocks: readonly string[];
+  /** The one unlock in progress, if any. */
+  readonly project: Project | null;
 }
 
 /** The whole game, held only by the server: the view plus the seed that generates the map. */
