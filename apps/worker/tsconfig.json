@@ -5,5 +5,11 @@
     "types": ["./worker-configuration.d.ts", "@cloudflare/vitest-plugin/types"],
     "allowImportingTsExtensions": true
   },
-  "include": ["worker-configuration.d.ts", "src", "test", "vitest.config.ts", "vitest.capture.config.ts"]
+  "include": [
+    "worker-configuration.d.ts",
+    "src",
+    "test",
+    "vitest.config.ts",
+    "vitest.capture.config.ts"
+  ]
 }

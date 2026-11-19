@@ -31,12 +31,17 @@ interface AuthBody {
 }
 
 const getGame = (handler: ReturnType<typeof createHandler>, token: string) =>
-  callHandler(handler, new Request(`${ORIGIN}/api/game`, { headers: { Authorization: `Bearer ${token}` } }));
+  callHandler(
+    handler,
+    new Request(`${ORIGIN}/api/game`, { headers: { Authorization: `Bearer ${token}` } }),
+  );
 
 describe('POST /api/auth/session', () => {
   it('signs in with the guild from Discord and the token opens the game', async () => {
     const guildId = freshGuildId();
-    const { handler, discord } = setup({ instance: { location: { guild_id: guildId }, users: [USER_ID] } });
+    const { handler, discord } = setup({
+      instance: { location: { guild_id: guildId }, users: [USER_ID] },
+    });
     const res = await postAuth(handler, validBody);
     expect(res.status).toBe(200);
     expectApiHeaders(res);
@@ -72,7 +77,10 @@ describe('POST /api/auth/session', () => {
       expect((await postAuth(handler, body)).status).toBe(400);
     }
     expect((await postAuth(handler, '{not json', true)).status).toBe(400);
-    expect((await postAuth(handler, JSON.stringify({ ...validBody, pad: 'x'.repeat(5000) }), true)).status).toBe(400);
+    expect(
+      (await postAuth(handler, JSON.stringify({ ...validBody, pad: 'x'.repeat(5000) }), true))
+        .status,
+    ).toBe(400);
     expect(discord.calls.exchangeCode).toEqual([]);
   });
 
@@ -87,29 +95,51 @@ describe('POST /api/auth/session', () => {
 
   it('refuses an unknown instance, a DM launch and a user outside the instance', async () => {
     const unknown = setup({ instance: null });
-    expect(await (await postAuth(unknown.handler, validBody)).json()).toEqual({ error: 'instance_not_found' });
+    expect(await (await postAuth(unknown.handler, validBody)).json()).toEqual({
+      error: 'instance_not_found',
+    });
     // A DM or group DM has no guild: there is no server game to join.
-    const dm = setup({ instance: { location: { guild_id: null, channel_id: '555555555555555555' }, users: [USER_ID] } });
+    const dm = setup({
+      instance: {
+        location: { guild_id: null, channel_id: '555555555555555555' },
+        users: [USER_ID],
+      },
+    });
     const dmRes = await postAuth(dm.handler, validBody);
     expect(dmRes.status).toBe(400);
     expect(await dmRes.json()).toEqual({ error: 'guild_required' });
-    const malformed = setup({ instance: { location: { guild_id: 'not-a-guild' }, users: [USER_ID] } });
+    const malformed = setup({
+      instance: { location: { guild_id: 'not-a-guild' }, users: [USER_ID] },
+    });
     expect((await postAuth(malformed.handler, validBody)).status).toBe(400);
-    const outside = setup({ instance: { location: { guild_id: freshGuildId() }, users: ['999999999999999999'] } });
-    expect(await (await postAuth(outside.handler, validBody)).json()).toEqual({ error: 'not_in_instance' });
+    const outside = setup({
+      instance: { location: { guild_id: freshGuildId() }, users: ['999999999999999999'] },
+    });
+    expect(await (await postAuth(outside.handler, validBody)).json()).toEqual({
+      error: 'not_in_instance',
+    });
   });
 
   it('sanitises the display name and falls back to the username', async () => {
     const guildId = freshGuildId();
     const instance = { location: { guild_id: guildId }, users: [USER_ID] };
-    const spaced = setup({ instance, user: { id: USER_ID, username: 'misa', global_name: ' Mi​sa\n\tJ ' } });
-    expect((await (await postAuth(spaced.handler, validBody)).json<AuthBody>()).user.name).toBe('Misa J');
+    const spaced = setup({
+      instance,
+      user: { id: USER_ID, username: 'misa', global_name: ' Mi​sa\n\tJ ' },
+    });
+    expect((await (await postAuth(spaced.handler, validBody)).json<AuthBody>()).user.name).toBe(
+      'Misa J',
+    );
     const plain = setup({ instance, user: { id: USER_ID, username: 'misa', global_name: null } });
-    expect((await (await postAuth(plain.handler, validBody)).json<AuthBody>()).user.name).toBe('misa');
+    expect((await (await postAuth(plain.handler, validBody)).json<AuthBody>()).user.name).toBe(
+      'misa',
+    );
   });
 
   it('rate limits sign-in per instance', async () => {
-    const { handler } = setup({ instance: { location: { guild_id: freshGuildId() }, users: [USER_ID] } });
+    const { handler } = setup({
+      instance: { location: { guild_id: freshGuildId() }, users: [USER_ID] },
+    });
     const body = { code: 'c', instanceId: 'busy-instance' };
     const statuses: number[] = [];
     for (let i = 0; i < 11; i++) statuses.push((await postAuth(handler, body)).status);
@@ -175,13 +205,17 @@ describe('GET /api/config', () => {
 
   it('leaves out a branch CI could not have set', async () => {
     const { handler } = setup();
-    const res = await callHandler(handler, new Request(`${ORIGIN}/api/config`), { BRANCH: 'a b;c' });
+    const res = await callHandler(handler, new Request(`${ORIGIN}/api/config`), {
+      BRANCH: 'a b;c',
+    });
     expect(await res.json()).not.toHaveProperty('branch');
   });
 
   it('answers unknown routes with 404 and wrong methods with 405', async () => {
     const { handler } = setup();
-    expect((await callHandler(handler, new Request(`${ORIGIN}/api/config`, { method: 'POST' }))).status).toBe(405);
+    expect(
+      (await callHandler(handler, new Request(`${ORIGIN}/api/config`, { method: 'POST' }))).status,
+    ).toBe(405);
     // Unknown routes need a session first, so junk never wakes a Durable Object.
     expect((await callHandler(handler, new Request(`${ORIGIN}/api/nope`))).status).toBe(401);
   });

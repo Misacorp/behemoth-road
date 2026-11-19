@@ -15,7 +15,9 @@ import {
 } from './helpers.ts';
 
 const storedState = (sql: SqlStorage): GameState =>
-  JSON.parse(sql.exec<{ state: string }>('SELECT state FROM game WHERE id = 1').one().state) as GameState;
+  JSON.parse(
+    sql.exec<{ state: string }>('SELECT state FROM game WHERE id = 1').one().state,
+  ) as GameState;
 
 const asView = (body: unknown) => body as PlayerView;
 
@@ -96,7 +98,10 @@ describe('POST /api/game/join', () => {
         expect(res.status, JSON.stringify(body)).toBe(400);
       }
       // In the schema's range but not offered.
-      const unoffered = await ctx.call(token, 'POST', '/api/game/join', { role: 'scout', choice: 3 });
+      const unoffered = await ctx.call(token, 'POST', '/api/game/join', {
+        role: 'scout',
+        choice: 3,
+      });
       expect(unoffered).toEqual({ status: 409, body: { error: 'invalid-choice' } });
     });
   });
@@ -106,7 +111,10 @@ describe('POST /api/game/join', () => {
       const misa = await ctx.signIn(MISA);
       const cap = storedState(ctx.sql).config.playerCap;
       for (let i = 0; i < cap; i++) {
-        await joined(ctx, { id: `5000000000000000${String(i).padStart(2, '0')}`, displayName: `P${String(i)}` });
+        await joined(ctx, {
+          id: `5000000000000000${String(i).padStart(2, '0')}`,
+          displayName: `P${String(i)}`,
+        });
       }
       const res = await ctx.call(misa, 'POST', '/api/game/join', { role: 'scout', choice: 0 });
       expect(res).toEqual({ status: 409, body: { error: 'full' } });
@@ -120,7 +128,10 @@ describe('POST /api/game/move', () => {
       const { token, view } = await joined(ctx);
       const target = legalMoves(storedState(ctx.sql), `${USER_ID}.1`)[0];
       if (target === undefined) throw new Error('no legal move from the creature');
-      const res = await ctx.call(token, 'POST', '/api/game/move', { version: view.version, path: [target] });
+      const res = await ctx.call(token, 'POST', '/api/game/move', {
+        version: view.version,
+        path: [target],
+      });
       expect(res.status).toBe(200);
       const moved = asView(res.body);
       expect(moved.version).toBe(view.version + 1);
@@ -134,15 +145,22 @@ describe('POST /api/game/move', () => {
       const robin = await ctx.signIn(ROBIN);
       const { token, view } = await joined(ctx);
       const far = { kind: 'hex', hex: { q: 50, r: 50 } };
-      expect(await ctx.call(token, 'POST', '/api/game/move', { version: view.version - 1, path: [far] })).toEqual({
+      expect(
+        await ctx.call(token, 'POST', '/api/game/move', { version: view.version - 1, path: [far] }),
+      ).toEqual({
         status: 409,
         body: { error: 'stale' },
       });
-      expect(await ctx.call(robin, 'POST', '/api/game/move', { version: view.version, path: [far] })).toEqual({
+      expect(
+        await ctx.call(robin, 'POST', '/api/game/move', { version: view.version, path: [far] }),
+      ).toEqual({
         status: 409,
         body: { error: 'no-character' },
       });
-      const refused = await ctx.call(token, 'POST', '/api/game/move', { version: view.version, path: [far] });
+      const refused = await ctx.call(token, 'POST', '/api/game/move', {
+        version: view.version,
+        path: [far],
+      });
       expect(refused.status).toBe(409);
       expect(refused.body).toEqual({ error: 'not-adjacent' });
       // Nothing changed.
@@ -166,7 +184,10 @@ describe('POST /api/game/move', () => {
         [{ kind: 'river' }],
         Array.from({ length: maxPathLength + 1 }, () => ({ kind: 'creature' })),
       ]) {
-        const res = await ctx.call(token, 'POST', '/api/game/move', { version: view.version, path });
+        const res = await ctx.call(token, 'POST', '/api/game/move', {
+          version: view.version,
+          path,
+        });
         expect(res.status, JSON.stringify(path).slice(0, 80)).toBe(400);
       }
       for (const body of [
@@ -177,7 +198,11 @@ describe('POST /api/game/move', () => {
       ]) {
         expect((await ctx.call(token, 'POST', '/api/game/move', body)).status).toBe(400);
       }
-      const huge = JSON.stringify({ version: view.version, path: [{ kind: 'creature' }], pad: 'x'.repeat(3000) });
+      const huge = JSON.stringify({
+        version: view.version,
+        path: [{ kind: 'creature' }],
+        pad: 'x'.repeat(3000),
+      });
       expect((await ctx.call(token, 'POST', '/api/game/move', huge)).status).toBe(400);
     });
   });
@@ -186,7 +211,10 @@ describe('POST /api/game/move', () => {
 /** Marks a stored character lost, as the tick would when it is left behind. */
 function lose(sql: SqlStorage, id: string): void {
   const state = storedState(sql);
-  const next = { ...state, characters: state.characters.map((c) => (c.id === id ? { ...c, status: 'lost' } : c)) };
+  const next = {
+    ...state,
+    characters: state.characters.map((c) => (c.id === id ? { ...c, status: 'lost' } : c)),
+  };
   sql.exec('UPDATE game SET state = ?, version = version + 1 WHERE id = 1', JSON.stringify(next));
 }
 
@@ -194,7 +222,9 @@ describe('POST /api/game/replace', () => {
   it('only replaces a lost character, with a new one riding the creature', async () => {
     await runGame(async (ctx) => {
       const { token } = await joined(ctx);
-      expect(await ctx.call(token, 'POST', '/api/game/replace', { role: 'keeper', choice: 0 })).toEqual({
+      expect(
+        await ctx.call(token, 'POST', '/api/game/replace', { role: 'keeper', choice: 0 }),
+      ).toEqual({
         status: 409,
         body: { error: 'not-lost' },
       });
@@ -202,15 +232,23 @@ describe('POST /api/game/replace', () => {
       const lostView = asView((await ctx.call(token, 'GET', '/api/game')).body);
       expect(lostView.offers).toHaveLength(3);
       // Join does not replace: it answers the view unchanged.
-      expect(asView((await ctx.call(token, 'POST', '/api/game/join', { role: 'keeper', choice: 0 })).body).you.characterId).toBe(
-        `${USER_ID}.1`,
-      );
+      expect(
+        asView(
+          (await ctx.call(token, 'POST', '/api/game/join', { role: 'keeper', choice: 0 })).body,
+        ).you.characterId,
+      ).toBe(`${USER_ID}.1`);
       const res = await ctx.call(token, 'POST', '/api/game/replace', { role: 'keeper', choice: 1 });
       expect(res.status).toBe(200);
       const view = asView(res.body);
       expect(view.you.characterId).toBe(`${USER_ID}.2`);
       expect(view.players).toEqual([
-        { userId: USER_ID, name: 'Misa', characterId: `${USER_ID}.2`, role: 'keeper', joinedDay: 1 },
+        {
+          userId: USER_ID,
+          name: 'Misa',
+          characterId: `${USER_ID}.2`,
+          role: 'keeper',
+          joinedDay: 1,
+        },
       ]);
       expect(view.game.characters.map((c) => [c.id, c.status])).toEqual([
         [`${USER_ID}.1`, 'lost'],
@@ -223,7 +261,9 @@ describe('POST /api/game/replace', () => {
   it('refuses a player who never joined', async () => {
     await runGame(async (ctx) => {
       const token = await ctx.signIn(MISA);
-      expect((await ctx.call(token, 'POST', '/api/game/replace', { role: 'keeper', choice: 0 })).status).toBe(409);
+      expect(
+        (await ctx.call(token, 'POST', '/api/game/replace', { role: 'keeper', choice: 0 })).status,
+      ).toBe(409);
     });
   });
 });
@@ -236,7 +276,9 @@ describe('GET /api/game?since', () => {
         status: 200,
         body: { unchanged: true },
       });
-      expect(asView((await ctx.call(token, 'GET', '/api/game?since=1')).body).version).toBe(view.version);
+      expect(asView((await ctx.call(token, 'GET', '/api/game?since=1')).body).version).toBe(
+        view.version,
+      );
       for (const bad of ['abc', '-1', '1.5', '12345678901', '']) {
         expect((await ctx.call(token, 'GET', `/api/game?since=${bad}`)).status).toBe(400);
       }
@@ -259,7 +301,10 @@ describe('sessions and limits in the Durable Object', () => {
     await runGame(async (ctx) => {
       const token = await ctx.signIn(MISA);
       ctx.clock.t += SERVER_CONFIG.sessions.idleMs;
-      expect(await ctx.call(token, 'GET', '/api/game')).toEqual({ status: 401, body: { error: 'invalid_session' } });
+      expect(await ctx.call(token, 'GET', '/api/game')).toEqual({
+        status: 401,
+        body: { error: 'invalid_session' },
+      });
     });
   });
 
@@ -268,7 +313,8 @@ describe('sessions and limits in the Durable Object', () => {
       const token = await ctx.signIn(MISA);
       const other = await ctx.signIn(ROBIN);
       const { capacity } = SERVER_CONFIG.rateLimits.game;
-      for (let i = 0; i < capacity; i++) expect((await ctx.call(token, 'GET', '/api/game')).status).toBe(200);
+      for (let i = 0; i < capacity; i++)
+        expect((await ctx.call(token, 'GET', '/api/game')).status).toBe(200);
       expect((await ctx.call(token, 'GET', '/api/game')).status).toBe(429);
       expect((await ctx.call(other, 'GET', '/api/game')).status).toBe(200);
     });
@@ -305,15 +351,26 @@ describe('POST /api/dev/next-day', () => {
   });
 
   it('refuses a player who may not manage the server, and says so when Discord is down', async () => {
-    await runGame(async (ctx) => {
-      const token = await ctx.signIn(ROBIN);
-      expect(await ctx.call(token, 'POST', '/api/dev/next-day', {})).toEqual({ status: 403, body: { error: 'forbidden' } });
-      expect(asView((await ctx.call(token, 'GET', '/api/game')).body).devTools).toBe(false);
-    }, { guildApi: fakeGuildApi('600000000000000002', { ownerId: USER_ID }) });
-    await runGame(async (ctx) => {
-      const token = await ctx.signIn(MISA);
-      expect((await ctx.call(token, 'POST', '/api/dev/next-day', {})).status).toBe(503);
-    }, { guildApi: fakeGuildApi('600000000000000003', { failure: new DiscordError('unavailable') }) });
+    await runGame(
+      async (ctx) => {
+        const token = await ctx.signIn(ROBIN);
+        expect(await ctx.call(token, 'POST', '/api/dev/next-day', {})).toEqual({
+          status: 403,
+          body: { error: 'forbidden' },
+        });
+        expect(asView((await ctx.call(token, 'GET', '/api/game')).body).devTools).toBe(false);
+      },
+      { guildApi: fakeGuildApi('600000000000000002', { ownerId: USER_ID }) },
+    );
+    await runGame(
+      async (ctx) => {
+        const token = await ctx.signIn(MISA);
+        expect((await ctx.call(token, 'POST', '/api/dev/next-day', {})).status).toBe(503);
+      },
+      {
+        guildApi: fakeGuildApi('600000000000000003', { failure: new DiscordError('unavailable') }),
+      },
+    );
   });
 
   it('does not exist with the dev tools off, even for an admin', async () => {
@@ -321,7 +378,10 @@ describe('POST /api/dev/next-day', () => {
     await runGame(
       async (ctx) => {
         const token = await ctx.signIn(MISA);
-        expect(await ctx.call(token, 'POST', '/api/dev/next-day', {})).toEqual({ status: 404, body: { error: 'not_found' } });
+        expect(await ctx.call(token, 'POST', '/api/dev/next-day', {})).toEqual({
+          status: 404,
+          body: { error: 'not_found' },
+        });
         expect(asView((await ctx.call(token, 'GET', '/api/game')).body).devTools).toBe(false);
       },
       { guildId, devTools: false, guildApi: owner(guildId) },

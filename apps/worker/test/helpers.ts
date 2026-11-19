@@ -43,12 +43,18 @@ export function fakeDiscord(options: FakeDiscordOptions = {}): FakeDiscord {
     options.instance === undefined
       ? { location: { guild_id: GUILD_ID }, users: [user.id] }
       : options.instance;
-  const calls: FakeDiscord['calls'] = { exchangeCode: [], getCurrentUser: [], getActivityInstance: [] };
+  const calls: FakeDiscord['calls'] = {
+    exchangeCode: [],
+    getCurrentUser: [],
+    getActivityInstance: [],
+  };
   return {
     calls,
     exchangeCode(code) {
       calls.exchangeCode.push(code);
-      return options.exchangeError ? Promise.reject(options.exchangeError) : Promise.resolve(ACCESS_TOKEN);
+      return options.exchangeError
+        ? Promise.reject(options.exchangeError)
+        : Promise.resolve(ACCESS_TOKEN);
     },
     getCurrentUser(accessToken) {
       calls.getCurrentUser.push(accessToken);
@@ -56,7 +62,9 @@ export function fakeDiscord(options: FakeDiscordOptions = {}): FakeDiscord {
     },
     getActivityInstance(instanceId) {
       calls.getActivityInstance.push(instanceId);
-      return options.instanceError ? Promise.reject(options.instanceError) : Promise.resolve(instance);
+      return options.instanceError
+        ? Promise.reject(options.instanceError)
+        : Promise.resolve(instance);
     },
   };
 }
@@ -113,7 +121,11 @@ export function callHandler(
 ): Promise<Response> {
   if (handler.fetch === undefined) throw new Error('handler has no fetch');
   return Promise.resolve(
-    handler.fetch(request as Request<unknown, IncomingRequestCfProperties>, { ...env, ...envOverrides }, ctx),
+    handler.fetch(
+      request as Request<unknown, IncomingRequestCfProperties>,
+      { ...env, ...envOverrides },
+      ctx,
+    ),
   );
 }
 
@@ -193,7 +205,9 @@ export async function runGame<R>(
         new Request(`${ORIGIN}${path}`, {
           method,
           headers: { Authorization: `Bearer ${token}` },
-          ...(body === undefined ? {} : { body: typeof body === 'string' ? body : JSON.stringify(body) }),
+          ...(body === undefined
+            ? {}
+            : { body: typeof body === 'string' ? body : JSON.stringify(body) }),
         }),
       );
       expectApiHeaders(res);
@@ -201,7 +215,15 @@ export async function runGame<R>(
       expectNoSeed(parsed, seed);
       return { status: res.status, body: parsed };
     };
-    return fn({ guildId, game, clock, sql: state.storage.sql, storage: state.storage, signIn, call });
+    return fn({
+      guildId,
+      game,
+      clock,
+      sql: state.storage.sql,
+      storage: state.storage,
+      signIn,
+      call,
+    });
   });
 }
 

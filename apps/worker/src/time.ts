@@ -170,4 +170,3 @@ export function nextOccurrence(nowMs: number, hour: number, minute: number, tz: 
   }
   throw new Error('no occurrence found');
 }
-

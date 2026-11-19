@@ -218,4 +218,3 @@ describe('time zones other than the default', () => {
     expect(ny('2026-10-31T17:40:00Z')).toBe('2026-11-01T18:40:00.000Z');
   });
 });
-

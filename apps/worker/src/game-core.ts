@@ -35,7 +35,9 @@ export interface CharacterOffer {
 
 /** The core state without the seed; every known tile carries its terrain id. */
 export type GameStateView = Omit<GameState, 'seed' | 'tiles'> & {
-  readonly tiles: Readonly<Record<string, GameState['tiles'][string] & { readonly terrain: string }>>;
+  readonly tiles: Readonly<
+    Record<string, GameState['tiles'][string] & { readonly terrain: string }>
+  >;
 };
 
 const STUB_NAMES = ['Aino', 'Brann', 'Cael', 'Dagny', 'Eero', 'Fenna', 'Ilmo', 'Kaja'];
@@ -49,13 +51,22 @@ export function offersFor(state: GameState, userId: string, attempt: number): Ch
 
 export type CharacterResult =
   | { readonly ok: true; readonly state: GameState }
-  | { readonly ok: false; readonly reason: 'full' | 'duplicate' | 'not-lost' | 'unknown-character' };
+  | {
+      readonly ok: false;
+      readonly reason: 'full' | 'duplicate' | 'not-lost' | 'unknown-character';
+    };
 
 const activeCount = (state: GameState): number =>
   state.characters.filter((c) => c.status === 'active').length;
 
 /** STUB: adds a character riding the creature, refused at the player cap. */
-export function addCharacter(state: GameState, id: string, _offer: CharacterOffer): CharacterResult {
+export function addCharacter(
+  state: GameState,
+  id: string,
+  offer: CharacterOffer,
+): CharacterResult {
+  // STUB: the core's characters do not carry a name, trait or quirk yet, so the offer is not kept.
+  void offer;
   if (state.characters.some((c) => c.id === id)) return { ok: false, reason: 'duplicate' };
   if (activeCount(state) >= state.config.playerCap) return { ok: false, reason: 'full' };
   const character = {

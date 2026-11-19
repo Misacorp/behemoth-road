@@ -106,7 +106,7 @@ export class GuildGame {
     private readonly storage: Storage,
     private readonly options: GuildGameOptions,
   ) {
-    this.limiter = new TokenBucketLimiter({ ...rateLimits.game, now: options.now });
+    this.limiter = new TokenBucketLimiter({ ...rateLimits.game, now: () => options.now() });
   }
 
   private get sql(): SqlStorage {
