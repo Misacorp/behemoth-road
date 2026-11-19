@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { el, toSvgString, countNodes } from '../src/svg.ts';
+import { ALLOWED_TAGS, countNodes, el, isAllowedAttr, toSvgString } from '../src/svg.ts';
 import { f } from '../src/geom.ts';
 import { rngFor } from '../src/rng.ts';
 
@@ -12,9 +12,38 @@ describe('svg tree', () => {
     expect(countNodes(svg)).toBe(2);
   });
 
-  it('rejects bad tag and attribute names', () => {
-    expect(() => toSvgString(el('script x', {}))).toThrow();
-    expect(() => toSvgString(el('g', { 'on load': 'x' }))).toThrow();
+  it('rejects tags outside the allowlist', () => {
+    for (const tag of [
+      'script',
+      'foreignObject',
+      'image',
+      'use',
+      'a',
+      'text',
+      'style',
+      'script x',
+    ]) {
+      expect(() => toSvgString(el('svg', {}, [el(tag)])), tag).toThrow(/not allowed/);
+    }
+    for (const tag of ALLOWED_TAGS) expect(() => toSvgString(el(tag))).not.toThrow();
+  });
+
+  it('rejects event handlers, links, inline styles and malformed attribute names', () => {
+    for (const name of [
+      'onload',
+      'onClick',
+      'ONMOUSEOVER',
+      'href',
+      'xlink:href',
+      'style',
+      'Style',
+      'on load',
+      '1x',
+    ]) {
+      expect(() => toSvgString(el('g', { [name]: 'x' })), name).toThrow(/not allowed/);
+      expect(isAllowedAttr(name), name).toBe(false);
+    }
+    expect(isAllowedAttr('stroke-width')).toBe(true);
   });
 });
 
