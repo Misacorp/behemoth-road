@@ -251,6 +251,13 @@ describe('work-site', () => {
     });
   });
 
+  it('refuses a full pack before rolling, changing nothing', () => {
+    const full = withPack(scholarAt('tomb'), 'scholar', { iron: 6 });
+    const before = JSON.stringify(full);
+    expect(act(full, 'scholar', { kind: 'work-site' })).toEqual({ ok: false, reason: 'pack-full' });
+    expect(JSON.stringify(full)).toBe(before);
+  });
+
   it('measures close to the configured chance over many rolls', () => {
     let successes = 0;
     const tries = 400;
@@ -338,6 +345,22 @@ describe('build', () => {
       ok: false,
       reason: 'invalid-action',
     });
+  });
+});
+
+describe('inactive perks (later upgrades)', () => {
+  it('give a scout no trap immunity and an engineer no double yield yet', () => {
+    let scouting = placeCharacter(chainGame(['scout']), 'scout', P);
+    scouting = withFeature(scouting, N, 'pitfall');
+    const caught = move(scouting, 'scout', N);
+    expect(caught.ok && caught.trapped).toBe(true);
+
+    let gathering = placeCharacter(chainGame(['engineer']), 'engineer', P);
+    gathering = withFeature(gathering, P, 'timber-stand', true);
+    const gathered = ok(gathering, 'engineer', { kind: 'gather' });
+    expect(gathered.events).toEqual([
+      { kind: 'gather', hex: P, characterId: 'engineer', material: 'timber', amount: 1 },
+    ]);
   });
 });
 
