@@ -5,6 +5,7 @@ import {
   el,
   isAllowedAttr,
   isAllowedAttribute,
+  isForbiddenAttr,
   SVG_NAMESPACE,
   toSvgString,
 } from '../src/svg.ts';
@@ -52,6 +53,21 @@ describe('svg tree', () => {
       expect(isAllowedAttr(name), name).toBe(false);
     }
     expect(isAllowedAttr('stroke-width')).toBe(true);
+  });
+
+  it('rejects the prop names a Preact or React renderer treats specially', () => {
+    for (const name of [
+      'dangerouslySetInnerHTML',
+      'ref',
+      'key',
+      'children',
+      'class',
+      'className',
+    ]) {
+      expect(() => toSvgString(el('g', { [name]: 'x' })), name).toThrow(/not allowed/);
+      expect(isForbiddenAttr(name), name).toBe(true);
+    }
+    expect(isForbiddenAttr('keyPoints')).toBe(false);
   });
 
   it('rejects href under any prefix and namespace declarations other than the SVG one', () => {

@@ -39,6 +39,7 @@ export { PROP_DRAWERS, type PropContext, type PropDraw, type Drawn } from './pro
 export { buildReviewItems, type ReviewDraft } from './review.ts';
 export { samplePatch } from './sample.ts';
 export {
+  paperGrain,
   renderScene,
   renderSceneFramed,
   type FramedScene,

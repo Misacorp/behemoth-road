@@ -48,12 +48,12 @@ function propsSheet(): string {
   const rows: [string, string][] = [
     ['conifer', 'pines'],
     ['broadleaf', 'forest'],
-    ['tuft', 'meadow'],
+    ['tuft', 'plains'],
     ['dune', 'desert'],
     ['rock', 'rocks'],
     ['cliff', 'cliff'],
     ['hill', 'hills'],
-    ['ruin', 'meadow'],
+    ['ruin', 'plains'],
   ];
   const cells: ArtCell[] = [];
   rows.forEach(([kind, terrain], row) => {
@@ -79,7 +79,7 @@ function creatureSheet(facing: CreatureFacing): string {
     { q: -1, r: 0 },
     { q: -1, r: 1 },
     { q: 0, r: 1 },
-  ].map((h) => ({ ...h, terrain: 'meadow', props: [] }));
+  ].map((h) => ({ ...h, terrain: 'plains', props: [] }));
   return toSvgString(
     renderScene({
       cells,
@@ -94,7 +94,7 @@ function creatureSheet(facing: CreatureFacing): string {
 function charactersSheet(): string {
   const cells: ArtCell[] = ACCENTS.map((_, i) => ({
     ...gridCell(i, 2),
-    terrain: 'meadow',
+    terrain: 'plains',
     props: [],
   }));
   const characters = ACCENTS.map((accent, i) => ({ id: `c-${accent}`, ...gridCell(i, 2), accent }));
@@ -111,10 +111,10 @@ function charactersSheet(): string {
 
 function fogSheet(): string {
   const cells: ArtCell[] = [
-    { ...gridCell(0, 4), terrain: 'meadow', state: 'unseen' },
-    { ...gridCell(1, 4), terrain: 'meadow', state: 'fading' },
-    { ...gridCell(2, 4), terrain: 'meadow', state: 'lost' },
-    { ...gridCell(3, 4), terrain: 'meadow', hint: true, props: [] },
+    { ...gridCell(0, 4), terrain: 'plains', state: 'unseen' },
+    { ...gridCell(1, 4), terrain: 'plains', state: 'fading' },
+    { ...gridCell(2, 4), terrain: 'plains', state: 'lost' },
+    { ...gridCell(3, 4), terrain: 'plains', hint: true, props: [] },
   ];
   return toSvgString(
     renderScene({ cells, projection: isometric(72), palette: MIST, seed: 'fog-sheet' }),

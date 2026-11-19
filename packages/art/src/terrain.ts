@@ -25,7 +25,7 @@ export interface TerrainLook {
 }
 
 export const TERRAIN_LOOKS: Readonly<Record<string, TerrainLook>> = {
-  meadow: {
+  plains: {
     ground: 'grass',
     side: 'earth',
     marks: 'flecks',

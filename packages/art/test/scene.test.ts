@@ -3,7 +3,7 @@ import { GENTLE_AMBLER, type CreatureLook } from '../src/creature.ts';
 import { PALETTES, paletteColours, MORNING } from '../src/palette.ts';
 import { isometric, topDown } from '../src/projection.ts';
 import { samplePatch } from '../src/sample.ts';
-import { renderScene, renderSceneFramed } from '../src/scene.ts';
+import { paperGrain, renderScene, renderSceneFramed } from '../src/scene.ts';
 import { countNodes, toSvgString, walk, type SvgNode } from '../src/svg.ts';
 import { FALLBACK_LOOK, TERRAIN_LOOKS, terrainLook } from '../src/terrain.ts';
 import { bigScene } from './fixtures.ts';
@@ -175,5 +175,34 @@ describe('terrain looks', () => {
       }),
     );
     expect(svg).toContain(MORNING.ramps.neutral.base);
+  });
+});
+
+describe('scene frame', () => {
+  const rects = (node: SvgNode): SvgNode[] => node.children.filter((c) => c.tag === 'rect');
+
+  it("draws the page (paper, vignette, grain) by default and leaves it out with frame 'none'", () => {
+    const page = renderScene(sample());
+    expect(rects(page)).toHaveLength(3);
+    const none = renderScene({ ...sample(), frame: 'none' });
+    expect(rects(none)).toHaveLength(0);
+    // Everything else is the same drawing.
+    expect(none.children.filter((c) => c.tag !== 'rect')).toEqual(
+      page.children.filter((c) => c.tag !== 'rect'),
+    );
+    // The grain filter is still defined, for a screen-space `paperGrain`.
+    expect(toSvgString(none)).toContain('id="br-grain"');
+  });
+
+  it('paperGrain fills its viewport by default and matches the in-scene grain otherwise', () => {
+    expect(paperGrain(MORNING).attrs).toMatchObject({
+      x: 0,
+      y: 0,
+      width: '100%',
+      height: '100%',
+      filter: 'url(#br-grain)',
+    });
+    const { svg, viewBox } = renderSceneFramed(sample());
+    expect(svg.children.at(-1)).toEqual(paperGrain(MORNING, 'br', viewBox));
   });
 });

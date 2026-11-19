@@ -38,6 +38,12 @@ export interface SceneInput {
   /** Screen px per drawing px where the scene is shown (default 1); ink never gets thinner than `minInkPx` on screen. */
   readonly zoom?: number;
   readonly minInkPx?: number;
+  /**
+   * `page` (default) frames the scene as a picture: paper, an edge vignette and paper grain over its box.
+   * `none` leaves all three out, for a map that pans, where the box's edge would show; draw `paperGrain`
+   * over the screen instead.
+   */
+  readonly frame?: 'page' | 'none';
 }
 
 interface Placed {
@@ -94,6 +100,23 @@ export function renderScene(input: SceneInput): SvgNode {
  * The scene and its frame as numbers. A pointer at (px, py) on an element showing the SVG at `scale` screen px
  * per drawing px is at drawing point (viewBox.x + px / scale, viewBox.y + py / scale), which `screenToHex` takes.
  */
+/**
+ * The paper grain layer. By default it fills its viewport (`width`/`height` 100%), for drawing over a whole
+ * screen; it needs the filter defs of a scene drawn with the same `idPrefix` and full effects.
+ */
+export function paperGrain(
+  palette: Palette,
+  idPrefix = 'br',
+  box: { x: number; y: number; width: number | string; height: number | string } = {
+    x: 0,
+    y: 0,
+    width: '100%',
+    height: '100%',
+  },
+): SvgNode {
+  return el('rect', { ...box, fill: palette.paper, filter: refUrl(idPrefix, 'grain') });
+}
+
 export function renderSceneFramed(input: SceneInput): FramedScene {
   const { cells, projection: p, palette, seed } = input;
   const prefix = input.idPrefix ?? 'br';
@@ -187,10 +210,15 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
   const h = Math.ceil(box.y1 + pad) - y;
   const frame = { x, y, width: w, height: h };
 
+  const page = input.frame !== 'none';
   const svg = el('svg', { viewBox: `${x} ${y} ${w} ${h}`, width: w, height: h }, [
     artDefs(palette, prefix, p.k, !lite),
-    el('rect', { ...frame, fill: palette.paper }),
-    el('rect', { ...frame, fill: refUrl(prefix, 'vignette') }),
+    ...(page
+      ? [
+          el('rect', { ...frame, fill: palette.paper }),
+          el('rect', { ...frame, fill: refUrl(prefix, 'vignette') }),
+        ]
+      : []),
     el('g', lite ? {} : { filter: refUrl(prefix, 'wash') }, ground.ground),
     ...ground.crisp,
     el(
@@ -200,9 +228,7 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
         : { 'data-layer': 'objects', filter: refUrl(prefix, 'ink') },
       objects,
     ),
-    ...(lite
-      ? []
-      : [el('rect', { ...frame, fill: palette.paper, filter: refUrl(prefix, 'grain') })]),
+    ...(lite || !page ? [] : [paperGrain(palette, prefix, frame)]),
   ]);
   return { svg, viewBox: frame };
 

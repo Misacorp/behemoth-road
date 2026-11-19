@@ -60,14 +60,33 @@ const NAME = /^[a-zA-Z][a-zA-Z0-9:-]*$/;
 export const SVG_NAMESPACE = 'http://www.w3.org/2000/svg';
 
 /**
+ * Prop names that mean something to Preact (or React) rather than to SVG. The web app renders these trees
+ * through `h()`, where `dangerouslySetInnerHTML` would set innerHTML and the others change rendering or
+ * styling, so the art never produces them.
+ */
+const RENDERER_PROPS: ReadonlySet<string> = new Set([
+  'dangerouslysetinnerhtml',
+  'ref',
+  'key',
+  'children',
+  'class',
+  'classname',
+]);
+
+/**
  * Attribute names the art may never produce: event handlers, any link (`href` under any prefix), inline
- * styles and namespace declarations other than plain `xmlns` (whose value `isAllowedAttribute` checks).
+ * styles, renderer props (`RENDERER_PROPS`) and namespace declarations other than plain `xmlns` (whose
+ * value `isAllowedAttribute` checks).
  */
 export function isForbiddenAttr(name: string): boolean {
   const lower = name.toLowerCase();
   const local = lower.slice(lower.lastIndexOf(':') + 1);
   return (
-    lower.startsWith('on') || local === 'href' || lower === 'style' || lower.startsWith('xmlns:')
+    lower.startsWith('on') ||
+    local === 'href' ||
+    lower === 'style' ||
+    lower.startsWith('xmlns:') ||
+    RENDERER_PROPS.has(lower)
   );
 }
 

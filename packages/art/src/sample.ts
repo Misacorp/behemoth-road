@@ -17,7 +17,7 @@ const EXPLICIT: Readonly<Record<string, Partial<ArtCell>>> = {
   '-2,2': { terrain: 'forest' },
   '-3,3': { terrain: 'pines' },
   '-2,3': { terrain: 'forest' },
-  '-1,2': { terrain: 'meadow', hint: true },
+  '-1,2': { terrain: 'plains', hint: true },
   '2,-3': { terrain: 'desert' },
   '3,-3': { terrain: 'desert' },
   '2,-2': { terrain: 'desert' },
@@ -26,9 +26,9 @@ const EXPLICIT: Readonly<Record<string, Partial<ArtCell>>> = {
   '3,-1': { terrain: 'rocks' },
   '2,0': { terrain: 'hills' },
   '3,0': { terrain: 'hills' },
-  '1,-2': { terrain: 'meadow' },
-  '1,1': { terrain: 'meadow', site: 'ruin' },
-  '0,-3': { terrain: 'meadow' },
+  '1,-2': { terrain: 'plains' },
+  '1,1': { terrain: 'plains', site: 'ruin' },
+  '0,-3': { terrain: 'plains' },
   '-1,-2': { terrain: 'forest' },
 };
 
@@ -44,7 +44,7 @@ export function samplePatch(facing: CreatureFacing = 'right'): {
       const key = `${q},${r}`;
       const row = r + q / 2;
       const state = row <= -2.5 ? 'unseen' : row >= 2.5 ? 'fading' : 'seen';
-      const terrain = RIVER.has(key) ? 'river' : 'meadow';
+      const terrain = RIVER.has(key) ? 'river' : 'plains';
       cells.push({ q, r, terrain, state, ...EXPLICIT[key] });
     }
   }
