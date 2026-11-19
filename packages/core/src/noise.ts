@@ -16,10 +16,14 @@ export interface NoiseField {
 
 const SQRT3 = Math.sqrt(3);
 
-/** Each octave is turned by this angle more than the last, so the lattice never shows as straight lines. */
-const TURN = 0.83;
-const COS = Math.cos(TURN);
-const SIN = Math.sin(TURN);
+/**
+ * Each octave is turned by 0.83 radians more than the last, so the lattice never
+ * shows as straight lines. cos(0.83) and sin(0.83) are written out because
+ * ECMAScript does not promise bit-identical trigonometry across engines, and
+ * terrain must match exactly on the server, the client and in simulations.
+ */
+const COS = 0.6748757600712672;
+const SIN = 0.7379313711099627;
 
 /** Quintic fade: smooth at the lattice points, so fields have no visible grid. */
 const fade = (t: number): number => t * t * t * (t * (t * 6 - 15) + 10);

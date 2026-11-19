@@ -22,6 +22,8 @@ describe('tuning config', () => {
 
   it('rejects values the rules cannot use', () => {
     expect(() => resolveConfig({ actionsPerDay: 1.5 })).toThrow(/actionsPerDay/);
+    expect(() => resolveConfig({ moveCost: 0 })).toThrow(/moveCost/);
+    expect(() => resolveConfig({ moveCost: -1 })).toThrow(/moveCost/);
     expect(() => resolveConfig({ windowRadius: 1 })).toThrow(/windowRadius/);
     expect(() => resolveConfig({ veerWeights: { left: 0, straight: 0, right: 0 } })).toThrow(
       /veerWeights/,

@@ -39,6 +39,14 @@ describe('map generation', () => {
     for (const rule of TERRAIN_GENERATION.rules) expect(ids.has(rule.terrain)).toBe(true);
   });
 
+  it('gives every terrain a whole, non-negative extra move cost', () => {
+    // Path search needs every step to cost at least something: base cost >= 1, extras >= 0.
+    for (const t of TERRAIN_TYPES) {
+      expect(Number.isInteger(t.extraMoveCost)).toBe(true);
+      expect(t.extraMoveCost).toBeGreaterThanOrEqual(0);
+    }
+  });
+
   it('is mostly plain, with every terrain present', () => {
     for (const seed of SEEDS) {
       const counts = new Map<string, number>();

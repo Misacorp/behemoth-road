@@ -168,3 +168,40 @@ describe('reachableHexes', () => {
     ).toEqual([]);
   });
 });
+
+describe('path edge cases', () => {
+  it('plans equal-cost ties the same way every time, even from a copied state', () => {
+    for (const seed of [1, 2, 3]) {
+      const state = createGame(seed, { characterIds: ['a'] });
+      const copy = JSON.parse(JSON.stringify(state)) as typeof state;
+      // (2, -2) is two steps away by two equal routes when both middles are open.
+      const plans = [planPath(state, 'a', hex(2, -2)), planPath(copy, 'a', hex(2, -2))];
+      expect(plans[1]).toEqual(plans[0]);
+      expect(reachableHexes(copy, 'a')).toEqual(reachableHexes(state, 'a'));
+    }
+  });
+
+  it('reaches a hex costing exactly the actions left, and not one step more', () => {
+    const line = [hex(0, -1), hex(0, -2), hex(0, -3), hex(0, -4)];
+    const seed = findSeed((s) => line.every((h) => terrainAt(s, h).passable));
+    const state = createGame(seed, { characterIds: ['a'] });
+    expect(planPath(state, 'a', hex(0, -3))).toMatchObject({ ok: true, cost: 3 });
+    expect(planPath(state, 'a', hex(0, -4))).toEqual({ ok: false, reason: 'not-enough-actions' });
+    const reach = reachableHexes(state, 'a');
+    expect(reach).toContainEqual({ hex: hex(0, -3), cost: 3 });
+    expect(reach.some((r) => hexEquals(r.hex, hex(0, -4)))).toBe(false);
+  });
+
+  it('plans and reaches onto a creature hex that lies over a cliff', () => {
+    const ring = neighbours(hex(0, 0));
+    const seed = findSeed((s) => ring.some((h) => !terrainAt(s, h).passable));
+    const state = createGame(seed, { characterIds: ['a'] });
+    const cliff = ring.find((h) => !terrainAt(seed, h).passable)!;
+    expect(planPath(state, 'a', cliff)).toEqual({
+      ok: true,
+      steps: [{ hex: cliff, cost: 1 }],
+      cost: 1,
+    });
+    expect(reachableHexes(state, 'a')).toContainEqual({ hex: cliff, cost: 1 });
+  });
+});
