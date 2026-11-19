@@ -28,6 +28,22 @@ export interface TuningConfig {
   readonly playerCap: number;
   /** How the creature chooses each day's step. */
   readonly veerWeights: VeerWeights;
+  /** Chance that a hex holds a feature (a node, site or trap), when one fits its terrain. */
+  readonly featureChance: number;
+  /** Units a character's pack holds. */
+  readonly packCapacity: number;
+  /** Action costs. Surveying an adjacent hex costs less for a role tagged `survey`. */
+  readonly surveyCostSpecialist: number;
+  readonly surveyCostOther: number;
+  readonly gatherCost: number;
+  readonly workSiteCost: number;
+  /** Actions one build step costs; each step adds one work to the unlock in progress. */
+  readonly buildCost: number;
+  /** Chance to work a site, by tier, for a role tagged `sites` and for anyone else. */
+  readonly siteChanceSpecialistTier1: number;
+  readonly siteChanceSpecialistTier2: number;
+  readonly siteChanceOtherTier1: number;
+  readonly siteChanceOtherTier2: number;
 }
 
 export const DEFAULT_CONFIG: TuningConfig = {
@@ -39,6 +55,17 @@ export const DEFAULT_CONFIG: TuningConfig = {
   lostTileRings: 4,
   playerCap: 15,
   veerWeights: { left: 1, straight: 2, right: 1 },
+  featureChance: 0.08,
+  packCapacity: 6,
+  surveyCostSpecialist: 1,
+  surveyCostOther: 2,
+  gatherCost: 1,
+  workSiteCost: 2,
+  buildCost: 1,
+  siteChanceSpecialistTier1: 0.7,
+  siteChanceSpecialistTier2: 0.5,
+  siteChanceOtherTier1: 0.35,
+  siteChanceOtherTier2: 0,
 };
 
 export type ConfigOverrides = Partial<Omit<TuningConfig, 'veerWeights'>> & {
@@ -62,6 +89,26 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
   if (!isCount(config.graceDays, 0)) problems.push('graceDays');
   if (!isCount(config.lostTileRings, 0)) problems.push('lostTileRings');
   if (!isCount(config.playerCap, 1)) problems.push('playerCap');
+  const chances = [
+    'featureChance',
+    'siteChanceSpecialistTier1',
+    'siteChanceSpecialistTier2',
+    'siteChanceOtherTier1',
+    'siteChanceOtherTier2',
+  ] as const;
+  for (const key of chances) {
+    const p = config[key];
+    if (!(Number.isFinite(p) && p >= 0 && p <= 1)) problems.push(key);
+  }
+  const costs = [
+    'packCapacity',
+    'surveyCostSpecialist',
+    'surveyCostOther',
+    'gatherCost',
+    'workSiteCost',
+    'buildCost',
+  ] as const;
+  for (const key of costs) if (!isCount(config[key], 1)) problems.push(key);
   const w = config.veerWeights;
   const weights = [w.left, w.straight, w.right];
   if (weights.some((x) => !(Number.isFinite(x) && x >= 0)) || !weights.some((x) => x > 0)) {

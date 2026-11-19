@@ -49,6 +49,7 @@ Record a decision:
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
+- 2026-11-20 Features live in the state per hex; the view carries revealed ones and team glints; version-2 games migrate
 - 2026-11-20 Before a stable release, older games are wiped, not migrated \[Misa\]
 - 2026-11-19 Only allowed Discord servers can play; the app itself is public \[Misa\]
 - 2026-11-19 The web client boots as an Activity, parses every response, and runs rules on the player view
@@ -109,6 +110,8 @@ Record a decision:
 - 2026-11-20 Symptoms are computed per viewer; keepers see them earlier and see reaction cues
 - 2026-11-20 Fires pull the creature's step by a weighted score; the public prediction stays blind
 - 2026-11-20 The creature's nature is hidden server data; the first creature is drawn to fire or shies from it
+- 2026-11-20 Features are placed by terrain tags with absolute weights
+- 2026-11-20 Milestone 3 rules: the calls the plan left open
 - 2026-11-20 Explored and unexplored hexes look clearly different \[Misa\]
 - 2026-11-20 Characters carry packs; team stores live on the creature
 - 2026-11-20 Engineers build permanent team unlocks with a cost and a duration \[Misa\]

@@ -41,7 +41,7 @@ export const QUIRKS: readonly Quirk[] = [
   { id: 'restless', name: 'Restless', helps: ['move'], hinders: ['rest'], icon: 'feet' },
   { id: 'magpie', name: 'Magpie', helps: ['find'], hinders: ['carry'], icon: 'feather' },
   { id: 'night-owl', name: 'Night owl', helps: ['night'], hinders: ['morning'], icon: 'owl' },
-  { id: 'stubborn', name: 'Stubborn', helps: ['defend'], hinders: ['peoples'], icon: 'stone' },
+  { id: 'stubborn', name: 'Stubborn', helps: ['defend'], hinders: ['peoples'], icon: 'boulder' },
   { id: 'curious', name: 'Curious', helps: ['reveal'], hinders: ['traps'], icon: 'key' },
   {
     id: 'superstitious',
