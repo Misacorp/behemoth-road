@@ -20,7 +20,7 @@ import { MAP_TUNING } from './config.ts';
 import type { Flow } from './flow.ts';
 import { GestureTracker, type Gesture } from './gestures.ts';
 import { buildOverlays } from './overlays.ts';
-import { figureFeet, placePoint } from './figures.ts';
+import { figureFeet, otherFigureFeet, placePoint } from './figures.ts';
 import { pickTarget, type Point, type Target } from './pick.ts';
 import {
   CONFIRM_SIZE,
@@ -255,7 +255,14 @@ export function MapView(props: MapViewProps): JSX.Element {
           break;
         case 'tap': {
           const { state: s, characterId: id } = latest.current;
-          latest.current.onTap(pickTarget(p, toWorld(view.current, g.at), figureFeet(s, id, p)));
+          latest.current.onTap(
+            pickTarget(
+              p,
+              toWorld(view.current, g.at),
+              figureFeet(s, id, p),
+              otherFigureFeet(s, id, p),
+            ),
+          );
           break;
         }
         case 'end':

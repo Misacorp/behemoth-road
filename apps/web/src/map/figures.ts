@@ -5,7 +5,7 @@
  */
 import { figureAnchor, hexCenter, type Projection, riderAnchor } from '@behemoth-road/art';
 import { type GameState, hexKey, type Place } from '@behemoth-road/core';
-import { creatureArt } from './cells.ts';
+import { creatureArt, riderOrder } from './cells.ts';
 import type { Point } from './pick.ts';
 
 /** The feet of the rider in `slot` on the creature's back. */
@@ -14,17 +14,9 @@ export function seatPoint(state: GameState, p: Projection, slot: number): Point 
   return riderAnchor(art.look, art.heading, slot, hexCenter(p, art.q, art.r), p.size, p.squash);
 }
 
-/**
- * The rider slot a character has, or would take on boarding: one after every active rider listed before
- * it (the scene seats riders in character order).
- */
+/** The rider slot a character has, or would take on boarding (`riderOrder`, shared with the scene). */
 export function seatSlot(state: GameState, characterId: string): number {
-  let slot = 0;
-  for (const c of state.characters) {
-    if (c.id === characterId) return slot;
-    if (c.status === 'active' && c.at.kind === 'creature') slot += 1;
-  }
-  return slot;
+  return riderOrder(state, characterId).indexOf(characterId);
 }
 
 /** Where an active character's figure stands, or null when it is lost or unknown. */
@@ -54,4 +46,11 @@ export function placePoint(
   return place.kind === 'creature'
     ? seatPoint(state, p, seatSlot(state, characterId))
     : figureAnchor(p, place.hex);
+}
+
+/** Where every other active character's figure stands (for picking among overlapping figures). */
+export function otherFigureFeet(state: GameState, characterId: string, p: Projection): Point[] {
+  return state.characters
+    .filter((c) => c.status === 'active' && c.id !== characterId)
+    .flatMap((c) => figureFeet(state, c.id, p) ?? []);
 }

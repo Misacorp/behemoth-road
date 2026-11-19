@@ -65,12 +65,31 @@ export function creatureArt(state: GameState): CreatureArt {
   };
 }
 
-/** Active characters stand in the scene; lost ones are drawn by the overlays. */
-export function characterArts(state: GameState): CharacterArt[] {
+/**
+ * The riders in seat order: active characters on the creature, in character order, plus `boarding` (a
+ * character about to board) where it would sit. The scene seats riders in the order it receives them, so
+ * `characterArts` and the map's picking both take their order from here.
+ */
+export function riderOrder(state: GameState, boarding?: string): string[] {
   return state.characters
-    .filter((c) => c.status === 'active')
+    .filter((c) => c.status === 'active' && (c.at.kind === 'creature' || c.id === boarding))
+    .map((c) => c.id);
+}
+
+/** Active characters for the scene: riders first, in `riderOrder`, then those on hexes. */
+export function characterArts(state: GameState): CharacterArt[] {
+  const centre = state.creature.centre;
+  const riders = riderOrder(state).map((id) => ({
+    id,
+    q: centre.q,
+    r: centre.r,
+    accent: MAP_TUNING.accent,
+  }));
+  const walkers = state.characters
+    .filter((c) => c.status === 'active' && c.at.kind === 'hex')
     .map((c) => {
       const at = placeHex(state, c.at);
       return { id: c.id, q: at.q, r: at.r, accent: MAP_TUNING.accent };
     });
+  return [...riders, ...walkers];
 }
