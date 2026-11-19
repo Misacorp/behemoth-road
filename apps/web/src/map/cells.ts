@@ -6,18 +6,18 @@ import type { ArtCell, CellState, CharacterArt, CreatureArt } from '@behemoth-ro
 import { GENTLE_AMBLER } from '@behemoth-road/art';
 import {
   directionOffset,
-  type GameState,
+  type GameStateView,
+  terrainOf,
   hexDistance,
   hexesInRange,
   hexKey,
   placeHex,
 } from '@behemoth-road/core';
-import { accentOf } from '../game/identity.ts';
-import { terrainOf } from '../game/viewState.ts';
+import { accentOf, lookOf } from '../game/identity.ts';
 import { MAP_TUNING } from './config.ts';
 
 /** The fog state of a hex: hidden is blank paper, a seen hex outside the window is fading. */
-export function cellStateAt(state: GameState, key: string): CellState {
+export function cellStateAt(state: GameStateView, key: string): CellState {
   const tile = state.tiles[key];
   if (!tile) return 'unseen';
   if (tile.visibility === 'lost') return 'lost';
@@ -28,7 +28,7 @@ export function cellStateAt(state: GameState, key: string): CellState {
  * The hexes to draw: the window and its fading edge, blank paper a few rings beyond, and lost tiles near
  * the creature or under a character (so a lost character still stands somewhere).
  */
-export function sceneCells(state: GameState): ArtCell[] {
+export function sceneCells(state: GameStateView): ArtCell[] {
   const { centre } = state.creature;
   const outer = state.config.windowRadius + MAP_TUNING.paperRings;
   const lostLimit = state.config.windowRadius + MAP_TUNING.lostRings;
@@ -51,13 +51,13 @@ export function sceneCells(state: GameState): ArtCell[] {
       q: h.q,
       r: h.r,
       state: cellState,
-      terrain: known ? terrainOf(state, h) : 'unknown',
+      terrain: known ? (terrainOf(state, h)?.id ?? 'unknown') : 'unknown',
     });
   }
   return cells;
 }
 
-export function creatureArt(state: GameState): CreatureArt {
+export function creatureArt(state: GameStateView): CreatureArt {
   return {
     q: state.creature.centre.q,
     r: state.creature.centre.r,
@@ -67,11 +67,18 @@ export function creatureArt(state: GameState): CreatureArt {
 }
 
 /** Active characters for the scene, in character order; riders stand at the creature's centre. */
-export function characterArts(state: GameState): CharacterArt[] {
+export function characterArts(state: GameStateView): CharacterArt[] {
   return state.characters
     .filter((c) => c.status === 'active')
     .map((c) => {
       const at = placeHex(state, c.at);
-      return { id: c.id, q: at.q, r: at.r, accent: accentOf(c.id, MAP_TUNING.accent) };
+      const look = lookOf(c.id);
+      return {
+        id: c.id,
+        q: at.q,
+        r: at.r,
+        accent: accentOf(c.id, MAP_TUNING.accent),
+        ...(look ? { look } : {}),
+      };
     });
 }

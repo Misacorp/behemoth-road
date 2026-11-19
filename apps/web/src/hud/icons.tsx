@@ -7,6 +7,7 @@ import {
   drawCharacter,
   drawCreature,
   GENTLE_AMBLER,
+  type CharacterLook,
   type Drawn,
 } from '@behemoth-road/art';
 import type { JSX } from 'preact';
@@ -55,8 +56,14 @@ const CREATURE = drawCreature(PALETTE, GENTLE_AMBLER, { x: 0, y: 0 }, 14, MAP_TU
 export const CharacterIcon = (): JSX.Element => figure(CHARACTER, 2);
 
 /** A character's standee in its accent colour, fitted to a square. */
-export function CharacterFigure({ accent }: { accent: string }): JSX.Element {
-  return figure(drawCharacter(PALETTE, accent, { x: 0, y: 0 }, 40, MAP_TUNING.tilt, 1.3), 2);
+export function CharacterFigure({
+  accent,
+  look,
+}: {
+  accent: string;
+  look?: CharacterLook;
+}): JSX.Element {
+  return figure(drawCharacter(PALETTE, accent, { x: 0, y: 0 }, 40, MAP_TUNING.tilt, 1.3, look), 2);
 }
 export const CreatureIcon = (): JSX.Element => figure(CREATURE, 2);
 

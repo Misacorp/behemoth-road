@@ -2,6 +2,7 @@
  * Joining (and replacing a lost character): pick one of the offered characters, then a role, then
  * confirm. Figures, trait and quirk icons and role emblems; the characters' names are the only text.
  */
+import { characterLookFor } from '@behemoth-road/art';
 import type { JSX } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 import type { Offer } from '../api/schema.ts';
@@ -9,7 +10,7 @@ import { accentForName } from '../game/identity.ts';
 import { CharacterFigure, TickMark } from '../hud/icons.tsx';
 import { PALETTE } from '../map/art.ts';
 import { Drawer } from '../ui/Drawer.tsx';
-import { QuirkIcon, RoleEmblem, ROLES, TraitIcon } from '../ui/emblems.tsx';
+import { QuirkIcon, RoleEmblem, ROLE_IDS, TraitIcon } from '../ui/emblems.tsx';
 import { ready, START, wizard, type Wizard } from './wizard.ts';
 
 export interface JoinDrawerProps {
@@ -40,7 +41,7 @@ export function OfferCard({ offer }: { offer: Offer }): JSX.Element {
   return (
     <>
       <span class="offer-figure">
-        <CharacterFigure accent={accentForName(offer.name)} />
+        <CharacterFigure accent={accentForName(offer.name)} look={characterLookFor(offer.name)} />
       </span>
       <span class="offer-name">{offer.name}</span>
       <span class="offer-icons">
@@ -90,7 +91,7 @@ export function JoinDrawer(props: JoinDrawerProps): JSX.Element | null {
           >
             <BackIcon />
           </button>
-          {ROLES.map((r) => (
+          {ROLE_IDS.map((r) => (
             <button
               key={r}
               type="button"

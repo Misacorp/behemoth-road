@@ -7,6 +7,7 @@ import {
   ART_TUNING,
   drawCharacter,
   drawCreature,
+  type CharacterLook,
   type Drawn,
   GENTLE_AMBLER,
   el,
@@ -15,7 +16,7 @@ import {
   renderScene,
   type CellState,
 } from '@behemoth-road/art';
-import type { GameState } from '@behemoth-road/core';
+import type { GameStateView } from '@behemoth-road/core';
 import type { JSX } from 'preact';
 import { Pips, TickMark } from '../hud/icons.tsx';
 import type { Identity } from '../game/identity.ts';
@@ -203,7 +204,7 @@ function HeadingMark({ heading }: { heading: { q: number; r: number } }): JSX.El
 }
 
 /** The creature: a small drawing of it, turned to its heading, and the heading as a compass mark. */
-export function CreatureCard({ state }: { state: GameState }): JSX.Element {
+export function CreatureCard({ state }: { state: GameStateView }): JSX.Element {
   const art = creatureArt(state);
   const drawn = drawCreature(
     PALETTE,
@@ -263,10 +264,11 @@ function Fitted({
 }
 
 const FIGURE_W = 34;
-// Drawn once per accent: the bubble's figures and its creature entry are not redrawn per tap.
+// Drawn once per accent and look: the bubble's figures and its creature entry are not redrawn per tap.
 const bubbleFigures = new Map<string, Drawn>();
-function bubbleFigure(accent: string): Drawn {
-  let drawn = bubbleFigures.get(accent);
+function bubbleFigure(accent: string, look?: CharacterLook): Drawn {
+  const key = `${accent}|${JSON.stringify(look ?? null)}`;
+  let drawn = bubbleFigures.get(key);
   if (!drawn) {
     drawn = drawCharacter(
       PALETTE,
@@ -275,8 +277,9 @@ function bubbleFigure(accent: string): Drawn {
       40,
       MAP_TUNING.tilt,
       ART_TUNING.inkWidth * 0.98,
+      look,
     );
-    bubbleFigures.set(accent, drawn);
+    bubbleFigures.set(key, drawn);
   }
   return drawn;
 }
@@ -303,6 +306,7 @@ export function bubbleSize(count: number, place = true): { width: number; height
 export interface BubbleCharacter {
   readonly id: string;
   readonly accent: string;
+  readonly look?: CharacterLook | undefined;
   /** Another player's character: tapping it opens their card. */
   readonly other: boolean;
   /** Drawn with a selection ring (your own character, when the tap selected it). */
@@ -365,7 +369,13 @@ export function Bubble({
                 stroke-width={1.6}
               />
             )}
-            <Fitted drawn={bubbleFigure(c.accent)} x={3} y={0} width={FIGURE_W - 6} height={46} />
+            <Fitted
+              drawn={bubbleFigure(c.accent, c.look)}
+              x={3}
+              y={0}
+              width={FIGURE_W - 6}
+              height={46}
+            />
           </g>
         );
       })}
@@ -393,7 +403,7 @@ export function Bubble({
   );
 }
 
-export const CHARACTER_SIZE = { width: 176, height: 78 } as const;
+export const CHARACTER_SIZE = { width: 236, height: 78 } as const;
 
 /**
  * Another player's character: its figure, its name (the only text, rendered as text), its role emblem
@@ -403,7 +413,7 @@ export function CharacterCard({ who }: { who: Identity }): JSX.Element {
   return (
     <g data-popover="character" data-character={who.id}>
       <Card {...CHARACTER_SIZE} />
-      <Fitted drawn={bubbleFigure(who.accent)} x={8} y={8} width={40} height={60} />
+      <Fitted drawn={bubbleFigure(who.accent, who.look)} x={8} y={8} width={40} height={60} />
       <text
         x={56}
         y={28}
@@ -412,7 +422,7 @@ export function CharacterCard({ who }: { who: Identity }): JSX.Element {
         font-weight={600}
         font-family="system-ui, sans-serif"
       >
-        {who.name.length > 16 ? `${who.name.slice(0, 15)}…` : who.name}
+        {who.name.length > 22 ? `${who.name.slice(0, 21)}…` : who.name}
       </text>
       <g transform="translate(54 38)">
         <RoleEmblem role={who.role} size={30} />

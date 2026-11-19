@@ -20,7 +20,7 @@ import {
 import {
   type CreatureStepOption,
   directionOffset,
-  type GameState,
+  type GameStateView,
   type Hex,
   type PathStep,
   type Place,
@@ -37,7 +37,7 @@ import { type Flow, isSelecting } from './flow.ts';
 import { feetOf, type Point } from './pick.ts';
 
 export interface OverlayInput {
-  readonly state: GameState;
+  readonly state: GameStateView;
   readonly flow: Flow;
   readonly characterId: string;
   readonly reachable: readonly ReachablePlace[];

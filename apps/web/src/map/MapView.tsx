@@ -7,7 +7,8 @@
  */
 import { hexCenter, paperGrain, renderSceneFramed, type SvgNode } from '@behemoth-road/art';
 import {
-  type GameState,
+  type GameStateView,
+  terrainOf,
   predictCreature,
   hexKey,
   placeKey,
@@ -18,8 +19,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/ho
 import { PALETTE, PROJECTION } from './art.ts';
 import { cellStateAt, characterArts, creatureArt, sceneCells } from './cells.ts';
 import { chevronFor, placePopover, splitScene } from './compose.ts';
-import { accentOf, type Identity } from '../game/identity.ts';
-import { terrainOf } from '../game/viewState.ts';
+import { accentOf, type Identity, lookOf } from '../game/identity.ts';
 import { MAP_TUNING } from './config.ts';
 import { type Flow, isSelecting } from './flow.ts';
 import { GestureTracker, type Gesture } from './gestures.ts';
@@ -58,7 +58,7 @@ import {
 export type FocusTarget = 'me' | 'creature';
 
 export interface MapViewProps {
-  readonly state: GameState;
+  readonly state: GameStateView;
   readonly flow: Flow;
   readonly characterId: string;
   readonly onTap: (target: Target) => void;
@@ -94,7 +94,7 @@ export function fitScale(screen: Size, windowRadius: number): number {
   return clampScale(wide ? Math.min(fit, MAP_TUNING.wideMaxZoom) : fit, LIMITS);
 }
 
-function targetPoint(state: GameState, characterId: string, target: FocusTarget): Point {
+function targetPoint(state: GameStateView, characterId: string, target: FocusTarget): Point {
   // A rider's figure is on the creature's back, so recentring on it centres on the creature.
   const feet = target === 'me' ? figureFeet(state, characterId, p) : null;
   if (feet) return feet;
@@ -102,7 +102,7 @@ function targetPoint(state: GameState, characterId: string, target: FocusTarget)
 }
 
 /** The characters riding the creature, in character order (the bubble lists them). */
-const ridersOf = (state: GameState) =>
+const ridersOf = (state: GameStateView) =>
   state.characters.filter((c) => c.status === 'active' && c.at.kind === 'creature');
 
 /** Where a popover points: the top of what it is about, and how far below that the thing ends (world px). */
@@ -115,7 +115,7 @@ interface Anchor {
   readonly prefer?: 'above' | 'below';
 }
 
-function popoverAnchor(state: GameState, flow: Flow, characterId: string): Anchor | null {
+function popoverAnchor(state: GameStateView, flow: Flow, characterId: string): Anchor | null {
   const tile = 2 * p.size * p.squash;
   if (flow.kind === 'character') {
     // Above the character's head, wherever it stands (on a hex or on the creature's back).
@@ -411,12 +411,19 @@ export function MapView(props: MapViewProps): JSX.Element {
     };
   }, []);
 
-  // A new day: follow the creature so the map scrolls under it. A new game: jump to the character.
-  const previous = useRef({ seed: state.seed, centre: state.creature.centre, day: state.day });
+  // A new day: follow the creature so the map scrolls under it. A new game, or a new character of
+  // yours (joined or replaced): jump to it.
+  const snapshot = () => ({
+    game: state.artSeed,
+    me: characterId,
+    centre: state.creature.centre,
+    day: state.day,
+  });
+  const previous = useRef(snapshot());
   useEffect(() => {
     const before = previous.current;
-    previous.current = { seed: state.seed, centre: state.creature.centre, day: state.day };
-    if (before.seed !== state.seed || state.day < before.day) {
+    previous.current = snapshot();
+    if (before.game !== state.artSeed || before.me !== characterId || state.day < before.day) {
       stopAnimation();
       view.current = centreOn(
         targetPoint(state, characterId, 'me'),
@@ -436,7 +443,7 @@ export function MapView(props: MapViewProps): JSX.Element {
     const b = hexCenter(p, state.creature.centre.q, state.creature.centre.r);
     const v = view.current;
     animateTo(panBy(v, (a.x - b.x) * v.scale, (a.y - b.y) * v.scale), MAP_TUNING.followMs);
-  }, [state]);
+  }, [state, characterId]);
 
   // Recentre buttons.
   const focusN = props.focus.n;
@@ -490,7 +497,10 @@ export function MapView(props: MapViewProps): JSX.Element {
     const cellState = cellStateAt(state, `${flow.hex.q},${flow.hex.r}`);
     const known = cellState === 'seen' || cellState === 'fading';
     card = (
-      <InspectCard terrain={known ? terrainOf(state, flow.hex) : 'unknown'} state={cellState} />
+      <InspectCard
+        terrain={known ? (terrainOf(state, flow.hex)?.id ?? 'unknown') : 'unknown'}
+        state={cellState}
+      />
     );
   } else if (flow.kind === 'creature') {
     card = <CreatureCard state={state} />;
@@ -503,6 +513,7 @@ export function MapView(props: MapViewProps): JSX.Element {
         characters={ridersOf(state).map((c) => ({
           id: c.id,
           accent: accentOf(c.id, MAP_TUNING.accent),
+          look: lookOf(c.id),
           other: c.id !== characterId,
           selected: c.id === characterId && flow.selecting,
         }))}

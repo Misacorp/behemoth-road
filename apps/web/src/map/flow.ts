@@ -8,7 +8,7 @@
  */
 import {
   findCharacter,
-  type GameState,
+  type GameStateView,
   type Hex,
   hexEquals,
   moveAlong,
@@ -55,7 +55,7 @@ function look(flow: Flow, hex: Hex): Flow {
 }
 
 /** A tap on the creature. */
-function tapCreature(flow: Flow, state: GameState, characterId: string): Flow {
+function tapCreature(flow: Flow, state: GameStateView, characterId: string): Flow {
   const me = findCharacter(state, characterId);
   const active = me?.status === 'active';
   if (active && me.at.kind === 'creature') {
@@ -77,7 +77,7 @@ function tapCreature(flow: Flow, state: GameState, characterId: string): Flow {
 }
 
 /** What a tap does. */
-export function tap(flow: Flow, state: GameState, characterId: string, target: Target): Flow {
+export function tap(flow: Flow, state: GameStateView, characterId: string, target: Target): Flow {
   const me = findCharacter(state, characterId);
   const active = me?.status === 'active';
   const mine: Place | null = active ? me.at : null;
@@ -107,7 +107,7 @@ export function tap(flow: Flow, state: GameState, characterId: string, target: T
 }
 
 /** Tapping a hex (a shorthand for tests and callers without picking). */
-export const tapHex = (flow: Flow, state: GameState, characterId: string, hex: Hex): Flow =>
+export const tapHex = (flow: Flow, state: GameStateView, characterId: string, hex: Hex): Flow =>
   tap(flow, state, characterId, { kind: 'hex', hex });
 
 /** Another player's character card (from its figure or from the bubble). */
@@ -120,11 +120,11 @@ export const openHub = (): Flow => ({ kind: 'creature' });
  * Walks the planned path through the core. On success the character stays selected while it has actions
  * left; a refusal (the state changed under the plan) spends nothing and clears the plan.
  */
-export function confirmMove(
+export function confirmMove<S extends GameStateView>(
   flow: Flow,
-  state: GameState,
+  state: S,
   characterId: string,
-): { readonly flow: Flow; readonly state: GameState } {
+): { readonly flow: Flow; readonly state: S } {
   if (flow.kind !== 'planned') return { flow, state };
   const result = moveAlong(state, characterId, flow.steps);
   if (!result.ok) return { flow: IDLE, state };

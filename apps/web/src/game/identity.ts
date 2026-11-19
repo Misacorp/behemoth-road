@@ -1,9 +1,9 @@
 /**
- * Who each character is, from the player view: name, role, trait and quirk, and the accent colour its
- * cloak is drawn in. The accent comes from the character's name (a stable hash), so a rolled character
- * keeps its colour from the join drawer onto the map.
+ * Who each character is, from the player view: name, role, trait, quirk, the player's display name, and
+ * how it looks. Looks and cloak colours come from the art kit's `assignLooks` in join order, so no two
+ * characters on the map look alike while combinations last.
  */
-import { ACCENTS } from '@behemoth-road/art';
+import { ACCENTS, assignLooks, type CharacterLook } from '@behemoth-road/art';
 import type { PlayerView } from '../api/schema.ts';
 
 export interface Identity {
@@ -15,9 +15,10 @@ export interface Identity {
   /** The Discord display name of the player (text only). */
   readonly player: string | null;
   readonly accent: string;
+  readonly look: CharacterLook | undefined;
 }
 
-/** A stable accent for a name: the same name always gets the same colour. */
+/** A stable accent for a name: an offered character's cloak in the join drawer, before it has an id. */
 export function accentForName(name: string): string {
   let h = 2166136261;
   for (let i = 0; i < name.length; i += 1) {
@@ -28,31 +29,38 @@ export function accentForName(name: string): string {
 }
 
 export function identities(view: PlayerView): Map<string, Identity> {
+  const chars = view.game.characters;
+  const looks = assignLooks(chars.map((c) => c.id));
   const out = new Map<string, Identity>();
-  for (const c of view.game.characters) {
-    const owner = view.players.find((p) => p.characterId === c.id) ?? null;
-    const name = c.name ?? c.id;
+  chars.forEach((c, i) => {
+    const owner = view.players.find((p) => p.userId === c.userId) ?? null;
     out.set(c.id, {
       id: c.id,
-      name,
-      role: owner?.role ?? null,
-      trait: c.trait ?? null,
-      quirk: c.quirk ?? null,
+      name: c.name,
+      role: c.role,
+      trait: c.trait,
+      quirk: c.quirk,
       player: owner?.name ?? null,
-      accent: accentForName(name),
+      accent: looks[i]?.accent ?? ACCENTS[0],
+      look: looks[i]?.look,
     });
-  }
+  });
   return out;
 }
 
-// The accents of the characters in the current view, for the map's drawing code (set when a view arrives).
-let accents: ReadonlyMap<string, string> = new Map();
+// How the characters in the current view look, for the map's drawing code (set when a view arrives).
+let known: ReadonlyMap<string, Identity> = new Map();
 
 export function setAccents(ids: ReadonlyMap<string, Identity>): void {
-  accents = new Map([...ids].map(([id, who]) => [id, who.accent]));
+  known = ids;
 }
 
-/** A character's accent, or the default when the view does not know it (a local game). */
+/** A character's accent, or the default when the view does not know it (a local game, a test). */
 export function accentOf(characterId: string, fallback: string): string {
-  return accents.get(characterId) ?? fallback;
+  return known.get(characterId)?.accent ?? fallback;
+}
+
+/** A character's look, or undefined (the art kit's default explorer). */
+export function lookOf(characterId: string): CharacterLook | undefined {
+  return known.get(characterId)?.look;
 }

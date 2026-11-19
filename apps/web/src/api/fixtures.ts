@@ -2,21 +2,26 @@
  * HAND-WRITTEN FIXTURES: REPLACE with the worker's captured contract fixtures once they exist
  * (`docs/design/m2-session.md`: fixtures are captured from the real Worker and never edited by hand).
  *
- * They follow the contract plus the open proposals (offers, character identity, `you.admin`). The game
- * part is built with the core from a fixed seed, then the seed is dropped and terrain added to each known
- * tile, as the server's player view does.
+ * They follow the contract. The game parts come from the core itself, as the server makes them: a seeded
+ * game, players joining with `addCharacter` and the core's rolled offers, and `toPlayerView` to drop the
+ * seed. The screenshot script runs the same scenarios as a fake server.
  */
 import {
+  addCharacter,
+  characterOf,
+  characterOffers,
   createGame,
   type GameState,
   type Hex,
   nextDay,
   onHex,
-  terrainIdAt,
+  replaceCharacter,
+  toPlayerView,
 } from '@behemoth-road/core';
-import type { AppConfig, Offer, PlayerView, Session } from './schema.ts';
+import type { AppConfig, PlayerView, Session } from './schema.ts';
 
 const SEED = 20261119;
+const ART_SEED = 4242;
 
 export const CONFIG: AppConfig = {
   environment: 'staging',
@@ -32,131 +37,77 @@ export const SESSION: Session = {
   user: { id: '100000000000000001', name: 'Misa' },
 };
 
-export const OFFERS: Offer[] = [
-  { name: 'Aino Vasara', trait: 'keen-eyed', quirk: 'sleepwalker' },
-  { name: 'Brann Holt', trait: 'sure-footed', quirk: 'hoarder' },
-  { name: 'Ceri Lume', trait: 'patient', quirk: 'night-owl' },
-  { name: 'Wanderer', trait: null, quirk: null },
-];
+const MISA = SESSION.user.id;
+const PIP = '100000000000000002';
+const OLA = '100000000000000003';
 
-interface Who {
-  name: string;
-  trait: string | null;
-  quirk: string | null;
-}
-/** Characters created while a fake server runs (joins), by id. */
-const IDENTITY_OVERRIDES = new Map<string, Who>();
-const IDENTITY: Readonly<Record<string, Who>> = {
-  'c-misa': { name: 'Aino Vasara', trait: 'keen-eyed', quirk: 'sleepwalker' },
-  'c-pip': { name: 'Pip Marrow', trait: 'strong', quirk: 'chatterbox' },
-  'c-ola': { name: 'Ola Reed', trait: null, quirk: null },
-};
+/** Discord display names, by user id. */
+const NAMES: Readonly<Record<string, string>> = { [MISA]: 'Misa', [PIP]: 'Pip', [OLA]: 'Ola' };
 
-/** The game part of a view: the state without its seed, known tiles with their terrain. */
-export function stateView(state: GameState): PlayerView['game'] {
-  const tiles: Record<string, PlayerView['game']['tiles'][string]> = {};
-  for (const [key, tile] of Object.entries(state.tiles)) {
-    const [q, r] = key.split(',').map(Number) as [number, number];
-    tiles[key] = { ...tile, terrain: terrainIdAt(state.seed, { q, r }) };
-  }
-  return {
-    day: state.day,
-    config: state.config,
-    creature: state.creature,
-    tiles,
-    characters: state.characters.map((c) => ({
-      ...c,
-      ...(IDENTITY_OVERRIDES.get(c.id) ?? IDENTITY[c.id]),
-    })),
-  };
-}
-
-function view(
-  state: GameState,
-  characterId: string | null,
-  players: PlayerView['players'],
-  offers: Offer[] | null,
-  version: number,
-): PlayerView {
-  return {
-    version,
-    day: state.day,
-    you: { userId: SESSION.user.id, characterId, admin: true },
-    game: stateView(state),
-    players,
-    devTools: true,
-    offers,
-  };
-}
-
-const MISA = { userId: SESSION.user.id, name: 'Misa', joinedDay: 1 };
-const PIP = {
-  userId: '100000000000000002',
-  name: 'Pip',
-  characterId: 'c-pip',
-  role: 'keeper',
-  joinedDay: 1,
-};
-const OLA = {
-  userId: '100000000000000003',
-  name: 'Ola',
-  characterId: 'c-ola',
-  role: 'envoy',
-  joinedDay: 1,
-};
-
-/** A scenario: the full state (with its seed, as the server holds it) and who is in it. */
+/** A scenario: the full state (with its seed, as the server holds it), whose view it is, and a version. */
 export interface Scenario {
   readonly state: GameState;
-  readonly you: string | null;
-  readonly players: PlayerView['players'];
-  readonly offers: Offer[] | null;
+  readonly you: string;
   readonly version: number;
+  /** Admins see "next day" when dev tools are on. */
+  readonly admin: boolean;
 }
 
-export const toView = (s: Scenario): PlayerView =>
-  view(s.state, s.you, s.players, s.offers, s.version);
+/** The view the server would send `scenario.you`. */
+export function toView(s: Scenario): PlayerView {
+  const mine = characterOf(s.state, s.you) ?? null;
+  const needsCharacter = mine === null || mine.status === 'lost';
+  const users = [...new Set([s.you, ...s.state.characters.map((c) => c.userId)])];
+  return {
+    version: s.version,
+    day: s.state.day,
+    you: { userId: s.you, characterId: mine?.id ?? null, admin: s.admin },
+    offers: needsCharacter ? characterOffers(s.state, s.you) : null,
+    // The core's view type is read-only; the parsed type is the same shape.
+    game: toPlayerView(s.state) as PlayerView['game'],
+    players: users.map((userId) => {
+      const c = characterOf(s.state, userId) ?? null;
+      return {
+        userId,
+        name: NAMES[userId] ?? 'Player',
+        characterId: c?.id ?? null,
+        role: c?.role ?? null,
+        joinedDay: c?.joinedDay ?? null,
+      };
+    }),
+    devTools: true,
+  };
+}
+
+function must(result: ReturnType<typeof addCharacter>): GameState {
+  if (!result.ok) throw new Error(`fixture: ${result.reason}`);
+  return result.state;
+}
+
+/** Moves a user's character onto a hex (setting up a scenario, not a rule). */
+function place(state: GameState, userId: string, hex: Hex): GameState {
+  return {
+    ...state,
+    characters: state.characters.map((c) => (c.userId === userId ? { ...c, at: onHex(hex) } : c)),
+  };
+}
+
+/** Joining or replacing as `role` with offer `offer`, through the core like the server does. */
+export function joinScenario(s: Scenario, role: string, offer: number): Scenario {
+  const mine = characterOf(s.state, s.you);
+  const request = { userId: s.you, role, offer };
+  const result = mine ? replaceCharacter(s.state, request) : addCharacter(s.state, request);
+  return { ...s, state: must(result), version: s.version + 1 };
+}
 
 /** Before joining: Pip rides the creature and Ola stands beside it; you have offers to pick from. */
 export function notJoinedScenario(): Scenario {
-  const base = createGame(SEED, { characterIds: ['c-pip', 'c-ola'] });
-  const beside: Hex = { q: base.creature.centre.q, r: base.creature.centre.r + 2 };
-  return {
-    state: {
-      ...base,
-      characters: base.characters.map((c) => (c.id === 'c-ola' ? { ...c, at: onHex(beside) } : c)),
-    },
-    you: null,
-    players: [{ ...MISA, characterId: null, role: null, joinedDay: null }, PIP, OLA],
-    offers: OFFERS,
-    version: 3,
-  };
-}
-
-/** Joining as `role` with offer `offer`: your new character starts riding the creature. */
-export function joinScenario(s: Scenario, role: string, offer: number): Scenario {
-  const picked = s.offers?.[offer] ?? OFFERS[OFFERS.length - 1]!;
-  IDENTITY_OVERRIDES.set('c-misa', { name: picked.name, trait: picked.trait, quirk: picked.quirk });
-  const config = s.state.config;
-  const mine = {
-    id: 'c-misa',
-    at: { kind: 'creature' as const },
-    actionsLeft: config.actionsPerDay,
-    status: 'active' as const,
-  };
-  return {
-    ...s,
-    state: {
-      ...s.state,
-      characters: [mine, ...s.state.characters.filter((c) => c.id !== 'c-misa')],
-    },
-    you: 'c-misa',
-    players: s.players.map((p) =>
-      p.userId === MISA.userId ? { ...p, characterId: 'c-misa', role, joinedDay: s.state.day } : p,
-    ),
-    offers: null,
-    version: s.version + 1,
-  };
+  let state = createGame(SEED, { artSeed: ART_SEED });
+  state = must(addCharacter(state, { userId: PIP, role: 'keeper', offer: 0 }));
+  state = must(addCharacter(state, { userId: OLA, role: 'envoy', offer: 1 }));
+  const c = state.creature.centre;
+  state = place(state, OLA, { q: c.q, r: c.r + 2 });
+  return { state, you: MISA, version: 3, admin: true };
 }
 
 /** Joined: you and Pip ride the creature, Ola stands on a hex beside it. */
@@ -166,22 +117,19 @@ export function joinedScenario(): Scenario {
 
 /** Your character was left behind and is lost; you may replace it. */
 export function lostScenario(): Scenario {
-  const base = createGame(SEED, { characterIds: ['c-misa', 'c-pip'] });
-  const behind: Hex = { q: base.creature.centre.q, r: base.creature.centre.r + 4 };
-  let state: GameState = {
-    ...base,
-    characters: base.characters.map((c) => (c.id === 'c-misa' ? { ...c, at: onHex(behind) } : c)),
-  };
+  const joined = joinedScenario();
+  const c = joined.state.creature.centre;
+  let state = place(joined.state, MISA, { q: c.q, r: c.r + 4 });
   for (let i = 0; i < 4; i += 1) state = nextDay(state);
-  return {
-    state,
-    you: 'c-misa',
-    players: [{ ...MISA, characterId: 'c-misa', role: 'scout' }, PIP],
-    offers: OFFERS,
-    version: 12,
-  };
+  return { ...joined, state, version: 12 };
 }
 
 export const notJoined = (): PlayerView => toView(notJoinedScenario());
 export const joined = (): PlayerView => toView(joinedScenario());
 export const lost = (): PlayerView => toView(lostScenario());
+
+export const USERS = { MISA, PIP, OLA } as const;
+
+/** A user's character id in a view (the core makes the ids). */
+export const characterIdOf = (view: PlayerView, userId: string): string =>
+  view.players.find((p) => p.userId === userId)?.characterId ?? '';

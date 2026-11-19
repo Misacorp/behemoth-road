@@ -19,11 +19,23 @@ import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
 import { dirname, extname, join, normalize, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { readdirSync } from 'node:fs';
-import { SPRING } from '../../../packages/art/src/palette.ts';
-import { moveAlong, nextDay } from '../../../packages/core/src/index.ts';
-import {
+
+// The core, the art kit and the fixtures are TypeScript; Node runs them with its type transform (the core
+// uses syntax plain type stripping does not cover). Re-run this script with the flag when it is missing.
+if (!process.execArgv.includes('--experimental-transform-types')) {
+  const res = spawnSync(
+    process.execPath,
+    ['--experimental-transform-types', '--no-warnings', ...process.argv.slice(1)],
+    { stdio: 'inherit' },
+  );
+  process.exit(res.status ?? 1);
+}
+const { SPRING } = await import('../../../packages/art/src/palette.ts');
+const { characterOf, moveAlong, nextDay } = await import('../../../packages/core/src/index.ts');
+const {
+  characterIdOf,
   CONFIG,
   joinScenario,
   joinedScenario,
@@ -31,8 +43,9 @@ import {
   notJoinedScenario,
   SESSION,
   toView,
-} from '../src/api/fixtures.ts';
-import { accentForName } from '../src/game/identity.ts';
+  USERS,
+} = await import('../src/api/fixtures.ts');
+const { identities } = await import('../src/game/identity.ts');
 
 const here = dirname(fileURLToPath(import.meta.url));
 const web = resolve(here, '..');
@@ -111,7 +124,7 @@ class FakeServer {
     }
     if (path === '/api/game/move') {
       if (body.version !== s.version) return [409, { error: 'stale' }];
-      const result = moveAlong(s.state, s.you, body.path);
+      const result = moveAlong(s.state, characterOf(s.state, s.you)?.id ?? '', body.path);
       if (!result.ok) return [409, { error: result.reason }];
       return ok({ ...s, state: result.state, version: s.version + 1 });
     }
@@ -153,6 +166,12 @@ function startVite() {
     vite.on('exit', (code) => fail(new Error(`vite exited (${code}): ${text}`)));
   });
 }
+
+/** Your character's cloak colour in the joined scenario (the art kit assigns looks in join order). */
+const CLOAK = (() => {
+  const view = toView(joinedScenario());
+  return identities(view).get(characterIdOf(view, USERS.MISA)).accent;
+})();
 
 const VIEWPORTS = [
   { name: 'phone', width: 390, height: 844, touch: true },
@@ -241,8 +260,9 @@ async function run() {
       await page.waitForTimeout(700);
       if (await page.locator('.drawer').count())
         problems.push(`${vp.name}: drawer still open after joining`);
-      if (fake.scenario.you !== 'c-misa')
-        problems.push(`${vp.name}: join did not reach the server`);
+      const charOf = (user) => characterOf(fake.scenario.state, user);
+      const idOf = (user) => characterIdOf(toView(fake.scenario), user);
+      if (!charOf(USERS.MISA)) problems.push(`${vp.name}: join did not reach the server`);
       await shot('two-players-riding');
 
       const svg = page.locator('svg.map');
@@ -275,7 +295,7 @@ async function run() {
           return a?.matches('svg.map') ? 'map' : `${a?.tagName ?? 'none'}`;
         });
       if ((await focused()) !== 'popover') problems.push(`${vp.name}: focus not in the bubble`);
-      await press('[data-popover=bubble] [data-character=c-pip]');
+      await press(`[data-popover=bubble] [data-character="${idOf(USERS.PIP)}"]`);
       if (!(await has('character'))) problems.push(`${vp.name}: no card for the other rider`);
       await shot('other-player-card');
       await page.keyboard.press('Escape');
@@ -284,7 +304,11 @@ async function run() {
       if ((await focused()) !== 'map') problems.push(`${vp.name}: focus not back on the map`);
       // Ola stands beside the creature: a tap on her figure opens her card.
       await tap(...(await hexOnScreen(q0, r0 + 2, -0.05, 0.1)));
-      if (!(await page.locator('[data-popover=character][data-character=c-ola]').count()))
+      if (
+        !(await page
+          .locator(`[data-popover=character][data-character="${idOf(USERS.OLA)}"]`)
+          .count())
+      )
         problems.push(`${vp.name}: tapping another player's figure did not open their card`);
       await page.keyboard.press('Escape');
 
@@ -311,7 +335,7 @@ async function run() {
       await shot('plan-step-off');
       if (off) await press('[aria-label=Confirm]');
       await page.waitForTimeout(300);
-      const mine = fake.scenario.state.characters.find((c) => c.id === 'c-misa');
+      const mine = charOf(USERS.MISA);
       if (off && mine?.at.kind !== 'hex')
         problems.push(`${vp.name}: the move did not reach the server`);
       await shot('stepped-off');
@@ -363,7 +387,7 @@ async function run() {
       await press('.role[data-role=keeper]');
       await press('.join-go');
       await page.waitForTimeout(500);
-      const replaced = fake.scenario.state.characters.find((c) => c.id === 'c-misa');
+      const replaced = charOf(USERS.MISA);
       if (replaced?.status !== 'active' || replaced.at.kind !== 'creature')
         problems.push(`${vp.name}: replace did not start a new character on the creature`);
 
@@ -420,7 +444,7 @@ async function run() {
             },
             {
               trodden: SPRING.ramps.trodden.base,
-              cloak: SPRING.accents[accentForName('Aino Vasara')].base,
+              cloak: SPRING.accents[CLOAK].base,
             },
           );
         await page.mouse.move(cx, cy);

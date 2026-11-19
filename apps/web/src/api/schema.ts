@@ -18,23 +18,22 @@ export const PlaceSchema = v.variant('kind', [
 ]);
 
 const tile = v.variant('visibility', [
-  v.object({
-    visibility: v.literal('seen'),
-    leftWindowOnDay: v.nullable(count),
-    terrain: v.optional(id),
-  }),
-  v.object({ visibility: v.literal('lost'), terrain: v.optional(id) }),
+  v.object({ visibility: v.literal('seen'), terrain: id, leftWindowOnDay: v.nullable(count) }),
+  v.object({ visibility: v.literal('lost'), terrain: id }),
 ]);
 
 const character = v.object({
   id,
+  userId: id,
+  name: text,
+  /** Content ids; null for the plain character. */
+  trait: v.nullable(id),
+  quirk: v.nullable(id),
+  role: id,
+  joinedDay: count,
   at: PlaceSchema,
   actionsLeft: count,
   status: v.picklist(['active', 'lost']),
-  // Identity (pending in the contract; see `offers`): content ids, null for the plain character.
-  name: v.optional(text),
-  trait: v.optional(v.nullable(id)),
-  quirk: v.optional(v.nullable(id)),
 });
 
 const config = v.object({
@@ -43,12 +42,16 @@ const config = v.object({
   creatureRadius: count,
   windowRadius: count,
   graceDays: count,
+  lostTileRings: count,
   playerCap: count,
   veerWeights: v.object({ left: v.number(), straight: v.number(), right: v.number() }),
 });
 
-/** The core state without the seed: known tiles carry their terrain. */
+/** The core state without the seed (the core's `GameStateView`): known tiles carry their terrain. */
 export const GameStateViewSchema = v.object({
+  contentVersion: count,
+  /** A public cosmetic seed for drawing variety; unrelated to the game seed. */
+  artSeed: v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(0xffffffff)),
   day: count,
   config,
   creature: v.object({ centre: hex, heading: direction }),
@@ -68,7 +71,7 @@ const player = v.object({
   joinedDay: v.nullable(count),
 });
 
-/** A character the player may pick when joining or replacing (proposed in the contract). */
+/** A character the player may pick when joining or replacing (index into `offers`). */
 export const OfferSchema = v.object({
   name: text,
   trait: v.nullable(id),
@@ -81,12 +84,12 @@ export const PlayerViewSchema = v.object({
   you: v.object({
     userId: id,
     characterId: v.nullable(id),
-    admin: v.optional(v.boolean(), false),
+    admin: v.boolean(),
   }),
   game: GameStateViewSchema,
   players: v.pipe(v.array(player), v.maxLength(64)),
   devTools: v.boolean(),
-  offers: v.optional(v.nullable(v.pipe(v.array(OfferSchema), v.maxLength(8))), null),
+  offers: v.nullable(v.pipe(v.array(OfferSchema), v.maxLength(8))),
 });
 
 export const GameResponseSchema = v.union([

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { joined, lost, notJoined } from '../api/fixtures.ts';
+import { terrainOf } from '@behemoth-road/core';
+import { characterIdOf, joined, lost, notJoined, USERS } from '../api/fixtures.ts';
 import { IDLE, openCharacter, tap } from '../map/flow.ts';
 import { characterNeed, showsNextDay } from './Game.tsx';
 import { accentForName, identities } from './identity.ts';
@@ -19,27 +20,38 @@ describe('playing from the player view', () => {
     expect(showsNextDay({ ...v, you: { ...v.you, admin: false } })).toBe(false);
   });
 
-  it('knows everyone: names, roles, traits, quirks and stable accents', () => {
-    const ids = identities(joined());
-    const pip = ids.get('c-pip')!;
-    expect(pip).toMatchObject({ name: 'Pip Marrow', role: 'keeper', player: 'Pip' });
-    expect(pip.accent).toBe(accentForName('Pip Marrow'));
-    expect(ids.get('c-ola')).toMatchObject({ trait: null, quirk: null, role: 'envoy' });
+  it('knows everyone: names, roles, traits, quirks, and looks that differ', () => {
+    const v = joined();
+    const ids = identities(v);
+    const pip = ids.get(characterIdOf(v, USERS.PIP))!;
+    const core = v.game.characters.find((c) => c.id === pip.id)!;
+    expect(pip).toMatchObject({ name: core.name, role: 'keeper', player: 'Pip' });
+    expect(pip.trait).toBe(core.trait);
+    const looks = [...ids.values()].map(
+      (w) => `${w.accent}|${w.look?.headwear}|${w.look?.garment}`,
+    );
+    expect(new Set(looks).size).toBe(looks.length);
+    expect(accentForName('Ola')).toBe(accentForName('Ola'));
   });
 
-  it("reads terrain from the view's tiles, with no seed", () => {
+  it("reads terrain from the view's tiles: the view has no seed", () => {
     const v = joined();
-    const state = toGameState(v.game);
+    expect(v.game).not.toHaveProperty('seed');
     const [key, tile] = Object.entries(v.game.tiles)[0]!;
-    expect((state.tiles[key] as { terrain?: string }).terrain).toBe(tile.terrain);
-    expect(state.seed).toBe(0);
+    const [q, r] = key.split(',').map(Number) as [number, number];
+    expect(terrainOf(toGameState(v.game), { q, r })?.id).toBe(tile.terrain);
+    // Beyond the known tiles there is nothing to read.
+    expect(terrainOf(toGameState(v.game), { q: 999, r: 999 })).toBeNull();
   });
 
   it("tapping another player's figure opens their card; again closes it", () => {
-    const state = toGameState(joined().game);
-    const card = tap(IDLE, state, 'c-misa', { kind: 'character', id: 'c-ola' });
-    expect(card).toEqual(openCharacter('c-ola'));
-    expect(tap(card, state, 'c-misa', { kind: 'character', id: 'c-ola' })).toEqual(IDLE);
+    const v = joined();
+    const state = toGameState(v.game);
+    const me = characterIdOf(v, USERS.MISA);
+    const ola = characterIdOf(v, USERS.OLA);
+    const card = tap(IDLE, state, me, { kind: 'character', id: ola });
+    expect(card).toEqual(openCharacter(ola));
+    expect(tap(card, state, me, { kind: 'character', id: ola })).toEqual(IDLE);
   });
 
   it('before joining, tapping the creature opens the bubble without selecting anyone', () => {
