@@ -104,6 +104,11 @@ Record a decision:
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-20 Lingering is the keeper's action and never runs two days in a row
+- 2026-11-20 Hunger has a comfortable band; underfed is erratic, overfed is sluggish; anyone can feed
+- 2026-11-20 Symptoms are computed per viewer; keepers see them earlier and see reaction cues
+- 2026-11-20 Fires pull the creature's step by a weighted score; the public prediction stays blind
+- 2026-11-20 The creature's nature is hidden server data; the first creature is drawn to fire or shies from it
 - 2026-11-20 Explored and unexplored hexes look clearly different \[Misa\]
 - 2026-11-20 Characters carry packs; team stores live on the creature
 - 2026-11-20 Engineers build permanent team unlocks with a cost and a duration \[Misa\]

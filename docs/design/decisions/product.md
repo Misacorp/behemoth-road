@@ -4,6 +4,46 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: Lingering is the keeper's action and never runs two days in a row
+
+ID: `2026-11-20-lingering-is-the-keeper-s-action` · Status: current
+
+**Decision.** A keeper riding the creature can spend 2 actions to make it stay put at the next tick. It cannot linger on the day after a linger. Whether it lingers is public. Other roles cannot linger.
+
+**Reasoning.** Pace is the keeper's lever in the design, and the creature must always move: allowing only every other day keeps a whole team of keepers from stalling the journey. The cost is in the tuning config.
+
+## 2026-11-20: Hunger has a comfortable band; underfed is erratic, overfed is sluggish; anyone can feed
+
+ID: `2026-11-20-hunger-has-a-comfortable-band-underfed` · Status: current
+
+**Decision.** Satiety is a hidden 0 to 10, starting at 6, dropping 1 per day; 4 to 7 is comfortable. Feeding (riding, 1 action, 1 food from the stores) adds the food's `nourishes` (2). Underfed makes the creature's steps erratic (even veer weights) and, at the worst level, it eats from the team stores. Overfed weakens how much stimuli pull it. Anyone can feed; the keeper's edge is reading the signs. Herbs and illness are left for later.
+
+**Reasoning.** Both failure directions need a cost, or players would always overfeed. Erratic and sluggish are distinct and both hurt steering, so keeping it comfortable is what lets the team steer. Feeding for all follows "basics for all"; the keeper's mastery is information and pace, and more comes later as upgrades.
+
+## 2026-11-20: Symptoms are computed per viewer; keepers see them earlier and see reaction cues
+
+ID: `2026-11-20-symptoms-are-computed-per-viewer-keepers` · Status: current
+
+**Decision.** The view's `signs` are computed per viewer by the core. A keeper sees the appetite kind and level from level 1, plus a cue for each fire the creature noticed at the last tick (toward, away, unmoved), showing its hidden attitude rather than the rolled outcome. Others see appetite only from level 2, always faint, and no cues.
+
+**Reasoning.** The plan asks for clearer signals for the keeper and a puzzle solvable by experiment. The step is a weighted roll, so outcomes alone can mislead; the keeper's cue makes one well-placed fire a fair experiment while others still have to trust the keeper's reading, as the design describes. Clearer or earlier signs can grow into keeper upgrades.
+
+## 2026-11-20: Fires pull the creature's step by a weighted score; the public prediction stays blind
+
+ID: `2026-11-20-fires-pull-the-creature-s-step` · Status: current
+
+**Decision.** For each fire within 3 hexes of the creature's centre, each of the three step options scores +1 closer, -1 farther or 0; its weight is multiplied by `stimulusPull` (6) to the power of the score (negated if repelled, ignored if indifferent), then the seeded roll picks. The heading stays fixed; fires shift the path sideways. `predictCreature` keeps the base weights, so the step hints never reveal the reaction or the hunger.
+
+**Reasoning.** A strong but not certain pull makes steering reliable enough to plan with and keeps the walk lively. Keeping the prediction blind is the only way the reaction stays something to learn. Turning the heading itself is left possible for later.
+
+## 2026-11-20: The creature's nature is hidden server data; the first creature is drawn to fire or shies from it
+
+ID: `2026-11-20-the-creature-s-nature-is-hidden` · Status: current
+
+**Decision.** Creature types are content (`CREATURE_TYPES`), with a need and, per stimulus tag, the reactions they may roll. A new game rolls the creature's reactions from the seed and keeps them, with its satiety, in server-only state fields that the player view never lists. The first creature, the Mossback, rolls its fire reaction from attracted or repelled.
+
+**Reasoning.** Hidden properties are the keeper's puzzle and must never reach the client. An indifferent first creature would make the milestone's done criterion (turning it with fire) impossible; the tame first creature keeps indifference for later ones.
+
 ## 2026-11-20: Explored and unexplored hexes look clearly different **[Misa]**
 
 ID: `2026-11-20-explored-and-unexplored-hexes-look-clearly` · Status: current

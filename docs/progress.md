@@ -4,6 +4,7 @@ What has landed and what is next. Newest first. Update it when a step lands or t
 
 ## Next
 
+- Milestone 4 (the living creature: hidden needs and reactions, fire, the Keeper): plan in `docs/design/m4-creature.md`; core and art first on `m4/*`, worker and web once Milestone 3 is on `m3/integration`; merged on `m4/integration`.
 - Milestone 3 (the first chain: Scout, Engineer, Scholar): plan in `docs/design/m3-chain.md`; core, worker, web and art on `m3/*`, merged on `m3/integration`.
 - Before Milestone 2 persists games: pin the content (terrain table) a saved game was made with, so a later content change cannot alter it; and keep the per-tile record from growing without bound (lost tiles could be pruned).
 
