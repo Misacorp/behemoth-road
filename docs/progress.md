@@ -4,7 +4,7 @@ What has landed and what is next. Newest first. Update it when a step lands or t
 
 ## Next
 
-- Milestone 0 (foundations, `docs/PROTOTYPE_PLAN.md`): first deploy of the blank page; add the game core package with a test.
+- Milestone 0 (foundations, `docs/PROTOTYPE_PLAN.md`): first deploy of the blank page.
 - Graphical direction: research AI-assisted art workflows, then a session with Misa to choose a visual direction before any major graphics are built.
 - Milestone 1 (the walking map): map interface on top of `packages/core`, then joined.
 
