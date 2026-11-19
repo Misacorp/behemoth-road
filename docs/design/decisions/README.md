@@ -49,6 +49,7 @@ Record a decision:
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
+- 2026-11-20 Before a stable release, older games are wiped, not migrated \[Misa\]
 - 2026-11-19 Only allowed Discord servers can play; the app itself is public \[Misa\]
 - 2026-11-19 The web client boots as an Activity, parses every response, and runs rules on the player view
 - 2026-11-19 Sign-in, interactions and the deploy's Discord steps follow creatures (amended)
@@ -103,6 +104,10 @@ Record a decision:
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-20 Explored and unexplored hexes look clearly different \[Misa\]
+- 2026-11-20 Characters carry packs; team stores live on the creature
+- 2026-11-20 Engineers build permanent team unlocks with a cost and a duration \[Misa\]
+- 2026-11-20 Everyone springs traps; scout and engineer bonuses come later as upgrades \[Misa\]
 - 2026-11-19 Joining is a drawer wizard; characters look distinct on the map
 - 2026-11-19 Character looks come from content's look seeds, so a preview matches the joined look
 - 2026-11-19 Icons follow content's icon keys; quirks sit on a split tile
