@@ -7,8 +7,17 @@ export {
   type TuningConfig,
   type VeerWeights,
 } from './config.ts';
-export { TERRAIN_TYPES, type TerrainType } from './content/index.ts';
-export { terrainAt } from './map.ts';
+export {
+  TERRAIN_GENERATION,
+  TERRAIN_TYPES,
+  type FieldCondition,
+  type FieldRef,
+  type TerrainGeneration,
+  type TerrainRule,
+  type TerrainType,
+} from './content/index.ts';
+export { DEFAULT_MAP_CONTENT, terrainAt, terrainIdAt, type MapContent } from './map.ts';
+export { noiseAt, type NoiseField } from './noise.ts';
 export type {
   Character,
   CharacterStatus,
@@ -27,6 +36,18 @@ export {
   windowHexes,
 } from './window.ts';
 export { chooseCreatureStep, predictCreature, type CreatureStepOption } from './creature.ts';
-export { legalMoves, move, moveCost, type ActionResult, type MoveRefusal } from './actions.ts';
+export {
+  isPassable,
+  legalMoves,
+  move,
+  moveAlong,
+  moveCost,
+  planPath,
+  type ActionResult,
+  type MoveRefusal,
+  type PathPlan,
+  type PathRefusal,
+  type PathResult,
+} from './actions.ts';
 export { nextDay } from './tick.ts';
 export { createGame, type CreateGameOptions } from './game.ts';

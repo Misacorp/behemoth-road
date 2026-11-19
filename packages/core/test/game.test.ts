@@ -2,12 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   createGame,
   type GameState,
-  hexDistance,
+  hex,
   isReachable,
   legalMoves,
   move,
   nextDay,
-  terrainAt,
 } from '../src/index.ts';
 
 /** Plays `days` days; each day every character takes its first legal moves. */
@@ -29,13 +28,12 @@ const play = (start: GameState, days: number): GameState => {
 };
 
 describe('createGame', () => {
-  it('places every character on a passable hex near the creature, with full actions', () => {
+  it("puts every character on the creature's centre with full actions, even on a cliff", () => {
     for (let seed = 0; seed < 50; seed++) {
       const state = createGame(seed, { characterIds: ['a', 'b', 'c'] });
       expect(state.day).toBe(1);
       for (const c of state.characters) {
-        expect(terrainAt(seed, c.position).passable).toBe(true);
-        expect(hexDistance(c.position, state.creature.centre)).toBeLessThanOrEqual(2);
+        expect(c.position).toEqual(state.creature.centre);
         expect(isReachable(state, c.position)).toBe(true);
         expect(c).toMatchObject({ actionsLeft: 3, status: 'active' });
       }
@@ -47,6 +45,7 @@ describe('createGame', () => {
     expect(() => createGame(1.5)).toThrow(RangeError);
     expect(() => createGame(1, { characterIds: ['a', 'a'] })).toThrow(/unique/);
     expect(() => createGame(1, { characterIds: [''] })).toThrow(RangeError);
+    expect(() => createGame(1, { start: hex(0.5, 0) })).toThrow(RangeError);
     const many = Array.from({ length: 16 }, (_, i) => `c${i}`);
     expect(() => createGame(1, { characterIds: many })).toThrow(/cap/);
     expect(createGame(1, { characterIds: many.slice(0, 15) }).characters).toHaveLength(15);

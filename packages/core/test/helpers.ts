@@ -1,4 +1,4 @@
-import { type Character, type GameState, type Hex, neighbours, terrainAt } from '../src/index.ts';
+import { type Character, type GameState, type Hex } from '../src/index.ts';
 
 /** Returns a copy of the state with one character replaced. */
 export const withCharacter = (state: GameState, character: Character): GameState => ({
@@ -12,6 +12,8 @@ export const placeCharacter = (state: GameState, id: string, position: Hex): Gam
   return withCharacter(state, { ...c, position });
 };
 
-/** A neighbour of `h` whose terrain is (or is not) passable, if any. */
-export const neighbourWhere = (seed: number, h: Hex, passable: boolean): Hex | undefined =>
-  neighbours(h).find((n) => terrainAt(seed, n).passable === passable);
+/** The first seed in 0..1999 for which `test` holds. */
+export const findSeed = (test: (seed: number) => boolean): number => {
+  for (let seed = 0; seed < 2000; seed++) if (test(seed)) return seed;
+  throw new Error('no seed found');
+};

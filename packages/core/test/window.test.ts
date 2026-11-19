@@ -69,6 +69,19 @@ describe('window and fog of war', () => {
     expect(state.characters[0]?.status).toBe('lost');
   });
 
+  it('leaves a character in place when the creature steps onto its hex', () => {
+    let state = createGame(1, { characterIds: ['a'], config: straight });
+    state = placeCharacter(state, 'a', hex(0, -2));
+    state = nextDay(state); // the creature's centre moves to (0, -1); a is now in its footprint
+    state = nextDay(state); // the creature's centre is now on a
+    expect(state.creature.centre).toEqual(hex(0, -2));
+    expect(state.characters[0]).toMatchObject({
+      position: hex(0, -2),
+      status: 'active',
+      actionsLeft: 3,
+    });
+  });
+
   it('keeps the window centred on the creature each day', () => {
     let state = createGame(4);
     for (let i = 0; i < 10; i++) state = nextDay(state);

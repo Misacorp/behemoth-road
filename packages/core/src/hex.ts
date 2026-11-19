@@ -26,6 +26,10 @@ const OFFSETS: Readonly<Record<Direction, Hex>> = {
 
 export const hex = (q: number, r: number): Hex => ({ q, r });
 
+/** Whole, safe-integer coordinates only. Input from outside is refused, never rounded. */
+export const isValidHex = (h: Hex): boolean =>
+  typeof h === 'object' && h !== null && Number.isSafeInteger(h.q) && Number.isSafeInteger(h.r);
+
 export const hexEquals = (a: Hex, b: Hex): boolean => a.q === b.q && a.r === b.r;
 
 export const hexAdd = (a: Hex, b: Hex): Hex => ({ q: a.q + b.q, r: a.r + b.r });
