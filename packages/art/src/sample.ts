@@ -11,9 +11,9 @@ import type { ArtCell } from './tile.ts';
 const RIVER = new Set(['1,-3', '0,-2', '-1,-1', '-2,0', '-3,1', '-3,2']);
 
 const EXPLICIT: Readonly<Record<string, Partial<ArtCell>>> = {
-  '-2,-1': { terrain: 'forest' },
+  '-2,-1': { terrain: 'forest', hint: true },
   '-3,0': { terrain: 'pines' },
-  '-2,1': { terrain: 'forest' },
+  '-2,1': { terrain: 'forest', feature: { look: 'logs' } },
   '-2,2': { terrain: 'forest' },
   '-3,3': { terrain: 'pines' },
   '-2,3': { terrain: 'forest' },
@@ -21,12 +21,12 @@ const EXPLICIT: Readonly<Record<string, Partial<ArtCell>>> = {
   '2,-3': { terrain: 'desert' },
   '3,-3': { terrain: 'desert' },
   '2,-2': { terrain: 'desert' },
-  '2,-1': { terrain: 'desert' },
+  '2,-1': { terrain: 'desert', feature: { look: 'ore' } },
   '3,-2': { terrain: 'cliff' },
   '3,-1': { terrain: 'rocks' },
   '2,0': { terrain: 'hills' },
   '3,0': { terrain: 'hills' },
-  '1,-2': { terrain: 'plains' },
+  '1,-2': { terrain: 'plains', feature: { look: 'deep-tomb' } },
   '1,1': { terrain: 'plains', site: 'ruin' },
   '0,-3': { terrain: 'plains' },
   '-1,-2': { terrain: 'forest' },

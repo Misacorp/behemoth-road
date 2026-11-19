@@ -8,7 +8,8 @@ import { samplePatch } from './sample.ts';
 import { renderScene } from './scene.ts';
 import { el, toSvgString, type SvgNode } from './svg.ts';
 import { assignLooks, drawCharacter } from './character.ts';
-import { drawIcon, ROLE_IDS, type EmblemFrame } from './icons.ts';
+import { drawIcon, ITEM_MOTIFS, MATERIAL_MOTIFS, ROLE_IDS, type EmblemFrame } from './icons.ts';
+import { drawMoment, drawViaMark, MOMENT_KINDS } from './marks.ts';
 import { ART_TUNING } from './config.ts';
 import { drawCreature, GENTLE_AMBLER } from './creature.ts';
 import type { PropDraw } from './props.ts';
@@ -171,6 +172,68 @@ function fogSheet(): string {
   );
 }
 
+/** Every feature on a fitting tile: nodes as found and used up, sites sealed and spent, revealed traps. */
+function featuresSheet(): string {
+  const rows: [string, string, 'ready' | 'depleted' | 'spent'][][] = [
+    [
+      ['ore', 'desert', 'ready'],
+      ['stones', 'river', 'ready'],
+      ['logs', 'forest', 'ready'],
+      ['no-such-feature', 'plains', 'ready'],
+    ],
+    [
+      ['ore', 'desert', 'depleted'],
+      ['stones', 'river', 'depleted'],
+      ['logs', 'forest', 'depleted'],
+    ],
+    [
+      ['tomb', 'plains', 'ready'],
+      ['deep-tomb', 'plains', 'ready'],
+      ['snare', 'plains', 'ready'],
+      ['pitfall', 'plains', 'ready'],
+    ],
+    [
+      ['tomb', 'plains', 'spent'],
+      ['deep-tomb', 'plains', 'spent'],
+    ],
+  ];
+  const cells: ArtCell[] = rows.flatMap((row, r) =>
+    row.map(([look, terrain, state], col) => ({
+      ...gridCell(r * 4 + col, 4),
+      terrain,
+      feature: { look, state },
+    })),
+  );
+  return toSvgString(
+    renderScene({ cells, projection: isometric(60), palette: PALETTE, seed: 'features' }),
+  );
+}
+
+/** The glint on a few tiles, next to the same tiles without it. */
+function glintSheet(): string {
+  const terrains = ['plains', 'forest', 'desert', 'hills'];
+  const cells: ArtCell[] = terrains.flatMap((terrain, i) => [
+    { ...gridCell(i, 4), terrain },
+    { ...gridCell(i + 4, 4), terrain, hint: true },
+  ]);
+  return toSvgString(
+    renderScene({ cells, projection: isometric(66), palette: PALETTE, seed: 'glints' }),
+  );
+}
+
+/** The moments as their finished frames, large, and the `via` hook at three sizes. */
+function marksSheet(): string {
+  const nodes: SvgNode[] = MOMENT_KINDS.map((kind, i) =>
+    placed(drawMoment(kind, PALETTE, 150), 30 + i * 200, 24),
+  );
+  [24, 36, 48].forEach((size, i) =>
+    nodes.push(placed(drawViaMark('grappling-hook', PALETTE, size), 60 + i * 90, 210)),
+  );
+  nodes.push(placed(drawViaMark('climbing-spikes', PALETTE, 36), 340, 216));
+  nodes.push(placed(drawViaMark('unknown-via', PALETTE, 36), 430, 216));
+  return paperSheet(640, 290, nodes);
+}
+
 /** A plain paper sheet of `width` × `height` holding `children`, no filters. */
 function paperSheet(width: number, height: number, children: SvgNode[]): string {
   return toSvgString(
@@ -245,6 +308,10 @@ function iconSheet(): string {
     TRAIT_ICONS.slice(6).map((id) => ({ id })),
     QUIRK_ICONS.slice(0, 6).map((id) => ({ id, tile: 'quirk' as const })),
     QUIRK_ICONS.slice(6).map((id) => ({ id, tile: 'quirk' as const })),
+    [...Object.keys(MATERIAL_MOTIFS), ...Object.keys(ITEM_MOTIFS)]
+      .slice(0, 6)
+      .map((id) => ({ id })),
+    [...Object.keys(MATERIAL_MOTIFS), ...Object.keys(ITEM_MOTIFS)].slice(6).map((id) => ({ id })),
     [{ id: 'unknown-icon' }],
   ];
   const cell = 100;
@@ -335,6 +402,30 @@ export function buildReviewItems(): ReviewDraft[] {
       file: 'emblems-shield.svg',
       ...framePick,
       svg: emblemSheet('shield'),
+    },
+    {
+      id: 'features/sheet',
+      group: 'Features',
+      title: 'Nodes, sites and traps, as found and used up',
+      file: 'features-sheet.svg',
+      ...glance,
+      svg: featuresSheet(),
+    },
+    {
+      id: 'features/glint',
+      group: 'Features',
+      title: 'The glint on sensed tiles',
+      file: 'features-glint.svg',
+      ...glance,
+      svg: glintSheet(),
+    },
+    {
+      id: 'marks/moments',
+      group: 'Marks',
+      title: 'Reveal, find and trap moments; the hook on a path step',
+      file: 'marks-moments.svg',
+      ...glance,
+      svg: marksSheet(),
     },
     {
       id: 'icons/sheet',
