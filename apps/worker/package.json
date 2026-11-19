@@ -12,8 +12,13 @@
     "test": "vitest run"
   },
   "devDependencies": {
+    "@cloudflare/vitest-plugin": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:",
     "wrangler": "catalog:"
+  },
+  "dependencies": {
+    "@behemoth-road/core": "workspace:*",
+    "valibot": "catalog:"
   }
 }
