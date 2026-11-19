@@ -14,11 +14,6 @@ import {
 } from '@behemoth-road/core';
 import { MAP_TUNING } from './config.ts';
 
-/** Core terrain ids that the art kit draws under another look's name. Others use their own id. */
-const TERRAIN_LOOK: Readonly<Record<string, string>> = { plains: 'meadow' };
-
-export const lookFor = (terrainId: string): string => TERRAIN_LOOK[terrainId] ?? terrainId;
-
 /** The fog state of a hex: hidden is blank paper, a seen hex outside the window is fading. */
 export function cellStateAt(state: GameState, key: string): CellState {
   const tile = state.tiles[key];
@@ -54,7 +49,7 @@ export function sceneCells(state: GameState): ArtCell[] {
       q: h.q,
       r: h.r,
       state: cellState,
-      terrain: known ? lookFor(terrainIdAt(state.seed, h)) : 'unknown',
+      terrain: known ? terrainIdAt(state.seed, h) : 'unknown',
     });
   }
   return cells;

@@ -6,7 +6,6 @@ import { el, isometric, renderScene, type CellState } from '@behemoth-road/art';
 import type { JSX } from 'preact';
 import { Pips, TickMark } from '../hud/icons.tsx';
 import { PALETTE } from './art.ts';
-import { splitScene } from './compose.ts';
 import { toPreact } from './svgToPreact.ts';
 
 export const INSPECT_SIZE = { width: 132, height: 76 } as const;
@@ -48,11 +47,10 @@ function Miniature({
     palette: PALETTE,
     seed: terrain,
     idPrefix: 'pop',
+    // On the card, a page frame would show as a box.
+    frame: 'none',
   });
-  // Ground and figures only: the scene's page frame (paper, vignette, grain) would show as a box.
-  const { ground, figures } = splitScene(scene);
-  const content = [...ground, ...figures].filter((n) => n.tag !== 'rect');
-  return toPreact(el('svg', { ...scene.attrs, x, y, width: 64, height: 56 }, content));
+  return toPreact(el('svg', { ...scene.attrs, x, y, width: 64, height: 56 }, scene.children));
 }
 
 const eyeLine = {

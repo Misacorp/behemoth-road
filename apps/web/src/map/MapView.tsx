@@ -2,7 +2,7 @@
  * The map: the art kit's scene and the overlays in one SVG, panned and zoomed by a transform on one group.
  * Gestures update the view imperatively (no re-render per frame); taps find their hex by maths.
  */
-import { hexCenter, renderScene } from '@behemoth-road/art';
+import { hexCenter, paperGrain, renderScene } from '@behemoth-road/art';
 import {
   type GameState,
   type Hex,
@@ -13,7 +13,7 @@ import {
 import type { JSX } from 'preact';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { PALETTE, PROJECTION } from './art.ts';
-import { cellStateAt, characterArts, creatureArt, lookFor, sceneCells } from './cells.ts';
+import { cellStateAt, characterArts, creatureArt, sceneCells } from './cells.ts';
 import { placePopover, splitScene } from './compose.ts';
 import { MAP_TUNING } from './config.ts';
 import type { Flow } from './flow.ts';
@@ -47,6 +47,9 @@ export interface MapViewProps {
   /** Recentre requests: a new `n` animates the view to the target. */
   readonly focus: { readonly target: FocusTarget; readonly n: number };
 }
+
+/** Paper grain over the whole screen; it uses the filter defs in the scene (default id prefix). */
+const GRAIN = toPreact(paperGrain(PALETTE));
 
 const LIMITS = { min: MAP_TUNING.minZoom, max: MAP_TUNING.maxZoom };
 const p = PROJECTION;
@@ -101,12 +104,13 @@ export function MapView(props: MapViewProps): JSX.Element {
       seed: state.seed,
       zoom: inkZoom,
       minInkPx: MAP_TUNING.minInkPx,
+      // No page frame: its edges would show while panning. The grain is drawn over the screen instead.
+      frame: 'none',
     });
     const split = splitScene(scene);
     return {
       ground: split.ground.map(toPreact),
       figures: split.figures.map(toPreact),
-      grain: split.grain.map(toPreact),
     };
   }, [state, inkZoom]);
 
@@ -340,7 +344,7 @@ export function MapView(props: MapViewProps): JSX.Element {
     const known = cellState === 'seen' || cellState === 'fading';
     card = (
       <InspectCard
-        terrain={known ? lookFor(terrainIdAt(state.seed, flow.hex)) : 'unknown'}
+        terrain={known ? terrainIdAt(state.seed, flow.hex) : 'unknown'}
         state={cellState}
       />
     );
@@ -373,7 +377,7 @@ export function MapView(props: MapViewProps): JSX.Element {
         {layers.figures}
         {overlays.over}
       </g>
-      <g class="grain">{layers.grain}</g>
+      <g class="grain">{GRAIN}</g>
       <g ref={popRef} class="popover" tabIndex={-1} onPointerDown={(e) => e.stopPropagation()}>
         {card}
       </g>

@@ -1,6 +1,8 @@
 import { createGame, hexKey, nextDay } from '@behemoth-road/core';
 import { describe, expect, it } from 'vitest';
-import { cellStateAt, creatureArt, lookFor, sceneCells } from './cells.ts';
+import { TERRAIN_LOOKS } from '@behemoth-road/art';
+import { TERRAIN_TYPES } from '@behemoth-road/core';
+import { cellStateAt, creatureArt, sceneCells } from './cells.ts';
 import { MAP_TUNING } from './config.ts';
 
 describe('scene cells', () => {
@@ -25,9 +27,8 @@ describe('scene cells', () => {
     expect(cellStateAt(s, hexKey({ q: 99, r: 99 }))).toBe('unseen');
   });
 
-  it('map core terrain to art looks and headings to facing', () => {
-    expect(lookFor('plains')).toBe('meadow');
-    expect(lookFor('cliff')).toBe('cliff');
+  it('find an art look for every core terrain id, and face the creature by its heading', () => {
+    for (const t of TERRAIN_TYPES) expect(TERRAIN_LOOKS[t.id], t.id).toBeDefined();
     expect(creatureArt(createGame(1, { heading: 'nw' })).facing).toBe('left');
     expect(creatureArt(createGame(1, { heading: 'n' })).facing).toBe('right');
   });

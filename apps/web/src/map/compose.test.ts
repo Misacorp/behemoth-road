@@ -3,21 +3,18 @@ import { describe, expect, it } from 'vitest';
 import { placePopover, splitScene } from './compose.ts';
 
 describe('scene layers', () => {
-  it('splits ground, figures and grain, drops the page vignette and stretches the grain to the screen', () => {
+  it('splits the ground from the figures layer, keeping every node', () => {
     const scene = renderScene({
       ...samplePatch(),
       projection: isometric(),
       palette: MORNING,
       seed: 1,
+      frame: 'none',
     });
     const layers = splitScene(scene);
-    expect(layers.figures[0]?.attrs['filter']).toBe('url(#br-ink)');
-    expect(layers.ground.some((n) => n.attrs['filter'] === 'url(#br-wash)')).toBe(true);
-    expect(layers.ground.some((n) => String(n.attrs['fill']).includes('vignette'))).toBe(false);
-    expect(layers.grain).toHaveLength(1);
-    expect(layers.grain[0]?.attrs).toMatchObject({ x: 0, y: 0, width: '100%', height: '100%' });
-    const total = layers.ground.length + layers.figures.length + layers.grain.length;
-    expect(total).toBe(scene.children.length - 1);
+    expect(layers.figures[0]?.attrs['data-layer']).toBe('objects');
+    expect(layers.ground[0]?.tag).toBe('defs');
+    expect([...layers.ground, ...layers.figures]).toEqual(scene.children);
   });
 });
 
