@@ -109,7 +109,6 @@ export function Game({ api, initial }: GameProps): JSX.Element {
   // The drawer opens by itself whenever a character is needed (first join, or after being lost).
   useEffect(() => setDrawerClosed(false), [need]);
 
-  // A plan made on an older view may no longer hold: drop it when the view changes under it.
   // Moments: what changed between the last view and this one, shown briefly on the map.
   const [moments, setMoments] = useState<readonly Moment[]>([]);
   const momentTimer = useRef(0);
@@ -131,6 +130,7 @@ export function Game({ api, initial }: GameProps): JSX.Element {
     playMoments(momentsBetween(before.game, view.game, view.you.characterId ?? ''));
   }, [view]);
 
+  // A plan made on an older view may no longer hold: drop it when the view changes under it.
   const planVersion = useRef(view.version);
   useEffect(() => {
     if (planVersion.current !== view.version) {
