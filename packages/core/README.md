@@ -19,6 +19,7 @@ The game rules: pure, headless and seeded. No UI, network or storage code. Every
   - `{ kind: 'work-site' }`: a seeded roll per day, character and site.
   - `{ kind: 'build', unlock }`: engineers riding the creature; the first step takes the cost from the stores, and each step adds one work.
 - **Unlocks** (`UNLOCKS`) are permanent for the team (`unlocks`, with the one `project` in progress). An unlock's `movement` lets everyone onto matching terrain through `entryInto`, whose `via` is the unlock's id (the grappling hook over a cliff). Roles count by their tags; later upgrades sit in `ROLES[].perks` with `requiresUpgrade`.
+- **Day tick events:** `nextDayWithEvents(state)` returns `{ state, events }`: `creature-step { from, to }`, `deposit` for anyone picked up, `lost { characterId, hex }`, `day { day }`. `nextDay` returns the state alone.
 - **Storage:** content version 4. `loadGame` refuses an older game with `OutdatedGameError` (start a new game).
 
 ## API
