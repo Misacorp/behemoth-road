@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   createGame,
   creatureEdge,
+  type ActionResult,
   type GameState,
+  type PathResult,
   hexDistance,
   hexKey,
   isCreatureHex,
@@ -19,8 +21,10 @@ import {
   windowHexes,
 } from '../src/index.ts';
 
-const apply = (state: GameState, result: ReturnType<typeof move>): GameState =>
-  result.ok ? result.state : state;
+const apply = (
+  state: GameState,
+  result: ActionResult<GameState> | PathResult<GameState>,
+): GameState => (result.ok ? result.state : state);
 
 /** The wanderer steps off to the farthest place it can reach, then boards again the next day. */
 const wander = (state: GameState, day: number): GameState => {

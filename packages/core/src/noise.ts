@@ -5,7 +5,7 @@
  */
 
 import type { Hex } from './hex.ts';
-import { hashToUnit } from './random.ts';
+import { hashToUnit, type Seed } from './random.ts';
 
 export interface NoiseField {
   /** Size of one noise cell, in hex widths. Larger means bigger features. */
@@ -30,7 +30,7 @@ const fade = (t: number): number => t * t * t * (t * (t * 6 - 15) + 10);
 
 const lerp = (a: number, b: number, t: number): number => a + (b - a) * t;
 
-const valueNoise2d = (seed: number, stream: number, x: number, y: number): number => {
+const valueNoise2d = (seed: Seed, stream: number, x: number, y: number): number => {
   const ix = Math.floor(x);
   const iy = Math.floor(y);
   const fx = fade(x - ix);
@@ -43,7 +43,7 @@ const valueNoise2d = (seed: number, stream: number, x: number, y: number): numbe
  * The field's value at a hex, in [0, 1). Hex centres are placed on a plane
  * (flat-top layout, unit hex width) so the field is round, not skewed.
  */
-export const noiseAt = (seed: number, stream: number, field: NoiseField, h: Hex): number => {
+export const noiseAt = (seed: Seed, stream: number, field: NoiseField, h: Hex): number => {
   let x = 1.5 * h.q;
   let y = SQRT3 * (h.r + h.q / 2);
   let sum = 0;

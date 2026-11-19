@@ -14,7 +14,7 @@ import {
 } from './actions.ts';
 import type { Hex } from './hex.ts';
 import { placeEquals, placeKey, placeNeighbours, toPlace } from './places.ts';
-import type { GameState, Place } from './state.ts';
+import type { GameStateView, Place } from './state.ts';
 
 /** One step of a path: the place stepped onto, what it costs, and what makes it possible. */
 export interface PathStep extends Entry {
@@ -39,8 +39,8 @@ export type PathPlan =
     }
   | { readonly ok: false; readonly reason: PathRefusal };
 
-export type PathResult =
-  | { readonly ok: true; readonly state: GameState }
+export type PathResult<S extends GameStateView = GameStateView> =
+  | { readonly ok: true; readonly state: S }
   | {
       readonly ok: false;
       readonly reason: MoveRefusal;
@@ -61,7 +61,7 @@ interface Visit {
  * entered, up to `budget` actions. Ties are broken by neighbour order, so the
  * result is the same every time. Visits come back in the order they were settled.
  */
-const search = (state: GameState, start: Place, budget: number): Map<string, Visit> => {
+const search = (state: GameStateView, start: Place, budget: number): Map<string, Visit> => {
   const settled = new Map<string, Visit>();
   const origin: Visit = { place: start, cost: 0, step: null, from: null };
   const best = new Map<string, Visit>([[placeKey(start), origin]]);
@@ -104,7 +104,7 @@ const search = (state: GameState, start: Place, budget: number): Map<string, Vis
  * included), with the cheapest cost, nearest first. Excludes where it is. Empty
  * for an unknown or lost character.
  */
-export const reachablePlaces = (state: GameState, characterId: string): ReachablePlace[] => {
+export const reachablePlaces = (state: GameStateView, characterId: string): ReachablePlace[] => {
   const found = activeCharacter(state, characterId);
   if (!found.ok) return [];
   const { at, actionsLeft } = found.character;
@@ -118,7 +118,7 @@ export const reachablePlaces = (state: GameState, characterId: string): Reachabl
  * creature), as steps with their costs. Refused if the target cannot be entered,
  * nothing connects to it, or the cheapest path costs more than the actions left.
  */
-export const planPath = (state: GameState, characterId: string, to: Hex | Place): PathPlan => {
+export const planPath = (state: GameStateView, characterId: string, to: Hex | Place): PathPlan => {
   const target = toPlace(state, to);
   if (!target) return { ok: false, reason: 'invalid-hex' };
   const found = activeCharacter(state, characterId);
@@ -146,11 +146,11 @@ const isStep = (item: Hex | Place | PathStep): item is PathStep =>
  * Walks a path through `move`: every step applies, or none does. Takes the
  * steps from `planPath`, places, or bare hexes.
  */
-export const moveAlong = (
-  state: GameState,
+export const moveAlong = <S extends GameStateView>(
+  state: S,
   characterId: string,
   path: readonly (Hex | Place | PathStep)[],
-): PathResult => {
+): PathResult<S> => {
   const found = activeCharacter(state, characterId);
   if (!found.ok) return { ok: false, reason: found.reason, step: 0 };
   let current = state;
