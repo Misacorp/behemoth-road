@@ -4,9 +4,33 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: Characters start on a free hex next to the creature **[Misa]**
+
+ID: `2026-11-19-characters-start-on-a-free-hex` · Status: current · Supersedes: `2026-11-19-characters-start-on-the-creature-s`
+
+**Decision.** New characters start on a free, passable hex next to the creature's footprint, chosen by a fixed order so it is deterministic. Several characters may share it.
+
+**Reasoning.** The creature's hexes are now off limits (see "The creature's hexes are occupied"), so the old start on its centre no longer works.
+
+## 2026-11-19: The creature stays mostly inside its footprint so the map stays readable **[Misa]**
+
+ID: `2026-11-19-the-creature-stays-mostly-inside-its` · Status: current · Amends: `2026-11-19-the-creature-is-a-behemoth-it`
+
+**Decision.** The creature is drawn smaller, between the broad high back and the long-neck, long-tail shapes. Its body stays mostly within its 7-hex footprint; the head, neck and tail may reach a little into neighbouring hexes, but never cover a whole hex outside the footprint. The footprint hexes are drawn in their own colour (ground the creature is standing on), so its size reads from the ground as well as the body. The map is not rotatable.
+
+**Reasoning.** Misa: a big creature hid the tiles behind it and its neck crossed other hexes, which hurts readability without a way to rotate the map. Marking the occupied hexes keeps it feeling huge while the drawing stays compact. Rotation (and true 3D) is not planned.
+
+## 2026-11-19: The creature's hexes are occupied: characters cannot enter them **[Misa]**
+
+ID: `2026-11-19-the-creature-s-hexes-are-occupied` · Status: current · Supersedes: `2026-11-19-the-creature-s-hexes-are-always`
+
+**Decision.** The creature's hexes are occupied: characters cannot enter, stand on or pass through them, and they offer no actions. Paths go around the creature. Characters start on a free hex next to it. When the creature steps onto a hex where a character stands, the character is moved to the nearest free hex the character could stand on, preferring the hexes beside and behind the creature (a fixed order, so it is deterministic), and the move costs no actions.
+
+**Reasoning.** Misa: the occupied hexes are the creature's own ground; making them off limits lets the creature be drawn smaller without losing its size. Being pushed aside rather than lost or blocked keeps the daily step simple; the push rule was the lead's call.
+
 ## 2026-11-19: The creature is a behemoth: it fills its footprint and carries a small landscape
 
-ID: `2026-11-19-the-creature-is-a-behemoth-it` · Status: current · Amends: `2026-11-19-the-creature-is-modelled-as-small`
+ID: `2026-11-19-the-creature-is-a-behemoth-it` · Status: current, amended by `2026-11-19-the-creature-stays-mostly-inside-its` · Amends: `2026-11-19-the-creature-is-modelled-as-small`
 
 **Decision.** At `scale` 1 (a creature data value) the creature's body fills its seven-hex footprint, and its head and tail reach past it, so a character beside it looks tiny. It reads as an ancient walking hill: a broad hide body under a lumpy moss blanket, with two or three small trees, a rock, a tiny pond and grass on its back, a long strong neck, a large calm head with closed eyes and small swept horns, small ears, thick legs with mossy feet, and a tail tucked under the body. Its build is data: `broad` (high tortoise-like back, the default), `longneck` (narrower body, neck rising high, long tail) or `low` (wide, low, mossier), offered to Misa as the pick "Which creature shape?". A character standing on a footprint hex is drawn over the creature with a firm contact shadow, so it reads as standing on its back.
 
@@ -104,22 +128,6 @@ ID: `2026-11-19-paths-are-planned-by-cheapest-cost` · Status: current, amended 
 **Decision.** `planPath(state, id, to)` runs a uniform-cost search over reachable, passable hexes, breaking ties in a fixed order. It returns the steps and their total cost, or a refusal: `not-enough-actions` when the cheapest path costs more than the actions left, `no-path` when nothing connects. `moveAlong(state, id, path)` applies each step through `move` and returns either the final state or the refusal and the index of the refused step, changing nothing. Both refuse non-integer or non-finite coordinates (`invalid-hex`).
 
 **Reasoning.** The interface previews a multi-hex path and its cost on a tap, then walks it on one confirm. Reusing `move` for each step keeps a single set of rules for the server to check.
-
-## 2026-11-19: Characters start on the creature's centre
-
-ID: `2026-11-19-characters-start-on-the-creature-s` · Status: current · Supersedes: `2026-11-19-characters-start-together-on-the-passable`
-
-**Decision.** `createGame` puts every character on the creature's centre. That hex is always passable, so no search for a nearby free hex is needed.
-
-**Reasoning.** Follows from the creature's hexes always being passable. It is the simplest start.
-
-## 2026-11-19: The creature's hexes are always passable to characters
-
-ID: `2026-11-19-the-creature-s-hexes-are-always` · Status: current · Amends: `2026-11-19-cliffs-are-impassable-to-characters-in`
-
-**Decision.** A character may enter any of the creature's hexes whatever terrain lies under it, cliffs included. Outside the creature, cliffs still block. Move cost is still the terrain's.
-
-**Reasoning.** The creature walks over any terrain, and characters can climb onto and through it, so its back is a way across a ridge. It also means the start hex (the creature's centre) is always legal.
 
 ## 2026-11-19: The window is always in play; lost characters stay lost
 
@@ -292,6 +300,22 @@ ID: `2026-11-19-counts-read-1-3-and-terms` · Status: current
 <!-- Superseded entries below: kept for history, no longer in force. -->
 
 # Superseded
+
+## 2026-11-19: Characters start on the creature's centre
+
+ID: `2026-11-19-characters-start-on-the-creature-s` · Status: superseded by `2026-11-19-characters-start-on-a-free-hex` · Supersedes: `2026-11-19-characters-start-together-on-the-passable`
+
+**Decision.** `createGame` puts every character on the creature's centre. That hex is always passable, so no search for a nearby free hex is needed.
+
+**Reasoning.** Follows from the creature's hexes always being passable. It is the simplest start.
+
+## 2026-11-19: The creature's hexes are always passable to characters
+
+ID: `2026-11-19-the-creature-s-hexes-are-always` · Status: superseded by `2026-11-19-the-creature-s-hexes-are-occupied` · Amends: `2026-11-19-cliffs-are-impassable-to-characters-in`
+
+**Decision.** A character may enter any of the creature's hexes whatever terrain lies under it, cliffs included. Outside the creature, cliffs still block. Move cost is still the terrain's.
+
+**Reasoning.** The creature walks over any terrain, and characters can climb onto and through it, so its back is a way across a ridge. It also means the start hex (the creature's centre) is always legal.
 
 ## 2026-11-19: Characters start together on the passable hex nearest the creature
 

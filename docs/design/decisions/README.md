@@ -88,7 +88,10 @@ Record a decision:
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
-- 2026-11-19 The creature is a behemoth: it fills its footprint and carries a small landscape
+- 2026-11-19 Characters start on a free hex next to the creature \[Misa\]
+- 2026-11-19 The creature stays mostly inside its footprint so the map stays readable \[Misa\]
+- 2026-11-19 The creature's hexes are occupied: characters cannot enter them \[Misa\]
+- 2026-11-19 The creature is a behemoth: it fills its footprint and carries a small landscape (amended)
 - 2026-11-19 The creature is modelled as small solids and turns to all six headings; upright props shrink part way at the high view (amended)
 - 2026-11-19 The creature is drawn from above, at the map's view angle \[Misa\]
 - 2026-11-19 Spring palette and a high view: tilt 0.8 \[Misa\]
@@ -99,8 +102,6 @@ Record a decision:
 - 2026-11-19 The map starts isometric, with flat ground first and heights later \[Misa\]
 - 2026-11-19 Movement reads one entry rule that can name what makes a step possible
 - 2026-11-19 Paths are planned by cheapest cost and walked all or nothing (amended)
-- 2026-11-19 Characters start on the creature's centre
-- 2026-11-19 The creature's hexes are always passable to characters
 - 2026-11-19 The window is always in play; lost characters stay lost
 - 2026-11-19 Cliffs are impassable to characters in Milestone 1 (amended)
 - 2026-11-19 The creature veers by a seeded daily roll and ignores terrain for now
@@ -123,4 +124,4 @@ Record a decision:
 - 2026-11-19 Drag and drop always has a tap and keyboard alternative
 - 2026-11-19 Counts read "1 / 3", and terms explain themselves without "?" icons
 
-Superseded: 1 entry (see the topic file).
+Superseded: 3 entries (see the topic file).
