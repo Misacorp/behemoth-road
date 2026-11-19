@@ -12,6 +12,14 @@ ID: `2026-11-20-act-and-move-answer-the-view` · Status: current
 
 **Reasoning.** One answer with the view and the moments saves a second request and lets the web show reveals, finds and traps exactly once. Upgrading at start, rather than on every read, keeps reads cheap and makes the upgrade a single recorded write; the live production game keeps its characters and map.
 
+## 2026-11-20: Before a stable release, older games are wiped, not migrated **[Misa]**
+
+ID: `2026-11-20-before-a-stable-release-older-games` · Status: current
+
+**Decision.** Until a stable release, a stored game whose content version is older than the code's is replaced by a new game rather than migrated. No migration code is kept for prototype content changes.
+
+**Reasoning.** Misa: forget the live game on production, everything can be wiped. Migrations for every prototype content change would slow iteration for no benefit.
+
 ## 2026-11-19: Only allowed Discord servers can play; the app itself is public **[Misa]**
 
 ID: `2026-11-19-only-allowed-discord-servers-can-play` · Status: current · Amends: `2026-11-19-sign-in-interactions-and-the-deploy`
