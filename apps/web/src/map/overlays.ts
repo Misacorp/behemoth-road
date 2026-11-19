@@ -26,7 +26,7 @@ import {
 } from '@behemoth-road/core';
 import { MAP_TUNING } from './config.ts';
 import type { Flow } from './flow.ts';
-import type { Point } from './pick.ts';
+import { feetOf, type Point } from './pick.ts';
 
 export interface OverlayInput {
   readonly state: GameState;
@@ -52,12 +52,6 @@ function hexPath(p: Projection, h: Hex, scale: number): string {
 
 function ellipse(c: Point, rx: number, ry: number): string {
   return `M${n(c.x - rx)} ${n(c.y)}a${n(rx)} ${n(ry)} 0 1 0 ${n(2 * rx)} 0a${n(rx)} ${n(ry)} 0 1 0 ${n(-2 * rx)} 0Z`;
-}
-
-/** Where a character's feet are on its hex (matches the art kit's standee placement). */
-export function feetOf(p: Projection, h: Hex): Point {
-  const c = hexCenter(p, h.q, h.r);
-  return { x: c.x - 0.05 * p.size, y: c.y + 0.3 * p.size * p.squash };
 }
 
 /** Reachable tiles: a soft light wash with a faint ink edge, one path for all of them. */

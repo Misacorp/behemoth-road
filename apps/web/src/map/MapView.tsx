@@ -18,8 +18,8 @@ import { placePopover, splitScene } from './compose.ts';
 import { MAP_TUNING } from './config.ts';
 import type { Flow } from './flow.ts';
 import { GestureTracker, type Gesture } from './gestures.ts';
-import { buildOverlays, feetOf } from './overlays.ts';
-import { pickHex, type Point } from './pick.ts';
+import { buildOverlays } from './overlays.ts';
+import { feetOf, pickHex, type Point } from './pick.ts';
 import { CONFIRM_SIZE, ConfirmCard, INSPECT_SIZE, InspectCard } from './Popover.tsx';
 import { toPreact } from './svgToPreact.ts';
 import {
@@ -249,6 +249,20 @@ export function MapView(props: MapViewProps): JSX.Element {
     };
   }, []);
 
+  // A gesture must not outlive the window losing focus or being hidden (pointer-ups never arrive).
+  useEffect(() => {
+    const drop = (): void => handle(tracker.current.reset());
+    const onVisibility = (): void => {
+      if (document.visibilityState === 'hidden') drop();
+    };
+    window.addEventListener('blur', drop);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => {
+      window.removeEventListener('blur', drop);
+      document.removeEventListener('visibilitychange', onVisibility);
+    };
+  }, []);
+
   // Wheel and trackpad zoom around the pointer. Needs a non-passive listener to stop page zoom.
   useEffect(() => {
     const svg = svgRef.current;
@@ -369,6 +383,7 @@ export function MapView(props: MapViewProps): JSX.Element {
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
+      onLostPointerCapture={onPointerCancel}
     >
       <rect width="100%" height="100%" fill={PALETTE.paper} />
       <g ref={worldRef}>
@@ -378,7 +393,16 @@ export function MapView(props: MapViewProps): JSX.Element {
         {overlays.over}
       </g>
       <g class="grain">{GRAIN}</g>
-      <g ref={popRef} class="popover" tabIndex={-1} onPointerDown={(e) => e.stopPropagation()}>
+      <g
+        ref={popRef}
+        class="popover"
+        tabIndex={-1}
+        onPointerDown={(e) => {
+          // A lone press on the card stays on the card (its button clicks); a finger landing on it
+          // while another is down on the map joins the pinch.
+          if (tracker.current.count === 0) e.stopPropagation();
+        }}
+      >
         {card}
       </g>
     </svg>

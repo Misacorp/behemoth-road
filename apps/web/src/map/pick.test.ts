@@ -1,6 +1,6 @@
 import { hexCenter, isometric, topDown } from '@behemoth-road/art';
 import { describe, expect, it } from 'vitest';
-import { pickHex, worldToHex } from './pick.ts';
+import { feetOf, pickHex, worldToHex } from './pick.ts';
 
 const hexes = (): { q: number; r: number }[] => {
   const out = [];
@@ -36,7 +36,10 @@ describe('screen-to-hex picking', () => {
     const me = { q: 2, r: -1 };
     const c = hexCenter(p, me.q, me.r);
     // The head is drawn over the hex behind (north of) the character.
-    const head = { x: c.x - 0.05 * p.size, y: c.y + 0.3 * p.size * p.squash - 0.7 * p.size };
+    const feet = feetOf(p, me);
+    expect(worldToHex(p, feet)).toEqual(me);
+    expect(feet.y).toBeGreaterThan(c.y);
+    const head = { x: feet.x, y: feet.y - 0.7 * p.size };
     expect(worldToHex(p, head)).not.toEqual(me);
     expect(pickHex(p, head, me)).toEqual(me);
     expect(pickHex(p, head, null)).toEqual(worldToHex(p, head));

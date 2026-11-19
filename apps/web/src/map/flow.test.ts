@@ -84,4 +84,12 @@ describe('move flow', () => {
     expect(done.state).toBe(tired);
     expect(done.flow).toEqual(IDLE);
   });
+
+  it('with no actions left, tapping your character inspects its hex instead of selecting', () => {
+    const s = game();
+    const tired = confirmMove(tapHex({ kind: 'selected' }, s, ID, target(s, 3)), s, ID).state;
+    expect(me(tired).actionsLeft).toBe(0);
+    const here = me(tired).position;
+    expect(tapHex(IDLE, tired, ID, here)).toEqual({ kind: 'inspect', hex: here });
+  });
 });

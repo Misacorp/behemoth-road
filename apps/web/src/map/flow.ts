@@ -33,7 +33,8 @@ const isSelecting = (flow: Flow): boolean => flow.kind === 'selected' || flow.ki
 /** What a tap on `hex` does. */
 export function tapHex(flow: Flow, state: GameState, characterId: string, hex: Hex): Flow {
   const me = findCharacter(state, characterId);
-  if (me?.status === 'active' && hexEquals(me.position, hex)) {
+  // With no actions left there is nothing to plan: your own hex is inspected like any other.
+  if (me?.status === 'active' && me.actionsLeft > 0 && hexEquals(me.position, hex)) {
     return isSelecting(flow) ? IDLE : { kind: 'selected' };
   }
   if (isSelecting(flow)) {

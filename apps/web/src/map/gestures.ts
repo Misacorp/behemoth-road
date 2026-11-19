@@ -34,6 +34,11 @@ export class GestureTracker {
     return this.active;
   }
 
+  /** How many pointers are down. */
+  get count(): number {
+    return this.pointers.size;
+  }
+
   down(id: number, at: Point): Gesture[] {
     if (this.pointers.size >= 2) return [];
     this.pointers.set(id, { start: at, last: at });
@@ -83,14 +88,20 @@ export class GestureTracker {
     this.pointers.delete(id);
     if (this.pointers.size > 0) return out;
     if (!this.spoilt && dist(at, p.start) <= this.slop) out.push({ type: 'tap', at: p.start });
-    return [...out, ...this.reset()];
+    return [...out, ...this.finish()];
   }
 
   /** The browser took the pointer away (scroll, system gesture): never a tap. */
   cancel(id: number): Gesture[] {
     if (!this.pointers.delete(id)) return [];
     this.spoilt = true;
-    return this.pointers.size > 0 ? [] : this.reset();
+    return this.pointers.size > 0 ? [] : this.finish();
+  }
+
+  /** Forgets every pointer (the window lost focus or was hidden): ends a running gesture, never taps. */
+  reset(): Gesture[] {
+    this.pointers.clear();
+    return this.finish();
   }
 
   private activate(): Gesture[] {
@@ -99,7 +110,7 @@ export class GestureTracker {
     return [{ type: 'start' }];
   }
 
-  private reset(): Gesture[] {
+  private finish(): Gesture[] {
     const wasActive = this.active;
     this.active = false;
     this.spoilt = false;

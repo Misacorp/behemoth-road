@@ -73,4 +73,17 @@ describe('gesture classification', () => {
     expect(t.down(3, at(20, 0))).toEqual([]);
     expect(t.move(3, at(40, 0))).toEqual([]);
   });
+
+  it('a reset (window blur or hidden) drops stuck pointers, ends the gesture, and the next one works', () => {
+    const t = new GestureTracker(8);
+    t.down(1, at(0, 0));
+    t.down(2, at(50, 0));
+    expect(t.count).toBe(2);
+    expect(t.reset()).toEqual([{ type: 'end' }]);
+    expect(t.count).toBe(0);
+    expect(t.up(1, at(0, 0))).toEqual([]);
+    t.down(7, at(10, 10));
+    expect(t.up(7, at(10, 10))).toEqual<Gesture[]>([{ type: 'tap', at: at(10, 10) }]);
+    expect(new GestureTracker(8).reset()).toEqual([]);
+  });
 });
