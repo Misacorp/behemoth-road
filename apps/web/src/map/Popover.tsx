@@ -164,27 +164,49 @@ function CardIcon({
   return toPreact({ ...icon, attrs: { ...icon.attrs, x, y, width: size, height: size } });
 }
 
-/** The inspect card: the tile as the map draws it (with its revealed feature or glint) and its visibility. */
+/** The inspect card, wider when it offers a survey. */
+export const inspectSize = (survey: boolean): { width: number; height: number } =>
+  survey ? { width: INSPECT_SIZE.width + ACTION_W, height: INSPECT_SIZE.height } : INSPECT_SIZE;
+
+/**
+ * The inspect card: the tile as the map draws it (under its veil while unexplored, with its revealed
+ * feature) and its visibility; next to you and unexplored, a survey button (a spyglass and its cost).
+ */
 export function InspectCard({
   terrain,
   state,
   feature = null,
-  glint = false,
+  survey = null,
+  onSurvey,
+  surveyRef,
 }: {
   terrain: string;
   state: CellState;
   /** A revealed feature on the hex, drawn on the tile. */
   feature?: FeatureArt | null;
-  /** The hex is sensed: something is there, not what. */
-  glint?: boolean;
+  survey?: { readonly cost: number; readonly enabled: boolean } | null;
+  onSurvey?: () => void;
+  surveyRef?: (el: SVGGElement | null) => void;
 }): JSX.Element {
   return (
-    <g data-popover="inspect" data-feature={feature?.look} data-glint={glint ? true : undefined}>
-      <Card {...INSPECT_SIZE} />
-      <Miniature terrain={terrain} state={state} x={6} y={8} feature={feature} hint={glint} />
+    <g data-popover="inspect" data-feature={feature?.look} data-state={state}>
+      <Card {...inspectSize(survey !== null)} />
+      <Miniature terrain={terrain} state={state} x={6} y={8} feature={feature} />
       <g transform="translate(84 22)">
         <VisibilityMark state={state} />
       </g>
+      {survey && (
+        <ActionButton
+          kind="survey"
+          icon="spyglass"
+          cost={survey.cost}
+          enabled={survey.enabled}
+          x={INSPECT_SIZE.width - 6}
+          y={12}
+          onRun={() => onSurvey?.()}
+          {...(surveyRef ? { buttonRef: surveyRef } : {})}
+        />
+      )}
     </g>
   );
 }
@@ -495,6 +517,57 @@ export interface HereAction {
 
 const ACTION_W = 54;
 
+/** One action as a button: its art kit icon and cost pips; faded and inert when it cannot be done now. */
+function ActionButton({
+  kind,
+  icon,
+  cost,
+  enabled,
+  x,
+  y,
+  onRun,
+  buttonRef,
+}: {
+  kind: string;
+  icon: string;
+  cost: number;
+  enabled: boolean;
+  x: number;
+  y: number;
+  onRun: () => void;
+  buttonRef?: (el: SVGGElement | null) => void;
+}): JSX.Element {
+  const run = (): void => {
+    if (enabled) onRun();
+  };
+  return (
+    <g
+      {...(buttonRef ? { ref: buttonRef } : {})}
+      class={enabled ? 'svg-button' : 'svg-button is-off'}
+      role="button"
+      tabindex={0}
+      aria-label={kind}
+      aria-disabled={!enabled}
+      data-action={kind}
+      transform={`translate(${x} ${y})`}
+      opacity={enabled ? 1 : 0.4}
+      onClick={run}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          run();
+        }
+      }}
+    >
+      <rect width={ACTION_W - 6} height={50} rx={9} fill={PALETTE.paperDeep} />
+      <CardIcon id={icon} x={(ACTION_W - 6) / 2 - 14} y={3} size={28} />
+      <g transform={`translate(${(ACTION_W - 6) / 2 - (cost * 10) / 2 - 2} 34)`}>
+        <Pips total={cost} left={cost} size={9} />
+      </g>
+    </g>
+  );
+}
+
 /** The art kit icon each action shows (an open hand to gather, a key to work a site). */
 const ACTION_ICONS: Readonly<Record<string, string>> = { gather: 'hand', 'work-site': 'key' };
 
@@ -529,43 +602,19 @@ export function HereCard({
         <Card {...size} />
         <Miniature terrain={terrain} state="seen" x={4} y={9} feature={feature} scale={0.78} />
       </g>
-      {actions.map((a, i) => {
-        const run = (): void => {
-          if (a.enabled) onAct(a.kind);
-        };
-        return (
-          <g
-            key={a.kind}
-            {...(i === 0 ? { ref: firstRef } : {})}
-            class={a.enabled ? 'svg-button' : 'svg-button is-off'}
-            role="button"
-            tabindex={0}
-            aria-label={a.kind}
-            aria-disabled={!a.enabled}
-            data-action={a.kind}
-            transform={`translate(${56 + i * ACTION_W} 5)`}
-            opacity={a.enabled ? 1 : 0.4}
-            onClick={run}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                run();
-              }
-            }}
-          >
-            <rect width={ACTION_W - 6} height={50} rx={9} fill={PALETTE.paperDeep} />
-            <CardIcon
-              id={ACTION_ICONS[a.kind] ?? a.kind}
-              x={(ACTION_W - 6) / 2 - 14}
-              y={3}
-              size={28}
-            />
-            <g transform={`translate(${(ACTION_W - 6) / 2 - (a.cost * 10) / 2 - 2} 34)`}>
-              <Pips total={a.cost} left={a.cost} size={9} />
-            </g>
-          </g>
-        );
-      })}
+      {actions.map((a, i) => (
+        <ActionButton
+          key={a.kind}
+          kind={a.kind}
+          icon={ACTION_ICONS[a.kind] ?? a.kind}
+          cost={a.cost}
+          enabled={a.enabled}
+          x={56 + i * ACTION_W}
+          y={5}
+          onRun={() => onAct(a.kind)}
+          {...(i === 0 ? { buttonRef: firstRef } : {})}
+        />
+      ))}
     </g>
   );
 }

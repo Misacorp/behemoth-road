@@ -2,11 +2,15 @@
  * The heads-up layer: day counter, action pips, recentre buttons, a way to join (or replace a lost
  * character) when you have none, and the staging-only "next day" for admins.
  */
-import type { CharacterLook } from '@behemoth-road/art';
+import { type CharacterLook, drawPackIcon } from '@behemoth-road/art';
 import type { JSX } from 'preact';
+import { useEffect, useRef, useState } from 'preact/hooks';
+import type { Stock } from '../game/chain.ts';
+import { Stack } from '../hub/Stack.tsx';
+import { PALETTE } from '../map/art.ts';
 import type { FocusTarget } from '../map/MapView.tsx';
+import { toPreact } from '../map/svgToPreact.ts';
 import {
-  SatchelIcon,
   CharacterFigure,
   CharacterIcon,
   CreatureIcon,
@@ -30,12 +34,64 @@ export interface HudProps {
   readonly onFocus: (target: FocusTarget) => void;
   /** Shown only when the server offers dev tools and you are an admin. */
   readonly onNextDay: (() => void) | null;
-  /** Opens the team inventory; null hides the satchel (no character yet). */
-  readonly onInventory: (() => void) | null;
-  /** How many things the team holds (a small count on the satchel). */
-  readonly inventoryCount: number;
+  /** Your pack: what it holds and its capacity; null hides it (no active character). */
+  readonly pack: {
+    readonly stock: Stock;
+    readonly units: number;
+    readonly capacity: number;
+  } | null;
   /** Shown when you have no active character: opens the join (or replace) drawer. */
   readonly onJoin: (() => void) | null;
+}
+
+/** Your pack as a satchel with its fill mark; a tap shows what is in it (icons and counts). */
+function PackButton({
+  stock,
+  units,
+  capacity,
+}: {
+  stock: Stock;
+  units: number;
+  capacity: number;
+}): JSX.Element {
+  const [open, setOpen] = useState(false);
+  const panel = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    panel.current?.focus({ preventScroll: true });
+    const onKey = (e: KeyboardEvent): void => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
+  return (
+    <>
+      <button
+        type="button"
+        class="round hud-pack"
+        aria-label="Pack"
+        aria-expanded={open}
+        data-units={units}
+        onClick={() => setOpen((o) => !o)}
+      >
+        {toPreact(drawPackIcon(PALETTE, 44, units, capacity))}
+      </button>
+      {open && (
+        <div
+          ref={panel}
+          class="hud-pack-contents"
+          tabindex={-1}
+          data-empty={stock.length === 0 ? true : undefined}
+          onClick={() => setOpen(false)}
+        >
+          {stock.map(([id, n]) => (
+            <Stack key={id} id={id} count={n} />
+          ))}
+        </div>
+      )}
+    </>
+  );
 }
 
 export function Hud(props: HudProps): JSX.Element {
@@ -81,17 +137,7 @@ export function Hud(props: HudProps): JSX.Element {
           <CreatureIcon />
         </button>
       </div>
-      {props.onInventory && (
-        <button
-          type="button"
-          class="round hud-satchel"
-          aria-label="Inventory"
-          onClick={props.onInventory}
-        >
-          <SatchelIcon />
-          {props.inventoryCount > 0 && <span class="hud-badge">{props.inventoryCount}</span>}
-        </button>
-      )}
+      {props.pack && <PackButton {...props.pack} />}
       {props.onJoin && (
         <button type="button" class="round hud-join" aria-label="Join" onClick={props.onJoin}>
           <JoinIcon />

@@ -4,7 +4,7 @@
  * applies each move. The view is refreshed after your own actions, when the page becomes visible and every
  * 30 seconds while it is visible.
  */
-import { findCharacter, hexKey, terrainOf } from '@behemoth-road/core';
+import { findCharacter, type Hex, hexKey, terrainOf } from '@behemoth-road/core';
 import type { JSX } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { ApiError, type ApiClient } from '../api/client.ts';
@@ -23,9 +23,9 @@ import {
   tap,
 } from '../map/flow.ts';
 import { type FocusTarget, type Here, MapView } from '../map/MapView.tsx';
-import { InventoryDrawer } from '../inventory/InventoryDrawer.tsx';
+import { HubDrawer } from '../hub/HubDrawer.tsx';
 import { featureArtAt } from '../map/cells.ts';
-import { actionsAt, chainOf, craftOptions } from './chain.ts';
+import { actionsAt, packUnits, stockOf, surveyOf, unlockOptions } from './chain.ts';
 import type { Target } from '../map/pick.ts';
 import { getSettings } from '../settings.ts';
 
@@ -153,7 +153,7 @@ export function Game({ api, initial }: GameProps): JSX.Element {
       if (events) {
         // Your own move or action reports what happened itself: play those, not a guess from the views.
         ownAnswer.current = next.version;
-        playMoments(momentsFromEvents(events));
+        playMoments(momentsFromEvents(events, next.game.creature.centre));
       }
       sync.current!.accept(next);
       setFlow(after(next));
@@ -187,9 +187,7 @@ export function Game({ api, initial }: GameProps): JSX.Element {
 
   const drawerOpen = need !== 'none' && offers.length > 0 && !drawerClosed;
 
-  // Milestone 3's chain: what is where, what you can do here, and the team inventory.
-  const chain = useMemo(() => chainOf(state), [state]);
-  const [inventoryOpen, setInventoryOpen] = useState(false);
+  // Milestone 3's chain: what you can do where you stand, a survey next to you, your pack, the hub.
   const here = useMemo((): Here | null => {
     if (me?.status !== 'active' || me.at.kind !== 'hex') return null;
     const feature = featureArtAt(state, hexKey(me.at.hex));
@@ -205,13 +203,26 @@ export function Game({ api, initial }: GameProps): JSX.Element {
     if (kind !== 'gather' && kind !== 'work-site') return;
     void act(() => api.act(view.version, { kind }), stillSelected);
   };
-  const onCraft = (recipe: string): void => {
+  const surveyAt = (h: Hex) => (me?.status === 'active' ? surveyOf(state, me.id, h) : null);
+  const onSurvey = (h: Hex): void => {
     void act(
-      () => api.act(view.version, { kind: 'craft', recipe }),
+      () => api.act(view.version, { kind: 'survey', hex: h }),
       () => IDLE,
     );
   };
-  const anyDrawer = drawerOpen || (inventoryOpen && need === 'none');
+  const hubOpen = flow.kind === 'creature' && need === 'none';
+  const onBuild = (unlock: string): void => {
+    void act(
+      () => api.act(view.version, { kind: 'build', unlock }),
+      // A finished unlock closes the hub, so its moment on the creature shows.
+      (next) => (next.game.unlocks.includes(unlock) ? IDLE : { kind: 'creature' }),
+    );
+  };
+  const pack =
+    me?.status === 'active'
+      ? { stock: stockOf(me.pack), units: packUnits(me.pack), capacity: state.config.packCapacity }
+      : null;
+  const anyDrawer = drawerOpen || hubOpen;
 
   return (
     <main class="game">
@@ -234,6 +245,8 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         coverBottom={anyDrawer ? halfDrawerCover(window.innerWidth, window.innerHeight) : 0}
         here={here}
         onAct={onAct}
+        surveyAt={surveyAt}
+        onSurvey={onSurvey}
       />
       <Hud
         day={view.day}
@@ -254,16 +267,16 @@ export function Game({ api, initial }: GameProps): JSX.Element {
             : null
         }
         onJoin={need !== 'none' && offers.length > 0 ? () => setDrawerClosed(false) : null}
-        onInventory={need === 'none' ? () => setInventoryOpen((o) => !o) : null}
-        inventoryCount={chain.stock.reduce((a, [, n]) => a + n, 0)}
+        pack={pack}
       />
-      <InventoryDrawer
-        open={inventoryOpen && need === 'none'}
-        onClose={() => setInventoryOpen(false)}
-        stock={chain.stock}
-        crafts={me ? craftOptions(state, me.id) : []}
+      <HubDrawer
+        open={hubOpen}
+        onClose={() => setFlow(IDLE)}
+        state={state}
+        stores={stockOf(state.stores)}
+        unlocks={me ? unlockOptions(state, me.id) : []}
         busy={busy}
-        onCraft={onCraft}
+        onBuild={onBuild}
       />
       <JoinDrawer
         open={drawerOpen}

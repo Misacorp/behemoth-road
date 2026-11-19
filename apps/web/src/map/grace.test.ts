@@ -60,7 +60,7 @@ function standingAtTheEdge(): { start: GameState; hex: Hex } {
 describe('the grace day', () => {
   it('day D: the hex is fading but in play; you can still move off it', () => {
     const { start, hex } = standingAtTheEdge();
-    expect(cellStateAt(start, hexKey(hex))).toBe('seen');
+    expect(['seen', 'unexplored']).toContain(cellStateAt(start, hexKey(hex)));
     expect(marks(start)).not.toContain('grace-warning');
 
     const dayD = nextDay(start);

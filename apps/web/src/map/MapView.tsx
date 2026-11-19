@@ -14,6 +14,7 @@ import {
 } from '@behemoth-road/art';
 import {
   type GameStateView,
+  type Hex,
   terrainOf,
   predictCreature,
   hexKey,
@@ -23,7 +24,14 @@ import {
 import { Component, type ComponentChildren, type JSX } from 'preact';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { PALETTE, PROJECTION } from './art.ts';
-import { cellStateAt, characterArts, creatureArt, featureArtAt, sceneCells } from './cells.ts';
+import {
+  cellStateAt,
+  characterArts,
+  creatureArt,
+  featureArtAt,
+  sceneCells,
+  terrainKnown,
+} from './cells.ts';
 import { chevronFor, placePopover, splitScene } from './compose.ts';
 import { accentOf, type Identity, lookOf } from '../game/identity.ts';
 import type { Moment } from '../game/moments.ts';
@@ -38,15 +46,13 @@ import {
   HereCard,
   type HereAction,
   hereSize,
-  INSPECT_SIZE,
+  inspectSize,
   Bubble,
   CHARACTER_SIZE,
   CharacterCard,
   bubbleSize,
   CONFIRM_SIZE,
   ConfirmCard,
-  CREATURE_SIZE,
-  CreatureCard,
   InspectCard,
 } from './Popover.tsx';
 import { setCssTransform } from './cssTransform.ts';
@@ -87,6 +93,10 @@ export interface MapViewProps {
   readonly here?: Here | null;
   /** An action in the "here" card was tapped (the second tap that spends). */
   readonly onAct?: (kind: string) => void;
+  /** Surveying a hex next to you: its cost and whether it can be done now, or null where it is not offered. */
+  readonly surveyAt?: (h: Hex) => { readonly cost: number; readonly enabled: boolean } | null;
+  /** The survey button on an inspect card was tapped. */
+  readonly onSurvey?: (h: Hex) => void;
   /** Short visual beats to play on the map (reveals, finds, a trap); they end by themselves. */
   readonly moments?: readonly Moment[];
   /** Another player's character in the bubble was tapped. */
@@ -149,6 +159,7 @@ function popoverAnchor(
   flow: Flow,
   characterId: string,
   here: Here | null,
+  survey: boolean,
 ): Anchor | null {
   const tile = 2 * p.size * p.squash;
   if (flow.kind === 'character') {
@@ -166,13 +177,13 @@ function popoverAnchor(
   if (flow.kind === 'inspect') {
     const c = hexCenter(p, flow.hex.q, flow.hex.r);
     return {
-      key: `inspect:${hexKey(flow.hex)}`,
+      key: `inspect:${hexKey(flow.hex)}:${survey ? 'survey' : ''}`,
       top: { x: c.x, y: c.y - tile / 2 },
       below: tile,
-      size: INSPECT_SIZE,
+      size: inspectSize(survey),
     };
   }
-  if (flow.kind === 'creature' || flow.kind === 'bubble') {
+  if (flow.kind === 'bubble') {
     // Above the creature's back, clear of its footprint.
     const c = hexCenter(p, state.creature.centre.q, state.creature.centre.r);
     const lift = tile * 1.5 + 0.5 * p.size;
@@ -180,7 +191,7 @@ function popoverAnchor(
       key: flow.kind,
       top: { x: c.x, y: c.y - lift },
       below: lift + tile,
-      size: flow.kind === 'bubble' ? bubbleSize(ridersOf(state).length) : CREATURE_SIZE,
+      size: bubbleSize(ridersOf(state).length),
     };
   }
   if (flow.kind === 'selected' && here) {
@@ -308,7 +319,8 @@ export function MapView(props: MapViewProps): JSX.Element {
     return { under: o.under.map(toPreact), over: o.over.map(toPreact) };
   }, [state, flow, characterId, inkZoom]);
 
-  popover.current = popoverAnchor(state, flow, characterId, props.here ?? null);
+  const survey = flow.kind === 'inspect' ? (props.surveyAt?.(flow.hex) ?? null) : null;
+  popover.current = popoverAnchor(state, flow, characterId, props.here ?? null, survey !== null);
 
   function apply(): void {
     frame.current = 0;
@@ -527,7 +539,10 @@ export function MapView(props: MapViewProps): JSX.Element {
     apply();
     if (popKey) {
       const target =
-        flow.kind === 'planned' || flow.kind === 'bubble' || flow.kind === 'selected'
+        flow.kind === 'planned' ||
+        flow.kind === 'bubble' ||
+        flow.kind === 'selected' ||
+        (flow.kind === 'inspect' && survey)
           ? popoverFocusRef.current
           : popRef.current;
       target?.focus({ preventScroll: true });
@@ -555,13 +570,18 @@ export function MapView(props: MapViewProps): JSX.Element {
   let card: JSX.Element | null = null;
   if (flow.kind === 'inspect') {
     const cellState = cellStateAt(state, `${flow.hex.q},${flow.hex.r}`);
-    const known = cellState === 'seen' || cellState === 'fading';
+    const known = terrainKnown(cellState);
+    const at = flow.hex;
     card = (
       <InspectCard
         terrain={known ? (terrainOf(state, flow.hex)?.id ?? 'unknown') : 'unknown'}
         state={cellState}
         feature={known ? featureArtAt(state, hexKey(flow.hex)) : null}
-        glint={known && state.glints[hexKey(flow.hex)] === true}
+        survey={survey}
+        onSurvey={() => props.onSurvey?.(at)}
+        surveyRef={(el) => {
+          popoverFocusRef.current = el;
+        }}
       />
     );
   } else if (flow.kind === 'selected' && props.here) {
@@ -576,8 +596,6 @@ export function MapView(props: MapViewProps): JSX.Element {
         }}
       />
     );
-  } else if (flow.kind === 'creature') {
-    card = <CreatureCard state={state} />;
   } else if (flow.kind === 'character') {
     const who = props.identities?.get(flow.id);
     if (who) card = <CharacterCard who={who} />;

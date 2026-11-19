@@ -18,9 +18,21 @@ export const PlaceSchema = v.variant('kind', [
 ]);
 
 const tile = v.variant('visibility', [
-  v.object({ visibility: v.literal('seen'), terrain: id, leftWindowOnDay: v.nullable(count) }),
-  v.object({ visibility: v.literal('lost'), terrain: id }),
+  v.object({
+    visibility: v.literal('seen'),
+    terrain: id,
+    explored: v.boolean(),
+    leftWindowOnDay: v.nullable(count),
+  }),
+  v.object({ visibility: v.literal('lost'), terrain: id, explored: v.boolean() }),
 ]);
+
+const hexKeyString = v.pipe(v.string(), v.regex(/^-?\d+,-?\d+$/), v.maxLength(24));
+/** Materials by content id (a pack, the stores). */
+const counts = v.pipe(
+  v.record(id, count),
+  v.check((r) => Object.keys(r).length <= 200, 'too many entries'),
+);
 
 const character = v.object({
   id,
@@ -35,8 +47,8 @@ const character = v.object({
   lookSeed: v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(0xffffffff)),
   at: PlaceSchema,
   actionsLeft: count,
-  /** Crafts made today (`craftsPerDay`). Absent from views written before Milestone 3. */
-  craftsToday: v.optional(count, 0),
+  /** What the character carries. */
+  pack: counts,
   status: v.picklist(['active', 'lost']),
 });
 
@@ -50,24 +62,17 @@ const config = v.object({
   playerCap: count,
   veerWeights: v.object({ left: v.number(), straight: v.number(), right: v.number() }),
   featureChance: v.number(),
-  senseRadius: count,
+  packCapacity: count,
+  surveyCostSpecialist: count,
+  surveyCostOther: count,
   gatherCost: count,
-  craftCost: count,
   workSiteCost: count,
-  craftsPerDay: count,
-  specialistYield: count,
-  nonSpecialistExtraMaterial: count,
+  buildCost: count,
   siteChanceSpecialistTier1: v.number(),
   siteChanceSpecialistTier2: v.number(),
   siteChanceOtherTier1: v.number(),
   siteChanceOtherTier2: v.number(),
 });
-
-const hexKeyString = v.pipe(v.string(), v.regex(/^-?\d+,-?\d+$/), v.maxLength(24));
-const counts = v.pipe(
-  v.record(id, count),
-  v.check((r) => Object.keys(r).length <= 200, 'too many entries'),
-);
 
 /** The core state without the seed (the core's `GameStateView`): known tiles carry their terrain. */
 export const GameStateViewSchema = v.object({
@@ -87,11 +92,12 @@ export const GameStateViewSchema = v.object({
     v.record(hexKeyString, v.object({ type: id, revealed: v.boolean(), left: count })),
     v.check((f) => Object.keys(f).length <= 20_000, 'too many features'),
   ),
-  glints: v.pipe(
-    v.record(hexKeyString, v.literal(true)),
-    v.check((g) => Object.keys(g).length <= 20_000, 'too many glints'),
-  ),
-  inventory: v.object({ materials: counts, items: counts }),
+  /** The team stores, on the creature. */
+  stores: counts,
+  /** Unlocks the team has finished. */
+  unlocks: v.pipe(v.array(id), v.maxLength(100)),
+  /** The one unlock in progress. */
+  project: v.nullable(v.object({ unlock: id, work: count })),
 });
 
 const player = v.object({
@@ -159,19 +165,29 @@ export type Session = v.InferOutput<typeof SessionSchema>;
 export const GameEventSchema = v.object({
   kind: v.pipe(v.string(), v.maxLength(40)),
   hex: v.optional(hex),
-  /** Content ids the event names: a revealed feature, a gathered or found material, a crafted item. */
+  /** Whose character the event is about. */
+  characterId: v.optional(id),
+  /** Content ids the event names: a revealed feature, a material, an unlock. */
   feature: v.optional(id),
   material: v.optional(id),
-  item: v.optional(id),
   amount: v.optional(count),
-  /** Whose character a trap caught. */
-  characterId: v.optional(id),
+  unlock: v.optional(id),
+  /** A deposit's materials. */
+  materials: v.optional(counts),
+  /** Unlock progress: work done and needed. */
+  work: v.optional(count),
+  needed: v.optional(count),
 });
 
 /** The answer to a move or an action: the new view and what happened on the way. */
 export const ActionAnswerSchema = v.object({
   ...PlayerViewSchema.entries,
   events: v.optional(v.pipe(v.array(GameEventSchema), v.maxLength(64)), []),
+  /** A walk a trap stopped: the step it stopped at. */
+  stopped: v.optional(
+    v.nullable(v.object({ step: count, reason: v.pipe(v.string(), v.maxLength(40)) })),
+    null,
+  ),
 });
 
 export type GameEvent = v.InferOutput<typeof GameEventSchema>;
@@ -179,6 +195,7 @@ export type ActionAnswer = v.InferOutput<typeof ActionAnswerSchema>;
 
 /** `POST /api/game/act` action bodies. */
 export type GameAction =
+  | { readonly kind: 'survey'; readonly hex: { readonly q: number; readonly r: number } }
   | { readonly kind: 'gather' }
-  | { readonly kind: 'craft'; readonly recipe: string }
-  | { readonly kind: 'work-site' };
+  | { readonly kind: 'work-site' }
+  | { readonly kind: 'build'; readonly unlock: string };

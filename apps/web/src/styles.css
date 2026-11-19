@@ -515,6 +515,45 @@ button svg,
   animation-name: moment-rise;
 }
 
+.moment-lift {
+  animation-name: moment-lift;
+}
+
+.moment-drop {
+  animation-name: moment-drop;
+}
+
+/* An explored hex's veil fades and drifts up. */
+@keyframes moment-lift {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-12%);
+  }
+}
+
+/* A deposit: the material falls into the stores on the creature's back. */
+@keyframes moment-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-120%);
+  }
+  25% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+    transform: translateY(40%) scale(0.8);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(50%) scale(0.6);
+  }
+}
+
 /* The art kit stages its marks in parts: the later parts follow a beat behind. */
 .moment [data-part='1'],
 .moment [data-part='2'] {
@@ -606,39 +645,33 @@ button svg,
   }
 }
 
-/* The team inventory: a satchel button, and a drawer of stacks and recipe cards. */
-.hud-satchel {
+/* Your pack: a satchel showing how full it is; a tap shows what is in it. */
+.hud-pack {
   position: absolute;
   left: var(--gutter);
   bottom: calc(var(--space-4) + var(--safe-bottom));
 }
 
-.hud-badge {
+.hud-pack svg {
+  width: 100%;
+  height: 100%;
+}
+
+.hud-pack-contents {
   position: absolute;
-  top: -4px;
-  right: -4px;
-  min-width: 20px;
-  height: 20px;
-  padding: 0 var(--space-1);
-  border-radius: 10px;
-  background: #5c5a43;
-  color: #f3f1e2;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 20px;
-  text-align: center;
-}
-
-.inventory {
-  display: grid;
-  gap: var(--space-4);
-}
-
-.inventory-stock {
+  left: var(--gutter);
+  bottom: calc(var(--space-4) + var(--safe-bottom) + var(--round) + var(--space-2));
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
-  min-height: 36px;
+  max-width: calc(100% - 2 * var(--gutter));
+  min-width: 44px;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: 12px;
+  background: #f3f1e2;
+  border: 1.5px solid #9a9776;
+  box-shadow: 1px 2px 0 #e1ddc3;
 }
 
 .stack {
@@ -655,54 +688,75 @@ button svg,
   height: 28px;
 }
 
-/* The extra material a non-engineer pays: marked with a dashed ring. */
-.stack.is-extra {
-  padding: 0 var(--space-1);
-  border: 1.5px dashed #d6a26f;
-  border-radius: 8px;
+/* A cost the stores cannot pay yet. */
+.stack.is-short {
+  opacity: 0.45;
 }
 
-.inventory-recipes {
+/* The creature's hub: the creature, the team stores, and the unlocks. */
+.hub {
   display: grid;
-  gap: var(--space-2);
+  gap: var(--space-4);
 }
 
-.recipe {
-  display: grid;
-  grid-template-columns: 1fr auto auto auto 52px;
+.hub-stores {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
+  min-height: 40px;
+}
+
+.hub-stores-icon svg {
+  width: 40px;
+  height: 40px;
+}
+
+.hub-unlocks {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.unlock {
+  display: grid;
+  grid-template-columns: 48px 1fr auto 52px;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 64px;
   padding: var(--space-2);
   border: 1.5px solid #e1ddc3;
   border-radius: 12px;
 }
 
-.recipe.is-off {
-  opacity: 0.55;
+.unlock.is-done {
+  grid-template-columns: 48px;
 }
 
-.recipe-inputs {
+.unlock.is-off {
+  opacity: 0.6;
+}
+
+.unlock-icon svg {
+  width: 44px;
+  height: 44px;
+}
+
+.unlock-cost {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
 }
 
-.recipe-arrow {
-  width: 24px;
-  height: 12px;
+.unlock-work svg {
+  max-width: 100%;
 }
 
-.recipe-output svg {
-  width: 40px;
-  height: 40px;
-}
-
-.recipe-go {
+.unlock-go {
   width: 52px;
   height: 52px;
 }
 
-.recipe-go:disabled {
+.unlock-go:disabled {
   opacity: 0.4;
   cursor: default;
 }

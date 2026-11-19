@@ -109,8 +109,8 @@ Superseded: 2 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-20 The revised chain in the interface: survey in the inspect card, the pack on the HUD, stores and unlocks in the hub drawer
 - 2026-11-20 The here card is compact and lets taps through its body; moments use the art kit's marks
-- 2026-11-20 Chain actions live in the popover and the team inventory in a satchel drawer; moments come from events (amended)
 - 2026-11-20 Unexplored hexes sit under one hatched paper veil; packs, stores and unlocks have their own marks
 - 2026-11-20 The Stubborn quirk's icon is a boulder, so icon keys never clash
 - 2026-11-20 Features, glints, moments and the via mark are drawn by the art kit from content keys (amended)
@@ -170,4 +170,4 @@ Superseded: 2 entries (see the topic file).
 - 2026-11-19 Drag and drop always has a tap and keyboard alternative
 - 2026-11-19 Counts read "1 / 3", and terms explain themselves without "?" icons
 
-Superseded: 6 entries (see the topic file).
+Superseded: 7 entries (see the topic file).

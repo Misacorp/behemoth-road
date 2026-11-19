@@ -22,8 +22,14 @@ export function cellStateAt(state: GameStateView, key: string): CellState {
   const tile = state.tiles[key];
   if (!tile) return 'unseen';
   if (tile.visibility === 'lost') return 'lost';
-  return tile.leftWindowOnDay === null ? 'seen' : 'fading';
+  if (tile.leftWindowOnDay !== null) return 'fading';
+  // In the window: under the veil until someone enters or surveys it.
+  return tile.explored ? 'seen' : 'unexplored';
 }
+
+/** Whether the terrain of a hex in this state is known to the player (drawn, named on its card). */
+export const terrainKnown = (s: CellState): boolean =>
+  s === 'seen' || s === 'unexplored' || s === 'fading';
 
 /**
  * The hexes to draw: the window and its fading edge, blank paper a few rings beyond, and lost tiles near
@@ -47,7 +53,7 @@ export function sceneCells(state: GameStateView): ArtCell[] {
   const cells: ArtCell[] = [];
   for (const [key, h] of keys) {
     const cellState = cellStateAt(state, key);
-    const known = cellState === 'seen' || cellState === 'fading';
+    const known = terrainKnown(cellState);
     const feature = known ? featureArtAt(state, key) : null;
     cells.push({
       q: h.q,
@@ -55,7 +61,6 @@ export function sceneCells(state: GameStateView): ArtCell[] {
       state: cellState,
       terrain: known ? (terrainOf(state, h)?.id ?? 'unknown') : 'unknown',
       ...(feature ? { feature } : {}),
-      ...(known && !feature && state.glints[key] ? { hint: true } : {}),
     });
   }
   return cells;
@@ -81,6 +86,8 @@ export function creatureArt(state: GameStateView): CreatureArt {
     r: state.creature.centre.r,
     heading: directionOffset(state.creature.heading),
     look: GENTLE_AMBLER,
+    // The team stores, as crates on its back.
+    stores: Object.values(state.stores).reduce((a, n) => a + n, 0),
   };
 }
 

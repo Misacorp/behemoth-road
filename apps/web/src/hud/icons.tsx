@@ -154,14 +154,3 @@ export function Pips({
     </svg>
   );
 }
-
-/** The team inventory: an ink satchel. */
-export function SatchelIcon(): JSX.Element {
-  return (
-    <svg viewBox="0 0 32 32" aria-hidden="true">
-      <path d="M11 11c0-4 10-4 10 0" {...line} />
-      <path d="M7 12h18l-2 14H9Z" {...line} fill={PALETTE.accents.ochre.light} />
-      <path d="M7 12l3 6h12l3-6M16 18v3" {...line} />
-    </svg>
-  );
-}
