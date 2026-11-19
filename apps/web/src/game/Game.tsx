@@ -32,7 +32,7 @@ import { getSettings } from '../settings.ts';
 /** The width from which the layout is the desktop one (`styles.css` media queries). */
 const DESKTOP_FROM = 900;
 import { identities, partySeeds, setAccents } from './identity.ts';
-import { MOMENT_MS, type Moment, momentsBetween, momentsFromEvents } from './moments.ts';
+import { eventKeys, MOMENT_MS, type Moment, momentsFromEvents } from './moments.ts';
 import { toGameState } from './viewState.ts';
 
 export interface GameProps {
@@ -109,25 +109,27 @@ export function Game({ api, initial }: GameProps): JSX.Element {
   // The drawer opens by itself whenever a character is needed (first join, or after being lost).
   useEffect(() => setDrawerClosed(false), [need]);
 
-  // Moments: what changed between the last view and this one, shown briefly on the map.
+  // Moments: what happened, from the server's events that come with each view (your own move or action,
+  // and since your last view: others, the tick). Each event plays once, keyed by version and index; when
+  // some were dropped from the log (`eventsTruncated`), none play.
   const [moments, setMoments] = useState<readonly Moment[]>([]);
   const momentTimer = useRef(0);
-  const playMoments = (found: readonly Moment[]): void => {
+  const played = useRef(new Set<string>());
+  useEffect(() => () => window.clearTimeout(momentTimer.current), []);
+  useEffect(() => {
+    if (view.eventsTruncated || view.events.length === 0) return;
+    const keys = eventKeys(view.events);
+    const fresh = view.events.filter((_, i) => !played.current.has(keys[i]!));
+    for (const k of keys) played.current.add(k);
+    // Forget keys for versions long past, so the set stays small.
+    for (const k of played.current) {
+      if (Number(k.split(':')[0]) < view.version - 200) played.current.delete(k);
+    }
+    const found = momentsFromEvents(fresh, view.game.creature.centre, view.you.characterId ?? '');
     if (found.length === 0) return;
     window.clearTimeout(momentTimer.current);
     setMoments(found);
     momentTimer.current = window.setTimeout(() => setMoments([]), MOMENT_MS);
-  };
-  useEffect(() => () => window.clearTimeout(momentTimer.current), []);
-  // Changes others made (or the day's tick) show as moments from the difference between views; your own
-  // move or action brings its events instead (`ownAnswer`).
-  const shown = useRef(view);
-  const ownAnswer = useRef(-1);
-  useEffect(() => {
-    const before = shown.current;
-    shown.current = view;
-    if (before === view || ownAnswer.current === view.version) return;
-    playMoments(momentsBetween(before.game, view.game, view.you.characterId ?? ''));
   }, [view]);
 
   // A plan made on an older view may no longer hold: drop it when the view changes under it.
@@ -147,14 +149,8 @@ export function Game({ api, initial }: GameProps): JSX.Element {
     if (busy) return;
     setBusy(true);
     try {
-      const answer = await run();
-      const { events, ...next } = 'events' in answer ? answer : { ...answer, events: null };
+      const next = await run();
       planVersion.current = next.version;
-      if (events) {
-        // Your own move or action reports what happened itself: play those, not a guess from the views.
-        ownAnswer.current = next.version;
-        playMoments(momentsFromEvents(events, next.game.creature.centre));
-      }
       sync.current!.accept(next);
       setFlow(after(next));
     } catch (err) {
@@ -254,14 +250,19 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         actionsPerDay={state.config.actionsPerDay}
         planned={flow.kind === 'planned' && isSelecting(flow) ? flow.cost : 0}
         lost={me?.status !== 'active'}
-        snapped={moments.some((m) => m.kind === 'trap')}
+        snapped={moments.some((m) => m.kind === 'trap' && m.mine)}
         me={who.get(id) ?? null}
         onFocus={(target) => setFocus((f) => ({ target, n: f.n + 1 }))}
         onNextDay={
           showsNextDay(view)
             ? () =>
                 void act(
-                  () => api.nextDay(),
+                  async () => {
+                    // The tick's answer carries no events: read them from the log since this view.
+                    const ticked = await api.nextDay();
+                    const since = await api.game(view.version);
+                    return 'unchanged' in since ? ticked : since;
+                  },
                   () => IDLE,
                 )
             : null

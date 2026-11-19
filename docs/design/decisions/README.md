@@ -110,7 +110,8 @@ Superseded: 2 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
-- 2026-11-20 The revised chain in the interface: survey in the inspect card, the pack on the HUD, stores and unlocks in the hub drawer
+- 2026-11-20 Moments play only from the server's event log, once per event
+- 2026-11-20 The revised chain in the interface: survey in the inspect card, the pack on the HUD, stores and unlocks in the hub drawer (amended)
 - 2026-11-20 The here card is compact and lets taps through its body; moments use the art kit's marks
 - 2026-11-20 Unexplored hexes sit under one hatched paper veil; packs, stores and unlocks have their own marks
 - 2026-11-20 The Stubborn quirk's icon is a boulder, so icon keys never clash
