@@ -1,5 +1,5 @@
 {
-  "version": 7,
+  "version": 9,
   "day": 2,
   "you": {
     "userId": "111111111111111111",
@@ -8,7 +8,7 @@
   },
   "offers": null,
   "game": {
-    "contentVersion": 2,
+    "contentVersion": 3,
     "artSeed": 4242,
     "day": 2,
     "config": {
@@ -23,7 +23,19 @@
         "left": 1,
         "straight": 2,
         "right": 1
-      }
+      },
+      "featureChance": 0.08,
+      "senseRadius": 1,
+      "gatherCost": 1,
+      "craftCost": 1,
+      "workSiteCost": 2,
+      "craftsPerDay": 1,
+      "specialistYield": 2,
+      "nonSpecialistExtraMaterial": 1,
+      "siteChanceSpecialistTier1": 0.7,
+      "siteChanceSpecialistTier2": 0.5,
+      "siteChanceOtherTier1": 0.35,
+      "siteChanceOtherTier2": 0
     },
     "creature": {
       "centre": {
@@ -561,7 +573,8 @@
             "r": 2
           }
         },
-        "actionsLeft": 3,
+        "actionsLeft": 2,
+        "craftsToday": 1,
         "status": "lost"
       },
       {
@@ -577,6 +590,7 @@
           "kind": "creature"
         },
         "actionsLeft": 3,
+        "craftsToday": 0,
         "status": "active"
       },
       {
@@ -592,9 +606,23 @@
           "kind": "creature"
         },
         "actionsLeft": 3,
+        "craftsToday": 0,
         "status": "active"
       }
-    ]
+    ],
+    "features": {},
+    "glints": {
+      "-3,3": true
+    },
+    "inventory": {
+      "materials": {
+        "iron": 0,
+        "timber": 1
+      },
+      "items": {
+        "grappling-hook": 1
+      }
+    }
   },
   "players": [
     {

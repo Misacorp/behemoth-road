@@ -7,6 +7,13 @@
     }
   },
   {
+    "route": "POST /api/game/act",
+    "status": 409,
+    "body": {
+      "error": "nothing-here"
+    }
+  },
+  {
     "route": "POST /api/game/move",
     "status": 409,
     "body": {
@@ -17,7 +24,7 @@
     "route": "POST /api/game/move",
     "status": 409,
     "body": {
-      "error": "not-adjacent"
+      "error": "stale"
     }
   },
   {

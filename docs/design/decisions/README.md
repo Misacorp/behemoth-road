@@ -49,6 +49,7 @@ Record a decision:
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
+- 2026-11-20 Act and move answer the view with what happened; stored games are upgraded once on load
 - 2026-11-19 Only allowed Discord servers can play; the app itself is public \[Misa\]
 - 2026-11-19 The web client boots as an Activity, parses every response, and runs rules on the player view
 - 2026-11-19 Sign-in, interactions and the deploy's Discord steps follow creatures (amended)

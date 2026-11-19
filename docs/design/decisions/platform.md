@@ -4,6 +4,14 @@ Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: Act and move answer the view with what happened; stored games are upgraded once on load
+
+ID: `2026-11-20-act-and-move-answer-the-view` · Status: current
+
+**Decision.** `POST /api/game/act` (`{ version, action }`, one of three strict shapes, recipe ids from content) and `POST /api/game/move` answer the new player view plus `events` (the core's list, passed through) and `stopped` (where a trap ended a walk, or `null`); refusals stay `409 { error }` with the core's reason. Both run through one path in the Durable Object: the version check, the player's newest character, the rule, the write, in one transaction. When the object starts, a game stored with older content is upgraded through the core's `loadGame` (which runs `migrateGame`) and written back once, bumping the version so clients reload. Every test response is checked for the seed and for any feature the stored game still hides.
+
+**Reasoning.** One answer with the view and the moments saves a second request and lets the web show reveals, finds and traps exactly once. Upgrading at start, rather than on every read, keeps reads cheap and makes the upgrade a single recorded write; the live production game keeps its characters and map.
+
 ## 2026-11-19: Only allowed Discord servers can play; the app itself is public **[Misa]**
 
 ID: `2026-11-19-only-allowed-discord-servers-can-play` · Status: current · Amends: `2026-11-19-sign-in-interactions-and-the-deploy`

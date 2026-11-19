@@ -15,9 +15,8 @@ import {
   characterOffers,
   createGame,
   loadGame,
-  act,
+  actWithEvents,
   CONTENT_VERSION,
-  migrateGame,
   moveWithEvents,
   type EventResult,
   type GameEvent,
@@ -97,6 +96,8 @@ type PlayerRow = {
   display_name: string;
 };
 
+type EventStop = Extract<EventResult, { ok: true }>['stopped'];
+
 const { tick, sessions, rateLimits, adminCacheMs, maxCatchUpTicks } = SERVER_CONFIG;
 
 export class GuildGame {
@@ -121,9 +122,9 @@ export class GuildGame {
   }
 
   /**
-   * Brings a game stored with older content up to this build's (the core's `migrateGame`, for example
-   * content version 2 to 3), once, in one transaction, and bumps the version so every client reloads.
-   * A newer or unknown version is left for `loadGame` to refuse.
+   * Brings a game stored with older content up to this build's (the core's `loadGame` runs `migrateGame`,
+   * for example content version 2 to 3), stores the result once, in one transaction, and bumps the version
+   * so every client reloads. A newer or unknown version is left for `loadGame` to refuse on read.
    */
   private upgradeStoredGame(): void {
     this.storage.transactionSync(() => {
@@ -134,7 +135,7 @@ export class GuildGame {
       const stored: unknown = JSON.parse(row.state);
       const version = (stored as { contentVersion?: unknown } | null)?.contentVersion;
       if (typeof version !== 'number' || version >= CONTENT_VERSION) return;
-      this.writeGame(migrateGame(stored));
+      this.writeGame(loadGame(stored));
     });
   }
 
@@ -411,12 +412,15 @@ export class GuildGame {
   private async act(user: SessionUser, request: Request): Promise<Response> {
     const body = await parseBody(request, ActBodySchema);
     if (body === undefined) return errorResponse('invalid_body', 400);
-    return this.withOwnCharacter(user, body.version, (state, id) => act(state, id, body.action));
+    return this.withOwnCharacter(user, body.version, (state, id) =>
+      actWithEvents(state, id, body.action),
+    );
   }
 
   /**
    * Runs a rule for the player's newest character (a lost one is refused by the core) against the version
-   * the client saw, in one transaction. Answers the new view with what happened (`events`), or
+   * the client saw, in one transaction. Answers the new view with what happened (`events`, and `stopped`
+   * when a trap ended a walk), or
    * `409 { error }` for a stale version or a refusal.
    */
   private async withOwnCharacter(
@@ -424,7 +428,7 @@ export class GuildGame {
     version: number,
     rule: (state: GameState, characterId: string) => EventResult,
   ): Promise<Response> {
-    let events: readonly GameEvent[] = [];
+    let outcome: { events: readonly GameEvent[]; stopped: EventStop } = { events: [], stopped: null };
     const refusal = this.storage.transactionSync((): string | null => {
       const game = this.readGame();
       if (game === null) return 'no_game';
@@ -434,13 +438,13 @@ export class GuildGame {
       const result = rule(game.state, character.id);
       if (!result.ok) return result.reason;
       this.writeGame(result.state);
-      events = result.events;
+      outcome = { events: result.events, stopped: result.stopped };
       return null;
     });
     if (refusal !== null) return errorResponse(refusal, 409);
     const game = this.readGame();
     if (game === null) return errorResponse('no_game', 409);
-    return json({ ...(await this.view(user, game)), events });
+    return json({ ...(await this.view(user, game)), ...outcome });
   }
 
   /** Staging only (the route is a 404 otherwise): a server admin runs the tick now. */

@@ -36,6 +36,17 @@
     "path": "/api/dev/next-day",
     "body": {}
   },
+  "view-crafted": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 6,
+      "action": {
+        "kind": "craft",
+        "recipe": "grappling-hook"
+      }
+    }
+  },
   "view-replaced": {
     "method": "POST",
     "path": "/api/game/replace",

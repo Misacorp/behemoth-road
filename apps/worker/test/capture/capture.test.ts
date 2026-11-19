@@ -88,6 +88,27 @@ describe('capture', () => {
           await ctx.call(misa, 'GET', `/api/game?since=${String(moved.version)}`)
         ).body;
         await ok('view-next-day', 'POST', '/api/dev/next-day', {});
+        // The team holds the materials for a grappling hook (with the extra one a non-engineer pays): craft it.
+        const before = JSON.parse(
+          ctx.sql.exec<{ state: string }>('SELECT state FROM game').one().state,
+        ) as GameState;
+        ctx.sql.exec(
+          'UPDATE game SET state = ?, version = version + 1',
+          JSON.stringify({
+            ...before,
+            inventory: { materials: { iron: 3, timber: 2 }, items: {} },
+          }),
+        );
+        const { version: craftVersion } = (await ctx.call(misa, 'GET', '/api/game'))
+          .body as PlayerView;
+        await ok('view-crafted', 'POST', '/api/game/act', {
+          version: craftVersion,
+          action: { kind: 'craft', recipe: 'grappling-hook' },
+        });
+        await refused(misa, 'POST', '/api/game/act', {
+          version: craftVersion + 1,
+          action: { kind: 'work-site' },
+        });
 
         await refused(misa, 'POST', '/api/game/move', { version: 1, path: [target] });
         await refused(misa, 'POST', '/api/game/move', {

@@ -83,6 +83,7 @@ describe('POST /api/game/join', () => {
           joinedDay: 1,
           at: { kind: 'creature' },
           actionsLeft: 3,
+          craftsToday: 0,
           status: 'active',
         },
       ]);
