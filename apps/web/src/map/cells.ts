@@ -11,8 +11,9 @@ import {
   hexesInRange,
   hexKey,
   placeHex,
-  terrainIdAt,
 } from '@behemoth-road/core';
+import { accentOf } from '../game/identity.ts';
+import { terrainOf } from '../game/viewState.ts';
 import { MAP_TUNING } from './config.ts';
 
 /** The fog state of a hex: hidden is blank paper, a seen hex outside the window is fading. */
@@ -50,7 +51,7 @@ export function sceneCells(state: GameState): ArtCell[] {
       q: h.q,
       r: h.r,
       state: cellState,
-      terrain: known ? terrainIdAt(state.seed, h) : 'unknown',
+      terrain: known ? terrainOf(state, h) : 'unknown',
     });
   }
   return cells;
@@ -71,6 +72,6 @@ export function characterArts(state: GameState): CharacterArt[] {
     .filter((c) => c.status === 'active')
     .map((c) => {
       const at = placeHex(state, c.at);
-      return { id: c.id, q: at.q, r: at.r, accent: MAP_TUNING.accent };
+      return { id: c.id, q: at.q, r: at.r, accent: accentOf(c.id, MAP_TUNING.accent) };
     });
 }

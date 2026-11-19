@@ -18,6 +18,8 @@ import {
 import type { GameState } from '@behemoth-road/core';
 import type { JSX } from 'preact';
 import { Pips, TickMark } from '../hud/icons.tsx';
+import type { Identity } from '../game/identity.ts';
+import { QuirkIcon, RoleEmblem, TraitIcon } from '../ui/emblems.tsx';
 import { PALETTE } from './art.ts';
 import { creatureArt } from './cells.ts';
 import { MAP_TUNING } from './config.ts';
@@ -261,15 +263,23 @@ function Fitted({
 }
 
 const FIGURE_W = 34;
-// Drawn once: the bubble's figures and its creature entry never change (no per-tap drawing).
-const BUBBLE_FIGURE = drawCharacter(
-  PALETTE,
-  MAP_TUNING.accent,
-  { x: 0, y: 0 },
-  40,
-  MAP_TUNING.tilt,
-  ART_TUNING.inkWidth * 0.7 * 1.4,
-);
+// Drawn once per accent: the bubble's figures and its creature entry are not redrawn per tap.
+const bubbleFigures = new Map<string, Drawn>();
+function bubbleFigure(accent: string): Drawn {
+  let drawn = bubbleFigures.get(accent);
+  if (!drawn) {
+    drawn = drawCharacter(
+      PALETTE,
+      accent,
+      { x: 0, y: 0 },
+      40,
+      MAP_TUNING.tilt,
+      ART_TUNING.inkWidth * 0.98,
+    );
+    bubbleFigures.set(accent, drawn);
+  }
+  return drawn;
+}
 const BUBBLE_CREATURE = drawCreature(
   PALETTE,
   GENTLE_AMBLER,
@@ -292,6 +302,9 @@ export function bubbleSize(count: number, place = true): { width: number; height
 
 export interface BubbleCharacter {
   readonly id: string;
+  readonly accent: string;
+  /** Another player's character: tapping it opens their card. */
+  readonly other: boolean;
   /** Drawn with a selection ring (your own character, when the tap selected it). */
   readonly selected: boolean;
 }
@@ -305,22 +318,42 @@ export function Bubble({
   characters,
   place,
   onOpenPlace,
+  onCharacter,
   placeRef,
 }: {
   characters: readonly BubbleCharacter[];
+  onCharacter: (id: string) => void;
   place?: 'creature';
   onOpenPlace: () => void;
   placeRef: (el: SVGGElement | null) => void;
 }): JSX.Element {
   const size = bubbleSize(characters.length, place !== undefined);
-  const ramp = accentRamp(PALETTE, MAP_TUNING.accent);
   return (
     <g data-popover="bubble">
       <Card {...size} />
       {characters.map((c, i) => {
         const x = 8 + i * FIGURE_W;
+        const ramp = accentRamp(PALETTE, c.accent);
+        const open = (): void => onCharacter(c.id);
+        // Other players' characters open their card; your own figure is shown, not a button.
+        const button = c.other
+          ? {
+              class: 'svg-button',
+              role: 'button' as const,
+              tabindex: 0,
+              'aria-label': 'Character',
+              onClick: open,
+              onKeyDown: (e: KeyboardEvent) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  open();
+                }
+              },
+            }
+          : {};
         return (
-          <g key={c.id} data-character={c.id} transform={`translate(${x} 6)`}>
+          <g key={c.id} data-character={c.id} transform={`translate(${x} 6)`} {...button}>
+            <rect width={FIGURE_W} height={50} fill={PALETTE.paper} opacity={0} />
             {c.selected && (
               <ellipse
                 cx={FIGURE_W / 2}
@@ -332,7 +365,7 @@ export function Bubble({
                 stroke-width={1.6}
               />
             )}
-            <Fitted drawn={BUBBLE_FIGURE} x={3} y={0} width={FIGURE_W - 6} height={46} />
+            <Fitted drawn={bubbleFigure(c.accent)} x={3} y={0} width={FIGURE_W - 6} height={46} />
           </g>
         );
       })}
@@ -356,6 +389,40 @@ export function Bubble({
           <Fitted drawn={BUBBLE_CREATURE} x={-17} y={-17} width={34} height={34} />
         </g>
       )}
+    </g>
+  );
+}
+
+export const CHARACTER_SIZE = { width: 176, height: 78 } as const;
+
+/**
+ * Another player's character: its figure, its name (the only text, rendered as text), its role emblem
+ * and its trait and quirk icons.
+ */
+export function CharacterCard({ who }: { who: Identity }): JSX.Element {
+  return (
+    <g data-popover="character" data-character={who.id}>
+      <Card {...CHARACTER_SIZE} />
+      <Fitted drawn={bubbleFigure(who.accent)} x={8} y={8} width={40} height={60} />
+      <text
+        x={56}
+        y={28}
+        fill={PALETTE.ink}
+        font-size={15}
+        font-weight={600}
+        font-family="system-ui, sans-serif"
+      >
+        {who.name.length > 16 ? `${who.name.slice(0, 15)}…` : who.name}
+      </text>
+      <g transform="translate(54 38)">
+        <RoleEmblem role={who.role} size={30} />
+      </g>
+      <g transform="translate(92 43)">
+        <TraitIcon id={who.trait} size={22} />
+      </g>
+      <g transform="translate(120 43)">
+        <QuirkIcon id={who.quirk} size={22} />
+      </g>
     </g>
   );
 }

@@ -29,6 +29,7 @@ import {
   hexKey,
   placeHex,
 } from '@behemoth-road/core';
+import { accentOf } from '../game/identity.ts';
 import { cellStateAt } from './cells.ts';
 import { MAP_TUNING } from './config.ts';
 import { figureFeet, placePoint } from './figures.ts';
@@ -143,7 +144,7 @@ function placeOutline(i: OverlayInput, place: Place, colour: string, width: numb
  */
 function selectionRing(i: OverlayInput, feet: Point, riding: boolean): SvgNode {
   const p = i.projection;
-  const ramp = accentRamp(i.palette, MAP_TUNING.accent);
+  const ramp = accentRamp(i.palette, accentOf(i.characterId, MAP_TUNING.accent));
   const scale = riding ? 0.22 : 0.3;
   return el('path', {
     d: ellipse(feet, scale * p.size, scale * p.size * p.squash),
@@ -246,7 +247,7 @@ export function pips(i: OverlayInput, at: Point, count: number): SvgNode[] {
   const k = i.projection.k;
   const r = 4.6 * k;
   const gap = 11 * k;
-  const ramp = accentRamp(i.palette, MAP_TUNING.accent);
+  const ramp = accentRamp(i.palette, accentOf(i.characterId, MAP_TUNING.accent));
   const out: SvgNode[] = [];
   for (let j = 0; j < count; j += 1) {
     const x = at.x + (j - (count - 1) / 2) * gap;
@@ -271,7 +272,7 @@ function lostCharacters(i: OverlayInput): SvgNode[] {
       const at = feetOf(p, placeHex(i.state, c.at));
       const drawn = drawCharacter(
         i.palette,
-        MAP_TUNING.accent,
+        accentOf(c.id, MAP_TUNING.accent),
         at,
         p.size,
         p.squash,
@@ -366,7 +367,14 @@ export function buildOverlays(i: OverlayInput): Overlays {
     under.push(placeOutline(i, { kind: 'creature' }, i.palette.ink, 2.2));
   }
   if (i.flow.kind === 'planned' && feet) {
-    under.push(placeOutline(i, i.flow.to, accentRamp(i.palette, MAP_TUNING.accent).shade, 2.6));
+    under.push(
+      placeOutline(
+        i,
+        i.flow.to,
+        accentRamp(i.palette, accentOf(i.characterId, MAP_TUNING.accent)).shade,
+        2.6,
+      ),
+    );
     over.push(...pathArrow(i, feet, i.flow.steps));
   }
   over.push(...lostCharacters(i));

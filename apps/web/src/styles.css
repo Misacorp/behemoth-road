@@ -10,7 +10,13 @@
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
-  --gutter: max(var(--space-3), env(safe-area-inset-left));
+  /* Safe areas: the device's, and Discord's own insets when it runs the Activity (whichever is larger). */
+  --safe-top: max(env(safe-area-inset-top, 0px), var(--discord-safe-area-inset-top, 0px));
+  --safe-right: max(env(safe-area-inset-right, 0px), var(--discord-safe-area-inset-right, 0px));
+  --safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--discord-safe-area-inset-bottom, 0px));
+  --safe-left: max(env(safe-area-inset-left, 0px), var(--discord-safe-area-inset-left, 0px));
+  --gutter: max(var(--space-3), var(--safe-left));
+  --gutter-right: max(var(--space-3), var(--safe-right));
   --round: 52px;
 }
 
@@ -108,7 +114,7 @@ button svg,
 
 .hud-day {
   position: absolute;
-  top: max(var(--space-3), env(safe-area-inset-top));
+  top: calc(var(--space-3) + var(--safe-top));
   left: var(--gutter);
   display: flex;
   align-items: center;
@@ -129,7 +135,7 @@ button svg,
 .hud-actions {
   position: absolute;
   left: 50%;
-  bottom: max(var(--space-4), env(safe-area-inset-bottom));
+  bottom: calc(var(--space-4) + var(--safe-bottom));
   transform: translateX(-50%);
   pointer-events: none;
 }
@@ -144,8 +150,8 @@ button svg,
 
 .hud-focus {
   position: absolute;
-  right: var(--gutter);
-  bottom: max(var(--space-4), env(safe-area-inset-bottom));
+  right: var(--gutter-right);
+  bottom: calc(var(--space-4) + var(--safe-bottom));
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -163,8 +169,8 @@ button svg,
 
 .hud-dev {
   position: absolute;
-  top: max(var(--space-3), env(safe-area-inset-top));
-  right: var(--gutter);
+  top: calc(var(--space-3) + var(--safe-top));
+  right: var(--gutter-right);
   display: flex;
   gap: var(--space-1);
 }
@@ -187,5 +193,269 @@ button svg,
 @media (min-width: 900px) {
   :root {
     --round: 56px;
+  }
+}
+
+/* Join (or replace) button: above the recentre buttons. */
+.hud-join {
+  position: absolute;
+  left: var(--gutter);
+  bottom: calc(var(--space-4) + var(--safe-bottom));
+}
+
+/* Full-page states before the game. */
+.state {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: var(--space-4);
+  background: #f3f1e2;
+}
+
+.state-art {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-2);
+}
+
+.state-creature {
+  width: 96px;
+  height: 96px;
+}
+
+.state-creature svg {
+  width: 100%;
+  height: 100%;
+}
+
+.state-door,
+.state-mark {
+  width: 96px;
+  height: 96px;
+  overflow: visible;
+}
+
+/*
+  The drawer. Phones: one bottom drawer with two heights (data-snap half or full), dragged by its handle.
+  Desktop: a side drawer from the left or right, scrolling where its content is tall.
+*/
+.drawer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - var(--safe-top) - var(--space-4));
+  padding-bottom: var(--safe-bottom);
+  background: #f3f1e2;
+  border-top: 1.5px solid #9a9776;
+  border-radius: 16px 16px 0 0;
+  box-shadow: 0 -2px 0 #e1ddc3;
+  transition: height 180ms ease-out;
+}
+
+.drawer[data-snap='half'] {
+  height: min(56dvh, 520px);
+}
+
+.drawer[data-snap='full'] {
+  height: calc(100dvh - var(--safe-top) - var(--space-4));
+}
+
+.drawer-handle {
+  display: grid;
+  place-items: center;
+  height: 28px;
+  flex: none;
+  touch-action: none;
+  cursor: grab;
+}
+
+.drawer-handle span {
+  width: 44px;
+  height: 5px;
+  border-radius: 3px;
+  background: #9a9776;
+}
+
+.drawer-body {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+@media (min-width: 900px) {
+  .drawer {
+    top: calc(var(--space-3) + var(--safe-top));
+    bottom: calc(var(--space-3) + var(--safe-bottom));
+    width: 360px;
+    max-height: none;
+    height: auto;
+    border: 1.5px solid #9a9776;
+    border-radius: 16px;
+    box-shadow: 2px 3px 0 #e1ddc3;
+  }
+
+  .drawer[data-snap] {
+    height: auto;
+  }
+
+  .drawer-left {
+    left: var(--gutter);
+    right: auto;
+  }
+
+  .drawer-right {
+    right: var(--gutter-right);
+    left: auto;
+  }
+
+  .drawer-handle {
+    display: none;
+  }
+
+  .drawer-body {
+    padding-top: var(--space-4);
+  }
+}
+
+/* The join wizard: one step at a time on phones, every step at once on desktop. */
+.join-step {
+  display: none;
+}
+
+.join[data-step='character'] .join-characters,
+.join[data-step='role'] .join-roles,
+.join[data-step='confirm'] .join-confirm {
+  display: grid;
+}
+
+.join-characters {
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2);
+}
+
+.offer {
+  display: grid;
+  grid-template-rows: 88px auto auto;
+  justify-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border-radius: 12px;
+  border: 1.5px solid #e1ddc3;
+  background: #f3f1e2;
+  color: #5c5a43;
+  font-weight: 600;
+}
+
+.offer[aria-selected='true'],
+.role[aria-selected='true'] {
+  border-color: #5c5a43;
+  background: #e1ddc3;
+}
+
+.offer-figure {
+  width: 72px;
+  height: 88px;
+}
+
+.offer-figure svg {
+  width: 100%;
+  height: 100%;
+}
+
+.offer-name {
+  font-size: 0.95rem;
+  line-height: 1.2;
+  text-align: center;
+}
+
+.offer-icons {
+  display: flex;
+  gap: var(--space-1);
+  min-height: 20px;
+}
+
+.offer-icons svg,
+.join-choice svg {
+  width: auto;
+  height: auto;
+}
+
+.join-roles {
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-2);
+}
+
+.role {
+  height: 64px;
+  border-radius: 12px;
+  border: 1.5px solid #e1ddc3;
+  background: #f3f1e2;
+}
+
+.role svg {
+  width: 40px;
+  height: 40px;
+}
+
+.join-back {
+  grid-column: 1 / -1;
+  justify-self: start;
+  width: 44px;
+  height: 44px;
+}
+
+.join-back svg {
+  width: 24px;
+  height: 24px;
+}
+
+.join-confirm {
+  justify-items: center;
+  gap: var(--space-3);
+}
+
+.join-choice {
+  display: grid;
+  grid-template-columns: auto auto;
+  align-items: center;
+  justify-items: center;
+  gap: var(--space-4);
+  color: #5c5a43;
+  font-weight: 600;
+}
+
+.join-choice > .offer-figure {
+  grid-row: span 3;
+}
+
+.join-go {
+  width: 64px;
+  height: 64px;
+}
+
+.join-go:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+@media (min-width: 900px) {
+  .join {
+    display: grid;
+    gap: var(--space-4);
+  }
+
+  .join .join-step {
+    display: grid;
+  }
+
+  .join .join-back {
+    display: none;
   }
 }

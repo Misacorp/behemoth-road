@@ -79,6 +79,6 @@ describe('figure positions', () => {
     };
     const feet = pickableFeet(s, 'a', p);
     expect(feet.mine).toEqual(figureFeet(s, 'a', p));
-    expect(feet.others).toEqual([figureFeet(s, 'b', p)]);
+    expect(feet.others).toEqual([{ id: 'b', feet: figureFeet(s, 'b', p) }]);
   });
 });

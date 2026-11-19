@@ -12,13 +12,14 @@ import {
   hexKey,
   placeKey,
   reachablePlaces,
-  terrainIdAt,
 } from '@behemoth-road/core';
 import { Component, type ComponentChildren, type JSX } from 'preact';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { PALETTE, PROJECTION } from './art.ts';
 import { cellStateAt, characterArts, creatureArt, sceneCells } from './cells.ts';
 import { chevronFor, placePopover, splitScene } from './compose.ts';
+import { accentOf, type Identity } from '../game/identity.ts';
+import { terrainOf } from '../game/viewState.ts';
 import { MAP_TUNING } from './config.ts';
 import { type Flow, isSelecting } from './flow.ts';
 import { GestureTracker, type Gesture } from './gestures.ts';
@@ -27,6 +28,8 @@ import { figureFeet, pickableFeet, placePoint } from './figures.ts';
 import { pickTarget, type Point, type Target } from './pick.ts';
 import {
   Bubble,
+  CHARACTER_SIZE,
+  CharacterCard,
   bubbleSize,
   CONFIRM_SIZE,
   ConfirmCard,
@@ -62,6 +65,10 @@ export interface MapViewProps {
   readonly onConfirm: () => void;
   /** The bubble's way into the hub was tapped. */
   readonly onOpenHub: () => void;
+  /** Another player's character in the bubble was tapped. */
+  readonly onCharacter: (id: string) => void;
+  /** Who each character is (names, roles, traits, quirks), from the player view. */
+  readonly identities?: ReadonlyMap<string, Identity>;
   /** The map was right-clicked (the browser's menu is never shown over the map). */
   readonly onRightClick: () => void;
   /** Recentre requests: a new `n` animates the view to the target. */
@@ -110,6 +117,18 @@ interface Anchor {
 
 function popoverAnchor(state: GameState, flow: Flow, characterId: string): Anchor | null {
   const tile = 2 * p.size * p.squash;
+  if (flow.kind === 'character') {
+    // Above the character's head, wherever it stands (on a hex or on the creature's back).
+    const feet = figureFeet(state, flow.id, p);
+    if (!feet) return null;
+    const head = 0.9 * p.size;
+    return {
+      key: `character:${flow.id}`,
+      top: { x: feet.x, y: feet.y - head },
+      below: head,
+      size: CHARACTER_SIZE,
+    };
+  }
   if (flow.kind === 'inspect') {
     const c = hexCenter(p, flow.hex.q, flow.hex.r);
     return {
@@ -471,20 +490,23 @@ export function MapView(props: MapViewProps): JSX.Element {
     const cellState = cellStateAt(state, `${flow.hex.q},${flow.hex.r}`);
     const known = cellState === 'seen' || cellState === 'fading';
     card = (
-      <InspectCard
-        terrain={known ? terrainIdAt(state.seed, flow.hex) : 'unknown'}
-        state={cellState}
-      />
+      <InspectCard terrain={known ? terrainOf(state, flow.hex) : 'unknown'} state={cellState} />
     );
   } else if (flow.kind === 'creature') {
     card = <CreatureCard state={state} />;
+  } else if (flow.kind === 'character') {
+    const who = props.identities?.get(flow.id);
+    if (who) card = <CharacterCard who={who} />;
   } else if (flow.kind === 'bubble') {
     card = (
       <Bubble
         characters={ridersOf(state).map((c) => ({
           id: c.id,
+          accent: accentOf(c.id, MAP_TUNING.accent),
+          other: c.id !== characterId,
           selected: c.id === characterId && flow.selecting,
         }))}
+        onCharacter={(id) => props.onCharacter(id)}
         place="creature"
         onOpenPlace={props.onOpenHub}
         placeRef={(el) => {

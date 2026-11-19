@@ -24,6 +24,8 @@ export type Flow =
   | { readonly kind: 'idle' }
   /** Looking at a hex: its popover shows what is known about it. */
   | { readonly kind: 'inspect'; readonly hex: Hex }
+  /** Looking at another player's character: its card shows who it is. */
+  | { readonly kind: 'character'; readonly id: string }
   /** Looking at the creature (the hub): its card shows it and its heading. */
   | { readonly kind: 'creature' }
   /**
@@ -79,6 +81,10 @@ export function tap(flow: Flow, state: GameState, characterId: string, target: T
   const me = findCharacter(state, characterId);
   const active = me?.status === 'active';
   const mine: Place | null = active ? me.at : null;
+  if (target.kind === 'character') {
+    // Another player's character: show who it is (you can only move your own). Again closes.
+    return flow.kind === 'character' && flow.id === target.id ? IDLE : openCharacter(target.id);
+  }
   const hex = target.kind === 'hex' ? target.hex : null;
   const to = hex ? placeAt(state, hex) : mine;
   if (!to) return flow;
@@ -103,6 +109,9 @@ export function tap(flow: Flow, state: GameState, characterId: string, target: T
 /** Tapping a hex (a shorthand for tests and callers without picking). */
 export const tapHex = (flow: Flow, state: GameState, characterId: string, hex: Hex): Flow =>
   tap(flow, state, characterId, { kind: 'hex', hex });
+
+/** Another player's character card (from its figure or from the bubble). */
+export const openCharacter = (id: string): Flow => ({ kind: 'character', id });
 
 /** The bubble's way into the hub: the creature card. */
 export const openHub = (): Flow => ({ kind: 'creature' });

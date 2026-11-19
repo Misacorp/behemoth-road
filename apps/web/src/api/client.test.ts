@@ -20,6 +20,8 @@ function fake(...answers: { status?: number; body: unknown }[]): { fetch: Fetch;
 }
 
 const auth = (c: Call): string | null => new Headers(c.init.headers).get('Authorization');
+const bodyOf = (c: Call): unknown =>
+  typeof c.init.body === 'string' ? JSON.parse(c.init.body) : null;
 
 describe('API client', () => {
   it('parses the config and the session, then sends the token as a bearer', async () => {
@@ -27,7 +29,7 @@ describe('API client', () => {
     const api = createApiClient(f.fetch);
     expect(await api.config()).toEqual(CONFIG);
     await api.signIn('code', 'instance');
-    expect(JSON.parse(String(f.calls[1]!.init.body))).toEqual({ code: 'code', instanceId: 'instance' });
+    expect(bodyOf(f.calls[1]!)).toEqual({ code: 'code', instanceId: 'instance' });
     const game = await api.game();
     expect('unchanged' in game).toBe(false);
     expect(auth(f.calls[2]!)).toBe(`Bearer ${SESSION.token}`);
@@ -61,7 +63,10 @@ describe('API client', () => {
     bad.useSession(SESSION);
     await expect(bad.game()).rejects.toBeInstanceOf(ShapeError);
 
-    const seeded = { ...joined(), game: { ...joined().game, tiles: { '0,0': { visibility: 'odd' } } } };
+    const seeded = {
+      ...joined(),
+      game: { ...joined().game, tiles: { '0,0': { visibility: 'odd' } } },
+    };
     const odd = createApiClient(fake({ body: seeded }).fetch);
     odd.useSession(SESSION);
     await expect(odd.game()).rejects.toBeInstanceOf(ShapeError);
@@ -73,12 +78,12 @@ describe('API client', () => {
     api.useSession(SESSION);
     await api.join('scout', 1);
     expect(f.calls[0]!.path).toBe('/api/game/join');
-    expect(JSON.parse(String(f.calls[0]!.init.body))).toEqual({ role: 'scout', offer: 1 });
+    expect(bodyOf(f.calls[0]!)).toEqual({ role: 'scout', offer: 1 });
     const err = await api.move(7, [{ kind: 'creature' }]).catch((e: unknown) => e);
     expect(err).toBeInstanceOf(ApiError);
     expect((err as ApiError).status).toBe(409);
     expect((err as ApiError).code).toBe('not-enough-actions');
-    expect(JSON.parse(String(f.calls[1]!.init.body))).toEqual({
+    expect(bodyOf(f.calls[1]!)).toEqual({
       version: 7,
       path: [{ kind: 'creature' }],
     });

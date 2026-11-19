@@ -39,7 +39,9 @@ export const OFFERS: Offer[] = [
   { name: 'Wanderer', trait: null, quirk: null },
 ];
 
-const IDENTITY: Readonly<Record<string, { name: string; trait: string | null; quirk: string | null }>> = {
+const IDENTITY: Readonly<
+  Record<string, { name: string; trait: string | null; quirk: string | null }>
+> = {
   'c-misa': { name: 'Aino Vasara', trait: 'keen-eyed', quirk: 'sleepwalker' },
   'c-pip': { name: 'Pip Marrow', trait: 'strong', quirk: 'chatterbox' },
   'c-ola': { name: 'Ola Reed', trait: null, quirk: null },
@@ -80,8 +82,20 @@ function view(
 }
 
 const MISA = { userId: SESSION.user.id, name: 'Misa', joinedDay: 1 };
-const PIP = { userId: '100000000000000002', name: 'Pip', characterId: 'c-pip', role: 'keeper', joinedDay: 1 };
-const OLA = { userId: '100000000000000003', name: 'Ola', characterId: 'c-ola', role: 'envoy', joinedDay: 1 };
+const PIP = {
+  userId: '100000000000000002',
+  name: 'Pip',
+  characterId: 'c-pip',
+  role: 'keeper',
+  joinedDay: 1,
+};
+const OLA = {
+  userId: '100000000000000003',
+  name: 'Ola',
+  characterId: 'c-ola',
+  role: 'envoy',
+  joinedDay: 1,
+};
 
 /** Before joining: someone else rides the creature; you have offers to pick from. */
 export function notJoined(): PlayerView {
@@ -121,5 +135,11 @@ export function lost(): PlayerView {
     characters: base.characters.map((c) => (c.id === 'c-misa' ? { ...c, at: onHex(behind) } : c)),
   };
   for (let i = 0; i < 4; i += 1) state = nextDay(state);
-  return view(state, 'c-misa', [{ ...MISA, characterId: 'c-misa', role: 'scout' }, PIP], OFFERS, 12);
+  return view(
+    state,
+    'c-misa',
+    [{ ...MISA, characterId: 'c-misa', role: 'scout' }, PIP],
+    OFFERS,
+    12,
+  );
 }

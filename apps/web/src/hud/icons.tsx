@@ -53,6 +53,11 @@ const CREATURE = drawCreature(PALETTE, GENTLE_AMBLER, { x: 0, y: 0 }, 14, MAP_TU
 });
 
 export const CharacterIcon = (): JSX.Element => figure(CHARACTER, 2);
+
+/** A character's standee in its accent colour, fitted to a square. */
+export function CharacterFigure({ accent }: { accent: string }): JSX.Element {
+  return figure(drawCharacter(PALETTE, accent, { x: 0, y: 0 }, 40, MAP_TUNING.tilt, 1.3), 2);
+}
 export const CreatureIcon = (): JSX.Element => figure(CREATURE, 2);
 
 /** The sun over the horizon: the day counter's mark. */
@@ -75,12 +80,12 @@ export function NextDayIcon(): JSX.Element {
   );
 }
 
-/** New game: a circling arrow. */
-export function NewGameIcon(): JSX.Element {
+/** Join: a character's standee with a small plus beside it. */
+export function JoinIcon(): JSX.Element {
   return (
-    <svg viewBox="0 0 32 32" aria-hidden="true">
-      <path d="M24.5 11.5A10 10 0 1 0 26 18" {...line} />
-      <path d="M25.5 5.5v6.5H19" {...line} />
+    <svg viewBox="0 0 40 40" aria-hidden="true">
+      <g transform="translate(-4 0)">{figure(CHARACTER, 2)}</g>
+      <path d="M31 8v10M26 13h10" {...line} stroke-width={2.4} />
     </svg>
   );
 }

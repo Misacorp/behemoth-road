@@ -12,7 +12,7 @@ import {
 } from '@behemoth-road/art';
 import { type GameState, hexKey, type Place } from '@behemoth-road/core';
 import { creatureArt } from './cells.ts';
-import type { Point } from './pick.ts';
+import type { OtherFigure, Point } from './pick.ts';
 
 /** The feet of the rider in `slot` on the creature's back. */
 export function seatPoint(state: GameState, p: Projection, slot: number): Point {
@@ -67,7 +67,7 @@ export function pickableFeet(
   state: GameState,
   characterId: string,
   p: Projection,
-): { readonly mine: Point | null; readonly others: Point[] } {
+): { readonly mine: Point | null; readonly others: OtherFigure[] } {
   const onHex = state.characters.filter((c) => c.status === 'active' && c.at.kind === 'hex');
   const feet = (id: string): Point[] => {
     const f = figureFeet(state, id, p);
@@ -75,6 +75,8 @@ export function pickableFeet(
   };
   return {
     mine: onHex.some((c) => c.id === characterId) ? (feet(characterId)[0] ?? null) : null,
-    others: onHex.filter((c) => c.id !== characterId).flatMap((c) => feet(c.id)),
+    others: onHex
+      .filter((c) => c.id !== characterId)
+      .flatMap((c) => feet(c.id).map((f) => ({ id: c.id, feet: f }))),
   };
 }

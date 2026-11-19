@@ -54,7 +54,11 @@ export interface ApiClient {
   nextDay(): Promise<PlayerView>;
 }
 
-function parse<T extends v.GenericSchema>(schema: T, path: string, body: unknown): v.InferOutput<T> {
+function parse<T extends v.GenericSchema>(
+  schema: T,
+  path: string,
+  body: unknown,
+): v.InferOutput<T> {
   const result = v.safeParse(schema, body);
   if (!result.success) throw new ShapeError(path);
   return result.output;

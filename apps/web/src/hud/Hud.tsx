@@ -1,7 +1,10 @@
-/** The heads-up layer: day counter, action pips, recentre buttons and the prototype's dev controls. */
+/**
+ * The heads-up layer: day counter, action pips, recentre buttons, a way to join (or replace a lost
+ * character) when you have none, and the staging-only "next day" for admins.
+ */
 import type { JSX } from 'preact';
 import type { FocusTarget } from '../map/MapView.tsx';
-import { CharacterIcon, CreatureIcon, NewGameIcon, NextDayIcon, Pips, SunIcon } from './icons.tsx';
+import { CharacterIcon, CreatureIcon, JoinIcon, NextDayIcon, Pips, SunIcon } from './icons.tsx';
 
 export interface HudProps {
   readonly day: number;
@@ -11,8 +14,10 @@ export interface HudProps {
   readonly planned: number;
   readonly lost: boolean;
   readonly onFocus: (target: FocusTarget) => void;
-  readonly onNextDay: () => void;
-  readonly onNewGame: () => void;
+  /** Shown only when the server offers dev tools and you are an admin. */
+  readonly onNextDay: (() => void) | null;
+  /** Shown when you have no active character: opens the join (or replace) drawer. */
+  readonly onJoin: (() => void) | null;
 }
 
 export function Hud(props: HudProps): JSX.Element {
@@ -48,14 +53,18 @@ export function Hud(props: HudProps): JSX.Element {
           <CreatureIcon />
         </button>
       </div>
-      <div class="hud-dev">
-        <button type="button" class="dev" aria-label="Next day" onClick={props.onNextDay}>
-          <NextDayIcon />
+      {props.onJoin && (
+        <button type="button" class="round hud-join" aria-label="Join" onClick={props.onJoin}>
+          <JoinIcon />
         </button>
-        <button type="button" class="dev" aria-label="New game" onClick={props.onNewGame}>
-          <NewGameIcon />
-        </button>
-      </div>
+      )}
+      {props.onNextDay && (
+        <div class="hud-dev">
+          <button type="button" class="dev" aria-label="Next day" onClick={props.onNextDay}>
+            <NextDayIcon />
+          </button>
+        </div>
+      )}
     </>
   );
 }
