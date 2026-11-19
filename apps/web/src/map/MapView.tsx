@@ -20,6 +20,8 @@ import { PALETTE, PROJECTION } from './art.ts';
 import { cellStateAt, characterArts, creatureArt, sceneCells } from './cells.ts';
 import { chevronFor, placePopover, splitScene } from './compose.ts';
 import { accentOf, type Identity, lookOf } from '../game/identity.ts';
+import type { Moment } from '../game/moments.ts';
+import { MomentMark } from './MomentMark.tsx';
 import { MAP_TUNING } from './config.ts';
 import { type Flow, isSelecting } from './flow.ts';
 import { GestureTracker, type Gesture } from './gestures.ts';
@@ -65,6 +67,8 @@ export interface MapViewProps {
   readonly onConfirm: () => void;
   /** The bubble's way into the hub was tapped. */
   readonly onOpenHub: () => void;
+  /** Short visual beats to play on the map (reveals, finds, a trap); they end by themselves. */
+  readonly moments?: readonly Moment[];
   /** Another player's character in the bubble was tapped. */
   readonly onCharacter: (id: string) => void;
   /** Who each character is (names, roles, traits, quirks), from the player view. */
@@ -570,6 +574,19 @@ export function MapView(props: MapViewProps): JSX.Element {
           <Static nodes={layers.figures} />
           {overlays.over}
         </svg>
+        {props.moments && props.moments.length > 0 && (
+          <svg
+            class="map-moments"
+            viewBox={`${box.x} ${box.y} ${box.width} ${box.height}`}
+            width={box.width * raster}
+            height={box.height * raster}
+            aria-hidden="true"
+          >
+            {props.moments.map((m, i) => (
+              <MomentMark key={`${m.kind}:${m.hex.q},${m.hex.r}:${String(i)}`} moment={m} />
+            ))}
+          </svg>
+        )}
       </div>
       <svg class="map-grain" aria-hidden="true">
         {GRAIN}

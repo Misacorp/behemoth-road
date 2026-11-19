@@ -8,7 +8,7 @@ import { findCharacter } from '@behemoth-road/core';
 import type { JSX } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { ApiError, type ApiClient } from '../api/client.ts';
-import type { PlayerView } from '../api/schema.ts';
+import type { ActionAnswer, PlayerView } from '../api/schema.ts';
 import { Sync } from '../api/sync.ts';
 import { Hud } from '../hud/Hud.tsx';
 import { JoinDrawer } from '../join/JoinDrawer.tsx';
@@ -29,6 +29,7 @@ import { getSettings } from '../settings.ts';
 /** The width from which the layout is the desktop one (`styles.css` media queries). */
 const DESKTOP_FROM = 900;
 import { identities, partySeeds, setAccents } from './identity.ts';
+import { MOMENT_MS, type Moment, momentsBetween, momentsFromEvents } from './moments.ts';
 import { toGameState } from './viewState.ts';
 
 export interface GameProps {
@@ -106,6 +107,27 @@ export function Game({ api, initial }: GameProps): JSX.Element {
   useEffect(() => setDrawerClosed(false), [need]);
 
   // A plan made on an older view may no longer hold: drop it when the view changes under it.
+  // Moments: what changed between the last view and this one, shown briefly on the map.
+  const [moments, setMoments] = useState<readonly Moment[]>([]);
+  const momentTimer = useRef(0);
+  const playMoments = (found: readonly Moment[]): void => {
+    if (found.length === 0) return;
+    window.clearTimeout(momentTimer.current);
+    setMoments(found);
+    momentTimer.current = window.setTimeout(() => setMoments([]), MOMENT_MS);
+  };
+  useEffect(() => () => window.clearTimeout(momentTimer.current), []);
+  // Changes others made (or the day's tick) show as moments from the difference between views; your own
+  // move or action brings its events instead (`ownAnswer`).
+  const shown = useRef(view);
+  const ownAnswer = useRef(-1);
+  useEffect(() => {
+    const before = shown.current;
+    shown.current = view;
+    if (before === view || ownAnswer.current === view.version) return;
+    playMoments(momentsBetween(before.game, view.game, view.you.characterId ?? ''));
+  }, [view]);
+
   const planVersion = useRef(view.version);
   useEffect(() => {
     if (planVersion.current !== view.version) {
@@ -116,14 +138,20 @@ export function Game({ api, initial }: GameProps): JSX.Element {
 
   /** Runs an action: its answer is the new view; a refusal refreshes and clears the plan. */
   async function act(
-    run: () => Promise<PlayerView>,
+    run: () => Promise<PlayerView | ActionAnswer>,
     after: (v: PlayerView) => Flow,
   ): Promise<void> {
     if (busy) return;
     setBusy(true);
     try {
-      const next = await run();
+      const answer = await run();
+      const { events, ...next } = 'events' in answer ? answer : { ...answer, events: null };
       planVersion.current = next.version;
+      if (events) {
+        // Your own move or action reports what happened itself: play those, not a guess from the views.
+        ownAnswer.current = next.version;
+        playMoments(momentsFromEvents(events));
+      }
       sync.current!.accept(next);
       setFlow(after(next));
     } catch (err) {
@@ -163,7 +191,12 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         flow={flow}
         characterId={id}
         identities={who}
-        onTap={(target: Target) => setFlow((f) => tap(f, state, id, target))}
+        onTap={(target: Target) => {
+          // Moments are skippable: any tap clears them.
+          setMoments([]);
+          setFlow((f) => tap(f, state, id, target));
+        }}
+        moments={moments}
         onConfirm={onConfirm}
         onOpenHub={() => setFlow(openHub())}
         onCharacter={(other) => setFlow(openCharacter(other))}
@@ -177,6 +210,7 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         actionsPerDay={state.config.actionsPerDay}
         planned={flow.kind === 'planned' && isSelecting(flow) ? flow.cost : 0}
         lost={me?.status !== 'active'}
+        snapped={moments.some((m) => m.kind === 'trap')}
         me={who.get(id) ?? null}
         onFocus={(target) => setFocus((f) => ({ target, n: f.n + 1 }))}
         onNextDay={

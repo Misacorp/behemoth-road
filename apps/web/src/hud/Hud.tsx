@@ -22,6 +22,8 @@ export interface HudProps {
   /** Actions the planned move would spend (shown hollow). */
   readonly planned: number;
   readonly lost: boolean;
+  /** A trap just ended your day: the pips shake as they go dark. */
+  readonly snapped?: boolean;
   /** How your character looks (the recentre button shows it); null before joining. */
   readonly me: { readonly accent: string; readonly look: CharacterLook | undefined } | null;
   readonly onFocus: (target: FocusTarget) => void;
@@ -38,7 +40,10 @@ export function Hud(props: HudProps): JSX.Element {
         <SunIcon />
         <span>{props.day}</span>
       </div>
-      <div class={props.lost ? 'hud-actions is-lost' : 'hud-actions'} aria-label="Actions">
+      <div
+        class={`hud-actions${props.lost ? ' is-lost' : ''}${props.snapped ? ' is-snapped' : ''}`}
+        aria-label="Actions"
+      >
         <Pips
           total={props.actionsPerDay}
           left={props.lost ? 0 : props.actionsLeft}

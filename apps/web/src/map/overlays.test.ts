@@ -115,4 +115,12 @@ describe('overlays', () => {
     expect(tip[0]).toBeCloseTo(seat.x, 0);
     expect(tip[1]).toBeCloseTo(seat.y, 0);
   });
+
+  it("marks a step that relies on something with that thing's icon on the arrow", () => {
+    const steps = plan.steps.map((st, n) => (n === 0 ? { ...st, via: 'grappling-hook' } : st));
+    const o = overlays(state, { kind: 'planned', to: onHex(to), steps, cost: plan.cost });
+    const marks = o.over.flatMap((n) => (n.attrs['data-mark'] ? [n.attrs['data-mark']] : []));
+    expect(marks).toEqual(['via:grappling-hook']);
+    for (const n of o.over) expect(() => toPreact(n)).not.toThrow();
+  });
 });

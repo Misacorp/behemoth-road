@@ -124,3 +124,26 @@ export type Offer = v.InferOutput<typeof OfferSchema>;
 export type GameResponse = v.InferOutput<typeof GameResponseSchema>;
 export type AppConfig = v.InferOutput<typeof ConfigSchema>;
 export type Session = v.InferOutput<typeof SessionSchema>;
+
+/** Something that happened in a move or an action, for the map's short moments (core event list). */
+export const GameEventSchema = v.object({
+  kind: v.pipe(v.string(), v.maxLength(40)),
+  hex: v.optional(hex),
+  /** What was found or revealed, as a content id, when the event names one. */
+  item: v.optional(id),
+});
+
+/** The answer to a move or an action: the new view and what happened on the way. */
+export const ActionAnswerSchema = v.object({
+  ...PlayerViewSchema.entries,
+  events: v.optional(v.pipe(v.array(GameEventSchema), v.maxLength(64)), []),
+});
+
+export type GameEvent = v.InferOutput<typeof GameEventSchema>;
+export type ActionAnswer = v.InferOutput<typeof ActionAnswerSchema>;
+
+/** `POST /api/game/act` action bodies. */
+export type GameAction =
+  | { readonly kind: 'gather' }
+  | { readonly kind: 'craft'; readonly recipe: string }
+  | { readonly kind: 'work-site' };

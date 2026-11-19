@@ -10,6 +10,7 @@ import {
   ART_TUNING,
   DIRECTIONS,
   drawCharacter,
+  drawIcon,
   el,
   hexCenter,
   hexCorners,
@@ -225,21 +226,35 @@ function pathArrow(i: OverlayInput, from: Point, steps: readonly PathStep[]): Sv
     const a = pts[index]!;
     const b = pts[index + 1]!;
     const midpoint = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
-    if (step.via) out.push(viaMark(i, midpoint));
+    if (step.via) out.push(...viaMark(i, midpoint, step.via));
     out.push(...pips(i, { x: midpoint.x, y: midpoint.y - 12 * k }, step.cost));
   });
   return out;
 }
 
-/** A small ring on the stretch that relies on something special (rope, boat...). None in Milestone 1. */
-function viaMark(i: OverlayInput, at: Point): SvgNode {
+/**
+ * The mark on a stretch that relies on something special: the art kit's icon for the `via` tag (the
+ * grappling hook on a cliff step) on a small paper disc, so the means of travel shows in the arrow itself.
+ * An id the art kit does not know draws its neutral mark.
+ */
+function viaMark(i: OverlayInput, at: Point, via: string): SvgNode[] {
   const k = i.projection.k;
-  return el('path', {
-    d: ellipse(at, 6 * k, 6 * k),
-    fill: i.palette.paper,
-    stroke: i.palette.ink,
-    'stroke-width': 1.6 * k,
-  });
+  const size = 20 * k;
+  const icon = drawIcon(via, i.palette, size);
+  return [
+    el('path', {
+      d: ellipse(at, size * 0.62, size * 0.62),
+      fill: i.palette.paper,
+      stroke: i.palette.ink,
+      'stroke-width': 1.4 * k,
+      'data-mark': `via:${via}`,
+    }),
+    el(
+      'svg',
+      { ...icon.attrs, x: at.x - size / 2, y: at.y - size / 2, width: size, height: size },
+      [...icon.children],
+    ),
+  ];
 }
 
 /** Action pips in a row centred on `at`, drawn in the character's accent with an ink rim. */
