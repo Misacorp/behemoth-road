@@ -15,7 +15,12 @@ import {
   characterOffers,
   createGame,
   loadGame,
-  moveAlong,
+  act,
+  CONTENT_VERSION,
+  migrateGame,
+  moveWithEvents,
+  type EventResult,
+  type GameEvent,
   nextDay,
   replaceCharacter,
   toPlayerView,
@@ -28,6 +33,7 @@ import { errorResponse, json, notFound, parseBody } from './http.ts';
 import { applyMigrations } from './migrations.ts';
 import { TokenBucketLimiter } from './ratelimit.ts';
 import {
+  ActBodySchema,
   EmptyBodySchema,
   MoveBodySchema,
   PickBodySchema,
@@ -111,6 +117,25 @@ export class GuildGame {
   /** Brings the schema up to date. Call inside `blockConcurrencyWhile`. */
   migrate(): void {
     applyMigrations(this.storage, this.sql);
+    this.upgradeStoredGame();
+  }
+
+  /**
+   * Brings a game stored with older content up to this build's (the core's `migrateGame`, for example
+   * content version 2 to 3), once, in one transaction, and bumps the version so every client reloads.
+   * A newer or unknown version is left for `loadGame` to refuse.
+   */
+  private upgradeStoredGame(): void {
+    this.storage.transactionSync(() => {
+      const row = this.sql
+        .exec<{ state: string }>('SELECT state FROM game WHERE id = 1')
+        .toArray()[0];
+      if (row === undefined) return;
+      const stored: unknown = JSON.parse(row.state);
+      const version = (stored as { contentVersion?: unknown } | null)?.contentVersion;
+      if (typeof version !== 'number' || version >= CONTENT_VERSION) return;
+      this.writeGame(migrateGame(stored));
+    });
   }
 
   // --- Sessions ---
@@ -332,6 +357,8 @@ export class GuildGame {
         return this.pick(user, request, 'replace');
       case 'POST /api/game/move':
         return this.move(user, request);
+      case 'POST /api/game/act':
+        return this.act(user, request);
       case 'POST /api/dev/next-day':
         return this.devNextDay(user, request);
       default:
@@ -375,20 +402,45 @@ export class GuildGame {
   private async move(user: SessionUser, request: Request): Promise<Response> {
     const body = await parseBody(request, MoveBodySchema);
     if (body === undefined) return errorResponse('invalid_body', 400);
+    return this.withOwnCharacter(user, body.version, (state, id) =>
+      moveWithEvents(state, id, body.path),
+    );
+  }
+
+  /** `POST /api/game/act`: gather, craft or work a site, as the player's own character at its place. */
+  private async act(user: SessionUser, request: Request): Promise<Response> {
+    const body = await parseBody(request, ActBodySchema);
+    if (body === undefined) return errorResponse('invalid_body', 400);
+    return this.withOwnCharacter(user, body.version, (state, id) => act(state, id, body.action));
+  }
+
+  /**
+   * Runs a rule for the player's newest character (a lost one is refused by the core) against the version
+   * the client saw, in one transaction. Answers the new view with what happened (`events`), or
+   * `409 { error }` for a stale version or a refusal.
+   */
+  private async withOwnCharacter(
+    user: SessionUser,
+    version: number,
+    rule: (state: GameState, characterId: string) => EventResult,
+  ): Promise<Response> {
+    let events: readonly GameEvent[] = [];
     const refusal = this.storage.transactionSync((): string | null => {
       const game = this.readGame();
       if (game === null) return 'no_game';
-      if (body.version !== game.version) return 'stale';
-      // The player's newest character: a lost one is refused by the core (`character-lost`).
+      if (version !== game.version) return 'stale';
       const character = characterOf(game.state, user.id);
       if (character === undefined) return 'no-character';
-      const result = moveAlong(game.state, character.id, body.path);
+      const result = rule(game.state, character.id);
       if (!result.ok) return result.reason;
       this.writeGame(result.state);
+      events = result.events;
       return null;
     });
     if (refusal !== null) return errorResponse(refusal, 409);
-    return this.currentView(user);
+    const game = this.readGame();
+    if (game === null) return errorResponse('no_game', 409);
+    return json({ ...(await this.view(user, game)), events });
   }
 
   /** Staging only (the route is a 404 otherwise): a server admin runs the tick now. */
