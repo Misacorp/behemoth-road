@@ -14,7 +14,9 @@
   "dependencies": {
     "@behemoth-road/art": "workspace:*",
     "@behemoth-road/core": "workspace:*",
-    "preact": "catalog:"
+    "@discord/embedded-app-sdk": "catalog:",
+    "preact": "catalog:",
+    "valibot": "catalog:"
   },
   "devDependencies": {
     "@preact/preset-vite": "catalog:",
