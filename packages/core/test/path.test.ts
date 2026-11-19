@@ -164,7 +164,7 @@ describe('moveAlong', () => {
   it('accepts an empty path for an active character only, and bare hexes', () => {
     const seed = findSeed(allPassable([nearP(0, -1)]));
     const state = gameAt(seed);
-    expect(moveAlong(state, 'a', [])).toEqual({ ok: true, state });
+    expect(moveAlong(state, 'a', [])).toEqual({ ok: true, state, events: [], stopped: null });
     expect(moveAlong(state, 'a', [nearP(0, -1)])).toMatchObject({ ok: true });
     expect(moveAlong(state, 'a', [onHex(nearP(0, -1))])).toMatchObject({ ok: true });
     expect(moveAlong(state, 'b', [])).toEqual({ ok: false, reason: 'unknown-character', step: 0 });
