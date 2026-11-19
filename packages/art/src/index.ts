@@ -12,6 +12,7 @@ export {
   drawIcon,
   hasIcon,
   ICON_MOTIFS,
+  ROLE_ICON_KEYS,
   ROLE_IDS,
   type EmblemFrame,
   type IconMotif,

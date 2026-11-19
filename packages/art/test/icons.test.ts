@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { assignLooks, characterLookFor, drawCharacter } from '../src/character.ts';
-import { drawIcon, hasIcon, ROLE_IDS } from '../src/icons.ts';
+import { drawIcon, hasIcon, ICON_MOTIFS, ROLE_IDS } from '../src/icons.ts';
 import { PALETTES, paletteColours, SPRING } from '../src/palette.ts';
 import { el, toSvgString, walk, type SvgNode } from '../src/svg.ts';
 
@@ -38,6 +38,22 @@ describe('icons', () => {
     expect(hasIcon('role:scout')).toBe(true);
     expect(hasIcon('role:pathfinder')).toBe(false);
     expect(drawIcon('role:scout', SPRING, Number.NaN).attrs.width).toBe(48);
+  });
+
+  it('draws trait and quirk icons by key, quirks on a split tile, all within the palette', () => {
+    const allowed = paletteColours(SPRING);
+    for (const key of Object.keys(ICON_MOTIFS)) {
+      const plain = drawIcon(key, SPRING, 48);
+      const quirk = drawIcon(key, SPRING, 48, { tile: 'quirk' });
+      expect(toSvgString(quirk)).not.toBe(toSvgString(plain));
+      for (const c of colours(quirk)) expect(allowed.has(c), `${key} ${c}`).toBe(true);
+      expect(toSvgString(quirk)).not.toMatch(/NaN|undefined/);
+    }
+    expect(Object.keys(ICON_MOTIFS).length).toBe(24);
+    // A role's content icon key draws the role's emblem.
+    expect(toSvgString(drawIcon('crook', SPRING, 48))).toBe(
+      toSvgString(drawIcon('role:keeper', SPRING, 48)),
+    );
   });
 });
 

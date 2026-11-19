@@ -11,7 +11,7 @@ What has landed and what is next. Newest first. Update it when a step lands or t
 
 ## Done
 
-- 2026-11-19: Art for Milestone 2: role emblems in a shared frame, an icon system by key with a neutral fallback, and varied character looks (headwear, garment, carry, skin; eight accents) seeded by id.
+- 2026-11-19: Art for Milestone 2: role emblems in a shared frame, an icon system by content icon key with a neutral fallback, icons for the 12 traits and 12 quirks, and varied character looks (headwear, garment, carry, skin; eight accents) seeded by id.
 - 2026-11-19: Phone performance: the map now pans a composited world layer by CSS transform (no re-raster while panning), with memoised scene layers; measured with `apps/web/scripts/perf.mjs`.
 - 2026-11-19: Milestone 1 polish from Misa's first play (branch `m1/map-polish`): Escape and right-click close popovers (right-click behind a setting); popovers point at their subject; grace-day tiles and characters on them are marked, and the grace rule is tested end to end.
 - 2026-11-19: Milestone 1 merged and live: the walking map with riding, the hub bubble, the Spring palette at a high view and the compact creature (PR #4).

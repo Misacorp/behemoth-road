@@ -1,12 +1,16 @@
 /**
  * Small ink icons on a 48-unit grid: the six role emblems in one shared frame, and the trait and quirk
  * icons, looked up by id. `drawIcon` returns a self-contained `<svg>` sized for the interface (readable at
- * 32 to 48 px). Unknown ids draw a neutral mark, never an error. Icons are drawn as data, so a content
- * entry names its icon by key (`role:scout`, `trait:…`, `quirk:…`).
+ * 32 to 48 px). Unknown ids draw a neutral mark, never an error. Icons are drawn as data: a role is named
+ * `role:<id>` or by its content icon key (`spyglass`, `crook`…), a trait or quirk by its content icon key
+ * (`boot`, `owl`…).
  */
-import { ellipsePath, poly, smoothClosed, smoothOpen, type Point } from './geom.ts';
+import { ellipsePath, poly, type Point } from './geom.ts';
+import { ink, MOTIFS, solid, type IconMotif } from './icon-motifs.ts';
 import { accentRamp, type Palette } from './palette.ts';
 import { el, type SvgNode } from './svg.ts';
+
+export type { IconMotif } from './icon-motifs.ts';
 
 export const ROLE_IDS = ['scout', 'scholar', 'keeper', 'guardian', 'engineer', 'envoy'] as const;
 export type RoleId = (typeof ROLE_IDS)[number];
@@ -16,34 +20,14 @@ export type EmblemFrame = 'roundel' | 'shield';
 export interface IconOptions {
   /** The shared frame of the role emblems (default `roundel`). */
   readonly frame?: EmblemFrame;
+  /**
+   * The tile behind a trait or quirk icon: `quirk` adds a ring split into two colours (it helps and
+   * hinders); `trait` and `plain` draw a plain tile.
+   */
+  readonly tile?: 'trait' | 'quirk' | 'plain';
 }
-
-/** What an icon draws inside its frame, on the 48-unit grid (centre 24, 24; keep within a radius of 13). */
-export type IconMotif = (palette: Palette) => SvgNode[];
 
 const P = (x: number, y: number): Point => ({ x, y });
-const INK = 2.1;
-
-function ink(palette: Palette, d: string, width = INK, colour?: string): SvgNode {
-  return el('path', {
-    d,
-    fill: 'none',
-    stroke: colour ?? palette.ink,
-    'stroke-width': width,
-    'stroke-linecap': 'round',
-    'stroke-linejoin': 'round',
-  });
-}
-
-function solid(palette: Palette, d: string, fill: string, width = INK): SvgNode {
-  return el('path', {
-    d,
-    fill,
-    stroke: palette.ink,
-    'stroke-width': width,
-    'stroke-linejoin': 'round',
-  });
-}
 
 /** A rectangle from (x0, y0) to (x1, y1) turned by `a` radians about (cx, cy), as path data. */
 function turnedRect(
@@ -89,62 +73,39 @@ const scholar: IconMotif = (pal) => [
   ),
 ];
 
-/** Keeper: a sprig of three herb leaves on a curving stem. */
-const keeper: IconMotif = (pal) => {
-  const leaf = (x: number, y: number, a: number, l: number): string => {
-    const c = Math.cos(a);
-    const s = Math.sin(a);
-    const t = (u: number, v: number): Point => P(x + u * c - v * s, y + u * s + v * c);
-    return smoothClosed([t(0, 0), t(l * 0.45, -l * 0.26), t(l, 0), t(l * 0.45, l * 0.26)]);
-  };
-  return [
-    ink(pal, smoothOpen([P(17, 36), P(22, 28), P(24, 21), P(25, 12)])),
-    solid(pal, leaf(22.6, 27.5, -2.55, 11.5), pal.ramps.foliage.base, 1.8),
-    solid(pal, leaf(24, 21, -0.5, 11.5), pal.ramps.foliage.base, 1.8),
-    solid(pal, leaf(25, 13.5, -1.6, 9), pal.ramps.foliage.light, 1.8),
-  ];
-};
-
-/** Guardian: an upright sword with a crossguard. */
-const guardian: IconMotif = (pal) => [
-  solid(pal, 'M24 9.5L26.6 13V29H21.4V13Z', pal.ramps.stone.light, 1.8),
-  ink(pal, 'M24 13.5V27.5', 1.1, pal.inkSoft),
-  solid(pal, 'M16 29H32V32.2H16Z', pal.ramps.bark.base, 1.8),
-  solid(pal, 'M22.4 32.2H25.6V37.5H22.4Z', pal.ramps.bark.shade, 1.6),
-  solid(pal, ellipsePath(24, 39.2, 2.2, 2.2), pal.ramps.bark.base, 1.6),
+/** Keeper: a shepherd's crook with a leaf tied on. */
+const keeper: IconMotif = (pal) => [
+  ink(pal, 'M22 38V17c0-6 9-7 10-1 .5 3-2 5-4 4', 3.4, pal.ramps.bark.shade),
+  ink(pal, 'M22 38V17c0-6 9-7 10-1 .5 3-2 5-4 4', 1.2, pal.ramps.bark.light),
+  solid(pal, 'M22 24c-4-1-7 1-8 4 4 1 7-1 8-4z', pal.ramps.foliage.base, 1.6),
+  ink(pal, 'M20.5 23.5l3 2', 1.4, pal.accents.rose.shade),
 ];
 
-/** Engineer: a cog with eight teeth around a hub. */
-const engineer: IconMotif = (pal) => {
-  const pts: Point[] = [];
-  const teeth = 8;
-  for (let i = 0; i < teeth; i += 1) {
-    const a0 = (Math.PI * 2 * i) / teeth;
-    const step = (Math.PI * 2) / teeth;
-    for (const [f, r] of [
-      [0.0, 9.5],
-      [0.12, 12.5],
-      [0.38, 12.5],
-      [0.5, 9.5],
-    ] as const) {
-      pts.push(P(24 + Math.cos(a0 + f * step) * r, 24 + Math.sin(a0 + f * step) * r));
-    }
-  }
-  return [
-    solid(pal, `${poly(pts)}${ellipsePath(24, 24, 3.6, 3.6)}`, pal.ramps.stone.base),
-    el('path', { d: ellipsePath(24, 24, 3.6, 3.6), fill: pal.paper }),
-    ink(pal, ellipsePath(24, 24, 3.6, 3.6), 1.6),
-  ];
-};
+/** Guardian: a round shield with a boss and a band. */
+const guardian: IconMotif = (pal) => [
+  solid(pal, ellipsePath(24, 24, 11.5, 11.5), pal.ramps.stone.light),
+  ink(pal, 'M24 12.5v23M12.5 24h23', 2.4, pal.ramps.bark.base),
+  solid(pal, ellipsePath(24, 24, 3.4, 3.4), pal.ramps.stone.base, 1.6),
+  ink(pal, ellipsePath(24, 24, 9, 9), 1.1, pal.inkSoft),
+];
 
-/** Envoy: a rolled scroll with a hanging seal. */
+/** Engineer: a hammer. */
+const engineer: IconMotif = (pal) => [
+  solid(
+    pal,
+    'M15.6 34.6l12.8-12.8 2.3 2.3-12.8 12.8c-.6.6-1.7.6-2.3 0-.6-.6-.6-1.7 0-2.3z',
+    pal.ramps.bark.base,
+    1.8,
+  ),
+  solid(pal, 'M22.5 15.5l6-6 3 3 3-1 2 2-1 3 3 3-6 6z', pal.ramps.stone.base),
+];
+
+/** Envoy: a swallow-tailed banner on a pole. */
 const envoy: IconMotif = (pal) => [
-  solid(pal, 'M14 17h20v13H14z', pal.paper),
-  solid(pal, ellipsePath(14, 23.5, 2.6, 6.5), pal.ramps.stone.light, 1.8),
-  solid(pal, ellipsePath(34, 23.5, 2.6, 6.5), pal.ramps.stone.light, 1.8),
-  ink(pal, 'M18.5 21.5h11M18.5 25.5h8', 1.4, pal.inkSoft),
-  ink(pal, 'M27 30l-1 6M29 30l2 5.5', 1.6, pal.accents.rose.shade),
-  solid(pal, ellipsePath(28, 30.5, 2.8, 2.8), pal.accents.rose.base, 1.6),
+  ink(pal, 'M16 38V10', 2.6, pal.ramps.bark.shade),
+  solid(pal, 'M16.5 12h17l-4 6 4 6h-17z', pal.accents.rose.base),
+  ink(pal, 'M20 16.5h6', 1.4, pal.accents.rose.shade),
+  solid(pal, ellipsePath(16, 9.5, 1.8, 1.8), pal.accents.ochre.base, 1.4),
 ];
 
 /** The wash colour behind each role's motif, so the set tells apart by colour too. */
@@ -166,11 +127,25 @@ const ROLE_MOTIFS: Readonly<Record<RoleId, IconMotif>> = {
   envoy,
 };
 
-/**
- * Icons that are not role emblems, by key (`trait:…`, `quirk:…`). Drawn in a plain round tile; each
- * motif follows the same 48-unit grid. Filled from content as traits and quirks gain icons.
- */
-export const ICON_MOTIFS: Record<string, IconMotif> = {};
+/** Trait and quirk icons by the `icon` key content gives them; each motif follows the same 48-unit grid. */
+export const ICON_MOTIFS: Readonly<Record<string, IconMotif>> = MOTIFS;
+
+/** Role icon keys as content names them, drawn as that role's emblem. */
+export const ROLE_ICON_KEYS: Readonly<Record<string, RoleId>> = {
+  spyglass: 'scout',
+  book: 'scholar',
+  crook: 'keeper',
+  shield: 'guardian',
+  hammer: 'engineer',
+  banner: 'envoy',
+};
+
+/** The role an id names: `role:<role id>` or a role's icon key. */
+function roleOf(id: string): RoleId | null {
+  const role = id.startsWith('role:') ? id.slice(5) : '';
+  if ((ROLE_IDS as readonly string[]).includes(role)) return role as RoleId;
+  return Object.hasOwn(ROLE_ICON_KEYS, id) ? ROLE_ICON_KEYS[id]! : null;
+}
 
 function frameShape(frame: EmblemFrame): string {
   return frame === 'shield'
@@ -181,15 +156,34 @@ function frameShape(frame: EmblemFrame): string {
 /** A role emblem's frame, tint and motif, on the 48-unit grid. */
 function emblem(palette: Palette, role: RoleId, frame: EmblemFrame): SvgNode[] {
   const tint = accentRamp(palette, ROLE_TINT[role]);
-  const shape = frameShape(frame);
   const inner =
     frame === 'shield'
       ? 'M24 7.8L37.2 12v11c0 8.2-5.7 14-13.2 17.1C16.5 37 10.8 31.2 10.8 23V12z'
       : ellipsePath(24, 24, 17, 17);
   return [
-    el('path', { d: shape, fill: palette.paper, stroke: palette.ink, 'stroke-width': 2.2 }),
+    el('path', {
+      d: frameShape(frame),
+      fill: palette.paper,
+      stroke: palette.ink,
+      'stroke-width': 2.2,
+    }),
     el('path', { d: inner, fill: tint.light, stroke: tint.shade, 'stroke-width': 1.2 }),
     ...ROLE_MOTIFS[role](palette),
+  ];
+}
+
+/** A quirk's ring inside its tile: one half in the helping colour, one in the hindering colour. */
+function quirkRing(palette: Palette): SvgNode[] {
+  const r = 17;
+  const arc = (from: number, to: number): string => {
+    const a = (t: number): Point => P(24 + Math.cos(t) * r, 24 + Math.sin(t) * r);
+    const p0 = a(from);
+    const p1 = a(to);
+    return `M${p0.x.toFixed(1)} ${p0.y.toFixed(1)}A${r} ${r} 0 0 1 ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`;
+  };
+  return [
+    ink(palette, arc(Math.PI * 0.6, Math.PI * 1.4), 2.6, palette.accents.sage.base),
+    ink(palette, arc(-Math.PI * 0.4, Math.PI * 0.4), 2.6, palette.accents.coral.base),
   ];
 }
 
@@ -213,8 +207,7 @@ function neutral(palette: Palette): SvgNode[] {
 
 /** Whether an id names an icon the kit draws (otherwise `drawIcon` draws the neutral mark). */
 export function hasIcon(id: string): boolean {
-  const role = id.startsWith('role:') ? id.slice(5) : '';
-  return (ROLE_IDS as readonly string[]).includes(role) || Object.hasOwn(ICON_MOTIFS, id);
+  return roleOf(id) !== null || Object.hasOwn(ICON_MOTIFS, id);
 }
 
 /** An icon as a self-contained `<svg>` of `size` px. */
@@ -225,10 +218,10 @@ export function drawIcon(
   options: IconOptions = {},
 ): SvgNode {
   const px = Number.isFinite(size) && size > 0 ? size : 48;
-  const role = id.startsWith('role:') ? id.slice(5) : '';
+  const role = roleOf(id);
   let children: SvgNode[];
-  if ((ROLE_IDS as readonly string[]).includes(role)) {
-    children = emblem(palette, role as RoleId, options.frame ?? 'roundel');
+  if (role) {
+    children = emblem(palette, role, options.frame ?? 'roundel');
   } else if (Object.hasOwn(ICON_MOTIFS, id)) {
     children = [
       el('path', {
@@ -237,6 +230,7 @@ export function drawIcon(
         stroke: palette.ink,
         'stroke-width': 2.2,
       }),
+      ...(options.tile === 'quirk' ? quirkRing(palette) : []),
       ...ICON_MOTIFS[id]!(palette),
     ];
   } else {

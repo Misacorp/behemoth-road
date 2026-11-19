@@ -8,7 +8,7 @@ import { samplePatch } from './sample.ts';
 import { renderScene } from './scene.ts';
 import { el, toSvgString, type SvgNode } from './svg.ts';
 import { assignLooks, drawCharacter } from './character.ts';
-import { drawIcon, ICON_MOTIFS, ROLE_IDS, type EmblemFrame } from './icons.ts';
+import { drawIcon, ROLE_IDS, type EmblemFrame } from './icons.ts';
 import { ART_TUNING } from './config.ts';
 import { drawCreature, GENTLE_AMBLER } from './creature.ts';
 import type { PropDraw } from './props.ts';
@@ -207,23 +207,57 @@ function emblemSheet(frame: EmblemFrame): string {
   return paperSheet(24 * 2 + 6 * 116 - 8, y, rows);
 }
 
-/** Every icon the kit draws (trait and quirk icons as content adds them), then the neutral mark. */
+/** Trait and quirk icon keys in content order (`packages/core` content; the web tests check they match). */
+const TRAIT_ICONS = [
+  'boot',
+  'sun',
+  'wave',
+  'leaf',
+  'eye',
+  'moon',
+  'pack',
+  'hand',
+  'sprig',
+  'scroll',
+  'quill',
+  'paw',
+];
+const QUIRK_ICONS = [
+  'feet',
+  'feather',
+  'owl',
+  'stone',
+  'key',
+  'charm',
+  'jar',
+  'horn',
+  'drop',
+  'cloud',
+  'spoon',
+  'cane',
+];
+
+/** Every icon: the role emblems, the traits, the quirks (on their split tile), then the neutral mark. */
 function iconSheet(): string {
-  const ids = [
-    ...ROLE_IDS.map((r) => `role:${r}`),
-    ...Object.keys(ICON_MOTIFS).sort(),
-    'unknown-icon',
+  const rows: { id: string; tile?: 'quirk' }[][] = [
+    ROLE_IDS.map((r) => ({ id: `role:${r}` })),
+    TRAIT_ICONS.slice(0, 6).map((id) => ({ id })),
+    TRAIT_ICONS.slice(6).map((id) => ({ id })),
+    QUIRK_ICONS.slice(0, 6).map((id) => ({ id, tile: 'quirk' as const })),
+    QUIRK_ICONS.slice(6).map((id) => ({ id, tile: 'quirk' as const })),
+    [{ id: 'unknown-icon' }],
   ];
-  const perRow = 8;
-  const cell = 84;
-  const nodes = ids.map((id, i) =>
-    placed(drawIcon(id, PALETTE, 64), 24 + (i % perRow) * cell, 24 + Math.floor(i / perRow) * cell),
+  const cell = 100;
+  const nodes = rows.flatMap((row, r) =>
+    row.map(({ id, tile }, c) =>
+      placed(
+        drawIcon(id, PALETTE, 72, tile ? { tile } : {}),
+        28 + c * cell,
+        24 + r * cell + (r > 0 ? 12 : 0) + (r > 2 ? 12 : 0),
+      ),
+    ),
   );
-  return paperSheet(
-    24 * 2 + perRow * cell - 20,
-    24 * 2 + Math.ceil(ids.length / perRow) * cell - 20,
-    nodes,
-  );
+  return paperSheet(28 * 2 + 6 * cell - 20, 24 * 2 + rows.length * cell + 4, nodes);
 }
 
 const LINEUP_IDS = Array.from({ length: 15 }, (_, i) => `character-${i + 1}`);
