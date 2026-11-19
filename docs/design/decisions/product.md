@@ -6,11 +6,23 @@ Features, UX and behaviour the users see.
 
 ## 2026-11-19: A character's place is a hex or the creature; paths treat the creature as one node
 
-ID: `2026-11-19-a-character-s-place-is-a` · Status: current · Amends: `2026-11-19-characters-ride-the-creature-its-footprint`
+ID: `2026-11-19-a-character-s-place-is-a-2` · Status: current
 
-**Decision.** In the core, a character's `at` is a `Place`: `{ kind: 'hex', hex }` or `{ kind: 'creature' }`, plain JSON. Moves, paths and `reachablePlaces` (renamed from `reachableHexes`) work on places. A hex given as a target that lies under the footprint means the creature. The creature's neighbours are the ring of hexes beside the footprint, and boarding costs the base move cost, so the search crosses the creature when that is cheaper. Path steps carry `place` instead of `hex`, and `placeHex` gives the hex to draw a place at (the creature's centre for riders). Boarding sets no `via`. In the tick, riders move with the creature, a character on a hex now under the footprint becomes a rider, and only characters on hexes can be left behind. The start-next-to and push-aside code is removed.
+## 2026-11-19: Riders stand in numbered slots on the creature's back
 
-**Reasoning.** A tagged place lets the UI tell the creature apart from a hex without guessing from coordinates. Treating the creature as one node keeps one search for reach, paths and moves.
+ID: `2026-11-19-riders-stand-in-numbered-slots-on` · Status: current · Amends: `2026-11-19-the-art-kit-draws-a-compact`
+
+**Decision.** Characters on footprint hexes ride the creature. The art kit places riders by rider index, not by hex: slot 0 is the middle of the back, then a ring of six, then a wider ring of eight (fifteen, the player cap), shifted a little towards the viewer where the high view shows the back best (`riderSlot`, `riderAnchor`). Riders draw just after the creature, back to front among themselves, each with a firm contact shadow. The trees, rock and pond on the back sit out at the rim, clear of the inner slots. The footprint keeps its trodden-ground look. `riderAnchor(look, heading, index, origin, size, squash)` is exported so the map's picking finds riders where they are drawn.
+
+**Reasoning.** Misa: characters start on the creature, can board and step off, and end up on it when it walks onto them. Slots by index keep several riders apart whichever footprint hex the core records them on.
+
+## 2026-11-19: The art kit draws a compact creature on trodden ground, measured against its footprint
+
+ID: `2026-11-19-the-art-kit-draws-a-compact` · Status: current, amended by `2026-11-19-riders-stand-in-numbered-slots-on` · Amends: `2026-11-19-the-creature-stays-mostly-inside-its`
+
+**Decision.** The default build is `highback`: the high, mossy back with its trees, rock and pond, a moderately long neck and a longer tail, sized so that at `scale` 1 the body stays over its footprint. A test draws it for all six headings at tilt 0.8 and requires that no hex beyond the footprint has a third or more of its top face covered, that no such hex's centre is covered, and that the centre hex is covered. The seven footprint hexes are drawn as trodden ground (palette ramp `trodden`, scuffed earth) in place of their terrain. Characters are no longer drawn as riders: no contact shadow and no special order. The `broad`, `longneck` and `low` builds stay as data.
+
+**Reasoning.** Misa's pick: a compact creature keeps the map readable, and the trodden ground keeps it feeling huge. Measuring coverage on the drawn outlines keeps "never a whole hex" true as the drawing changes; the old large build covered up to 70% of a neighbouring hex.
 
 ## 2026-11-19: Characters start riding the creature **[Misa]**
 
@@ -22,7 +34,7 @@ ID: `2026-11-19-characters-start-riding-the-creature` · Status: current · Supe
 
 ## 2026-11-19: Characters ride the creature; its footprint is one place, not seven hexes **[Misa]**
 
-ID: `2026-11-19-characters-ride-the-creature-its-footprint` · Status: current, amended by `2026-11-19-a-character-s-place-is-a` · Supersedes: `2026-11-19-the-creature-s-hexes-are-occupied`
+ID: `2026-11-19-characters-ride-the-creature-its-footprint` · Status: current · Supersedes: `2026-11-19-the-creature-s-hexes-are-occupied`
 
 **Decision.** The creature's 7 footprint hexes are not hexes a character stands on; together they are one place, "on the creature".
 
@@ -39,7 +51,7 @@ This supersedes the rule that characters cannot enter the creature's hexes and t
 
 ## 2026-11-19: The creature stays mostly inside its footprint so the map stays readable **[Misa]**
 
-ID: `2026-11-19-the-creature-stays-mostly-inside-its` · Status: current · Amends: `2026-11-19-the-creature-is-a-behemoth-it`
+ID: `2026-11-19-the-creature-stays-mostly-inside-its` · Status: current, amended by `2026-11-19-the-art-kit-draws-a-compact` · Amends: `2026-11-19-the-creature-is-a-behemoth-it`
 
 **Decision.** The creature is drawn smaller, between the broad high back and the long-neck, long-tail shapes. Its body stays mostly within its 7-hex footprint; the head, neck and tail may reach a little into neighbouring hexes, but never cover a whole hex outside the footprint. The footprint hexes are drawn in their own colour (ground the creature is standing on), so its size reads from the ground as well as the body. The map is not rotatable.
 

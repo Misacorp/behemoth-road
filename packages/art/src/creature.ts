@@ -11,16 +11,17 @@ import type { Palette } from './palette.ts';
 import { inkAttrs, type Drawn } from './props.ts';
 import { el, type SvgNode } from './svg.ts';
 
-export type CreatureBody = 'broad' | 'longneck' | 'low';
+export type CreatureBody = 'highback' | 'broad' | 'longneck' | 'low';
 
 export interface CreatureLook {
   readonly id: string;
   /**
-   * Its build: `broad` a high tortoise-like back and a strong neck; `longneck` a narrower body with a neck
+   * Its build: `highback` (the default) a high back with a moderately long neck and tail, kept mostly
+   * inside its footprint; `broad` a high tortoise-like back and a strong neck; `longneck` a narrower body with a neck
    * that rises high and a long tail; `low` a wide, low, mossy mound with its head held low.
    */
   readonly body: CreatureBody;
-  /** Size against its footprint: 1 fills the seven hexes. */
+  /** Size against its footprint: at 1 the body stays mostly inside the seven hexes. */
   readonly scale: number;
   readonly markings: 'spots' | 'none';
   readonly horns: 'swept' | 'none';
@@ -32,7 +33,7 @@ export interface CreatureLook {
 /** The first creature: tame, slow and gentle, and very large. */
 export const GENTLE_AMBLER: CreatureLook = {
   id: 'gentle-ambler',
-  body: 'broad',
+  body: 'highback',
   scale: 1,
   markings: 'spots',
   horns: 'swept',
@@ -80,6 +81,22 @@ interface Build {
 
 /** The three builds, in hex sizes at scale 1. */
 const BUILDS: Readonly<Record<CreatureBody, Build>> = {
+  highback: {
+    body: { u: -0.1, v: 0, z: 0.72, a: 1.3, b: 1.08, c: 0.9 },
+    legRadius: 0.34,
+    legSpread: [0.78, 0.66],
+    neck: [
+      [1.05, 0.95, 0.4],
+      [1.75, 1.2, 0.28],
+    ],
+    head: { u: 2.0, v: 0, z: 1.22, a: 0.36, b: 0.31, c: 0.27 },
+    tail: [
+      [-1.2, 0.72, 0.32],
+      [-2.3, 0.22, 0.08],
+    ],
+    trees: 3,
+    mossUp: 0.55,
+  },
   broad: {
     body: { u: 0, v: 0, z: 1.0, a: 2.0, b: 1.75, c: 1.4 },
     legRadius: 0.56,
@@ -189,23 +206,20 @@ function planeDirection(step: { q: number; r: number }): { x: number; y: number 
 
 const fmt = (n: number): string => (Math.round(n * 10) / 10).toString();
 
-export function drawCreature(
-  palette: Palette,
+/** The creature's frame turned to its heading and projected: shared by the drawing and the rider anchors. */
+function creatureFrame(
   look: CreatureLook,
+  heading: { q: number; r: number },
   origin: Point,
   size: number,
   squash: number,
-  ink: number,
-  heading: { q: number; r: number },
-): Drawn {
-  const build = BUILDS[look.body] ?? BUILDS.broad;
+) {
+  const build = BUILDS[look.body] ?? BUILDS.highback;
   const S = Number.isFinite(look.scale) && look.scale > 0 ? look.scale : 1;
-  const unit = size * S;
   const t = Number.isFinite(squash) ? Math.min(1, Math.max(0.2, squash)) : 0.8;
   const rise = Math.sqrt(Math.max(0, 1 - t * t));
   const fwd = planeDirection(heading);
   const right = { x: -fwd.y, y: fwd.x };
-  // Creature frame (u forward, v to its right, z up; hex sizes at scale 1) to the world, then the screen.
   const world = (u: number, v: number, z: number): V3 => ({
     x: (u * fwd.x + v * right.x) * S,
     y: (u * fwd.y + v * right.y) * S,
@@ -215,6 +229,62 @@ export function drawCreature(
     x: origin.x + p.x * size,
     y: origin.y + (p.y * t - p.z * rise) * size,
   });
+  const body = build.body;
+  /** A point on top of the back, at (fu, fv) as shares of the body's half-length and half-width. */
+  const back = (fu: number, fv: number): V3 => {
+    const u = body.u + fu * body.a;
+    const v = fv * body.b;
+    const k = 1 - fu * fu - fv * fv;
+    return world(u, v, body.z + body.c * Math.sqrt(Math.max(0, k)));
+  };
+  return { build, S, t, rise, fwd, right, world, screen, back };
+}
+
+/**
+ * Where riders stand on the back, as shares of the body's half-length and half-width: the middle first,
+ * then a ring of six, then a wider ring of eight (fifteen in all, the player cap). The landscape on the
+ * back stays out at the rim, clear of these.
+ */
+export function riderSlot(index: number): { fu: number; fv: number } {
+  const i = Number.isFinite(index) && index > 0 ? Math.floor(index) % 15 : 0;
+  if (i === 0) return { fu: 0, fv: 0 };
+  if (i <= 6) {
+    const a = ((i - 1) * Math.PI) / 3 + Math.PI / 6;
+    return { fu: Math.cos(a) * 0.3, fv: Math.sin(a) * 0.34 };
+  }
+  const a = ((i - 7) * Math.PI) / 4;
+  return { fu: Math.cos(a) * 0.62, fv: Math.sin(a) * 0.66 };
+}
+
+/** The feet of the rider in slot `index` on the creature's back, in drawing coordinates. */
+export function riderAnchor(
+  look: CreatureLook,
+  heading: { q: number; r: number },
+  index: number,
+  origin: Point,
+  size: number,
+  squash: number,
+): Point {
+  const f = creatureFrame(look, heading, origin, size, squash);
+  const { fu, fv } = riderSlot(index);
+  // Shift the slots towards the viewer (world south), where the back is seen best from the high view.
+  const bias = 0.28;
+  return f.screen(f.back(fu + bias * f.fwd.y, fv + bias * f.right.y));
+}
+
+export function drawCreature(
+  palette: Palette,
+  look: CreatureLook,
+  origin: Point,
+  size: number,
+  squash: number,
+  ink: number,
+  heading: { q: number; r: number },
+): Drawn & { readonly silhouettes: readonly (readonly Point[])[] } {
+  // Creature frame (u forward, v to its right, z up; hex sizes at scale 1) to the world, then the screen.
+  const frame = creatureFrame(look, heading, origin, size, squash);
+  const { build, S, t, rise, world, screen } = frame;
+  const unit = size * S;
   const at = (u: number, v: number, z: number): Point => screen(world(u, v, z));
   // Faces the viewer: the view direction is (0, rise, t) in world terms (south and up).
   const faces = (n: V3): boolean => n.y * rise + n.z * t > 0.05;
@@ -227,6 +297,8 @@ export function drawCreature(
   const fill = (d: string, colour: string, opacity = 1): SvgNode =>
     el('path', opacity === 1 ? { d, fill: colour } : { d, fill: colour, opacity });
   const everything: Point[] = [];
+  /** The outline of every solid part, for measuring what the creature covers. */
+  const silhouettes: Point[][] = [];
   const minGap = unit * 0.05;
 
   const surface = (s: Solid, theta: number, phi: number): { p: V3; n: V3 } => {
@@ -250,6 +322,7 @@ export function drawCreature(
     }
     const h = thin(hull(pts), minGap);
     everything.push(...h);
+    silhouettes.push(h);
     return h;
   };
   /** Surface points of a solid whose normal points up at least `minUp`, as a hull. */
@@ -299,6 +372,7 @@ export function drawCreature(
     }
     const h = thin(hull(pts), minGap);
     everything.push(...h);
+    silhouettes.push(h);
     return h;
   };
 
@@ -339,6 +413,7 @@ export function drawCreature(
     }
     const h = thin(hull(pts), minGap);
     everything.push(...h);
+    silhouettes.push(h);
     const tufts: string[] = [];
     const centreY = world(u, v, 0).y;
     for (let i = 0; i < 12; i += 1) {
@@ -436,7 +511,7 @@ export function drawCreature(
 
   if (look.back === 'landscape') {
     // A tiny pond and a rock lying on the back.
-    const pondAt = screen(top(body.u - body.a * 0.35, body.b * 0.3));
+    const pondAt = screen(frame.back(-0.62, 0.42));
     const pond = ellipsePath(pondAt.x, pondAt.y, unit * 0.32, unit * 0.32 * t * 0.75);
     bodyNodes.push(
       fill(pond, palette.ramps.water.base),
@@ -447,7 +522,7 @@ export function drawCreature(
       ),
       line(pond, w * 0.85),
     );
-    const rockAt = screen(top(body.u + body.a * 0.25, body.b * 0.42));
+    const rockAt = screen(frame.back(0.2, 0.74));
     const rk = unit / 64;
     const rock = [
       { x: -11, y: 2 },
@@ -474,15 +549,15 @@ export function drawCreature(
     );
     // Trees standing upright on the back, back to front.
     const treeSpots: [number, number, number][] = [
-      [0.15, -0.35, 1],
-      [-0.45, -0.05, 0.8],
-      [0.55, 0.05, 0.7],
+      [0.42, -0.6, 1],
+      [-0.55, -0.5, 0.85],
+      [0.7, 0.32, 0.7],
     ].slice(0, build.trees) as [number, number, number][];
     const trees = treeSpots
-      .map(([fu, fv, hgt]) => ({ base: screen(top(body.u + fu * body.a, fv * body.b)), hgt }))
+      .map(([fu, fv, hgt]) => ({ base: screen(frame.back(fu, fv)), hgt }))
       .sort((a, b) => a.base.y - b.base.y);
     for (const { base, hgt } of trees) {
-      const k = (unit / 64) * 1.25 * hgt;
+      const k = (unit / 64) * 0.95 * hgt;
       const trunkTop = { x: base.x, y: base.y - 20 * k * rise };
       const lobe = (dx: number, dy: number, r: number): string =>
         smoothClosed(
@@ -497,6 +572,12 @@ export function drawCreature(
         );
       const lobes = [lobe(-7, -3, 9), lobe(7, -3, 9), lobe(0, -12, 10)];
       everything.push({ x: trunkTop.x, y: trunkTop.y - 24 * k });
+      silhouettes.push([
+        { x: trunkTop.x - 16 * k, y: trunkTop.y - 22 * k },
+        { x: trunkTop.x + 16 * k, y: trunkTop.y - 22 * k },
+        { x: trunkTop.x + 16 * k, y: base.y },
+        { x: trunkTop.x - 16 * k, y: base.y },
+      ]);
       bodyNodes.push(
         fill(ellipsePath(base.x + 3 * k, base.y + 1 * k, 14 * k, 5 * k), palette.shadow, 0.22),
         line(
@@ -623,6 +704,7 @@ export function drawCreature(
       at(head.u - head.a * 0.45, side * head.b * 0.8, head.z + head.c * 0.2),
     ];
     everything.push(...pts);
+    silhouettes.push(pts);
     pieces.push({
       depth: depthAt(head.u - head.a * 0.4, side * head.b) + 0.0005,
       nodes: [fill(smoothClosed(pts), hide.shade), line(smoothClosed(pts), w * 0.85)],
@@ -659,6 +741,7 @@ export function drawCreature(
       });
       const horn = [...left, ...rightSide.reverse()];
       everything.push(...horn);
+      silhouettes.push(horn);
       const mid = path[3]!;
       pieces.push({
         depth: mid.y + (head.u - head.a * 0.5) * 0.002 + 0.0007,
@@ -668,7 +751,7 @@ export function drawCreature(
   }
 
   pieces.sort((a, b) => a.depth - b.depth);
-  return { nodes: pieces.flatMap((p) => p.nodes), box: boxOf(everything) };
+  return { nodes: pieces.flatMap((p) => p.nodes), box: boxOf(everything), silhouettes };
 }
 
 /** Whether a hex lies in the creature's seven-hex footprint. */

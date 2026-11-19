@@ -89,9 +89,11 @@ Record a decision:
 [product.md](product.md): Features, UX and behaviour the users see.
 
 - 2026-11-19 A character's place is a hex or the creature; paths treat the creature as one node
+- 2026-11-19 Riders stand in numbered slots on the creature's back
+- 2026-11-19 The art kit draws a compact creature on trodden ground, measured against its footprint (amended)
 - 2026-11-19 Characters start riding the creature \[Misa\]
-- 2026-11-19 Characters ride the creature; its footprint is one place, not seven hexes \[Misa\] (amended)
-- 2026-11-19 The creature stays mostly inside its footprint so the map stays readable \[Misa\]
+- 2026-11-19 Characters ride the creature; its footprint is one place, not seven hexes \[Misa\]
+- 2026-11-19 The creature stays mostly inside its footprint so the map stays readable \[Misa\] (amended)
 - 2026-11-19 The creature is a behemoth: it fills its footprint and carries a small landscape (amended)
 - 2026-11-19 The creature is modelled as small solids and turns to all six headings; upright props shrink part way at the high view (amended)
 - 2026-11-19 The creature is drawn from above, at the map's view angle \[Misa\]

@@ -17,7 +17,7 @@ import {
 import { inkAttrs } from './props.ts';
 import { rngFor, type Rng } from './rng.ts';
 import { el, type AttrValue, type SvgNode } from './svg.ts';
-import { terrainLook } from './terrain.ts';
+import { terrainLook, TRODDEN_LOOK } from './terrain.ts';
 
 export type CellState = 'seen' | 'unseen' | 'fading' | 'lost';
 
@@ -99,6 +99,8 @@ export function drawGround(
   palette: Palette,
   seed: string | number,
   ink: number,
+  /** Hexes the creature stands on (`hexKey`): drawn as its own trodden ground instead of their terrain. */
+  occupied: ReadonlySet<string> = new Set(),
 ): GroundLayers {
   const byKey = new Map(cells.map((c) => [hexKey(c.q, c.r), c]));
   const k = p.k;
@@ -154,7 +156,8 @@ export function drawGround(
       continue;
     }
 
-    const look = terrainLook(cell.terrain);
+    const trodden = occupied.has(hexKey(cell.q, cell.r));
+    const look = trodden ? TRODDEN_LOOK : terrainLook(cell.terrain);
     const ground = palette.ramps[look.ground];
     const side = palette.ramps[look.side];
 
@@ -229,6 +232,22 @@ export function drawGround(
         dots.push(ellipsePath(o.x, o.y, r * 1.3, r * p.squash));
       }
       marks.add({ fill: palette.ramps.rock.shade, opacity: 0.6 }, dots.join(''));
+    } else if (look.marks === 'scuffs') {
+      // Pressed, scuffed earth: short curved strokes and a few shallow dents.
+      const lines: string[] = [];
+      for (let j = 0, n = rng.int(3, 5); j < n; j += 1) {
+        const o = onPlane(p, c, rng.range(-0.5, 0.45), rng.range(-0.45, 0.45));
+        const len = rng.range(0.12, 0.22) * p.size;
+        const tilt = rng.range(-0.4, 0.4);
+        lines.push(
+          smoothOpen([
+            o,
+            { x: o.x + len * 0.5, y: o.y - len * 0.12 + tilt * len * 0.2 },
+            { x: o.x + len, y: o.y + tilt * len * 0.3 },
+          ]),
+        );
+      }
+      marks.add(inkAttrs(palette.ramps.trodden.shade, ink * 0.85), lines.join(''));
     } else if (look.marks === 'flecks') {
       const ticks: string[] = [];
       for (let j = 0, n = rng.int(3, 6); j < n; j += 1) {

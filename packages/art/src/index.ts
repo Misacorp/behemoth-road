@@ -1,7 +1,15 @@
 export { ART_TUNING } from './config.ts';
 export { figureAnchor, type FigureContext } from './figure.ts';
 export { drawCharacter, type CharacterArt } from './character.ts';
-export { drawCreature, GENTLE_AMBLER, type CreatureArt, type CreatureLook } from './creature.ts';
+export {
+  drawCreature,
+  GENTLE_AMBLER,
+  inFootprint,
+  riderAnchor,
+  riderSlot,
+  type CreatureArt,
+  type CreatureLook,
+} from './creature.ts';
 export {
   ACCENTS,
   MATERIALS,

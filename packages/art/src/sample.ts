@@ -51,6 +51,11 @@ export function samplePatch(heading: { q: number; r: number } = { q: 0, r: -1 })
   return {
     cells,
     creature: { q: 0, r: 0, heading, look: GENTLE_AMBLER },
-    characters: [{ id: 'sample-scout', q: 1, r: 1, accent: 'rose' }],
+    characters: [
+      { id: 'sample-scout', q: 1, r: 1, accent: 'rose' },
+      // Two riders on the creature's back.
+      { id: 'sample-keeper', q: 0, r: 0, accent: 'teal' },
+      { id: 'sample-envoy', q: 0, r: 1, accent: 'ochre' },
+    ],
   };
 }
