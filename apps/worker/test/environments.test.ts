@@ -6,14 +6,30 @@ import { ORIGIN, callHandler } from './helpers.ts';
 
 /** wrangler.jsonc without its comments (none of its strings contain `//`). */
 const wrangler = JSON.parse(wranglerText.replace(/^\s*\/\/.*$/gm, '')) as {
+  name: string;
+  routes?: unknown;
   vars: Record<string, string>;
   env: Record<
     string,
-    { vars: Record<string, string>; durable_objects: { bindings: { name: string }[] } }
+    {
+      name: string;
+      vars: Record<string, string>;
+      durable_objects: { bindings: { name: string }[] };
+    }
   >;
 };
 
 describe('wrangler.jsonc', () => {
+  it('gives the local top level its own name and no routes, so a deploy without --env never lands on a real host', () => {
+    const deployed = Object.values(wrangler.env).map((e) => e.name);
+    expect(deployed).not.toContain(wrangler.name);
+    expect(wrangler.routes).toBeUndefined();
+    for (const [name, environment] of Object.entries(wrangler.env)) {
+      expect(environment.vars['ENVIRONMENT'], name).not.toBe('local');
+    }
+    expect(wrangler.env['production']?.vars['DEV_TOOLS']).not.toBe('on');
+  });
+
   it('keeps the dev tools off in production and on in staging', () => {
     expect(wrangler.env['production']?.vars['DEV_TOOLS']).toBe('off');
     expect(wrangler.env['staging']?.vars['DEV_TOOLS']).toBe('on');
