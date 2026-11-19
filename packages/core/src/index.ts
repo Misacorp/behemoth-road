@@ -95,11 +95,11 @@ export { nextDay } from './tick.ts';
 export { createGame, type CreateGameOptions } from './game.ts';
 export {
   addCharacter,
-  characterChoices,
+  characterOffers,
   characterOf,
   replaceCharacter,
   rollCharacters,
-  type CharacterChoice,
+  type CharacterOffer,
   type CharacterRefusal,
   type CharacterRequest,
   type CharacterResult,

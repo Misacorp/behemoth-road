@@ -39,9 +39,9 @@ export interface Character {
   readonly userId: string;
   readonly name: string;
   /** Content ids (`content/`); null for the plain character. */
-  readonly traitId: string | null;
-  readonly quirkId: string | null;
-  readonly roleId: string;
+  readonly trait: string | null;
+  readonly quirk: string | null;
+  readonly role: string;
   /** The day the character joined. */
   readonly joinedDay: number;
   readonly at: Place;

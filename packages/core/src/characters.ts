@@ -1,7 +1,7 @@
 /**
- * Characters for real players: rolled choices, joining and replacing a lost one.
+ * Characters for real players: rolled offers, joining and replacing a lost one.
  * Rolls are seeded by the game seed, the user and the attempt, so a reload shows
- * the same choices; only the server can roll (it holds the seed).
+ * the same offers; only the server can roll (it holds the seed).
  */
 
 import { BY_NAMES, NAME_ENDS, NAME_STARTS, QUIRKS, ROLES, TRAITS } from './content/index.ts';
@@ -10,16 +10,16 @@ import { createRng, hashInts, hashString } from './random.ts';
 import type { Character, GameState } from './state.ts';
 
 /** One character a player can pick. The plain one has no trait and no quirk. */
-export interface CharacterChoice {
+export interface CharacterOffer {
   readonly name: string;
-  readonly traitId: string | null;
-  readonly quirkId: string | null;
+  readonly trait: string | null;
+  readonly quirk: string | null;
 }
 
 export type CharacterRefusal =
   | 'invalid-user'
   | 'unknown-role'
-  | 'invalid-choice'
+  | 'invalid-offer'
   | 'has-character'
   | 'no-character'
   | 'not-lost'
@@ -31,9 +31,9 @@ export type CharacterResult =
 
 export interface CharacterRequest {
   readonly userId: string;
-  /** Index into the user's current choices (`characterChoices`). */
-  readonly choice: number;
-  readonly roleId: string;
+  /** Index into the user's current offers (`characterOffers`). */
+  readonly offer: number;
+  readonly role: string;
 }
 
 const MAX_USER_ID_LENGTH = 32;
@@ -61,29 +61,25 @@ const rollName = (rng: () => number): string => {
  * Two or three rolled characters (each with a trait and a quirk, none repeated)
  * followed by the plain one. The same seed, user and attempt give the same list.
  */
-export const rollCharacters = (
-  seed: number,
-  userId: string,
-  attempt: number,
-): CharacterChoice[] => {
+export const rollCharacters = (seed: number, userId: string, attempt: number): CharacterOffer[] => {
   const rng = createRng(hashInts(seed, ROLL_STREAM, hashString(userId), attempt));
   const count = rng() < 0.5 ? 2 : 3;
   const traits = pickDistinct(TRAITS, count, rng);
   const quirks = pickDistinct(QUIRKS, count, rng);
   const rolled = traits.map((trait, i) => ({
     name: rollName(rng),
-    traitId: trait.id,
-    quirkId: quirks[i]?.id ?? null,
+    trait: trait.id,
+    quirk: quirks[i]?.id ?? null,
   }));
-  return [...rolled, { name: rollName(rng), traitId: null, quirkId: null }];
+  return [...rolled, { name: rollName(rng), trait: null, quirk: null }];
 };
 
 /** How many characters this user has had in this game. */
 const attemptsBy = (state: GameState, userId: string): number =>
   state.characters.filter((c) => c.userId === userId).length;
 
-/** The choices a user is offered now: for their first character, or to replace a lost one. */
-export const characterChoices = (state: GameState, userId: string): CharacterChoice[] =>
+/** What a user is offered now: for their first character, or to replace a lost one. */
+export const characterOffers = (state: GameState, userId: string): CharacterOffer[] =>
   rollCharacters(state.seed, userId, attemptsBy(state, userId));
 
 /** The user's newest character, if any. */
@@ -91,14 +87,14 @@ export const characterOf = (state: GameState, userId: string): Character | undef
   state.characters.findLast((c) => c.userId === userId);
 
 const create = (state: GameState, request: CharacterRequest): CharacterResult => {
-  const { userId, choice, roleId } = request;
+  const { userId, offer, role } = request;
   if (typeof userId !== 'string' || userId.length === 0 || userId.length > MAX_USER_ID_LENGTH) {
     return { ok: false, reason: 'invalid-user' };
   }
-  if (!ROLES.some((r) => r.id === roleId)) return { ok: false, reason: 'unknown-role' };
-  const choices = characterChoices(state, userId);
-  const picked = Number.isInteger(choice) ? choices[choice] : undefined;
-  if (!picked) return { ok: false, reason: 'invalid-choice' };
+  if (!ROLES.some((r) => r.id === role)) return { ok: false, reason: 'unknown-role' };
+  const offers = characterOffers(state, userId);
+  const picked = Number.isInteger(offer) ? offers[offer] : undefined;
+  if (!picked) return { ok: false, reason: 'invalid-offer' };
   const active = state.characters.filter((c) => c.status === 'active').length;
   if (active >= state.config.playerCap) return { ok: false, reason: 'cap-reached' };
 
@@ -107,9 +103,9 @@ const create = (state: GameState, request: CharacterRequest): CharacterResult =>
     id: `${userId}.${attempt}`,
     userId,
     name: picked.name,
-    traitId: picked.traitId,
-    quirkId: picked.quirkId,
-    roleId,
+    trait: picked.trait,
+    quirk: picked.quirk,
+    role,
     joinedDay: state.day,
     at: ON_CREATURE,
     actionsLeft: state.config.actionsPerDay,

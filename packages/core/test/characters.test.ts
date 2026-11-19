@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   addCharacter,
-  characterChoices,
+  characterOffers,
   characterOf,
   createGame,
   type GameState,
@@ -59,14 +59,14 @@ describe('rollCharacters', () => {
       expect(rollCharacters(42, 'user-1', attempt)).toEqual(roll);
       counts.add(roll.length);
       const plain = roll.at(-1)!;
-      expect(plain).toMatchObject({ traitId: null, quirkId: null });
+      expect(plain).toMatchObject({ trait: null, quirk: null });
       const rolled = roll.slice(0, -1);
       for (const c of rolled) {
-        expect(TRAITS.some((t) => t.id === c.traitId)).toBe(true);
-        expect(QUIRKS.some((q) => q.id === c.quirkId)).toBe(true);
+        expect(TRAITS.some((t) => t.id === c.trait)).toBe(true);
+        expect(QUIRKS.some((q) => q.id === c.quirk)).toBe(true);
       }
-      expect(unique(rolled.map((c) => c.traitId!))).toBe(true);
-      expect(unique(rolled.map((c) => c.quirkId!))).toBe(true);
+      expect(unique(rolled.map((c) => c.trait!))).toBe(true);
+      expect(unique(rolled.map((c) => c.quirk!))).toBe(true);
       for (const c of roll) expect(c.name).toMatch(/^[A-Z][a-z]+( .+)?$/);
     }
     expect([...counts].sort()).toEqual([3, 4]);
@@ -80,8 +80,8 @@ describe('rollCharacters', () => {
   });
 });
 
-const join = (state: GameState, userId: string, choice = 0, roleId = 'scout') => {
-  const result = addCharacter(state, { userId, choice, roleId });
+const join = (state: GameState, userId: string, offer = 0, role = 'scout') => {
+  const result = addCharacter(state, { userId, offer, role });
   if (!result.ok) throw new Error(result.reason);
   return result;
 };
@@ -89,41 +89,41 @@ const join = (state: GameState, userId: string, choice = 0, roleId = 'scout') =>
 describe('addCharacter', () => {
   it('adds the chosen character, riding the creature, with the role', () => {
     const state = nextDay(createGame(3));
-    const choices = characterChoices(state, '1001');
+    const offers = characterOffers(state, '1001');
     const { state: next, characterId } = join(state, '1001', 1, 'keeper');
     const c = next.characters.find((x) => x.id === characterId)!;
     expect(c).toEqual({
       id: characterId,
       userId: '1001',
-      ...choices[1],
-      roleId: 'keeper',
+      ...offers[1],
+      role: 'keeper',
       joinedDay: 2,
       at: ON_CREATURE,
       actionsLeft: 3,
       status: 'active',
     });
     expect(state.characters).toHaveLength(0);
-    const plainIndex = choices.length - 1;
+    const plainIndex = offers.length - 1;
     const plain = join(state, '1001', plainIndex).state.characters[0]!;
-    expect(plain).toMatchObject({ traitId: null, quirkId: null });
+    expect(plain).toMatchObject({ trait: null, quirk: null });
   });
 
   it('allows one character per user', () => {
     const { state } = join(createGame(3), '1001');
-    expect(addCharacter(state, { userId: '1001', choice: 0, roleId: 'scout' })).toEqual({
+    expect(addCharacter(state, { userId: '1001', offer: 0, role: 'scout' })).toEqual({
       ok: false,
       reason: 'has-character',
     });
   });
 
-  it('refuses unknown roles, choices and users', () => {
+  it('refuses unknown roles, offers and users', () => {
     const state = createGame(3);
-    const ask = (userId: string, choice: number, roleId: string) =>
-      addCharacter(state, { userId, choice, roleId });
+    const ask = (userId: string, offer: number, role: string) =>
+      addCharacter(state, { userId, offer, role });
     expect(ask('1001', 0, 'pathfinder')).toEqual({ ok: false, reason: 'unknown-role' });
-    expect(ask('1001', 9, 'scout')).toEqual({ ok: false, reason: 'invalid-choice' });
-    expect(ask('1001', -1, 'scout')).toEqual({ ok: false, reason: 'invalid-choice' });
-    expect(ask('1001', 0.5, 'scout')).toEqual({ ok: false, reason: 'invalid-choice' });
+    expect(ask('1001', 9, 'scout')).toEqual({ ok: false, reason: 'invalid-offer' });
+    expect(ask('1001', -1, 'scout')).toEqual({ ok: false, reason: 'invalid-offer' });
+    expect(ask('1001', 0.5, 'scout')).toEqual({ ok: false, reason: 'invalid-offer' });
     expect(ask('', 0, 'scout')).toEqual({ ok: false, reason: 'invalid-user' });
     expect(ask('x'.repeat(33), 0, 'scout')).toEqual({ ok: false, reason: 'invalid-user' });
   });
@@ -132,7 +132,7 @@ describe('addCharacter', () => {
     let state = createGame(3, { config: { playerCap: 2 } });
     state = join(state, '1').state;
     state = join(state, '2').state;
-    expect(addCharacter(state, { userId: '3', choice: 0, roleId: 'scout' })).toEqual({
+    expect(addCharacter(state, { userId: '3', offer: 0, role: 'scout' })).toEqual({
       ok: false,
       reason: 'cap-reached',
     });
@@ -150,14 +150,14 @@ describe('replaceCharacter', () => {
 
   it('only replaces a lost character, and keeps the lost one', () => {
     const start = createGame(3);
-    const request = { userId: '1001', choice: 0, roleId: 'envoy' };
+    const request = { userId: '1001', offer: 0, role: 'envoy' };
     expect(replaceCharacter(start, request)).toEqual({ ok: false, reason: 'no-character' });
     const joined = join(start, '1001').state;
     expect(replaceCharacter(joined, request)).toEqual({ ok: false, reason: 'not-lost' });
 
     const lost = lose(joined, '1001');
-    const fresh = characterChoices(lost, '1001');
-    expect(fresh).not.toEqual(characterChoices(start, '1001')); // a new attempt, new choices
+    const fresh = characterOffers(lost, '1001');
+    expect(fresh).not.toEqual(characterOffers(start, '1001')); // a new attempt, new offers
     const result = replaceCharacter(lost, request);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
@@ -166,7 +166,7 @@ describe('replaceCharacter', () => {
     expect(characterOf(result.state, '1001')).toMatchObject({
       id: result.characterId,
       name: fresh[0]!.name,
-      roleId: 'envoy',
+      role: 'envoy',
       at: ON_CREATURE,
       status: 'active',
     });
@@ -176,12 +176,12 @@ describe('replaceCharacter', () => {
   it('frees a place under the cap when a character is lost', () => {
     let state = createGame(3, { config: { playerCap: 1 } });
     state = join(state, '1').state;
-    expect(addCharacter(state, { userId: '2', choice: 0, roleId: 'scout' })).toMatchObject({
+    expect(addCharacter(state, { userId: '2', offer: 0, role: 'scout' })).toMatchObject({
       ok: false,
       reason: 'cap-reached',
     });
     state = lose(state, '1');
-    expect(addCharacter(state, { userId: '2', choice: 0, roleId: 'scout' }).ok).toBe(true);
+    expect(addCharacter(state, { userId: '2', offer: 0, role: 'scout' }).ok).toBe(true);
   });
 
   it('round-trips characters through JSON', () => {
