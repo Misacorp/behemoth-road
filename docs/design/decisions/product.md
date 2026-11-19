@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: Joining is a drawer wizard; each character's cloak colour comes from its name
+
+ID: `2026-11-19-joining-is-a-drawer-wizard-each` · Status: current
+
+**Decision.** Joining and replacing a lost character share one drawer. On phones it is the bottom drawer, which can be dragged between half and full height and closed from half; it shows one step at a time (character, role, confirm) with a back arrow. On desktop it is a side drawer from the left showing every step at once. Characters are shown as figures with trait and quirk icons, and their names are the only text. Roles are six ink emblems: a spyglass, a book, a lantern, a shield, a cog and a pennant. The drawer opens by itself when you have no active character, and a round join button reopens it after you close it. Each character's cloak colour is a stable hash of its name over the four accents, so a rolled character keeps its colour from the drawer onto the map. Another player's character opens a small card with its figure, name, role emblem, trait and quirk, from its figure on a hex or from the hub bubble. "Next day" shows only when the server offers dev tools and you are an admin; "New game" is gone.
+
+**Reasoning.** This follows the M2 plan and Misa's "show, don't tell". Players need to tell characters apart on a shared map, and a name-based colour needs no new field in the contract.
+
 ## 2026-11-19: Popovers point at their subject; grace-day tiles and figures warn without words
 
 ID: `2026-11-19-popovers-point-at-their-subject-grace` · Status: current

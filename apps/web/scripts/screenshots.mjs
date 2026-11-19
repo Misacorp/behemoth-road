@@ -1,10 +1,15 @@
 #!/usr/bin/env node
 /* global URL, console, process, window, document, performance, requestAnimationFrame, MouseEvent */
 /**
- * Loads the built app (apps/web/dist) in Chromium at a phone and a desktop size, plays a scripted
- * tap, tap, confirm move and a next day, and writes screenshots to screenshots/ at the repo root
- * (gitignored). Serves dist/ with the headers from public/_headers, so a CSP violation fails the run.
- * It also measures frame times during a scripted drag, with the CPU slowed down 4x.
+ * Screenshots and browser checks for the web client, written to screenshots/ at the repo root (gitignored).
+ *
+ * 1. The built app (apps/web/dist), served with the headers from public/_headers so a CSP violation fails
+ *    the run: outside Discord it shows only the "open from Discord" state, and its assets carry no trace of
+ *    the local-development sign-in.
+ * 2. The Vite dev server (its fake session stands in for Discord) at a phone and a desktop size, with every
+ *    /api call answered by a fake server that runs the real core on the hand-written fixtures: the join
+ *    wizard, two players on the creature, another player's card, moves, the hub, next day, the grace day,
+ *    replacing a lost character, and frame times during a drag with the CPU slowed 4x.
  *
  * Usage: pnpm --filter @behemoth-road/web build && node apps/web/scripts/screenshots.mjs
  * Not part of the unit test run. Needs the pre-installed Playwright (require('playwright')).
@@ -14,7 +19,20 @@ import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
 import { dirname, extname, join, normalize, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { spawn } from 'node:child_process';
+import { readdirSync } from 'node:fs';
 import { SPRING } from '../../../packages/art/src/palette.ts';
+import { moveAlong, nextDay } from '../../../packages/core/src/index.ts';
+import {
+  CONFIG,
+  joinScenario,
+  joinedScenario,
+  lostScenario,
+  notJoinedScenario,
+  SESSION,
+  toView,
+} from '../src/api/fixtures.ts';
+import { accentForName } from '../src/game/identity.ts';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const web = resolve(here, '..');
@@ -58,6 +76,84 @@ function serve() {
   return new Promise((ok) => server.listen(0, '127.0.0.1', () => ok(server)));
 }
 
+/** A fake game server on the real core: it holds a scenario and answers the API like the Worker. */
+class FakeServer {
+  constructor() {
+    this.scenario = notJoinedScenario();
+  }
+
+  reset(scenario) {
+    this.scenario = scenario;
+  }
+
+  /** Answers one request: [status, body]. */
+  answer(method, path, body) {
+    const s = this.scenario;
+    const ok = (next) => {
+      if (next) this.scenario = { ...next, version: next.version ?? s.version + 1 };
+      return [200, toView(this.scenario)];
+    };
+    if (path === '/api/config') return [200, CONFIG];
+    if (path === '/api/dev/session') return [200, SESSION];
+    if (method === 'GET' && path === '/api/game') {
+      const since = Number(new URL(`http://x${this.lastUrl}`).searchParams.get('since') ?? NaN);
+      return since === s.version ? [200, { unchanged: true }] : ok(null);
+    }
+    if (path === '/api/game/join' || path === '/api/game/replace') {
+      const base =
+        path === '/api/game/replace'
+          ? {
+              ...s,
+              state: { ...s.state, characters: s.state.characters.filter((c) => c.id !== s.you) },
+            }
+          : s;
+      return ok(joinScenario(base, body.role, body.offer));
+    }
+    if (path === '/api/game/move') {
+      if (body.version !== s.version) return [409, { error: 'stale' }];
+      const result = moveAlong(s.state, s.you, body.path);
+      if (!result.ok) return [409, { error: result.reason }];
+      return ok({ ...s, state: result.state, version: s.version + 1 });
+    }
+    if (path === '/api/dev/next-day') {
+      return ok({ ...s, state: nextDay(s.state), version: s.version + 1 });
+    }
+    return [404, { error: 'not_found' }];
+  }
+
+  async route(route) {
+    const req = route.request();
+    const url = new URL(req.url());
+    this.lastUrl = `${url.pathname}${url.search}`;
+    const body = req.postData() ? JSON.parse(req.postData()) : null;
+    const [status, payload] = this.answer(req.method(), url.pathname, body);
+    await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(payload) });
+  }
+}
+
+/** Starts the Vite dev server on a free port and resolves with its URL. */
+function startVite() {
+  return new Promise((ok, fail) => {
+    const vite = spawn(
+      join(web, 'node_modules/.bin/vite'),
+      ['--port', '5199', '--strictPort', '--host', '127.0.0.1'],
+      {
+        cwd: web,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      },
+    );
+    let text = '';
+    const onData = (d) => {
+      text += String(d);
+      if (/Local:\s+http/.test(text))
+        ok({ url: 'http://127.0.0.1:5199/', stop: () => vite.kill() });
+    };
+    vite.stdout.on('data', onData);
+    vite.stderr.on('data', onData);
+    vite.on('exit', (code) => fail(new Error(`vite exited (${code}): ${text}`)));
+  });
+}
+
 const VIEWPORTS = [
   { name: 'phone', width: 390, height: 844, touch: true },
   { name: 'desktop', width: 1440, height: 900, touch: false },
@@ -69,10 +165,40 @@ async function run() {
   mkdirSync(out, { recursive: true });
   const server = await serve();
   const url = `http://127.0.0.1:${server.address().port}/`;
+  const vite = await startVite();
   const browser = await chromium.launch();
   const problems = [];
   const report = [];
   try {
+    // 1. The built app outside Discord: only the visual "open from Discord" state, under the real CSP.
+    {
+      const context = await browser.newContext({
+        viewport: { width: 390, height: 844 },
+        deviceScaleFactor: 2,
+      });
+      const page = await context.newPage();
+      const fake = new FakeServer();
+      await page.route(
+        (u) => u.pathname.startsWith('/api/'),
+        (r) => fake.route(r),
+      );
+      page.on('console', (m) => {
+        if (m.type() === 'error' || /Content Security Policy/i.test(m.text()))
+          problems.push(`built: ${m.text()}`);
+      });
+      page.on('pageerror', (e) => problems.push(`built: ${e.message}`));
+      await page.goto(url);
+      await page.waitForSelector('[data-state=outside]');
+      await page.screenshot({ path: join(out, 'm2-outside-discord.png') });
+      await context.close();
+      for (const file of readdirSync(join(dist, 'assets'))) {
+        const text = readFileSync(join(dist, 'assets', file), 'utf8');
+        if (text.includes('/api/dev/session'))
+          problems.push(`built: ${file} contains the dev sign-in`);
+      }
+    }
+
+    // 2. The game, on the Vite dev server with its fake session and a fake game server.
     for (const vp of VIEWPORTS) {
       const context = await browser.newContext({
         viewport: { width: vp.width, height: vp.height },
@@ -81,21 +207,44 @@ async function run() {
         isMobile: vp.touch,
       });
       const page = await context.newPage();
+      const fake = new FakeServer();
+      await page.route(
+        (u) => u.pathname.startsWith('/api/'),
+        (r) => fake.route(r),
+      );
       page.on('console', (m) => {
-        if (m.type() === 'error' || /Content Security Policy/i.test(m.text()))
-          problems.push(`${vp.name}: ${m.text()}`);
+        if (m.type() === 'error') problems.push(`${vp.name}: ${m.text()}`);
       });
       page.on('pageerror', (e) => problems.push(`${vp.name}: ${e.message}`));
-      await page.goto(url);
-      await page.waitForSelector('.map-world svg g');
-      await page.waitForTimeout(300);
-      await page.screenshot({ path: join(out, `m1-map-${vp.name}-1-start.png`) });
-
+      const shot = (name) => page.screenshot({ path: join(out, `m2-${vp.name}-${name}.png`) });
+      const has = async (kind) => (await page.locator(`[data-popover=${kind}]`).count()) > 0;
       const tap = async (x, y) => {
         if (vp.touch) await page.touchscreen.tap(x, y);
         else await page.mouse.click(x, y);
         await page.waitForTimeout(150);
       };
+      const press = async (selector) => {
+        await page.locator(selector).first().click();
+        await page.waitForTimeout(150);
+      };
+
+      // Join: the drawer opens by itself. Phones step through the wizard; desktop shows it all.
+      await page.goto(vite.url);
+      await page.waitForSelector('.drawer .offer');
+      await page.waitForTimeout(400);
+      await shot('join-1-characters');
+      await press('.offer >> nth=0');
+      if (vp.touch) await shot('join-2-role');
+      await press('.role[data-role=scout]');
+      await shot(vp.touch ? 'join-3-confirm' : 'join-2-chosen');
+      await press('.join-go');
+      await page.waitForTimeout(700);
+      if (await page.locator('.drawer').count())
+        problems.push(`${vp.name}: drawer still open after joining`);
+      if (fake.scenario.you !== 'c-misa')
+        problems.push(`${vp.name}: join did not reach the server`);
+      await shot('two-players-riding');
+
       const svg = page.locator('svg.map');
       const nums = async (name) => (await svg.getAttribute(name)).split(' ').map(Number);
       /** Screen position of a hex centre, plus an offset in hex sizes on the plane. */
@@ -107,87 +256,82 @@ async function run() {
         return [vx + x * scale, vy + y * scale];
       };
       const creature = async () => nums('data-creature');
-      const shot = (name) => page.screenshot({ path: join(out, `m1-map-${vp.name}-${name}.png`) });
       const cx = vp.width / 2;
       const cy = vp.height / 2;
-      const has = async (kind) => (await page.locator(`[data-popover=${kind}]`).count()) > 0;
-      // The character starts riding: a tap anywhere on the creature selects it and opens the bubble.
+
+      // The hub bubble lists both riders; tapping the other rider opens their card.
       const [q0, r0] = await creature();
       const tapCreature = async () => tap(...(await hexOnScreen(q0, r0)));
       await tapCreature();
       if (!(await has('bubble'))) problems.push(`${vp.name}: no bubble while riding`);
-      await shot('2-bubble-riding');
+      if ((await page.locator('[data-popover=bubble] [data-character]').count()) !== 2)
+        problems.push(`${vp.name}: the bubble does not list both riders`);
+      await shot('bubble');
       // Focus moves into the bubble when it opens, and back to the map when it closes.
       const focused = () =>
         page.evaluate(() => {
           const a = document.activeElement;
           if (a?.closest('.popover')) return 'popover';
-          return a?.matches('svg.map')
-            ? 'map'
-            : `${a?.tagName ?? 'none'}.${a?.getAttribute('class') ?? ''}`;
+          return a?.matches('svg.map') ? 'map' : `${a?.tagName ?? 'none'}`;
         });
-      if ((await focused()) !== 'popover')
-        problems.push(`${vp.name}: focus not in the bubble (${await focused()})`);
-      await tapCreature();
-      if (await has('bubble')) problems.push(`${vp.name}: bubble did not close`);
+      if ((await focused()) !== 'popover') problems.push(`${vp.name}: focus not in the bubble`);
+      await press('[data-popover=bubble] [data-character=c-pip]');
+      if (!(await has('character'))) problems.push(`${vp.name}: no card for the other rider`);
+      await shot('other-player-card');
+      await page.keyboard.press('Escape');
+      await page.waitForTimeout(100);
+      if (await has('character')) problems.push(`${vp.name}: Escape did not close the card`);
       if ((await focused()) !== 'map') problems.push(`${vp.name}: focus not back on the map`);
-      await tapCreature();
+      // Ola stands beside the creature: a tap on her figure opens her card.
+      await tap(...(await hexOnScreen(q0, r0 + 2, -0.05, 0.1)));
+      if (!(await page.locator('[data-popover=character][data-character=c-ola]').count()))
+        problems.push(`${vp.name}: tapping another player's figure did not open their card`);
+      await page.keyboard.press('Escape');
 
-      // Step off: try the hexes around the footprint, south side first.
+      // Step off: try the hexes around the footprint, south side first (Ola stands on one).
+      await tapCreature();
       const ring = [
-        [0, 2],
         [-1, 2],
         [1, 1],
         [-2, 2],
         [2, 0],
         [-2, 1],
         [2, -1],
-        [1, -2],
       ];
       let off = null;
       for (const [dq, dr] of ring) {
         await tap(...(await hexOnScreen(q0 + dq, r0 + dr)));
-        if (await page.locator('[data-popover=confirm]').count()) {
+        if (await has('confirm')) {
           off = [q0 + dq, r0 + dr];
           break;
         }
         await tapCreature();
       }
       if (!off) problems.push(`${vp.name}: no hex to step off to`);
-      await shot('3-plan-step-off');
-      if (off) await page.locator('[aria-label=Confirm]').click();
-      await page.waitForTimeout(200);
-      await shot('4-stepped-off');
+      await shot('plan-step-off');
+      if (off) await press('[aria-label=Confirm]');
+      await page.waitForTimeout(300);
+      const mine = fake.scenario.state.characters.find((c) => c.id === 'c-misa');
+      if (off && mine?.at.kind !== 'hex')
+        problems.push(`${vp.name}: the move did not reach the server`);
+      await shot('stepped-off');
 
-      // Board again: the character stays selected after a move; tap any footprint hex.
-      if (off) {
-        await tap(...(await hexOnScreen(q0, r0 - 1)));
-        if (!(await page.locator('[data-popover=confirm]').count()))
-          problems.push(`${vp.name}: could not plan boarding`);
-        await shot('5-plan-board');
-        await page.locator('[aria-label=Confirm]').click();
-        await page.waitForTimeout(200);
-      }
-      await page.locator('[aria-label="Next day"]').click();
+      // Next day (dev tools and admin): the server ticks and the map follows the creature.
+      await press('[aria-label="Next day"]');
       await page.waitForTimeout(700);
-      await shot('6-next-day-riding');
+      if (fake.scenario.state.day !== 2)
+        problems.push(`${vp.name}: next day did not reach the server`);
+      await shot('next-day');
 
-      // The hub: the bubble's creature entry opens the creature card.
+      // The hub entry opens the creature card; right-click (desktop) and Escape close.
       const [q1, r1] = await creature();
       await tap(...(await hexOnScreen(q1, r1)));
-      await page.locator('[data-popover=bubble] [aria-label=Behemoth]').click();
-      await page.waitForTimeout(150);
+      await press('[data-popover=bubble] [aria-label=Behemoth]');
       if (!(await has('creature'))) problems.push(`${vp.name}: no creature card`);
-      await shot('7-creature');
-      // Inspect a hex a few steps away.
-      await tap(...(await hexOnScreen(q1 - 3, r1 + 1)));
-      if (!(await page.locator('[data-popover=inspect]').count()))
-        problems.push(`${vp.name}: no inspect popover`);
-      await shot('8-inspect');
-      // Escape closes it; on desktop a right-click closes it too, with the browser menu suppressed.
       await page.keyboard.press('Escape');
       await page.waitForTimeout(100);
-      if (await has('inspect')) problems.push(`${vp.name}: Escape did not close the popover`);
+      if (await has('creature'))
+        problems.push(`${vp.name}: Escape did not close the creature card`);
       if (!vp.touch) {
         const spot = await hexOnScreen(q1 - 3, r1 + 1);
         await tap(...spot);
@@ -209,29 +353,25 @@ async function run() {
           problems.push(`${vp.name}: right-click did not close the popover`);
       }
 
-      // The grace day: a new game, step off behind the creature, walk further back, and let days pass
-      // until the character's hex leaves the window (warning mark on the figure), then screenshot.
-      await page.locator('[aria-label="New game"]').click();
-      await page.waitForTimeout(300);
-      const [gq, gr] = await creature();
-      await tap(...(await hexOnScreen(gq, gr)));
-      for (const [dq, dr] of [
-        [0, 2],
-        [0, 3],
-      ]) {
-        await tap(...(await hexOnScreen(gq + dq, gr + dr)));
-        if (await has('confirm')) await page.locator('[aria-label=Confirm]').click();
-        await page.waitForTimeout(150);
-      }
-      await page.keyboard.press('Escape');
-      let warned = false;
-      for (let d = 0; d < 6 && !warned; d += 1) {
-        await page.locator('[aria-label="Next day"]').click();
-        await page.waitForTimeout(700);
-        warned = (await page.locator('[data-mark=grace-warning]').count()) > 0;
-      }
-      if (!warned) problems.push(`${vp.name}: never saw the grace-day warning`);
-      await shot('9-grace-day');
+      // Lost and replace: the drawer opens by itself; replacing starts a new character on the creature.
+      fake.reset(lostScenario());
+      await page.reload();
+      await page.waitForSelector('.drawer .offer');
+      await page.waitForTimeout(400);
+      await shot('lost-replace');
+      await press('.offer >> nth=1');
+      await press('.role[data-role=keeper]');
+      await press('.join-go');
+      await page.waitForTimeout(500);
+      const replaced = fake.scenario.state.characters.find((c) => c.id === 'c-misa');
+      if (replaced?.status !== 'active' || replaced.at.kind !== 'creature')
+        problems.push(`${vp.name}: replace did not start a new character on the creature`);
+
+      // Back to the joined scenario for the drag and zoom measurements.
+      fake.reset(joinedScenario());
+      await page.reload();
+      await page.waitForSelector('.map-world svg g');
+      await page.waitForTimeout(400);
 
       // Frame times during a drag, CPU slowed 4x.
       const cdp = await context.newCDPSession(page);
@@ -278,7 +418,10 @@ async function run() {
               cloaks.sort((a, b) => b.w * b.h - a.w * a.h);
               return { width: world.getAttribute('width'), points: [box(foot), cloaks[0]] };
             },
-            { trodden: SPRING.ramps.trodden.base, cloak: SPRING.accents.rose.base },
+            {
+              trodden: SPRING.ramps.trodden.base,
+              cloak: SPRING.accents[accentForName('Aino Vasara')].base,
+            },
           );
         await page.mouse.move(cx, cy);
         // A zoom out by more than a half power of two always crosses an ink-zoom step.
@@ -320,6 +463,7 @@ async function run() {
   } finally {
     await browser.close();
     server.close();
+    vite.stop();
   }
   for (const line of report) console.log(line);
   console.log(`Screenshots in ${out}`);
