@@ -129,7 +129,18 @@ describe('the player view', () => {
     const onServer = move(state, 'b', plan.steps[0]!.place);
     const onClient = move(view, 'b', plan.steps[0]!.place);
     expect(onServer.ok && onClient.ok).toBe(true);
-    if (onServer.ok && onClient.ok) expect(toPlayerView(onServer.state)).toEqual(onClient.state);
+    // The same movement; only the server can reveal what the hex held.
+    if (onServer.ok && onClient.ok) {
+      const server = toPlayerView(onServer.state);
+      const client = onClient.state;
+      if (!onServer.trapped) expect(server.characters).toEqual(client.characters);
+      expect({ ...server, features: {}, glints: {}, characters: [] }).toEqual({
+        ...client,
+        features: {},
+        glints: {},
+        characters: [],
+      });
+    }
   });
 });
 

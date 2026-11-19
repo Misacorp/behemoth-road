@@ -19,6 +19,18 @@ export {
   type VeerWeights,
 } from './config.ts';
 export {
+  FEATURE_TYPES,
+  ITEMS,
+  MATERIALS,
+  RECIPES,
+  type FeatureType,
+  type Item,
+  type ItemMovement,
+  type Material,
+  type NodeType,
+  type Recipe,
+  type SiteType,
+  type TrapType,
   BY_NAMES,
   CONTENT_VERSION,
   KNOWN_CONTENT_VERSIONS,
@@ -53,6 +65,8 @@ export type {
   Creature,
   GameState,
   GameStateView,
+  FeatureState,
+  Inventory,
   Place,
   TileKnowledge,
   Visibility,
@@ -75,6 +89,7 @@ export {
   isPlaceReachable,
   legalMoves,
   move,
+  stepOnly,
   type ActionResult,
   type Entry,
   type MoveRefusal,
@@ -103,7 +118,7 @@ export {
   toPlace,
 } from './places.ts';
 export { nextDay } from './tick.ts';
-export { createGame, type CreateGameOptions } from './game.ts';
+export { createGame, EMPTY_INVENTORY, type CreateGameOptions } from './game.ts';
 export {
   addCharacter,
   characterOffers,
@@ -118,6 +133,27 @@ export {
 export {
   isKnownContentVersion,
   loadGame,
+  migrateGame,
   toPlayerView,
   UnknownContentVersionError,
 } from './view.ts';
+export {
+  enterHex,
+  featureType,
+  generateFeature,
+  hiddenFeatureKeys,
+  keyToHex,
+  revealedFeatureAt,
+  roleHas,
+  type EnterResult,
+  type GameEvent,
+} from './features.ts';
+export {
+  act,
+  actionsHere,
+  checkAction,
+  type Action,
+  type ActCheck,
+  type ActRefusal,
+  type ActResult,
+} from './act.ts';

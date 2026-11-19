@@ -49,7 +49,25 @@ export interface Character {
   readonly joinedDay: number;
   readonly at: Place;
   readonly actionsLeft: number;
+  /** Crafts made today (reset by the tick). */
+  readonly craftsToday: number;
   readonly status: CharacterStatus;
+}
+
+/**
+ * A feature on a hex (content `FEATURE_TYPES`). `left` is what remains: a node's
+ * charges, 1 for an unworked site (0 once found), 1 for a trap.
+ */
+export interface FeatureState {
+  readonly type: string;
+  readonly revealed: boolean;
+  readonly left: number;
+}
+
+/** The team's shared materials and items, by content id. */
+export interface Inventory {
+  readonly materials: Readonly<Record<string, number>>;
+  readonly items: Readonly<Record<string, number>>;
 }
 
 /**
@@ -74,6 +92,14 @@ export interface GameStateView {
   /** Knowledge of hexes that have been in view, by `hexKey`. Absent means hidden. */
   readonly tiles: Readonly<Record<string, TileKnowledge>>;
   readonly characters: readonly Character[];
+  /**
+   * Features by `hexKey`. On the server this holds hidden ones too; a player
+   * view holds only revealed ones.
+   */
+  readonly features: Readonly<Record<string, FeatureState>>;
+  /** Hexes a scout has sensed something on, by `hexKey` (what it is stays hidden). */
+  readonly glints: Readonly<Record<string, true>>;
+  readonly inventory: Inventory;
 }
 
 /** The whole game, held only by the server: the view plus the seed that generates the map. */
