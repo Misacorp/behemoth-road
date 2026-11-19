@@ -3,10 +3,21 @@
  * (moves, the tick, rolling, adding and replacing characters, the player view) runs in the core; this
  * file only names what the server uses, so the rest of the Worker imports the core from one place.
  */
-import { loadGame, moveAlong, ROLES, type GameState, type Place } from '@behemoth-road/core';
+import {
+  act,
+  moveAlong,
+  UNLOCKS,
+  ROLES,
+  type Action,
+  type GameEvent,
+  type GameState,
+  type Place,
+} from '@behemoth-road/core';
 
 export {
   addCharacter,
+  CONTENT_VERSION,
+  OutdatedGameError,
   characterOf,
   characterOffers,
   createGame,
@@ -16,7 +27,9 @@ export {
   nextDay,
   replaceCharacter,
   toPlayerView,
+  type Action,
   type CharacterOffer,
+  type GameEvent,
   type CharacterResult,
   type GameState,
   type GameStateView,
@@ -27,31 +40,22 @@ export {
 /** The role ids from content, for the request schemas. */
 export const ROLE_IDS: readonly string[] = ROLES.map((r) => r.id);
 
-// --- Milestone 3 ---
-// TEMPORARY: the core session (`m3/core`) is adding actions, features, events and the v2 -> v3 migration.
-// Until it lands, the functions marked STUB stand in with the narrowest behaviour `docs/design/m3-chain.md`
-// needs. Swap them for the core's exports when it lands; nothing else in the Worker should change.
+// --- Milestone 3: actions, events and the content migration ---
 
-/** STUB until the core's recipe content lands. */
-export const RECIPE_IDS: readonly string[] = ['grappling-hook', 'lantern', 'climbing-spikes'];
+/** The unlock ids from content, for the request schema. */
+export const UNLOCK_IDS: readonly string[] = UNLOCKS.map((u) => u.id);
 
-/** Something that happened during a move or an action, for a short moment on the map. */
-export interface GameEvent {
-  readonly kind: string;
-  readonly hex?: { readonly q: number; readonly r: number };
-  readonly [key: string]: unknown;
-}
-
-export type GameAction =
-  | { readonly kind: 'gather' }
-  | { readonly kind: 'craft'; readonly recipe: string }
-  | { readonly kind: 'work-site' };
-
+/** A rule's result as the Worker answers it: the new state, what happened, and whether a trap stopped a walk. */
 export type EventResult =
-  | { readonly ok: true; readonly state: GameState; readonly events: readonly GameEvent[] }
+  | {
+      readonly ok: true;
+      readonly state: GameState;
+      readonly events: readonly GameEvent[];
+      readonly stopped: { readonly step: number; readonly reason: 'trap' } | null;
+    }
   | { readonly ok: false; readonly reason: string };
 
-/** The core's move, with the events of the walk (STUB: none until the core reports them). */
+/** The core's walk, with the events on the way and where a trap stopped it. */
 export function moveWithEvents(
   state: GameState,
   characterId: string,
@@ -59,22 +63,12 @@ export function moveWithEvents(
 ): EventResult {
   const result = moveAlong(state, characterId, path);
   if (!result.ok) return { ok: false, reason: result.reason };
-  const events = (result as { events?: readonly GameEvent[] }).events ?? [];
-  return { ok: true, state: result.state, events };
+  return { ok: true, state: result.state, events: result.events, stopped: result.stopped };
 }
 
-/** STUB: every action is refused until the core's rules land. */
-export function act(state: GameState, characterId: string, action: GameAction): EventResult {
-  void state;
-  void characterId;
-  void action;
-  return { ok: false, reason: 'not-available' };
-}
-
-/** STUB: the content version this build writes. */
-export const CONTENT_VERSION = 2;
-
-/** STUB: brings a stored game up to this build's content (the core's `migrateGame`). */
-export function migrateGame(stored: unknown): GameState {
-  return loadGame(stored);
+/** The core's action at the character's place (actions never stop a walk). */
+export function actWithEvents(state: GameState, characterId: string, action: Action): EventResult {
+  const result = act(state, characterId, action);
+  if (!result.ok) return { ok: false, reason: result.reason };
+  return { ok: true, state: result.state, events: result.events, stopped: null };
 }

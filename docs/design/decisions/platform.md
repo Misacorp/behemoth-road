@@ -6,6 +6,18 @@ Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 ## 2026-11-20: The core state holds exploration, packs, stores and unlocks; no glints, no migration
 
+ID: `2026-11-20-the-core-state-holds-exploration-packs-2` · Status: current
+
+## 2026-11-20: The Worker replaces an outdated game on start and refuses an unreadable one with 503
+
+ID: `2026-11-20-the-worker-replaces-an-outdated-game` · Status: current · Supersedes: `2026-11-20-act-and-move-answer-the-view`
+
+**Decision.** `POST /api/game/act` takes `{ version, action }` with exactly one of `survey { hex }`, `gather`, `work-site` or `build { unlock }` (unlock ids from content). Act and move answer the player view plus `events` and `stopped` through one path in the Durable Object (version check, newest character, rule, write, one transaction). When the object starts, a stored game the core refuses as outdated (`OutdatedGameError`) is replaced by a new game for that server in one transaction: players stay and rejoin with new offers, and the game version keeps counting up so no client's `since` matches the new game. A stored game that is corrupt or from newer content is left untouched: game requests answer `503 game_unavailable`, sign-in still works, and the start and the alarm never throw, so the object never crash-loops. Tests check every response for the seed and for features the stored game still hides, and the fixture capture now removes (or, with `--check`, reports) fixture files it no longer writes.
+
+**Reasoning.** Misa chose wiping over migration before a stable release ("Before a stable release, older games are wiped, not migrated"). Leaving an unreadable game alone means a rollback never wipes a newer game, and a 503 says the game is temporarily out rather than failing in a loop.
+
+## 2026-11-20: Features live in the state per hex; the view carries revealed ones and team glints; version-2 games migrate
+
 ID: `2026-11-20-the-core-state-holds-exploration-packs` · Status: current · Supersedes: `2026-11-20-features-live-in-the-state-per`
 
 **Decision.** Tiles carry `explored`. Characters carry a `pack`. The team has `stores`, `unlocks` (finished) and one `project` (`{ unlock, work }` or null). Features stay per hex, generated on the server as hexes come into view; the player view carries only revealed ones. Glints and the item inventory are gone from the state. Content version 4: `loadGame` throws `OutdatedGameError` for an older version, so the server starts a new game; `migrateGame` is removed. A test checks this against a game stored by the version-2 code.
@@ -423,3 +435,11 @@ ID: `2026-11-20-features-live-in-the-state-per` · Status: superseded by `2026-1
 **Decision.** The state gains `features` (by hex key: type, revealed, what is `left`), `glints` (hex keys a scout has sensed), `inventory` (team materials and items) and `craftsToday` on each character. Features are generated on the server for each hex when it first comes into view, using known terrain, and pruned with their tiles. `toPlayerView` keeps only revealed features, plus glints and the inventory, which are public. Content version 3: `loadGame` migrates a version-2 game through `migrateGame`. New tuning values take their defaults, characters keep everything and get `craftsToday` 0, the team gets an empty inventory, and hexes already in view get their hidden features as if they had just come into view. A fixture captured from the version-2 code proves this.
 
 **Reasoning.** Hidden features are the point of fog and scouting, so they stay on the server like the seed. Generating per hex on first sight keeps the state small and lets the live production game continue on its existing map.
+
+## 2026-11-20: Act and move answer the view with what happened; stored games are upgraded once on load
+
+ID: `2026-11-20-act-and-move-answer-the-view` · Status: superseded by `2026-11-20-the-worker-replaces-an-outdated-game`
+
+**Decision.** `POST /api/game/act` (`{ version, action }`, one of three strict shapes, recipe ids from content) and `POST /api/game/move` answer the new player view plus `events` (the core's list, passed through) and `stopped` (where a trap ended a walk, or `null`); refusals stay `409 { error }` with the core's reason. Both run through one path in the Durable Object: the version check, the player's newest character, the rule, the write, in one transaction. When the object starts, a game stored with older content is upgraded through the core's `loadGame` (which runs `migrateGame`) and written back once, bumping the version so clients reload. Every test response is checked for the seed and for any feature the stored game still hides.
+
+**Reasoning.** One answer with the view and the moments saves a second request and lets the web show reveals, finds and traps exactly once. Upgrading at start, rather than on every read, keeps reads cheap and makes the upgrade a single recorded write; the live production game keeps its characters and map.

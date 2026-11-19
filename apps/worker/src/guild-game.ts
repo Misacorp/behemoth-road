@@ -15,9 +15,8 @@ import {
   characterOffers,
   createGame,
   loadGame,
-  act,
-  CONTENT_VERSION,
-  migrateGame,
+  actWithEvents,
+  OutdatedGameError,
   moveWithEvents,
   type EventResult,
   type GameEvent,
@@ -97,6 +96,24 @@ type PlayerRow = {
   display_name: string;
 };
 
+/** A stored game this build cannot read: corrupt JSON, or content it does not have (a newer build's). */
+export class GameUnreadable extends Error {
+  constructor() {
+    super('stored game unreadable');
+    this.name = 'GameUnreadable';
+  }
+}
+
+function readState(text: string): GameState {
+  try {
+    return loadGame(JSON.parse(text));
+  } catch {
+    throw new GameUnreadable();
+  }
+}
+
+type EventStop = Extract<EventResult, { ok: true }>['stopped'];
+
 const { tick, sessions, rateLimits, adminCacheMs, maxCatchUpTicks } = SERVER_CONFIG;
 
 export class GuildGame {
@@ -117,24 +134,31 @@ export class GuildGame {
   /** Brings the schema up to date. Call inside `blockConcurrencyWhile`. */
   migrate(): void {
     applyMigrations(this.storage, this.sql);
-    this.upgradeStoredGame();
+    this.replaceOutdatedGame();
   }
 
   /**
-   * Brings a game stored with older content up to this build's (the core's `migrateGame`, for example
-   * content version 2 to 3), once, in one transaction, and bumps the version so every client reloads.
-   * A newer or unknown version is left for `loadGame` to refuse.
+   * Before a stable release there is no migration (Misa: everything can be wiped): a game stored with
+   * older content is replaced by a new game for this server, in one transaction. The players stay and
+   * rejoin with new offers; the version keeps counting up, so no client's `since` matches the new game.
+   * A newer or unreadable stored game is left alone (a rollback must not wipe a newer game); requests then
+   * answer 503 until a build that can read it is deployed.
    */
-  private upgradeStoredGame(): void {
+  private replaceOutdatedGame(): void {
     this.storage.transactionSync(() => {
       const row = this.sql
-        .exec<{ state: string }>('SELECT state FROM game WHERE id = 1')
+        .exec<{ state: string; version: number }>('SELECT state, version FROM game WHERE id = 1')
         .toArray()[0];
       if (row === undefined) return;
-      const stored: unknown = JSON.parse(row.state);
-      const version = (stored as { contentVersion?: unknown } | null)?.contentVersion;
-      if (typeof version !== 'number' || version >= CONTENT_VERSION) return;
-      this.writeGame(migrateGame(stored));
+      try {
+        loadGame(JSON.parse(row.state));
+        return;
+      } catch (err) {
+        // Only an older content version is replaced; anything else is left for `readGame` to refuse.
+        if (!(err instanceof OutdatedGameError)) return;
+      }
+      const state = createGame(this.options.newSeed(), { artSeed: this.options.newArtSeed() });
+      this.writeGame(state);
     });
   }
 
@@ -158,7 +182,7 @@ export class GuildGame {
         t - sessions.idleMs,
       );
       const before = this.player(user.id);
-      const game = this.readGame();
+      const game = this.readGameOrNull();
       this.sql.exec(
         `INSERT INTO players (user_id, display_name, created_at, last_seen_at) VALUES (?, ?, ?, ?)
          ON CONFLICT(user_id) DO UPDATE SET display_name = excluded.display_name, last_seen_at = excluded.last_seen_at`,
@@ -193,7 +217,12 @@ export class GuildGame {
         sessions.maxPerUser,
       );
     });
-    await this.catchUpAndArm();
+    try {
+      await this.catchUpAndArm();
+    } catch (err) {
+      // Sign-in still works; game requests answer 503 until the game can be read.
+      if (!(err instanceof GameUnreadable)) throw err;
+    }
     return secret;
   }
 
@@ -255,6 +284,7 @@ export class GuildGame {
     );
   }
 
+  /** The stored game, or null before the first sign-in. Throws `GameUnreadable` for a stored game this build cannot read. */
   private readGame(): GameRow | null {
     const row = this.sql
       .exec<{ state: string; version: number; next_tick_at: number }>(
@@ -264,10 +294,20 @@ export class GuildGame {
     if (row === undefined) return null;
     return {
       // Refuses a state made with content this build does not have, rather than misreading it.
-      state: loadGame(JSON.parse(row.state)),
+      state: readState(row.state),
       version: row.version,
       nextTickAt: row.next_tick_at,
     };
+  }
+
+  /** The stored game, or null when there is none or it cannot be read (for paths that must not fail). */
+  private readGameOrNull(): GameRow | null {
+    try {
+      return this.readGame();
+    } catch (err) {
+      if (err instanceof GameUnreadable) return null;
+      throw err;
+    }
   }
 
   /** Writes a changed state and bumps the version. Call inside a transaction. */
@@ -323,13 +363,29 @@ export class GuildGame {
 
   /** The Durable Object's alarm: the scheduled day tick. Idempotent: an early or repeated alarm only re-arms. */
   async alarm(): Promise<void> {
-    await this.catchUpAndArm();
+    try {
+      await this.catchUpAndArm();
+    } catch (err) {
+      // An unreadable game: no tick and no new alarm (a throwing alarm is retried); the next request or
+      // sign-in after a fixing deploy arms it again.
+      if (!(err instanceof GameUnreadable)) throw err;
+      console.error('game unreadable; the tick is paused');
+    }
   }
 
   // --- Requests ---
 
   /** Handles an API request the Worker forwarded after checking the token's MAC. */
   async handle(request: Request): Promise<Response> {
+    try {
+      return await this.handleRequest(request);
+    } catch (err) {
+      if (err instanceof GameUnreadable) return errorResponse('game_unavailable', 503);
+      throw err;
+    }
+  }
+
+  private async handleRequest(request: Request): Promise<Response> {
     const url = new URL(request.url);
     const { pathname } = url;
     // Checked before the session too, so the dev routes do not exist at all with the dev tools off.
@@ -411,12 +467,15 @@ export class GuildGame {
   private async act(user: SessionUser, request: Request): Promise<Response> {
     const body = await parseBody(request, ActBodySchema);
     if (body === undefined) return errorResponse('invalid_body', 400);
-    return this.withOwnCharacter(user, body.version, (state, id) => act(state, id, body.action));
+    return this.withOwnCharacter(user, body.version, (state, id) =>
+      actWithEvents(state, id, body.action),
+    );
   }
 
   /**
    * Runs a rule for the player's newest character (a lost one is refused by the core) against the version
-   * the client saw, in one transaction. Answers the new view with what happened (`events`), or
+   * the client saw, in one transaction. Answers the new view with what happened (`events`, and `stopped`
+   * when a trap ended a walk), or
    * `409 { error }` for a stale version or a refusal.
    */
   private async withOwnCharacter(
@@ -424,7 +483,10 @@ export class GuildGame {
     version: number,
     rule: (state: GameState, characterId: string) => EventResult,
   ): Promise<Response> {
-    let events: readonly GameEvent[] = [];
+    let outcome: { events: readonly GameEvent[]; stopped: EventStop } = {
+      events: [],
+      stopped: null,
+    };
     const refusal = this.storage.transactionSync((): string | null => {
       const game = this.readGame();
       if (game === null) return 'no_game';
@@ -434,13 +496,13 @@ export class GuildGame {
       const result = rule(game.state, character.id);
       if (!result.ok) return result.reason;
       this.writeGame(result.state);
-      events = result.events;
+      outcome = { events: result.events, stopped: result.stopped };
       return null;
     });
     if (refusal !== null) return errorResponse(refusal, 409);
     const game = this.readGame();
     if (game === null) return errorResponse('no_game', 409);
-    return json({ ...(await this.view(user, game)), events });
+    return json({ ...(await this.view(user, game)), ...outcome });
   }
 
   /** Staging only (the route is a 404 otherwise): a server admin runs the tick now. */
