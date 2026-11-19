@@ -4,6 +4,22 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: Milestone 4 art: appetite, cues, lying down and fires are drawn by the art kit from the core's signs
+
+ID: `2026-11-20-milestone-4-art-appetite-cues-lying` · Status: current
+
+**Decision.** The creature drawing takes a mood (`CreatureArt.appetite`, `pose`, `cues`; `drawCreature(..., stores, mood)`), and the scene draws it:
+
+- **Underfed:** head and tail droop, the body thins, a grey wash dulls hide and moss, the blush goes, and ribs show on the near flank, one per level.
+- **Overfed:** the body grows wider and sags, a sheen sits low on the flank, the eyes get heavy lids, and doze bubbles rise from the crown, one per level.
+- **Faint** (what non-keepers see): the same sign at half strength in lighter ink, so the count of ribs or bubbles still matches the level the core gives them.
+- **Cues** take the core's `{ hex, reaction }` (the scene turns hexes into offsets from the centre). Toward: the head turns to the first such fire, ears prick, and a dashed look-line with two alert strokes points at each such fire. Away: three coral shiver arcs off the rim on the fire's side, ears flat, head turned away. Unmoved: still sage rings on the ground on the fire's side, head straight.
+- **Lying** (`pose: 'lying'`): the body comes down to the ground, legs tucked with two front paws showing, head resting low, tail flat; riders sit lower (`riderAnchor` takes the same mood).
+- **Fires:** `ArtCell.fire` draws a small campfire (stones, sticks, flame, glow, smoke with `data-fire` parts to animate) on its hex, in full even under the veil, clearing the terrain props like a feature does.
+- **Keys:** feature `berries` (bushes; picked bare when depleted), material `forage`, actions `light-fire`, `feed`, `linger` on a round tile with a dashed inner ring, moments `fire`, `feed`, `linger`, and `drawStayMark` for the step hint when the creature stays put (two paws side by side in a dashed ring; the paw-print hints live in the web app).
+
+**Reasoning.** Counting the level in ribs and bubbles keeps the sign readable without text or numbers, and the two kinds use different shapes and colours so they never look alike. The look-line, shiver arcs and calm rings are three unlike marks, so a keeper cannot mistake one reaction for another, and each sits on the fire's side so several cues can be told apart.
+
 ## 2026-11-20: Lingering is the keeper's action and never runs two days in a row
 
 ID: `2026-11-20-lingering-is-the-keeper-s-action` · Status: current

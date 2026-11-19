@@ -9,10 +9,10 @@ import { renderScene } from './scene.ts';
 import { el, toSvgString, type SvgNode } from './svg.ts';
 import { assignLooks, drawCharacter } from './character.ts';
 import { drawIcon, ITEM_MOTIFS, MATERIAL_MOTIFS, ROLE_IDS, type EmblemFrame } from './icons.ts';
-import { drawMoment, drawViaMark, MOMENT_KINDS } from './marks.ts';
+import { drawMoment, drawStayMark, drawViaMark, MOMENT_KINDS } from './marks.ts';
 import { drawPackIcon, drawStoresIcon, drawUnlockSeal, drawWorkBar } from './team-marks.ts';
 import { ART_TUNING } from './config.ts';
-import { drawCreature, GENTLE_AMBLER } from './creature.ts';
+import { drawCreature, GENTLE_AMBLER, type CreatureMood } from './creature.ts';
 import type { PropDraw } from './props.ts';
 import { TERRAIN_LOOKS } from './terrain.ts';
 import type { ArtCell } from './tile.ts';
@@ -224,7 +224,8 @@ function glintSheet(): string {
 
 /** The moments as their finished frames, large, and the `via` marks at three sizes. */
 function marksSheet(): string {
-  const nodes: SvgNode[] = MOMENT_KINDS.map((kind, i) =>
+  // The Milestone 3 moments; the care moments are on their own sheet.
+  const nodes: SvgNode[] = MOMENT_KINDS.slice(0, 4).map((kind, i) =>
     placed(drawMoment(kind, PALETTE, 130), 24 + i * 165, 24),
   );
   [24, 36, 48].forEach((size, i) =>
@@ -407,6 +408,210 @@ function ridersSheet(): string {
   );
 }
 
+interface CreatureSpot {
+  readonly heading: { q: number; r: number };
+  readonly mood: CreatureMood;
+  /** Fires on hexes, as offsets from the creature's centre. */
+  readonly fires?: readonly { q: number; r: number }[];
+}
+
+/**
+ * Several creatures in one scene, `perRow` to a row, each drawn through a prop override on its footprint's
+ * centre (as the headings sheet does), with fires on plain ground around them.
+ */
+function creatureSheet(
+  spots: readonly CreatureSpot[],
+  perRow: number,
+  hexSize: number,
+  seed: string,
+  gap = 4,
+  effects: 'full' | 'lite' = 'full',
+): string {
+  const centres = spots.map((_, i) => {
+    const col = i % perRow;
+    const row = Math.floor(i / perRow);
+    return { q: gap * col, r: -Math.floor((gap * col) / 2) + gap * row };
+  });
+  const overrides: Record<string, PropDraw> = {};
+  const cells: ArtCell[] = [];
+  const seen = new Set<string>();
+  const add = (cell: ArtCell): void => {
+    const key = `${cell.q},${cell.r}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    cells.push(cell);
+  };
+  spots.forEach((spot, i) => {
+    const c = centres[i]!;
+    const kind = `creature-${i}`;
+    overrides[kind] = (ctx) =>
+      drawCreature(
+        ctx.palette,
+        GENTLE_AMBLER,
+        ctx.origin,
+        ctx.k * ART_TUNING.hexSize,
+        ctx.squash,
+        ctx.ink,
+        spot.heading,
+        0,
+        spot.mood,
+      );
+    for (const f of spot.fires ?? [])
+      add({ q: c.q + f.q, r: c.r + f.r, terrain: 'plains', props: [], fire: true });
+    for (const cell of footprint(c.q, c.r))
+      add(cell.q === c.q && cell.r === c.r ? { ...cell, props: [{ kind, dx: 0, dy: 0 }] } : cell);
+  });
+  return toSvgString(
+    renderScene({
+      cells,
+      projection: isometric(hexSize),
+      palette: PALETTE,
+      seed,
+      overrides,
+      effects,
+      occupied: centres.flatMap((c) => footprint(c.q, c.r)),
+    }),
+  );
+}
+
+const EAST = { q: 1, r: 0 };
+const SOUTH = { q: 0, r: 1 };
+
+/** Calm, then the appetite at levels 1 to 3, then the faint version others see (levels 2 and 3). */
+function appetiteSheet(kind: 'underfed' | 'overfed'): string {
+  const moods: CreatureMood[] = [
+    {},
+    { appetite: { kind, level: 1 } },
+    { appetite: { kind, level: 2 } },
+    { appetite: { kind, level: 3 } },
+    { appetite: { kind, level: 2, faint: true } },
+    { appetite: { kind, level: 3, faint: true } },
+  ];
+  return creatureSheet(
+    moods.map((mood) => ({ heading: EAST, mood })),
+    3,
+    44,
+    `appetite-${kind}`,
+  );
+}
+
+/** A fire two hexes off and the keeper's cue for it: drawn to it, shying from it, unmoved; then two at once. */
+function cuesSheet(effects: 'full' | 'lite' = 'full'): string {
+  const ahead = { q: 2, r: 1 };
+  const side = { q: -1, r: 3 };
+  return creatureSheet(
+    [
+      { heading: EAST, fires: [ahead], mood: { cues: [{ reaction: 'toward', offset: ahead }] } },
+      { heading: EAST, fires: [ahead], mood: { cues: [{ reaction: 'away', offset: ahead }] } },
+      { heading: EAST, fires: [ahead], mood: { cues: [{ reaction: 'unmoved', offset: ahead }] } },
+      {
+        heading: SOUTH,
+        fires: [ahead, side],
+        mood: {
+          cues: [
+            { reaction: 'toward', offset: side },
+            { reaction: 'away', offset: ahead },
+          ],
+        },
+      },
+    ],
+    2,
+    50,
+    `cues-${effects}`,
+    5,
+    effects,
+  );
+}
+
+/** Lying down while it lingers, three ways round, and lying down overfed. */
+function lingerSheet(): string {
+  return creatureSheet(
+    [
+      { heading: SOUTH, mood: { pose: 'lying' } },
+      { heading: EAST, mood: { pose: 'lying' } },
+      { heading: { q: -1, r: 0 }, mood: { pose: 'lying' } },
+      { heading: SOUTH, mood: {} },
+      { heading: EAST, mood: {} },
+      { heading: EAST, mood: { pose: 'lying', appetite: { kind: 'overfed', level: 2 } } },
+    ],
+    3,
+    44,
+    'linger',
+  );
+}
+
+/** Fires on four terrains and under the veil; berry bushes as found and picked bare; a fire beside them. */
+function careTilesSheet(): string {
+  const rows: ArtCell[][] = [
+    [
+      { q: 0, r: 0, terrain: 'plains', fire: true },
+      { q: 0, r: 0, terrain: 'forest', fire: true },
+      { q: 0, r: 0, terrain: 'desert', fire: true },
+      { q: 0, r: 0, terrain: 'plains', state: 'unexplored', fire: true },
+    ],
+    [
+      { q: 0, r: 0, terrain: 'forest', feature: { look: 'berries' } },
+      { q: 0, r: 0, terrain: 'plains', feature: { look: 'berries' } },
+      { q: 0, r: 0, terrain: 'forest', feature: { look: 'berries', state: 'depleted' } },
+      { q: 0, r: 0, terrain: 'plains', feature: { look: 'berries' }, fire: true },
+    ],
+  ];
+  const cells = rows.flatMap((row, r) =>
+    row.map((cell, col) => ({ ...cell, ...gridCell(r * 4 + col, 4) })),
+  );
+  return toSvgString(
+    renderScene({ cells, projection: isometric(66), palette: PALETTE, seed: 'care-tiles' }),
+  );
+}
+
+/** The forage icon and the three action icons at 72, 48 and 32 px; the stay hint; the three moments. */
+function careMarksSheet(): string {
+  const nodes: SvgNode[] = [];
+  ['forage', 'light-fire', 'feed', 'linger'].forEach((id, i) => {
+    let x = 24 + i * 186;
+    for (const size of [72, 48, 32]) {
+      nodes.push(placed(drawIcon(id, PALETTE, size), x, 24 + (72 - size) / 2));
+      x += size + 10;
+    }
+  });
+  [24, 36, 48].forEach((size, i) =>
+    nodes.push(placed(drawStayMark(PALETTE, size), 30 + i * 70, 140 + (48 - size) / 2)),
+  );
+  (['fire', 'feed', 'linger'] as const).forEach((kind, i) =>
+    nodes.push(placed(drawMoment(kind, PALETTE, 120), 260 + i * 140, 110)),
+  );
+  return paperSheet(770, 250, nodes);
+}
+
+/** The sample map with this milestone's pieces in place: fires, berries, an underfed keeper's view. */
+function careMap(effects: 'full' | 'lite'): string {
+  const { cells, creature, characters } = samplePatch(NORTH);
+  const fires = new Set(['2,-1', '-1,-1']);
+  const placedCells = cells.map((c) => {
+    const key = `${c.q},${c.r}`;
+    if (key === '-2,2') return { ...c, feature: { look: 'berries' } };
+    return fires.has(key) ? { ...c, fire: true } : c;
+  });
+  return toSvgString(
+    renderScene({
+      cells: placedCells,
+      creature: {
+        ...creature,
+        appetite: { kind: 'underfed', level: 2 },
+        cues: [
+          { hex: { q: 2, r: -1 }, reaction: 'toward' },
+          { hex: { q: -1, r: -1 }, reaction: 'away' },
+        ],
+      },
+      characters,
+      projection: isometric(),
+      palette: PALETTE,
+      seed: SEED,
+      effects,
+    }),
+  );
+}
+
 export function buildReviewItems(): ReviewDraft[] {
   const glance = { kind: 'glance' } as const;
   const framePick = {
@@ -415,6 +620,70 @@ export function buildReviewItems(): ReviewDraft[] {
     question: 'Which frame should the role emblems share?',
   } as const;
   return [
+    {
+      id: 'creature/underfed',
+      group: 'Creature care',
+      title: 'Underfed: calm, levels 1 to 3, then faint at 2 and 3',
+      file: 'creature-underfed.svg',
+      ...glance,
+      svg: appetiteSheet('underfed'),
+    },
+    {
+      id: 'creature/overfed',
+      group: 'Creature care',
+      title: 'Overfed: calm, levels 1 to 3, then faint at 2 and 3',
+      file: 'creature-overfed.svg',
+      ...glance,
+      svg: appetiteSheet('overfed'),
+    },
+    {
+      id: 'creature/cues',
+      group: 'Creature care',
+      title: "Keeper's cues: drawn to the fire, shying from it, unmoved; two at once",
+      file: 'creature-cues.svg',
+      ...glance,
+      svg: cuesSheet(),
+    },
+    {
+      id: 'creature/linger',
+      group: 'Creature care',
+      title: 'Lying down to linger, beside standing',
+      file: 'creature-linger.svg',
+      ...glance,
+      svg: lingerSheet(),
+    },
+    {
+      id: 'features/care',
+      group: 'Creature care',
+      title: 'Fires on four tiles and under the veil; berry bushes, picked bare, beside a fire',
+      file: 'features-care.svg',
+      ...glance,
+      svg: careTilesSheet(),
+    },
+    {
+      id: 'marks/care',
+      group: 'Creature care',
+      title: 'Forage, light a fire, feed, linger; the stay hint; fire, feed and linger moments',
+      file: 'marks-care.svg',
+      ...glance,
+      svg: careMarksSheet(),
+    },
+    {
+      id: 'map/care',
+      group: 'Creature care',
+      title: 'On the map: fires, berries, an underfed creature and two cues',
+      file: 'map-care.svg',
+      ...glance,
+      svg: careMap('full'),
+    },
+    {
+      id: 'map/care-lite',
+      group: 'Creature care',
+      title: 'The same in lite mode',
+      file: 'map-care-lite.svg',
+      ...glance,
+      svg: careMap('lite'),
+    },
     {
       id: 'emblems/roundel',
       group: 'Role emblems',

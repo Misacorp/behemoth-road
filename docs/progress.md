@@ -10,6 +10,7 @@ What has landed and what is next. Newest first. Update it when a step lands or t
 
 ## Done
 
+- 2026-11-20: Art for Milestone 4 (`m4/art`): appetite signs (underfed and overfed at three levels, plus faint), keeper reaction cues (toward, away, unmoved), the lying-down linger pose, a lit fire on a hex, berry bushes, forage and the light-fire, feed and linger icons, care moments and a stay hint; review batch 2026-11-19-7.
 - 2026-11-19: Art for the revised Milestone 3: the unexplored veil (one shared pattern, a per-hex lift for the reveal), pack, stores and unlock marks (fill level, crates on the creature, done seal, work bar) and a survey moment.
 - 2026-11-19: Art for Milestone 3: feature drawings (ore, river stones, timber, two tombs, snare, pitfall) with used-up looks, a quieter glint, material and item icons, moment marks (reveal, find, trap) and via marks for the path arrow.
 - 2026-11-19: Milestone 2 merged and live (PR #7): Discord Activity sign-in, one game per allowed server, joining with rolled characters and roles, other players on the map, the daily tick; tried on staging by Misa.

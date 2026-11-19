@@ -1,6 +1,6 @@
 /**
  * Marks the map animates: short "moments" (an ink bloom when a hex is revealed, a burst for a find, a snap
- * for a sprung trap) and the small `via` mark on a path step (a hook where the grappling hook is used).
+ * for a sprung trap, a fire lit, a feeding, a linger), the small `via` mark on a path step (a hook where the grappling hook is used).
  * Each is a self-contained `<svg>` centred on its point (viewBox −24…24). A moment's parts carry
  * `data-part="0" | "1" | "2"` so the map can stage them (draw 0 first, 2 last); the drawing is the
  * finished frame.
@@ -9,7 +9,7 @@ import { ellipsePath, poly, smoothClosed, smoothOpen, type Point } from './geom.
 import type { Palette } from './palette.ts';
 import { el, type AttrValue, type SvgNode } from './svg.ts';
 
-export const MOMENT_KINDS = ['reveal', 'find', 'trap', 'survey'] as const;
+export const MOMENT_KINDS = ['reveal', 'find', 'trap', 'survey', 'fire', 'feed', 'linger'] as const;
 export type MomentKind = (typeof MOMENT_KINDS)[number];
 
 const P = (x: number, y: number): Point => ({ x, y });
@@ -174,11 +174,92 @@ function survey(pal: Palette): SvgNode[] {
   ];
 }
 
+/** A fire lit: a warm glow, the flame leaping up, sparks flying. */
+function fire(pal: Palette): SvgNode[] {
+  const sparks = [
+    [-11, -14, 1.6],
+    [12, -12, 1.4],
+    [-15, -3, 1.2],
+    [16, -2, 1.3],
+    [3, -20, 1.5],
+  ]
+    .map(([x, y, r]) => ellipsePath(x!, y!, r!, r!))
+    .join('');
+  return [
+    el('path', {
+      d: wobblyRing(14, 0.1, 0.6),
+      fill: pal.accents.ochre.light,
+      opacity: 0.6,
+      'data-part': '0',
+    }),
+    el('path', {
+      d: 'M0 13c-7 0-11-4-11-10 0-6 5-8 6-14 2 4 4 5 4 5 0-6 3-10 7-12 0 6 5 9 5 15 0 9-4 16-11 16z',
+      fill: pal.accents.coral.base,
+      stroke: pal.accents.coral.shade,
+      'stroke-width': 1.4,
+      'stroke-linejoin': 'round',
+      'data-part': '1',
+    }),
+    el('path', { d: sparks, fill: pal.accents.ochre.base, 'data-part': '2' }),
+  ];
+}
+
+/** A feeding: a soft rose wash, berries dropping in, and a contented ripple. */
+function feed(pal: Palette): SvgNode[] {
+  const berries = [
+    [-6, -6, 4.2],
+    [3, -9, 4],
+    [7, -1, 3.8],
+    [-2, 2, 4],
+  ];
+  return [
+    el('path', {
+      d: wobblyRing(12, 0.12, 1.1),
+      fill: pal.accents.rose.light,
+      opacity: 0.55,
+      'data-part': '0',
+    }),
+    el('path', {
+      d: berries.map(([x, y, r]) => ellipsePath(x!, y!, r!, r!)).join(''),
+      fill: pal.accents.rose.base,
+      stroke: pal.accents.rose.shade,
+      'stroke-width': 1.3,
+      'data-part': '1',
+    }),
+    el('path', {
+      d: smoothOpen([P(-16, 12), P(-8, 17), P(0, 18), P(8, 17), P(16, 12)]),
+      ...stroke(pal.inkSoft, 1.6),
+      'data-part': '2',
+    }),
+  ];
+}
+
+/** A linger: the ground settling in flat rings, and three small down-strokes as it lies down. */
+function linger(pal: Palette): SvgNode[] {
+  const flat = (rx: number, ry: number): string => ellipsePath(0, 8, rx, ry);
+  return [
+    el('path', { d: flat(18, 7), fill: pal.accents.sage.light, opacity: 0.55, 'data-part': '0' }),
+    el('path', {
+      d: flat(12, 4.5) + flat(20, 8),
+      ...stroke(pal.accents.sage.shade, 1.4),
+      'data-part': '1',
+    }),
+    el('path', {
+      d: 'M-8 -16v6M0 -19v7M8 -16v6M-10.5 -12.5l2.5 2.5 2.5-2.5M-2.5 -14.5l2.5 2.5 2.5-2.5M5.5 -12.5l2.5 2.5 2.5-2.5',
+      ...stroke(pal.inkSoft, 1.5),
+      'data-part': '2',
+    }),
+  ];
+}
+
 const MOMENTS: Readonly<Record<MomentKind, (p: Palette) => SvgNode[]>> = {
   reveal,
   find,
   trap,
   survey,
+  fire,
+  feed,
+  linger,
 };
 
 /** A moment mark as a centred `<svg>` of `size` px. Unknown kinds draw the reveal bloom. */
@@ -241,4 +322,33 @@ export function drawViaMark(via: string, palette: Palette, size: number): SvgNod
         }),
       ];
   return el('svg', { viewBox: '-12 -12 24 24', width: px, height: px }, children);
+}
+
+/**
+ * The step hint for a creature that stays put (it lingers): two paw prints side by side inside a dashed
+ * ring, drawn where it stands instead of the paw prints ahead. A centred `<svg>` of `size` px.
+ */
+export function drawStayMark(palette: Palette, size: number): SvgNode {
+  const px = Number.isFinite(size) && size > 0 ? size : 48;
+  const paw = (cx: number): string =>
+    ellipsePath(cx, 3, 3.2, 2.7) +
+    [
+      [-2.6, -1.8],
+      [0, -3],
+      [2.6, -1.8],
+    ]
+      .map(([dx, dy]) => ellipsePath(cx + dx!, 3 + dy! - 1.4, 1.15, 1.15))
+      .join('');
+  return el('svg', { viewBox: '-12 -12 24 24', width: px, height: px }, [
+    el('path', {
+      d: ellipsePath(0, 0, 10.5, 10.5),
+      fill: palette.paper,
+      'fill-opacity': 0.6,
+      stroke: palette.inkSoft,
+      'stroke-width': 1.2,
+      'stroke-dasharray': '2 2.4',
+      'stroke-linecap': 'round',
+    }),
+    el('path', { d: paw(-4) + paw(4), fill: palette.inkSoft }),
+  ]);
 }

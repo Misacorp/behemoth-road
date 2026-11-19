@@ -107,6 +107,7 @@ Superseded: 1 entry (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-20 Milestone 4 art: appetite, cues, lying down and fires are drawn by the art kit from the core's signs
 - 2026-11-20 Lingering is the keeper's action and never runs two days in a row
 - 2026-11-20 Hunger has a comfortable band; underfed is erratic, overfed is sluggish; anyone can feed
 - 2026-11-20 Symptoms are computed per viewer; keepers see them earlier and see reaction cues
