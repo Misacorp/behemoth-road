@@ -105,6 +105,14 @@ ID: `2026-11-19-the-creature-veers-by-a-seeded` · Status: current
 
 **Reasoning.** Matches the documented starting rule and keeps the step a function of (seed, day), so no random state is stored. Steering by stimuli (Milestone 4) can change the weights without changing the shape.
 
+## 2026-11-19: The creature faces where it walks; cliffs are escarpments
+
+ID: `2026-11-19-the-creature-faces-where-it-walks` · Status: current
+
+**Decision.** The creature's side view mirrors to face the east or west part of its heading (`facingFor`). For a heading straight north there are two options, the side view facing right or a three-quarter view from behind walking up the screen, and Misa picks one in the review batch (pick `creature-facing`). Cliffs are drawn as an escarpment, a rock face with a plateau strip running across the tile, not a single standing rock.
+
+**Reasoning.** The lead asked for the creature to face where it walks and for cliffs that read as terrain. Both straight-north options stay available until Misa chooses.
+
 ## 2026-11-19: First map art: a squashed hex plane with open-edge sides, upright props and four fog states
 
 ID: `2026-11-19-first-map-art-a-squashed-hex` · Status: current

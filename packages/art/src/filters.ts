@@ -18,7 +18,7 @@ export function refUrl(prefix: string, name: FilterName): string {
 }
 
 /** The `<defs>` a scene needs: wash bleed, ink wobble, paper grain and the paper's edge tint. */
-export function artDefs(palette: Palette, prefix: string, k: number): SvgNode {
+export function artDefs(palette: Palette, prefix: string, k: number, effects = true): SvgNode {
   const [r, g, b] = rgbUnit(palette.ink);
   const grainAlpha = ART_TUNING.grain;
   const turbulence = (freq: number, octaves: number, seed: number): SvgNode =>
@@ -37,6 +37,15 @@ export function artDefs(palette: Palette, prefix: string, k: number): SvgNode {
       xChannelSelector: 'R',
       yChannelSelector: 'G',
     });
+  const vignette = el(
+    'radialGradient',
+    { id: refId(prefix, 'vignette'), cx: '50%', cy: '50%', r: '72%' },
+    [
+      el('stop', { offset: '62%', 'stop-color': palette.paperDeep, 'stop-opacity': 0 }),
+      el('stop', { offset: '100%', 'stop-color': palette.paperDeep, 'stop-opacity': 0.75 }),
+    ],
+  );
+  if (!effects) return el('defs', {}, [vignette]);
   return el('defs', {}, [
     el('filter', { id: refId(prefix, 'wash'), x: '-3%', y: '-3%', width: '106%', height: '106%' }, [
       turbulence(0.035 / k, 2, 7),
@@ -53,9 +62,6 @@ export function artDefs(palette: Palette, prefix: string, k: number): SvgNode {
         values: `0 0 0 0 ${r.toFixed(3)} 0 0 0 0 ${g.toFixed(3)} 0 0 0 0 ${b.toFixed(3)} ${(grainAlpha * 2.2).toFixed(3)} 0 0 0 ${(-grainAlpha).toFixed(3)}`,
       }),
     ]),
-    el('radialGradient', { id: refId(prefix, 'vignette'), cx: '50%', cy: '50%', r: '72%' }, [
-      el('stop', { offset: '62%', 'stop-color': palette.paperDeep, 'stop-opacity': 0 }),
-      el('stop', { offset: '100%', 'stop-color': palette.paperDeep, 'stop-opacity': 0.75 }),
-    ]),
+    vignette,
   ]);
 }

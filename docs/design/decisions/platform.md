@@ -20,6 +20,14 @@ ID: `2026-11-19-the-core-derives-terrain-from-a` · Status: current, amended by 
 
 **Reasoning.** The map is never stored whole and any tile can be generated on demand, as the design asks. Keeping the config in the state means every rule in a game reads the same numbers, and a stored game replays identically. Clustered terrain (rivers that flow, forests in patches) can replace the per-hex pick later without a state change.
 
+## 2026-11-19: Art output is held to a tag and attribute allowlist, with a lite mode for slow phones
+
+ID: `2026-11-19-art-output-is-held-to-a` · Status: current
+
+**Decision.** `toSvgString` accepts only the tags in `ALLOWED_TAGS` (shapes, groups, gradients and the three filter primitives in use) and refuses attribute names starting with `on`, `href`, `xlink:href` and `style`; both lists are exported so the web app's Preact mapper enforces the same. `renderScene` refuses an `idPrefix` outside `[\w-]+`. Scenes take `effects: 'full' | 'lite'`: `lite` drops the displacement, turbulence and grain filters for panning or slow phones, and `full` stays the default. Ink width has a floor in screen pixels (`ART_TUNING.minInkPx`, 1 px) given the scene's `zoom`, so faint lines survive zooming out. `screenToHex` inverts the projection for taps; it ignores side faces while all tiles share one height.
+
+**Reasoning.** The tree reaches the page without `innerHTML`, but an allowlist keeps a future data-driven drawing from emitting scripts or links. Filters are the most expensive part of the art on phones, so the map needs a way to switch them off. At 390 px the review showed dotted outlines and the ruin nearly vanishing.
+
 ## 2026-11-19: Map ground merges into one path per paint; hexes are hit-tested by maths
 
 ID: `2026-11-19-map-ground-merges-into-one-path` · Status: current

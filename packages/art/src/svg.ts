@@ -34,7 +34,39 @@ function attrText(value: AttrValue): string {
   return value;
 }
 
+/** The only tags the art may produce. The web app's Preact mapper enforces the same lists. */
+export const ALLOWED_TAGS: ReadonlySet<string> = new Set([
+  'svg',
+  'g',
+  'defs',
+  'filter',
+  'feTurbulence',
+  'feDisplacementMap',
+  'feColorMatrix',
+  'path',
+  'polygon',
+  'polyline',
+  'line',
+  'ellipse',
+  'circle',
+  'rect',
+  'linearGradient',
+  'radialGradient',
+  'stop',
+]);
+
 const NAME = /^[a-zA-Z][a-zA-Z0-9:-]*$/;
+
+/** Attribute names the art may never produce: event handlers, links and inline styles. */
+export function isForbiddenAttr(name: string): boolean {
+  const lower = name.toLowerCase();
+  return lower.startsWith('on') || lower === 'href' || lower === 'xlink:href' || lower === 'style';
+}
+
+/** Whether an attribute name is safe to emit: well formed and not forbidden. */
+export function isAllowedAttr(name: string): boolean {
+  return NAME.test(name) && !isForbiddenAttr(name);
+}
 
 /** Serialises a node tree. The root `svg` gets the SVG namespace when it has none. */
 export function toSvgString(node: SvgNode): string {
@@ -46,10 +78,10 @@ export function toSvgString(node: SvgNode): string {
 }
 
 function serialise(node: SvgNode): string {
-  if (!NAME.test(node.tag)) throw new Error(`Bad SVG tag: ${node.tag}`);
+  if (!ALLOWED_TAGS.has(node.tag)) throw new Error(`SVG tag not allowed: ${node.tag}`);
   let out = `<${node.tag}`;
   for (const [name, value] of Object.entries(node.attrs)) {
-    if (!NAME.test(name)) throw new Error(`Bad SVG attribute: ${name}`);
+    if (!isAllowedAttr(name)) throw new Error(`SVG attribute not allowed: ${name}`);
     out += ` ${name}="${escapeAttr(attrText(value))}"`;
   }
   if (node.children.length === 0) return `${out}/>`;

@@ -6,7 +6,14 @@ import { artDefs, refUrl } from './filters.ts';
 import { unionBox, type Box, type Point } from './geom.ts';
 import type { Palette } from './palette.ts';
 import { drawOrder, hexCenter, hexDistance, onPlane, type Projection } from './projection.ts';
-import { hintMark, PROP_DRAWERS, PROP_SPACING, type Drawn, type PropDraw } from './props.ts';
+import {
+  hintMark,
+  inkWidth,
+  PROP_DRAWERS,
+  PROP_SPACING,
+  type Drawn,
+  type PropDraw,
+} from './props.ts';
 import { rngFor, type Rng } from './rng.ts';
 import { el, type SvgNode } from './svg.ts';
 import { SITE_PROPS, terrainLook, type PropRule } from './terrain.ts';
@@ -23,6 +30,14 @@ export interface SceneInput {
   readonly overrides?: Readonly<Record<string, PropDraw>>;
   /** Prefix for filter ids, so several scenes can share one document. Default `br`. */
   readonly idPrefix?: string;
+  /**
+   * `full` (default) draws the wash bleed, ink wobble and paper grain filters; `lite` leaves them out, for
+   * panning or slow phones.
+   */
+  readonly effects?: 'full' | 'lite';
+  /** Screen px per drawing px where the scene is shown (default 1); ink never gets thinner than `minInkPx` on screen. */
+  readonly zoom?: number;
+  readonly minInkPx?: number;
 }
 
 interface Placed {
@@ -60,8 +75,12 @@ function placeProps(rules: readonly PropRule[], rng: Rng): PropSpot[] {
 export function renderScene(input: SceneInput): SvgNode {
   const { cells, projection: p, palette, seed } = input;
   const prefix = input.idPrefix ?? 'br';
+  if (!/^[\w-]+$/.test(prefix)) throw new Error(`Bad idPrefix: ${prefix}`);
   const drawers = { ...PROP_DRAWERS, ...input.overrides };
-  const ground = drawGround(cells, p, palette, seed);
+  const lite = input.effects === 'lite';
+  const zoom = input.zoom && input.zoom > 0 ? input.zoom : 1;
+  const ink = inkWidth(p.k, zoom, input.minInkPx);
+  const ground = drawGround(cells, p, palette, seed, ink);
   const creature = input.creature ?? null;
   const placed: Placed[] = [];
 
@@ -112,7 +131,7 @@ export function renderScene(input: SceneInput): SvgNode {
     const c = onPlane(p, hexCenter(p, creature.q, creature.r), 0, 0.12);
     placed.push({
       at: c,
-      drawn: drawCreature(palette, creature.look, c, p.size, p.squash, creature.facing),
+      drawn: drawCreature(palette, creature.look, c, p.size, p.squash, ink, creature.facing),
     });
   }
   const sites = new Set(cells.filter((c) => c.site).map((c) => `${c.q},${c.r}`));
@@ -124,7 +143,7 @@ export function renderScene(input: SceneInput): SvgNode {
     // Beside a site, stand to its front left; otherwise near the middle.
     const dx = (sites.has(key) ? -0.5 : -0.05) + index * 0.32;
     const c = onPlane(p, hexCenter(p, ch.q, ch.r), dx, 0.3 - index * 0.06);
-    placed.push({ at: c, drawn: drawCharacter(palette, ch.accent, c, p.size, p.squash) });
+    placed.push({ at: c, drawn: drawCharacter(palette, ch.accent, c, p.size, p.squash, ink) });
   }
 
   placed.sort((a, b) => drawOrder(a.at, b.at));
@@ -142,16 +161,24 @@ export function renderScene(input: SceneInput): SvgNode {
   const frame = { x, y, width: w, height: h };
 
   return el('svg', { viewBox: `${x} ${y} ${w} ${h}`, width: w, height: h }, [
-    artDefs(palette, prefix, p.k),
+    artDefs(palette, prefix, p.k, !lite),
     el('rect', { ...frame, fill: palette.paper }),
     el('rect', { ...frame, fill: refUrl(prefix, 'vignette') }),
-    el('g', { filter: refUrl(prefix, 'wash') }, ground.ground),
+    el('g', lite ? {} : { filter: refUrl(prefix, 'wash') }, ground.ground),
     ...ground.crisp,
-    el('g', { filter: refUrl(prefix, 'ink') }, objects),
-    el('rect', { ...frame, fill: palette.paper, filter: refUrl(prefix, 'grain') }),
+    el(
+      'g',
+      lite
+        ? { 'data-layer': 'objects' }
+        : { 'data-layer': 'objects', filter: refUrl(prefix, 'ink') },
+      objects,
+    ),
+    ...(lite
+      ? []
+      : [el('rect', { ...frame, fill: palette.paper, filter: refUrl(prefix, 'grain') })]),
   ]);
 
   function ctx(origin: Point, rng: Rng, scale = 1) {
-    return { palette, rng, origin, k: p.k * scale, squash: p.squash };
+    return { palette, rng, origin, k: p.k * scale, squash: p.squash, ink: ink * scale };
   }
 }

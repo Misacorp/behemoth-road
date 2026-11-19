@@ -8,6 +8,8 @@ export const ART_TUNING = {
   sideDepth: 0.32,
   /** Ink line width in px at the reference hex size. */
   inkWidth: 1.4,
+  /** Thinnest ink line on screen in px, whatever the zoom (keeps faint details visible on phones). */
+  minInkPx: 1,
   /** Opacity of the tile ink outlines (applied to the outline group, so shared edges do not darken). */
   outlineOpacity: 0.3,
   /** How strongly the ground wash bleeds (displacement in px) and how much ink lines wobble. */

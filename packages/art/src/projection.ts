@@ -88,3 +88,29 @@ export function onPlane(p: Projection, c: Point, dx: number, dy: number): Point 
 export function drawOrder(a: Point, b: Point): number {
   return a.y - b.y || a.x - b.x;
 }
+
+/** Rounds fractional axial coordinates to the nearest hex (cube rounding). */
+export function roundHex(q: number, r: number): Hex {
+  const s = -q - r;
+  let rq = Math.round(q);
+  let rr = Math.round(r);
+  const rs = Math.round(s);
+  const dq = Math.abs(rq - q);
+  const dr = Math.abs(rr - r);
+  const ds = Math.abs(rs - s);
+  if (dq > dr && dq > ds) rq = -rr - rs;
+  else if (dr > ds) rr = -rq - rs;
+  return { q: rq + 0, r: rr + 0 };
+}
+
+/**
+ * The hex under a screen point (the inverse of `hexCenter`), for iso and top-down. A tap lands on a tile's top
+ * face; side faces are ignored, which is exact while every tile has the same height (heights will need a
+ * search over the few hexes whose raised top could cover the point).
+ */
+export function screenToHex(p: Projection, x: number, y: number): Hex {
+  const plainY = y / p.squash;
+  const q = ((2 / 3) * x) / p.size;
+  const r = ((-1 / 3) * x + (Math.sqrt(3) / 3) * plainY) / p.size;
+  return roundHex(q, r);
+}
