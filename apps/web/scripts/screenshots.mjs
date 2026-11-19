@@ -107,7 +107,7 @@ class FakeServer {
       return [200, toView(this.scenario)];
     };
     if (path === '/api/config') return [200, CONFIG];
-    if (path === '/api/dev/session') return [200, SESSION];
+    if (path === '/api/dev/login') return [200, SESSION];
     if (method === 'GET' && path === '/api/game') {
       const since = Number(new URL(`http://x${this.lastUrl}`).searchParams.get('since') ?? NaN);
       return since === s.version ? [200, { unchanged: true }] : ok(null);
@@ -212,7 +212,7 @@ async function run() {
       await context.close();
       for (const file of readdirSync(join(dist, 'assets'))) {
         const text = readFileSync(join(dist, 'assets', file), 'utf8');
-        if (text.includes('/api/dev/session'))
+        if (text.includes('/api/dev/login'))
           problems.push(`built: ${file} contains the dev sign-in`);
       }
     }

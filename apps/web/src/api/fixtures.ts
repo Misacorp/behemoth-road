@@ -1,6 +1,7 @@
 /**
- * HAND-WRITTEN FIXTURES: REPLACE with the worker's captured contract fixtures once they exist
- * (`docs/design/m2-session.md`: fixtures are captured from the real Worker and never edited by hand).
+ * Scenarios built with the core, for flow tests and the screenshot script's fake server (which needs a live
+ * state to apply moves and ticks). Response parsing is checked against the Worker's captured fixtures
+ * (`fixtures/*.json`, `contract.test.ts`), which are the contract's source of truth.
  *
  * They follow the contract. The game parts come from the core itself, as the server makes them: a seeded
  * game, players joining with `addCharacter` and the core's rolled offers, and `toPlayerView` to drop the
