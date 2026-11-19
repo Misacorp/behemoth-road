@@ -6,17 +6,42 @@ import { ORIGIN, callHandler } from './helpers.ts';
 
 /** wrangler.jsonc without its comments (none of its strings contain `//`). */
 const wrangler = JSON.parse(wranglerText.replace(/^\s*\/\/.*$/gm, '')) as {
+  name: string;
+  routes?: unknown;
   vars: Record<string, string>;
   env: Record<
     string,
-    { vars: Record<string, string>; durable_objects: { bindings: { name: string }[] } }
+    {
+      name: string;
+      vars: Record<string, string>;
+      durable_objects: { bindings: { name: string }[] };
+    }
   >;
 };
 
 describe('wrangler.jsonc', () => {
+  it('gives the local top level its own name and no routes, so a deploy without --env never lands on a real host', () => {
+    const deployed = Object.values(wrangler.env).map((e) => e.name);
+    expect(deployed).not.toContain(wrangler.name);
+    expect(wrangler.routes).toBeUndefined();
+    for (const [name, environment] of Object.entries(wrangler.env)) {
+      expect(environment.vars['ENVIRONMENT'], name).not.toBe('local');
+    }
+    expect(wrangler.env['production']?.vars['DEV_TOOLS']).not.toBe('on');
+  });
+
   it('keeps the dev tools off in production and on in staging', () => {
     expect(wrangler.env['production']?.vars['DEV_TOOLS']).toBe('off');
     expect(wrangler.env['staging']?.vars['DEV_TOOLS']).toBe('on');
+  });
+
+  it('gives every deployed environment its own real Discord client id', () => {
+    const ids = Object.values(wrangler.env).map((e) => e.vars['DISCORD_CLIENT_ID']);
+    for (const id of ids) {
+      expect(id).toMatch(/^\d{17,20}$/);
+      expect(id).not.toMatch(/^0+$/);
+    }
+    expect(new Set(ids).size).toBe(ids.length);
   });
 
   it('names every deployed environment, so the local-only dev login never runs there', () => {

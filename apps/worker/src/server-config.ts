@@ -21,8 +21,12 @@ export const SERVER_CONFIG = {
     maxPerUser: 5,
   },
   rateLimits: {
-    /** Sign-in, per Activity instance: a burst of 10, then one every 5 seconds. */
+    /** Sign-in, per Activity instance (client-chosen): a burst of 10, then one every 5 seconds. */
     auth: { capacity: 10, refillPerSecond: 0.2, maxKeys: 5000 },
+    /** Sign-in, per client IP (`CF-Connecting-IP`), so rotating instance ids does not escape the limit. */
+    authIp: { capacity: 20, refillPerSecond: 0.2, maxKeys: 5000 },
+    /** Sign-in, all callers together (per isolate): a ceiling on Discord token exchanges. */
+    authGlobal: { capacity: 60, refillPerSecond: 1, maxKeys: 1 },
     /** Game requests, per player: a burst of 30, then one a second (polling is every 30 s). */
     game: { capacity: 30, refillPerSecond: 1, maxKeys: 100 },
   },

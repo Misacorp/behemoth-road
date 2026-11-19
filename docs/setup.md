@@ -15,12 +15,12 @@ One-time steps that only Misa can do, written when the project was bootstrapped.
 
 Two Discord applications, one per environment, so staging never touches the production app. Do the steps for **production** (`behemoth.misacorp.dev`) and again for **staging** (`behemoth-staging.misacorp.dev`). Everything else (the Launch command's handler, the public key, the interactions check) is done by the deploy job.
 
-- [ ] **Create the application.** [Discord Developer Portal](https://discord.com/developers/applications), New Application. Names: `Behemoth Road` and `Behemoth Road (staging)`.
-- [ ] **Activities.** Activities, Settings: turn on **Enable Activities**; Supported Platforms: Web, iOS, Android. Activities, URL Mappings: one row, prefix `/`, target `behemoth.misacorp.dev` (staging: `behemoth-staging.misacorp.dev`), no `https://`.
-- [ ] **OAuth2.** OAuth2, Redirects: add `https://127.0.0.1` (Discord requires one; the Activity never uses it). Copy the **Client ID** (public) and **Reset Secret** to get the client secret.
-- [ ] **Installation.** Installation Contexts: **Guild Install** only (untick User Install). Install Link: **None**, and save. (Discord refuses a private bot while the app has a Discord Provided Link.)
-- [ ] **Bot.** Bot: **Reset Token** and copy it. Turn **Public Bot** off. No privileged intents are needed.
-- [ ] **Add the app to your server.** OAuth2, URL Generator: scopes `bot` and `applications.commands`, integration type Guild Install, no permissions. Open the generated URL and add the app to your server (staging: a test server); as the owner you can install your private app this way.
+- [x] **Create the application.** [Discord Developer Portal](https://discord.com/developers/applications), New Application. Names: `Behemoth Road` and `Behemoth Road (staging)`.
+- [x] **Activities.** Activities, Settings: turn on **Enable Activities**; Supported Platforms: Web, iOS, Android. Activities, URL Mappings: one row, prefix `/`, target `behemoth.misacorp.dev` (staging: `behemoth-staging.misacorp.dev`), no `https://`.
+- [x] **OAuth2.** OAuth2, Redirects: add `https://127.0.0.1` (Discord requires one; the Activity never uses it). Copy the **Client ID** (public) and **Reset Secret** to get the client secret.
+- [x] **Installation.** Installation Contexts: **Guild Install** only (untick User Install). Install Link: **None**, and save. (Discord refuses a private bot while the app has a Discord Provided Link.)
+- [x] **Bot.** Bot: **Reset Token** and copy it. Turn **Public Bot** off. No privileged intents are needed.
+- [x] **Add the app to your server.** OAuth2, URL Generator: scopes `bot` and `applications.commands`, integration type Guild Install, no permissions. Open the generated URL and add the app to your server (staging: a test server); as the owner you can install your private app this way.
 - [ ] **Interactions Endpoint URL.** General Information: `https://behemoth.misacorp.dev/api/discord/interactions` (staging: `https://behemoth-staging.misacorp.dev/api/discord/interactions`). Discord checks it when you save, so set it **after** the first deploy with Milestone 2 is live; until then the deploy prints a warning and Launch uses Discord's default.
 - [ ] **Secrets into GitHub.** `node scripts/github-setup.mjs --user Misacorp` asks for `DISCORD_CLIENT_SECRET` and `DISCORD_BOT_TOKEN` for `production` and `staging`, with hidden input.
-- [ ] **Client ids to an agent.** Send the two Client IDs (public, not secret); they go into `apps/worker/wrangler.jsonc` as `DISCORD_CLIENT_ID`.
+- [x] **Client ids to an agent.** Send the two Client IDs (public, not secret); they go into `apps/worker/wrangler.jsonc` as `DISCORD_CLIENT_ID`.

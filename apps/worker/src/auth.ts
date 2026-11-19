@@ -14,8 +14,8 @@ export interface AuthDeps {
   createSession(guildId: string, user: SessionUser): Promise<string>;
   /** Signs the secret into the final `s1.<guildId>.<secret>.<mac>` token. */
   formatToken(guildId: string, secret: string): Promise<string>;
-  /** Coarse per-instance limiter (best effort, per isolate). */
-  limiter: TokenBucketLimiter;
+  /** Best-effort limiters (per isolate): all callers, per client IP, per Activity instance. */
+  limiters: { global: TokenBucketLimiter; ip: TokenBucketLimiter; instance: TokenBucketLimiter };
 }
 
 /**
@@ -31,9 +31,17 @@ export async function handleAuthSession(request: Request, deps: AuthDeps): Promi
   if (!parsed.success) return errorResponse('invalid_body', 400);
   const { code, instanceId } = parsed.output;
 
-  const limit = deps.limiter.take(instanceId);
-  if (!limit.allowed) {
-    return errorResponse('rate_limited', 429, { 'Retry-After': String(limit.retryAfterSeconds) });
+  // Cloudflare sets CF-Connecting-IP on every request it routes; a request without one shares a bucket.
+  const ip = (request.headers.get('CF-Connecting-IP') ?? 'unknown').slice(0, 64);
+  for (const [limiter, key] of [
+    [deps.limiters.global, 'all'],
+    [deps.limiters.ip, ip],
+    [deps.limiters.instance, instanceId],
+  ] as const) {
+    const limit = limiter.take(key);
+    if (!limit.allowed) {
+      return errorResponse('rate_limited', 429, { 'Retry-After': String(limit.retryAfterSeconds) });
+    }
   }
 
   try {

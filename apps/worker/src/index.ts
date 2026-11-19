@@ -57,7 +57,12 @@ const guildWorld = (env: Env, guildId: string) =>
 /** Builds the Worker's fetch handler. The default export uses the real Discord client and clock. */
 export function createHandler(overrides: Partial<HandlerDeps> = {}): ExportedHandler<Env> {
   const deps = { ...defaultDeps, ...overrides };
-  const authLimiter = new TokenBucketLimiter({ ...SERVER_CONFIG.rateLimits.auth, now: deps.now });
+  const { auth, authIp, authGlobal } = SERVER_CONFIG.rateLimits;
+  const authLimiters = {
+    global: new TokenBucketLimiter({ ...authGlobal, now: deps.now }),
+    ip: new TokenBucketLimiter({ ...authIp, now: deps.now }),
+    instance: new TokenBucketLimiter({ ...auth, now: deps.now }),
+  };
 
   async function signIn(env: Env, guildId: string, secret: string): Promise<string> {
     return formatSessionToken(await getSessionKey(env.DISCORD_CLIENT_SECRET), guildId, secret);
@@ -79,7 +84,7 @@ export function createHandler(overrides: Partial<HandlerDeps> = {}): ExportedHan
       POST: (request, env) =>
         handleAuthSession(request, {
           discord: deps.createDiscord(env),
-          limiter: authLimiter,
+          limiters: authLimiters,
           createSession: (guildId, user) => guildWorld(env, guildId).createSession(guildId, user),
           formatToken: (guildId, secret) => signIn(env, guildId, secret),
         }),

@@ -1,6 +1,8 @@
 import { env } from 'cloudflare:workers';
+import { listDurableObjectIds } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
 import { createHandler } from '../src/index.ts';
+import { SERVER_CONFIG } from '../src/server-config.ts';
 import { parseSessionToken } from '../src/session.ts';
 import {
   ACCESS_TOKEN,
@@ -136,6 +138,32 @@ describe('POST /api/auth/session', () => {
     );
   });
 
+  it('rate limits sign-in per IP however the instance id is rotated, and overall', async () => {
+    const { handler } = setup({
+      instance: { location: { guild_id: freshGuildId() }, users: [USER_ID] },
+    });
+    const from = (ip: string, i: number) =>
+      callHandler(
+        handler,
+        new Request(`${ORIGIN}/api/auth/session`, {
+          method: 'POST',
+          headers: { 'CF-Connecting-IP': ip },
+          body: JSON.stringify({ code: 'c', instanceId: `rotated-${String(i)}` }),
+        }),
+      );
+    const { authIp, authGlobal } = SERVER_CONFIG.rateLimits;
+    for (let i = 0; i < authIp.capacity; i++)
+      expect((await from('203.0.113.7', i)).status).toBe(200);
+    expect((await from('203.0.113.7', 999)).status).toBe(429);
+    // A fresh IP still gets in; then fresh IPs, each used once, meet the shared ceiling.
+    expect((await from('198.51.100.1', 500)).status).toBe(200);
+    const statuses: number[] = [];
+    for (let i = 0; i < authGlobal.capacity; i++) {
+      statuses.push((await from(`192.0.2.${String(i)}`, 1000 + i)).status);
+    }
+    expect(statuses).toContain(429);
+  });
+
   it('rate limits sign-in per instance', async () => {
     const { handler } = setup({
       instance: { location: { guild_id: freshGuildId() }, users: [USER_ID] },
@@ -183,6 +211,64 @@ describe('session tokens', () => {
     if (parsed === null) throw new Error('token did not parse');
     const elsewhere = await tokenFor(freshGuildId(), parsed.secret);
     expect((await getGame(handler, elsewhere)).status).toBe(401);
+  });
+});
+
+describe('the Worker refuses bad tokens before any game route', () => {
+  it('never addresses the Durable Object of a guild named only in a forged token', async () => {
+    const { handler, token } = await (async () => {
+      const guildId = freshGuildId();
+      const h = setup({ instance: { location: { guild_id: guildId }, users: [USER_ID] } }).handler;
+      return { handler: h, token: (await (await postAuth(h, validBody)).json<AuthBody>()).token };
+    })();
+    const parsed = parseSessionToken(token);
+    if (parsed === null) throw new Error('token did not parse');
+    const forgedGuild = freshGuildId();
+    const before = (await listDurableObjectIds(env.GUILD_WORLD)).length;
+    for (const [method, path] of [
+      ['GET', '/api/game'],
+      ['POST', '/api/game/move'],
+      ['POST', '/api/game/join'],
+      ['POST', '/api/dev/next-day'],
+    ] as const) {
+      // A tampered MAC, and this token's MAC on another guild's id.
+      for (const bad of [
+        `s1.${parsed.guildId}.${parsed.secret}.${'A'.repeat(43)}`,
+        `s1.${forgedGuild}.${parsed.secret}.${parsed.mac}`,
+      ]) {
+        const res = await callHandler(
+          handler,
+          new Request(`${ORIGIN}${path}`, {
+            method,
+            headers: { Authorization: `Bearer ${bad}` },
+            ...(method === 'POST' ? { body: '{}' } : {}),
+          }),
+        );
+        expect(res.status).toBe(401);
+        expect(await res.json()).toEqual({ error: 'invalid_session' });
+      }
+    }
+    expect((await listDurableObjectIds(env.GUILD_WORLD)).length).toBe(before);
+  });
+
+  it("refuses a valid MAC for another guild in that guild's object, where the secret is unknown", async () => {
+    const guildId = freshGuildId();
+    const h = setup({ instance: { location: { guild_id: guildId }, users: [USER_ID] } }).handler;
+    const { token } = await (await postAuth(h, validBody)).json<AuthBody>();
+    const parsed = parseSessionToken(token);
+    if (parsed === null) throw new Error('token did not parse');
+    const other = await tokenFor(freshGuildId(), parsed.secret);
+    for (const path of ['/api/game', '/api/game/move']) {
+      const res = await callHandler(
+        h,
+        new Request(`${ORIGIN}${path}`, {
+          method: path === '/api/game' ? 'GET' : 'POST',
+          headers: { Authorization: `Bearer ${other}` },
+          ...(path === '/api/game' ? {} : { body: '{"version":1,"path":[{"kind":"creature"}]}' }),
+        }),
+      );
+      expect(res.status).toBe(401);
+    }
   });
 });
 

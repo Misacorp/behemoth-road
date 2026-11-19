@@ -548,9 +548,10 @@
       {
         "id": "111111111111111111.0",
         "userId": "111111111111111111",
-        "name": "Quillka",
+        "name": "Yarris Burr",
         "trait": "fair-spoken",
         "quirk": "restless",
+        "lookSeed": 1139934711,
         "role": "scout",
         "joinedDay": 1,
         "at": {
@@ -569,6 +570,7 @@
         "name": "Iskar",
         "trait": "sure-footed",
         "quirk": "night-owl",
+        "lookSeed": 2653216526,
         "role": "keeper",
         "joinedDay": 1,
         "at": {
@@ -580,9 +582,10 @@
       {
         "id": "111111111111111111.1",
         "userId": "111111111111111111",
-        "name": "Luneumble",
+        "name": "Pellis",
         "trait": "river-wise",
         "quirk": "loud",
+        "lookSeed": 2403545238,
         "role": "envoy",
         "joinedDay": 2,
         "at": {

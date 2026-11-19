@@ -1,6 +1,10 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "behemoth-road",
+  // The top level is local development only (wrangler dev, tests): its own name, no routes, so a
+  // `wrangler deploy` without --env can never publish over production. Deploys always pass --env.
+  "name": "behemoth-road-local",
+  "workers_dev": false,
+  "preview_urls": false,
   "main": "src/index.ts",
   "compatibility_date": "2026-10-01",
   "observability": { "enabled": true },
@@ -51,8 +55,7 @@
         "ENVIRONMENT": "staging",
         "VERSION": "dev",
         "BRANCH": "dev",
-        // TODO(setup): the staging application's Client ID (docs/setup.md).
-        "DISCORD_CLIENT_ID": "000000000000000000",
+        "DISCORD_CLIENT_ID": "1573039651172909057",
         "DISCORD_PUBLIC_KEY": "",
         "DEV_TOOLS": "on"
       }
@@ -70,8 +73,7 @@
         "ENVIRONMENT": "production",
         "VERSION": "dev",
         "BRANCH": "dev",
-        // TODO(setup): the production application's Client ID (docs/setup.md).
-        "DISCORD_CLIENT_ID": "000000000000000000",
+        "DISCORD_CLIENT_ID": "1573036223470247996",
         "DISCORD_PUBLIC_KEY": "",
         "DEV_TOOLS": "off"
       }

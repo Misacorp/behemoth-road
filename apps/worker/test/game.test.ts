@@ -78,6 +78,7 @@ describe('POST /api/game/join', () => {
           name: expect.any(String) as string,
           trait: expect.any(String) as string,
           quirk: expect.any(String) as string,
+          lookSeed: expect.any(Number) as number,
           role: 'scout',
           joinedDay: 1,
           at: { kind: 'creature' },
