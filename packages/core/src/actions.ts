@@ -3,9 +3,9 @@
  */
 
 import type { Hex } from './hex.ts';
-import { terrainAt } from './map.ts';
+import { terrainOf } from './map.ts';
 import { arePlacesAdjacent, placeNeighbours, toPlace } from './places.ts';
-import type { Character, GameState, Place } from './state.ts';
+import type { Character, GameStateView, Place } from './state.ts';
 import { isCreatureHex, isReachable } from './window.ts';
 
 export type MoveRefusal =
@@ -17,9 +17,8 @@ export type MoveRefusal =
   | 'impassable'
   | 'not-enough-actions';
 
-export type ActionResult =
-  | { readonly ok: true; readonly state: GameState }
-  | { readonly ok: false; readonly reason: MoveRefusal };
+export type ActionResult<S extends GameStateView = GameStateView> =
+  { readonly ok: true; readonly state: S } | { readonly ok: false; readonly reason: MoveRefusal };
 
 /** How a character can enter a place. */
 export interface Entry {
@@ -35,31 +34,32 @@ export interface Entry {
 /**
  * Whether and how a character may enter a hex, ignoring reachability and actions.
  * The creature's footprint hexes are not hexes to stand on (the creature is
- * entered as a whole, by boarding). Gear will plug in here, returning a `via`.
+ * entered as a whole, by boarding). A hex whose terrain the state does not know
+ * cannot be entered. Gear will plug in here, returning a `via`.
  */
-export const entryInto = (state: GameState, h: Hex): Entry | null => {
+export const entryInto = (state: GameStateView, h: Hex): Entry | null => {
   if (isCreatureHex(state, h)) return null;
-  const terrain = terrainAt(state.seed, h);
-  if (!terrain.passable) return null;
+  const terrain = terrainOf(state, h);
+  if (!terrain?.passable) return null;
   return { cost: state.config.moveCost + terrain.extraMoveCost };
 };
 
 /** Whether and how a character may enter a place. Boarding the creature is one normal step. */
-export const entryToPlace = (state: GameState, place: Place): Entry | null =>
+export const entryToPlace = (state: GameStateView, place: Place): Entry | null =>
   place.kind === 'creature' ? { cost: state.config.moveCost } : entryInto(state, place.hex);
 
 /** A hex can be stood on: passable and not under the creature. */
-export const isPassable = (state: GameState, h: Hex): boolean => entryInto(state, h) !== null;
+export const isPassable = (state: GameStateView, h: Hex): boolean => entryInto(state, h) !== null;
 
 /** Whether a place is in reach: the creature always is (the window is centred on it). */
-export const isPlaceReachable = (state: GameState, place: Place): boolean =>
+export const isPlaceReachable = (state: GameStateView, place: Place): boolean =>
   place.kind === 'creature' || isReachable(state, place.hex);
 
 export type CharacterLookup =
   | { readonly ok: true; readonly index: number; readonly character: Character }
   | { readonly ok: false; readonly reason: 'unknown-character' | 'character-lost' };
 
-export const activeCharacter = (state: GameState, characterId: string): CharacterLookup => {
+export const activeCharacter = (state: GameStateView, characterId: string): CharacterLookup => {
   const index = state.characters.findIndex((c) => c.id === characterId);
   const character = state.characters[index];
   if (!character) return { ok: false, reason: 'unknown-character' };
@@ -72,7 +72,11 @@ export const activeCharacter = (state: GameState, characterId: string): Characte
  * beside it (any footprint hex means the creature), or off the creature onto a
  * hex beside it.
  */
-export const move = (state: GameState, characterId: string, to: Hex | Place): ActionResult => {
+export const move = <S extends GameStateView>(
+  state: S,
+  characterId: string,
+  to: Hex | Place,
+): ActionResult<S> => {
   const target = toPlace(state, to);
   if (!target) return { ok: false, reason: 'invalid-hex' };
   const found = activeCharacter(state, characterId);
@@ -90,7 +94,7 @@ export const move = (state: GameState, characterId: string, to: Hex | Place): Ac
 };
 
 /** The places a character can move to with one step right now. */
-export const legalMoves = (state: GameState, characterId: string): Place[] => {
+export const legalMoves = (state: GameStateView, characterId: string): Place[] => {
   const character = state.characters.find((c) => c.id === characterId);
   if (!character) return [];
   return placeNeighbours(state, character.at).filter((p) => move(state, characterId, p).ok);

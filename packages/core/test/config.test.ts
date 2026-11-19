@@ -9,6 +9,7 @@ describe('tuning config', () => {
       creatureRadius: 1,
       windowRadius: 5,
       graceDays: 1,
+      lostTileRings: 4,
       playerCap: 15,
       veerWeights: { left: 1, straight: 2, right: 1 },
     });

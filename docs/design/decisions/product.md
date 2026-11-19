@@ -12,6 +12,14 @@ ID: `2026-11-19-role-emblems-share-one-frame-icons` · Status: current
 
 **Reasoning.** The join drawer shows characters and roles with names as the only text, so icons must carry the meaning, read at 32 px and look like one set. Fifteen riders on the creature's back must tell apart at a glance; seeding by id keeps a character's look stable, and assigning in join order keeps it stable as others join.
 
+## 2026-11-19: Character choices are rolled from the game, the player and the attempt; players pick by index
+
+ID: `2026-11-19-character-choices-are-rolled-from-the` · Status: current
+
+**Decision.** `characterChoices(state, userId)` returns two or three characters, each with a generated name, a trait and a quirk (none repeated), followed by a plain one with a name only. The roll is seeded by the game seed, the user id and the number of characters that user has had, so a reload shows the same list and a replacement gets a fresh one. `addCharacter` and `replaceCharacter` take the index of the chosen entry and roll again on the server, so a client cannot invent a trait. Character ids are `<userId>.<attempt>`. The cap counts active characters only, so a lost character frees a place.
+
+**Reasoning.** Picking by index keeps the server authoritative over what was rolled. Because rolls need the seed, the server must send the choices to the joining player: the contract needs a field or a call for them.
+
 ## 2026-11-19: Popovers point at their subject; grace-day tiles and figures warn without words
 
 ID: `2026-11-19-popovers-point-at-their-subject-grace` · Status: current

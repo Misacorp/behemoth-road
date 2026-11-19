@@ -4,9 +4,25 @@ Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: Games pin their content version and prune lost tiles beyond four rings
+
+ID: `2026-11-19-games-pin-their-content-version-and` · Status: current
+
+**Decision.** A game records `contentVersion` (`CONTENT_VERSION` in `content/version.ts`; bump it when a content change would alter or break stored games). `loadGame` refuses a stored state whose version this code does not know, or one without its seed. Each tick drops lost tiles more than `lostTileRings` (config, 4) beyond the window, except a tile under a character, so a game's state stays bounded: at most the hexes within nine of the creature, about 270, plus one per lost character.
+
+**Reasoning.** Reading a game with the wrong content would silently change its map or its characters. The web draws the fog four rings beyond the window and under lost characters, so nothing further is needed. A pruned hex reads as hidden; if the window ever reaches it again, it is seen afresh with the same terrain.
+
+## 2026-11-19: Rules read a seedless view; tiles carry their terrain
+
+ID: `2026-11-19-rules-read-a-seedless-view-tiles` · Status: current · Amends: `2026-11-19-the-server-keeps-the-seed-clients`
+
+**Decision.** The core splits its state into `GameStateView` (everything a player may see) and `GameState` (the view plus the seed, server only). Every tile in `tiles` records its terrain id when it is first seen. Rules read terrain through `terrainOf`: known tiles first, generation only when the state has a seed. So every rule a client needs takes a view and gives the same result as on the server, and an unknown hex has no terrain on a view and cannot be entered. `toPlayerView` lists the view's fields one by one, so a server-only field added later is not sent by default. `chooseCreatureStep`, and therefore `nextDay`, refuse a state without a seed at runtime as well as in the types.
+
+**Reasoning.** This keeps one set of rules for client and server without sending the seed. Storing terrain per known tile costs a few bytes per tile and keeps the view independent of the seed. A test checks that two seeds with the same known world give identical views.
+
 ## 2026-11-19: The server keeps the seed; clients get a player view with known terrain
 
-ID: `2026-11-19-the-server-keeps-the-seed-clients` · Status: current
+ID: `2026-11-19-the-server-keeps-the-seed-clients` · Status: current, amended by `2026-11-19-rules-read-a-seedless-view-tiles`
 
 **Decision.** From Milestone 2 the game seed never leaves the server. Clients receive a player view: the core state without the seed, with the terrain of every known tile included, so they can draw the map and plan paths with the core. The core reads terrain from known tiles first and generates new tiles only on the server. Clients refresh the view after their own actions, on becoming visible and every 30 seconds while visible; a version number makes an unchanged view cheap. The contract is in `docs/design/m2-session.md`.
 

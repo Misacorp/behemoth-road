@@ -4,12 +4,16 @@
 
 import { type ConfigOverrides, resolveConfig } from './config.ts';
 import { type Direction, DIRECTIONS, type Hex, isValidHex } from './hex.ts';
+import { CONTENT_VERSION } from './content/index.ts';
 import { ON_CREATURE } from './places.ts';
 import type { GameState } from './state.ts';
 import { updateTiles } from './window.ts';
 
 export interface CreateGameOptions {
-  /** One character per id, all starting on the creature, riding it. Up to the player cap. */
+  /**
+   * Plain characters for tests and local play: one per id, its own user, all riding
+   * the creature. Real players join with `addCharacter`.
+   */
   readonly characterIds?: readonly string[];
   readonly config?: ConfigOverrides;
   /** The creature's general heading. Default north. */
@@ -19,6 +23,9 @@ export interface CreateGameOptions {
 }
 
 const MAX_ID_LENGTH = 64;
+
+/** The role given to characters made by `characterIds`. */
+const DEV_ROLE = 'scout';
 
 export const createGame = (seed: number, options: CreateGameOptions = {}): GameState => {
   if (!Number.isInteger(seed) || seed < 0 || seed > 0xffffffff) {
@@ -38,13 +45,20 @@ export const createGame = (seed: number, options: CreateGameOptions = {}): GameS
 
   const day = 1;
   return {
+    contentVersion: CONTENT_VERSION,
     seed,
     day,
     config,
     creature: { centre, heading },
-    tiles: updateTiles({}, centre, day, config),
+    tiles: updateTiles({}, centre, day, config, seed),
     characters: ids.map((id) => ({
       id,
+      userId: id,
+      name: id,
+      traitId: null,
+      quirkId: null,
+      roleId: DEV_ROLE,
+      joinedDay: day,
       at: ON_CREATURE,
       actionsLeft: config.actionsPerDay,
       status: 'active',
