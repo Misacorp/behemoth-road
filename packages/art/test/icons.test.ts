@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { assignLooks, characterLookFor, drawCharacter } from '../src/character.ts';
+import { drawCreatureIcon, GENTLE_AMBLER } from '../src/creature.ts';
 import { drawIcon, hasIcon, ICON_MOTIFS, ROLE_IDS } from '../src/icons.ts';
 import { PALETTES, paletteColours, SPRING } from '../src/palette.ts';
 import { el, toSvgString, walk, type SvgNode } from '../src/svg.ts';
@@ -58,17 +59,28 @@ describe('icons', () => {
 });
 
 describe('character looks', () => {
-  it('are seeded by id: the same id always looks the same', () => {
-    expect(characterLookFor('ada')).toEqual(characterLookFor('ada'));
+  it('are seeded: the same seed always looks the same', () => {
+    expect(characterLookFor(41)).toEqual(characterLookFor(41));
   });
 
   it('give fifteen characters fifteen different accent, headwear and garment combinations', () => {
-    const ids = Array.from({ length: 15 }, (_, i) => `c${i}`);
+    const ids = Array.from({ length: 15 }, (_, i) => 900 + i * 31);
     const looks = assignLooks(ids);
     const keys = looks.map(({ accent, look }) => `${accent}|${look.headwear}|${look.garment}`);
     expect(new Set(keys).size).toBe(15);
     // A character keeps its look when characters join after it.
     expect(assignLooks(ids.slice(0, 5))).toEqual(looks.slice(0, 5));
+  });
+
+  it('preview an offer exactly as the look it gets on joining', () => {
+    const party = [3, 17, 256];
+    const offer = 99;
+    const preview = assignLooks([...party, offer]).at(-1);
+    const joined = assignLooks([...party, offer])[party.length];
+    expect(preview).toEqual(joined);
+    // Two offers previewed against the same party may coincide; once one joins, the next is kept distinct.
+    const after = assignLooks([...party, offer, offer]);
+    expect(after[4]).not.toEqual(after[3]);
   });
 
   it('draw every look within the palette and with no bad numbers', () => {
@@ -87,6 +99,25 @@ describe('character looks', () => {
           for (const c of colours(svg)) expect(allowed.has(c), c).toBe(true);
         }
       }
+    }
+  });
+});
+
+describe('creature icon', () => {
+  it('keeps the ink at about the same screen width at any size', () => {
+    const screenInk = (px: number): number => {
+      const svg = drawCreatureIcon(SPRING, GENTLE_AMBLER, px);
+      const side = Number(String(svg.attrs.viewBox).split(' ')[2]);
+      let widest = 0;
+      walk(svg, (n) => {
+        if (n.attrs.stroke === SPRING.ink)
+          widest = Math.max(widest, Number(n.attrs['stroke-width']));
+      });
+      return (widest * px) / side;
+    };
+    for (const px of [32, 56, 96]) {
+      expect(screenInk(px), `${px}px`).toBeGreaterThan(0.9);
+      expect(screenInk(px), `${px}px`).toBeLessThan(1.6);
     }
   });
 });

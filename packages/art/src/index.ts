@@ -21,11 +21,13 @@ export {
 } from './icons.ts';
 export {
   drawCreature,
+  drawCreatureIcon,
   GENTLE_AMBLER,
   inFootprint,
   riderAnchor,
   riderSlot,
   type CreatureArt,
+  type CreatureIconOptions,
   type CreatureLook,
 } from './creature.ts';
 export {

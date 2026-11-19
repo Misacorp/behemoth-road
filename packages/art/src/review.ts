@@ -261,10 +261,12 @@ function iconSheet(): string {
 }
 
 const LINEUP_IDS = Array.from({ length: 15 }, (_, i) => `character-${i + 1}`);
+/** Look seeds for the line-up, as content would give them. */
+const LINEUP_SEEDS = LINEUP_IDS.map((_, i) => 1000 + i * 7919);
 
 /** Fifteen rolled characters side by side, as the map draws them, larger. */
 function lineupSheet(): string {
-  const looks = assignLooks(LINEUP_IDS);
+  const looks = assignLooks(LINEUP_SEEDS);
   const perRow = 8;
   const cell = 96;
   const nodes = looks.flatMap(
@@ -284,7 +286,7 @@ function lineupSheet(): string {
 
 /** The same fifteen riding the creature, at the map's size. */
 function ridersSheet(): string {
-  const looks = assignLooks(LINEUP_IDS);
+  const looks = assignLooks(LINEUP_SEEDS);
   const cells: ArtCell[] = [];
   for (let q = -2; q <= 2; q += 1) {
     for (let r = -2; r <= 2; r += 1) {

@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-19: Character looks come from content's look seeds, so a preview matches the joined look
+
+ID: `2026-11-19-character-looks-come-from-content-s` · Status: current · Amends: `2026-11-19-role-emblems-share-one-frame-icons`
+
+**Decision.** `assignLooks` takes the public `lookSeed`s of the party's characters in join order (not ids), and `characterLookFor` takes a seed. A join preview is `assignLooks([...partySeeds, offerSeed]).at(-1)`, which is exactly the look the character gets on joining; earlier characters keep their looks and the party stays distinct. Icons of the creature come from `drawCreatureIcon(palette, look, px)`, which picks the ink for the size shown (about 1.1 px), so it stays light from a button to a 96 px page.
+
+**Reasoning.** The core gives offers and characters a public look seed so the look is the same from the join preview to the map. The fixed ink of the creature icon looked heavy at 96 px.
+
 ## 2026-11-19: Icons follow content's icon keys; quirks sit on a split tile
 
 ID: `2026-11-19-icons-follow-content-s-icon-keys` · Status: current · Amends: `2026-11-19-role-emblems-share-one-frame-icons`
@@ -14,7 +22,7 @@ ID: `2026-11-19-icons-follow-content-s-icon-keys` · Status: current · Amends: 
 
 ## 2026-11-19: Role emblems share one frame; icons are drawn by key; characters vary by seeded look
 
-ID: `2026-11-19-role-emblems-share-one-frame-icons` · Status: current, amended by `2026-11-19-icons-follow-content-s-icon-keys`
+ID: `2026-11-19-role-emblems-share-one-frame-icons` · Status: current, amended by `2026-11-19-character-looks-come-from-content-s`, `2026-11-19-icons-follow-content-s-icon-keys`
 
 **Decision.** The art kit draws icons by key with `drawIcon(id, palette, size)`, a self-contained `<svg>` on a 48-unit grid; unknown keys draw a neutral dotted mark. The six role emblems (`role:scout` … `role:envoy`) share one frame, round or shield (Misa picks; round is the default until then), each with its own tint and an ink motif: spyglass, open book, herb sprig, upright sword, cog, sealed scroll. Trait and quirk icons register under `trait:…` and `quirk:…` as content gains them. Characters take a look from data, `{ headwear, garment, carry, skin }`; `characterLookFor(id)` seeds one by id, and `assignLooks(ids)` gives characters in join order distinct accent, headwear and garment combinations (8 accents × 4 × 3). The palettes gain four accents (sage, slate, coral, sky) and three skin tones. A character without a look draws as the default explorer, so the current app is unchanged until it passes looks.
 

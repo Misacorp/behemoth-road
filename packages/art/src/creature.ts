@@ -763,3 +763,59 @@ export function inFootprint(
   const dr = hex.r - creature.r;
   return (Math.abs(dq) + Math.abs(dr) + Math.abs(dq + dr)) / 2 <= 1;
 }
+
+export interface CreatureIconOptions {
+  /** Plane squash of the view it is drawn at (default 0.8, the map's). */
+  readonly squash?: number;
+  /** Which way it walks (default towards the viewer, so its face shows). */
+  readonly heading?: { readonly q: number; readonly r: number };
+  /** Ink line width on screen, in px, whatever the icon's size (default 1.1). */
+  readonly inkPx?: number;
+  /** Space around the drawing, as a share of its size (default 0.04). */
+  readonly pad?: number;
+}
+
+/**
+ * The creature as a square, self-contained `<svg>` icon of `px` px. The ink is chosen for the size it is
+ * shown at, so lines stay light from a 32 px button to a 96 px page.
+ */
+export function drawCreatureIcon(
+  palette: Palette,
+  look: CreatureLook,
+  px: number,
+  options: CreatureIconOptions = {},
+): SvgNode {
+  const size = Number.isFinite(px) && px > 0 ? px : 48;
+  const squash = options.squash ?? 0.8;
+  const heading = options.heading ?? { q: 0, r: 1 };
+  const unit = 14;
+  // First pass to measure, then the ink that lands at `inkPx` once the drawing is fitted to `size`.
+  const probe = drawCreature(palette, look, { x: 0, y: 0 }, unit, squash, 1, heading);
+  const span = (b: { x0: number; y0: number; x1: number; y1: number }): number =>
+    Math.max(b.x1 - b.x0, b.y1 - b.y0);
+  const pad = options.pad ?? 0.04;
+  const scale = size / (span(probe.box) * (1 + pad * 2));
+  const inkPx = options.inkPx ?? 1.1;
+  const drawn = drawCreature(
+    palette,
+    look,
+    { x: 0, y: 0 },
+    unit,
+    squash,
+    inkPx / scale / 1.15,
+    heading,
+  );
+  const { x0, y0, x1, y1 } = drawn.box;
+  const side = span(drawn.box) * (1 + pad * 2);
+  const x = (x0 + x1) / 2 - side / 2;
+  const y = (y0 + y1) / 2 - side / 2;
+  return el(
+    'svg',
+    {
+      viewBox: `${x.toFixed(2)} ${y.toFixed(2)} ${side.toFixed(2)} ${side.toFixed(2)}`,
+      width: size,
+      height: size,
+    },
+    drawn.nodes,
+  );
+}
