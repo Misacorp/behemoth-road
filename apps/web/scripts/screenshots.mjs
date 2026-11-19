@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* global URL, console, process, window, document, performance, requestAnimationFrame, MouseEvent */
+/* global URL, console, process, window, document, performance, requestAnimationFrame, MouseEvent, setTimeout */
 /**
  * Screenshots and browser checks for the web client, written to screenshots/ at the repo root (gitignored).
  *
@@ -209,6 +209,45 @@ async function run() {
       await page.goto(url);
       await page.waitForSelector('[data-state=outside]');
       await page.screenshot({ path: join(out, 'm2-outside-discord.png') });
+
+      // A failed start: the config answers 502 once. The page shows the failure with its code; the retry
+      // really runs the boot again (the button turns meanwhile) and reaches the next state.
+      let configCalls = 0;
+      await page.unroute((u) => u.pathname.startsWith('/api/'));
+      await page.route(
+        (u) => u.pathname.startsWith('/api/'),
+        async (r) => {
+          if (new URL(r.request().url()).pathname === '/api/config' && configCalls++ === 0) {
+            await new Promise((ok) => setTimeout(ok, 0));
+            return r.fulfill({ status: 502, contentType: 'application/json', body: '{}' });
+          }
+          if (new URL(r.request().url()).pathname === '/api/config') {
+            // Slow enough to see the busy state.
+            await new Promise((ok) => setTimeout(ok, 400));
+          }
+          return fake.route(r);
+        },
+      );
+      const quiet = problems.length;
+      await page.goto(url);
+      await page.waitForSelector('[data-state=failed]');
+      const code = await page.locator('.state-code').textContent();
+      if (code !== 'config: 502') problems.push(`built: failure code was ${String(code)}`);
+      await page.screenshot({ path: join(out, 'm2-start-failed.png') });
+      await page.locator('[aria-label=Retry]').click();
+      await page.waitForSelector('.state-retry.is-busy', { timeout: 300 }).catch(() => {
+        problems.push('built: retry shows no busy state');
+      });
+      await page.waitForSelector('[data-state=outside]', { timeout: 5000 }).catch(() => {
+        problems.push('built: retry did not re-run the boot');
+      });
+      if (configCalls !== 2) problems.push(`built: config asked ${String(configCalls)} times`);
+      // The 502 itself logs a console error; that one is expected.
+      problems.splice(
+        quiet,
+        problems.length - quiet,
+        ...problems.slice(quiet).filter((p) => !/502/.test(p)),
+      );
       await context.close();
       for (const file of readdirSync(join(dist, 'assets'))) {
         const text = readFileSync(join(dist, 'assets', file), 'utf8');

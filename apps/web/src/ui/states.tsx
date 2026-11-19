@@ -32,20 +32,38 @@ export function OpenFromDiscord(): JSX.Element {
   );
 }
 
-/** The start failed (network, server): a torn mark and a retry button. */
-export function StartFailed({ onRetry }: { onRetry: () => void }): JSX.Element {
+/**
+ * The start failed (network, server, Discord): a torn mark and a retry button that turns while a retry
+ * runs. On staging and locally, a short machine code under it names the failing step (text only).
+ */
+export function StartFailed({
+  onRetry,
+  code,
+  busy,
+}: {
+  onRetry: () => void;
+  code: string | null;
+  busy: boolean;
+}): JSX.Element {
   return (
-    <main class="state" data-state="failed">
+    <main class="state" data-state="failed" aria-busy={busy}>
       <svg viewBox="0 0 64 64" class="state-mark" aria-hidden="true">
         <path d="M14 10h36v44H14Z" {...line} fill={PALETTE.paperDeep} />
         <path d="M14 30l8 4 6-6 8 6 6-4 8 4" {...line} />
       </svg>
-      <button type="button" class="round" aria-label="Retry" onClick={onRetry}>
+      <button
+        type="button"
+        class={busy ? 'round state-retry is-busy' : 'round state-retry'}
+        aria-label="Retry"
+        disabled={busy}
+        onClick={onRetry}
+      >
         <svg viewBox="0 0 32 32" aria-hidden="true">
           <path d="M24.5 11.5A10 10 0 1 0 26 18" {...line} />
           <path d="M25.5 5.5v6.5H19" {...line} />
         </svg>
       </button>
+      {code !== null && <code class="state-code">{code}</code>}
     </main>
   );
 }

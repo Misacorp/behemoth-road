@@ -31,7 +31,11 @@ export interface DiscordApi {
  * Messages are fixed strings: never put Discord response bodies or tokens in them.
  */
 export class DiscordError extends Error {
-  constructor(readonly kind: 'auth_failed' | 'unavailable') {
+  constructor(
+    readonly kind: 'auth_failed' | 'unavailable',
+    /** For logs: Discord's HTTP status, `network` or `bad body`. Never a body, token or id. */
+    readonly detail: string = '',
+  ) {
     super(`discord_${kind}`);
     this.name = 'DiscordError';
   }
@@ -60,7 +64,7 @@ async function sendRequest(
     return await doFetch(url, { ...init, signal: AbortSignal.timeout(timeoutMs) });
   } catch {
     // Network error or timeout. Details are dropped on purpose.
-    throw new DiscordError('unavailable');
+    throw new DiscordError('unavailable', 'network');
   }
 }
 
@@ -72,11 +76,11 @@ async function parseResponse<S extends v.GenericSchema>(
   try {
     body = await res.json();
   } catch {
-    throw new DiscordError('unavailable');
+    throw new DiscordError('unavailable', 'bad body');
   }
   const result = v.safeParse(schema, body);
   if (!result.success) {
-    throw new DiscordError('unavailable');
+    throw new DiscordError('unavailable', 'bad body');
   }
   return result.output;
 }
@@ -98,8 +102,8 @@ export function createDiscordApi(config: DiscordConfig): DiscordApi {
           code,
         }),
       });
-      if (isTransient(res.status)) throw new DiscordError('unavailable');
-      if (!res.ok) throw new DiscordError('auth_failed');
+      if (isTransient(res.status)) throw new DiscordError('unavailable', String(res.status));
+      if (!res.ok) throw new DiscordError('auth_failed', String(res.status));
       return (await parse(res, DiscordTokenResponseSchema)).access_token;
     },
 
@@ -107,8 +111,8 @@ export function createDiscordApi(config: DiscordConfig): DiscordApi {
       const res = await send(`${API_BASE}/users/@me`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-      if (isTransient(res.status)) throw new DiscordError('unavailable');
-      if (!res.ok) throw new DiscordError('auth_failed');
+      if (isTransient(res.status)) throw new DiscordError('unavailable', String(res.status));
+      if (!res.ok) throw new DiscordError('auth_failed', String(res.status));
       return parse(res, DiscordUserSchema);
     },
 
@@ -117,7 +121,7 @@ export function createDiscordApi(config: DiscordConfig): DiscordApi {
       const res = await send(url, { headers: { Authorization: `Bot ${config.botToken}` } });
       if (res.status === 404) return null;
       // Any other failure here (including 401/403) is our configuration, not the player's fault.
-      if (!res.ok) throw new DiscordError('unavailable');
+      if (!res.ok) throw new DiscordError('unavailable', String(res.status));
       return parse(res, ActivityInstanceSchema);
     },
   };
@@ -168,14 +172,14 @@ export function createGuildApi(config: GuildApiConfig): GuildApi {
       checkIds(guildId);
       const res = await get(`/guilds/${guildId}`);
       // 401/403/404 here mean the bot is not in the guild or its token is wrong: our configuration.
-      if (!res.ok) throw new DiscordError('unavailable');
+      if (!res.ok) throw new DiscordError('unavailable', String(res.status));
       return (await parseResponse(res, DiscordGuildSchema)).owner_id;
     },
 
     async getGuildRoles(guildId) {
       checkIds(guildId);
       const res = await get(`/guilds/${guildId}/roles`);
-      if (!res.ok) throw new DiscordError('unavailable');
+      if (!res.ok) throw new DiscordError('unavailable', String(res.status));
       return parseResponse(res, DiscordRolesSchema);
     },
 
@@ -183,7 +187,7 @@ export function createGuildApi(config: GuildApiConfig): GuildApi {
       checkIds(guildId, userId);
       const res = await get(`/guilds/${guildId}/members/${userId}`);
       if (res.status === 404) return null;
-      if (!res.ok) throw new DiscordError('unavailable');
+      if (!res.ok) throw new DiscordError('unavailable', String(res.status));
       return parseResponse(res, DiscordMemberSchema);
     },
   };

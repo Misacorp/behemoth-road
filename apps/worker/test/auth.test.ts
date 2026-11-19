@@ -1,6 +1,6 @@
 import { env } from 'cloudflare:workers';
 import { listDurableObjectIds } from 'cloudflare:test';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { createHandler } from '../src/index.ts';
 import { SERVER_CONFIG } from '../src/server-config.ts';
 import { parseSessionToken } from '../src/session.ts';
@@ -93,6 +93,39 @@ describe('POST /api/auth/session', () => {
     expect(await res.json()).toEqual({ error: 'discord_auth_failed' });
     const down = setup({ instanceError: new DiscordError('unavailable') });
     expect((await postAuth(down.handler, validBody)).status).toBe(503);
+  });
+
+  it('logs one line per failure with the step and Discord status, never a token, code or id', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    try {
+      await postAuth(
+        setup({ exchangeError: new DiscordError('auth_failed', '401') }).handler,
+        validBody,
+      );
+      await postAuth(
+        setup({ userError: new DiscordError('unavailable', '502') }).handler,
+        validBody,
+      );
+      await postAuth(
+        setup({ instanceError: new DiscordError('unavailable', '403') }).handler,
+        validBody,
+      );
+      await postAuth(setup({ instance: null }).handler, validBody);
+      const lines = warn.mock.calls.map((c) => c.join(' '));
+      expect(lines).toEqual([
+        'auth: token exchange 401',
+        'auth: user lookup 502',
+        'auth: instance lookup 403',
+        'auth: instance lookup 404',
+      ]);
+      for (const line of lines) {
+        for (const secret of ['oauth-code', 'instance-1', ACCESS_TOKEN, USER_ID]) {
+          expect(line).not.toContain(secret);
+        }
+      }
+    } finally {
+      warn.mockRestore();
+    }
   });
 
   it('refuses an unknown instance, a DM launch and a user outside the instance', async () => {
