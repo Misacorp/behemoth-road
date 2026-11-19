@@ -15,7 +15,9 @@
  */
 
 import {
+  appetiteOf,
   creatureType,
+  MAX_SIGN_LEVEL,
   FOOD_TAG,
   firstWithTag,
   nourishment,
@@ -58,8 +60,8 @@ const careAfter = (
     .map((s) => ({ hex: s.hex, stimulus: s.type, reaction: reactionTo(state.nature, s) }));
   let satiety = Math.max(0, state.care.satiety - hunger.drainPerDay);
   let stores = state.stores;
-  // Underfed level 3: three or more below the comfortable band.
-  if (satiety <= hunger.comfortable.min - 3) {
+  const drained = appetiteOf({ ...state, care: { ...state.care, satiety } });
+  if (drained?.kind === 'underfed' && drained.level === MAX_SIGN_LEVEL) {
     const meal = starvingMeal(state, stores);
     if (meal) {
       const left = (stores[meal] ?? 0) - 1;

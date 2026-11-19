@@ -67,6 +67,8 @@ export const reactionTo = (nature: Nature, stimulus: Stimulus): Reaction => {
 
 export type AppetiteKind = 'underfed' | 'overfed';
 export type SignLevel = 1 | 2 | 3;
+/** The strongest appetite level (a starving creature eats from the stores). */
+export const MAX_SIGN_LEVEL: SignLevel = 3;
 
 export interface Appetite {
   readonly kind: AppetiteKind;
@@ -80,7 +82,7 @@ export interface Appetite {
 export const appetiteOf = (state: GameState): Appetite | null => {
   const { comfortable } = creatureType(state.nature.type).hunger;
   const satiety = state.care.satiety;
-  const level = (by: number): SignLevel => Math.min(3, by) as SignLevel;
+  const level = (by: number): SignLevel => Math.min(MAX_SIGN_LEVEL, by) as SignLevel;
   if (satiety < comfortable.min)
     return { kind: 'underfed', level: level(comfortable.min - satiety) };
   if (satiety > comfortable.max)

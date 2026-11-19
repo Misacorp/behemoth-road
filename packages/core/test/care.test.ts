@@ -61,11 +61,27 @@ describe('the hidden nature', () => {
     let state = withFire(withSatiety(base(), 2), LEFT_FIRE);
     state = nextDay(state);
     expect(state.care.cues.list).toHaveLength(1);
-    const json = JSON.stringify(toPlayerView(state));
-    for (const word of ['nature', 'care', 'satiety', 'reactions', 'cues', 'mossback']) {
-      expect(json).not.toContain(word);
-    }
-    expect(json).not.toContain(`"${state.nature.reactions.fire}"`);
+    const view0 = JSON.parse(JSON.stringify(toPlayerView(state))) as Record<string, unknown>;
+    expect(Object.keys(view0).sort()).toEqual([
+      'artSeed',
+      'characters',
+      'config',
+      'contentVersion',
+      'creature',
+      'day',
+      'features',
+      'project',
+      'stimuli',
+      'stores',
+      'tiles',
+      'unlocks',
+    ]);
+    expect(Object.keys(view0.creature as object).sort()).toEqual([
+      'centre',
+      'heading',
+      'lingeredDay',
+      'lingering',
+    ]);
     const view = toPlayerView(withFire(state, LEFT_FIRE));
     expect(view.stimuli).toEqual([{ type: 'fire', hex: LEFT_FIRE, litDay: state.day }]);
     expect(view.creature).toMatchObject({ lingering: false, lingeredDay: null });
