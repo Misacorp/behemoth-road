@@ -289,7 +289,7 @@ const QUIRK_ICONS = [
   'feet',
   'feather',
   'owl',
-  'stone',
+  'boulder',
   'key',
   'charm',
   'jar',

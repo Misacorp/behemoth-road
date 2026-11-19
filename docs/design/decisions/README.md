@@ -103,7 +103,8 @@ Record a decision:
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
-- 2026-11-20 Features, glints, moments and the via mark are drawn by the art kit from content keys
+- 2026-11-20 The Stubborn quirk's icon is a boulder, so icon keys never clash
+- 2026-11-20 Features, glints, moments and the via mark are drawn by the art kit from content keys (amended)
 - 2026-11-19 Joining is a drawer wizard; characters look distinct on the map
 - 2026-11-19 Character looks come from content's look seeds, so a preview matches the joined look
 - 2026-11-19 Icons follow content's icon keys; quirks sit on a split tile

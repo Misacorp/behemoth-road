@@ -235,7 +235,7 @@ export const MOTIFS: Readonly<Record<string, IconMotif>> = {
     solid(pal, 'M24 24l-1.6 2.6h3.2z', pal.accents.ochre.base, 1.2),
     ink(pal, 'M19 30l2 2M24 31v2M29 30l-2 2', 1.3, pal.inkSoft),
   ],
-  stone: (pal) => [
+  boulder: (pal) => [
     solid(pal, 'M12 30c0-7 5-14 13-14s11 6 11 12-4 8-12 8-12-1-12-6z', pal.ramps.rock.light),
     solid(pal, 'M24 36c6 0 12-1 12-8 0-2 0-3-1-5-2 6-6 9-11 13z', pal.ramps.rock.shade, 0),
     ink(pal, 'M12 30c0-7 5-14 13-14s11 6 11 12-4 8-12 8-12-1-12-6z'),
