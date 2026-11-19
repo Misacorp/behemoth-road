@@ -1,6 +1,6 @@
 import { isometric, MORNING, renderScene, samplePatch } from '@behemoth-road/art';
 import { describe, expect, it } from 'vitest';
-import { placePopover, splitScene } from './compose.ts';
+import { chevronFor, placePopover, splitScene } from './compose.ts';
 
 describe('scene layers', () => {
   it('splits the ground from the figures layer, keeping every node', () => {
@@ -46,5 +46,38 @@ describe('popover placement', () => {
     expect(right.x + right.width).toBe(380);
     const bottom = placePopover({ x: 200, y: 900 }, 40, size, screen, 10);
     expect(bottom.y + bottom.height).toBeLessThanOrEqual(834);
+  });
+});
+
+describe('popover chevron', () => {
+  const tip = (d: string) => d.split('L')[1]!.split(' ').map(Number) as [number, number];
+  const screen = { width: 390, height: 844 };
+  const size = { width: 132, height: 76 };
+
+  it('points down at the thing from a card above it, at its x', () => {
+    const anchor = { x: 200, y: 400 };
+    const rect = placePopover(anchor, 40, size, screen, 10);
+    const c = chevronFor(rect, anchor, 40);
+    const [x, y] = tip(c.fill);
+    expect(rect.x + x).toBeCloseTo(200, 0);
+    expect(rect.y + y).toBeGreaterThan(rect.y + rect.height - 2);
+    expect(rect.y + y).toBeLessThanOrEqual(anchor.y);
+  });
+
+  it('points up from a card below the thing', () => {
+    const anchor = { x: 200, y: 50 };
+    const rect = placePopover(anchor, 40, size, screen, 10);
+    const [, y] = tip(chevronFor(rect, anchor, 40).fill);
+    expect(y).toBeLessThan(0);
+    expect(rect.y + y).toBeGreaterThanOrEqual(anchor.y + 40);
+  });
+
+  it('slides along the edge when the card is clamped, but stays clear of the corners', () => {
+    const near = { x: 30, y: 400 };
+    const rect = placePopover(near, 40, size, screen, 10);
+    expect(rect.x + tip(chevronFor(rect, near, 40).fill)[0]).toBeCloseTo(36, 0);
+    const edge = { x: 2, y: 400 };
+    const clamped = placePopover(edge, 40, size, screen, 10);
+    expect(tip(chevronFor(clamped, edge, 40).fill)[0]).toBe(26);
   });
 });

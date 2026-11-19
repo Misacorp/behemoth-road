@@ -15,7 +15,7 @@ import type { JSX } from 'preact';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { PALETTE, PROJECTION } from './art.ts';
 import { cellStateAt, characterArts, creatureArt, sceneCells } from './cells.ts';
-import { placePopover, splitScene } from './compose.ts';
+import { chevronFor, placePopover, splitScene } from './compose.ts';
 import { MAP_TUNING } from './config.ts';
 import { type Flow, isSelecting } from './flow.ts';
 import { GestureTracker, type Gesture } from './gestures.ts';
@@ -57,6 +57,8 @@ export interface MapViewProps {
   readonly onConfirm: () => void;
   /** The bubble's way into the hub was tapped. */
   readonly onOpenHub: () => void;
+  /** The map was right-clicked (the browser's menu is never shown over the map). */
+  readonly onRightClick: () => void;
   /** Recentre requests: a new `n` animates the view to the target. */
   readonly focus: { readonly target: FocusTarget; readonly n: number };
 }
@@ -149,6 +151,9 @@ export function MapView(props: MapViewProps): JSX.Element {
   const svgRef = useRef<SVGSVGElement>(null);
   const worldRef = useRef<SVGGElement>(null);
   const popRef = useRef<SVGGElement>(null);
+  // The popover's chevron: its path data is set with the card's position, every frame it moves.
+  const chevronFillRef = useRef<SVGPathElement>(null);
+  const chevronEdgeRef = useRef<SVGPathElement>(null);
   // The control that takes focus when a popover opens (the confirm button, the bubble's hub entry).
   const popoverFocusRef = useRef<SVGGElement | null>(null);
   const view = useRef<View>({ x: 0, y: 0, scale: 1 });
@@ -194,9 +199,10 @@ export function MapView(props: MapViewProps): JSX.Element {
       predicted: predictCreature(state),
       projection: p,
       palette: PALETTE,
+      zoom: inkZoom,
     });
     return { under: o.under.map(toPreact), over: o.over.map(toPreact) };
-  }, [state, flow, characterId]);
+  }, [state, flow, characterId, inkZoom]);
 
   popover.current = popoverAnchor(state, flow, characterId);
 
@@ -220,6 +226,9 @@ export function MapView(props: MapViewProps): JSX.Element {
         pop.prefer,
       );
       popRef.current.setAttribute('transform', `translate(${rect.x} ${rect.y})`);
+      const chevron = chevronFor(rect, toScreen(v, pop.top), pop.below * v.scale);
+      chevronFillRef.current?.setAttribute('d', chevron.fill);
+      chevronEdgeRef.current?.setAttribute('d', chevron.edge);
     }
   }
 
@@ -476,6 +485,10 @@ export function MapView(props: MapViewProps): JSX.Element {
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerCancel}
+      onContextMenu={(e) => {
+        e.preventDefault();
+        props.onRightClick();
+      }}
       onLostPointerCapture={onPointerCancel}
     >
       <rect width="100%" height="100%" fill={PALETTE.paper} />
@@ -497,6 +510,18 @@ export function MapView(props: MapViewProps): JSX.Element {
         }}
       >
         {card}
+        {card && (
+          <>
+            <path ref={chevronFillRef} fill={PALETTE.paper} />
+            <path
+              ref={chevronEdgeRef}
+              fill="none"
+              stroke={PALETTE.inkSoft}
+              stroke-width={1.2}
+              stroke-linejoin="round"
+            />
+          </>
+        )}
       </g>
     </svg>
   );
