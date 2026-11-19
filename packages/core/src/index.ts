@@ -20,15 +20,14 @@ export {
 } from './config.ts';
 export {
   FEATURE_TYPES,
-  ITEMS,
   MATERIALS,
-  RECIPES,
+  UNLOCKS,
   type FeatureType,
-  type Item,
-  type ItemMovement,
   type Material,
+  type Perk,
+  type Unlock,
+  type UnlockMovement,
   type NodeType,
-  type Recipe,
   type SiteType,
   type TrapType,
   BY_NAMES,
@@ -66,7 +65,8 @@ export type {
   GameState,
   GameStateView,
   FeatureState,
-  Inventory,
+  Materials,
+  Project,
   Place,
   TileKnowledge,
   Visibility,
@@ -118,7 +118,7 @@ export {
   toPlace,
 } from './places.ts';
 export { nextDay } from './tick.ts';
-export { createGame, EMPTY_INVENTORY, type CreateGameOptions } from './game.ts';
+export { createGame, type CreateGameOptions } from './game.ts';
 export {
   addCharacter,
   characterOffers,
@@ -133,12 +133,19 @@ export {
 export {
   isKnownContentVersion,
   loadGame,
-  migrateGame,
+  OutdatedGameError,
   toPlayerView,
   UnknownContentVersionError,
 } from './view.ts';
 export {
+  addMaterials,
+  depositPack,
   enterHex,
+  exploreHex,
+  isExplored,
+  packSize,
+  unlockTags,
+  type ExploreResult,
   featureType,
   generateFeature,
   hiddenFeatureKeys,
@@ -152,7 +159,6 @@ export {
   act,
   actionsHere,
   checkAction,
-  craftCost,
   possibleActions,
   type Action,
   type ActCheck,

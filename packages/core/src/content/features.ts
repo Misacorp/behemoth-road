@@ -36,7 +36,7 @@ export interface NodeType extends FeatureBase {
 export interface SiteType extends FeatureBase {
   readonly kind: 'site';
   readonly tier: 1 | 2;
-  /** Item tags the team must hold to work it (a tier-2 tomb needs `light`). */
+  /** Unlock tags the team must have to work it (a tier-2 tomb needs `light`). */
   readonly needs: readonly string[];
   /** What a successful working finds. */
   readonly finds: { readonly material: string; readonly amount: number };

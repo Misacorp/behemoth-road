@@ -1,6 +1,8 @@
 /**
- * Materials, items and recipes, as tagged data. The team shares one inventory.
- * Rules read tags and properties (`movement`, `unique`), never ids.
+ * Materials and unlocks, as tagged data. Materials travel in packs and team
+ * stores. Unlocks are permanent abilities or equipment for the whole team,
+ * built by engineers: a material cost taken from the stores when work starts,
+ * then `work` actions. Rules read tags and properties (`movement`), never ids.
  */
 
 export interface Material {
@@ -10,32 +12,23 @@ export interface Material {
   readonly icon: string;
 }
 
-export interface ItemMovement {
+export interface UnlockMovement {
   /** Lets every character enter hexes whose terrain has one of these tags… */
   readonly terrainTags: readonly string[];
-  /** …at this action cost. The cheapest item the team holds wins. */
+  /** …at this action cost. The cheapest unlock the team has wins. */
   readonly cost: number;
 }
 
-export interface Item {
+export interface Unlock {
   readonly id: string;
   readonly name: string;
   readonly tags: readonly string[];
   readonly icon: string;
-  /** The team needs only one; crafting another is refused. */
-  readonly unique: boolean;
-  readonly movement?: ItemMovement;
-}
-
-export interface Recipe {
-  readonly id: string;
-  /** The item it makes. */
-  readonly makes: string;
-  /** Tier 1: anyone can craft (non-specialists pay extra). Tier 2: specialists only. */
-  readonly tier: 1 | 2;
-  /** Materials used, in order; a non-specialist pays extra of the first one. */
-  readonly needs: readonly { readonly material: string; readonly amount: number }[];
-  readonly icon: string;
+  /** Materials taken from the team stores when work starts. */
+  readonly cost: readonly { readonly material: string; readonly amount: number }[];
+  /** Work to finish it: one engineer action is one work. */
+  readonly work: number;
+  readonly movement?: UnlockMovement;
 }
 
 export const MATERIALS: readonly Material[] = [
@@ -43,59 +36,44 @@ export const MATERIALS: readonly Material[] = [
   { id: 'stone', name: 'Stone', tags: ['stone'], icon: 'stone' },
   { id: 'timber', name: 'Timber', tags: ['wood'], icon: 'timber' },
   { id: 'ancient-alloy', name: 'Ancient alloy', tags: ['metal', 'rare', 'ancient'], icon: 'alloy' },
-  // A tier-1 tomb's find: no recipe uses it yet (the Envoy's trade, later).
+  // A tier-1 tomb's find: nothing uses it yet (the Envoy's trade, later).
   { id: 'old-coin', name: 'Old coin', tags: ['rare', 'ancient', 'trade'], icon: 'coin' },
 ];
 
-export const ITEMS: readonly Item[] = [
+export const UNLOCKS: readonly Unlock[] = [
   {
     id: 'grappling-hook',
     name: 'Grappling hook',
     tags: ['climb', 'rope'],
     icon: 'hook',
-    unique: true,
+    cost: [
+      { material: 'iron', amount: 2 },
+      { material: 'timber', amount: 1 },
+    ],
+    work: 4,
     movement: { terrainTags: ['steep'], cost: 2 },
+  },
+  {
+    id: 'lantern',
+    name: 'Lantern',
+    tags: ['light'],
+    icon: 'lantern',
+    cost: [
+      { material: 'stone', amount: 1 },
+      { material: 'timber', amount: 1 },
+    ],
+    work: 3,
   },
   {
     id: 'climbing-spikes',
     name: 'Climbing spikes',
     tags: ['climb'],
     icon: 'spikes',
-    unique: true,
-    movement: { terrainTags: ['steep'], cost: 1 },
-  },
-  { id: 'lantern', name: 'Lantern', tags: ['light'], icon: 'lantern', unique: true },
-];
-
-export const RECIPES: readonly Recipe[] = [
-  {
-    id: 'grappling-hook',
-    makes: 'grappling-hook',
-    tier: 1,
-    needs: [
-      { material: 'iron', amount: 2 },
-      { material: 'timber', amount: 1 },
-    ],
-    icon: 'hook',
-  },
-  {
-    id: 'lantern',
-    makes: 'lantern',
-    tier: 1,
-    needs: [
-      { material: 'stone', amount: 1 },
-      { material: 'timber', amount: 1 },
-    ],
-    icon: 'lantern',
-  },
-  {
-    id: 'climbing-spikes',
-    makes: 'climbing-spikes',
-    tier: 2,
-    needs: [
+    cost: [
       { material: 'ancient-alloy', amount: 1 },
       { material: 'iron', amount: 1 },
     ],
-    icon: 'spikes',
+    work: 6,
+    movement: { terrainTags: ['steep'], cost: 1 },
   },
 ];

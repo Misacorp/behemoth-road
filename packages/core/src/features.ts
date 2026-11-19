@@ -1,31 +1,60 @@
 /**
- * Features on hexes: generated on the server as hexes come into view, hidden
- * until someone enters, sensed by scouts as a glint. Roles are read by their
- * tags (`reveal` for the scout's perks), never by id.
+ * Features on hexes and exploring: features are generated on the server as hexes
+ * come into view, hidden until someone explores the hex (by entering or
+ * surveying it). Packs go into the team stores on the creature. Roles are read
+ * by their tags, never by id.
  */
 
-import { FEATURE_TYPES, FEATURE_WEIGHT_SCALE, type FeatureType, ROLES } from './content/index.ts';
-import { type Hex, hexDistance, hexesInRange, hexKey, neighbours } from './hex.ts';
+import {
+  FEATURE_TYPES,
+  FEATURE_WEIGHT_SCALE,
+  type FeatureType,
+  ROLES,
+  UNLOCKS,
+} from './content/index.ts';
+import { type Hex, hexKey, neighbours } from './hex.ts';
 import { terrainAt, terrainById } from './map.ts';
 import { hashString, hashToUnit, type Seed } from './random.ts';
-import type { Character, FeatureState, GameState, GameStateView, TileKnowledge } from './state.ts';
+import type {
+  Character,
+  FeatureState,
+  GameState,
+  GameStateView,
+  Materials,
+  TileKnowledge,
+} from './state.ts';
 
 const FEATURE_STREAM = hashString('feature');
 
 /** Something that happened, for the interface's short visual moments. */
 export type GameEvent =
+  | { readonly kind: 'explore'; readonly hex: Hex }
+  | { readonly kind: 'survey'; readonly hex: Hex; readonly characterId: string }
   | { readonly kind: 'reveal'; readonly hex: Hex; readonly feature: string }
-  | { readonly kind: 'sense'; readonly hex: Hex }
   | { readonly kind: 'trap'; readonly hex: Hex; readonly characterId: string }
   | {
       readonly kind: 'gather';
       readonly hex: Hex;
+      readonly characterId: string;
       readonly material: string;
       readonly amount: number;
     }
-  | { readonly kind: 'craft'; readonly item: string }
-  | { readonly kind: 'find'; readonly hex: Hex; readonly material: string; readonly amount: number }
-  | { readonly kind: 'site-failed'; readonly hex: Hex };
+  | {
+      readonly kind: 'find';
+      readonly hex: Hex;
+      readonly characterId: string;
+      readonly material: string;
+      readonly amount: number;
+    }
+  | { readonly kind: 'site-failed'; readonly hex: Hex; readonly characterId: string }
+  | { readonly kind: 'deposit'; readonly characterId: string; readonly materials: Materials }
+  | {
+      readonly kind: 'unlock-progress';
+      readonly unlock: string;
+      readonly work: number;
+      readonly needed: number;
+    }
+  | { readonly kind: 'unlock-done'; readonly unlock: string };
 
 export const featureType = (id: string): FeatureType => {
   const type = FEATURE_TYPES.find((t) => t.id === id);
@@ -33,7 +62,7 @@ export const featureType = (id: string): FeatureType => {
   return type;
 };
 
-/** Whether a character's role carries a tag (the scout's `reveal`, the engineer's `craft`…). */
+/** Whether a character's role carries a tag (the scout's `survey`, the engineer's `build`…). Perks waiting on an upgrade never count. */
 export const roleHas = (character: Character, tag: string): boolean =>
   ROLES.find((r) => r.id === character.role)?.tags.includes(tag) ?? false;
 
@@ -41,6 +70,9 @@ const keyToHex = (key: string): Hex => {
   const [q, r] = key.split(',').map(Number) as [number, number];
   return { q, r };
 };
+
+/** The sum of all placement weights: no hex can hold a feature with more than this. */
+const MAX_WEIGHT = FEATURE_TYPES.reduce((sum, t) => sum + t.placement.weight, 0);
 
 /**
  * The feature generated for a hex, or null (most hexes hold nothing). A pure
@@ -75,8 +107,6 @@ export const generateFeature = (
   return null;
 };
 
-const MAX_WEIGHT = FEATURE_TYPES.reduce((sum, t) => sum + t.placement.weight, 0);
-
 /** A fresh feature state for a type. */
 const freshFeature = (type: FeatureType): FeatureState => ({
   type: type.id,
@@ -106,19 +136,51 @@ export const addFeatures = (
   return next;
 };
 
-/** Keeps only features and glints on hexes the state still has tiles for. */
+/** Keeps only features on hexes the state still has tiles for. */
 export const pruneFeatures = <S extends GameStateView>(state: S): S => {
   const features: Record<string, FeatureState> = {};
   for (const [key, f] of Object.entries(state.features)) if (state.tiles[key]) features[key] = f;
-  const glints: Record<string, true> = {};
-  for (const key of Object.keys(state.glints)) if (state.tiles[key]) glints[key] = true;
-  return { ...state, features, glints };
+  return { ...state, features };
 };
 
 /** The revealed feature on a hex, if any (what a player can see). */
 export const revealedFeatureAt = (state: GameStateView, h: Hex): FeatureState | null => {
   const f = state.features[hexKey(h)];
   return f?.revealed ? f : null;
+};
+
+/** Whether anyone has explored a hex (entered or surveyed it). */
+export const isExplored = (state: GameStateView, h: Hex): boolean =>
+  state.tiles[hexKey(h)]?.explored ?? false;
+
+export interface ExploreResult<S extends GameStateView> {
+  readonly state: S;
+  readonly events: GameEvent[];
+  /** The feature revealed here is a trap that was hidden until now. */
+  readonly hiddenTrap: boolean;
+}
+
+/**
+ * Explores a hex for everyone: marks it explored and reveals its feature. On a
+ * player view there are no hidden features, so only the flag changes there.
+ */
+export const exploreHex = <S extends GameStateView>(state: S, h: Hex): ExploreResult<S> => {
+  const key = hexKey(h);
+  const tile = state.tiles[key];
+  const events: GameEvent[] = [];
+  let next: S = state;
+  if (tile && !tile.explored) {
+    next = { ...next, tiles: { ...next.tiles, [key]: { ...tile, explored: true } } };
+    events.push({ kind: 'explore', hex: h });
+  }
+  const f = next.features[key];
+  let hiddenTrap = false;
+  if (f && !f.revealed) {
+    next = { ...next, features: { ...next.features, [key]: { ...f, revealed: true } } };
+    events.push({ kind: 'reveal', hex: h, feature: f.type });
+    hiddenTrap = featureType(f.type).kind === 'trap';
+  }
+  return { state: next, events, hiddenTrap };
 };
 
 export interface EnterResult<S extends GameStateView> {
@@ -129,56 +191,65 @@ export interface EnterResult<S extends GameStateView> {
 }
 
 /**
- * What happens when a character enters a hex: its hidden feature is revealed for
- * everyone; a hidden trap catches anyone but a scout (role tag `reveal`); a
- * scout also senses hidden features nearby, which glint. On a player view there
- * are no hidden features, so nothing is revealed there.
+ * What happens when a character enters a hex: the hex is explored, revealing its
+ * feature for everyone, and a hidden trap there catches the character (anyone,
+ * scouts included, for now): its day ends. A revealed trap is harmless.
  */
 export const enterHex = <S extends GameStateView>(
   state: S,
   characterId: string,
   h: Hex,
 ): EnterResult<S> => {
-  const character = state.characters.find((c) => c.id === characterId);
-  if (!character) return { state, events: [], trapped: false };
-  const scout = roleHas(character, 'reveal');
-  const events: GameEvent[] = [];
-  const features: Record<string, FeatureState> = { ...state.features };
-  const glints: Record<string, true> = { ...state.glints };
-  let trapped = false;
-
-  const key = hexKey(h);
-  const here = features[key];
-  if (here && !here.revealed) {
-    features[key] = { ...here, revealed: true };
-    delete glints[key];
-    events.push({ kind: 'reveal', hex: h, feature: here.type });
-    if (featureType(here.type).kind === 'trap' && !scout) {
-      trapped = true;
-      events.push({ kind: 'trap', hex: h, characterId });
-    }
-  }
-  if (scout) {
-    for (const n of hexesInRange(h, state.config.senseRadius)) {
-      const nKey = hexKey(n);
-      if (hexDistance(n, h) === 0 || glints[nKey]) continue;
-      if (features[nKey] && !features[nKey].revealed) {
-        glints[nKey] = true;
-        events.push({ kind: 'sense', hex: n });
-      }
-    }
-  }
-  let next: S = { ...state, features, glints };
-  if (trapped) {
-    next = {
-      ...next,
-      characters: state.characters.map((c) =>
+  const explored = exploreHex(state, h);
+  const events = explored.events;
+  if (!explored.hiddenTrap) return { state: explored.state, events, trapped: false };
+  events.push({ kind: 'trap', hex: h, characterId });
+  return {
+    state: {
+      ...explored.state,
+      characters: explored.state.characters.map((c) =>
         c.id === characterId ? { ...c, actionsLeft: 0 } : c,
       ),
-    };
-  }
-  return { state: next, events, trapped };
+    },
+    events,
+    trapped: true,
+  };
 };
+
+/** Adds materials to a count record. */
+export const addMaterials = (into: Materials, more: Materials): Materials => {
+  const out: Record<string, number> = { ...into };
+  for (const [id, n] of Object.entries(more)) if (n > 0) out[id] = (out[id] ?? 0) + n;
+  return out;
+};
+
+/** Units in a pack. */
+export const packSize = (pack: Materials): number =>
+  Object.values(pack).reduce((sum, n) => sum + n, 0);
+
+/**
+ * Empties a character's pack into the team stores, if the character is on the
+ * creature and carries anything.
+ */
+export const depositPack = <S extends GameStateView>(
+  state: S,
+  characterId: string,
+): { readonly state: S; readonly events: GameEvent[] } => {
+  const c = state.characters.find((x) => x.id === characterId);
+  if (!c || c.at.kind !== 'creature' || packSize(c.pack) === 0) return { state, events: [] };
+  return {
+    state: {
+      ...state,
+      stores: addMaterials(state.stores, c.pack),
+      characters: state.characters.map((x) => (x.id === characterId ? { ...x, pack: {} } : x)),
+    },
+    events: [{ kind: 'deposit', characterId, materials: c.pack }],
+  };
+};
+
+/** Tags of the unlocks the team has finished (the lantern gives `light`). */
+export const unlockTags = (state: GameStateView): Set<string> =>
+  new Set(UNLOCKS.filter((u) => state.unlocks.includes(u.id)).flatMap((u) => u.tags));
 
 /** Hidden features generated so far (server only), for tests and tools. */
 export const hiddenFeatureKeys = (state: GameState): string[] =>

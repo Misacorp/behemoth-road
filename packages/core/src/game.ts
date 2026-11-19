@@ -8,7 +8,7 @@ import { CONTENT_VERSION } from './content/index.ts';
 import { addFeatures, keyToHex } from './features.ts';
 import { ON_CREATURE } from './places.ts';
 import { hashInts, hashString, newArtSeed, type Seed, toSeed } from './random.ts';
-import type { GameState, Inventory } from './state.ts';
+import type { GameState } from './state.ts';
 import { updateTiles } from './window.ts';
 
 export interface CreateGameOptions {
@@ -27,8 +27,6 @@ export interface CreateGameOptions {
 }
 
 const MAX_ID_LENGTH = 64;
-
-export const EMPTY_INVENTORY: Inventory = { materials: {}, items: {} };
 
 /** The role given to characters made by `characterIds`. */
 const DEV_ROLE = 'scout';
@@ -70,8 +68,9 @@ export const createGame = (
     creature: { centre, heading },
     tiles,
     features: addFeatures({}, tiles, Object.keys(tiles).map(keyToHex), seed, config.featureChance),
-    glints: {},
-    inventory: EMPTY_INVENTORY,
+    stores: {},
+    unlocks: [],
+    project: null,
     characters: ids.map((id) => ({
       id,
       userId: id,
@@ -83,7 +82,7 @@ export const createGame = (
       joinedDay: day,
       at: ON_CREATURE,
       actionsLeft: config.actionsPerDay,
-      craftsToday: 0,
+      pack: {},
       status: 'active',
     })),
   };
