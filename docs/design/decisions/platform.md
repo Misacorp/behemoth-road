@@ -12,6 +12,14 @@ ID: `2026-11-19-the-map-pans-a-world-layer` · Status: current
 
 **Reasoning.** Measured with `apps/web/scripts/perf.mjs` (Pixel 7 profile, CPU 4× and 6×): panning re-rasterised the whole SVG every frame, about 1.1 s of raster per drag, while filters, grain or half the paths saved only 15–25%. A CSS transform on an HTML layer lets the compositor move the finished bitmap: raster during a drag went from about 1.2 s to 0, tap latency from 120/160 ms to 64/88 ms, release from about 55 ms to 22 ms, and dropped frames from 5–6 to 1–2 per drag. `will-change` on an SVG `<g>` would only help in Chromium; the HTML layer works in WebKit too. The settled look is unchanged: screenshots before and after differ only in single grain pixels (0.03–0.05%), also at another zoom step.
 
+## 2026-11-19: Vulnerable transitive packages are fixed by bumping the direct dependency, else by a scoped exact override
+
+ID: `2026-11-19-vulnerable-transitive-packages-are-fixed-by` · Status: current
+
+**Decision.** When an alert names a transitive package, bump the direct dependency in the catalog to a release that is at least 7 days old and carries the fix. Only when no such release exists, add an entry under `overrides` in `pnpm-workspace.yaml`. The entry is scoped to the vulnerable range (`'pkg@<range>': exact`), pins an exact version that is at least 7 days old, and has a comment naming the advisory and when to remove it. The first one is `minimatch` 11.0.8 for GHSA-g3hv-75wg-m249: eslint 10.15.0 and typescript-eslint 8.73.0 bring the fix but are not yet 7 days old.
+
+**Reasoning.** Bumping the direct dependency keeps the tree as its authors tested it. A scoped override fixes only the vulnerable copies, stays within the release-age rule, and says when it can go.
+
 ## 2026-11-19: Art terrain looks are keyed by the core's terrain ids
 
 ID: `2026-11-19-art-terrain-looks-are-keyed-by` · Status: current

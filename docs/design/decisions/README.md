@@ -50,6 +50,7 @@ Record a decision:
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 - 2026-11-19 The map pans a world layer by CSS transform; the scene stays memoised
+- 2026-11-19 Vulnerable transitive packages are fixed by bumping the direct dependency, else by a scoped exact override
 - 2026-11-19 Art terrain looks are keyed by the core's terrain ids
 - 2026-11-19 The map pans by one transformed group and drops its SVG filters during gestures
 - 2026-11-19 Milestone 1 dev controls show in every environment
