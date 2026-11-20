@@ -50,6 +50,8 @@ const character = v.object({
   /** What the character carries. */
   pack: counts,
   status: v.picklist(['active', 'lost']),
+  /** The day a threat struck this character (it starts the next day short of actions), or null. */
+  struckDay: v.optional(v.nullable(count)),
 });
 
 const weights = v.object({ left: v.number(), straight: v.number(), right: v.number() });
@@ -235,9 +237,24 @@ export const GameEventSchema = v.object({
   needed: v.optional(count),
   /** A fire's stimulus id (fire-lit, fire-out). */
   stimulus: v.optional(id),
-  /** A creature step's start and end (a linger: from equals to). */
-  from: v.optional(hex),
-  to: v.optional(hex),
+  /** A creature or threat step's start and end (a linger: from equals to); peril's old and new value. */
+  from: v.optional(v.union([hex, count])),
+  to: v.optional(v.union([hex, count])),
+  /** Milestone 5: the threat or settlement the event is about, and a threat's content type. */
+  id: v.optional(id),
+  type: v.optional(id),
+  /** The threat that struck a character. */
+  threat: v.optional(id),
+  /** Peril a strike on the creature added (after defence). */
+  damage: v.optional(count),
+  /** A threat's strength left after a hit. */
+  strength: v.optional(count),
+  /** A settlement's favour after a parley. */
+  favour: v.optional(count),
+  boon: v.optional(id),
+  outcome: v.optional(v.picklist(['safe', 'wounded', 'lost'])),
+  /** The new day (the tick's `day` event). */
+  day: v.optional(count),
   /** The game version the event happened in (events are logged per change). */
   version: count,
 });
@@ -317,4 +334,9 @@ export type GameAction =
   | { readonly kind: 'build'; readonly unlock: string }
   | { readonly kind: 'light-fire' }
   | { readonly kind: 'feed' }
-  | { readonly kind: 'linger' };
+  | { readonly kind: 'linger' }
+  | { readonly kind: 'strike'; readonly threat: string }
+  | { readonly kind: 'defend' }
+  | { readonly kind: 'parley' }
+  | { readonly kind: 'offer'; readonly material: string }
+  | { readonly kind: 'ask-boon'; readonly boon: string };

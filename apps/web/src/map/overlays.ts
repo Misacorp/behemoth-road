@@ -32,6 +32,20 @@ import {
   placeHex,
 } from '@behemoth-road/core';
 import { accentOf } from '../game/identity.ts';
+import {
+  escortCentres,
+  escortedIds,
+  settlementInfo,
+  struckToday,
+  threatMarks,
+} from '../game/season.ts';
+import {
+  drawApproach,
+  drawBandageMark,
+  drawSettlement,
+  drawShieldMark,
+  drawThreat,
+} from './art.ts';
 import { cellStateAt } from './cells.ts';
 import { MAP_TUNING } from './config.ts';
 import { figureFeet, placePoint } from './figures.ts';
@@ -392,6 +406,132 @@ function graceWarning(i: OverlayInput, feet: Point): SvgNode {
   ]);
 }
 
+/** An art `<svg>` node placed with its centre at `at`, `size` world px across. */
+function placed(node: SvgNode, at: Point, size: number, data: Record<string, string>): SvgNode {
+  return el(
+    'svg',
+    {
+      ...node.attrs,
+      x: n(at.x - size / 2),
+      y: n(at.y - size / 2),
+      width: n(size),
+      height: n(size),
+      ...data,
+    },
+    [...node.children],
+  );
+}
+
+/** Settlements on their hexes, drawn by attitude with their favour. */
+function settlements(i: OverlayInput): SvgNode[] {
+  const p = i.projection;
+  return i.state.settlements.flatMap((s) => {
+    const info = settlementInfo(i.state, s.id);
+    if (!info) return [];
+    const c = hexCenter(p, s.hex.q, s.hex.r);
+    const size = 1.5 * p.size;
+    return [
+      placed(
+        drawSettlement(i.palette, info.attitude, info.favour, info.needed, size),
+        { x: c.x, y: c.y - 0.3 * p.size },
+        size,
+        { 'data-mark': 'settlement', 'data-settlement': s.id, 'data-attitude': info.attitude },
+      ),
+    ];
+  });
+}
+
+/**
+ * Threats on their hexes with strength marks, and a short arrow toward the hex each steps to next; one
+ * that reaches the creature tomorrow pulses (`data-pulse`, animated in `styles.css`).
+ */
+function threats(i: OverlayInput): SvgNode[] {
+  const p = i.projection;
+  return threatMarks(i.state).flatMap((t) => {
+    const c = hexCenter(p, t.hex.q, t.hex.r);
+    const size = 1.25 * p.size;
+    const out: SvgNode[] = [];
+    if (t.next) {
+      const to = hexCenter(p, t.next.q, t.next.r);
+      const len = Math.hypot(to.x - c.x, to.y - c.y) || 1;
+      out.push(
+        el(
+          'g',
+          { transform: `translate(${n(c.x)} ${n(c.y)})`, 'data-mark': 'approach' },
+          drawApproach(i.palette, (to.x - c.x) / len, (to.y - c.y) / len, len),
+        ),
+      );
+    }
+    const data: Record<string, string> = { 'data-mark': 'threat', 'data-threat': t.id };
+    if (t.arrives === 'tomorrow') data['data-pulse'] = 'tomorrow';
+    out.push(
+      placed(
+        drawThreat(i.palette, t.icon, t.strength, size),
+        { x: c.x, y: c.y - 0.4 * p.size },
+        size,
+        data,
+      ),
+    );
+    return out;
+  });
+}
+
+/** A soft ring over the hexes a guardian on a hex escorts (its own and its neighbours). */
+function escortRings(i: OverlayInput): SvgNode[] {
+  const centres = escortCentres(i.state);
+  if (centres.length === 0) return [];
+  const p = i.projection;
+  const ramp = i.palette.accents.sky;
+  return centres.map((g) => {
+    const hexes = [g, ...DIRECTIONS.map((d) => ({ q: g.q + d.q, r: g.r + d.r }))];
+    const d = hexes.map((h) => hexPath(p, h, 1)).join('');
+    return el('g', { 'data-mark': 'escort' }, [
+      el('path', { d, fill: ramp.light, opacity: 0.35 }),
+      el('path', {
+        d: ellipse(hexCenter(p, g.q, g.r), 1.75 * p.size, 1.75 * p.size * p.squash * 1.15),
+        fill: 'none',
+        stroke: ramp.shade,
+        'stroke-width': 1.6 * p.k,
+        'stroke-dasharray': `${n(4 * p.k)} ${n(4 * p.k)}`,
+        opacity: 0.8,
+      }),
+    ]);
+  });
+}
+
+/** Shields on escorted figures and on guardians defending from the creature's back; bandages on the struck. */
+function figureMarks(i: OverlayInput): SvgNode[] {
+  const p = i.projection;
+  const escorted = escortedIds(i.state);
+  const defenders = new Set(i.state.creature.defenders);
+  const size = atLeast(i, 0.42 * p.size, 18);
+  const out: SvgNode[] = [];
+  for (const c of i.state.characters) {
+    if (c.status !== 'active') continue;
+    const feet = figureFeet(i.state, c.id, p);
+    if (!feet) continue;
+    const top = feet.y - 0.62 * p.size;
+    const riding = c.at.kind === 'creature';
+    if (escorted.has(c.id) || (riding && defenders.has(c.id))) {
+      out.push(
+        placed(drawShieldMark(i.palette, size), { x: feet.x + 0.24 * p.size, y: top }, size, {
+          'data-mark': riding ? 'defending' : 'escorted',
+          'data-character': c.id,
+        }),
+      );
+    }
+    if (struckToday(c, i.state.day)) {
+      out.push(
+        placed(drawBandageMark(i.palette, size), { x: feet.x - 0.24 * p.size, y: top }, size, {
+          'data-mark': 'struck',
+          'data-character': c.id,
+        }),
+      );
+    }
+  }
+  return out;
+}
+
 export function buildOverlays(i: OverlayInput): Overlays {
   const under: SvgNode[] = [];
   const over: SvgNode[] = [];
@@ -399,6 +539,7 @@ export function buildOverlays(i: OverlayInput): Overlays {
   under.push(...creatureHints(i));
   const grace = graceHexes(i);
   under.push(...graceTiles(i, grace));
+  under.push(...escortRings(i), ...settlements(i), ...threats(i));
   const feet = figureFeet(i.state, i.characterId, i.projection);
   const riding = me?.at.kind === 'creature';
   if (isSelecting(i.flow) && feet) {
@@ -420,7 +561,7 @@ export function buildOverlays(i: OverlayInput): Overlays {
     );
     over.push(...pathArrow(i, feet, i.flow.steps));
   }
-  over.push(...lostCharacters(i));
+  over.push(...lostCharacters(i), ...figureMarks(i));
   if (staysPut(i.predicted)) over.push(stayHint(i));
   const standing = me?.status === 'active' && me.at.kind === 'hex' ? me.at.hex : null;
   if (feet && standing && grace.some((h) => h.q === standing.q && h.r === standing.r)) {

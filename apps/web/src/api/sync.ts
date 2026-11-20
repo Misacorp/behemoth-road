@@ -34,6 +34,12 @@ export class Sync {
     this.deps.onView(view);
   }
 
+  /** A new game (a new season): its view replaces the old one whatever their versions. */
+  restart(view: PlayerView): void {
+    this.view = view;
+    this.deps.onView(view);
+  }
+
   /** Asks the server for anything newer. Concurrent calls share one request. */
   refresh(): Promise<void> {
     this.inFlight ??= this.deps.api

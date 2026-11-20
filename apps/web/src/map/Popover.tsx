@@ -25,7 +25,8 @@ import { iconOf } from '../game/chain.ts';
 import { Pips, TickMark } from '../hud/icons.tsx';
 import type { Identity } from '../game/identity.ts';
 import { QuirkIcon, RoleEmblem, TraitIcon } from '../ui/emblems.tsx';
-import { PALETTE } from './art.ts';
+import type { SettlementInfo, ThreatCardInfo } from '../game/season.ts';
+import { drawSettlement, drawThreat, PALETTE } from './art.ts';
 import { creatureArt } from './cells.ts';
 import { MAP_TUNING } from './config.ts';
 import { toPreact } from './svgToPreact.ts';
@@ -521,9 +522,13 @@ export function CharacterCard({ who }: { who: Identity }): JSX.Element {
   );
 }
 
-/** One action offered where you stand: its kind (an art kit icon id) and cost. */
+/** One action offered where you stand: its kind (an art kit icon id unless `icon` says otherwise) and cost. */
 export interface HereAction {
   readonly kind: string;
+  /** The art kit icon it shows, when not its kind's own. */
+  readonly icon?: string;
+  /** It may go wrong (a parley by a non-envoy): a small risk mark on the button. */
+  readonly risk?: boolean;
   readonly cost: number;
   readonly enabled: boolean;
   /** A material it takes (a fire's timber), drawn small beside the pips. */
@@ -544,6 +549,7 @@ function ActionButton({
   y,
   uses = null,
   short = false,
+  risk = false,
   onRun,
   buttonRef,
 }: {
@@ -557,6 +563,8 @@ function ActionButton({
   uses?: string | null;
   /** The material is missing: drawn faded. */
   short?: boolean;
+  /** It may go wrong: a small cracked-triangle mark in the corner. */
+  risk?: boolean;
   onRun: () => void;
   buttonRef?: (el: SVGGElement | null) => void;
 }): JSX.Element {
@@ -587,6 +595,16 @@ function ActionButton({
     >
       <rect width={ACTION_W - 6} height={50} rx={9} fill={PALETTE.paperDeep} />
       <CardIcon id={icon} x={(ACTION_W - 6) / 2 - 14} y={3} size={28} />
+      {risk && (
+        <path
+          data-risk="true"
+          d="M40 2L47 14H33Z M40 6.5L39 9.5L41 10.5L40 12"
+          fill={PALETTE.hint}
+          stroke={PALETTE.ink}
+          stroke-width={1.2}
+          stroke-linejoin="round"
+        />
+      )}
       {uses && (
         <g opacity={short ? 0.45 : 1} data-short={short ? true : undefined}>
           <CardIcon id={uses} x={left} y={31} size={material} />
@@ -601,6 +619,9 @@ function ActionButton({
 
 /** The art kit icon each action shows (an open hand to gather, a key to work a site). */
 const ACTION_ICONS: Readonly<Record<string, string>> = { gather: 'hand', 'work-site': 'key' };
+
+/** The action pips and a button's own id, shared by the here card's actions. */
+const actionKey = (a: HereAction): string => `${a.kind}:${a.uses ?? ''}`;
 
 // Compact, so the neighbours up-left and up-right of your figure stay tappable on a phone.
 export const hereSize = (count: number): { width: number; height: number } => ({
@@ -636,9 +657,10 @@ export function HereCard({
       </g>
       {actions.map((a, i) => (
         <ActionButton
-          key={a.kind}
+          key={actionKey(a)}
           kind={a.kind}
-          icon={ACTION_ICONS[a.kind] ?? a.kind}
+          icon={a.icon ?? ACTION_ICONS[a.kind] ?? a.kind}
+          risk={a.risk ?? false}
           cost={a.cost}
           enabled={a.enabled}
           x={56 + i * ACTION_W}
@@ -649,6 +671,93 @@ export function HereCard({
           {...(i === 0 ? { buttonRef: firstRef } : {})}
         />
       ))}
+    </g>
+  );
+}
+
+/** The threat card, wider when it offers a strike. */
+export const threatSize = (strike: boolean): { width: number; height: number } => ({
+  width: 168 + (strike ? ACTION_W : 0),
+  height: 76,
+});
+
+/**
+ * A threat: its drawing, its name (the only text) and its strength as marks; when you stand on or next to
+ * it, the strike button with its pips (faded without the actions).
+ */
+export function ThreatCard({
+  threat,
+  onStrike,
+  strikeRef,
+}: {
+  threat: ThreatCardInfo;
+  onStrike: () => void;
+  strikeRef: (el: SVGGElement | null) => void;
+}): JSX.Element {
+  const size = threatSize(threat.strike !== null);
+  const marks = Math.min(threat.strength, 10);
+  const drawn = drawThreat(PALETTE, threat.icon, threat.strength, 60);
+  return (
+    <g data-popover="threat" data-threat={threat.id} data-strength={threat.strength}>
+      <Card {...size} />
+      {toPreact({ ...drawn, attrs: { ...drawn.attrs, x: 6, y: 8 } })}
+      <text
+        x={72}
+        y={30}
+        fill={PALETTE.ink}
+        font-size={13}
+        font-weight={600}
+        font-family="system-ui, sans-serif"
+      >
+        {threat.name.length > 18 ? `${threat.name.slice(0, 17)}…` : threat.name}
+      </text>
+      <g transform="translate(72 42)" data-mark="strength">
+        {Array.from({ length: marks }, (_, i) => (
+          <path
+            key={i}
+            d={`M${i * 9} 5l3.5 -5l3.5 5l-3.5 5z`}
+            fill={PALETTE.accents.coral.shade}
+            stroke={PALETTE.ink}
+            stroke-width={1}
+          />
+        ))}
+      </g>
+      {threat.strike && (
+        <ActionButton
+          kind="strike"
+          icon="strike"
+          cost={threat.strike.cost}
+          enabled={threat.strike.enabled}
+          x={size.width - ACTION_W - 2}
+          y={12}
+          onRun={onStrike}
+          buttonRef={strikeRef}
+        />
+      )}
+    </g>
+  );
+}
+
+export const SETTLEMENT_SIZE = { width: 84, height: 80 } as const;
+
+/** A settlement from afar: its drawing by attitude, with its favour marks while it is wary. */
+export function SettlementCard({ settlement }: { settlement: SettlementInfo }): JSX.Element {
+  const drawn = drawSettlement(
+    PALETTE,
+    settlement.attitude,
+    settlement.favour,
+    settlement.needed,
+    70,
+  );
+  return (
+    <g
+      data-popover="settlement"
+      data-settlement={settlement.id}
+      data-attitude={settlement.attitude}
+      data-favour={settlement.favour}
+    >
+      <Card {...SETTLEMENT_SIZE} />
+      {toPreact({ ...drawn, attrs: { ...drawn.attrs, x: 7, y: 5 } })}
     </g>
   );
 }

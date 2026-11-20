@@ -134,14 +134,14 @@ export function unlockOptions(game: GameStateView, characterId: string): UnlockO
 
 /** An action with a material cost, as a button shows it: its cost in actions and the material it uses. */
 export interface CostedAction {
-  readonly kind: 'light-fire' | 'feed' | 'linger';
+  readonly kind: 'light-fire' | 'feed' | 'linger' | 'defend';
   readonly cost: number;
   readonly enabled: boolean;
   /** The material it takes (fuel from your pack, food from the stores), or null. */
   readonly uses: string | null;
   /** The material is missing (no fuel, no food): drawn faded. */
   readonly short?: boolean;
-  /** Linger: already asked for today. */
+  /** Linger or defend: already done today. */
   readonly done?: boolean;
 }
 

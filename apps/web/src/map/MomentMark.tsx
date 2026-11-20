@@ -11,7 +11,7 @@ import { drawIcon, drawMoment, drawVeilLift, hexCenter, type SvgNode } from '@be
 import type { JSX } from 'preact';
 import { iconOf } from '../game/chain.ts';
 import type { Moment } from '../game/moments.ts';
-import { PALETTE, PROJECTION } from './art.ts';
+import { drawM5Moment, PALETTE, PROJECTION } from './art.ts';
 import { toPreact } from './svgToPreact.ts';
 
 const p = PROJECTION;
@@ -91,6 +91,38 @@ export function MomentMark({ moment }: { moment: Moment }): JSX.Element {
               {at(drawIcon(iconOf(moment.item), PALETTE, icon), c.x, c.y - 0.6 * p.size, icon)}
             </Marked>
           )}
+        </g>
+      );
+      break;
+    // Milestone 5: a threat appearing, strikes, a defence, a settlement turning, a boon, the season's end.
+    case 'threat':
+    case 'defend':
+    case 'befriended':
+      body = (
+        <Marked kind="bloom">{at(drawM5Moment(moment.kind, PALETTE, size), c.x, c.y, size)}</Marked>
+      );
+      break;
+    case 'strike':
+    case 'struck':
+    case 'hit':
+    case 'angered':
+      body = (
+        <Marked kind="snap">{at(drawM5Moment(moment.kind, PALETTE, size), c.x, c.y, size)}</Marked>
+      );
+      break;
+    case 'cleared':
+    case 'season-over':
+      body = (
+        <Marked kind="burst">{at(drawM5Moment(moment.kind, PALETTE, size), c.x, c.y, size)}</Marked>
+      );
+      break;
+    case 'boon':
+      body = (
+        <g>
+          <Marked kind="burst">{at(drawM5Moment('boon', PALETTE, size), c.x, c.y, size)}</Marked>
+          <Marked kind="rise">
+            {at(drawIcon(moment.item, PALETTE, icon), c.x, c.y - 0.4 * p.size, icon)}
+          </Marked>
         </g>
       );
       break;

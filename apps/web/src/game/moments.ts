@@ -21,7 +21,19 @@ export type Moment =
   | { readonly kind: 'fire-out'; readonly hex: Hex }
   | { readonly kind: 'feed'; readonly hex: Hex; readonly item: string | null }
   | { readonly kind: 'linger'; readonly hex: Hex }
-  | { readonly kind: 'ate'; readonly hex: Hex; readonly item: string };
+  | { readonly kind: 'ate'; readonly hex: Hex; readonly item: string }
+  // Milestone 5.
+  | { readonly kind: 'threat'; readonly hex: Hex }
+  /** A threat struck the creature: the peril gauge jolts. */
+  | { readonly kind: 'strike'; readonly hex: Hex }
+  | { readonly kind: 'struck'; readonly hex: Hex; readonly mine: boolean }
+  | { readonly kind: 'hit'; readonly hex: Hex }
+  | { readonly kind: 'cleared'; readonly hex: Hex }
+  | { readonly kind: 'defend'; readonly hex: Hex }
+  | { readonly kind: 'befriended'; readonly hex: Hex }
+  | { readonly kind: 'angered'; readonly hex: Hex }
+  | { readonly kind: 'boon'; readonly hex: Hex; readonly item: string }
+  | { readonly kind: 'season-over'; readonly hex: Hex };
 
 /** How long a moment stays on screen, in ms (its CSS animation is as long). */
 export const MOMENT_MS = 1400;
@@ -34,7 +46,26 @@ export interface EventLike {
   readonly material?: string | undefined;
   readonly unlock?: string | undefined;
   readonly materials?: Readonly<Record<string, number>> | undefined;
+  /** Milestone 5: the threat or settlement it is about, and a boon. */
+  readonly id?: string | undefined;
+  readonly boon?: string | undefined;
 }
+
+/**
+ * Where Milestone 5's events happened, for those that name a thing rather than a hex: a threat (one cleared
+ * or spent is gone from the new view, so the view before it is asked too), a settlement, a character.
+ */
+export interface Whereabouts {
+  readonly threat: (id: string) => Hex | null;
+  readonly settlement: (id: string) => Hex | null;
+  readonly character: (id: string) => Hex | null;
+}
+
+const NOWHERE: Whereabouts = {
+  threat: () => null,
+  settlement: () => null,
+  character: () => null,
+};
 
 /** The material there is most of, if any. */
 function most(materials: Readonly<Record<string, number>>): string | null {
@@ -50,9 +81,21 @@ function most(materials: Readonly<Record<string, number>>): string | null {
  * a failed site, unlock progress, the tick's own) and unknown kinds are skipped, so new events never break
  * the map.
  */
-export function momentsFromEvents(events: readonly EventLike[], centre: Hex, me: string): Moment[] {
+export function momentsFromEvents(
+  events: readonly EventLike[],
+  centre: Hex,
+  me: string,
+  where: Whereabouts = NOWHERE,
+): Moment[] {
   const out: Moment[] = [];
+  const thing = (kind: 'threat' | 'settlement', id: string | undefined): Hex | null =>
+    id === undefined ? null : where[kind](id);
   for (const e of events) {
+    const m5 = seasonMoment(e, centre, me, where, thing);
+    if (m5 !== undefined) {
+      if (m5) out.push(m5);
+      continue;
+    }
     if (e.kind === 'fed') {
       out.push({ kind: 'feed', hex: centre, item: e.material ?? null });
     } else if (e.kind === 'linger') {
@@ -79,6 +122,56 @@ export function momentsFromEvents(events: readonly EventLike[], centre: Hex, me:
     }
   }
   return out;
+}
+
+/**
+ * Milestone 5's moments: undefined for an event that is not one of its kinds, null for one of them that
+ * cannot be placed (or has no moment).
+ */
+function seasonMoment(
+  e: EventLike,
+  centre: Hex,
+  me: string,
+  where: Whereabouts,
+  thing: (kind: 'threat' | 'settlement', id: string | undefined) => Hex | null,
+): Moment | null | undefined {
+  const at = (hex: Hex | null | undefined, make: (h: Hex) => Moment): Moment | null =>
+    hex ? make(hex) : null;
+  switch (e.kind) {
+    case 'threat-appears':
+      return at(e.hex ?? thing('threat', e.id), (hex) => ({ kind: 'threat', hex }));
+    case 'threat-strikes':
+      return { kind: 'strike', hex: centre };
+    case 'struck':
+      return at(e.characterId ? where.character(e.characterId) : null, (hex) => ({
+        kind: 'struck',
+        hex,
+        mine: e.characterId === me,
+      }));
+    case 'threat-hit':
+      return at(thing('threat', e.id), (hex) => ({ kind: 'hit', hex }));
+    case 'threat-cleared':
+      return at(thing('threat', e.id), (hex) => ({ kind: 'cleared', hex }));
+    case 'defend':
+      return { kind: 'defend', hex: centre };
+    case 'befriended':
+      return at(thing('settlement', e.id), (hex) => ({ kind: 'befriended', hex }));
+    case 'angered':
+      return at(thing('settlement', e.id), (hex) => ({ kind: 'angered', hex }));
+    case 'boon':
+      return at(thing('settlement', e.id), (hex) => ({ kind: 'boon', hex, item: e.boon ?? '' }));
+    case 'season-over':
+      return { kind: 'season-over', hex: centre };
+    case 'threat-moves':
+    case 'threat-gone':
+    case 'peril':
+    case 'settlement-appears':
+    case 'parley':
+    case 'offer':
+      return null;
+    default:
+      return undefined;
+  }
 }
 
 /** A key per event, for playing each once: its version and its place among that version's events. */

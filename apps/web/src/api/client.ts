@@ -58,6 +58,8 @@ export interface ApiClient {
   /** Gather, craft or work a site, for your own character where it stands. */
   act(version: number, action: GameAction): Promise<ActionAnswer>;
   nextDay(): Promise<PlayerView>;
+  /** Staging and local only, admins: ends this game and starts a new season (everyone joins again). */
+  newSeason(): Promise<void>;
 }
 
 function parse<T extends v.GenericSchema>(
@@ -136,5 +138,9 @@ export function createApiClient(fetchImpl: Fetch = (i, init) => fetch(i, init)):
     move: (version, path) => answer('/api/game/move', { version, path }),
     act: (version, action) => answer('/api/game/act', { version, action }),
     nextDay: () => view('/api/dev/next-day', {}),
+    async newSeason() {
+      // The answer is not read: the caller loads the new game's view afterwards.
+      await authed('/api/dev/new-season', post({}));
+    },
   };
 }

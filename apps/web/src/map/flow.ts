@@ -18,6 +18,7 @@ import {
   placeEquals,
   planPath,
 } from '@behemoth-road/core';
+import { settlementAt, threatAt } from '../game/season.ts';
 import type { Target } from './pick.ts';
 
 export type Flow =
@@ -26,6 +27,10 @@ export type Flow =
   | { readonly kind: 'inspect'; readonly hex: Hex }
   /** Looking at another player's character: its card shows who it is. */
   | { readonly kind: 'character'; readonly id: string }
+  /** Looking at a threat: its card shows its name and strength, and the strike when you are near. */
+  | { readonly kind: 'threat'; readonly id: string }
+  /** Looking at a settlement from afar: its card shows its attitude and favour. */
+  | { readonly kind: 'settlement'; readonly id: string }
   /** Looking at the creature (the hub): its card shows it and its heading. */
   | { readonly kind: 'creature' }
   /**
@@ -49,7 +54,16 @@ export const IDLE: Flow = { kind: 'idle' };
 export const isSelecting = (flow: Flow): boolean =>
   flow.kind === 'selected' || flow.kind === 'planned' || (flow.kind === 'bubble' && flow.selecting);
 
-function look(flow: Flow, hex: Hex): Flow {
+/**
+ * Looking at a hex: a settlement's card on a settlement, else the inspect card. The same tap again closes it.
+ */
+function look(flow: Flow, state: GameStateView, hex: Hex): Flow {
+  const settlement = settlementAt(state, hex);
+  if (settlement !== null) {
+    return flow.kind === 'settlement' && flow.id === settlement
+      ? IDLE
+      : { kind: 'settlement', id: settlement };
+  }
   if (flow.kind === 'inspect' && hexEquals(flow.hex, hex)) return IDLE;
   return { kind: 'inspect', hex };
 }
@@ -94,7 +108,13 @@ export function tap(flow: Flow, state: GameStateView, characterId: string, targe
     // Your own character first: select it, or let go of it.
     if (isSelecting(flow)) return IDLE;
     if (me.actionsLeft > 0) return { kind: 'selected' };
-    return look(flow, to.hex);
+    return look(flow, state, to.hex);
+  }
+  // A threat's hex opens its card (its strike, when you are near), even while selected: no one plans a walk
+  // onto a threat, and the card is the way to strike it.
+  const threat = threatAt(state, to.hex);
+  if (threat !== null) {
+    return flow.kind === 'threat' && flow.id === threat ? IDLE : { kind: 'threat', id: threat };
   }
   if (isSelecting(flow)) {
     if (flow.kind === 'planned' && placeEquals(flow.to, to)) return flow;
@@ -103,7 +123,7 @@ export function tap(flow: Flow, state: GameStateView, characterId: string, targe
       return { kind: 'planned', to, steps: plan.steps, cost: plan.cost };
     }
   }
-  return look(flow, to.hex);
+  return look(flow, state, to.hex);
 }
 
 /** Tapping a hex (a shorthand for tests and callers without picking). */

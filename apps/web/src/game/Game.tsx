@@ -5,6 +5,7 @@
  * 30 seconds while it is visible.
  */
 import { findCharacter, type Hex, hexKey, terrainOf } from '@behemoth-road/core';
+import type { HereAction } from '../map/Popover.tsx';
 import type { JSX } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { ApiError, type ApiClient } from '../api/client.ts';
@@ -30,6 +31,7 @@ import {
   careOptions,
   type CostedAction,
   fireAction,
+  iconOf,
   packUnits,
   stockOf,
   surveyOf,
@@ -37,11 +39,19 @@ import {
 } from './chain.ts';
 import type { Target } from '../map/pick.ts';
 import { getSettings } from '../settings.ts';
+import { Ending, PerilEdge } from '../hud/Season.tsx';
+import { defendOption, seasonEnd, settlementActions } from './season.ts';
 
 /** The width from which the layout is the desktop one (`styles.css` media queries). */
 const DESKTOP_FROM = 900;
 import { identities, partySeeds, setAccents } from './identity.ts';
-import { eventKeys, MOMENT_MS, type Moment, momentsFromEvents } from './moments.ts';
+import {
+  eventKeys,
+  MOMENT_MS,
+  type Moment,
+  momentsFromEvents,
+  type Whereabouts,
+} from './moments.ts';
 import { toGameState, toSigns } from './viewState.ts';
 
 export interface GameProps {
@@ -125,9 +135,15 @@ export function Game({ api, initial }: GameProps): JSX.Element {
   const [moments, setMoments] = useState<readonly Moment[]>([]);
   const momentTimer = useRef(0);
   const played = useRef(new Set<string>());
+  // The view before this one: a threat cleared or spent is gone from the new view, but its moment plays
+  // where it stood.
+  const before = useRef(view);
   useEffect(() => () => window.clearTimeout(momentTimer.current), []);
   useEffect(() => {
-    if (view.eventsTruncated || view.events.length === 0) return;
+    if (view.eventsTruncated || view.events.length === 0) {
+      before.current = view;
+      return;
+    }
     const keys = eventKeys(view.events);
     const fresh = view.events.filter((_, i) => !played.current.has(keys[i]!));
     for (const k of keys) played.current.add(k);
@@ -135,7 +151,24 @@ export function Game({ api, initial }: GameProps): JSX.Element {
     for (const k of played.current) {
       if (Number(k.split(':')[0]) < view.version - 200) played.current.delete(k);
     }
-    const found = momentsFromEvents(fresh, view.game.creature.centre, view.you.characterId ?? '');
+    const prev = before.current;
+    before.current = view;
+    const where: Whereabouts = {
+      threat: (tid) =>
+        (view.game.threats.find((t) => t.id === tid) ?? prev.game.threats.find((t) => t.id === tid))
+          ?.hex ?? null,
+      settlement: (sid) => view.game.settlements.find((x) => x.id === sid)?.hex ?? null,
+      character: (cid) => {
+        const c = view.game.characters.find((x) => x.id === cid);
+        return c?.at.kind === 'hex' ? c.at.hex : c ? view.game.creature.centre : null;
+      },
+    };
+    const found = momentsFromEvents(
+      fresh,
+      view.game.creature.centre,
+      view.you.characterId ?? '',
+      where,
+    );
     if (found.length === 0) return;
     window.clearTimeout(momentTimer.current);
     setMoments(found);
@@ -207,7 +240,20 @@ export function Game({ api, initial }: GameProps): JSX.Element {
     const feature = featureArtAt(state, hexKey(me.at.hex));
     // Without fuel the fire never opens the card by itself: only a hint on a card open for a feature.
     const fire = fireAction(state, me.id, feature !== null && sawFire);
-    const actions = [...(feature ? actionsAt(state, me.id) : []), ...(fire ? [fire] : [])];
+    // Milestone 5: what you can do at the settlement you stand on (parley, offer, a boon).
+    const settlement = settlementActions(state, me.id).map((a): HereAction => ({
+      kind: a.kind === 'offer' ? `offer:${a.uses ?? ''}` : a.kind,
+      cost: a.cost,
+      enabled: a.enabled,
+      ...(a.kind === 'offer' && a.uses ? { icon: iconOf(a.uses) } : {}),
+      ...(a.kind.startsWith('boon:') ? { icon: a.kind.slice(5) } : {}),
+      ...(a.risk ? { risk: true } : {}),
+    }));
+    const actions = [
+      ...(feature ? actionsAt(state, me.id) : []),
+      ...(fire ? [fire] : []),
+      ...settlement,
+    ];
     if (!feature && actions.length === 0) return null;
     const terrain = terrainOf(state, me.at.hex)?.id ?? 'unknown';
     return { terrain, feature, actions };
@@ -217,15 +263,35 @@ export function Game({ api, initial }: GameProps): JSX.Element {
     return mine && mine.actionsLeft > 0 ? { kind: 'selected' } : IDLE;
   };
   const onAct = (kind: string): void => {
-    if (kind !== 'gather' && kind !== 'work-site' && kind !== 'light-fire') return;
-    void act(() => api.act(view.version, { kind }), stillSelected);
+    if (kind === 'gather' || kind === 'work-site' || kind === 'light-fire' || kind === 'parley') {
+      void act(() => api.act(view.version, { kind }), stillSelected);
+    } else if (kind.startsWith('offer:')) {
+      void act(
+        () => api.act(view.version, { kind: 'offer', material: kind.slice(6) }),
+        stillSelected,
+      );
+    } else if (kind.startsWith('boon:')) {
+      void act(
+        () => api.act(view.version, { kind: 'ask-boon', boon: kind.slice(5) }),
+        stillSelected,
+      );
+    }
   };
-  // Feeding keeps the hub open; a linger closes it, so the creature is seen lying down.
+  // A strike keeps the threat's card open while it stands, so the next strike is one tap.
+  const onStrike = (threat: string): void => {
+    void act(
+      () => api.act(view.version, { kind: 'strike', threat }),
+      (next) =>
+        next.game.threats.some((t) => t.id === threat) ? { kind: 'threat', id: threat } : IDLE,
+    );
+  };
+  // Feeding keeps the hub open; a linger or a defence closes it, so the creature is seen lying down or
+  // its defenders' shields go up.
   const onCare = (kind: CostedAction['kind']): void => {
-    if (kind !== 'feed' && kind !== 'linger') return;
+    if (kind !== 'feed' && kind !== 'linger' && kind !== 'defend') return;
     void act(
       () => api.act(view.version, { kind }),
-      () => (kind === 'linger' ? IDLE : { kind: 'creature' }),
+      () => (kind === 'feed' ? { kind: 'creature' } : IDLE),
     );
   };
   const surveyAt = (h: Hex) => (me?.status === 'active' ? surveyOf(state, me.id, h) : null);
@@ -248,6 +314,31 @@ export function Game({ api, initial }: GameProps): JSX.Element {
       ? { stock: stockOf(me.pack), units: packUnits(me.pack), capacity: state.config.packCapacity }
       : null;
   const anyDrawer = drawerOpen || hubOpen;
+  const ended = seasonEnd(state);
+  const care = me
+    ? [...careOptions(state, me.id), ...[defendOption(state, me.id)].filter((a) => a !== null)]
+    : [];
+  // Staging and local only (dev tools), admins: a new season after the end. Its view replaces this game's.
+  const onNewSeason = (): void => {
+    if (busy) return;
+    setBusy(true);
+    void (async () => {
+      try {
+        await api.newSeason();
+        const fresh = await api.game();
+        if (!('unchanged' in fresh)) {
+          played.current.clear();
+          before.current = fresh;
+          setFlow(IDLE);
+          sync.current!.restart(fresh);
+        }
+      } catch (err) {
+        console.warn('new season failed', err);
+      } finally {
+        setBusy(false);
+      }
+    })();
+  };
 
   return (
     <main class="game">
@@ -273,7 +364,9 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         onAct={onAct}
         surveyAt={surveyAt}
         onSurvey={onSurvey}
+        onStrike={onStrike}
       />
+      <PerilEdge peril={state.peril} max={state.config.perilMax} />
       <Hud
         day={view.day}
         actionsLeft={me?.actionsLeft ?? 0}
@@ -299,6 +392,13 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         }
         onJoin={need !== 'none' && offers.length > 0 ? () => setDrawerClosed(false) : null}
         pack={pack}
+        peril={{
+          peril: state.peril,
+          max: state.config.perilMax,
+          woundedAt: state.config.perilWoundedAt,
+        }}
+        route={{ steps: state.creature.steps, length: state.config.routeLength }}
+        jolt={moments.some((m) => m.kind === 'strike')}
       />
       <HubDrawer
         open={hubOpen}
@@ -306,7 +406,7 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         state={state}
         signs={signs}
         stores={stockOf(state.stores)}
-        care={me ? careOptions(state, me.id) : []}
+        care={care}
         onCare={onCare}
         unlocks={me ? unlockOptions(state, me.id) : []}
         busy={busy}
@@ -320,6 +420,15 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         onConfirm={onJoin}
         onClose={() => setDrawerClosed(true)}
       />
+      {ended && (
+        <Ending
+          outcome={ended.outcome}
+          days={ended.day}
+          route={{ steps: state.creature.steps, length: state.config.routeLength }}
+          onNewSeason={showsNextDay(view) ? onNewSeason : null}
+          busy={busy}
+        />
+      )}
     </main>
   );
 }

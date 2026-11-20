@@ -12,7 +12,9 @@ import {
   reachablePlaces,
   type GameState,
 } from '@behemoth-road/core';
+import { characterOf, threatOutlook, toPlayerView } from '@behemoth-road/core';
 import { describe, expect, it } from 'vitest';
+import { type SeasonStage, seasonScenario, USERS } from '../api/fixtures.ts';
 import { PROJECTION } from './art.ts';
 import { characterArts, sceneCells } from './cells.ts';
 import { placePoint } from './figures.ts';
@@ -122,5 +124,79 @@ describe('overlays', () => {
     const marks = o.over.flatMap((n) => (n.attrs['data-mark'] ? [n.attrs['data-mark']] : []));
     expect(marks).toEqual(['via:grappling-hook']);
     for (const n of o.over) expect(() => toPreact(n)).not.toThrow();
+  });
+});
+
+describe('Milestone 5 marks', () => {
+  const marksOf = (nodes: readonly SvgNode[], mark: string): SvgNode[] =>
+    nodes.flatMap((root) => {
+      const out: SvgNode[] = [];
+      walk(root, (node) => {
+        if (node.attrs['data-mark'] === mark) out.push(node);
+      });
+      return out;
+    });
+
+  function season(stage: SeasonStage) {
+    const s = seasonScenario(stage);
+    const view = toPlayerView(s.state);
+    const id = characterOf(s.state, USERS.MISA)!.id;
+    const o = buildOverlays({
+      state: view,
+      flow: { kind: 'idle' },
+      characterId: id,
+      reachable: [],
+      predicted: predictCreature(view),
+      projection: PROJECTION,
+      palette: MORNING,
+    });
+    return { view, id, o };
+  }
+
+  it('draws each threat on its hex with an approach arrow, pulsing when it arrives tomorrow', () => {
+    const { view, o } = season({
+      threats: [
+        { type: 'captors', at: { q: 0, r: 3 } },
+        { type: 'rockslide', at: { q: 3, r: 4 } },
+      ],
+    });
+    const threats = marksOf(o.under, 'threat');
+    expect(threats.map((t) => t.attrs['data-threat'])).toEqual(view.threats.map((t) => t.id));
+    const outlook = threatOutlook(view);
+    threats.forEach((t, i) => {
+      expect(t.attrs['data-pulse']).toBe(
+        outlook[i]!.arrives === 'tomorrow' ? 'tomorrow' : undefined,
+      );
+    });
+    expect(outlook.some((x) => x.arrives === 'tomorrow')).toBe(true);
+    // The rockslide waits (speed 0): only the captors have an arrow.
+    expect(marksOf(o.under, 'approach')).toHaveLength(outlook.filter((x) => x.next).length);
+  });
+
+  it('draws settlements by attitude', () => {
+    const { o } = season({
+      settlements: [
+        { at: { q: 1, r: 3 } },
+        { at: { q: 3, r: 4 }, attitude: 'friendly', favour: 3 },
+      ],
+    });
+    expect(marksOf(o.under, 'settlement').map((s) => s.attrs['data-attitude'])).toEqual([
+      'wary',
+      'friendly',
+    ]);
+  });
+
+  it('rings a guardian on a hex, shields the escorted and the defending riders', () => {
+    const escorted = season({ guardianAt: { q: 2, r: 2 } });
+    expect(marksOf(escorted.o.under, 'escort')).toHaveLength(1);
+    expect(marksOf(escorted.o.over, 'escorted').map((m) => m.attrs['data-character'])).toEqual([
+      escorted.id,
+    ]);
+    const defending = season({ role: 'guardian', at: 'creature', defending: true });
+    expect(marksOf(defending.o.over, 'defending').map((m) => m.attrs['data-character'])).toEqual([
+      defending.id,
+    ]);
+    expect(marksOf(defending.o.over, 'escorted')).toEqual([]);
+    expect(marksOf(defending.o.under, 'escort')).toEqual([]);
   });
 });

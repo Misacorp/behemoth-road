@@ -55,7 +55,12 @@ import {
   CONFIRM_SIZE,
   ConfirmCard,
   InspectCard,
+  SETTLEMENT_SIZE,
+  SettlementCard,
+  ThreatCard,
+  threatSize,
 } from './Popover.tsx';
+import { settlementInfo, threatCard } from '../game/season.ts';
 import { setCssTransform } from './cssTransform.ts';
 import { toPreact } from './svgToPreact.ts';
 import {
@@ -100,6 +105,8 @@ export interface MapViewProps {
   readonly surveyAt?: (h: Hex) => { readonly cost: number; readonly enabled: boolean } | null;
   /** The survey button on an inspect card was tapped. */
   readonly onSurvey?: (h: Hex) => void;
+  /** The strike button on a threat's card was tapped. */
+  readonly onStrike?: (threat: string) => void;
   /** Short visual beats to play on the map (reveals, finds, a trap); they end by themselves. */
   readonly moments?: readonly Moment[];
   /** Another player's character in the bubble was tapped. */
@@ -175,6 +182,22 @@ function popoverAnchor(
       top: { x: feet.x, y: feet.y - head },
       below: head,
       size: CHARACTER_SIZE,
+    };
+  }
+  if (flow.kind === 'threat' || flow.kind === 'settlement') {
+    const thing =
+      flow.kind === 'threat'
+        ? state.threats.find((t) => t.id === flow.id)
+        : state.settlements.find((x) => x.id === flow.id);
+    if (!thing) return null;
+    const c = hexCenter(p, thing.hex.q, thing.hex.r);
+    const strike = flow.kind === 'threat' ? threatCard(state, characterId, flow.id)?.strike : null;
+    const lift = 0.9 * p.size;
+    return {
+      key: `${flow.kind}:${flow.id}:${strike ? String(strike.enabled) : ''}`,
+      top: { x: c.x, y: c.y - lift },
+      below: lift + tile / 2,
+      size: flow.kind === 'threat' ? threatSize(Boolean(strike)) : SETTLEMENT_SIZE,
     };
   }
   if (flow.kind === 'inspect') {
@@ -546,7 +569,8 @@ export function MapView(props: MapViewProps): JSX.Element {
         flow.kind === 'planned' ||
         flow.kind === 'bubble' ||
         flow.kind === 'selected' ||
-        (flow.kind === 'inspect' && survey)
+        (flow.kind === 'inspect' && survey) ||
+        (flow.kind === 'threat' && popKey.endsWith(':true'))
           ? popoverFocusRef.current
           : popRef.current;
       target?.focus({ preventScroll: true });
@@ -600,6 +624,23 @@ export function MapView(props: MapViewProps): JSX.Element {
         }}
       />
     );
+  } else if (flow.kind === 'threat') {
+    const threat = threatCard(state, characterId, flow.id);
+    const id = flow.id;
+    if (threat) {
+      card = (
+        <ThreatCard
+          threat={threat}
+          onStrike={() => props.onStrike?.(id)}
+          strikeRef={(el) => {
+            popoverFocusRef.current = el;
+          }}
+        />
+      );
+    }
+  } else if (flow.kind === 'settlement') {
+    const settlement = settlementInfo(state, flow.id);
+    if (settlement) card = <SettlementCard settlement={settlement} />;
   } else if (flow.kind === 'character') {
     const who = props.identities?.get(flow.id);
     if (who) card = <CharacterCard who={who} />;

@@ -79,3 +79,68 @@ describe('Milestone 4 moments', () => {
     expect(momentsFromEvents([{ kind: 'creature-step' }], centre, 'me')).toEqual([]);
   });
 });
+
+describe('Milestone 5 moments', () => {
+  const where = {
+    threat: (id: string) => (id === 't1' ? { q: 4, r: 0 } : null),
+    settlement: (id: string) => (id === 's1' ? { q: -3, r: 2 } : null),
+    character: (id: string) =>
+      id === 'me' ? { q: 1, r: 2 } : id === 'other' ? { q: 2, r: 2 } : null,
+  };
+
+  it('places each on its threat, settlement, character or the creature; skips the quiet ones', () => {
+    const hex = { q: 5, r: -1 };
+    expect(
+      momentsFromEvents(
+        [
+          { kind: 'threat-appears', id: 't2', hex },
+          { kind: 'threat-moves', id: 't1' },
+          { kind: 'threat-strikes', id: 't1' },
+          { kind: 'struck', characterId: 'me' },
+          { kind: 'struck', characterId: 'other' },
+          { kind: 'threat-hit', id: 't1', characterId: 'me' },
+          { kind: 'threat-cleared', id: 't1', characterId: 'me' },
+          { kind: 'threat-gone', id: 't1' },
+          { kind: 'defend', characterId: 'me' },
+          { kind: 'peril' },
+          { kind: 'settlement-appears', id: 's1' },
+          { kind: 'parley', id: 's1', characterId: 'me' },
+          { kind: 'befriended', id: 's1' },
+          { kind: 'angered', id: 's1' },
+          { kind: 'offer', id: 's1', characterId: 'me', material: 'old-coin' },
+          { kind: 'boon', id: 's1', characterId: 'me', boon: 'shelter' },
+          { kind: 'season-over' },
+        ],
+        centre,
+        'me',
+        where,
+      ),
+    ).toEqual([
+      { kind: 'threat', hex },
+      { kind: 'strike', hex: centre },
+      { kind: 'struck', hex: { q: 1, r: 2 }, mine: true },
+      { kind: 'struck', hex: { q: 2, r: 2 }, mine: false },
+      { kind: 'hit', hex: { q: 4, r: 0 } },
+      { kind: 'cleared', hex: { q: 4, r: 0 } },
+      { kind: 'defend', hex: centre },
+      { kind: 'befriended', hex: { q: -3, r: 2 } },
+      { kind: 'angered', hex: { q: -3, r: 2 } },
+      { kind: 'boon', hex: { q: -3, r: 2 }, item: 'shelter' },
+      { kind: 'season-over', hex: centre },
+    ]);
+  });
+
+  it('drops a moment it cannot place (a thing it never saw)', () => {
+    expect(
+      momentsFromEvents(
+        [
+          { kind: 'threat-hit', id: 'unknown' },
+          { kind: 'befriended', id: 'unknown' },
+        ],
+        centre,
+        'me',
+        where,
+      ),
+    ).toEqual([]);
+  });
+});

@@ -62,4 +62,14 @@ describe('view sync', () => {
     await Promise.all([s.sync.refresh(), s.sync.refresh()]);
     expect(s.asked).toHaveLength(1);
   });
+
+  it('a new season replaces the view whatever its version, and later refreshes ask from it', async () => {
+    const s = setup([{ unchanged: true }]);
+    s.sync.accept(at(40));
+    s.sync.restart(at(2));
+    expect(s.sync.current?.version).toBe(2);
+    expect(s.seen.map((v) => v.version)).toEqual([40, 2]);
+    await s.sync.refresh();
+    expect(s.asked).toEqual([2]);
+  });
 });

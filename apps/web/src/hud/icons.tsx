@@ -87,6 +87,16 @@ export function NextDayIcon(): JSX.Element {
   );
 }
 
+/** New season: a sunrise over a fresh road. */
+export function NewSeasonIcon(): JSX.Element {
+  return (
+    <svg viewBox="0 0 32 32" aria-hidden="true">
+      <path d="M9 17a7 7 0 0 1 14 0Z" {...line} fill={PALETTE.accents.ochre.light} />
+      <path d="M3 20h26M16 4v3M7 8l2 2M25 8l-2 2M12 28l2-5M20 28l-2-5" {...line} />
+    </svg>
+  );
+}
+
 /** Join: a character's standee with a small plus beside it. */
 export function JoinIcon(): JSX.Element {
   return (
