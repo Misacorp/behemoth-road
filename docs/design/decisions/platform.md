@@ -4,6 +4,14 @@ Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: Staging and local seasons are short; admins start a new season there
+
+ID: `2026-11-20-staging-and-local-seasons-are-short` · Status: current
+
+**Decision.** The Worker creates staging and local games with `SERVER_CONFIG.devSeason` overrides (route 12 steps, settlements at steps 3 and 9, threats from day 2); production uses the core defaults. `POST /api/dev/new-season` (dev tools on, server admins only, like next day) replaces the game with a new seed; every character is gone and players join again. The alarm schedules no ticks once a season is over. Production has no new-season control yet.
+
+**Reasoning.** The done criterion asks for a full season to a win or a loss with the staging next day. Reusing the dev-tools gate and admin check adds no new trust boundary. How production starts its next season is Misa's call and is left for later.
+
 ## 2026-11-20: Web schema requires the M4 view fields now the fixtures carry them
 
 ID: `2026-11-20-web-schema-requires-the-m4-view` · Status: current · Supersedes: `2026-11-20-web-schema-defaults-the-m4-view`

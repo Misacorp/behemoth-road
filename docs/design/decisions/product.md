@@ -4,6 +4,38 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: Threats are tagged data that appear at the window's edge and walk in openly
+
+ID: `2026-11-20-threats-are-tagged-data-that-appear` · Status: current
+
+**Decision.** Milestone 5's attack system (`docs/design/m5-season.md`): threat types in content with strength, speed, approach and weight (a captor band from behind, a pterodactyl swarm from the flanks, a rockslide on the path ahead, raiders from an angered settlement). Threats are public from the moment they appear; their approach is the forecast. They move after the creature's step, strike the creature at contact (peril rises by strength less defence) and strike unescorted characters within one hex (one action the next day). Appearance chance and strength scale with active players and days, from the tuning config. Terrain does not slow threats yet.
+
+**Reasoning.** The plan's picks, made concrete with the fewest new rules: one movement rule and one contact rule cover all flavours, and the flavours differ by data (a speed-0 rockslide is dodged by steering, which ties threats to the keeper's fire). Striking characters gives the guardian's escort a purpose without a combat system. A struck character losing actions, not the character, keeps losses rare.
+
+## 2026-11-20: Guardians strike, defend and escort; anyone can strike a threat
+
+ID: `2026-11-20-guardians-strike-defend-and-escort-anyone` · Status: current
+
+**Decision.** Strike: anyone on or next to a threat, 1 action, strength −2 for a guardian, −1 for others. Defend: guardians riding, 1 action, each strike on the creature until the tick is reduced by 2 per defender. Escort: passive; characters within one hex of a guardian standing on a hex are not struck, nor is the guardian.
+
+**Reasoning.** Basics for all, mastery for specialists: striking is open to everyone but risky without a guardian nearby; defending is the guardian's lever, as lingering is the keeper's. Escort as position, not an action, keeps the daily cost low. Speciality against tags (`flying`) stays a future upgrade.
+
+## 2026-11-20: Settlements appear on the route; parley or offer to befriend, or anger them
+
+ID: `2026-11-20-settlements-appear-on-the-route-parley` · Status: current
+
+**Decision.** A settlement appears at the leading edge on fixed step counts (first at step 4, then every 10; steps 3 and 9 on staging), visible at once. Parley: envoys +2 favour; others +1 with a 25 % chance to anger it. Offer a `trade` material (old coin) for +2 without risk. At 3 favour it is friendly and grants one boon, picked by whoever asks: a gift to the stores, misleading the pursuers (they vanish and none come for 4 days), or shelter (peril −3). Angered, it sends raiders at once and stays angry.
+
+**Reasoning.** Placing settlements by the route guarantees every season meets a people (the plan's "at least one"). A risk for non-envoys, shown before acting, gives the envoy a clear part without locking others out, and the coin ties the scholar's find into diplomacy. A choice of boon lets the team answer what is pressing (food, pursuers, peril).
+
+## 2026-11-20: Peril is a public track; the season ends at home or at full peril
+
+ID: `2026-11-20-peril-is-a-public-track-the` · Status: current
+
+**Decision.** Peril (0 to 10) rises by strike damage and by 1 at a tick that ends with the creature underfed at level 2 or more, and falls by 1 at a tick where it did not rise. The route is `routeLength` steps (40; 12 on staging and locally); lingering adds none. Peril at 10 loses the season; reaching the route's end wins it, safe below 5 peril, wounded at 5 or more. Once over, actions, moves and ticks do nothing; the ending shows a title only.
+
+**Reasoning.** The design's graded failure: pressure builds visibly so the team can react, and calm days heal it. Counting steps (not days) makes lingering a real trade-off. Peril being public is fine: hunger was already partly visible from level 2.
+
 ## 2026-11-20: Light a fire hints faded without fuel once you have seen a fire
 
 ID: `2026-11-20-light-a-fire-hints-faded-without` · Status: current · Amends: `2026-11-20-light-a-fire-shows-on-your`

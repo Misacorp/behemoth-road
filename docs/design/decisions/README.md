@@ -49,6 +49,7 @@ Record a decision:
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
+- 2026-11-20 Staging and local seasons are short; admins start a new season there
 - 2026-11-20 Web schema requires the M4 view fields now the fixtures carry them
 - 2026-11-20 The player view carries each viewer's creature signs; the creature's nature and condition never leave the server
 - 2026-11-20 The Durable Object keeps the last 100 game events for clients to replay
@@ -112,6 +113,10 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-20 Threats are tagged data that appear at the window's edge and walk in openly
+- 2026-11-20 Guardians strike, defend and escort; anyone can strike a threat
+- 2026-11-20 Settlements appear on the route; parley or offer to befriend, or anger them
+- 2026-11-20 Peril is a public track; the season ends at home or at full peril
 - 2026-11-20 Light a fire hints faded without fuel once you have seen a fire
 - 2026-11-20 A lingering creature's stay mark sits on its footprint's near edge
 - 2026-11-20 Feed and linger sit in the hub drawer as unlock-style cards
