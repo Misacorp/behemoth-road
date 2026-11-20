@@ -773,7 +773,7 @@ function ActionButton({
 const ACTION_ICONS: Readonly<Record<string, string>> = { gather: 'hand', 'work-site': 'key' };
 
 /** The action pips and a button's own id, shared by the here card's actions. */
-const actionKey = (a: HereAction): string => `${a.kind}:${a.uses ?? ''}`;
+export const actionKey = (a: HereAction): string => `${a.kind}:${a.uses ?? ''}`;
 
 // Compact, so the neighbours up-left and up-right of your figure stay tappable on a phone.
 export const hereSize = (count: number): { width: number; height: number } => ({

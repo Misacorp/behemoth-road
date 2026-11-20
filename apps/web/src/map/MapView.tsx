@@ -27,6 +27,7 @@ import {
 } from '@behemoth-road/core';
 import { Component, type ComponentChildren, type JSX } from 'preact';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
+import { armedAfter } from './arm.ts';
 import { drawOutOfReach, PALETTE, PROJECTION } from './art.ts';
 import {
   cellStateAt,
@@ -56,6 +57,7 @@ import {
   CHARACTER_SIZE,
   CharacterCard,
   bubbleSize,
+  actionKey,
   type Arming,
   CONFIRM_SIZE,
   ConfirmCard,
@@ -174,7 +176,7 @@ interface Anchor {
   readonly size: { readonly width: number; readonly height: number };
   /** Below when the path arrives from above, so the card does not cover the arrow. */
   readonly prefer?: 'above' | 'below';
-  /** A card about your own hex: these hexes (yours and its neighbours) stay uncovered. */
+  /** A card about your own hex: these hexes (yours first, then its neighbours) stay uncovered. */
   readonly clear?: readonly Hex[];
 }
 
@@ -191,7 +193,9 @@ function popoverAnchor(
   const mine = me?.status === 'active' && me.at.kind === 'hex' ? me.at.hex : null;
   /** Your hex and its six neighbours, when the card is about your own hex. */
   const clearOf = (h: Hex | null): { clear?: readonly Hex[] } =>
-    h && mine && hexEquals(h, mine) ? { clear: hexesInRange(mine, 1) } : {};
+    h && mine && hexEquals(h, mine)
+      ? { clear: [mine, ...hexesInRange(mine, 1).filter((n) => !hexEquals(n, mine))] }
+      : {};
   if (flow.kind === 'character') {
     // Above the character's head, wherever it stands (on a hex or on the creature's back).
     const feet = figureFeet(state, flow.id, p);
@@ -616,6 +620,22 @@ export function MapView(props: MapViewProps): JSX.Element {
   useLayoutEffect(() => {
     apply();
   }, [layers]);
+
+  // The card's enabled buttons, by arm key: a refresh that disables the armed one drops the arming.
+  const enabledKeys: string[] =
+    flow.kind === 'inspect'
+      ? survey?.enabled
+        ? ['survey']
+        : []
+      : flow.kind === 'selected' && props.here
+        ? props.here.actions.filter((a) => a.enabled).map(actionKey)
+        : flow.kind === 'threat' && threatCard(state, characterId, flow.id)?.strike?.enabled
+          ? ['strike']
+          : [];
+  const enabledSig = enabledKeys.join('|');
+  useLayoutEffect(() => {
+    setArmed((a) => armedAfter(a, enabledKeys));
+  }, [enabledSig]);
 
   // Place the popover, and move focus into it when it opens (out again when it closes).
   const popKey = popover.current?.key ?? '';

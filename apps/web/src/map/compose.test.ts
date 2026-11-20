@@ -161,6 +161,33 @@ describe('a card on your own hex', () => {
     expect(tipX).toBeLessThan(0);
   });
 
+  it('on a 320 px screen, clear of your hex and the neighbours near either edge', () => {
+    const narrow = { width: 320, height: 568 };
+    for (const at of [
+      { x: 30, y: 280 },
+      { x: 290, y: 280 },
+      { x: 160, y: 40 },
+      { x: 160, y: 540 },
+    ]) {
+      const polys = around(at);
+      const rect = placeClear(anchorAt(at), below, here, narrow, 10, polys);
+      expect(polys.some((poly) => overlaps(rect, poly))).toBe(false);
+      expect(rect.x).toBeGreaterThanOrEqual(10);
+      expect(rect.x + rect.width).toBeLessThanOrEqual(310);
+    }
+  });
+
+  it('when nothing fits clear of the neighbours, it still leaves your own hex uncovered', () => {
+    // A screen barely taller than the ring of hexes: every place covers a neighbour.
+    const tight = { width: 320, height: 200 };
+    const at = { x: 160, y: 100 };
+    const polys = around(at);
+    const rect = placeClear(anchorAt(at), below, here, tight, 10, polys);
+    expect(overlaps(rect, polys[0]!)).toBe(false);
+    // The usual place would have covered it.
+    expect(overlaps(placePopover(anchorAt(at), below, here, tight, 10), polys[0]!)).toBe(true);
+  });
+
   it('a rectangle and a hex overlap only when they share area', () => {
     const hex = around({ x: 100, y: 100 })[0]!;
     expect(overlaps({ x: 90, y: 90, width: 20, height: 20 }, hex)).toBe(true);

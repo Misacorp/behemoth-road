@@ -17,3 +17,10 @@ export function press(armed: string | null, key: string, enabled: boolean): Pres
   if (armed === key) return { armed: null, run: true };
   return { armed: key, run: false };
 }
+
+/**
+ * What stays armed when the card's buttons change under it (a refresh): the armed button only while it is
+ * still offered and enabled, so a button disabled and enabled again by two refreshes needs both taps anew.
+ */
+export const armedAfter = (armed: string | null, enabled: readonly string[]): string | null =>
+  armed !== null && enabled.includes(armed) ? armed : null;

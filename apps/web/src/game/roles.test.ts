@@ -26,6 +26,16 @@ describe('the role a greyed action needs', () => {
     expect(neededRole(view, me, { kind: 'feed' })).toBeNull();
   });
 
+  it('is null for an action that can be done, an unknown character, and the role you already have', () => {
+    const { view, me } = staged({ role: 'guardian', at: 'creature' });
+    // A riding guardian can defend: nothing is needed.
+    expect(neededRole(view, me, { kind: 'defend' })).toBeNull();
+    expect(neededRole(view, 'nobody', { kind: 'defend' })).toBeNull();
+    // Not riding: refused, but for where you are, not who you are.
+    const walking = staged({ role: 'guardian' });
+    expect(neededRole(walking.view, walking.me, { kind: 'defend' })).toBeNull();
+  });
+
   it('marks a site your role cannot try with the role that can', () => {
     const { view, me } = staged({ role: 'scout', at: 'tomb', explored: ['tomb'] });
     const c = view.creature.centre;

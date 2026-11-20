@@ -96,9 +96,10 @@ export function overlaps(rect: Rect, poly: Polygon): boolean {
 }
 
 /**
- * Where a card about your own hex goes so it covers none of `avoid` (your hex and its six neighbours, on
- * screen): below them, then beside (right, left), then above, each inside the screen with `margin`. When
- * none fits, the usual place (`placePopover`).
+ * Where a card about your own hex goes so it covers none of `avoid` (your hex first, then its six
+ * neighbours, on screen): below them, then beside (right, left), then above, each inside the screen with
+ * `margin`. When none fits (a small screen), the first of those places, then the usual one, that at least
+ * leaves your own hex uncovered; only when even that is impossible, the usual place (`placePopover`).
  */
 export function placeClear(
   anchor: Point,
@@ -124,16 +125,17 @@ export function placeClear(
     { x: x0 - gap - size.width, y: midY },
     { x: anchor.x - size.width / 2, y: y0 - gap - size.height },
   ];
-  for (const c of candidates) {
-    const rect: Rect = {
-      x: clamp(c.x, screen.width - size.width),
-      y: clamp(c.y, screen.height - size.height),
-      width: size.width,
-      height: size.height,
-    };
-    if (!avoid.some((poly) => overlaps(rect, poly))) return rect;
-  }
-  return fallback;
+  const rects: Rect[] = candidates.map((c) => ({
+    x: clamp(c.x, screen.width - size.width),
+    y: clamp(c.y, screen.height - size.height),
+    width: size.width,
+    height: size.height,
+  }));
+  const clear = rects.find((rect) => !avoid.some((poly) => overlaps(rect, poly)));
+  if (clear) return clear;
+  // Your own hex is never covered when any place allows it: tapping it is how the card closes.
+  const own = avoid[0]!;
+  return [...rects, fallback].find((rect) => !overlaps(rect, own)) ?? fallback;
 }
 
 /** The chevron on a popover's edge, in the popover's own px: a paper fill and its two ink sides. */
