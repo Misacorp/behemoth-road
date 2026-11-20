@@ -2,7 +2,8 @@
  * Moments: short visual beats on the map, with no prose. A hex explored (its veil lifts), a survey, a reveal
  * (an ink bloom), a find (the material's icon rising from the site), a sprung trap (a snap; your pips go dark
  * when it caught you), a deposit into the stores and a finished unlock (on the creature), and Milestone 4's
- * fire lit, fire gone out, feeding, a linger and a starving creature eating from the stores. They come only from
+ * fire lit, fire gone out, feeding, a linger, a starving creature eating from the stores, and the day's step
+ * (the creature walking to its new centre, or a clear mark that it stayed). They come only from
  * the server's events (your own move or action, and the log of what others and the tick did since your last
  * view), so they show for anything that happened, whoever did it. They are CSS animations (no per-frame
  * renders) and end by themselves.
@@ -33,10 +34,32 @@ export type Moment =
   | { readonly kind: 'befriended'; readonly hex: Hex }
   | { readonly kind: 'angered'; readonly hex: Hex }
   | { readonly kind: 'boon'; readonly hex: Hex; readonly item: string }
-  | { readonly kind: 'season-over'; readonly hex: Hex };
+  | { readonly kind: 'season-over'; readonly hex: Hex }
+  /** A character left out of reach: its figure fades into the fog where it stood. */
+  | {
+      readonly kind: 'lost';
+      readonly hex: Hex;
+      readonly characterId: string;
+      readonly mine: boolean;
+    }
+  /** The creature's daily step: it walks from one hex to the next while the camera holds still. */
+  | { readonly kind: 'step'; readonly hex: Hex; readonly from: Hex }
+  /** The day's step when it lingered: it stayed where it was. */
+  | { readonly kind: 'stayed'; readonly hex: Hex };
 
 /** How long a moment stays on screen, in ms (its CSS animation is as long). */
 export const MOMENT_MS = 1400;
+/** The creature's walk of one hex, in ms; the camera follows after it. */
+export const STEP_MS = 1200;
+/** Your character fading into the fog, in ms, before the join drawer opens. */
+export const LOST_MS = 2200;
+
+/** How long a set of moments stays on screen: the longest of them. */
+export const momentsMs = (moments: readonly Moment[]): number =>
+  Math.max(
+    0,
+    ...moments.map((m) => (m.kind === 'lost' ? LOST_MS : m.kind === 'step' ? STEP_MS : MOMENT_MS)),
+  );
 
 /** The part of an event the moments read (the core's `GameEvent`, as parsed). */
 export interface EventLike {
@@ -49,6 +72,9 @@ export interface EventLike {
   /** Milestone 5: the threat or settlement it is about, and a boon. */
   readonly id?: string | undefined;
   readonly boon?: string | undefined;
+  /** A creature step's start and end. */
+  readonly from?: Hex | number | undefined;
+  readonly to?: Hex | number | undefined;
 }
 
 /**
@@ -77,8 +103,9 @@ function most(materials: Readonly<Record<string, number>>): string | null {
 
 /**
  * Moments from server events, in order. `centre` is where the creature stands (deposits, unlocks, feeding,
- * a linger and the creature eating show there); `me` is your character (a trap that caught it darkens your pips). Kinds without a moment (gather,
- * a failed site, unlock progress, the tick's own) and unknown kinds are skipped, so new events never break
+ * a linger and the creature eating show there); `me` is your character (a trap that caught it darkens your
+ * pips). The day's step is a walk, or a stayed mark when it lingered (`from` equals `to`). Kinds without a
+ * moment (gather, a failed site, unlock progress) and unknown kinds are skipped, so new events never break
  * the map.
  */
 export function momentsFromEvents(
@@ -96,7 +123,10 @@ export function momentsFromEvents(
       if (m5) out.push(m5);
       continue;
     }
-    if (e.kind === 'fed') {
+    if (e.kind === 'creature-step' && typeof e.from === 'object' && typeof e.to === 'object') {
+      const stayed = e.from.q === e.to.q && e.from.r === e.to.r;
+      out.push(stayed ? { kind: 'stayed', hex: e.to } : { kind: 'step', hex: e.to, from: e.from });
+    } else if (e.kind === 'fed') {
       out.push({ kind: 'feed', hex: centre, item: e.material ?? null });
     } else if (e.kind === 'linger') {
       out.push({ kind: 'linger', hex: centre });
@@ -105,6 +135,13 @@ export function momentsFromEvents(
     } else if (e.kind === 'deposit' && e.materials) {
       const item = most(e.materials);
       if (item) out.push({ kind: 'deposit', hex: centre, item });
+    } else if (e.kind === 'lost' && e.hex && e.characterId) {
+      out.push({
+        kind: 'lost',
+        hex: e.hex,
+        characterId: e.characterId,
+        mine: e.characterId === me,
+      });
     } else if (e.kind === 'unlock-done' && e.unlock) {
       out.push({ kind: 'unlock', hex: centre, item: e.unlock });
     } else if (!e.hex) {

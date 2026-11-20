@@ -66,9 +66,9 @@ const lightOn = (state: GameState, side: 'left' | 'right'): GameState => {
   return r.state;
 };
 
-/** The rider feeds every other day, which keeps the creature comfortable (5 to 7). */
+/** The rider feeds every fourth day (3, 7, 11…), which keeps the creature comfortable (5 to 7). */
 const feedIfDue = (state: GameState): GameState => {
-  if (state.day % 2 !== 0) return state;
+  if (state.day % 4 !== 3) return state;
   const r = act(state, 'rider', { kind: 'feed' });
   if (!r.ok) throw new Error(r.reason);
   return r.state;

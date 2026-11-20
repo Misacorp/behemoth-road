@@ -112,13 +112,16 @@ describe('captured contract fixtures', () => {
     expect(v.parse(PlayerViewSchema, fixture('view-lingered')).game.creature.lingering).toBe(true);
   });
 
-  it("the tick's fire going out and the creature eating play as moments; its step does not", () => {
+  it("the tick's step (stayed after a linger), a fire going out and the creature eating play", () => {
     const kinds = ['view-care-since', 'view-creature-ate'].map((name) => {
       const view = v.parse(PlayerViewSchema, fixture(name));
       return momentsFromEvents(view.events, view.game.creature.centre, '').map((m) => m.kind);
     });
-    // The recaptured since-log also carries a threat appearing at that tick.
-    expect(kinds).toEqual([['fire-out'], ['ate', 'threat']]);
+    // The since-log of the second also carries a threat appearing at that tick.
+    expect(kinds).toEqual([
+      ['stayed', 'fire-out'],
+      ['step', 'ate', 'threat'],
+    ]);
   });
 
   it("Milestone 5's captured answers play their moments, placed on the view's own things", () => {

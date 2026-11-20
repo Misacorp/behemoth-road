@@ -41,7 +41,7 @@ if (!process.execArgv.includes('--experimental-transform-types')) {
   process.exit(res.status ?? 1);
 }
 const { SPRING } = await import('../../../packages/art/src/palette.ts');
-const { act, characterOf, moveAlong, nextDayWithEvents } =
+const { act, characterOf, hexDistance, hexesInRange, moveAlong, nextDayWithEvents } =
   await import('../../../packages/core/src/index.ts');
 const {
   CHAIN_SPOTS,
@@ -107,11 +107,13 @@ class FakeServer {
   constructor() {
     this.scenario = notJoinedScenario();
     this.log = [];
+    this.reads = [];
   }
 
   reset(scenario) {
     this.scenario = scenario;
     this.log = [];
+    this.reads = [];
   }
 
   /** Answers one request: [status, body]. */
@@ -173,6 +175,7 @@ class FakeServer {
     const req = route.request();
     const url = new URL(req.url());
     this.lastUrl = `${url.pathname}${url.search}`;
+    if (req.method() === 'GET' && url.pathname === '/api/game') this.reads.push(url.search);
     const body = req.postData() ? JSON.parse(req.postData()) : null;
     const [status, payload] = this.answer(req.method(), url.pathname, body);
     await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(payload) });
@@ -206,6 +209,33 @@ function startVite() {
 const CLOAK = (() => {
   const view = toView(joinedScenario());
   return identities(view).get(characterIdOf(view, USERS.MISA)).accent;
+})();
+
+/**
+ * You (a scout) stand on a rim hex of the window that the next tick leaves behind: day one ends with it in
+ * its grace day, day two with you lost. Found by trying the rim hexes with the real tick.
+ */
+const EDGE = (() => {
+  const base = joinedScenario();
+  const c = base.state.creature.centre;
+  const R = base.state.config.windowRadius;
+  for (const h of hexesInRange(c, R)) {
+    if (hexDistance(h, c) !== R) continue;
+    const state = {
+      ...base.state,
+      characters: base.state.characters.map((ch) =>
+        ch.userId === USERS.MISA ? { ...ch, at: { kind: 'hex', hex: h } } : ch,
+      ),
+    };
+    const day1 = nextDayWithEvents(state).state;
+    const mine = characterOf(day1, USERS.MISA);
+    const tile = day1.tiles[`${h.q},${h.r}`];
+    if (mine?.status !== 'active' || tile?.leftWindowOnDay === null) continue;
+    const day2 = nextDayWithEvents(day1).state;
+    if (characterOf(day2, USERS.MISA)?.status === 'lost')
+      return { ...base, state, version: base.version + 1 };
+  }
+  throw new Error('no rim hex the tick leaves behind');
 })();
 
 /** A day on which a scholar's (seeded) roll at the staged tomb succeeds, so the find shows. */
@@ -342,6 +372,15 @@ async function run() {
       await page.waitForSelector('.drawer .offer');
       await page.waitForTimeout(400);
       await shot('join-1-characters');
+      // A trait icon names itself on a tap, without picking the card.
+      const shotP = (name) => page.screenshot({ path: join(out, `polish-${vp.name}-${name}.png`) });
+      await page.locator('.offer .named').first().click();
+      await page.waitForTimeout(150);
+      if (!(await page.locator('.offer .name-tip').count()))
+        problems.push(`${vp.name}: a trait icon does not show its name`);
+      if (await page.locator('.offer[aria-selected=true]').count())
+        problems.push(`${vp.name}: tapping a trait icon picked the card`);
+      await shotP('02-name-trait');
       await press('.offer >> nth=0');
       if (vp.touch) await shot('join-2-role');
       await press('.role[data-role=scout]');
@@ -388,6 +427,12 @@ async function run() {
       await press(`[data-popover=bubble] [data-character="${idOf(USERS.PIP)}"]`);
       if (!(await has('character'))) problems.push(`${vp.name}: no card for the other rider`);
       await shot('other-player-card');
+      // The card's role emblem names its role on a tap.
+      await page.locator('[data-popover=character] [data-name]').first().click();
+      await page.waitForTimeout(150);
+      if (!(await page.locator('[data-popover=character] text[data-label]').count()))
+        problems.push(`${vp.name}: the card's role emblem does not show its name`);
+      await shotP('02-name-card');
       await page.keyboard.press('Escape');
       await page.waitForTimeout(100);
       if (await has('character')) problems.push(`${vp.name}: Escape did not close the card`);
@@ -692,6 +737,46 @@ async function run() {
           problems.push(`${vp.name}: no stay mark while the creature lingers`);
         await shot4('08-lingering');
 
+        // The day turns on a lingering creature: it stays, and the stayed mark plays on it.
+        await press('[aria-label="Next day"]');
+        await page.waitForTimeout(350);
+        await expectMoment('stayed');
+        await shot4('09-stayed');
+        await settle();
+
+        // The day turns again: the creature walks its step; the step hints ahead are larger for the likelier
+        // step.
+        await freshDay();
+        await press('[aria-label="Next day"]');
+        await page.waitForTimeout(350);
+        await expectMoment('step');
+        await shot4('10-step');
+        await settle();
+        await idle();
+        if ((await page.locator('[data-mark^="step:"]').count()) < 2)
+          problems.push(`${vp.name}: the step hints do not show the veers`);
+        await shot4('11-step-hints');
+
+        // A timber stand next to you: its inspect card hints at a fire, faded, with its timber.
+        await stage({ deposit: 'timber-stand', explored: ['iron'] });
+        await idle();
+        await tap(...(await spot('iron')));
+        if (!(await page.locator('[data-popover=inspect] [data-action=light-fire]').count()))
+          problems.push(`${vp.name}: no fire hint on the timber stand's card`);
+        await shot4('12-stand-hint');
+
+        // A keeper riding a hungry creature: the bubble's creature entry carries the appetite badge.
+        await stage({ role: 'keeper', at: 'creature', satiety: 2 });
+        {
+          const c = fake.scenario.state.creature.centre;
+          await idle();
+          await tap(...(await hexOnScreen(c.q, c.r)));
+        }
+        if (!(await page.locator('[data-popover=bubble] [data-appetite]').count()))
+          problems.push(`${vp.name}: no appetite badge on the bubble`);
+        await shot4('13-bubble-badge');
+        await idle();
+
         // Milestone 5: threats, settlements, defending, peril and the route, and the season's end, staged
         // (`seasonScenario`) and then played through the real core (strikes, a boon, a defence, the ticks).
         const shot5 = async (name) => {
@@ -870,6 +955,110 @@ async function run() {
         if (!(await count('.drawer .offer')))
           problems.push(`${vp.name}: no join drawer in the new season`);
         await shot5('16-new-season');
+      }
+
+      // Polish round (the fresh-eyes playtest), on the staged chain and an edge-of-the-window stage.
+      {
+        const shotP = (name) =>
+          page.screenshot({ path: join(out, `polish-${vp.name}-${name}.png`) });
+        const load = async (scenario) => {
+          fake.reset(scenario);
+          await page.reload();
+          await page.waitForSelector('.map-world svg g');
+          await page.waitForTimeout(500);
+        };
+        const meHex = () => charOf(USERS.MISA)?.at;
+        const meOnScreen = async () => {
+          const at = meHex();
+          return at?.kind === 'hex' ? hexOnScreen(at.hex.q, at.hex.r, -0.05, 0.1) : null;
+        };
+
+        // 1. The pack box: an empty pack reads as empty; it closes on a tap elsewhere, Escape, right-click.
+        await load(chainScenario({}));
+        await press('.hud-pack');
+        await page.waitForTimeout(150);
+        if (!(await page.locator('.hud-pack-contents[data-empty]').count()))
+          problems.push(`${vp.name}: the empty pack does not read as empty`);
+        await shotP('01-pack-empty');
+        await tap(cx, cy * 0.5);
+        if (await page.locator('.hud-pack-contents').count())
+          problems.push(`${vp.name}: the pack box stays open after a tap elsewhere`);
+        await press('.hud-pack');
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(100);
+        if (await page.locator('.hud-pack-contents').count())
+          problems.push(`${vp.name}: Escape does not close the pack box`);
+        if (!vp.touch) {
+          await press('.hud-pack');
+          await page.mouse.click(cx, cy * 0.5, { button: 'right' });
+          await page.waitForTimeout(100);
+          if (await page.locator('.hud-pack-contents').count())
+            problems.push(`${vp.name}: right-click does not close the pack box`);
+        }
+
+        // 5. Hints: the gather hand by an explored deposit; faint spyglasses on surveyable neighbours.
+        await load(chainScenario({ explored: ['iron'] }));
+        if (!(await page.locator('[data-mark="action:hand"]').count()))
+          problems.push(`${vp.name}: no gather badge by the explored deposit`);
+        await shotP('05-action-badge');
+        await tap(...(await meOnScreen()));
+        if (!(await page.locator('[data-mark=survey-hint]').count()))
+          problems.push(`${vp.name}: no survey hints while selected`);
+        await shotP('05-survey-hints');
+        await page.keyboard.press('Escape');
+
+        // 6. Your own action refreshes: a read of the log since the view before it follows the answer.
+        const readsBefore = fake.reads.length;
+        await tap(...(await meOnScreen()));
+        await tap(
+          ...(await hexOnScreen(
+            fake.scenario.state.creature.centre.q + CHAIN_SPOTS.iron.q,
+            fake.scenario.state.creature.centre.r + CHAIN_SPOTS.iron.r,
+          )),
+        );
+        if (await has('confirm')) await press('[aria-label=Confirm]');
+        await page.waitForTimeout(400);
+        if (!fake.reads.slice(readsBefore).some((q) => q.includes('since=')))
+          problems.push(`${vp.name}: no refresh after your own action`);
+
+        // 4. A new day: the camera holds while the creature walks its step, then follows.
+        await load(chainScenario({}));
+        const viewBefore = await svg.getAttribute('data-view');
+        await press('[aria-label="Next day"]');
+        await page.waitForTimeout(450);
+        if (!(await page.locator('[data-moment=step]').count()))
+          problems.push(`${vp.name}: no creature step on a new day`);
+        if ((await svg.getAttribute('data-view')) !== viewBefore)
+          problems.push(`${vp.name}: the camera moved while the creature walked`);
+        await shotP('04-creature-step');
+        await page.waitForTimeout(1800);
+        if ((await svg.getAttribute('data-view')) === viewBefore)
+          problems.push(`${vp.name}: the camera did not follow the creature`);
+        await shotP('04-after-step');
+
+        // 3. Left behind: the window's edge is drawn; on the grace day an hourglass and tinted pips; then
+        // a fog moment before the join drawer opens.
+        if (!(await page.locator('[data-mark=window-edge]').count()))
+          problems.push(`${vp.name}: no window edge`);
+        await load(EDGE);
+        await press('[aria-label="Next day"]');
+        await page.waitForTimeout(2000);
+        if (!(await page.locator('[data-mark=grace-warning]').count()))
+          problems.push(`${vp.name}: no hourglass on the grace day`);
+        if (!(await page.locator('.hud-actions.is-warned').count()))
+          problems.push(`${vp.name}: the pips are not tinted on the grace day`);
+        await shotP('03-grace-day');
+        await press('[aria-label="Next day"]');
+        await page.waitForTimeout(600);
+        if (!(await page.locator('[data-moment=lost]').count()))
+          problems.push(`${vp.name}: no fog moment when your character is lost`);
+        if (await page.locator('.drawer .offer').count())
+          problems.push(`${vp.name}: the join drawer opened before the fog moment ended`);
+        await shotP('03-lost-moment');
+        await page.waitForTimeout(2200);
+        if (!(await page.locator('.drawer .offer').count()))
+          problems.push(`${vp.name}: the join drawer did not open after the fog moment`);
+        await shotP('03-lost-drawer');
       }
 
       // Lost and replace: the drawer opens by itself; replacing starts a new character on the creature.

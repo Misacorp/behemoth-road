@@ -101,9 +101,11 @@ export {
   type FeatureState,
 } from './features.ts';
 export { drawFire } from './fire.ts';
+export { drawAppetiteBadge } from './signs.ts';
 export {
   drawMoment,
   drawStayMark,
+  drawStepHint,
   drawViaMark,
   MOMENT_KINDS,
   VIA_MARKS,

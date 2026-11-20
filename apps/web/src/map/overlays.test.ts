@@ -83,7 +83,18 @@ describe('overlays', () => {
   });
 
   it('hint one paw print per likely creature step', () => {
-    expect(overlays(state, { kind: 'idle' }).under).toHaveLength(predictCreature(state).length);
+    const under = overlays(state, { kind: 'idle' }).under;
+    const marks = under.filter((m) => m.attrs['data-mark'] !== 'window-edge');
+    expect(marks).toHaveLength(predictCreature(state).length);
+  });
+
+  it("always draw the window's edge: one segment per outer edge of the rim hexes", () => {
+    const edge = overlays(state, { kind: 'idle' }).under.find(
+      (m) => m.attrs['data-mark'] === 'window-edge',
+    );
+    const R = state.config.windowRadius;
+    // A hex ring of radius R has 6R hexes and 6(2R + 1) outer edges.
+    expect(String(edge?.attrs['d']).match(/M/g)).toHaveLength(6 * (2 * R + 1));
   });
 
   it('draw a lost character faded, outside the scene', () => {

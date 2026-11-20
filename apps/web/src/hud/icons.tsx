@@ -133,11 +133,14 @@ export function Pips({
   left,
   planned = 0,
   size = 12,
+  tint,
 }: {
   total: number;
   left: number;
   planned?: number;
   size?: number;
+  /** A warning fill for the filled pips (the grace day), instead of the accent. */
+  tint?: string;
 }): JSX.Element {
   const gap = size * 1.7;
   const r = size / 2;
@@ -154,7 +157,7 @@ export function Pips({
             cx={2 + r + i * gap}
             cy={2 + r}
             r={r}
-            fill={filled && !spending ? ramp.base : PALETTE.paper}
+            fill={filled && !spending ? (tint ?? ramp.base) : PALETTE.paper}
             stroke={filled ? ink : PALETTE.inkSoft}
             stroke-width={1.4}
             stroke-dasharray={spending ? '2.5 2' : filled ? undefined : '1.5 2.5'}

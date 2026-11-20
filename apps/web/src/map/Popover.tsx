@@ -7,6 +7,7 @@ import {
   ART_TUNING,
   drawCharacter,
   drawCreature,
+  drawAppetiteBadge,
   drawIcon,
   drawSettlementIcon,
   drawThreatIcon,
@@ -20,13 +21,17 @@ import {
   renderScene,
   type CellState,
   type FeatureArt,
+  type SvgNode,
 } from '@behemoth-road/art';
 import type { CreatureSigns, GameStateView } from '@behemoth-road/core';
+
+type CreatureAppetiteSign = NonNullable<CreatureSigns['appetite']>;
 import type { JSX } from 'preact';
 import { iconOf } from '../game/chain.ts';
 import { Pips, TickMark } from '../hud/icons.tsx';
 import type { Identity } from '../game/identity.ts';
-import { QuirkIcon, RoleEmblem, TraitIcon } from '../ui/emblems.tsx';
+import { contentName, QuirkIcon, RoleEmblem, TraitIcon } from '../ui/emblems.tsx';
+import { useEffect, useState } from 'preact/hooks';
 import type { SettlementInfo, ThreatCardInfo } from '../game/season.ts';
 import { PALETTE } from './art.ts';
 import { creatureArt } from './cells.ts';
@@ -172,19 +177,24 @@ function CardIcon({
   return toPreact({ ...icon, attrs: { ...icon.attrs, x, y, width: size, height: size } });
 }
 
-/** The inspect card, wider when it offers a survey. */
-export const inspectSize = (survey: boolean): { width: number; height: number } =>
-  survey ? { width: INSPECT_SIZE.width + ACTION_W, height: INSPECT_SIZE.height } : INSPECT_SIZE;
+/** The inspect card, wider for each button it offers (a survey, a fire hint). */
+export const inspectSize = (survey: boolean, fire = false): { width: number; height: number } => ({
+  width: INSPECT_SIZE.width + ((survey ? 1 : 0) + (fire ? 1 : 0)) * ACTION_W,
+  height: INSPECT_SIZE.height,
+});
 
 /**
  * The inspect card: the tile as the map draws it (under its veil while unexplored, with its revealed
- * feature) and its visibility; next to you and unexplored, a survey button (a spyglass and its cost).
+ * feature) and its visibility; next to you and unexplored, a survey button (a spyglass and its cost); on a
+ * timber stand, a faded fire with its timber, hinting what the wood is for (never a button that does
+ * anything: a fire is lit where you stand).
  */
 export function InspectCard({
   terrain,
   state,
   feature = null,
   survey = null,
+  fire = null,
   onSurvey,
   surveyRef,
 }: {
@@ -193,12 +203,14 @@ export function InspectCard({
   /** A revealed feature on the hex, drawn on the tile. */
   feature?: FeatureArt | null;
   survey?: { readonly cost: number; readonly enabled: boolean } | null;
+  /** The fire hint on a timber stand: what a fire costs and the fuel it takes. */
+  fire?: { readonly cost: number; readonly uses: string } | null;
   onSurvey?: () => void;
   surveyRef?: (el: SVGGElement | null) => void;
 }): JSX.Element {
   return (
     <g data-popover="inspect" data-feature={feature?.look} data-state={state}>
-      <Card {...inspectSize(survey !== null)} />
+      <Card {...inspectSize(survey !== null, fire !== null)} />
       <Miniature terrain={terrain} state={state} x={6} y={8} feature={feature} />
       <g transform="translate(84 22)">
         <VisibilityMark state={state} />
@@ -213,6 +225,18 @@ export function InspectCard({
           y={12}
           onRun={() => onSurvey?.()}
           {...(surveyRef ? { buttonRef: surveyRef } : {})}
+        />
+      )}
+      {fire && (
+        <ActionButton
+          kind="light-fire"
+          icon="light-fire"
+          cost={fire.cost}
+          enabled={false}
+          x={INSPECT_SIZE.width - 6 + (survey ? ACTION_W : 0)}
+          y={12}
+          uses={iconOf(fire.uses)}
+          onRun={() => {}}
         />
       )}
     </g>
@@ -258,7 +282,10 @@ export function ConfirmCard({
   );
 }
 
-/** The creature's heading as a compass mark: an ink arrow in a ring, pointing the way it walks on the map. */
+/**
+ * The creature's heading: an ink arrow pointing the way it walks on the map. No ring around it, so it does
+ * not read as a button.
+ */
 function HeadingMark({ heading }: { heading: { q: number; r: number } }): JSX.Element {
   const d = hexCenter(MINI, heading.q, heading.r);
   const len = Math.hypot(d.x, d.y) || 1;
@@ -275,7 +302,6 @@ function HeadingMark({ heading }: { heading: { q: number; r: number } }): JSX.El
   const b = side(-1);
   return (
     <g>
-      <circle r={r + 4} {...eyeLine} stroke={PALETTE.inkSoft} stroke-dasharray="2 3" />
       <path d={`M${tail.x} ${tail.y}L${tip.x} ${tip.y}`} {...eyeLine} stroke-width={2.2} />
       <path d={`M${a.x} ${a.y}L${tip.x} ${tip.y}L${b.x} ${b.y}`} {...eyeLine} stroke-width={2.2} />
     </g>
@@ -403,14 +429,42 @@ export interface BubbleCharacter {
   readonly selected: boolean;
 }
 
+/** A small icon placed with its top-left at (x, y). */
+function Placed({ node, x, y, size }: { node: SvgNode; x: number; y: number; size: number }) {
+  return toPreact({ ...node, attrs: { ...node.attrs, x, y, width: size, height: size } });
+}
+
 /**
- * The bubble by a place with characters: their figures in a row (inert for now; Milestone 2 opens a
- * character's details), and, for a place like the creature, a round entry into it. Generic so any hex with
- * several characters can use it later.
+ * The creature's appetite as you read it (the art kit's badge), in a corner of the bubble's creature entry:
+ * sharp with level dots for a keeper, faint for anyone else.
+ */
+export function AppetiteBadge({ appetite }: { appetite: CreatureAppetiteSign }): JSX.Element {
+  const size = 20;
+  return (
+    <g
+      class="pass-through"
+      data-appetite={`${appetite.kind}:${String(appetite.level)}`}
+      data-faint={appetite.faint ? true : undefined}
+    >
+      <Placed
+        node={drawAppetiteBadge(PALETTE, size, appetite)}
+        x={-size / 2}
+        y={-size / 2}
+        size={size}
+      />
+    </g>
+  );
+}
+
+/**
+ * The bubble by a place with characters: their figures in a row (others open their card), and, for a
+ * place like the creature, a round entry into it with your read of its appetite as a badge. Generic so any
+ * hex with several characters can use it later.
  */
 export function Bubble({
   characters,
   place,
+  appetite = null,
   onOpenPlace,
   onCharacter,
   placeRef,
@@ -418,6 +472,8 @@ export function Bubble({
   characters: readonly BubbleCharacter[];
   onCharacter: (id: string) => void;
   place?: 'creature';
+  /** Your read of the creature's appetite, as a badge on its entry; none when comfortable. */
+  appetite?: CreatureAppetiteSign | null;
   onOpenPlace: () => void;
   placeRef: (el: SVGGElement | null) => void;
 }): JSX.Element {
@@ -487,6 +543,11 @@ export function Bubble({
         >
           <circle r={23} fill={PALETTE.paper} stroke={PALETTE.inkSoft} stroke-width={1.4} />
           <Fitted drawn={BUBBLE_CREATURE} x={-17} y={-17} width={34} height={34} />
+          {appetite && (
+            <g transform="translate(14 -14)">
+              <AppetiteBadge appetite={appetite} />
+            </g>
+          )}
         </g>
       )}
     </g>
@@ -500,29 +561,58 @@ export const CHARACTER_SIZE = { width: 236, height: 78 } as const;
  * and its trait and quirk icons.
  */
 export function CharacterCard({ who }: { who: Identity }): JSX.Element {
+  // A tap (or hover) on the role, trait or quirk icon shows its name in the name row for a moment.
+  const [label, setLabel] = useState<string | null>(null);
+  const [tap, setTap] = useState(0);
+  useEffect(() => {
+    if (tap === 0) return;
+    const t = window.setTimeout(() => setLabel(null), 1800);
+    return () => window.clearTimeout(t);
+  }, [tap]);
+  const named = (name: string, x: number, y: number, icon: JSX.Element) => (
+    <g
+      transform={`translate(${x} ${y})`}
+      class="svg-button"
+      data-name={name}
+      onClick={() => {
+        setLabel(name);
+        setTap((n) => n + 1);
+      }}
+      onPointerEnter={(e) => {
+        if (e.pointerType === 'mouse') setLabel(name);
+      }}
+      onPointerLeave={(e) => {
+        if (e.pointerType === 'mouse') setLabel(null);
+      }}
+    >
+      {icon}
+    </g>
+  );
+  const shown = label ?? who.name;
   return (
     <g data-popover="character" data-character={who.id}>
       <Card {...CHARACTER_SIZE} />
       <Fitted drawn={bubbleFigure(who.accent, who.look)} x={8} y={8} width={40} height={60} />
+      {label !== null && (
+        <rect x={50} y={11} width={180} height={24} rx={12} fill={PALETTE.paperDeep} />
+      )}
       <text
         x={56}
         y={28}
         fill={PALETTE.ink}
-        font-size={15}
+        font-size={label === null ? 15 : 13}
         font-weight={600}
         font-family="system-ui, sans-serif"
+        data-label={label === null ? undefined : true}
       >
-        {who.name.length > 22 ? `${who.name.slice(0, 21)}…` : who.name}
+        {shown.length > 22 ? `${shown.slice(0, 21)}…` : shown}
       </text>
-      <g transform="translate(54 38)">
-        <RoleEmblem role={who.role} size={30} />
-      </g>
-      <g transform="translate(92 43)">
-        <TraitIcon id={who.trait} size={22} />
-      </g>
-      <g transform="translate(120 43)">
-        <QuirkIcon id={who.quirk} size={22} />
-      </g>
+      {who.role &&
+        named(contentName('role', who.role), 54, 38, <RoleEmblem role={who.role} size={30} />)}
+      {who.trait &&
+        named(contentName('trait', who.trait), 92, 43, <TraitIcon id={who.trait} size={22} />)}
+      {who.quirk &&
+        named(contentName('quirk', who.quirk), 120, 43, <QuirkIcon id={who.quirk} size={22} />)}
     </g>
   );
 }

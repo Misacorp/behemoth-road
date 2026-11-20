@@ -232,29 +232,16 @@ export const GameEventSchema = v.object({
   unlock: v.optional(id),
   /** A deposit's materials. */
   materials: v.optional(counts),
+  /** The creature's step in the day tick: from and to its centre. */
+  from: v.optional(hex),
+  to: v.optional(hex),
+  /** The new day, from the tick. */
+  day: v.optional(count),
   /** Unlock progress: work done and needed. */
   work: v.optional(count),
   needed: v.optional(count),
   /** A fire's stimulus id (fire-lit, fire-out). */
   stimulus: v.optional(id),
-  /** A creature or threat step's start and end (a linger: from equals to); peril's old and new value. */
-  from: v.optional(v.union([hex, count])),
-  to: v.optional(v.union([hex, count])),
-  /** Milestone 5: the threat or settlement the event is about, and a threat's content type. */
-  id: v.optional(id),
-  type: v.optional(id),
-  /** The threat that struck a character. */
-  threat: v.optional(id),
-  /** Peril a strike on the creature added (after defence). */
-  damage: v.optional(count),
-  /** A threat's strength left after a hit. */
-  strength: v.optional(count),
-  /** A settlement's favour after a parley. */
-  favour: v.optional(count),
-  boon: v.optional(id),
-  outcome: v.optional(v.picklist(['safe', 'wounded', 'lost'])),
-  /** The new day (the tick's `day` event). */
-  day: v.optional(count),
   /** The game version the event happened in (events are logged per change). */
   version: count,
 });

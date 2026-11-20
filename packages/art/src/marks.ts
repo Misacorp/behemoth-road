@@ -20,6 +20,7 @@ export const MOMENT_KINDS = [
   'feed',
   'linger',
   ...SEASON_MOMENT_KINDS,
+  'stayed',
 ] as const;
 export type MomentKind = (typeof MOMENT_KINDS)[number];
 
@@ -237,6 +238,44 @@ function linger(pal: Palette): SvgNode[] {
   ];
 }
 
+/**
+ * Stayed: at day change the lingering creature did not move. Dust settling in puffs at the ground, the
+ * curled rest marks of a sleeper (two nested crescents), and a few motes drifting down.
+ */
+function stayed(pal: Palette): SvgNode[] {
+  const puff = (x: number, y: number, r: number): string => ellipsePath(x, y, r, r * 0.6);
+  const crescent = (r: number): string => {
+    const a0 = Math.PI * 0.15;
+    const a1 = Math.PI * 1.35;
+    const p0 = P(Math.cos(a0) * r, -4 + Math.sin(a0) * r);
+    const p1 = P(Math.cos(a1) * r, -4 + Math.sin(a1) * r);
+    return `M${p0.x.toFixed(1)} ${p0.y.toFixed(1)}A${r} ${r} 0 1 1 ${p1.x.toFixed(1)} ${p1.y.toFixed(1)}`;
+  };
+  return [
+    el('path', {
+      d: puff(-15, 13, 5) + puff(-6, 16, 6) + puff(5, 16, 6) + puff(15, 13, 5),
+      fill: pal.ramps.earth.light,
+      stroke: pal.inkSoft,
+      'stroke-width': 1.1,
+      opacity: 0.85,
+      'data-part': '0',
+    }),
+    el('path', {
+      d: crescent(10) + crescent(5.5),
+      ...stroke(pal.accents.sage.shade, 2),
+      'data-part': '1',
+    }),
+    el('path', {
+      d:
+        ellipsePath(-17, -12, 1.4, 1.4) +
+        ellipsePath(16, -8, 1.2, 1.2) +
+        ellipsePath(12, -19, 1, 1),
+      fill: pal.inkSoft,
+      'data-part': '2',
+    }),
+  ];
+}
+
 const MOMENTS: Readonly<Record<MomentKind, (p: Palette) => SvgNode[]>> = {
   reveal,
   find,
@@ -246,6 +285,7 @@ const MOMENTS: Readonly<Record<MomentKind, (p: Palette) => SvgNode[]>> = {
   feed,
   linger,
   ...SEASON_MOMENTS,
+  stayed,
 };
 
 /** A moment mark as a centred `<svg>` of `size` px. Unknown kinds draw the reveal bloom. */
@@ -336,5 +376,35 @@ export function drawStayMark(palette: Palette, size: number): SvgNode {
       'stroke-linecap': 'round',
     }),
     el('path', { d: paw(-4) + paw(4), fill: palette.inkSoft }),
+  ]);
+}
+
+/**
+ * One of the creature's likely steps as a paw print, sized and darkened by its `chance` (0 to 1), pointing
+ * along `angle` (screen radians, 0 is east, the way it would walk). A centred `<svg>` of `size` px; the
+ * paw fills at most about two thirds of it at chance 1.
+ */
+export function drawStepHint(palette: Palette, size: number, chance: number, angle = 0): SvgNode {
+  const px = Number.isFinite(size) && size > 0 ? size : 32;
+  const c = Number.isFinite(chance) ? Math.min(1, Math.max(0, chance)) : 0;
+  const a = Number.isFinite(angle) ? angle : 0;
+  const s = 2.2 + 2.6 * c;
+  const rot = (dx: number, dy: number): Point =>
+    P((dx * Math.cos(a) - dy * Math.sin(a)) * s, (dx * Math.sin(a) + dy * Math.cos(a)) * s);
+  const pad = rot(-0.6, 0);
+  const toes = [
+    [1.15, -1.25],
+    [1.6, 0],
+    [1.15, 1.25],
+  ].map(([dx, dy]) => rot(dx!, dy!));
+  return el('svg', { viewBox: '-12 -12 24 24', width: px, height: px }, [
+    el('path', {
+      d:
+        ellipsePath(pad.x, pad.y, 1.25 * s, 1.1 * s) +
+        toes.map((t) => ellipsePath(t.x, t.y, 0.5 * s, 0.5 * s)).join(''),
+      fill: c >= 0.5 ? palette.ink : palette.inkSoft,
+      opacity: Math.round((0.3 + 0.65 * c) * 100) / 100,
+      'data-chance': Math.round(c * 100) / 100,
+    }),
   ]);
 }

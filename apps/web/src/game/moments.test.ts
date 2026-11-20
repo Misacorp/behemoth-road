@@ -75,7 +75,23 @@ describe('Milestone 4 moments', () => {
     ]);
   });
 
-  it('play nothing for the tick creature step, a linger included (from equals to)', () => {
+  it('play the day step as a walk, and a step that stays (a linger) as stayed', () => {
+    const from = { q: 0, r: 0 };
+    const to = { q: 1, r: -1 };
+    expect(
+      momentsFromEvents(
+        [
+          { kind: 'creature-step', from, to },
+          { kind: 'creature-step', from: to, to },
+        ],
+        centre,
+        'me',
+      ),
+    ).toEqual([
+      { kind: 'step', hex: to, from },
+      { kind: 'stayed', hex: to },
+    ]);
+    // Without its hexes, a step plays nothing.
     expect(momentsFromEvents([{ kind: 'creature-step' }], centre, 'me')).toEqual([]);
   });
 });

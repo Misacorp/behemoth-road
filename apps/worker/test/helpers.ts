@@ -10,7 +10,7 @@ import {
   type GuildGameOptions,
   type SessionUser,
 } from '../src/guild-game.ts';
-import { createHandler } from '../src/index.ts';
+import { createHandler } from '../src/handler.ts';
 import type { ActivityInstance, DiscordMember, DiscordRole, DiscordUser } from '../src/schemas.ts';
 import { formatSessionToken, getSessionKey } from '../src/session.ts';
 

@@ -124,19 +124,28 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-20 Guardians strike, defend and escort; anyone can strike a threat
 - 2026-11-20 Settlements appear on the route; parley or offer to befriend, or anger them
 - 2026-11-20 Peril is a public track; the season ends at home or at full peril
-- 2026-11-20 Light a fire hints faded without fuel once you have seen a fire
+- 2026-11-20 The day's step uses Milestone 3's creature walk; a linger plays the stayed mark
+- 2026-11-20 The step hints, appetite badge and stayed mark use the art kit's drawings
+- 2026-11-20 The creature card's heading loses its ring; the bubble carries an appetite badge (amended)
+- 2026-11-20 Step hints scale with chance; the day's step plays as a walk or a stayed mark (amended)
+- 2026-11-20 A timber stand hints at a fire, on your here card and its inspect card
+- 2026-11-20 Hunger drains every second day
+- 2026-11-20 Appetite reads at game zoom: a ground aura, bigger shape changes, a hub badge and weighted step hints
+- 2026-11-20 The keeper's cue shows the creature's true attitude for the tame first creature
+- 2026-11-20 Light a fire hints faded without fuel once you have seen a fire (amended)
 - 2026-11-20 A lingering creature's stay mark sits on its footprint's near edge
 - 2026-11-20 Feed and linger sit in the hub drawer as unlock-style cards
 - 2026-11-20 Light a fire shows on your hex's card only when you carry fuel (amended)
 - 2026-11-20 M4 tick events: a linger is a creature-step that stays; fire-out and creature-ate are public
-- 2026-11-20 Milestone 4 art: appetite, cues, lying down and fires are drawn by the art kit from the core's signs
+- 2026-11-20 Poll every 10 seconds while the game is visible
+- 2026-11-20 Polish after the M3 playtest: icon names, the window edge, a lost moment, the creature's walk and action hints (amended)
 - 2026-11-20 Moments play only from the server's event log, once per event
 - 2026-11-20 The revised chain in the interface: survey in the inspect card, the pack on the HUD, stores and unlocks in the hub drawer (amended)
 - 2026-11-20 The here card is compact and lets taps through its body; moments use the art kit's marks
-- 2026-11-20 Unexplored hexes sit under one hatched paper veil; packs, stores and unlocks have their own marks
+- 2026-11-20 Unexplored hexes sit under one hatched paper veil; packs, stores and unlocks have their own marks (amended)
 - 2026-11-20 M4 core: hunger cap in creature data, starving meals nourish, lingering twice refused
 - 2026-11-20 Lingering is the keeper's action and never runs two days in a row
-- 2026-11-20 Hunger has a comfortable band; underfed is erratic, overfed is sluggish; anyone can feed
+- 2026-11-20 Hunger has a comfortable band; underfed is erratic, overfed is sluggish; anyone can feed (amended)
 - 2026-11-20 Symptoms are computed per viewer; keepers see them earlier and see reaction cues
 - 2026-11-20 Fires pull the creature's step by a weighted score; the public prediction stays blind
 - 2026-11-20 The creature's nature is hidden server data; the first creature is drawn to fire or shies from it
@@ -199,4 +208,4 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-19 Drag and drop always has a tap and keyboard alternative
 - 2026-11-19 Counts read "1 / 3", and terms explain themselves without "?" icons
 
-Superseded: 7 entries (see the topic file).
+Superseded: 8 entries (see the topic file).
