@@ -39,7 +39,7 @@ describe('features', () => {
       for (const c of colours(el('g', {}, featureDrawer(look)(ctx, 'ready').nodes)))
         expect(allowed.has(c), `${look} ${c}`).toBe(true);
     }
-    for (const look of ['ore', 'stones', 'logs'])
+    for (const look of ['ore', 'stones', 'logs', 'fieldstones', 'outcrop', 'deadfall'])
       expect(draw(look, 'depleted')).not.toBe(draw(look, 'ready'));
     for (const look of ['tomb', 'deep-tomb'])
       expect(draw(look, 'spent')).not.toBe(draw(look, 'ready'));

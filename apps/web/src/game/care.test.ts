@@ -52,10 +52,11 @@ describe('lighting a fire where you stand', () => {
 });
 
 describe('caring for the creature in the hub', () => {
-  it('lets anyone riding feed it from the stores; keepers alone also see linger', () => {
+  it('lets anyone riding feed it from the stores; keepers alone can linger, others see it greyed with the keeper', () => {
     const scout = staged({ role: 'scout', at: 'creature', stores: { forage: 2 } });
     expect(careOptions(scout.view, scout.me)).toEqual([
       { kind: 'feed', cost: 1, enabled: true, uses: 'forage' },
+      { kind: 'linger', cost: 2, enabled: false, uses: null, needs: 'keeper' },
     ]);
     const keeper = staged({ role: 'keeper', at: 'creature', stores: { forage: 2 } });
     expect(careOptions(keeper.view, keeper.me).map((a) => [a.kind, a.enabled])).toEqual([

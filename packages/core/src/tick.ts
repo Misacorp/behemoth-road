@@ -12,6 +12,13 @@
  * reach is lost, with their pack; actions reset; hexes new
  * in view get their (hidden) features; lost tiles far behind are
  * pruned. Server only: it needs the seed.
+ *
+ * Milestone 5 adds, after the care: threats move and strike (the creature,
+ * with the day's defence, then characters); threats out of the window go; peril
+ * changes; the season may end (peril first, then the route); if it goes on, a
+ * settlement may appear, then a new threat; defenders clear. Struck characters
+ * start the new day with `struckActions`. Once the season is over, the tick
+ * changes nothing.
  */
 
 import {
@@ -26,13 +33,36 @@ import {
 } from './care.ts';
 import { chooseCreatureStep } from './creature.ts';
 import { addFeatures, depositPack, type GameEvent, keyToHex, pruneFeatures } from './features.ts';
-import { hexDistance } from './hex.ts';
-import { hashString, hashToUnit } from './random.ts';
+import { THREAT_TYPES } from './content/index.ts';
+import { type Hex, hexDistance } from './hex.ts';
+import { hashString, hashToUnit, pickWeighted } from './random.ts';
 import { ON_CREATURE } from './places.ts';
-import type { Care, Character, Creature, GameState, Materials, Stimulus } from './state.ts';
+import type {
+  Care,
+  Character,
+  Creature,
+  GameState,
+  Materials,
+  SeasonOutcome,
+  Stimulus,
+  Threat,
+} from './state.ts';
+import { keepSettlements, placeSettlement, settlementDue } from './settlements.ts';
+import {
+  activeCount,
+  approachHexes,
+  canAppearOn,
+  contactDistance,
+  defence,
+  PURSUER_TAG,
+  struckBy,
+  threatPath,
+  threatStrength,
+} from './threats.ts';
 import { isCreatureHex, isReachable, pruneLostTiles, updateTiles } from './window.ts';
 
 const EAT_STREAM = hashString('creature-eats');
+const THREAT_STREAM = hashString('threat');
 
 /** What a starving creature eats from the stores: food first, else a seeded pick. */
 const starvingMeal = (state: GameState, stores: Materials): string | null => {
@@ -83,6 +113,99 @@ const burnsOn = (s: Stimulus, day: number): boolean =>
   s.litDay + stimulusType(s.type).lastsTicks > day;
 
 /**
+ * Threats move toward the creature's (new) centre and strike: at contact the
+ * creature (less the defence; the threat is spent), else every character it
+ * may strike within 1. Reads the state after the creature's step.
+ */
+const threatsAct = (
+  state: GameState,
+): {
+  readonly threats: Threat[];
+  readonly damage: number;
+  readonly struck: Set<string>;
+  readonly events: GameEvent[];
+} => {
+  const { centre } = state.creature;
+  const contact = contactDistance(state);
+  const events: GameEvent[] = [];
+  const moved = state.threats.map((t) => {
+    const path = threatPath(state, t, centre);
+    const to = path.at(-1);
+    if (!to) return t;
+    events.push({ kind: 'threat-moves', id: t.id, from: t.hex, to });
+    return { ...t, hex: to };
+  });
+  const guard = defence(state);
+  let damage = 0;
+  const left: Threat[] = [];
+  for (const t of moved) {
+    if (hexDistance(t.hex, centre) <= contact) {
+      const hit = Math.max(0, t.strength - guard);
+      damage += hit;
+      events.push({ kind: 'threat-strikes', id: t.id, damage: hit });
+    } else left.push(t);
+  }
+  const struck = new Set<string>();
+  for (const t of left) {
+    for (const c of struckBy(state, t.hex)) {
+      struck.add(c.id);
+      events.push({ kind: 'struck', characterId: c.id, threat: t.id });
+    }
+  }
+  const threats: Threat[] = [];
+  for (const t of left) {
+    if (hexDistance(t.hex, centre) > state.config.windowRadius) {
+      events.push({ kind: 'threat-gone', id: t.id });
+    } else threats.push(t);
+  }
+  return { threats, damage, struck, events };
+};
+
+/** How the season ends at a tick with this peril and these steps, or null if it goes on. */
+const seasonEnd = (state: GameState): SeasonOutcome | null => {
+  const { perilMax, perilWoundedAt, routeLength } = state.config;
+  if (state.peril >= perilMax) return 'lost';
+  if (state.creature.steps >= routeLength) {
+    return state.peril < perilWoundedAt ? 'safe' : 'wounded';
+  }
+  return null;
+};
+
+/**
+ * The tick's new threat, if any: from `threatsFromDay`, while fewer than
+ * `threatsMax` are on the map, a seeded roll (seed, day) against the day's
+ * chance; then a weighted seeded pick of the type (no pursuers while a mislead
+ * lasts) and the first fitting hex of its approach. Reads the state of the new day.
+ */
+const newThreat = (state: GameState): Threat | null => {
+  const { config, day } = state;
+  if (day < config.threatsFromDay || state.threats.length >= config.threatsMax) return null;
+  const chance = Math.min(
+    config.threatChanceMax,
+    config.threatChanceBase +
+      config.threatChancePerPlayer * activeCount(state) +
+      config.threatChancePerDay * day,
+  );
+  if (hashToUnit(state.seed, THREAT_STREAM, day) >= chance) return null;
+  const misled = state.misleadUntilDay !== null && day <= state.misleadUntilDay;
+  const types = THREAT_TYPES.filter(
+    (t) => t.weight > 0 && !(misled && t.tags.includes(PURSUER_TAG)),
+  );
+  if (types.length === 0) return null;
+  const type = pickWeighted(types, (t) => t.weight, hashToUnit(state.seed, THREAT_STREAM, day, 1));
+  const side = hashToUnit(state.seed, THREAT_STREAM, day, 2) < 0.5 ? -1 : 1;
+  const hex: Hex | undefined = approachHexes(state, type, side).find((h) => canAppearOn(state, h));
+  if (!hex) return null;
+  return {
+    id: `t${day}`,
+    type: type.id,
+    hex,
+    strength: threatStrength(state, type, day),
+    appearedDay: day,
+  };
+};
+
+/**
  * The day tick, with what happened, in order: the creature's step (from equals
  * to when it lingered), what a starving creature ate, each fire that went out,
  * pick-up deposits, losses, the day. Events are public: none carries the
@@ -91,6 +214,7 @@ const burnsOn = (s: Stimulus, day: number): boolean =>
 export const nextDayWithEvents = (
   state: GameState,
 ): { readonly state: GameState; readonly events: readonly GameEvent[] } => {
+  if (state.season.status === 'over') return { state, events: [] };
   const day = state.day + 1;
   const step = chooseCreatureStep(state);
   const creature: Creature = {
@@ -98,6 +222,7 @@ export const nextDayWithEvents = (
     centre: step.centre,
     lingering: false,
     lingeredDay: state.creature.lingering ? state.day : state.creature.lingeredDay,
+    steps: state.creature.steps + (step.stay ? 0 : 1),
   };
   const { care, stores, ate } = careAfter(state, day);
   const tiles = updateTiles(state.tiles, creature.centre, day, state.config, state.seed);
@@ -111,7 +236,7 @@ export const nextDayWithEvents = (
     state.seed,
     state.config.featureChance,
   );
-  const moved: GameState = {
+  const stepped: GameState = {
     ...state,
     day,
     creature,
@@ -121,7 +246,6 @@ export const nextDayWithEvents = (
     stores,
     stimuli: state.stimuli.filter((s) => burnsOn(s, day)),
   };
-  const actionsLeft = state.config.actionsPerDay;
   const events: GameEvent[] = [
     { kind: 'creature-step', from: state.creature.centre, to: creature.centre },
   ];
@@ -129,11 +253,56 @@ export const nextDayWithEvents = (
   for (const s of state.stimuli) {
     if (!burnsOn(s, day)) events.push({ kind: 'fire-out', hex: s.hex, stimulus: s.type });
   }
-  const lost: GameEvent[] = [];
 
+  // Threats, peril and the season's end.
+  const fight = threatsAct(stepped);
+  events.push(...fight.events);
+  const { config } = state;
+  const appetite = appetiteOf(stepped);
+  const hungry =
+    appetite?.kind === 'underfed' && appetite.level >= config.perilHungryLevel
+      ? config.perilHungry
+      : 0;
+  const rise = fight.damage + hungry;
+  const peril =
+    rise > 0
+      ? Math.min(config.perilMax, state.peril + rise)
+      : Math.max(0, state.peril - config.perilCalm);
+  if (peril !== state.peril) events.push({ kind: 'peril', from: state.peril, to: peril });
+  let moved: GameState = { ...stepped, threats: fight.threats, peril };
+  const outcome = seasonEnd(moved);
+  if (outcome) {
+    moved = { ...moved, season: { status: 'over', outcome, day } };
+  } else {
+    if (!step.stay && settlementDue(moved, creature.steps)) {
+      const settlement = placeSettlement(moved);
+      if (settlement) {
+        moved = { ...moved, settlements: [...moved.settlements, settlement] };
+        events.push({ kind: 'settlement-appears', id: settlement.id, hex: settlement.hex });
+      }
+    }
+    const threat = newThreat(moved);
+    if (threat) {
+      moved = { ...moved, threats: [...moved.threats, threat] };
+      events.push({ kind: 'threat-appears', id: threat.id, type: threat.type, hex: threat.hex });
+    }
+  }
+  moved = {
+    ...moved,
+    creature: { ...moved.creature, defenders: [] },
+    settlements: keepSettlements(moved),
+    misleadUntilDay:
+      moved.misleadUntilDay !== null && day >= moved.misleadUntilDay ? null : moved.misleadUntilDay,
+  };
+
+  const lost: GameEvent[] = [];
   const characters = state.characters.map((c): Character => {
     if (c.status !== 'active') return { ...c, actionsLeft: 0 };
-    const fresh = { ...c, actionsLeft };
+    const struck = fight.struck.has(c.id);
+    const actionsLeft = struck
+      ? Math.min(config.actionsPerDay, config.struckActions)
+      : config.actionsPerDay;
+    const fresh = { ...c, actionsLeft, struckDay: struck ? day : c.struckDay };
     if (c.at.kind === 'creature') return fresh;
     if (isCreatureHex(moved, c.at.hex)) return { ...fresh, at: ON_CREATURE };
     if (isReachable(moved, c.at.hex)) return fresh;
@@ -148,7 +317,9 @@ export const nextDayWithEvents = (
     settled = deposited.state;
     events.push(...deposited.events);
   }
-  events.push(...lost, { kind: 'day', day });
+  events.push(...lost);
+  if (outcome) events.push({ kind: 'season-over', outcome });
+  events.push({ kind: 'day', day });
   return { state: pruneFeatures({ ...settled, tiles: pruneLostTiles(settled) }), events };
 };
 

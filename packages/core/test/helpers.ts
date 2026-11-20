@@ -1,5 +1,6 @@
 import {
   type Character,
+  type ConfigOverrides,
   createGame,
   featureType,
   type GameState,
@@ -7,6 +8,17 @@ import {
   hexesInRange,
   onHex,
 } from '../src/index.ts';
+
+/**
+ * A season that never ends and brings no threats, settlements or hunger peril:
+ * for tests of earlier rules that walk the creature a long way.
+ */
+export const CALM: ConfigOverrides = {
+  routeLength: 100_000,
+  threatsFromDay: 100_000,
+  settlementFirst: 100_000,
+  perilHungry: 0,
+};
 
 /** Returns a copy of the state with one character replaced. */
 export const withCharacter = (state: GameState, character: Character): GameState => ({
@@ -71,7 +83,7 @@ export const withFeature = (
 
 /** A game with no features and these characters (id = role) on plain hexes beside the creature. */
 export const chainGame = (roles: readonly string[], seed = 1): GameState => {
-  let state = createGame(seed, { characterIds: roles.slice() });
+  let state = createGame(seed, { characterIds: roles.slice(), config: CALM });
   state = { ...state, features: {} };
   state = {
     ...state,
@@ -82,3 +94,62 @@ export const chainGame = (roles: readonly string[], seed = 1): GameState => {
   }
   return state;
 };
+
+/** No rolled threats, no settlements, no hunger peril: threats and settlements are put in by hand. */
+export const QUIET: ConfigOverrides = {
+  threatsFromDay: 100_000,
+  settlementFirst: 100_000,
+  perilHungry: 0,
+};
+
+/**
+ * A game with no features and these characters (id = role) riding the
+ * creature, its window all plains; the season runs with `config` (default `QUIET`).
+ */
+export const fieldGame = (
+  roles: readonly string[],
+  config: ConfigOverrides = QUIET,
+  seed = 1,
+): GameState => {
+  let state = createGame(seed, { characterIds: roles.slice(), config });
+  state = {
+    ...state,
+    features: {},
+    characters: state.characters.map((c) => ({ ...c, role: c.id })),
+  };
+  for (const h of hexesInRange(state.creature.centre, state.config.windowRadius)) {
+    state = withTerrain(state, h, 'plains');
+  }
+  return state;
+};
+
+/** Puts a threat on the map. */
+export const withThreat = (
+  state: GameState,
+  type: string,
+  h: Hex,
+  strength = 3,
+  id = `x${type}`,
+): GameState => ({
+  ...state,
+  threats: [...state.threats, { id, type, hex: h, strength, appearedDay: state.day }],
+});
+
+/** Puts a wary settlement of the hill folk on a hex. */
+export const withSettlement = (
+  state: GameState,
+  h: Hex,
+  change: Partial<GameState['settlements'][number]> = {},
+): GameState => ({
+  ...state,
+  settlements: [
+    ...state.settlements,
+    { id: 's1', type: 'hill-folk', hex: h, attitude: 'wary', favour: 0, boon: null, ...change },
+  ],
+});
+
+/** The creature stays put at the next tick (as if a keeper had asked). */
+export const lingering = (state: GameState): GameState => ({
+  ...state,
+  creature: { ...state.creature, lingering: true },
+});

@@ -8,6 +8,7 @@
 import {
   type FeatureArt,
   hexCenter,
+  hexCorners,
   paperGrain,
   renderSceneFramed,
   type SvgNode,
@@ -18,13 +19,16 @@ import {
   type Hex,
   terrainOf,
   predictCreature,
+  hexEquals,
+  hexesInRange,
   hexKey,
   placeKey,
   reachablePlaces,
 } from '@behemoth-road/core';
 import { Component, type ComponentChildren, type JSX } from 'preact';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
-import { PALETTE, PROJECTION } from './art.ts';
+import { armedAfter } from './arm.ts';
+import { drawOutOfReach, PALETTE, PROJECTION } from './art.ts';
 import {
   cellStateAt,
   characterArts,
@@ -33,7 +37,7 @@ import {
   sceneCells,
   terrainKnown,
 } from './cells.ts';
-import { chevronFor, placePopover, splitScene } from './compose.ts';
+import { chevronFor, placeClear, placePopover, splitScene } from './compose.ts';
 import { fireHintAt } from '../game/chain.ts';
 import { accentOf, type Identity, lookOf } from '../game/identity.ts';
 import { type Moment, STEP_MS } from '../game/moments.ts';
@@ -53,10 +57,17 @@ import {
   CHARACTER_SIZE,
   CharacterCard,
   bubbleSize,
+  actionKey,
+  type Arming,
   CONFIRM_SIZE,
   ConfirmCard,
   InspectCard,
+  SETTLEMENT_SIZE,
+  SettlementCard,
+  ThreatCard,
+  threatSize,
 } from './Popover.tsx';
+import { type SettlementInfo, settlementInfo, threatCard } from '../game/season.ts';
 import { setCssTransform } from './cssTransform.ts';
 import { toPreact } from './svgToPreact.ts';
 import {
@@ -81,6 +92,8 @@ export interface Here {
   readonly terrain: string;
   readonly feature: FeatureArt | null;
   readonly actions: readonly HereAction[];
+  /** The settlement you stand on (drawn in place of the tile), if any. */
+  readonly settlement?: SettlementInfo | null;
 }
 
 export interface MapViewProps {
@@ -101,6 +114,8 @@ export interface MapViewProps {
   readonly surveyAt?: (h: Hex) => { readonly cost: number; readonly enabled: boolean } | null;
   /** The survey button on an inspect card was tapped. */
   readonly onSurvey?: (h: Hex) => void;
+  /** The strike button on a threat's card was tapped. */
+  readonly onStrike?: (threat: string) => void;
   /** Short visual beats to play on the map (reveals, finds, a trap); they end by themselves. */
   readonly moments?: readonly Moment[];
   /**
@@ -161,6 +176,8 @@ interface Anchor {
   readonly size: { readonly width: number; readonly height: number };
   /** Below when the path arrives from above, so the card does not cover the arrow. */
   readonly prefer?: 'above' | 'below';
+  /** A card about your own hex: these hexes (yours first, then its neighbours) stay uncovered. */
+  readonly clear?: readonly Hex[];
 }
 
 function popoverAnchor(
@@ -172,6 +189,13 @@ function popoverAnchor(
   fire: boolean,
 ): Anchor | null {
   const tile = 2 * p.size * p.squash;
+  const me = state.characters.find((c) => c.id === characterId);
+  const mine = me?.status === 'active' && me.at.kind === 'hex' ? me.at.hex : null;
+  /** Your hex and its six neighbours, when the card is about your own hex. */
+  const clearOf = (h: Hex | null): { clear?: readonly Hex[] } =>
+    h && mine && hexEquals(h, mine)
+      ? { clear: [mine, ...hexesInRange(mine, 1).filter((n) => !hexEquals(n, mine))] }
+      : {};
   if (flow.kind === 'character') {
     // Above the character's head, wherever it stands (on a hex or on the creature's back).
     const feet = figureFeet(state, flow.id, p);
@@ -184,6 +208,23 @@ function popoverAnchor(
       size: CHARACTER_SIZE,
     };
   }
+  if (flow.kind === 'threat' || flow.kind === 'settlement') {
+    const thing =
+      flow.kind === 'threat'
+        ? state.threats.find((t) => t.id === flow.id)
+        : state.settlements.find((x) => x.id === flow.id);
+    if (!thing) return null;
+    const c = hexCenter(p, thing.hex.q, thing.hex.r);
+    const strike = flow.kind === 'threat' ? threatCard(state, characterId, flow.id)?.strike : null;
+    const lift = 0.9 * p.size;
+    return {
+      key: `${flow.kind}:${flow.id}:${strike ? String(strike.enabled) : ''}`,
+      top: { x: c.x, y: c.y - lift },
+      below: lift + tile / 2,
+      size: flow.kind === 'threat' ? threatSize(Boolean(strike)) : SETTLEMENT_SIZE,
+      ...clearOf(thing.hex),
+    };
+  }
   if (flow.kind === 'inspect') {
     const c = hexCenter(p, flow.hex.q, flow.hex.r);
     return {
@@ -191,6 +232,7 @@ function popoverAnchor(
       top: { x: c.x, y: c.y - tile / 2 },
       below: tile,
       size: inspectSize(survey, fire),
+      ...clearOf(flow.hex),
     };
   }
   if (flow.kind === 'bubble') {
@@ -210,10 +252,11 @@ function popoverAnchor(
     if (feet) {
       const head = 0.9 * p.size;
       return {
-        key: `here:${here.feature?.look ?? ''}:${here.actions.map((a) => a.kind).join(',')}`,
+        key: `here:${here.feature?.look ?? ''}:${here.settlement?.id ?? ''}:${here.actions.map((a) => a.kind).join(',')}`,
         top: { x: feet.x, y: feet.y - head },
         below: head,
         size: hereSize(here.actions.length),
+        ...clearOf(mine),
       };
     }
   }
@@ -271,6 +314,9 @@ export function MapView(props: MapViewProps): JSX.Element {
   const frame = useRef(0);
   const animation = useRef(0);
   const popover = useRef<Anchor | null>(null);
+  // The card's armed action (the first of the two taps that spend); dropped when the card changes.
+  const [armed, setArmed] = useState<string | null>(null);
+  const arm: Arming = { armed, onArm: setArmed };
   // The zoom the scene's ink widths were drawn for; changes only when a gesture settles at a new step.
   const [inkZoom, setInkZoom] = useState(1);
   const settleZoom = (): void => setInkZoom(inkZoomFor(view.current.scale));
@@ -355,14 +401,23 @@ export function MapView(props: MapViewProps): JSX.Element {
     );
     const pop = popover.current;
     if (pop && popRef.current) {
-      const rect = placePopover(
-        toScreen(v, pop.top),
-        pop.below * v.scale,
-        pop.size,
-        size.current,
-        MAP_TUNING.popoverMargin,
-        pop.prefer,
-      );
+      const rect = pop.clear
+        ? placeClear(
+            toScreen(v, pop.top),
+            pop.below * v.scale,
+            pop.size,
+            size.current,
+            MAP_TUNING.popoverMargin,
+            pop.clear.map((h) => hexCorners(p, hexCenter(p, h.q, h.r)).map((c) => toScreen(v, c))),
+          )
+        : placePopover(
+            toScreen(v, pop.top),
+            pop.below * v.scale,
+            pop.size,
+            size.current,
+            MAP_TUNING.popoverMargin,
+            pop.prefer,
+          );
       popRef.current.setAttribute('transform', `translate(${rect.x} ${rect.y})`);
       const chevron = chevronFor(rect, toScreen(v, pop.top), pop.below * v.scale);
       chevronFillRef.current?.setAttribute('d', chevron.fill);
@@ -566,19 +621,38 @@ export function MapView(props: MapViewProps): JSX.Element {
     apply();
   }, [layers]);
 
+  // The card's enabled buttons, by arm key: a refresh that disables the armed one drops the arming.
+  const enabledKeys: string[] =
+    flow.kind === 'inspect'
+      ? survey?.enabled
+        ? ['survey']
+        : []
+      : flow.kind === 'selected' && props.here
+        ? props.here.actions.filter((a) => a.enabled).map(actionKey)
+        : flow.kind === 'threat' && threatCard(state, characterId, flow.id)?.strike?.enabled
+          ? ['strike']
+          : [];
+  const enabledSig = enabledKeys.join('|');
+  useLayoutEffect(() => {
+    setArmed((a) => armedAfter(a, enabledKeys));
+  }, [enabledSig]);
+
   // Place the popover, and move focus into it when it opens (out again when it closes).
   const popKey = popover.current?.key ?? '';
   useLayoutEffect(() => {
+    setArmed(null);
     apply();
     if (popKey) {
       const target =
         flow.kind === 'planned' ||
         flow.kind === 'bubble' ||
         flow.kind === 'selected' ||
-        (flow.kind === 'inspect' && survey)
+        (flow.kind === 'inspect' && survey) ||
+        (flow.kind === 'threat' && popKey.endsWith(':true'))
           ? popoverFocusRef.current
           : popRef.current;
-      target?.focus({ preventScroll: true });
+      // A card without a button (a settlement with nothing left to do) takes focus itself.
+      (target?.isConnected ? target : popRef.current)?.focus({ preventScroll: true });
     } else {
       // The popover's content is already gone, so its focused control may have dropped focus to the body.
       const a = document.activeElement;
@@ -592,6 +666,8 @@ export function MapView(props: MapViewProps): JSX.Element {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     // No compatibility mouse-down: its default focus move would pull focus out of a popover the tap opens.
     e.preventDefault();
+    // A press holds the view still (a follow or recentre easing stops), so a tap lands where it was seen.
+    stopAnimation();
     svgRef.current?.setPointerCapture(e.pointerId);
     handle(tracker.current.down(e.pointerId, local(e)));
   };
@@ -613,6 +689,7 @@ export function MapView(props: MapViewProps): JSX.Element {
         survey={survey}
         fire={fireHint}
         onSurvey={() => props.onSurvey?.(at)}
+        arm={arm}
         surveyRef={(el) => {
           popoverFocusRef.current = el;
         }}
@@ -625,11 +702,31 @@ export function MapView(props: MapViewProps): JSX.Element {
         feature={props.here.feature}
         actions={props.here.actions}
         onAct={(kind) => props.onAct?.(kind)}
+        settlement={props.here.settlement ?? null}
+        arm={arm}
         firstRef={(el) => {
           popoverFocusRef.current = el;
         }}
       />
     );
+  } else if (flow.kind === 'threat') {
+    const threat = threatCard(state, characterId, flow.id);
+    const id = flow.id;
+    if (threat) {
+      card = (
+        <ThreatCard
+          threat={threat}
+          onStrike={() => props.onStrike?.(id)}
+          arm={arm}
+          strikeRef={(el) => {
+            popoverFocusRef.current = el;
+          }}
+        />
+      );
+    }
+  } else if (flow.kind === 'settlement') {
+    const settlement = settlementInfo(state, flow.id);
+    if (settlement) card = <SettlementCard settlement={settlement} />;
   } else if (flow.kind === 'character') {
     const who = props.identities?.get(flow.id);
     if (who) card = <CharacterCard who={who} />;
@@ -664,6 +761,21 @@ export function MapView(props: MapViewProps): JSX.Element {
     );
   }
 
+  // Out of reach: a faded arrow from your feet ending in a cross on the tapped hex, fading by itself (CSS);
+  // keyed by hex so a new tap plays it again.
+  let outOfReach: JSX.Element | null = null;
+  if (flow.kind === 'out-of-reach') {
+    const feet = figureFeet(state, characterId, p);
+    if (feet) {
+      const to = hexCenter(p, flow.hex.q, flow.hex.r);
+      outOfReach = (
+        <g key={`oor:${hexKey(flow.hex)}`} class="out-of-reach">
+          {toPreact(drawOutOfReach(PALETTE, feet, to, Math.max(p.k, p.k / inkZoom)))}
+        </g>
+      );
+    }
+  }
+
   const { box, raster } = layers;
   return (
     <div class="map-root">
@@ -678,6 +790,7 @@ export function MapView(props: MapViewProps): JSX.Element {
           {overlays.under}
           <Static nodes={layers.figures} />
           {overlays.over}
+          {outOfReach}
         </svg>
         {props.moments && props.moments.length > 0 && (
           <svg
@@ -729,7 +842,7 @@ export function MapView(props: MapViewProps): JSX.Element {
         >
           {card}
           {card && (
-            <>
+            <g class="pass-through">
               <path ref={chevronFillRef} fill={PALETTE.paper} />
               <path
                 ref={chevronEdgeRef}
@@ -738,7 +851,7 @@ export function MapView(props: MapViewProps): JSX.Element {
                 stroke-width={1.2}
                 stroke-linejoin="round"
               />
-            </>
+            </g>
           )}
         </g>
       </svg>

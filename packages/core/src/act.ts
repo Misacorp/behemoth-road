@@ -1,11 +1,22 @@
 /**
  * Actions beyond moving: survey an adjacent hex, gather at a node, work a site,
- * build an unlock. Roles are read by their tags: `survey` (surveys for less),
- * `sites` (better chances, tier 2), `build` (works on unlocks). Every number is
- * in the tuning config or content.
+ * build an unlock, tend the creature, fight threats and deal with settlements.
+ * Roles are read by their tags: `survey` (surveys for less), `sites` (better
+ * chances, tier 2), `build` (works on unlocks), `tend` (lingers), `defend`
+ * (strikes harder, defends the creature), `peoples` (parleys for more, without
+ * risk). Every number is in the tuning config or content. Once the season is
+ * over, every action is refused.
  */
 
-import { MATERIALS, STIMULUS_TYPES, UNLOCKS, type SiteType, type Unlock } from './content/index.ts';
+import {
+  BOONS,
+  MATERIALS,
+  PEOPLE_TYPES,
+  STIMULUS_TYPES,
+  UNLOCKS,
+  type SiteType,
+  type Unlock,
+} from './content/index.ts';
 import { creatureType, FOOD_TAG, firstWithTag, isKeeper, nourishment } from './care.ts';
 import { activeCharacter, isPlaceReachable } from './actions.ts';
 import {
@@ -18,7 +29,7 @@ import {
   roleHas,
   unlockTags,
 } from './features.ts';
-import { type Hex, hexKey, isValidHex } from './hex.ts';
+import { type Hex, hexDistance, hexKey, isValidHex } from './hex.ts';
 import { terrainOf } from './map.ts';
 import { arePlacesAdjacent, onHex, placeNeighbours } from './places.ts';
 import { hashString, hashToUnit } from './random.ts';
@@ -28,9 +39,20 @@ import {
   type GameState,
   type GameStateView,
   hasSeed,
+  isSeasonOver,
   type Materials,
+  type Settlement,
 } from './state.ts';
 import { isCreatureHex } from './window.ts';
+import { DEFEND_TAG, PURSUER_TAG, threatType } from './threats.ts';
+import {
+  addFavour,
+  anger,
+  PEOPLES_TAG,
+  peopleType,
+  settlementAt,
+  TRADE_TAG,
+} from './settlements.ts';
 
 export type Action =
   | { readonly kind: 'survey'; readonly hex: Hex }
@@ -39,7 +61,12 @@ export type Action =
   | { readonly kind: 'build'; readonly unlock: string }
   | { readonly kind: 'light-fire' }
   | { readonly kind: 'feed' }
-  | { readonly kind: 'linger' };
+  | { readonly kind: 'linger' }
+  | { readonly kind: 'strike'; readonly threat: string }
+  | { readonly kind: 'defend' }
+  | { readonly kind: 'parley' }
+  | { readonly kind: 'offer'; readonly material: string }
+  | { readonly kind: 'ask-boon'; readonly boon: string };
 
 export type ActRefusal =
   | 'invalid-action'
@@ -68,7 +95,17 @@ export type ActRefusal =
   | 'no-food'
   | 'needs-keeper'
   | 'lingered-yesterday'
-  | 'on-creature';
+  | 'on-creature'
+  | 'season-over'
+  | 'no-threat'
+  | 'not-near'
+  | 'needs-guardian'
+  | 'no-settlement'
+  | 'not-wary'
+  | 'not-friendly'
+  | 'boon-taken'
+  | 'unknown-boon'
+  | 'no-trade-good';
 
 type Uses = readonly { readonly material: string; readonly amount: number }[];
 
@@ -85,7 +122,7 @@ export type ActCheck =
       readonly cost: number;
       /** Materials taken from the stores (starting an unlock, feeding) or the pack (fuel). */
       readonly uses: Uses;
-      /** The published chance of success (working a site); 1 for everything else. */
+      /** The published chance of success (working a site, a parley); 1 for everything else. */
       readonly chance: number;
     }
   | {
@@ -100,6 +137,7 @@ export type ActResult =
   | { readonly ok: false; readonly reason: ActRefusal };
 
 const SITE_STREAM = hashString('site');
+const PARLEY_STREAM = hashString('parley');
 
 /** The stimulus a fire is (the one tagged `fire`): content, read by tag. */
 const FIRE = STIMULUS_TYPES.find((t) => t.tags.includes('fire'));
@@ -123,6 +161,16 @@ const featureHere = (state: GameStateView, c: Character): FeatureState | null =>
   return f?.revealed ? f : null;
 };
 
+/** The settlement on the hex the character stands on, if any. */
+const settlementHere = (state: GameStateView, c: Character): Settlement | undefined => {
+  const h = hexOf(c);
+  return h ? settlementAt(state, h) : undefined;
+};
+
+/** A parley's chance of gaining favour rather than angering the settlement. */
+const parleyChance = (state: GameStateView, c: Character): number =>
+  roleHas(c, PEOPLES_TAG) ? 1 : 1 - state.config.parleyAngerChanceOther;
+
 const free = (state: GameStateView, c: Character): number =>
   state.config.packCapacity - packSize(c.pack);
 
@@ -142,6 +190,7 @@ export const checkAction = (
   characterId: string,
   action: Action,
 ): ActCheck => {
+  if (isSeasonOver(state)) return { ok: false, reason: 'season-over' };
   const found = activeCharacter(state, characterId);
   if (!found.ok) return found;
   const c = found.character;
@@ -252,6 +301,55 @@ export const checkAction = (
       if (state.creature.lingeredDay === state.day - 1) return no('lingered-yesterday');
       return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
     }
+    case 'strike': {
+      const cost = config.strikeCost;
+      const no = (reason: ActRefusal): ActCheck => ({ ok: false, reason, cost });
+      const threat = state.threats.find((t) => t.id === action.threat);
+      if (!threat) return no('no-threat');
+      const h = hexOf(c);
+      if (!h || hexDistance(h, threat.hex) > 1) return no('not-near');
+      return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
+    }
+    case 'defend': {
+      const cost = config.defendCost;
+      const no = (reason: ActRefusal): ActCheck => ({ ok: false, reason, cost });
+      if (!roleHas(c, DEFEND_TAG)) return no('needs-guardian');
+      if (c.at.kind !== 'creature') return no('not-riding');
+      if (state.creature.defenders.includes(c.id)) return no('already-have');
+      return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
+    }
+    case 'parley': {
+      const cost = config.parleyCost;
+      const no = (reason: ActRefusal): ActCheck => ({ ok: false, reason, cost });
+      const here = settlementHere(state, c);
+      if (!here) return no('no-settlement');
+      if (here.attitude !== 'wary') return no('not-wary');
+      if (c.actionsLeft < cost) return no('not-enough-actions');
+      return { ok: true, cost, uses: [], chance: parleyChance(state, c) };
+    }
+    case 'offer': {
+      const cost = config.offerCost;
+      const no = (reason: ActRefusal): ActCheck => ({ ok: false, reason, cost });
+      const here = settlementHere(state, c);
+      if (!here) return no('no-settlement');
+      if (here.attitude !== 'wary') return no('not-wary');
+      const good = MATERIALS.find((m) => m.id === action.material && m.tags.includes(TRADE_TAG));
+      if (!good || (c.pack[good.id] ?? 0) < 1) return no('no-trade-good');
+      return c.actionsLeft >= cost
+        ? done(cost, [{ material: good.id, amount: 1 }])
+        : no('not-enough-actions');
+    }
+    case 'ask-boon': {
+      const cost = config.askBoonCost;
+      const no = (reason: ActRefusal): ActCheck => ({ ok: false, reason, cost });
+      const here = settlementHere(state, c);
+      if (!here) return no('no-settlement');
+      const boons: readonly string[] = peopleType(here.type).boons;
+      if (!boons.includes(action.boon)) return no('unknown-boon');
+      if (here.attitude !== 'friendly') return no('not-friendly');
+      if (here.boon !== null) return no('boon-taken');
+      return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
+    }
     default:
       return { ok: false, reason: 'invalid-action' };
   }
@@ -287,11 +385,17 @@ export const act = (state: GameState, characterId: string, action: Action): ActR
 
   if (action.kind === 'survey') {
     // Surveying explores from outside: a trap there is revealed and harmless.
+    // A hex with nothing in it says so, for the "nothing here" moment (public: it is explored now).
     const explored = exploreHex(state, action.hex);
+    const empty = !explored.state.features[hexKey(action.hex)];
     return {
       ok: true,
       state: withCharacter(explored.state, {}),
-      events: [{ kind: 'survey', hex: action.hex, characterId }, ...explored.events],
+      events: [
+        { kind: 'survey', hex: action.hex, characterId },
+        ...explored.events,
+        ...(empty ? [{ kind: 'survey-empty' as const, hex: action.hex, characterId }] : []),
+      ],
     };
   }
 
@@ -331,6 +435,99 @@ export const act = (state: GameState, characterId: string, action: Action): ActR
       state: withCharacter(lingering, {}),
       events: [{ kind: 'linger', characterId }],
     };
+  }
+
+  if (action.kind === 'strike') {
+    const threat = state.threats.find((t) => t.id === action.threat);
+    if (!threat) return { ok: false, reason: 'no-threat' };
+    const power = roleHas(c, DEFEND_TAG)
+      ? state.config.clearPowerGuardian
+      : state.config.clearPowerOther;
+    const strength = Math.max(0, threat.strength - power);
+    const events: GameEvent[] = [{ kind: 'threat-hit', id: threat.id, characterId, strength }];
+    const threats =
+      strength > 0
+        ? state.threats.map((t) => (t.id === threat.id ? { ...t, strength } : t))
+        : state.threats.filter((t) => t.id !== threat.id);
+    if (strength <= 0) events.push({ kind: 'threat-cleared', id: threat.id, characterId });
+    return { ok: true, state: withCharacter({ ...state, threats }, {}), events };
+  }
+
+  if (action.kind === 'defend') {
+    const creature = { ...state.creature, defenders: [...state.creature.defenders, characterId] };
+    return {
+      ok: true,
+      state: withCharacter({ ...state, creature }, {}),
+      events: [{ kind: 'defend', characterId }],
+    };
+  }
+
+  if (action.kind === 'parley' || action.kind === 'offer') {
+    const here = settlementHere(state, c) as Settlement;
+    const spent = withCharacter(
+      state,
+      action.kind === 'offer' ? { pack: subtract(c.pack, check.uses) } : {},
+    );
+    if (action.kind === 'parley') {
+      const roll = hashToUnit(
+        state.seed,
+        PARLEY_STREAM,
+        state.day,
+        hashString(c.id),
+        hashString(here.id),
+      );
+      if (roll >= check.chance) {
+        const angered = anger(spent, here);
+        return { ok: true, state: angered.state, events: angered.events };
+      }
+    }
+    const gain =
+      action.kind === 'offer'
+        ? state.config.offerFavour
+        : roleHas(c, PEOPLES_TAG)
+          ? state.config.parleyFavourEnvoy
+          : state.config.parleyFavourOther;
+    const added = addFavour(spent, here, gain);
+    const events: GameEvent[] = [
+      action.kind === 'offer'
+        ? { kind: 'offer', id: here.id, characterId, material: action.material }
+        : { kind: 'parley', id: here.id, characterId, favour: added.favour },
+    ];
+    if (added.befriended) events.push({ kind: 'befriended', id: here.id });
+    return { ok: true, state: added.state, events };
+  }
+
+  if (action.kind === 'ask-boon') {
+    const here = settlementHere(state, c) as Settlement;
+    const type = peopleType(here.type);
+    let next: GameState = withCharacter(
+      {
+        ...state,
+        settlements: state.settlements.map((s) =>
+          s.id === here.id ? { ...s, boon: action.boon } : s,
+        ),
+      },
+      {},
+    );
+    const events: GameEvent[] = [{ kind: 'boon', id: here.id, characterId, boon: action.boon }];
+    if (action.boon === 'gift') {
+      const gift: Record<string, number> = {};
+      for (const g of type.gift) gift[g.material] = (gift[g.material] ?? 0) + g.amount;
+      next = { ...next, stores: addMaterials(next.stores, gift) };
+    } else if (action.boon === 'mislead') {
+      const led = next.threats.filter((t) => threatType(t.type).tags.includes(PURSUER_TAG));
+      next = {
+        ...next,
+        threats: next.threats.filter((t) => !led.includes(t)),
+        misleadUntilDay: state.day + state.config.misleadDays,
+      };
+      for (const t of led) events.push({ kind: 'threat-gone', id: t.id });
+    } else if (action.boon === 'shelter') {
+      const peril = Math.max(0, state.peril - state.config.shelterPeril);
+      if (peril !== state.peril) events.push({ kind: 'peril', from: state.peril, to: peril });
+      next = { ...next, peril };
+    }
+    return { ok: true, state: next, events };
   }
 
   if (action.kind === 'build') {
@@ -391,10 +588,17 @@ export const act = (state: GameState, characterId: string, action: Action): ActR
   return { ok: false, reason: 'invalid-action' };
 };
 
+/** Boons any people offers, in content order. */
+const ALL_BOONS = BOONS.filter((b) => PEOPLE_TYPES.some((p) => p.boons.includes(b)));
+/** Materials a settlement takes as an offering. */
+const TRADE_GOODS = MATERIALS.filter((m) => m.tags.includes(TRADE_TAG));
+
 /**
  * Every action a character could take now, with its check, for the interface:
  * surveying each adjacent unexplored hex, gathering and working a site here,
- * building each unlock, lighting a fire, feeding and lingering. Runs on a view.
+ * building each unlock, lighting a fire, feeding and lingering, striking each
+ * threat, defending, parleying, offering each trade good and asking each boon.
+ * Runs on a view.
  */
 export const actionsHere = (
   state: GameStateView,
@@ -415,6 +619,11 @@ export const actionsHere = (
     { kind: 'light-fire' },
     { kind: 'feed' },
     { kind: 'linger' },
+    ...state.threats.map((t) => ({ kind: 'strike' as const, threat: t.id })),
+    { kind: 'defend' },
+    { kind: 'parley' },
+    ...TRADE_GOODS.map((m) => ({ kind: 'offer' as const, material: m.id })),
+    ...ALL_BOONS.map((boon) => ({ kind: 'ask-boon' as const, boon })),
   ];
   return options.map((action) => ({ action, check: checkAction(state, characterId, action) }));
 };

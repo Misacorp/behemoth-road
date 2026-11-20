@@ -71,17 +71,24 @@ describe('the hidden nature', () => {
       'creature',
       'day',
       'features',
+      'misleadUntilDay',
+      'peril',
       'project',
+      'season',
+      'settlements',
       'stimuli',
       'stores',
+      'threats',
       'tiles',
       'unlocks',
     ]);
     expect(Object.keys(view0.creature as object).sort()).toEqual([
       'centre',
+      'defenders',
       'heading',
       'lingeredDay',
       'lingering',
+      'steps',
     ]);
     const view = toPlayerView(withFire(state, LEFT_FIRE));
     expect(view.stimuli).toEqual([{ type: 'fire', hex: LEFT_FIRE, litDay: state.day }]);

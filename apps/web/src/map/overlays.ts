@@ -10,6 +10,7 @@ import {
   ART_TUNING,
   DIRECTIONS,
   drawCharacter,
+  drawEscortRing,
   drawStayMark,
   drawStepHint,
   drawIcon,
@@ -37,7 +38,9 @@ import {
   hexKey,
   placeHex,
 } from '@behemoth-road/core';
+import { drawExploredEmpty, drawMisledMark } from './art.ts';
 import { accentOf } from '../game/identity.ts';
+import { escortCentres } from '../game/season.ts';
 import { cellStateAt } from './cells.ts';
 import { MAP_TUNING } from './config.ts';
 import { figureFeet, placePoint } from './figures.ts';
@@ -471,6 +474,28 @@ function actionHints(i: OverlayInput): SvgNode[] {
     const at = { x: c.x + 0.45 * p.size, y: c.y - 0.55 * p.size };
     out.push(el('g', { 'data-mark': `action:${glyph}` }, [iconAt(i, glyph, at, size)]));
   }
+  // Milestone 5: a strike badge on each threat you could strike (on or next to it), and on a settlement
+  // where you stand or next to you, what it offers: a parley while wary, a boon once friendly.
+  for (const t of i.state.threats) {
+    const check = checkAction(i.state, me.id, { kind: 'strike', threat: t.id });
+    if (!check.ok && check.reason !== 'not-enough-actions') continue;
+    const c = hexCenter(p, t.hex.q, t.hex.r);
+    const at = { x: c.x + 0.45 * p.size, y: c.y - 0.95 * p.size };
+    out.push(el('g', { 'data-mark': 'action:strike' }, [iconAt(i, 'strike', at, size)]));
+  }
+  for (const s of i.state.settlements) {
+    if (hexDistance(s.hex, here) > 1) continue;
+    const glyph =
+      s.attitude === 'wary'
+        ? 'parley'
+        : s.attitude === 'friendly' && s.boon === null
+          ? 'gift'
+          : null;
+    if (!glyph) continue;
+    const c = hexCenter(p, s.hex.q, s.hex.r);
+    const at = { x: c.x + 0.5 * p.size, y: c.y - 0.85 * p.size };
+    out.push(el('g', { 'data-mark': `action:${glyph}` }, [iconAt(i, glyph, at, size)]));
+  }
   if (i.flow.kind === 'selected') {
     for (const h of hexesInRange(here, 1)) {
       if (hexDistance(h, here) !== 1) continue;
@@ -508,6 +533,59 @@ function graceWarning(i: OverlayInput, feet: Point): SvgNode {
   ]);
 }
 
+/**
+ * Explored hexes known to hold nothing (no feature, settlement, threat or fire): the faint explored-empty
+ * mark, so a survey that found nothing leaves a trace. The creature's own hexes are left out.
+ */
+export function exploredEmpty(i: OverlayInput): SvgNode[] {
+  const s = i.state;
+  const taken = new Set<string>([
+    ...creatureHexes(s).map(hexKey),
+    ...s.settlements.map((x) => hexKey(x.hex)),
+    ...s.threats.map((t) => hexKey(t.hex)),
+    ...s.stimuli.map((f) => hexKey(f.hex)),
+  ]);
+  const out: SvgNode[] = [];
+  for (const [key, tile] of Object.entries(s.tiles)) {
+    if (!tile.explored || taken.has(key) || s.features[key]) continue;
+    const state = cellStateAt(s, key);
+    if (state !== 'seen' && state !== 'fading') continue;
+    const [q, r] = key.split(',').map(Number) as [number, number];
+    out.push(drawExploredEmpty(i.projection, i.palette, { q, r }));
+  }
+  return out;
+}
+
+/**
+ * Pursuers led away (a mislead, while `misleadUntilDay` lasts): the misled mark on the creature's back,
+ * on the side away from your view's top, for as long as it holds.
+ */
+export function misledMark(i: OverlayInput): SvgNode[] {
+  const until = i.state.misleadUntilDay;
+  if (until === null || i.state.day > until) return [];
+  const p = i.projection;
+  const c = hexCenter(p, i.state.creature.centre.q, i.state.creature.centre.r);
+  const size = atLeast(i, 0.5 * p.size, 22);
+  const node = drawMisledMark(i.palette, size);
+  return [
+    el('g', { 'data-mark': 'misled' }, [
+      {
+        ...node,
+        attrs: {
+          ...node.attrs,
+          x: c.x - 1.1 * p.size - size / 2,
+          y: c.y - 1.5 * p.size - size / 2,
+        },
+      },
+    ]),
+  ];
+}
+
+/** The art kit's soft ring over the hexes each guardian on a hex escorts. */
+function escortRings(i: OverlayInput): SvgNode[] {
+  return escortCentres(i.state).map((g) => drawEscortRing(i.projection, g, i.palette));
+}
+
 export function buildOverlays(i: OverlayInput): Overlays {
   const under: SvgNode[] = [];
   const over: SvgNode[] = [];
@@ -516,6 +594,8 @@ export function buildOverlays(i: OverlayInput): Overlays {
   under.push(...creatureHints(i));
   const grace = graceHexes(i);
   under.push(...graceTiles(i, grace));
+  under.push(...escortRings(i));
+  under.push(...exploredEmpty(i));
   const feet = figureFeet(i.state, i.characterId, i.projection);
   const riding = me?.at.kind === 'creature';
   if (isSelecting(i.flow) && feet) {
@@ -540,6 +620,7 @@ export function buildOverlays(i: OverlayInput): Overlays {
   over.push(...lostCharacters(i));
   if (staysPut(i.predicted)) over.push(stayHint(i));
   over.push(...actionHints(i));
+  over.push(...misledMark(i));
   const standing = me?.status === 'active' && me.at.kind === 'hex' ? me.at.hex : null;
   if (feet && standing && grace.some((h) => h.q === standing.q && h.r === standing.r)) {
     over.push(graceWarning(i, feet));

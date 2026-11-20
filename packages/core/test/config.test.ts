@@ -29,6 +29,38 @@ describe('tuning config', () => {
       lightFireCost: 1,
       feedCost: 1,
       lingerCost: 2,
+      threatsFromDay: 3,
+      threatChanceBase: 0.25,
+      threatChancePerPlayer: 0.05,
+      threatChancePerDay: 0.01,
+      threatChanceMax: 0.9,
+      threatsMax: 3,
+      threatStrengthPlayers: 3,
+      threatStrengthDays: 10,
+      threatPathDistance: 4,
+      struckActions: 1,
+      strikeCost: 1,
+      clearPowerGuardian: 2,
+      clearPowerOther: 1,
+      defendCost: 1,
+      defendReduction: 2,
+      parleyCost: 1,
+      offerCost: 1,
+      askBoonCost: 1,
+      parleyFavourEnvoy: 2,
+      parleyFavourOther: 1,
+      parleyAngerChanceOther: 0.25,
+      offerFavour: 2,
+      misleadDays: 4,
+      shelterPeril: 3,
+      settlementFirst: 4,
+      settlementEvery: 10,
+      perilMax: 10,
+      perilWoundedAt: 5,
+      perilHungry: 1,
+      perilHungryLevel: 2,
+      perilCalm: 1,
+      routeLength: 40,
     });
   });
 
@@ -57,6 +89,35 @@ describe('tuning config', () => {
     for (const key of ['lightFireCost', 'feedCost', 'lingerCost'] as const) {
       expect(() => resolveConfig({ [key]: 0 })).toThrow(new RegExp(key));
     }
+  });
+
+  it('rejects season values the rules cannot use', () => {
+    for (const key of [
+      'threatChanceBase',
+      'threatChancePerPlayer',
+      'threatChancePerDay',
+      'threatChanceMax',
+      'parleyAngerChanceOther',
+    ] as const) {
+      expect(() => resolveConfig({ [key]: -0.1 })).toThrow(new RegExp(key));
+      expect(() => resolveConfig({ [key]: 1.1 })).toThrow(new RegExp(key));
+    }
+    for (const key of [
+      'routeLength',
+      'settlementEvery',
+      'settlementFirst',
+      'strikeCost',
+    ] as const) {
+      expect(() => resolveConfig({ [key]: 0 })).toThrow(new RegExp(key));
+    }
+    expect(() => resolveConfig({ threatsMax: -1 })).toThrow(/threatsMax/);
+    expect(() => resolveConfig({ struckActions: 0.5 })).toThrow(/struckActions/);
+    expect(() => resolveConfig({ perilWoundedAt: 10 })).toThrow(/perilWoundedAt/);
+    expect(() => resolveConfig({ perilMax: 4 })).toThrow(/perilWoundedAt/);
+    expect(() => resolveConfig({ perilHungryLevel: 4 })).toThrow(/perilHungryLevel/);
+    expect(() => resolveConfig({ threatPathDistance: 2 })).toThrow(/threatPathDistance/);
+    expect(() => resolveConfig({ threatPathDistance: 6 })).toThrow(/threatPathDistance/);
+    expect(resolveConfig({ routeLength: 12, perilWoundedAt: 9 }).routeLength).toBe(12);
   });
 
   it('merges part of the hungry veer weights', () => {

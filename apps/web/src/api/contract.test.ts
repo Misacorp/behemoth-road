@@ -7,6 +7,8 @@ import * as v from 'valibot';
 import { describe, expect, it } from 'vitest';
 import { ApiError, createApiClient, type Fetch } from './client.ts';
 import { momentsFromEvents } from '../game/moments.ts';
+import { toGameState } from '../game/viewState.ts';
+import { characterArts } from '../map/cells.ts';
 import {
   ActionAnswerSchema,
   ConfigSchema,
@@ -115,10 +117,54 @@ describe('captured contract fixtures', () => {
       const view = v.parse(PlayerViewSchema, fixture(name));
       return momentsFromEvents(view.events, view.game.creature.centre, '').map((m) => m.kind);
     });
+    // The dev season brings threats from the first tick: both since-logs also carry a threat appearing,
+    // and by the second tick the first one strikes.
     expect(kinds).toEqual([
-      ['stayed', 'fire-out'],
-      ['step', 'ate'],
+      ['stayed', 'fire-out', 'threat'],
+      ['step', 'ate', 'strike', 'threat'],
     ]);
+  });
+
+  it("Milestone 5's captured answers play their moments, placed on the view's own things", () => {
+    const moments = (name: string) => {
+      const view = v.parse(PlayerViewSchema, fixture(name));
+      const g = view.game;
+      return momentsFromEvents(view.events, g.creature.centre, view.you.characterId ?? '', {
+        threat: (id) => g.threats.find((t) => t.id === id)?.hex ?? null,
+        settlement: (id) => g.settlements.find((x) => x.id === id)?.hex ?? null,
+        character: (id) => {
+          const c = g.characters.find((x) => x.id === id);
+          return c?.at.kind === 'hex' ? c.at.hex : null;
+        },
+      }).map((m) => m.kind);
+    };
+    expect(moments('view-strike')).toEqual(['hit']);
+    expect(moments('view-defend')).toEqual(['defend']);
+    expect(moments('view-befriended')).toEqual(['befriended']);
+    expect(moments('view-boon')).toEqual(['boon']);
+    expect(moments('view-angered')).toEqual(['angered', 'threat']);
+    expect(moments('view-peril-since')).toEqual(['step', 'strike', 'threat']);
+    expect(moments('view-season-lost')).toEqual(['step', 'strike', 'struck', 'season-over']);
+    expect(moments('view-season-safe')).toEqual(['step', 'strike', 'season-over']);
+    expect(moments('view-struck-since')).toEqual(['step', 'struck', 'relieved', 'threat']);
+  });
+
+  it('bandages the captured struck character for the day it was struck', () => {
+    const view = v.parse(PlayerViewSchema, fixture('view-struck-since'));
+    const game = toGameState(view.game);
+    const struck = game.characters.filter((c) => c.struckDay === game.day).map((c) => c.id);
+    expect(struck).toHaveLength(1);
+    const marked = characterArts(game)
+      .filter((f) => f.marks?.struck)
+      .map((f) => f.id);
+    expect(marked).toEqual(struck);
+  });
+
+  it('reads each ending from the captured season views', () => {
+    for (const outcome of ['safe', 'wounded', 'lost'] as const) {
+      const view = v.parse(PlayerViewSchema, fixture(`view-season-${outcome}`));
+      expect(view.game.season).toMatchObject({ status: 'over', outcome });
+    }
   });
 
   it.each(errors.map((e) => [e.route, e.status, e.body] as const))(

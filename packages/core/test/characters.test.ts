@@ -118,6 +118,7 @@ describe('addCharacter', () => {
       actionsLeft: 3,
       pack: {},
       status: 'active',
+      struckDay: null,
     });
     expect(state.characters).toHaveLength(0);
     const plainIndex = offers.length - 1;

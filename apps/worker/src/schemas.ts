@@ -54,6 +54,9 @@ export const MoveBodySchema = v.strictObject({
   path: v.pipe(v.array(PlaceSchema), v.minLength(1), v.maxLength(maxPathLength)),
 });
 
+/** A threat id, material id or boon name: short, lower-case letters, digits and dashes. */
+const contentId = v.pipe(v.string(), v.regex(/^[a-z0-9-]{1,64}$/));
+
 /** An action by the player's own character: exactly one of the shapes. */
 export const ActionSchema = v.variant('kind', [
   v.strictObject({
@@ -74,6 +77,13 @@ export const ActionSchema = v.variant('kind', [
   v.strictObject({ kind: v.literal('light-fire') }),
   v.strictObject({ kind: v.literal('feed') }),
   v.strictObject({ kind: v.literal('linger') }),
+  // Milestone 5: threats and settlements. The core refuses an unknown threat, material or boon by name
+  // (`no-threat`, `no-trade-good`, `unknown-boon`), so the schema only bounds the strings.
+  v.strictObject({ kind: v.literal('strike'), threat: contentId }),
+  v.strictObject({ kind: v.literal('defend') }),
+  v.strictObject({ kind: v.literal('parley') }),
+  v.strictObject({ kind: v.literal('offer'), material: contentId }),
+  v.strictObject({ kind: v.literal('ask-boon'), boon: contentId }),
 ]);
 
 /** POST /api/game/act. */

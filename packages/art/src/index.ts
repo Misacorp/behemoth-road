@@ -112,3 +112,43 @@ export {
   type MomentKind,
 } from './marks.ts';
 export { drawPackIcon, drawStoresIcon, drawUnlockSeal, drawWorkBar } from './team-marks.ts';
+export { drawRiskMark } from './team-marks.ts';
+export {
+  approachArrow,
+  drawThreat,
+  drawThreatIcon,
+  THREAT_LOOKS,
+  type ThreatArt,
+  type ThreatIconOptions,
+  type ThreatLook,
+} from './threats.ts';
+export {
+  drawSettlement,
+  drawSettlementIcon,
+  SETTLEMENT_LOOKS,
+  type Attitude,
+  type SettlementArt,
+} from './settlements.ts';
+export {
+  drawCharacterMarks,
+  drawEscortRing,
+  drawStatusMark,
+  type CharacterMarks,
+} from './escort.ts';
+export {
+  drawPerilGauge,
+  drawPerilVignette,
+  drawRouteStrip,
+  type PerilGaugeOptions,
+} from './hud.ts';
+export { drawEnding, ENDINGS, type Ending, type EndingOptions } from './endings.ts';
+export { SEASON_MOMENT_KINDS, type SeasonMomentKind } from './season-moments.ts';
+export {
+  drawEmptyMark,
+  drawMisledMark,
+  drawOutOfReachMark,
+  drawRoleBadge,
+  FEEDBACK_MOMENT_KINDS,
+  featurePlinth,
+  type FeedbackMomentKind,
+} from './feedback-marks.ts';

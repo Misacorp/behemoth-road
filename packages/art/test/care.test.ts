@@ -211,7 +211,18 @@ describe('fires and berries', () => {
 
 describe('care icons and the stay hint', () => {
   it('draws forage and the three actions by key, each different, within the palette', () => {
-    expect(Object.keys(ACTION_MOTIFS)).toEqual(['light-fire', 'feed', 'linger']);
+    expect(Object.keys(ACTION_MOTIFS)).toEqual([
+      'light-fire',
+      'feed',
+      'linger',
+      'strike',
+      'defend',
+      'parley',
+      'offer',
+      'gift',
+      'mislead',
+      'shelter',
+    ]);
     const drawn = ['forage', 'light-fire', 'feed', 'linger'].map((id) => {
       expect(hasIcon(id), id).toBe(true);
       const node = drawIcon(id, SPRING, 48);

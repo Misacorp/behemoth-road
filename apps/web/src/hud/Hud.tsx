@@ -10,6 +10,7 @@ import { Stack } from '../hub/Stack.tsx';
 import { PALETTE } from '../map/art.ts';
 import type { FocusTarget } from '../map/MapView.tsx';
 import { toPreact } from '../map/svgToPreact.ts';
+import { PerilGauge, type PerilProps, RouteStrip, type RouteProps } from './Season.tsx';
 import {
   CharacterFigure,
   CharacterIcon,
@@ -44,6 +45,13 @@ export interface HudProps {
   } | null;
   /** Shown when you have no active character: opens the join (or replace) drawer. */
   readonly onJoin: (() => void) | null;
+  /** Milestone 5: the creature's peril (the gauge beside the day) and the route toward home. */
+  readonly peril?: PerilProps;
+  readonly route?: RouteProps;
+  /** A threat just struck the creature: the gauge jolts. */
+  readonly jolt?: boolean;
+  /** Peril just dropped (a shelter): the gauge swells softly. */
+  readonly relieved?: boolean;
 }
 
 /** Your pack as a satchel with its fill mark; a tap shows what is in it (icons and counts). */
@@ -125,9 +133,19 @@ function PackButton({
 export function Hud(props: HudProps): JSX.Element {
   return (
     <>
-      <div class="hud-day" aria-label="Day">
-        <SunIcon />
-        <span>{props.day}</span>
+      <div class="hud-top">
+        <div class="hud-day" aria-label="Day">
+          <SunIcon />
+          <span>{props.day}</span>
+          {props.peril && (
+            <PerilGauge
+              {...props.peril}
+              jolt={props.jolt ?? false}
+              relieved={props.relieved ?? false}
+            />
+          )}
+        </div>
+        {props.route && <RouteStrip {...props.route} />}
       </div>
       <div
         class={`hud-actions${props.lost ? ' is-lost' : ''}${props.snapped ? ' is-snapped' : ''}${

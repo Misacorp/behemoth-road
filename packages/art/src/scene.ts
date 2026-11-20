@@ -2,7 +2,9 @@
 import { DEFAULT_LOOK, drawCharacter, type CharacterArt } from './character.ts';
 import { ART_TUNING } from './config.ts';
 import { drawCreature, inFootprint, moodOf, riderAnchor, type CreatureArt } from './creature.ts';
+import { drawCharacterMarks } from './escort.ts';
 import { drawFire } from './fire.ts';
+import { featurePlinth } from './feedback-marks.ts';
 import { featureDrawer } from './features.ts';
 import { figureAnchor } from './figure.ts';
 import { artDefs, refUrl } from './filters.ts';
@@ -24,10 +26,13 @@ import {
   PROP_DRAWERS,
   PROP_SPACING,
   type Drawn,
+  type PropContext,
   type PropDraw,
 } from './props.ts';
 import { rngFor, type Rng } from './rng.ts';
+import { drawSettlement } from './settlements.ts';
 import { el, type SvgNode } from './svg.ts';
+import { drawThreat } from './threats.ts';
 import { SITE_PROPS, terrainLook, type PropRule } from './terrain.ts';
 import { cellState, drawGround, type ArtCell, type PropSpot } from './tile.ts';
 
@@ -148,6 +153,12 @@ export function paperGrain(
   return el('rect', { ...box, fill: palette.paper, filter: refUrl(idPrefix, 'grain') });
 }
 
+/** A feature or settlement drawn on its plinth (props never get one, so features stand out). */
+function withPlinth(c: PropContext, drawn: Drawn, rx?: number): Drawn {
+  const plinth = featurePlinth(c, rx);
+  return { nodes: [...plinth.nodes, ...drawn.nodes], box: unionBox([plinth.box, drawn.box]) };
+}
+
 export function renderSceneFramed(input: SceneInput): FramedScene {
   const { cells, projection: p, palette, seed } = input;
   const prefix = input.idPrefix ?? 'br';
@@ -186,7 +197,9 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
     const rng = rngFor(seed, 'props', cell.q, cell.r);
     const spots =
       cell.props ??
-      ((cell.feature || cell.fire) && !underCreature ? [] : undefined) ??
+      ((cell.feature || cell.fire || cell.threat || cell.settlement) && !underCreature
+        ? []
+        : undefined) ??
       (underCreature
         ? []
         : placeProps((cell.site && SITE_PROPS[cell.site]) || terrainLook(cell.terrain).props, rng));
@@ -218,10 +231,8 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
     if (cell.feature && !underCreature && state !== 'unexplored') {
       const at = onPlane(p, c, 0, 0.08);
       const draw = featureDrawer(cell.feature.look);
-      const drawn = draw(
-        ctx(at, rngFor(seed, 'feature', cell.q, cell.r), ART_TUNING.featureScale),
-        cell.feature.state ?? 'ready',
-      );
+      const fc = ctx(at, rngFor(seed, 'feature', cell.q, cell.r), ART_TUNING.featureScale);
+      const drawn = withPlinth(fc, draw(fc, cell.feature.state ?? 'ready'));
       placed.push({ at, drawn, ...(opacity === undefined ? {} : { opacity }) });
     }
     if (cell.fire && !underCreature) {
@@ -230,6 +241,24 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
       placed.push({
         at,
         drawn: drawFire(ctx(at, rngFor(seed, 'fire', cell.q, cell.r), ART_TUNING.fireScale)),
+      });
+    }
+    if (cell.settlement && !underCreature) {
+      // A village is never hidden: drawn in full under the veil. A threat beside it stands to its front left.
+      const at = cell.threat ? onPlane(p, c, 0.14, -0.06) : onPlane(p, c, 0, 0.06);
+      const sc = ctx(at, rngFor(seed, 'settlement', cell.q, cell.r), ART_TUNING.settlementScale);
+      placed.push({ at, drawn: withPlinth(sc, drawSettlement(sc, cell.settlement), 24) });
+    }
+    if (cell.threat) {
+      // Threats are public: drawn in full, also under the veil and wherever the creature is.
+      const at = cell.settlement ? onPlane(p, c, -0.22, 0.22) : onPlane(p, c, 0, 0.1);
+      placed.push({
+        at,
+        drawn: drawThreat(
+          ctx(at, rngFor(seed, 'threat', cell.q, cell.r), ART_TUNING.threatScale),
+          cell.threat,
+          p.size,
+        ),
       });
     }
     if (cell.hint) {
@@ -298,9 +327,10 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
         opacity: 0.38,
       });
       const creatureY = hexCenter(p, creature.q, creature.r).y;
+      const signs = withMarks(drawn, c, ch.marks);
       placed.push({
         at: c,
-        drawn: { nodes: [contact, ...drawn.nodes], box: drawn.box },
+        drawn: { nodes: [contact, ...signs.nodes], box: signs.box },
         after: creatureY + 1e-3 + (c.y - creatureY + p.size * 10) * 1e-6,
       });
       continue;
@@ -312,7 +342,11 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
     figures.set(ch.id, c);
     placed.push({
       at: c,
-      drawn: drawCharacter(palette, ch.accent, c, p.size, p.squash, ink, ch.look ?? DEFAULT_LOOK),
+      drawn: withMarks(
+        drawCharacter(palette, ch.accent, c, p.size, p.squash, ink, ch.look ?? DEFAULT_LOOK),
+        c,
+        ch.marks,
+      ),
     });
   }
 
@@ -352,6 +386,13 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
     ...(lite || !page ? [] : [paperGrain(palette, prefix, frame)]),
   ]);
   return { svg, viewBox: frame, figures };
+
+  /** A character's standee with its marks for the day over it. */
+  function withMarks(drawn: Drawn, at: Point, marks: CharacterArt['marks']): Drawn {
+    if (!marks || !(marks.escorted || marks.struck || marks.defending)) return drawn;
+    const m = drawCharacterMarks(palette, at, p.size, p.squash, ink, marks);
+    return { nodes: [...drawn.nodes, ...m.nodes], box: unionBox([drawn.box, m.box]) };
+  }
 
   function ctx(origin: Point, rng: Rng, scale = 1) {
     return {

@@ -49,6 +49,8 @@ Record a decision:
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
+- 2026-11-20 The short dev season follows the dev-tools switch; an ended season stops the schedule
+- 2026-11-20 Staging and local seasons are short; admins start a new season there
 - 2026-11-20 Web schema requires the M4 view fields now the fixtures carry them
 - 2026-11-20 The player view carries each viewer's creature signs; the creature's nature and condition never leave the server
 - 2026-11-20 The Durable Object keeps the last 100 game events for clients to replay
@@ -112,6 +114,25 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-20 The ending's scene is drawn above a strip reserved for its summary
+- 2026-11-20 Feedback without words: out of reach, empty hexes, the role a greyed action needs, settlements, mislead and relief
+- 2026-11-20 Map card actions arm on the first tap and spend on the second; own-hex cards keep the neighbours clear
+- 2026-11-20 Marks for empty hexes, out of reach, a needed role and a mislead
+- 2026-11-20 Features stand on a plinth; decorative props do not
+- 2026-11-20 A survey of an empty hex says so
+- 2026-11-20 Dev season brings threats from the first tick
+- 2026-11-20 Stone, iron and timber also lie on open ground
+- 2026-11-20 Threats and settlements near you carry M4-style action badges
+- 2026-11-20 Escort and struck marks read the core's rule through one web function until the core exports it
+- 2026-11-20 The new-season button shows for admins with dev tools on
+- 2026-11-20 Settlement actions live in the here card; from afar its card shows only attitude and favour (amended)
+- 2026-11-20 A tap on a threat opens its card, even while selected
+- 2026-11-20 Milestone 5 art: threats, settlements and the guardian's marks are drawn by the art kit from content keys
+- 2026-11-20 Milestone 5 core: readings of the season contract
+- 2026-11-20 Threats are tagged data that appear at the window's edge and walk in openly
+- 2026-11-20 Guardians strike, defend and escort; anyone can strike a threat
+- 2026-11-20 Settlements appear on the route; parley or offer to befriend, or anger them
+- 2026-11-20 Peril is a public track; the season ends at home or at full peril
 - 2026-11-20 The day's step uses Milestone 3's creature walk; a linger plays the stayed mark
 - 2026-11-20 The step hints, appetite badge and stayed mark use the art kit's drawings
 - 2026-11-20 The creature card's heading loses its ring; the bubble carries an appetite badge (amended)

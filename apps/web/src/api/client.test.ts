@@ -109,4 +109,28 @@ describe('API client', () => {
     const api = createApiClient(fake().fetch);
     await expect(api.game()).rejects.toBeInstanceOf(ApiError);
   });
+
+  it("sends Milestone 5's actions as act bodies, and a new season as an empty POST", async () => {
+    const actions = [
+      { kind: 'strike', threat: 't1' },
+      { kind: 'defend' },
+      { kind: 'parley' },
+      { kind: 'offer', material: 'old-coin' },
+      { kind: 'ask-boon', boon: 'shelter' },
+    ] as const;
+    const f = fake(...actions.map(() => ({ body: joined() })), { body: { ok: true } });
+    const api = createApiClient(f.fetch);
+    api.useSession(SESSION);
+    for (const action of actions) await api.act(5, action);
+    actions.forEach((action, i) => {
+      expect(f.calls[i]!.path).toBe('/api/game/act');
+      expect(bodyOf(f.calls[i]!)).toEqual({ version: 5, action });
+    });
+    await api.newSeason();
+    const last = f.calls[actions.length]!;
+    expect(last.path).toBe('/api/dev/new-season');
+    expect(last.init.method).toBe('POST');
+    expect(bodyOf(last)).toEqual({});
+    expect(auth(last)).toBe(`Bearer ${SESSION.token}`);
+  });
 });

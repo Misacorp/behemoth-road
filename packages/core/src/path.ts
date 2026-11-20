@@ -16,7 +16,7 @@ import {
 import type { GameEvent } from './features.ts';
 import type { Hex } from './hex.ts';
 import { placeEquals, placeKey, placeNeighbours, toPlace } from './places.ts';
-import type { GameStateView, Place } from './state.ts';
+import { type GameStateView, isSeasonOver, type Place } from './state.ts';
 
 /** One step of a path: the place stepped onto, what it costs, and what makes it possible. */
 export interface PathStep extends Entry {
@@ -115,7 +115,7 @@ const search = (state: GameStateView, start: Place, budget: number): Map<string,
  */
 export const reachablePlaces = (state: GameStateView, characterId: string): ReachablePlace[] => {
   const found = activeCharacter(state, characterId);
-  if (!found.ok) return [];
+  if (!found.ok || isSeasonOver(state)) return [];
   const { at, actionsLeft } = found.character;
   return [...search(state, at, actionsLeft).values()]
     .filter((v) => v.step !== null)
@@ -128,6 +128,7 @@ export const reachablePlaces = (state: GameStateView, characterId: string): Reac
  * nothing connects to it, or the cheapest path costs more than the actions left.
  */
 export const planPath = (state: GameStateView, characterId: string, to: Hex | Place): PathPlan => {
+  if (isSeasonOver(state)) return { ok: false, reason: 'season-over' };
   const target = toPlace(state, to);
   if (!target) return { ok: false, reason: 'invalid-hex' };
   const found = activeCharacter(state, characterId);
@@ -163,6 +164,7 @@ export const moveAlong = <S extends GameStateView>(
   characterId: string,
   path: readonly (Hex | Place | PathStep)[],
 ): PathResult<S> => {
+  if (isSeasonOver(state)) return { ok: false, reason: 'season-over', step: 0 };
   const found = activeCharacter(state, characterId);
   if (!found.ok) return { ok: false, reason: found.reason, step: 0 };
   const places = path.map((item) => (isStep(item) ? item.place : item));

@@ -263,6 +263,7 @@ describe('the Worker refuses bad tokens before any game route', () => {
       ['POST', '/api/game/move'],
       ['POST', '/api/game/join'],
       ['POST', '/api/dev/next-day'],
+      ['POST', '/api/dev/new-season'],
     ] as const) {
       // A tampered MAC, and this token's MAC on another guild's id.
       for (const bad of [

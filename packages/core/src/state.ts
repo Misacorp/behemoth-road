@@ -36,7 +36,43 @@ export interface Creature {
   readonly lingering: boolean;
   /** The last day it lingered (it cannot linger the day after), or null. */
   readonly lingeredDay: number | null;
+  /** Steps walked this season (lingering adds none). Public: the route strip. */
+  readonly steps: number;
+  /** Guardians defending it until the next tick (character ids). Public. */
+  readonly defenders: readonly string[];
 }
+
+/** A threat on the map (content `THREAT_TYPES`). Public: seeing it come is the forecast. */
+export interface Threat {
+  readonly id: string;
+  /** Content id. */
+  readonly type: string;
+  readonly hex: Hex;
+  /** What it does to the creature (less any defence); strikes on it lower it. */
+  readonly strength: number;
+  readonly appearedDay: number;
+}
+
+export type Attitude = 'wary' | 'friendly' | 'angry';
+
+/** A settlement of a people (content `PEOPLE_TYPES`). Public: a village is not hidden. */
+export interface Settlement {
+  readonly id: string;
+  /** Content id. */
+  readonly type: string;
+  readonly hex: Hex;
+  readonly attitude: Attitude;
+  readonly favour: number;
+  /** The boon it gave, or null while none has been taken. */
+  readonly boon: string | null;
+}
+
+export type SeasonOutcome = 'safe' | 'wounded' | 'lost';
+
+/** Whether the season goes on, or how and on which day it ended. */
+export type Season =
+  | { readonly status: 'on' }
+  | { readonly status: 'over'; readonly outcome: SeasonOutcome; readonly day: number };
 
 /** A stimulus set out on the map (a lit fire). Public: everyone sees it. */
 export interface Stimulus {
@@ -97,6 +133,8 @@ export interface Character {
   /** What the character carries (gathered and found), up to `packCapacity` units. */
   readonly pack: Materials;
   readonly status: CharacterStatus;
+  /** The day a threat struck them (they start it with fewer actions), or null. Public. */
+  readonly struckDay: number | null;
 }
 
 /**
@@ -150,6 +188,15 @@ export interface GameStateView {
   readonly project: Project | null;
   /** Stimuli on the map now (lit fires). */
   readonly stimuli: readonly Stimulus[];
+  /** Threats on the map now. */
+  readonly threats: readonly Threat[];
+  /** Settlements in reach (each stays until its hex is lost to the fog). */
+  readonly settlements: readonly Settlement[];
+  /** The creature's peril: 0 to `perilMax`. At the max the season is lost. */
+  readonly peril: number;
+  readonly season: Season;
+  /** No pursuer appears at a tick that starts a day up to this one (a mislead); null for none. */
+  readonly misleadUntilDay: number | null;
 }
 
 /**
@@ -170,3 +217,5 @@ export const hasSeed = (state: GameStateView): state is GameState =>
 
 export const findCharacter = (state: GameStateView, id: string): Character | undefined =>
   state.characters.find((c) => c.id === id);
+
+export const isSeasonOver = (state: GameStateView): boolean => state.season.status === 'over';

@@ -4,6 +4,177 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: The ending's scene is drawn above a strip reserved for its summary
+
+ID: `2026-11-20-the-ending-s-scene-is-drawn` · Status: current
+
+**Decision.** The ending's scene fills the screen above a strip kept for its foot (the route, the days and, for admins, the new-season button), and is drawn at that box's measured size, so the foot never sits over the party. The strip is the same height whether or not the button shows.
+
+**Reasoning.** The fresh-eyes playtest found the summary bar over the characters. Reserving the strip keeps the art kit's scene untouched and works at any screen size.
+
+## 2026-11-20: Feedback without words: out of reach, empty hexes, the role a greyed action needs, settlements, mislead and relief
+
+ID: `2026-11-20-feedback-without-words-out-of-reach` · Status: current · Amends: `2026-11-20-settlement-actions-live-in-the-here`
+
+**Decision.**
+
+- **Out of reach.** With your character selected, a tap on a hex it cannot reach (too far, a cliff) shows a faded arrow from you ending in a cross, which fades by itself; you stay selected. A second tap on the same hex looks at it. A settlement still opens its card.
+- **Empty hexes.** A survey that reveals nothing plays a "nothing here" moment. Every explored hex that holds nothing (no feature, settlement, threat or fire) carries a faint explored-empty mark, however it was explored, so the map remembers where nothing was found. The core's `survey-empty` event is read the same way (one moment per hex).
+- **The role a greyed action needs.** When the core refuses an action because of who you are (`needs-specialist`, `needs-keeper`, `needs-guardian`, `cannot-work`), the button shows faded with that role's emblem as a badge. The role is found by asking the core which role would not get that refusal, never from a table in the client. So a non-keeper now sees linger greyed with the keeper's emblem, anyone but a guardian sees defend greyed with the guardian's, and the unlocks show the engineer's for everyone else.
+- **Settlements.** A settlement where you stand always opens your here card, drawn by attitude, even with nothing left to do there. Once a boon is taken, its icon shows sealed on the settlement's drawing, in that card and in the card from afar. Angry settlements open their card too.
+- **Mislead and relief.** Pursuers led away by a mislead play a "misled" moment where they stood, and the misled mark sits on the creature's back while `misleadUntilDay` lasts. Any drop in peril (a shelter, a calm day) plays a relief bloom on the creature and a soft swell of the gauge.
+
+**Reasoning.** The fresh-eyes playtest of Milestone 5: surveys looked like they did nothing, greyed actions did not say who could do them, used settlements gave no popover, cliffs refused with no feedback, and mislead and shelter showed no effect. Marking every explored empty hex (not only surveyed ones) is the simplest rule that also persists across reloads, since it reads the state. Asking the core for the role keeps one copy of the rules. The marks and moments are the art kit's (`feedback-marks`), chosen in one place, `apps/web/src/map/art.ts`; the core's `survey-empty` event and a survey without a reveal play the same single moment.
+
+## 2026-11-20: Map card actions arm on the first tap and spend on the second; own-hex cards keep the neighbours clear
+
+ID: `2026-11-20-map-card-actions-arm-on-the` · Status: current · Amends: `2026-11-20-the-revised-chain-in-the-interface`
+
+**Decision.**
+
+- **Two taps spend.** Every action button on a map card (gather, work a site, light a fire, parley, offer, the boons, survey, strike) arms on its first tap: its pips give way to a tick and it gets an ink edge. A second tap on the same button spends. A tap on another button arms that one instead, and the arming is dropped when the card changes. The hub drawer's buttons are already a confirm (a tick, reached through the bubble), so they spend on one tap as before.
+- **Cards on your own hex.** A card about the hex you stand on (the here card, or the inspect or settlement card there) is placed clear of your hex and its six neighbours: below them first, then to the right, the left, then above, inside the screen. Its chevron reaches toward you (up to 22 px). Only when nothing fits does it fall back to the usual place above.
+- **Taps.** The popover's chevron lets taps through, so a tap on your own figure's head is never swallowed by it. A press on the map stops a camera easing (a follow or a recentre), so a tap lands where it was seen. Tap and drag are told apart by the existing 8 px slop.
+
+**Reasoning.** The fresh-eyes playtest on a phone: a card on your own tile covered the tiles to the north, so a tap meant for a tile hit a card button and lit a fire. Two taps on the same button keep a stray tap from ever spending; placing the card clear of the neighbours keeps them tappable. The decision of 2026-11-19 (spending takes a second tap in the popover) counted opening the card as the first; now the button itself takes both.
+
+## 2026-11-20: Marks for empty hexes, out of reach, a needed role and a mislead
+
+ID: `2026-11-20-marks-for-empty-hexes-out-of` · Status: current
+
+**Decision.** The art kit adds `drawEmptyMark(palette, size, fade)` (a faint dashed ring, fading as `fade` goes 0→1), `drawOutOfReachMark(palette, size, angle)` (a short faded dashed arrow ending in a coral cross), `drawRoleBadge(role, palette, size)` (the role emblem on a paper halo, for the corner of a greyed action), `drawMisledMark(palette, size)` (a slate disc with a hooked arrow turning away) and three moments: `nothing-here`, `misled`, `peril-relieved`. The web decides where each shows and how long a mark lasts.
+
+**Reasoning.** Playtest feedback: surveys that found nothing gave no sign, a tap out of reach opened the inspect card silently, a greyed action did not say which role it needs, and mislead and shelter showed no effect. Each is a picture, not text. Review batch 2026-11-20-5, item `feedback/marks`.
+
+## 2026-11-20: Features stand on a plinth; decorative props do not
+
+ID: `2026-11-20-features-stand-on-a-plinth-decorative` · Status: current
+
+**Decision.** `renderScene` draws every revealed feature (node, site, trap) and every settlement on a plinth: a squashed disc of lighter ground with a soft ink rim (`featurePlinth` in the art kit). Terrain props (rocks, tufts, trees) never get one. The three new open-ground nodes have their own looks: `fieldstones`, `outcrop`, `deadfall`.
+
+**Reasoning.** The fresh-eyes playtest took pebble and stone decorations for loot. A plinth is a shape difference, not a colour one, so it reads at phone zoom (about 0.58) and in lite mode without words. Review batch 2026-11-20-5, item `feedback/phone-features`.
+
+## 2026-11-20: A survey of an empty hex says so
+
+ID: `2026-11-20-a-survey-of-an-empty-hex` · Status: current
+
+**Decision.** A survey of a hex that holds no feature adds `{ kind: 'survey-empty', hex, characterId }` after its `survey` and `explore` events. Entering an empty hex stays an `explore` with no `reveal`; no new event for it.
+
+**Reasoning.** The fresh-eyes playtest surveyed about ten hexes and could not tell an empty hex from a failed look. The web could infer emptiness from a missing `reveal`, but one explicit event is simpler to show as a "nothing here" moment. It is public: once explored, a hex's feature (or its absence) is visible to everyone.
+
+## 2026-11-20: Dev season brings threats from the first tick
+
+ID: `2026-11-20-dev-season-brings-threats-from-the` · Status: current
+
+**Decision.** The dev season (staging and local only) sets `threatsFromDay: 1` and `threatChanceBase: 0.6` on top of its short route. Production keeps the core defaults (from day 3, base 0.25). In the capture's "wounded" season the guardian now also defends, so it still ends wounded rather than lost.
+
+**Reasoning.** The playtest's first season had no peril until day 13. Simulated through the core over 30 seeds of the 12-step dev season with 2 and 3 idle players: before, the first threat was out by day 2 in 15–17 of 30 and by day 3 in 22–23; after, 23–25 and 27–29. Strikes raise peril by day 5 in 22–24 of 30 (was 19–20) and by day 6 in 27–29. The first tick makes day 2, so `threatsFromDay: 1` and `2` behave the same; 1 says "from the start".
+
+## 2026-11-20: Stone, iron and timber also lie on open ground
+
+ID: `2026-11-20-stone-iron-and-timber-also-lie` · Status: current
+
+**Decision.** Three smaller nodes on open ground (content version 7): fieldstones (stone, weight 4), ore outcrop (iron, weight 5) and deadfall (timber, weight 3), 2 charges each, each with its own icon. Iron deposits drop from weight 30 to 15 and timber stands from 40 to 25, so about as many hexes hold something as before (about 15%). `packages/core/scripts/findability.ts` measures it and `test/findability.test.ts` holds the goal.
+
+**Reasoning.** Iron lay only on desert or by cliffs, stone only by rivers and timber only in forest, so a route over open plain could pass a week with none, and the playtest built nothing. Over 100 seeds, default config, the creature's real steps, days 1–8: the window held stone in 90 seeds before and 98 after, iron 89 → 99, timber 81 → 96, forage 100 → 100; within 3 hexes of the creature (a day trip), stone 68 → 89, iron 73 → 85, timber 61 → 82. Older games are wiped by the version bump, as before a stable release.
+
+## 2026-11-20: Threats and settlements near you carry M4-style action badges
+
+ID: `2026-11-20-threats-and-settlements-near-you-carry` · Status: current
+
+**Decision.** Like the M4 node and site badges, a small strike glyph sits on each threat you could strike (on or next to it, from the core's check, also when your actions are spent), and a settlement where you stand or next to you shows what it offers: a parley glyph while wary, a gift glyph while friendly with no boon taken. Angry or spent settlements show none. The settlement card names its people.
+
+**Reasoning.** The polish round's pattern: hint what can be done nearby with the action's own glyph, without saying what it does. The names follow M4's "names on icons".
+
+## 2026-11-20: Escort and struck marks read the core's rule through one web function until the core exports it
+
+ID: `2026-11-20-escort-and-struck-marks-read-the` · Status: current
+
+**Decision.** The web's escort ring and shield marks come from `escortedIds` / `escortCentres` in `apps/web/src/game/season.ts`, which read the core's rule (an active guardian on a hex covers every active character within 1, itself excepted) with the core's own `ESCORT_TAG` and `roleHas`. The bandage reads `Character.struckDay === day` through `struckToday` there too. When the core exports its escort check, those functions call it instead.
+
+**Reasoning.** The core keeps `isEscorted` private for now; the marks are display only (the server decides who is struck), and one function is one place to switch.
+
+## 2026-11-20: The new-season button shows for admins with dev tools on
+
+ID: `2026-11-20-the-new-season-button-shows-for` · Status: current
+
+**Decision.** The ending's new-season button shows when the server offers dev tools and you are an admin (the same condition as "next day"). It calls `POST /api/dev/new-season`, then loads the new game's view, which replaces the old one whatever its version; with the characters gone, the join drawer follows.
+
+**Reasoning.** The route exists only with dev tools on (staging and local), so showing the button in production would offer something that always fails. Production keeps the ended season on screen.
+
+## 2026-11-20: Settlement actions live in the here card; from afar its card shows only attitude and favour
+
+ID: `2026-11-20-settlement-actions-live-in-the-here` · Status: current, amended by `2026-11-20-feedback-without-words-out-of-reach`
+
+**Decision.** Parley, offer (one button per trade good carried, showing that good's icon) and the boons are buttons in your own hex's here card when you stand on a settlement, like gather and work-site on a feature. A settlement you do not stand on opens a small card when tapped: its drawing by attitude and, while wary, its favour marks; no buttons. Selected, a tap on a reachable settlement plans the walk there. Parley's risk mark shows when the core's check gives a chance below 1.
+
+**Reasoning.** Matches "the action is only reachable when standing there, as with other here-actions"; the core refuses these actions anywhere else, and the risk is only known from the check where you stand. Keeps the settlement's own card to visuals.
+
+## 2026-11-20: A tap on a threat opens its card, even while selected
+
+ID: `2026-11-20-a-tap-on-a-threat-opens` · Status: current
+
+**Decision.** A tap on a threat's hex opens the threat's card (name, strength marks, and the strike with its pips when you stand on or next to it, faded without the actions), even while your character is selected; the same tap again closes it. After a strike the card stays open while the threat stands.
+
+**Reasoning.** No one plans a walk onto a threat, and the card is the way to strike. Keeping it open after a hit makes a second strike one tap. A walk next to a threat is still planned by tapping a neighbouring hex.
+
+## 2026-11-20: Milestone 5 art: threats, settlements and the guardian's marks are drawn by the art kit from content keys
+
+ID: `2026-11-20-milestone-5-art-threats-settlements-and` · Status: current
+
+**Decision.** The art kit draws threats (`captors`, `swarm`, `rockslide`, `raiders`) and settlements (`hill-folk`) by content icon key as scene cells, drawn in full under the veil, with strength and favour as small marks, a coral ground stain under threats, an approach arrow and a pulse for a threat arriving tomorrow. Escorted, struck and defending are marks on the character figure; the escort ring is an overlay. The peril gauge (wounded threshold marked), the route strip, the peril vignette and the three ending scenes are standalone SVGs drawn from state, with no text. Review batch 2026-11-20-1.
+
+**Reasoning.** Same pattern as features and fires, so the web app passes data, not drawings. Threats need to read apart from features at a glance, hence the stain. Endings carry no text so the web app sets the only title.
+
+## 2026-11-20: Milestone 5 core: readings of the season contract
+
+ID: `2026-11-20-milestone-5-core-readings-of-the` · Status: current
+
+**Decision.** Where `docs/design/m5-season.md` leaves room, the core reads it so:
+
+- Guardians: strike power and `defend` read the role tag `defend`; not being struck and escorting read `escort` (both on the Guardian).
+- Added tuning values: action costs (`strikeCost`, `defendCost`, `parleyCost`, `offerCost`, `askBoonCost`, all 1), `threatPathDistance` (4, the rockslide's distance ahead) and `perilHungryLevel` (2).
+- "From day 3" means the day the tick starts. A threat within contact does not move. Characters on a hex the creature just stepped onto count as riders (never struck). A threat spent on the creature strikes no characters that tick.
+- Approach order: `behind` and `flank` take the window edge hex nearest the edge hex straight behind (or ahead-left / ahead-right, a seeded side); `path` takes the straight-ahead line from 4 hexes out. A rolled threat never appears on water (any type, so a rockslide never lands in a river) or on another threat's hex. Raiders sent by an angered settlement ignore `threatsMax`.
+- A settlement is never placed on a threat's hex; when no leading-edge hex fits, none appears that time.
+- Ids need no counter: rolled threats `t<day>`, raiders `t<settlement id>`, settlements `s<day>`.
+- A mislead on day d sets `misleadUntilDay` to d + `misleadDays`; ticks that start days up to it roll no pursuers; it clears afterwards.
+- `ask-boon` refuses `unknown-boon` before `not-friendly`. Once the season is over, `planPath` refuses and `reachablePlaces` is empty, like moves.
+
+**Reasoning.** The simplest readings that keep the other options open: every number is in the tuning config, ids derive from the day so state stays small, and tag reads follow the role data already in content. A struck character records the day in a public `Character.struckDay`, so the bandage shows after a reload.
+
+## 2026-11-20: Threats are tagged data that appear at the window's edge and walk in openly
+
+ID: `2026-11-20-threats-are-tagged-data-that-appear` · Status: current
+
+**Decision.** Milestone 5's attack system (`docs/design/m5-season.md`): threat types in content with strength, speed, approach and weight (a captor band from behind, a pterodactyl swarm from the flanks, a rockslide on the path ahead, raiders from an angered settlement). Threats are public from the moment they appear; their approach is the forecast. They move after the creature's step, strike the creature at contact (peril rises by strength less defence) and strike unescorted characters within one hex (one action the next day). Appearance chance and strength scale with active players and days, from the tuning config. Terrain does not slow threats yet.
+
+**Reasoning.** The plan's picks, made concrete with the fewest new rules: one movement rule and one contact rule cover all flavours, and the flavours differ by data (a speed-0 rockslide is dodged by steering, which ties threats to the keeper's fire). Striking characters gives the guardian's escort a purpose without a combat system. A struck character losing actions, not the character, keeps losses rare.
+
+## 2026-11-20: Guardians strike, defend and escort; anyone can strike a threat
+
+ID: `2026-11-20-guardians-strike-defend-and-escort-anyone` · Status: current
+
+**Decision.** Strike: anyone on or next to a threat, 1 action, strength −2 for a guardian, −1 for others. Defend: guardians riding, 1 action, each strike on the creature until the tick is reduced by 2 per defender. Escort: passive; characters within one hex of a guardian standing on a hex are not struck, nor is the guardian.
+
+**Reasoning.** Basics for all, mastery for specialists: striking is open to everyone but risky without a guardian nearby; defending is the guardian's lever, as lingering is the keeper's. Escort as position, not an action, keeps the daily cost low. Speciality against tags (`flying`) stays a future upgrade.
+
+## 2026-11-20: Settlements appear on the route; parley or offer to befriend, or anger them
+
+ID: `2026-11-20-settlements-appear-on-the-route-parley` · Status: current
+
+**Decision.** A settlement appears at the leading edge on fixed step counts (first at step 4, then every 10; steps 3 and 9 on staging), visible at once. Parley: envoys +2 favour; others +1 with a 25 % chance to anger it. Offer a `trade` material (old coin) for +2 without risk. At 3 favour it is friendly and grants one boon, picked by whoever asks: a gift to the stores, misleading the pursuers (they vanish and none come for 4 days), or shelter (peril −3). Angered, it sends raiders at once and stays angry.
+
+**Reasoning.** Placing settlements by the route guarantees every season meets a people (the plan's "at least one"). A risk for non-envoys, shown before acting, gives the envoy a clear part without locking others out, and the coin ties the scholar's find into diplomacy. A choice of boon lets the team answer what is pressing (food, pursuers, peril).
+
+## 2026-11-20: Peril is a public track; the season ends at home or at full peril
+
+ID: `2026-11-20-peril-is-a-public-track-the` · Status: current
+
+**Decision.** Peril (0 to 10) rises by strike damage and by 1 at a tick that ends with the creature underfed at level 2 or more, and falls by 1 at a tick where it did not rise. The route is `routeLength` steps (40; 12 on staging and locally); lingering adds none. Peril at 10 loses the season; reaching the route's end wins it, safe below 5 peril, wounded at 5 or more. Once over, actions, moves and ticks do nothing; the ending shows a title only.
+
+**Reasoning.** The design's graded failure: pressure builds visibly so the team can react, and calm days heal it. Counting steps (not days) makes lingering a real trade-off. Peril being public is fine: hunger was already partly visible from level 2.
+
 ## 2026-11-20: The day's step uses Milestone 3's creature walk; a linger plays the stayed mark
 
 ID: `2026-11-20-the-day-s-step-uses-milestone` · Status: current · Supersedes: `2026-11-20-the-step-ghost-walks-for-one` · Amends: `2026-11-20-step-hints-scale-with-chance-the`
@@ -148,7 +319,7 @@ ID: `2026-11-20-moments-play-only-from-the-server` · Status: current · Amends:
 
 ## 2026-11-20: The revised chain in the interface: survey in the inspect card, the pack on the HUD, stores and unlocks in the hub drawer
 
-ID: `2026-11-20-the-revised-chain-in-the-interface` · Status: current, amended by `2026-11-20-moments-play-only-from-the-server` · Supersedes: `2026-11-20-chain-actions-live-in-the-popover`
+ID: `2026-11-20-the-revised-chain-in-the-interface` · Status: current, amended by `2026-11-20-map-card-actions-arm-on-the`, `2026-11-20-moments-play-only-from-the-server` · Supersedes: `2026-11-20-chain-actions-live-in-the-popover`
 
 **Decision.** Following Misa's revised rules (`docs/design/m3-chain.md`). Unexplored hexes in the window are drawn under the art kit's veil (cell state `unexplored`); a newly explored hex's veil lifts away as a moment. Tapping an unexplored hex next to your character opens its inspect card with a survey button (a spyglass and its cost pips: 1 for a scout, 2 for others), faded when you lack the actions. Selecting your character on a revealed feature opens the compact here card (gather, work the site) as before. Your pack is the round button at the bottom left, drawn as a satchel whose fill shows how full it is; a tap shows its materials as icons with counts in a small card above it. The bubble's creature entry now opens the hub drawer instead of the creature card: the creature and its heading at the top, the team stores (crates icon and material counts), then one card per unlock: done ones carry the seal; the one in progress shows its work bar; the others show their material cost, faded where the stores fall short. Each open card has a build button with its cost pips, enabled only for an engineer riding the creature. A finished unlock closes the drawer so its moment shows. The stores also show as crates on the creature's back. Moments: veil lift, survey and reveal blooms, a find (burst and rising material), a trap (snap, pips shake), a deposit (the material drops onto the creature) and a finished unlock (its sealed icon rises from the creature). The recipe cards and the team inventory satchel are gone.
 

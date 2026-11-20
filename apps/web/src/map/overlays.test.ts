@@ -12,7 +12,9 @@ import {
   reachablePlaces,
   type GameState,
 } from '@behemoth-road/core';
+import { characterOf, threatOutlook, toPlayerView } from '@behemoth-road/core';
 import { describe, expect, it } from 'vitest';
+import { type SeasonStage, seasonScenario, USERS } from '../api/fixtures.ts';
 import { PROJECTION } from './art.ts';
 import { characterArts, sceneCells } from './cells.ts';
 import { placePoint } from './figures.ts';
@@ -133,5 +135,153 @@ describe('overlays', () => {
     const marks = o.over.flatMap((n) => (n.attrs['data-mark'] ? [n.attrs['data-mark']] : []));
     expect(marks).toEqual(['via:grappling-hook']);
     for (const n of o.over) expect(() => toPreact(n)).not.toThrow();
+  });
+});
+
+describe('Milestone 5 on the map', () => {
+  function season(stage: SeasonStage) {
+    const s = seasonScenario(stage);
+    const view = toPlayerView(s.state);
+    const id = characterOf(s.state, USERS.MISA)!.id;
+    const o = buildOverlays({
+      state: view,
+      flow: { kind: 'idle' },
+      characterId: id,
+      reachable: [],
+      predicted: predictCreature(view),
+      projection: PROJECTION,
+      palette: MORNING,
+    });
+    return { view, id, o, cells: sceneCells(view), figures: characterArts(view) };
+  }
+  const cellAt = (cells: ReturnType<typeof sceneCells>, h: { q: number; r: number }) =>
+    cells.find((c) => c.q === h.q && c.r === h.r);
+
+  it("hands each threat to the scene with its strength, next step and tomorrow's pulse (core outlook)", () => {
+    const { view, cells } = season({
+      threats: [
+        { type: 'captors', at: { q: 0, r: 3 }, strength: 4 },
+        { type: 'rockslide', at: { q: 3, r: 4 } },
+      ],
+    });
+    const outlook = threatOutlook(view);
+    expect(outlook.some((x) => x.arrives === 'tomorrow')).toBe(true);
+    view.threats.forEach((t, i) => {
+      const next = outlook[i]!.next;
+      expect(cellAt(cells, t.hex)?.threat).toEqual({
+        look: t.type,
+        strength: t.strength,
+        toward: next ? { q: next.q - t.hex.q, r: next.r - t.hex.r } : null,
+        arrivesTomorrow: outlook[i]!.arrives === 'tomorrow',
+      });
+    });
+  });
+
+  it('hands settlements to the scene by attitude with their favour', () => {
+    const { view, cells } = season({
+      settlements: [
+        { at: { q: 1, r: 3 }, favour: 2 },
+        { at: { q: 3, r: 4 }, attitude: 'angry' },
+      ],
+    });
+    expect(view.settlements.map((s) => cellAt(cells, s.hex)?.settlement)).toEqual([
+      { look: 'hill-folk', attitude: 'wary', favour: 2, favourNeeded: 3 },
+      { look: 'hill-folk', attitude: 'angry', favour: 0, favourNeeded: 3 },
+    ]);
+  });
+
+  it('rings a guardian on a hex; marks the escorted and the defending riders', () => {
+    const escorted = season({ guardianAt: { q: 2, r: 2 } });
+    const rings = escorted.o.under.filter((n) => n.attrs['data-escort'] !== undefined);
+    expect(rings).toHaveLength(1);
+    expect(escorted.figures.find((f) => f.id === escorted.id)?.marks).toEqual({ escorted: true });
+    // The guardian itself carries no shield mark: its ring is its sign.
+    expect(escorted.figures.filter((f) => f.marks).map((f) => f.id)).toEqual([escorted.id]);
+    const defending = season({ role: 'guardian', at: 'creature', defending: true });
+    expect(defending.figures.find((f) => f.id === defending.id)?.marks).toEqual({
+      defending: true,
+    });
+    expect(defending.o.under.filter((n) => n.attrs['data-escort'] !== undefined)).toEqual([]);
+  });
+
+  it('bandages a character struck today, and only today', () => {
+    const s = seasonScenario({});
+    const view = toPlayerView(s.state);
+    const id = characterOf(s.state, USERS.MISA)!.id;
+    const struck = (day: number) => ({
+      ...view,
+      characters: view.characters.map((c) => (c.id === id ? { ...c, struckDay: day } : c)),
+    });
+    expect(characterArts(struck(view.day)).find((f) => f.id === id)?.marks).toEqual({
+      struck: true,
+    });
+    expect(characterArts(struck(view.day - 1)).find((f) => f.id === id)?.marks).toBeUndefined();
+  });
+
+  it('badges a threat you could strike and a settlement beside you with what it offers', () => {
+    const near = season({
+      threats: [
+        { type: 'swarm', at: { q: 1, r: 3 } },
+        { type: 'captors', at: { q: 3, r: 5 } },
+      ],
+      settlements: [{ at: { q: 2, r: 2 } }, { at: { q: 0, r: 2 }, attitude: 'friendly' }],
+    });
+    const marks = near.o.over.map((m) => m.attrs['data-mark']);
+    // Only the swarm next to you; the captors are too far.
+    expect(marks.filter((m) => m === 'action:strike')).toHaveLength(1);
+    expect(marks.filter((m) => m === 'action:parley')).toHaveLength(1);
+    expect(marks.filter((m) => m === 'action:gift')).toHaveLength(1);
+    const taken = season({
+      settlements: [{ at: { q: 2, r: 2 }, attitude: 'friendly', boon: 'gift' }],
+    });
+    expect(taken.o.over.some((m) => String(m.attrs['data-mark']).startsWith('action:'))).toBe(
+      false,
+    );
+  });
+});
+
+describe('polish round marks', () => {
+  const marks = (state: GameState, kind: string): number => {
+    const o = buildOverlays({
+      state,
+      flow: { kind: 'idle' },
+      characterId: characterOf(state, USERS.MISA)!.id,
+      reachable: [],
+      predicted: predictCreature(state),
+      projection: PROJECTION,
+      palette: MORNING,
+    });
+    let found = 0;
+    for (const n of [...o.under, ...o.over]) {
+      walk(n, (x) => {
+        if (x.attrs['data-mark'] === kind) found += 1;
+      });
+    }
+    return found;
+  };
+
+  it('marks explored hexes that hold nothing, and only those', () => {
+    const s = seasonScenario({ role: 'scout' }).state;
+    const empty = Object.entries(s.tiles).filter(([key, t]) => t.explored && !s.features[key]);
+    expect(marks(s, 'explored-empty')).toBeGreaterThan(0);
+    expect(marks(s, 'explored-empty')).toBeLessThanOrEqual(empty.length);
+    // A feature revealed on every explored hex leaves none to mark.
+    const full: GameState = {
+      ...s,
+      features: Object.fromEntries(
+        Object.entries(s.tiles)
+          .filter(([, t]) => t.explored)
+          .map(([key]) => [key, { type: 'iron-deposit', revealed: true, left: 1 }]),
+      ),
+    };
+    expect(marks(full, 'explored-empty')).toBe(0);
+  });
+
+  it('shows the misled mark while the mislead lasts, and not after', () => {
+    const s = seasonScenario({ role: 'scout' }).state;
+    expect(marks(s, 'misled')).toBe(0);
+    expect(marks({ ...s, misleadUntilDay: s.day + 2 }, 'misled')).toBe(1);
+    expect(marks({ ...s, misleadUntilDay: s.day }, 'misled')).toBe(1);
+    expect(marks({ ...s, misleadUntilDay: s.day - 1 }, 'misled')).toBe(0);
   });
 });

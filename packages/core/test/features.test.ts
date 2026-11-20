@@ -16,7 +16,7 @@ import {
   toPlayerView,
   toSeed,
 } from '../src/index.ts';
-import { chainGame, placeCharacter, withFeature } from './helpers.ts';
+import { CALM, chainGame, placeCharacter, withFeature } from './helpers.ts';
 
 const P = hex(3, -1); // plain, east of the creature
 const N = hex(3, -2); // north of P
@@ -62,7 +62,7 @@ describe('feature generation', () => {
   it('places every kind somewhere over a long walk', () => {
     const seen = new Set<string>();
     for (const s of [1, 2, 3]) {
-      let state = createGame(s);
+      let state = createGame(s, { config: CALM });
       for (let d = 0; d < 40; d++) {
         for (const f of Object.values(state.features)) seen.add(f.type);
         state = nextDay(state);

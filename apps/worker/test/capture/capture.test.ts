@@ -1,7 +1,21 @@
-import { checkAction, hexKey, legalMoves, neighbours, type GameState } from '@behemoth-road/core';
+import {
+  checkAction,
+  hexDistance,
+  hexKey,
+  legalMoves,
+  neighbours,
+  planPath,
+  reachablePlaces,
+  threatOutlook,
+  type Action,
+  type GameState,
+  type Hex,
+  type Place,
+  type SeasonOutcome,
+} from '@behemoth-road/core';
 import { describe, expect, it } from 'vitest';
 import { createHandler } from '../../src/handler.ts';
-import type { PlayerView } from '../../src/guild-game.ts';
+import type { PlayerView, SessionUser } from '../../src/guild-game.ts';
 import {
   MISA,
   ORIGIN,
@@ -13,6 +27,7 @@ import {
   freshGuildId,
   postAuth,
   runGame,
+  type Called,
 } from '../helpers.ts';
 
 /**
@@ -22,14 +37,40 @@ import {
  * writes the files of `apps/web/src/api/fixtures`. It asserts only that each step answered as planned.
  */
 
+const KAI: SessionUser = { id: '555555555555555555', displayName: 'Kai' };
+const ASH: SessionUser = { id: '666666666666666666', displayName: 'Ash' };
+
+interface SeasonPlan {
+  /** The keeper feeds on days divisible by this (0: never); the stores are stocked for it. */
+  feedEvery: number;
+  /** Misa, a guardian, defends from the creature every day. */
+  defend: boolean;
+  /** Ash, a guardian, walks to the nearest threat and strikes it. */
+  strike: boolean;
+  /** Robin, an envoy, walks to the settlement, offers a coin, parleys and asks for a gift. */
+  envoy: boolean;
+  /** Ash parleys with the settlement instead (a guardian: it may anger them). */
+  parley: boolean;
+  /** Robin walks to where the nearest threat steps next (unescorted, so it strikes them). */
+  bait: boolean;
+}
+
+type Captured = {
+  responses: Record<string, unknown>;
+  errors: { route: string; status: number; body: unknown }[];
+  requests: Record<string, { method: string; path: string; body: unknown }>;
+};
+
 /** Session tokens and access tokens are random: the fixtures carry a fixed stand-in of the same shape. */
 const TOKEN = `s1.333333333333333333.${'A'.repeat(43)}.${'B'.repeat(43)}`;
 
 describe('capture', () => {
   it('capture game', async () => {
-    const responses: Record<string, unknown> = {};
-    const errors: { route: string; status: number; body: unknown }[] = [];
-    const requests: Record<string, { method: string; path: string; body: unknown }> = {};
+    const responses: Captured['responses'] = {};
+    const errors: Captured['errors'] = [];
+    const requests: Captured['requests'] = {};
+    const playSeason = (outcome: SeasonOutcome, plan: SeasonPlan) =>
+      season(outcome, plan, { responses, errors, requests });
 
     const guildId = freshGuildId();
     const handler = createHandler({
@@ -281,6 +322,212 @@ describe('capture', () => {
       },
       { everyoneIsAdmin: true },
     );
+    // Milestone 5: three short dev seasons from the same seed, played through the API, one to each
+    // outcome. The plays were picked through the core so that each shows what its fixtures name.
+    await playSeason('safe', {
+      feedEvery: 2,
+      defend: true,
+      strike: true,
+      envoy: true,
+      parley: false,
+      bait: false,
+    });
+    await playSeason('wounded', {
+      feedEvery: 8,
+      defend: true,
+      strike: true,
+      envoy: false,
+      parley: false,
+      bait: false,
+    });
+    await playSeason('lost', {
+      feedEvery: 0,
+      defend: false,
+      strike: false,
+      envoy: false,
+      parley: true,
+      bait: true,
+    });
+
     console.log('FIXTURE ' + JSON.stringify({ set: 'game', responses, errors, requests }));
   });
 });
+
+/**
+ * One short dev season to `outcome`, played through the API with Misa (guardian), Robin (envoy), Kai
+ * (keeper) and Ash (guardian). Each day the plan's actions run, then an admin's next day. Two things are
+ * placed as setup, as in the scenarios above: forage in the stores for the keeper, and a coin in the
+ * envoy's pack when they reach the settlement. Everything else is the core's play from the seed.
+ */
+async function season(outcome: SeasonOutcome, plan: SeasonPlan, out: Captured): Promise<void> {
+  await runGame(
+    async (ctx) => {
+      const tokens = new Map<string, string>();
+      for (const user of [MISA, ROBIN, KAI, ASH]) tokens.set(user.id, await ctx.signIn(user));
+      const token = (user: SessionUser) => tokens.get(user.id) ?? '';
+      const read = () =>
+        JSON.parse(
+          ctx.sql.exec<{ state: string }>('SELECT state FROM game').one().state,
+        ) as GameState;
+      const write = (state: GameState) =>
+        ctx.sql.exec('UPDATE game SET state = ?, version = version + 1', JSON.stringify(state));
+      const version = () =>
+        ctx.sql.exec<{ version: number }>('SELECT version FROM game').one().version;
+      const idOf = (user: SessionUser) => `${user.id}.0`;
+      /** Keeps a response under `name` the first time one is asked for. */
+      const keep = (
+        name: string | undefined,
+        method: string,
+        path: string,
+        body: unknown,
+        res: Called,
+      ) => {
+        if (name === undefined || name in out.responses) return;
+        if (body !== undefined) out.requests[name] = { method, path, body };
+        out.responses[name] = res.body;
+      };
+      /** An action; its answer is kept under `name`, or the name chosen from the answer's events. */
+      const act = async (
+        user: SessionUser,
+        action: Action,
+        name?: string | ((kinds: string[]) => string),
+      ) => {
+        const body = { version: version(), action };
+        const res = await ctx.call(token(user), 'POST', '/api/game/act', body);
+        if (res.status !== 200) return false;
+        const kinds = (res.body as { events: { kind: string }[] }).events.map((e) => e.kind);
+        keep(typeof name === 'function' ? name(kinds) : name, 'POST', '/api/game/act', body, res);
+        return true;
+      };
+      /** Walks toward a hex (or onto the creature) as far as today's actions allow, keeping `spare`. */
+      const walk = async (user: SessionUser, to: Hex | 'creature', spare = 0) => {
+        const state = read();
+        const me = state.characters.find((c) => c.id === idOf(user));
+        if (me === undefined) return;
+        const far = (p: Place) =>
+          to === 'creature'
+            ? p.kind === 'creature'
+              ? 0
+              : 99
+            : hexDistance(p.kind === 'hex' ? p.hex : state.creature.centre, to);
+        const best = reachablePlaces(state, me.id)
+          .filter((o) => o.cost <= me.actionsLeft - spare)
+          .sort((a, b) => far(a.place) - far(b.place) || a.cost - b.cost)[0];
+        if (best === undefined || far(best.place) >= far(me.at)) return;
+        const route = planPath(state, me.id, best.place);
+        if (!route.ok) return;
+        const body = { version: version(), path: route.steps.map((step) => step.place) };
+        const res = await ctx.call(token(user), 'POST', '/api/game/move', body);
+        expect(res.status, 'walk').toBe(200);
+      };
+
+      for (const [user, role] of [
+        [MISA, 'guardian'],
+        [ROBIN, 'envoy'],
+        [KAI, 'keeper'],
+        [ASH, 'guardian'],
+      ] as const) {
+        const res = await ctx.call(token(user), 'POST', '/api/game/join', { role, offer: 0 });
+        expect(res.status).toBe(200);
+      }
+      if (plan.feedEvery > 0) write({ ...read(), stores: { forage: 12 } });
+
+      let coined = false;
+      for (let i = 0; i < 40 && read().season.status === 'on'; i++) {
+        const day = read().day;
+        if (plan.defend) await act(MISA, { kind: 'defend' }, 'view-defend');
+        if (plan.feedEvery > 0 && day % plan.feedEvery === 0) await act(KAI, { kind: 'feed' });
+        if (plan.strike) {
+          const centre = read().creature.centre;
+          const threat = [...read().threats].sort(
+            (a, b) => hexDistance(a.hex, centre) - hexDistance(b.hex, centre),
+          )[0];
+          if (threat === undefined) {
+            await walk(ASH, 'creature');
+          } else {
+            await walk(ASH, threat.hex, 1);
+            for (let k = 0; k < 3; k++) {
+              if (!read().threats.some((t) => t.id === threat.id)) break;
+              if (!(await act(ASH, { kind: 'strike', threat: threat.id }, 'view-strike'))) break;
+            }
+          }
+        }
+        if (plan.bait) {
+          const state = read();
+          const centre = state.creature.centre;
+          const threat = [...state.threats].sort(
+            (a, b) => hexDistance(a.hex, centre) - hexDistance(b.hex, centre),
+          )[0];
+          if (threat !== undefined) {
+            const next = threatOutlook(state).find((o) => o.id === threat.id)?.next;
+            await walk(ROBIN, next ?? threat.hex);
+          }
+        }
+        const settlement = read().settlements.find((s) => s.attitude !== 'angry');
+        if (plan.envoy && settlement !== undefined) {
+          await walk(ROBIN, settlement.hex);
+          const robin = read().characters.find((c) => c.id === idOf(ROBIN));
+          if (
+            !coined &&
+            robin?.at.kind === 'hex' &&
+            hexDistance(robin.at.hex, settlement.hex) === 0
+          ) {
+            coined = true;
+            const state = read();
+            write({
+              ...state,
+              characters: state.characters.map((c) =>
+                c.id === robin.id ? { ...c, pack: { ...c.pack, 'old-coin': 1 } } : c,
+              ),
+            });
+          }
+          await act(ROBIN, { kind: 'offer', material: 'old-coin' }, 'view-offer');
+          await act(ROBIN, { kind: 'parley' }, 'view-befriended');
+          await act(ROBIN, { kind: 'ask-boon', boon: 'gift' }, 'view-boon');
+        }
+        if (plan.parley && settlement !== undefined) {
+          await walk(ASH, settlement.hex);
+          await act(ASH, { kind: 'parley' }, (kinds) =>
+            kinds.includes('angered') ? 'view-angered' : 'view-parley',
+          );
+        }
+        if (read().threats.length > 0) {
+          keep(
+            'view-threat',
+            'GET',
+            '/api/game',
+            undefined,
+            await ctx.call(token(KAI), 'GET', '/api/game'),
+          );
+        }
+        const before = version();
+        // A minute between days, so no player runs out of requests (the rate limit runs on this clock).
+        ctx.clock.t += 60_000;
+        expect((await ctx.call(token(MISA), 'POST', '/api/dev/next-day', {})).status).toBe(200);
+        const since = await ctx.call(token(KAI), 'GET', `/api/game?since=${String(before)}`);
+        const kinds = (since.body as { events: { kind: string }[] }).events.map((e) => e.kind);
+        if (kinds.includes('struck'))
+          keep('view-struck-since', 'GET', '/api/game?since', undefined, since);
+        if (kinds.includes('peril'))
+          keep('view-peril-since', 'GET', '/api/game?since', undefined, since);
+        if (kinds.includes('season-over'))
+          keep(`view-season-${outcome}`, 'GET', '/api/game?since', undefined, since);
+      }
+      expect(read().season).toMatchObject({ status: 'over', outcome });
+
+      const res = await ctx.call(token(ASH), 'POST', '/api/game/act', {
+        version: version(),
+        action: { kind: 'defend' },
+      });
+      expect(res.status).toBe(409);
+      if (outcome === 'lost') {
+        out.errors.push({ route: 'POST /api/game/act', status: res.status, body: res.body });
+        // A new season on staging: a new game; every character is gone, so players join again.
+        const fresh = await ctx.call(token(MISA), 'POST', '/api/dev/new-season', {});
+        expect(fresh.status).toBe(200);
+        keep('view-new-season', 'POST', '/api/dev/new-season', {}, fresh);
+      }
+    },
+    { everyoneIsAdmin: true },
+  );
+}

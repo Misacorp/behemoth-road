@@ -105,17 +105,25 @@ button {
 }
 
 button svg,
-.hud-day svg {
+.hud-day > svg {
   display: block;
   width: 100%;
   height: 100%;
   pointer-events: none;
 }
 
-.hud-day {
+.hud-top {
   position: absolute;
   top: calc(var(--space-3) + var(--safe-top));
   left: var(--gutter);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  pointer-events: none;
+}
+
+.hud-day {
   display: flex;
   align-items: center;
   gap: var(--space-1);
@@ -127,9 +135,202 @@ button svg,
   pointer-events: none;
 }
 
-.hud-day svg {
+.hud-day > svg {
   width: 32px;
   height: 32px;
+}
+
+/* Milestone 5: the peril gauge beside the day, the route strip beneath. */
+.hud-peril {
+  display: block;
+  margin-left: var(--space-2);
+}
+
+.hud-peril svg,
+.hud-route svg {
+  display: block;
+}
+
+.hud-peril.is-jolted {
+  animation: peril-jolt 0.6s ease-out both;
+}
+
+/* Peril relieved (a shelter): the gauge settles with a slow, soft swell. */
+.hud-peril.is-relieved {
+  animation: peril-relieved 1.2s ease-out both;
+}
+
+@keyframes peril-relieved {
+  0% {
+    transform: scale(1);
+  }
+  30% {
+    transform: scale(1.14);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+@keyframes peril-jolt {
+  0% {
+    transform: translateX(0) scale(1);
+  }
+  20% {
+    transform: translateX(-3px) scale(1.12);
+  }
+  40% {
+    transform: translateX(3px) scale(1.08);
+  }
+  60% {
+    transform: translateX(-2px) scale(1.04);
+  }
+  100% {
+    transform: translateX(0) scale(1);
+  }
+}
+
+.hud-route {
+  display: block;
+  margin-left: 4px;
+}
+
+/* The map's edges darken a little as peril rises. */
+.peril-edge {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.peril-edge svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* A threat that reaches the creature tomorrow pulses (the art kit's ring under it). */
+[data-threat='pulse'] {
+  transform-box: fill-box;
+  transform-origin: 50% 70%;
+  animation: threat-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes threat-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.12);
+  }
+}
+
+/* The season's end fills the screen. */
+.ending {
+  position: absolute;
+  inset: 0;
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: calc(var(--space-4) + var(--safe-top)) var(--gutter)
+    calc(var(--space-4) + var(--safe-bottom));
+  background: #f3f1e2;
+  outline: none;
+}
+
+/*
+ * The scene fills the screen above the foot's own strip, so the route, the days and the new-season button
+ * never sit over the party. The strip fits the route pill, a gap and the round button, with the padding.
+ */
+.ending-scene {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--space-4) * 2 + var(--space-3) + 48px + var(--round) + var(--safe-bottom));
+}
+
+.ending-scene svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.ending-title,
+.ending-foot {
+  position: relative;
+}
+
+/* The route, the days and the new-season button sit low, clear of the scene's middle. */
+.ending-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* A new season that failed: the button shakes and fades back. */
+.ending-new.is-failed {
+  animation: ending-failed 0.9s ease-out both;
+}
+
+@keyframes ending-failed {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  15% {
+    transform: translateX(-6px);
+  }
+  30% {
+    transform: translateX(6px);
+  }
+  45% {
+    transform: translateX(-4px);
+    opacity: 0.5;
+  }
+  60% {
+    transform: translateX(3px);
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.ending-title {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 600;
+  color: #5c5a43;
+}
+
+.ending-route {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-3);
+  border-radius: 999px;
+  background: #f3f1e2;
+  border: 1.5px solid #9a9776;
+}
+
+.ending-days {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  font-size: 1.25rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #5c5a43;
+}
+
+.ending-days svg {
+  width: 28px;
+  height: 28px;
 }
 
 .hud-actions {
@@ -494,6 +695,27 @@ button svg,
   pointer-events: none;
 }
 
+/* Out of reach: the arrow with its cross shows for a moment, then fades by itself. */
+.out-of-reach {
+  animation: out-of-reach 1.6s ease-out both;
+  pointer-events: none;
+}
+
+@keyframes out-of-reach {
+  0% {
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  65% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
 .moment {
   transform-box: fill-box;
   transform-origin: center;
@@ -811,11 +1033,28 @@ button svg,
   grid-template-columns: 48px;
 }
 
+/* The role a greyed action needs: its emblem badge on the action's icon. */
+.unlock-icon {
+  position: relative;
+}
+
+.unlock-needs {
+  position: absolute;
+  right: -6px;
+  bottom: -4px;
+  width: 22px;
+  height: 22px;
+}
+
+.unlock-needs svg {
+  display: block;
+}
+
 .unlock.is-off {
   opacity: 0.6;
 }
 
-.unlock-icon svg {
+.unlock-icon > svg {
   width: 44px;
   height: 44px;
 }

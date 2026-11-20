@@ -35,6 +35,8 @@ const counts = v.pipe(
 );
 
 const character = v.object({
+  /** The day a threat struck them, or null. */
+  struckDay: v.nullable(count),
   id,
   userId: id,
   name: text,
@@ -80,6 +82,38 @@ const config = v.object({
   lightFireCost: count,
   feedCost: count,
   lingerCost: count,
+  threatsFromDay: count,
+  threatChanceBase: v.number(),
+  threatChancePerPlayer: v.number(),
+  threatChancePerDay: v.number(),
+  threatChanceMax: v.number(),
+  threatsMax: count,
+  threatStrengthPlayers: count,
+  threatStrengthDays: count,
+  threatPathDistance: count,
+  struckActions: count,
+  strikeCost: count,
+  clearPowerGuardian: count,
+  clearPowerOther: count,
+  defendCost: count,
+  defendReduction: count,
+  parleyCost: count,
+  offerCost: count,
+  askBoonCost: count,
+  parleyFavourEnvoy: count,
+  parleyFavourOther: count,
+  parleyAngerChanceOther: v.number(),
+  offerFavour: count,
+  misleadDays: count,
+  shelterPeril: count,
+  settlementFirst: count,
+  settlementEvery: count,
+  perilMax: count,
+  perilWoundedAt: count,
+  perilHungry: count,
+  perilHungryLevel: count,
+  perilCalm: count,
+  routeLength: count,
 });
 
 /** The core state without the seed (the core's `GameStateView`): known tiles carry their terrain. */
@@ -96,6 +130,10 @@ export const GameStateViewSchema = v.object({
     lingering: v.boolean(),
     /** The last day it lingered, or null. */
     lingeredDay: v.nullable(count),
+    /** Steps walked this season. */
+    steps: count,
+    /** Guardians defending it until the next tick. */
+    defenders: v.pipe(v.array(id), v.maxLength(64)),
   }),
   tiles: v.pipe(
     v.record(v.pipe(v.string(), v.regex(/^-?\d+,-?\d+$/), v.maxLength(24)), tile),
@@ -115,6 +153,35 @@ export const GameStateViewSchema = v.object({
   project: v.nullable(v.object({ unlock: id, work: count })),
   /** Lit fires (public): each burns through the tick that ends the day it was lit. */
   stimuli: v.pipe(v.array(v.object({ type: id, hex, litDay: count })), v.maxLength(200)),
+  /** Threats on the map (public). */
+  threats: v.pipe(
+    v.array(v.object({ id, type: id, hex, strength: count, appearedDay: count })),
+    v.maxLength(200),
+  ),
+  /** Settlements in reach (public). */
+  settlements: v.pipe(
+    v.array(
+      v.object({
+        id,
+        type: id,
+        hex,
+        attitude: v.picklist(['wary', 'friendly', 'angry']),
+        favour: count,
+        boon: v.nullable(id),
+      }),
+    ),
+    v.maxLength(200),
+  ),
+  peril: count,
+  season: v.variant('status', [
+    v.object({ status: v.literal('on') }),
+    v.object({
+      status: v.literal('over'),
+      outcome: v.picklist(['safe', 'wounded', 'lost']),
+      day: count,
+    }),
+  ]),
+  misleadUntilDay: v.nullable(count),
 });
 
 /**
@@ -152,32 +219,74 @@ export const OfferSchema = v.object({
   lookSeed: v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(0xffffffff)),
 });
 
-/** Something that happened in a move or an action, for the map's short moments (core event list). */
-export const GameEventSchema = v.object({
-  kind: v.pipe(v.string(), v.maxLength(40)),
-  hex: v.optional(hex),
-  /** Whose character the event is about. */
-  characterId: v.optional(id),
-  /** Content ids the event names: a revealed feature, a material, an unlock. */
-  feature: v.optional(id),
-  material: v.optional(id),
-  amount: v.optional(count),
-  unlock: v.optional(id),
-  /** A deposit's materials. */
-  materials: v.optional(counts),
-  /** The creature's step in the day tick: from and to its centre. */
-  from: v.optional(hex),
-  to: v.optional(hex),
-  /** The new day, from the tick. */
-  day: v.optional(count),
-  /** Unlock progress: work done and needed. */
-  work: v.optional(count),
-  needed: v.optional(count),
-  /** A fire's stimulus id (fire-lit, fire-out). */
-  stimulus: v.optional(id),
-  /** The game version the event happened in (events are logged per change). */
-  version: count,
-});
+/** An event of one kind (core `GameEvent`), with the game version it happened in. */
+const event = <K extends string, E extends v.ObjectEntries>(kind: K, entries: E) =>
+  v.object({ kind: v.literal(kind), version: count, ...entries });
+
+/**
+ * Something that happened in a move, an action or the tick (core `GameEvent`), for the map's moments.
+ * Each kind's fields are checked as that kind has them; a kind this client does not know yet still parses
+ * (as its kind and version only), so a newer server never breaks an open client.
+ */
+const KNOWN_EVENTS = [
+  event('explore', { hex }),
+  event('survey', { hex, characterId: id }),
+  /** A survey that found nothing on the hex (after its survey and explore events). */
+  event('survey-empty', { hex, characterId: id }),
+  event('reveal', { hex, feature: id }),
+  event('trap', { hex, characterId: id }),
+  event('gather', { hex, characterId: id, material: id, amount: count }),
+  event('find', { hex, characterId: id, material: id, amount: count }),
+  event('site-failed', { hex, characterId: id }),
+  event('deposit', { characterId: id, materials: counts }),
+  event('unlock-progress', { unlock: id, work: count, needed: count }),
+  event('unlock-done', { unlock: id }),
+  event('fire-lit', { hex, characterId: id, stimulus: id }),
+  event('fed', { characterId: id, material: id }),
+  event('linger', { characterId: id }),
+  /** The creature's step at the tick (a linger: from equals to). */
+  event('creature-step', { from: hex, to: hex }),
+  event('lost', { characterId: id, hex }),
+  event('day', { day: count }),
+  event('creature-ate', { material: id }),
+  event('fire-out', { hex, stimulus: id }),
+  // Milestone 5.
+  event('threat-appears', { id, type: id, hex }),
+  event('threat-moves', { id, from: hex, to: hex }),
+  /** `damage`: the peril it added, after defence. */
+  event('threat-strikes', { id, damage: count }),
+  event('struck', { characterId: id, threat: id }),
+  /** `strength`: what is left of it. */
+  event('threat-hit', { id, characterId: id, strength: count }),
+  event('threat-cleared', { id, characterId: id }),
+  event('threat-gone', { id }),
+  event('defend', { characterId: id }),
+  event('peril', { from: count, to: count }),
+  event('settlement-appears', { id, hex }),
+  /** `favour`: the settlement's favour now. */
+  event('parley', { id, characterId: id, favour: count }),
+  event('befriended', { id }),
+  event('angered', { id }),
+  event('offer', { id, characterId: id, material: id }),
+  event('boon', { id, characterId: id, boon: id }),
+  event('season-over', { outcome: v.picklist(['safe', 'wounded', 'lost']) }),
+] as const;
+
+const KNOWN_KINDS: ReadonlySet<string> = new Set(KNOWN_EVENTS.map((e) => e.entries.kind.literal));
+
+export const GameEventSchema = v.union([
+  v.variant('kind', KNOWN_EVENTS),
+  // A kind from a newer server: only its kind and version are read. A known kind never falls through here,
+  // so a known event with a wrong field is refused.
+  v.object({
+    kind: v.pipe(
+      v.string(),
+      v.maxLength(40),
+      v.check((k) => !KNOWN_KINDS.has(k), 'a known kind with the wrong fields'),
+    ),
+    version: count,
+  }),
+]);
 
 export const PlayerViewSchema = v.object({
   version: count,
@@ -254,4 +363,9 @@ export type GameAction =
   | { readonly kind: 'build'; readonly unlock: string }
   | { readonly kind: 'light-fire' }
   | { readonly kind: 'feed' }
-  | { readonly kind: 'linger' };
+  | { readonly kind: 'linger' }
+  | { readonly kind: 'strike'; readonly threat: string }
+  | { readonly kind: 'defend' }
+  | { readonly kind: 'parley' }
+  | { readonly kind: 'offer'; readonly material: string }
+  | { readonly kind: 'ask-boon'; readonly boon: string };

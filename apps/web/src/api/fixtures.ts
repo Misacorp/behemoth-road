@@ -18,6 +18,7 @@ import {
   nextDay,
   type Reaction,
   onHex,
+  type Season,
   replaceCharacter,
   toPlayerView,
 } from '@behemoth-road/core';
@@ -249,6 +250,87 @@ export function chainScenario(stage: ChainStage = {}): Scenario {
     ),
   };
   return { ...s, state, version: s.version + 1 };
+}
+
+/** Milestone 5's staging on top of the chain scenario: threats, settlements, peril, the route, the end. */
+export interface SeasonStage extends ChainStage {
+  /** Threats by content type, as offsets from the creature's centre. */
+  readonly threats?: readonly {
+    readonly type: string;
+    readonly at: Hex;
+    readonly strength?: number;
+  }[];
+  /** Settlements of the hill folk, as offsets from the centre. */
+  readonly settlements?: readonly {
+    readonly at: Hex;
+    readonly attitude?: 'wary' | 'friendly' | 'angry';
+    readonly favour?: number;
+    readonly boon?: string | null;
+  }[];
+  readonly peril?: number;
+  readonly steps?: number;
+  readonly season?: Season;
+  /** Ola (an envoy, on a hex beside the creature) plays as a guardian standing at this offset. */
+  readonly guardianAt?: Hex;
+  /** Your character defends the creature today (it must be a guardian riding). */
+  readonly defending?: boolean;
+}
+
+/**
+ * Milestone 5 staged on the chain scenario: threats and settlements placed by hand (as the tick would place
+ * them), peril, the route walked and the season's state. Everything after the staging (strikes, parleys,
+ * ticks) runs through the real core.
+ */
+export function seasonScenario(stage: SeasonStage = {}): Scenario {
+  const s = chainScenario(stage);
+  const c = s.state.creature.centre;
+  const abs = (h: Hex): Hex => ({ q: c.q + h.q, r: c.r + h.r });
+  const day = s.state.day;
+  let state: GameState = {
+    ...s.state,
+    threats: (stage.threats ?? []).map((t, i) => ({
+      id: `threat-${String(i + 1)}`,
+      type: t.type,
+      hex: abs(t.at),
+      strength: t.strength ?? 3,
+      appearedDay: day,
+    })),
+    settlements: (stage.settlements ?? []).map((x, i) => ({
+      id: `settlement-${String(i + 1)}`,
+      type: 'hill-folk',
+      hex: abs(x.at),
+      attitude: x.attitude ?? 'wary',
+      favour: x.favour ?? 0,
+      boon: x.boon ?? null,
+    })),
+    peril: stage.peril ?? 0,
+    season: stage.season ?? { status: 'on' },
+    creature: { ...s.state.creature, steps: stage.steps ?? 0, defenders: [] },
+  };
+  if (stage.guardianAt) {
+    state = place(state, OLA, abs(stage.guardianAt));
+    state = {
+      ...state,
+      characters: state.characters.map((ch) =>
+        ch.userId === OLA ? { ...ch, role: 'guardian' } : ch,
+      ),
+    };
+  }
+  if (stage.defending) {
+    const mine = characterOf(state, MISA);
+    if (mine) state = { ...state, creature: { ...state.creature, defenders: [mine.id] } };
+  }
+  return { ...s, state, version: s.version + 1 };
+}
+
+/** After an admin starts a new season: a new game (a new seed), no characters; everyone joins again. */
+export function newSeasonScenario(): Scenario {
+  return {
+    state: createGame(SEED + 1, { artSeed: ART_SEED + 1 }),
+    you: MISA,
+    version: 1,
+    admin: true,
+  };
 }
 
 export const notJoined = (): PlayerView => toView(notJoinedScenario());
