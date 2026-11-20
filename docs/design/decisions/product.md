@@ -9,6 +9,7 @@ Features, UX and behaviour the users see.
 ID: `2026-11-20-the-map-is-framed-between-the` · Status: current
 
 **Decision.** The map is seen in a frame: the screen below the top HUD (day, peril, route), above the action pips, and less any open drawer. The frame is measured from the HUD itself, with `framePad` (6 px) of air.
+
 - Everything that centres the view uses the frame: the first view, recentring, and following a drawer.
 - The first fit (`fitScale`) is computed in the frame.
 - Popovers are placed inside the frame, so no card opens under the HUD.
