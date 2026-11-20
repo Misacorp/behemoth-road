@@ -2,6 +2,7 @@
  * The review batch: the items Misa looks at, each as a self-contained SVG. `scripts/review.mjs` writes them
  * with `items.json`. Item ids are stable across batches.
  */
+import { feedbackReviewItems } from './review-feedback.ts';
 import { ACCENTS, SPRING } from './palette.ts';
 import { DIRECTIONS, isometric } from './projection.ts';
 import { samplePatch } from './sample.ts';
@@ -685,6 +686,7 @@ export function buildReviewItems(): ReviewDraft[] {
     question: 'Which frame should the role emblems share?',
   } as const;
   return [
+    ...feedbackReviewItems(),
     ...seasonReviewItems(),
     {
       id: 'creature/underfed',

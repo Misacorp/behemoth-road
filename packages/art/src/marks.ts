@@ -8,6 +8,7 @@
 import { ellipsePath, poly, smoothOpen, type Point } from './geom.ts';
 import type { Palette } from './palette.ts';
 import { stroke, wobblyRing } from './moment-kit.ts';
+import { FEEDBACK_MOMENT_KINDS, FEEDBACK_MOMENTS } from './feedback-marks.ts';
 import { SEASON_MOMENT_KINDS, SEASON_MOMENTS } from './season-moments.ts';
 import { el, type SvgNode } from './svg.ts';
 
@@ -21,6 +22,7 @@ export const MOMENT_KINDS = [
   'linger',
   ...SEASON_MOMENT_KINDS,
   'stayed',
+  ...FEEDBACK_MOMENT_KINDS,
 ] as const;
 export type MomentKind = (typeof MOMENT_KINDS)[number];
 
@@ -286,6 +288,7 @@ const MOMENTS: Readonly<Record<MomentKind, (p: Palette) => SvgNode[]>> = {
   linger,
   ...SEASON_MOMENTS,
   stayed,
+  ...FEEDBACK_MOMENTS,
 };
 
 /** A moment mark as a centred `<svg>` of `size` px. Unknown kinds draw the reveal bloom. */

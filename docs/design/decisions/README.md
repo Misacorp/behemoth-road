@@ -114,6 +114,8 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-20 Marks for empty hexes, out of reach, a needed role and a mislead
+- 2026-11-20 Features stand on a plinth; decorative props do not
 - 2026-11-20 A survey of an empty hex says so
 - 2026-11-20 Dev season brings threats from the first tick
 - 2026-11-20 Stone, iron and timber also lie on open ground

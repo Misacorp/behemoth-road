@@ -143,3 +143,12 @@ export {
 } from './hud.ts';
 export { drawEnding, ENDINGS, type Ending, type EndingOptions } from './endings.ts';
 export { SEASON_MOMENT_KINDS, type SeasonMomentKind } from './season-moments.ts';
+export {
+  drawEmptyMark,
+  drawMisledMark,
+  drawOutOfReachMark,
+  drawRoleBadge,
+  FEEDBACK_MOMENT_KINDS,
+  featurePlinth,
+  type FeedbackMomentKind,
+} from './feedback-marks.ts';
