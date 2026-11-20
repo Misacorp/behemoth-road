@@ -114,7 +114,8 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
-- 2026-11-20 Every icon has a short tip on hover or press-and-hold, with text in one file \[Misa\]
+- 2026-11-20 One tip controller for HTML, the map's cards and the map itself
+- 2026-11-20 Every icon has a short tip on hover or press-and-hold, with text in one file \[Misa\] (amended)
 - 2026-11-20 The ending's scene is drawn above a strip reserved for its summary
 - 2026-11-20 Feedback without words: out of reach, empty hexes, the role a greyed action needs, settlements, mislead and relief
 - 2026-11-20 Map card actions arm on the first tap and spend on the second; own-hex cards keep the neighbours clear

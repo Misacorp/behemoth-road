@@ -4,9 +4,26 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: One tip controller for HTML, the map's cards and the map itself
+
+ID: `2026-11-20-one-tip-controller-for-html-the` · Status: current · Amends: `2026-11-20-every-icon-has-a-short-tip`
+
+**Decision.** Tips run through one controller (`apps/web/src/ui/tip.ts`), so only one is ever open:
+
+- `tipProps(id)` goes on any icon or control, HTML or the map's SVG cards. The map itself gives tips for threats, settlements, struck or escorted characters and fires.
+- With a mouse, a tip opens after its group's delay and closes on leaving. Moving to another icon while one is open switches at once.
+- On touch, press-and-hold (`holdMs`, 450 ms) opens it, and lifting or moving more than 10 px closes it. The click after a hold is swallowed (a capture listener), so a hold never acts. A hold on the map cancels the gesture instead of tapping.
+- An icon with no action of its own (a trait on an offer) also opens its tip on a plain tap, without picking the card. This replaces the earlier name-on-tap tips.
+- Escape, a wheel or a press elsewhere closes it.
+- The tip is an HTML card placed with the popovers' `placePopover`, beside the icon and never over it, with the same chevron. It is moved with `setCssTransform`, so it also shows over drawers.
+- Texts, delays per group (`hud` 0, `action` 300, `content` 500, `map` 700, `default` 400 ms) and the hold time live in `apps/web/src/text/tips.ts`. Titles fall back to the content name.
+- Traits and quirks have no mechanics yet, and their tips say so ("Not in play yet") rather than promise an effect.
+
+**Reasoning.** One controller makes "one at a time" and "a hold never taps" true everywhere, without each control handling it.
+
 ## 2026-11-20: Every icon has a short tip on hover or press-and-hold, with text in one file **[Misa]**
 
-ID: `2026-11-20-every-icon-has-a-short-tip` · Status: current · Amends: `2026-11-19-show-don-t-tell-fewer-boxes`
+ID: `2026-11-20-every-icon-has-a-short-tip` · Status: current, amended by `2026-11-20-one-tip-controller-for-html-the` · Amends: `2026-11-19-show-don-t-tell-fewer-boxes`
 
 **Decision.** Every icon in the interface can show a short tip with extra information: a name and one or two short lines.
 
