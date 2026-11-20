@@ -9,6 +9,7 @@ import { ACCENTS, accentRamp, type Palette } from './palette.ts';
 import { inkAttrs, riseFor, type Drawn } from './props.ts';
 import { rngFor } from './rng.ts';
 import { el, type SvgNode } from './svg.ts';
+import type { CharacterMarks } from './escort.ts';
 
 export interface CharacterLook {
   readonly headwear: 'brim' | 'hood' | 'cap' | 'none';
@@ -38,6 +39,8 @@ export interface CharacterArt {
   readonly accent: string;
   /** Its look (`characterLookFor(id)` or `assignLooks`); when absent, the default explorer (`DEFAULT_LOOK`). */
   readonly look?: CharacterLook;
+  /** The day's signs on it: escorted (shield mark), struck (bandage), defending (shield raised). */
+  readonly marks?: CharacterMarks;
 }
 
 /** A look seeded by the character's look seed (or id): the same seed always looks the same. */

@@ -21,7 +21,7 @@ export type FeatureDraw = (c: PropContext, state: FeatureState) => Drawn;
 
 type Raw = readonly (readonly [number, number])[];
 
-function kit(c: PropContext) {
+export function kit(c: PropContext) {
   const T = mapper(c.origin, c.k, 1, c.k * c.rise);
   const pts = (raw: Raw): Point[] => raw.map(([x, y]) => T(x, y));
   const fill = (d: string, colour: string, opacity = 1): SvgNode =>
