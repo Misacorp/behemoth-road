@@ -2,7 +2,7 @@ import { env } from 'cloudflare:workers';
 import { listDurableObjectIds } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
 import { allowedGuilds } from '../src/allowlist.ts';
-import { createHandler } from '../src/index.ts';
+import { createHandler } from '../src/handler.ts';
 import {
   GUILD_ID,
   ORIGIN,

@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
+    "dev": "node -e \"require('node:fs').mkdirSync('../web/dist',{recursive:true})\" && wrangler dev",
     "types": "wrangler types --strict-vars=false",
     "build": "wrangler deploy --dry-run --env production --outdir dist",
     "typecheck": "pnpm types && tsc --noEmit -p tsconfig.json",
