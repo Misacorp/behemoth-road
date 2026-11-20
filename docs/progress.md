@@ -4,7 +4,7 @@ What has landed and what is next. Newest first. Update it when a step lands or t
 
 ## Next
 
-- Milestone 5 (threats and an ending): built on `m5/integration` (plan `docs/design/m5-season.md`), stacked on Milestone 4. Core, art, worker and web are merged, with Milestone 4's polish round; a fresh-eyes playtest won and lost a short season (`docs/playtests/2026-11-20-m5-fresh-eyes.md`).
+- Milestone 5 (threats and an ending): built on `m5/integration` (plan `docs/design/m5-season.md`), stacked on Milestone 4. Core, art, worker and web are merged, with Milestone 4's polish round; a fresh-eyes playtest won and lost a short season (`docs/playtests/2026-11-20-m5-fresh-eyes.md`); a polish round fixed its findings and a second playtest checked them (`docs/playtests/2026-11-20-m5-polish-fresh-eyes.md`).
 - Milestone 4 (the living creature): built on `m4/integration` (plan `docs/design/m4-creature.md`), stacked on Milestone 3, awaiting its PR. Core, art, worker and web are merged and `pnpm check` passes. A fresh-eyes playtest found that fire is hard to discover (no timber in the pack), that hunger signs are too subtle at map scale, and that local `pnpm dev` in the worker needs a fix that predates M4 (an exported constant in the Worker entry, and a dev secret).
 - Milestone 3 (the first chain: Scout, Engineer, Scholar): plan in `docs/design/m3-chain.md`; core, worker, web and art on `m3/*`, merged on `m3/integration`.
 - Before Milestone 2 persists games: pin the content (terrain table) a saved game was made with, so a later content change cannot alter it; and keep the per-tile record from growing without bound (lost tiles could be pruned).
