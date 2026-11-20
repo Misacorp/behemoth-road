@@ -4,6 +4,21 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: The map is framed between the top HUD and the pips; the first view looks ahead of the creature
+
+ID: `2026-11-20-the-map-is-framed-between-the` · Status: current
+
+**Decision.** The map is seen in a frame: the screen below the top HUD (day, peril, route), above the action pips, and less any open drawer. The frame is measured from the HUD itself, with `framePad` (6 px) of air.
+- Everything that centres the view uses the frame: the first view, recentring, and following a drawer.
+- The first fit (`fitScale`) is computed in the frame.
+- Popovers are placed inside the frame, so no card opens under the HUD.
+- The first view looks at your character on a hex. Riding or not yet joined, it looks at the creature and `openAhead` (1.5) hexes along its heading, so the way ahead shows.
+- On phones the window (radius 6) stays wider than the screen; panning shows the rest.
+
+The threat card's placement (below the threat, off its trail) follows the popup rule: it is the threat's own popup, with the strike inside it.
+
+**Reasoning.** With the wider window, the north edge sat under the HUD and route strip on phones, and the opening view showed little of where the creature was heading.
+
 ## 2026-11-20: A seeded balance simulation with scripted careful and careless parties
 
 ID: `2026-11-20-a-seeded-balance-simulation-with-scripted` · Status: current

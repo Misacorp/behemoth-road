@@ -458,6 +458,26 @@ async function run() {
       const idOf = (user) => characterIdOf(toView(fake.scenario), user);
       if (!charOf(USERS.MISA)) problems.push(`${vp.name}: join did not reach the server`);
       await shot('two-players-riding');
+      // The opening view frames the creature and the way ahead between the top HUD and the pips.
+      {
+        const box = async (sel) => page.locator(sel).first().boundingBox();
+        const top = await box('.hud-top');
+        const pips = await box('.hud-actions');
+        const [cq, cr] = (await page.locator('svg.map').getAttribute('data-creature'))
+          .split(' ')
+          .map(Number);
+        const [vx, vy, scale] = (await page.locator('svg.map').getAttribute('data-view'))
+          .split(' ')
+          .map(Number);
+        const [size, squash] = (await page.locator('svg.map').getAttribute('data-projection'))
+          .split(' ')
+          .map(Number);
+        const y = vy + size * Math.sqrt(3) * (cr + cq / 2) * squash * scale;
+        if (top && !(y > top.y + top.height))
+          problems.push(`${vp.name}: the creature opens under the HUD`);
+        if (pips && !(y < pips.y)) problems.push(`${vp.name}: the creature opens under the pips`);
+        void vx;
+      }
 
       const svg = page.locator('svg.map');
       const nums = async (name) => (await svg.getAttribute(name)).split(' ').map(Number);

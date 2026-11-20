@@ -15,6 +15,7 @@ import {
 } from '@behemoth-road/art';
 import {
   type CreatureSigns,
+  directionOffset,
   type GameStateView,
   type Hex,
   terrainOf,
@@ -83,6 +84,7 @@ import {
   layerTransform,
   lerpView,
   panBy,
+  type Frame,
   type Size,
   toScreen,
   toWorld,
@@ -162,6 +164,21 @@ export function fitScale(screen: Size, windowRadius: number): number {
   const h = (r * 2 + 1) * Math.sqrt(3) * p.size * p.squash;
   const fit = Math.min(screen.width / w, screen.height / h);
   return clampScale(wide ? Math.min(fit, MAP_TUNING.wideMaxZoom) : fit, LIMITS);
+}
+
+/**
+ * Where the first view looks: your character on a hex; otherwise (riding, or not joined yet) the creature
+ * and the way ahead, `openAhead` hexes along its heading.
+ */
+function openingPoint(state: GameStateView, characterId: string): Point {
+  const me = state.characters.find((c) => c.id === characterId);
+  if (me?.status === 'active' && me.at.kind === 'hex') return targetPoint(state, characterId, 'me');
+  const { centre, heading } = state.creature;
+  const d = directionOffset(heading);
+  const a = hexCenter(p, centre.q, centre.r);
+  const b = hexCenter(p, centre.q + d.q, centre.r + d.r);
+  const t = MAP_TUNING.openAhead;
+  return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
 }
 
 function targetPoint(state: GameStateView, characterId: string, target: FocusTarget): Point {
@@ -336,11 +353,22 @@ export function MapView(props: MapViewProps): JSX.Element {
   const settleZoom = (): void => setInkZoom(inkZoomFor(view.current.scale));
   const latest = useRef(props);
   latest.current = props;
-  /** The part of the screen the map is seen in: all of it, less what a drawer covers. */
-  const seen = (): Size => ({
-    width: size.current.width,
-    height: Math.max(1, size.current.height - (latest.current.coverBottom ?? 0)),
-  });
+  /**
+   * The part of the screen the map is seen in: below the top HUD (day, peril, route), above the action pips
+   * and any drawer. Read from the HUD itself, so its layout can change; the whole screen without one.
+   */
+  const seen = (): Frame => {
+    const { width, height } = size.current;
+    const box = svgRef.current?.getBoundingClientRect();
+    const pad = MAP_TUNING.framePad;
+    const hudTop = document.querySelector('.hud-top')?.getBoundingClientRect();
+    const pips = document.querySelector('.hud-actions')?.getBoundingClientRect();
+    const top = box && hudTop && hudTop.height > 0 ? Math.max(0, hudTop.bottom - box.top + pad) : 0;
+    const drawer = height - (latest.current.coverBottom ?? 0);
+    const above = box && pips && pips.height > 0 ? pips.top - box.top - pad : height;
+    const bottom = Math.max(top + 1, Math.min(drawer, above));
+    return { x: 0, y: top, width, height: bottom - top };
+  };
 
   // The scene depends on the game state only; overlays also on the flow.
   const walking = props.step != null;
@@ -415,23 +443,30 @@ export function MapView(props: MapViewProps): JSX.Element {
     );
     const pop = popover.current;
     if (pop && popRef.current) {
-      const rect = pop.clear
+      // Placed inside the frame (clear of the HUD above and the pips below): placed in the frame's own
+      // coordinates, then moved back to the screen's.
+      const f = seen();
+      const inFrame = (pt: Point): Point => ({ x: pt.x - f.x, y: pt.y - f.y });
+      const placed = pop.clear
         ? placeClear(
-            toScreen(v, pop.top),
+            inFrame(toScreen(v, pop.top)),
             pop.below * v.scale,
             pop.size,
-            size.current,
+            f,
             MAP_TUNING.popoverMargin,
-            pop.clear.map((h) => hexCorners(p, hexCenter(p, h.q, h.r)).map((c) => toScreen(v, c))),
+            pop.clear.map((h) =>
+              hexCorners(p, hexCenter(p, h.q, h.r)).map((c) => inFrame(toScreen(v, c))),
+            ),
           )
         : placePopover(
-            toScreen(v, pop.top),
+            inFrame(toScreen(v, pop.top)),
             pop.below * v.scale,
             pop.size,
-            size.current,
+            f,
             MAP_TUNING.popoverMargin,
             pop.prefer,
           );
+      const rect = { ...placed, x: placed.x + f.x, y: placed.y + f.y };
       popRef.current.setAttribute('transform', `translate(${rect.x} ${rect.y})`);
       const chevron = chevronFor(rect, toScreen(v, pop.top), pop.below * v.scale);
       chevronFillRef.current?.setAttribute('d', chevron.fill);
@@ -502,10 +537,11 @@ export function MapView(props: MapViewProps): JSX.Element {
     };
     size.current = measure();
     const s = latest.current.state;
+    const frameNow = seen();
     view.current = centreOn(
-      targetPoint(s, latest.current.characterId, 'me'),
-      fitScale(size.current, s.config.windowRadius),
-      seen(),
+      openingPoint(s, latest.current.characterId),
+      fitScale(frameNow, s.config.windowRadius),
+      frameNow,
     );
     apply();
     settleZoom();
