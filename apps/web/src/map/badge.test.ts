@@ -10,7 +10,7 @@ function propsIn(node: ComponentChildren): Record<string, unknown>[] {
   if (typeof v.type === 'function') {
     return propsIn((v.type as (p: unknown) => ComponentChildren)(v.props));
   }
-  return [v.props, ...propsIn(v.props.children as ComponentChildren)];
+  return [v.props, ...propsIn(v.props.children)];
 }
 
 const bubble = (appetite: Parameters<typeof AppetiteBadge>[0]['appetite'] | null) =>

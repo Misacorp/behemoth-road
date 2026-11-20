@@ -103,6 +103,11 @@ export interface MapViewProps {
   readonly onSurvey?: (h: Hex) => void;
   /** Short visual beats to play on the map (reveals, finds, a trap); they end by themselves. */
   readonly moments?: readonly Moment[];
+  /**
+   * The creature's step being walked (from the tick's event), if any: the world layer leaves the creature
+   * and its riders out while the moments layer walks them, and the camera follows only afterwards.
+   */
+  readonly step?: { readonly from: Hex; readonly to: Hex } | null;
   /** Another player's character in the bubble was tapped. */
   readonly onCharacter: (id: string) => void;
   /** Who each character is (names, roles, traits, quirks), from the player view. */
@@ -143,28 +148,6 @@ function targetPoint(state: GameStateView, characterId: string, target: FocusTar
   if (feet) return feet;
   return hexCenter(p, state.creature.centre.q, state.creature.centre.r);
 }
-
-/**
- * Whether the day's step is walking: from when a step moment arrives until `STEP_MS` later (the ghost's
- * slide), or until the moments clear, whichever is first.
- */
-export function useStepping(moments: readonly Moment[]): boolean {
-  const step = moments.some((m) => m.kind === 'step');
-  // The moments whose walk has ended; hidden from the first render of new ones, with no gap.
-  const [walked, setWalked] = useState<readonly Moment[] | null>(null);
-  useEffect(() => {
-    if (!step) return;
-    const t = window.setTimeout(() => setWalked(moments), STEP_MS);
-    return () => window.clearTimeout(t);
-  }, [moments, step]);
-  return step && walked !== moments;
-}
-
-/** The scene's characters without the creature's riders. */
-export const walkers = (state: GameStateView) => {
-  const riding = new Set(ridersOf(state).map((c) => c.id));
-  return characterArts(state).filter((c) => !riding.has(c.id));
-};
 
 /** The characters riding the creature, in character order (the bubble lists them). */
 const ridersOf = (state: GameStateView) =>
@@ -299,17 +282,13 @@ export function MapView(props: MapViewProps): JSX.Element {
     height: Math.max(1, size.current.height - (latest.current.coverBottom ?? 0)),
   });
 
-  // While the day's step plays, the ghost walk is the only creature: the scene's own creature is hidden
-  // (its `data-layer="creature"` group, by the `is-stepping` class) and riders are left out of the scene
-  // so they do not stand on air.
-  const stepping = useStepping(props.moments ?? []);
-
   // The scene depends on the game state only; overlays also on the flow.
+  const walking = props.step != null;
   const layers = useMemo(() => {
     const { svg: scene, viewBox } = renderSceneFramed({
       cells: sceneCells(state),
-      creature: creatureArt(state, signs),
-      characters: stepping ? walkers(state) : characterArts(state),
+      ...(walking ? {} : { creature: creatureArt(state, signs) }),
+      characters: characterArts(state, walking ? 'walkers' : 'all'),
       projection: p,
       palette: PALETTE,
       seed: state.artSeed,
@@ -333,7 +312,7 @@ export function MapView(props: MapViewProps): JSX.Element {
       box,
       raster: layerRaster(inkZoom, box, window.devicePixelRatio, MAP_TUNING.layer),
     };
-  }, [state, signs, inkZoom, stepping]);
+  }, [state, signs, inkZoom, walking]);
   const layerRef = useRef(layers);
   layerRef.current = layers;
 
@@ -525,6 +504,7 @@ export function MapView(props: MapViewProps): JSX.Element {
     day: state.day,
   });
   const previous = useRef(snapshot());
+  const followTimer = useRef(0);
   useEffect(() => {
     const before = previous.current;
     previous.current = snapshot();
@@ -542,9 +522,21 @@ export function MapView(props: MapViewProps): JSX.Element {
     }
     const a = hexCenter(p, before.centre.q, before.centre.r);
     const b = hexCenter(p, state.creature.centre.q, state.creature.centre.r);
-    const v = view.current;
-    animateTo(panBy(v, (a.x - b.x) * v.scale, (a.y - b.y) * v.scale), MAP_TUNING.followMs);
+    const follow = (): void => {
+      const v = view.current;
+      animateTo(panBy(v, (a.x - b.x) * v.scale, (a.y - b.y) * v.scale), MAP_TUNING.followMs);
+    };
+    // While the creature walks its step, the camera holds still; then it eases after it.
+    // (Its own timer: a later render of the same day must not cancel the follow.)
+    window.clearTimeout(followTimer.current);
+    const step = latest.current.step;
+    if (step && step.to.q === state.creature.centre.q && step.to.r === state.creature.centre.r) {
+      followTimer.current = window.setTimeout(follow, STEP_MS);
+      return;
+    }
+    follow();
   }, [state, characterId]);
+  useEffect(() => () => window.clearTimeout(followTimer.current), []);
 
   // Recentre buttons.
   const focusN = props.focus.n;
@@ -675,7 +667,7 @@ export function MapView(props: MapViewProps): JSX.Element {
   const { box, raster } = layers;
   return (
     <div class="map-root">
-      <div ref={worldRef} class={stepping ? 'map-world is-stepping' : 'map-world'}>
+      <div ref={worldRef} class="map-world">
         <svg
           viewBox={`${box.x} ${box.y} ${box.width} ${box.height}`}
           width={box.width * raster}
@@ -696,7 +688,12 @@ export function MapView(props: MapViewProps): JSX.Element {
             aria-hidden="true"
           >
             {props.moments.map((m, i) => (
-              <MomentMark key={`${m.kind}:${m.hex.q},${m.hex.r}:${String(i)}`} moment={m} />
+              <MomentMark
+                key={`${m.kind}:${m.hex.q},${m.hex.r}:${String(i)}`}
+                moment={m}
+                state={state}
+                signs={signs}
+              />
             ))}
           </svg>
         )}

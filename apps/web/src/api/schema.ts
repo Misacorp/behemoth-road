@@ -165,14 +165,16 @@ export const GameEventSchema = v.object({
   unlock: v.optional(id),
   /** A deposit's materials. */
   materials: v.optional(counts),
+  /** The creature's step in the day tick: from and to its centre. */
+  from: v.optional(hex),
+  to: v.optional(hex),
+  /** The new day, from the tick. */
+  day: v.optional(count),
   /** Unlock progress: work done and needed. */
   work: v.optional(count),
   needed: v.optional(count),
   /** A fire's stimulus id (fire-lit, fire-out). */
   stimulus: v.optional(id),
-  /** A creature step's start and end (a linger: from equals to). */
-  from: v.optional(hex),
-  to: v.optional(hex),
   /** The game version the event happened in (events are logged per change). */
   version: count,
 });

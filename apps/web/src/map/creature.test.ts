@@ -1,4 +1,4 @@
-import { MORNING, renderScene, walk, type SvgNode } from '@behemoth-road/art';
+import { MORNING, walk, type SvgNode } from '@behemoth-road/art';
 import {
   createGame,
   type GameState,
@@ -8,9 +8,7 @@ import {
 } from '@behemoth-road/core';
 import { describe, expect, it } from 'vitest';
 import { PROJECTION } from './art.ts';
-import css from '../styles.css?raw';
-import { characterArts, creatureArt, fireKeys, sceneCells } from './cells.ts';
-import { walkers } from './MapView.tsx';
+import { creatureArt, fireKeys, sceneCells } from './cells.ts';
 import { buildOverlays, staysPut } from './overlays.ts';
 
 const s = createGame(1, { characterIds: ['you'] });
@@ -113,36 +111,5 @@ describe('veering readable', () => {
           ),
       );
     expect(chances).toEqual(predicted.map((o) => Math.round(o.chance * 100) / 100));
-  });
-});
-
-describe('the step ghost stands in for the creature', () => {
-  it('hides the scene creature group while stepping, by one rule', () => {
-    expect(css.replace(/\s+/g, ' ')).toContain(
-      ".map-world.is-stepping [data-layer='creature'] { visibility: hidden; }",
-    );
-  });
-
-  it('the scene draws the creature in its own group, so that rule can find it', () => {
-    const scene = renderScene({
-      cells: sceneCells(s),
-      creature: creatureArt(s),
-      projection: PROJECTION,
-      palette: MORNING,
-      seed: 1,
-    });
-    let groups = 0;
-    walk(scene, (x) => void (x.attrs['data-layer'] === 'creature' && (groups += 1)));
-    expect(groups).toBe(1);
-  });
-
-  it('leaves the riders out of the scene while it walks', () => {
-    const riding = s.characters.filter((c) => c.at.kind === 'creature').map((c) => c.id);
-    expect(riding.length).toBeGreaterThan(0);
-    expect(walkers(s).map((c) => c.id)).toEqual(
-      characterArts(s)
-        .map((c) => c.id)
-        .filter((id) => !riding.includes(id)),
-    );
   });
 });

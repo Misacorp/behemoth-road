@@ -116,9 +116,13 @@ export function creatureArt(state: GameStateView, signs: CreatureSigns | null = 
 }
 
 /** Active characters for the scene, in character order; riders stand at the creature's centre. */
-export function characterArts(state: GameStateView): CharacterArt[] {
+export function characterArts(
+  state: GameStateView,
+  which: 'all' | 'riders' | 'walkers' = 'all',
+): CharacterArt[] {
   return state.characters
     .filter((c) => c.status === 'active')
+    .filter((c) => which === 'all' || (c.at.kind === 'creature') === (which === 'riders'))
     .map((c) => {
       const at = placeHex(state, c.at);
       const look = lookOf(c.id);

@@ -38,7 +38,7 @@ describe('view sync', () => {
     expect(s.seen.map((v) => v.version)).toEqual([4, 5]);
   });
 
-  it('polls every 30 seconds only while visible', async () => {
+  it('polls every 10 seconds only while visible', async () => {
     const s = setup([at(1)]);
     s.sync.visible();
     await Promise.resolve();
@@ -61,5 +61,14 @@ describe('view sync', () => {
     const s = setup([at(2)]);
     await Promise.all([s.sync.refresh(), s.sync.refresh()]);
     expect(s.asked).toHaveLength(1);
+  });
+
+  it('catches up from the view before an action, accepting the same version with its events', async () => {
+    const reveal = { kind: 'reveal', hex: { q: 0, r: 1 }, version: 7 };
+    const { sync, asked, seen } = setup([{ ...at(7), events: [reveal] }]);
+    sync.accept(at(7));
+    await sync.catchUp(5);
+    expect(asked).toEqual([5]);
+    expect(seen.at(-1)?.events).toEqual([reveal]);
   });
 });

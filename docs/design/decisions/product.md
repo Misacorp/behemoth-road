@@ -4,13 +4,13 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
-## 2026-11-20: The step ghost walks for one second, then the creature itself returns
+## 2026-11-20: The day's step uses Milestone 3's creature walk; a linger plays the stayed mark
 
-ID: `2026-11-20-the-step-ghost-walks-for-one` · Status: current · Amends: `2026-11-20-step-hints-scale-with-chance-the`
+ID: `2026-11-20-the-day-s-step-uses-milestone` · Status: current · Supersedes: `2026-11-20-the-step-ghost-walks-for-one` · Amends: `2026-11-20-step-hints-scale-with-chance-the`
 
-**Decision.** The day-step ghost slides fully visible for `STEP_MS` (1 s, in `apps/web/src/game/moments.ts`), then disappears at the same instant the scene's creature (hidden by `is-stepping`) and its riders show again. It no longer fades.
+**Decision.** The Milestone 4 web's step ghost (a faded copy of the creature, hiding the scene's creature and its riders) is dropped. A `creature-step` event that moves plays Milestone 3's walk (the creature and its riders slid by `slideFrom`), drawn with your signs so it looks as it does on the map. One that stays (`from` equals `to`, a linger) plays the art kit's stayed mark on the creature instead. The step hints and their sizing by chance stay as they are.
 
-**Reasoning.** Fading while the real creature stayed hidden for the whole moment made it end dim and then pop in; a hand-over at the end of the walk reads as one creature walking.
+**Reasoning.** One walk for both milestones: Milestone 3's carries the riders and holds the camera still, which the minimal ghost could not.
 
 ## 2026-11-20: The step hints, appetite badge and stayed mark use the art kit's drawings
 
@@ -30,7 +30,7 @@ ID: `2026-11-20-the-creature-card-s-heading-loses` · Status: current, amended b
 
 ## 2026-11-20: Step hints scale with chance; the day's step plays as a walk or a stayed mark
 
-ID: `2026-11-20-step-hints-scale-with-chance-the` · Status: current, amended by `2026-11-20-the-step-ghost-walks-for-one`
+ID: `2026-11-20-step-hints-scale-with-chance-the` · Status: current, amended by `2026-11-20-the-day-s-step-uses-milestone`, `2026-11-20-the-step-ghost-walks-for-one`
 
 **Decision.** Each of the creature's step options from `predictCreature` shows as a paw mark whose size (0.7 to 1.5 of the base) and opacity grow with its chance, so the likelier straight step and the rarer veers read at a glance. At day change a `creature-step` event plays a walk: a ghost of the creature slides from yesterday's centre to today's and fades (SVG SMIL started on mount; the CSP forbids inline styles). A step with `from` equal to `to` (a linger) plays a stayed mark on the creature: the art's `stayed` moment when it exists, the linger mark until then.
 
@@ -118,6 +118,29 @@ ID: `2026-11-20-m4-tick-events-a-linger-is` · Status: current
 ## 2026-11-20: Milestone 4 art: appetite, cues, lying down and fires are drawn by the art kit from the core's signs
 
 ID: `2026-11-20-milestone-4-art-appetite-cues-lying-2` · Status: current
+
+## 2026-11-20: Poll every 10 seconds while the game is visible
+
+ID: `2026-11-20-poll-every-10-seconds-while-the` · Status: current · Amends: `2026-11-20-polish-after-the-m3-playtest-icon`
+
+**Decision.** The client polls `GET /api/game?since=` every 10 seconds while the page is visible (was 30), in addition to refreshing after your own actions and on focus. `POLL_MS` in `apps/web/src/api/sync.ts`.
+
+**Reasoning.** Other players' moves showed up too late in the playtest. Cost (estimated): about 8 players × 6 requests a minute, only while the page is visible; an hour of play each is about 2,900 requests a day, far under the Workers free tier's 100,000 a day. An unchanged game answers with a tiny `{ unchanged: true }`.
+
+## 2026-11-20: Polish after the M3 playtest: icon names, the window edge, a lost moment, the creature's walk and action hints
+
+ID: `2026-11-20-polish-after-the-m3-playtest-icon` · Status: current, amended by `2026-11-20-poll-every-10-seconds-while-the`
+
+**Decision.** From the fresh-eyes playtest (`docs/playtests/2026-11-20-m3-fresh-eyes.md`):
+
+- Role, trait and quirk icons show their content name (only the name) in a small tip on hover or tap; in the join drawer a trait or quirk tap does not pick the card, and a chosen role shows its name. On a character card the tapped icon's name shows in the name row for a moment. Role buttons are labelled with their names.
+- The pack box closes on a tap elsewhere, Escape and right-click, and shows one slot per unit of capacity, so an empty pack reads as empty.
+- The window's edge is always drawn as a faint dashed ink line. On your grace day the hourglass sits by your figure and your HUD pips pulse in the warning tint. When your character is lost, its figure fades into the fog for 2.2 s before the join drawer opens (the tick's `lost` event).
+- On a new day the camera holds still while the creature (with its riders) walks its step for 1.2 s, then eases after it (the tick's `creature-step` event).
+- An explored node or site with something left, where you stand or next to you, carries its action glyph (the gather hand, the work key) as a small badge; while your character is selected, unexplored neighbours you could survey show a faint spyglass.
+- The client refreshes right after each of your own actions (a read of the log since the view the action started from), when the window regains focus, and every 30 s while visible (later 10 s).
+
+**Reasoning.** Each answers a point the tester could not read from the screen, keeping to names and glyphs rather than explanatory text. The walk uses a Web Animation of a transform (in `cssTransform.ts`, still the one module that writes styles), so it costs no per-frame renders.
 
 ## 2026-11-20: Moments play only from the server's event log, once per event
 
@@ -716,6 +739,14 @@ ID: `2026-11-19-counts-read-1-3-and-terms` · Status: current
 <!-- Superseded entries below: kept for history, no longer in force. -->
 
 # Superseded
+
+## 2026-11-20: The step ghost walks for one second, then the creature itself returns
+
+ID: `2026-11-20-the-step-ghost-walks-for-one` · Status: superseded by `2026-11-20-the-day-s-step-uses-milestone` · Amends: `2026-11-20-step-hints-scale-with-chance-the`
+
+**Decision.** The day-step ghost slides fully visible for `STEP_MS` (1 s, in `apps/web/src/game/moments.ts`), then disappears at the same instant the scene's creature (hidden by `is-stepping`) and its riders show again. It no longer fades.
+
+**Reasoning.** Fading while the real creature stayed hidden for the whole moment made it end dim and then pop in; a hand-over at the end of the walk reads as one creature walking.
 
 ## 2026-11-20: Chain actions live in the popover and the team inventory in a satchel drawer; moments come from events
 

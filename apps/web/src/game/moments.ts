@@ -23,16 +23,31 @@ export type Moment =
   | { readonly kind: 'feed'; readonly hex: Hex; readonly item: string | null }
   | { readonly kind: 'linger'; readonly hex: Hex }
   | { readonly kind: 'ate'; readonly hex: Hex; readonly item: string }
-  /** The day's step: the creature walking from one centre to the next. */
+  /** A character left out of reach: its figure fades into the fog where it stood. */
+  | {
+      readonly kind: 'lost';
+      readonly hex: Hex;
+      readonly characterId: string;
+      readonly mine: boolean;
+    }
+  /** The creature's daily step: it walks from one hex to the next while the camera holds still. */
   | { readonly kind: 'step'; readonly hex: Hex; readonly from: Hex }
   /** The day's step when it lingered: it stayed where it was. */
   | { readonly kind: 'stayed'; readonly hex: Hex };
 
 /** How long a moment stays on screen, in ms (its CSS animation is as long). */
 export const MOMENT_MS = 1400;
+/** The creature's walk of one hex, in ms; the camera follows after it. */
+export const STEP_MS = 1200;
+/** Your character fading into the fog, in ms, before the join drawer opens. */
+export const LOST_MS = 2200;
 
-/** How long the creature's day step walks, in ms: its ghost slides, then the creature itself shows again. */
-export const STEP_MS = 1000;
+/** How long a set of moments stays on screen: the longest of them. */
+export const momentsMs = (moments: readonly Moment[]): number =>
+  Math.max(
+    0,
+    ...moments.map((m) => (m.kind === 'lost' ? LOST_MS : m.kind === 'step' ? STEP_MS : MOMENT_MS)),
+  );
 
 /** The part of an event the moments read (the core's `GameEvent`, as parsed). */
 export interface EventLike {
@@ -57,8 +72,9 @@ function most(materials: Readonly<Record<string, number>>): string | null {
 
 /**
  * Moments from server events, in order. `centre` is where the creature stands (deposits, unlocks, feeding,
- * a linger and the creature eating show there); `me` is your character (a trap that caught it darkens your pips). Kinds without a moment (gather,
- * a failed site, unlock progress, the tick's own) and unknown kinds are skipped, so new events never break
+ * a linger and the creature eating show there); `me` is your character (a trap that caught it darkens your
+ * pips). The day's step is a walk, or a stayed mark when it lingered (`from` equals `to`). Kinds without a
+ * moment (gather, a failed site, unlock progress) and unknown kinds are skipped, so new events never break
  * the map.
  */
 export function momentsFromEvents(events: readonly EventLike[], centre: Hex, me: string): Moment[] {
@@ -76,6 +92,13 @@ export function momentsFromEvents(events: readonly EventLike[], centre: Hex, me:
     } else if (e.kind === 'deposit' && e.materials) {
       const item = most(e.materials);
       if (item) out.push({ kind: 'deposit', hex: centre, item });
+    } else if (e.kind === 'lost' && e.hex && e.characterId) {
+      out.push({
+        kind: 'lost',
+        hex: e.hex,
+        characterId: e.characterId,
+        mine: e.characterId === me,
+      });
     } else if (e.kind === 'unlock-done' && e.unlock) {
       out.push({ kind: 'unlock', hex: centre, item: e.unlock });
     } else if (!e.hex) {

@@ -1,12 +1,13 @@
 /**
- * Keeps the player view fresh: after the player's own actions (their answer is the new view), when the
- * page becomes visible, and every 30 seconds while it is visible. Asks with `since`, so an unchanged
+ * Keeps the player view fresh: after the player's own actions (their answer is the new view, then a read
+ * of the log since the view before it, for what others did meanwhile), when the page becomes visible or the
+ * window regains focus, and every 10 seconds while it is visible. Asks with `since`, so an unchanged
  * game costs one small answer. Timers and visibility are injected, so it is tested without a browser.
  */
 import type { ApiClient } from './client.ts';
 import type { PlayerView } from './schema.ts';
 
-export const POLL_MS = 30_000;
+export const POLL_MS = 10_000;
 
 export interface SyncDeps {
   readonly api: Pick<ApiClient, 'game'>;
@@ -48,6 +49,19 @@ export class Sync {
         this.inFlight = null;
       });
     return this.inFlight;
+  }
+
+  /**
+   * Reads the log since `version` (the view before your own action): the answer is the same latest view,
+   * now with what others and the tick did in between, so their moments play too (yours play once).
+   */
+  catchUp(version: number): Promise<void> {
+    return this.deps.api.game(version).then(
+      (answer) => {
+        if (!('unchanged' in answer)) this.accept(answer);
+      },
+      (err: unknown) => this.deps.onError?.(err),
+    );
   }
 
   /** The page became visible (or started visible): refresh now and poll while it stays visible. */
