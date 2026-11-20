@@ -1,5 +1,5 @@
 {
-  "version": 15,
+  "version": 16,
   "day": 7,
   "you": {
     "userId": "555555555555555555",
@@ -381,13 +381,13 @@
       "1,-5": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "1,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "1,-3": {
@@ -642,7 +642,7 @@
       "1,-6": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "2,-6": {
@@ -931,12 +931,16 @@
         "role": "envoy",
         "joinedDay": 1,
         "at": {
-          "kind": "creature"
+          "kind": "hex",
+          "hex": {
+            "q": 1,
+            "r": -6
+          }
         },
-        "actionsLeft": 3,
+        "actionsLeft": 1,
         "pack": {},
         "status": "active",
-        "struckDay": null
+        "struckDay": 7
       },
       {
         "id": "555555555555555555.0",
@@ -1071,7 +1075,7 @@
         "q": -1,
         "r": -3
       },
-      "version": 15
+      "version": 16
     },
     {
       "kind": "threat-moves",
@@ -1084,29 +1088,35 @@
         "q": -1,
         "r": -5
       },
-      "version": 15
+      "version": 16
     },
     {
       "kind": "threat-strikes",
       "id": "ts4",
       "damage": 3,
-      "version": 15
+      "version": 16
+    },
+    {
+      "kind": "struck",
+      "characterId": "222222222222222222.0",
+      "threat": "t3",
+      "version": 16
     },
     {
       "kind": "peril",
       "from": 9,
       "to": 10,
-      "version": 15
+      "version": 16
     },
     {
       "kind": "season-over",
       "outcome": "lost",
-      "version": 15
+      "version": 16
     },
     {
       "kind": "day",
       "day": 7,
-      "version": 15
+      "version": 16
     }
   ],
   "eventsTruncated": false

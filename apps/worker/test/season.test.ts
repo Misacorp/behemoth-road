@@ -148,6 +148,23 @@ describe('the season config', () => {
       expect(fresh.config).toMatchObject(SERVER_CONFIG.devSeason);
     });
   });
+
+  it('schedules the replacing game from now: an old missed schedule runs no ticks on it', async () => {
+    await runGame(async (ctx) => {
+      await ctx.signIn(MISA);
+      ctx.sql.exec(
+        'UPDATE game SET state = ?, next_tick_at = ? WHERE id = 1',
+        JSON.stringify({ ...storedState(ctx.sql), contentVersion: 5 }),
+        ctx.clock.t - 30 * 24 * 3600_000,
+      );
+      ctx.game.migrate();
+      const view = asView((await ctx.call(await ctx.signIn(MISA), 'GET', '/api/game')).body);
+      expect(view.day).toBe(1);
+      const alarm = await ctx.storage.getAlarm();
+      expect(alarm).toBeGreaterThan(ctx.clock.t);
+      expect(alarm).toBeLessThanOrEqual(ctx.clock.t + 24 * 3600_000);
+    });
+  });
 });
 
 describe('the end of a season', () => {

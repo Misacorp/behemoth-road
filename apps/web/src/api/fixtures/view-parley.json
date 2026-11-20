@@ -1,5 +1,5 @@
 {
-  "version": 12,
+  "version": 13,
   "day": 5,
   "you": {
     "userId": "666666666666666666",
@@ -387,13 +387,13 @@
       "1,-5": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "1,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "1,-3": {
@@ -653,7 +653,7 @@
       "1,-6": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "2,-6": {
@@ -871,12 +871,16 @@
         "role": "envoy",
         "joinedDay": 1,
         "at": {
-          "kind": "creature"
+          "kind": "hex",
+          "hex": {
+            "q": 1,
+            "r": -6
+          }
         },
-        "actionsLeft": 3,
+        "actionsLeft": 1,
         "pack": {},
         "status": "active",
-        "struckDay": null
+        "struckDay": 5
       },
       {
         "id": "555555555555555555.0",
@@ -1024,7 +1028,7 @@
       "id": "s4",
       "characterId": "666666666666666666.0",
       "favour": 1,
-      "version": 12
+      "version": 13
     }
   ],
   "stopped": null
