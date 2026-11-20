@@ -1293,6 +1293,8 @@ async function run() {
         if (await page.locator('.hud-pack-contents').count())
           problems.push(`${vp.name}: the pack box stays open after a tap elsewhere`);
         await press('.hud-pack');
+        // Off the button, so its tip is not open (Escape closes an open tip first, and only that).
+        if (!vp.touch) await page.mouse.move(cx, cy * 0.5);
         await page.keyboard.press('Escape');
         await page.waitForTimeout(100);
         if (await page.locator('.hud-pack-contents').count())
