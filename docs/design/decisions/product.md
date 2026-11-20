@@ -4,9 +4,17 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: A threat's card draws its next-tick path as an ink trail and its distance as step marks
+
+ID: `2026-11-20-a-threat-s-card-draws-its` · Status: current · Amends: `2026-11-20-threats-are-telegraphed-a-wider-window`
+
+**Decision.** While a threat's card is open, the map draws the hexes it crosses at the next tick as the same dashed ink arrow as a planned move (thinner, starting off the threat's mark), with its end hex ringed in a dotted ink outline. The card shows how far it moves as one small mark per hex (plain ink chevrons, one helper, `DistanceMarks`, until the action-cost arrow glyphs replace them). The trail clears when the card closes. The path assumes the creature walks straight on, or stays when it lingers, like the approach arrows: it reads only the public view. A threat that will not move draws no trail and no marks.
+
+**Reasoning.** Misa asked for the shown path. Reusing the planned-path arrow keeps one arrow language on the map; the straight-on guess is the same one the approach arrows and tomorrow's pulse already use, so the trail never reveals the creature's real step.
+
 ## 2026-11-20: Threats are telegraphed: a wider window, slower varied speeds and a shown path **[Misa]**
 
-ID: `2026-11-20-threats-are-telegraphed-a-wider-window` · Status: current · Amends: `2026-11-20-threats-are-tagged-data-that-appear`
+ID: `2026-11-20-threats-are-telegraphed-a-wider-window` · Status: current, amended by `2026-11-20-a-threat-s-card-draws-its` · Amends: `2026-11-20-threats-are-tagged-data-that-appear`
 
 **Decision.** Threats must never feel unfair:
 

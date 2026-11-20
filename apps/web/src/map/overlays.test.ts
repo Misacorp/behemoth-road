@@ -1,4 +1,4 @@
-import { MORNING, paletteColours, walk, type SvgNode } from '@behemoth-road/art';
+import { hexCenter, MORNING, paletteColours, walk, type SvgNode } from '@behemoth-road/art';
 import {
   createGame,
   findCharacter,
@@ -18,8 +18,9 @@ import { type SeasonStage, seasonScenario, USERS } from '../api/fixtures.ts';
 import { PROJECTION } from './art.ts';
 import { characterArts, sceneCells } from './cells.ts';
 import { placePoint } from './figures.ts';
-import type { Flow } from './flow.ts';
-import { buildOverlays } from './overlays.ts';
+import { threatNextPath } from '../game/season.ts';
+import { type Flow, IDLE } from './flow.ts';
+import { buildOverlays, threatTrail } from './overlays.ts';
 import { toPreact } from './svgToPreact.ts';
 
 const ID = 'you';
@@ -216,6 +217,49 @@ describe('Milestone 5 on the map', () => {
       struck: true,
     });
     expect(characterArts(struck(view.day - 1)).find((f) => f.id === id)?.marks).toBeUndefined();
+  });
+
+  it("draws an open threat card's next-tick trail with its end ringed, and nothing once it closes", () => {
+    const { view, id } = season({ threats: [{ type: 'captors', at: { q: 0, r: 6 } }] });
+    const threat = view.threats[0]!;
+    const path = threatNextPath(view, threat.id);
+    expect(path.length).toBeGreaterThan(0);
+    const draw = (flow: Flow) =>
+      buildOverlays({
+        state: view,
+        flow,
+        characterId: id,
+        reachable: [],
+        predicted: predictCreature(view),
+        projection: PROJECTION,
+        palette: MORNING,
+      }).over.map((m) => m.attrs['data-mark']);
+    const open = draw({ kind: 'threat', id: threat.id });
+    expect(open.filter((m) => m === 'threat-trail')).toHaveLength(2);
+    expect(open.filter((m) => m === 'threat-end')).toHaveLength(1);
+    const end = path.at(-1)!;
+    const ring = threatTrail(
+      {
+        state: view,
+        flow: IDLE,
+        characterId: id,
+        reachable: [],
+        predicted: [],
+        projection: PROJECTION,
+        palette: MORNING,
+      },
+      threat.id,
+    )[0]!;
+    const c = hexCenter(PROJECTION, end.q, end.r);
+    const xs = String(ring.attrs.d)
+      .match(/-?[\d.]+/g)!
+      .map(Number);
+    const cx = xs.filter((_, j) => j % 2 === 0).reduce((a, b) => a + b, 0) / (xs.length / 2);
+    expect(cx).toBeCloseTo(c.x, 0);
+    for (const flow of [IDLE, { kind: 'threat', id: 'gone' } as Flow]) {
+      const closed = draw(flow);
+      expect(closed.some((m) => m === 'threat-trail' || m === 'threat-end')).toBe(false);
+    }
   });
 
   it('badges a threat you could strike and a settlement beside you with what it offers', () => {

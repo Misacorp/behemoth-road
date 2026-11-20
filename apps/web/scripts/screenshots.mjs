@@ -902,6 +902,26 @@ async function run() {
         if (!(await has('threat')) || (await count('[data-popover=threat] [data-action=strike]')))
           problems.push(`${vp.name}: a far threat's card offers a strike`);
         await shot5('05-threat-card-far');
+        // Its card open, the threat's next-tick path is on the map as an ink trail to a ringed end hex, and the
+        // card shows how far it goes; the trail clears when the card closes.
+        await stage5({ role: 'scout', threats: [{ type: 'captors', at: { q: 0, r: 6 } }] });
+        await tap(...(await offset({ q: 0, r: 6 })));
+        if (!(await has('threat'))) problems.push(`${vp.name}: no card on a far threat`);
+        if ((await count('.map-world [data-mark=threat-trail]')) !== 2)
+          problems.push(`${vp.name}: no threat trail with its card open`);
+        if ((await count('.map-world [data-mark=threat-end]')) !== 1)
+          problems.push(`${vp.name}: the threat trail's end is not marked`);
+        const distance = Number(
+          await page
+            .locator('[data-popover=threat] [data-mark=distance]')
+            .getAttribute('data-distance'),
+        );
+        if (!(distance > 0)) problems.push(`${vp.name}: the threat card shows no distance`);
+        await shot5('05b-threat-path');
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(300);
+        if (await count('.map-world [data-mark=threat-trail], .map-world [data-mark=threat-end]'))
+          problems.push(`${vp.name}: the threat trail stays after its card closes`);
 
         // A wary settlement where you stand: parley with the risk mark (a scout), and an offer of old coin.
         await stage5({

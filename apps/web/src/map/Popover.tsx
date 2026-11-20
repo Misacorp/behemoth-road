@@ -830,6 +830,36 @@ export function HereCard({
   );
 }
 
+/**
+ * How far something moves, as one mark per hex. Plain step marks for now; the one place the action-cost
+ * arrow glyphs swap in.
+ */
+export function DistanceMarks({
+  count,
+  x,
+  y,
+}: {
+  count: number;
+  x: number;
+  y: number;
+}): JSX.Element {
+  return (
+    <g transform={`translate(${x} ${y})`} data-mark="distance" data-distance={count}>
+      {Array.from({ length: Math.min(count, 10) }, (_, i) => (
+        <path
+          key={i}
+          d={`M${i * 10} 1l5 4l-5 4`}
+          fill="none"
+          stroke={PALETTE.ink}
+          stroke-width={1.6}
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      ))}
+    </g>
+  );
+}
+
 /** The threat card, wider when it offers a strike. */
 export const threatSize = (strike: boolean): { width: number; height: number } => ({
   width: 206 + (strike ? ACTION_W : 0),
@@ -837,8 +867,9 @@ export const threatSize = (strike: boolean): { width: number; height: number } =
 });
 
 /**
- * A threat: its drawing, its name (the only text) and its strength as marks; when you stand on or next to
- * it, the strike button with its pips (faded without the actions).
+ * A threat: its drawing, its name (the only text), its strength as marks and how far it moves at the next
+ * tick (its trail is on the map); when you stand on or next to it, the strike button with its pips (faded
+ * without the actions).
  */
 export function ThreatCard({
   threat,
@@ -882,6 +913,7 @@ export function ThreatCard({
           />
         ))}
       </g>
+      <DistanceMarks count={threat.steps} x={72} y={56} />
       {threat.strike && (
         <ActionButton
           kind="strike"
