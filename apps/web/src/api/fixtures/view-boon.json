@@ -982,7 +982,11 @@
     "misleadUntilDay": null
   },
   "signs": {
-    "appetite": null,
+    "appetite": {
+      "kind": "overfed",
+      "level": 1,
+      "faint": true
+    },
     "cues": []
   },
   "players": [

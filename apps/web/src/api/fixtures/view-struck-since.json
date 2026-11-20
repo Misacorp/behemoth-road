@@ -909,11 +909,7 @@
     "misleadUntilDay": null
   },
   "signs": {
-    "appetite": {
-      "kind": "underfed",
-      "level": 1,
-      "faint": false
-    },
+    "appetite": null,
     "cues": []
   },
   "players": [

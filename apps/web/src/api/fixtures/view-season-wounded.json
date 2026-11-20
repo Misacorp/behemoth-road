@@ -1015,7 +1015,7 @@
     ],
     "features": {},
     "stores": {
-      "forage": 8
+      "forage": 11
     },
     "unlocks": [],
     "project": null,
@@ -1066,7 +1066,7 @@
         "boon": null
       }
     ],
-    "peril": 7,
+    "peril": 6,
     "season": {
       "status": "over",
       "outcome": "wounded",
@@ -1128,8 +1128,8 @@
     },
     {
       "kind": "peril",
-      "from": 6,
-      "to": 7,
+      "from": 5,
+      "to": 6,
       "version": 29
     },
     {

@@ -997,18 +997,14 @@
         "boon": null
       }
     ],
-    "peril": 9,
+    "peril": 7,
     "season": {
       "status": "on"
     },
     "misleadUntilDay": null
   },
   "signs": {
-    "appetite": {
-      "kind": "underfed",
-      "level": 1,
-      "faint": true
-    },
+    "appetite": null,
     "cues": []
   },
   "players": [
