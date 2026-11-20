@@ -4,6 +4,31 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: Following the popup rule: a rider's card inside the bubble, the hub beside it, the pack as passing help
+
+ID: `2026-11-20-following-the-popup-rule-a-rider` · Status: current · Amends: `2026-11-20-only-passing-help-may-cover-a`
+
+**Decision.** An audit of every popup and drawer found three places where an interaction opened over (or instead of) a popup. They now follow the rule:
+
+- **A rider from the hub bubble:** the rider's card shows in the bubble's place, as the next step of the same popup. A back button at its top left returns to the bubble. A card opened from the map (a figure on a hex) has no back.
+- **The hub from the bubble:** the hub drawer opens with the bubble still open over the creature, marking what the drawer is about.
+- **The pack:** its contents are the pack's tip (passing, non-interactive help). A tap opens it; a tap anywhere, Escape or a right-click closes it. It is no longer a separate box.
+
+The rest already followed the rule:
+
+- Strike, parley, offer and the boons are buttons in their own card. Unlocks, feeding and lingering are in the hub drawer. Joining is in its drawer.
+- A planned move's confirm card replaces the selection's card, about the place the move goes to.
+- Tips are the only thing that covers a popup.
+
+Also in this round:
+
+- Costs are the art kit's action arrows (`actionArrowNodes`) in the cards, the hub, the path and the HUD. The pack's capacity keeps round slots, since it counts units, not actions.
+- `actionLabels` (off by default; `?labels=1` or `0` in the URL) puts the verb from `text/verbs.ts` under each action.
+- Cards about a place carry its noun as a title, and their tile picture has a tip (`terrain:` and `feature:` entries).
+- On touch, a held tip stays after the finger lifts, until the next tap or `stayMs` (4 s).
+
+**Reasoning.** Misa's rule and feedback: layered popups confuse which thing an interaction is about, and the open popup should mark the target.
+
 ## 2026-11-20: Threats are telegraphed: a wider window, slower varied speeds and a shown path **[Misa]**
 
 ID: `2026-11-20-threats-are-telegraphed-a-wider-window` · Status: current · Amends: `2026-11-20-threats-are-tagged-data-that-appear`
@@ -27,7 +52,7 @@ ID: `2026-11-20-action-costs-are-drawn-as-arrows` · Status: current
 
 ## 2026-11-20: Only passing help may cover a popup; interactions continue inside it or in a drawer **[Misa]**
 
-ID: `2026-11-20-only-passing-help-may-cover-a` · Status: current · Amends: `2026-11-19-one-overlay-at-a-time`
+ID: `2026-11-20-only-passing-help-may-cover-a` · Status: current, amended by `2026-11-20-following-the-popup-rule-a-rider` · Amends: `2026-11-19-one-overlay-at-a-time`
 
 **Decision.** A popup may be covered only by passing, non-interactive help, such as tips. Anything that needs the player's interaction continues **inside the same popup**, wizard-style, with a back button at its top left, or opens the **drawer** while the popup stays open to show the target of the interaction. In particular, an action that needs a choice or configuration from the player (which unlock, which boon, which character) follows this pattern instead of opening another popup over the first.
 

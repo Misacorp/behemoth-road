@@ -28,6 +28,10 @@ export interface OpenTip {
   readonly anchor: TipAnchor;
   /** Whether the thing is still on screen (a drawer closing removes it): the tip closes when it is not. */
   readonly alive: () => boolean;
+  /** Opened by a tap (not a hover or hold): leaving the thing with the mouse does not close it. */
+  readonly tapped: boolean;
+  /** More to show under the text (the pack's contents), drawn by the tip layer. */
+  readonly extra?: unknown;
 }
 
 /**
@@ -117,7 +121,7 @@ export class TipController {
   /** The mouse left `id`. */
   unhover(id: TipId): void {
     this.cancel();
-    if (this.current?.id === id && this.hold === null) this.close();
+    if (this.current?.id === id && !this.current.tapped && this.hold === null) this.close();
   }
 
   /** A finger (or pen) went down on `id` at (x, y): its tip opens if it is held. */
@@ -174,11 +178,14 @@ export class TipController {
     return true;
   }
 
-  /** A tap on an icon that has no action of its own: its tip opens at once (or closes, if it is open). */
-  tap(id: TipId, target: TipTarget): void {
+  /**
+   * A tap on an icon that has no action of its own: its tip opens at once, with `extra` under its text (or,
+   * when a tap had opened it, closes).
+   */
+  tap(id: TipId, target: TipTarget, extra?: unknown): void {
     this.cancel();
-    if (this.current?.id === id) this.close();
-    else this.show(id, target);
+    if (this.current?.id === id && this.current.tapped) this.close();
+    else this.show(id, target, true, extra);
   }
 
   /** Closes the tip and drops anything pending (Escape, a press elsewhere, its thing gone). */
@@ -191,14 +198,20 @@ export class TipController {
   }
 
   /** Opens `id` at its target, unless the target is gone. */
-  private show(id: TipId, target: TipTarget): boolean {
+  private show(id: TipId, target: TipTarget, tapped = false, extra?: unknown): boolean {
     const rect = target.alive() ? target.rect() : null;
     if (rect === null) {
       this.close();
       return false;
     }
     this.clearStay();
-    this.current = { id, anchor: rect, alive: target.alive };
+    this.current = {
+      id,
+      anchor: rect,
+      alive: target.alive,
+      tapped,
+      ...(extra === undefined ? {} : { extra }),
+    };
     for (const fn of this.listeners) fn(this.current);
     return true;
   }

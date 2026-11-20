@@ -144,11 +144,14 @@ export function TipLayer(): JSX.Element | null {
       TIPS.close();
     };
     const onScroll = (): void => TIPS.close();
+    const onMenu = (): void => TIPS.close();
     document.addEventListener('click', onClick, true);
     window.addEventListener('keydown', onKey, true);
     document.addEventListener('pointerdown', onDown, true);
     window.addEventListener('wheel', onScroll, { passive: true });
+    document.addEventListener('contextmenu', onMenu, true);
     return () => {
+      document.removeEventListener('contextmenu', onMenu, true);
       off();
       document.removeEventListener('click', onClick, true);
       window.removeEventListener('keydown', onKey, true);
@@ -200,6 +203,7 @@ export function TipLayer(): JSX.Element | null {
     <div ref={box} class="tip" role="tooltip" data-tip-open={open.id}>
       <strong class="tip-title">{titleOf(open.id)}</strong>
       <span class="tip-text">{fillTip(tip.text, values)}</span>
+      {typeof open.extra === 'function' && (open.extra as () => JSX.Element)()}
       <svg
         class="tip-chevron"
         aria-hidden="true"

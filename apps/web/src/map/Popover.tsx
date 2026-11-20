@@ -585,7 +585,62 @@ export const CHARACTER_SIZE = { width: 236, height: 78 } as const;
  * Another player's character: its figure, its name (the only text, rendered as text), its role emblem
  * and its trait and quirk icons.
  */
-export function CharacterCard({ who }: { who: Identity }): JSX.Element {
+/** The back button at a card's top left, when the card continues another popup (the bubble). */
+const BACK_W = 30;
+
+export const characterSize = (back: boolean): { width: number; height: number } => ({
+  width: CHARACTER_SIZE.width + (back ? BACK_W : 0),
+  height: CHARACTER_SIZE.height,
+});
+
+function BackButton({
+  onBack,
+  buttonRef,
+}: {
+  onBack: () => void;
+  buttonRef?: (el: SVGGElement | null) => void;
+}): JSX.Element {
+  return (
+    <g
+      {...(buttonRef ? { ref: buttonRef } : {})}
+      class="svg-button"
+      role="button"
+      tabindex={0}
+      aria-label="Back"
+      data-back
+      transform="translate(4 4)"
+      onClick={onBack}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onBack();
+        }
+      }}
+    >
+      <rect width={24} height={24} rx={8} fill={PALETTE.paperDeep} />
+      <path
+        d="M15 5l-7 7 7 7"
+        fill="none"
+        stroke={PALETTE.ink}
+        stroke-width={2}
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </g>
+  );
+}
+
+export function CharacterCard({
+  who,
+  onBack,
+  backRef,
+}: {
+  who: Identity;
+  /** Opened inside another popup: the back button at its top left returns to it. */
+  onBack?: () => void;
+  backRef?: (el: SVGGElement | null) => void;
+}): JSX.Element {
+  const shift = onBack ? BACK_W : 0;
   // The role, trait and quirk icons each have their tip (hover, or press and hold).
   const tipped = (id: TipId | null, x: number, y: number, icon: JSX.Element) => (
     <g transform={`translate(${x} ${y})`} {...tipProps(id)}>
@@ -593,25 +648,28 @@ export function CharacterCard({ who }: { who: Identity }): JSX.Element {
     </g>
   );
   return (
-    <g data-popover="character" data-character={who.id}>
-      <Card {...CHARACTER_SIZE} />
-      <Fitted drawn={bubbleFigure(who.accent, who.look)} x={8} y={8} width={40} height={60} />
-      <text
-        x={56}
-        y={28}
-        fill={PALETTE.ink}
-        font-size={15}
-        font-weight={600}
-        font-family="system-ui, sans-serif"
-      >
-        {who.name.length > 22 ? `${who.name.slice(0, 21)}…` : who.name}
-      </text>
-      {who.role &&
-        tipped(tipFor('role', who.role), 54, 38, <RoleEmblem role={who.role} size={30} />)}
-      {who.trait &&
-        tipped(tipFor('trait', who.trait), 92, 43, <TraitIcon id={who.trait} size={22} />)}
-      {who.quirk &&
-        tipped(tipFor('quirk', who.quirk), 120, 43, <QuirkIcon id={who.quirk} size={22} />)}
+    <g data-popover="character" data-character={who.id} data-back={onBack ? true : undefined}>
+      <Card {...characterSize(Boolean(onBack))} />
+      {onBack && <BackButton onBack={onBack} {...(backRef ? { buttonRef: backRef } : {})} />}
+      <g transform={`translate(${shift} 0)`}>
+        <Fitted drawn={bubbleFigure(who.accent, who.look)} x={8} y={8} width={40} height={60} />
+        <text
+          x={56}
+          y={28}
+          fill={PALETTE.ink}
+          font-size={15}
+          font-weight={600}
+          font-family="system-ui, sans-serif"
+        >
+          {who.name.length > 22 ? `${who.name.slice(0, 21)}…` : who.name}
+        </text>
+        {who.role &&
+          tipped(tipFor('role', who.role), 54, 38, <RoleEmblem role={who.role} size={30} />)}
+        {who.trait &&
+          tipped(tipFor('trait', who.trait), 92, 43, <TraitIcon id={who.trait} size={22} />)}
+        {who.quirk &&
+          tipped(tipFor('quirk', who.quirk), 120, 43, <QuirkIcon id={who.quirk} size={22} />)}
+      </g>
     </g>
   );
 }

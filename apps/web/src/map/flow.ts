@@ -25,8 +25,11 @@ export type Flow =
   | { readonly kind: 'idle' }
   /** Looking at a hex: its popover shows what is known about it. */
   | { readonly kind: 'inspect'; readonly hex: Hex }
-  /** Looking at another player's character: its card shows who it is. */
-  | { readonly kind: 'character'; readonly id: string }
+  /**
+   * Looking at another player's character: its card shows who it is. `back` is where it was opened from
+   * (the bubble): the card then shows in that same popup, with a back button to it.
+   */
+  | { readonly kind: 'character'; readonly id: string; readonly back?: Flow }
   /** Looking at a threat: its card shows its name and strength, and the strike when you are near. */
   | { readonly kind: 'threat'; readonly id: string }
   /** Looking at a settlement from afar: its card shows its attitude and favour. */
@@ -143,7 +146,12 @@ export const tapHex = (flow: Flow, state: GameStateView, characterId: string, he
   tap(flow, state, characterId, { kind: 'hex', hex });
 
 /** Another player's character card (from its figure or from the bubble). */
-export const openCharacter = (id: string): Flow => ({ kind: 'character', id });
+export const openCharacter = (id: string, back?: Flow): Flow =>
+  back ? { kind: 'character', id, back } : { kind: 'character', id };
+
+/** The back button of a card opened inside another popup: back to it (else closed). */
+export const goBack = (flow: Flow): Flow =>
+  flow.kind === 'character' && flow.back ? flow.back : IDLE;
 
 /** The bubble's way into the hub: the creature card. */
 export const openHub = (): Flow => ({ kind: 'creature' });
