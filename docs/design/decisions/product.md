@@ -4,6 +4,20 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: Every icon has a short tip on hover or press-and-hold, with text in one file **[Misa]**
+
+ID: `2026-11-20-every-icon-has-a-short-tip` · Status: current · Amends: `2026-11-19-show-don-t-tell-fewer-boxes`
+
+**Decision.** Every icon in the interface can show a short tip with extra information: a name and one or two short lines.
+
+- **Desktop:** the tip opens on hover after a delay. Delays are configured per group of icons, so some tips open at once and others only after a pause; one entry may override its group.
+- **Touch:** the tip opens on press-and-hold. A plain tap keeps doing what it does today.
+- **Text:** every tip string lives in one place, `apps/web/src/text/`, so Misa can edit the wording without touching code. A test fails if an icon in use has no tip.
+
+The interface otherwise stays visual. Tips support learning and are never needed to play. "Hint, don't explain" still holds for anything undiscovered: a tip never reveals what a hidden thing does.
+
+**Reasoning.** Misa: hovering an icon should show extra information, to help players understand what each icon means until they have learned them. Some things should show at once, others only after a delay.
+
 ## 2026-11-20: The ending's scene is drawn above a strip reserved for its summary
 
 ID: `2026-11-20-the-ending-s-scene-is-drawn` · Status: current
@@ -865,7 +879,7 @@ ID: `2026-11-19-touch-targets-fit-their-context` · Status: current
 
 ## 2026-11-19: Show, don't tell; fewer boxes
 
-ID: `2026-11-19-show-don-t-tell-fewer-boxes` · Status: current
+ID: `2026-11-19-show-don-t-tell-fewer-boxes` · Status: current, amended by `2026-11-20-every-icon-has-a-short-tip`
 
 **Decision.** Icons and fixed places come before words, with short labels where text is needed; no prose about what just happened when the screen already shows it, and no titles where the position already says what something is. No boxes inside boxes and few coloured outlines. No hidden rules or behaviour the user cannot reason about.
 
