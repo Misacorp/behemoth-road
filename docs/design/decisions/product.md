@@ -4,6 +4,38 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: Escort and struck marks read the core's rule through one web function until the core exports it
+
+ID: `2026-11-20-escort-and-struck-marks-read-the` · Status: current
+
+**Decision.** The web's escort ring and shield marks come from `escortedIds` / `escortCentres` in `apps/web/src/game/season.ts`, which read the core's rule (an active guardian on a hex covers every active character within 1, itself excepted) with the core's own `ESCORT_TAG` and `roleHas`. The bandage reads `Character.struckDay === day` through `struckToday` there too. When the core exports its escort check, those functions call it instead.
+
+**Reasoning.** The core keeps `isEscorted` private for now; the marks are display only (the server decides who is struck), and one function is one place to switch.
+
+## 2026-11-20: The new-season button shows for admins with dev tools on
+
+ID: `2026-11-20-the-new-season-button-shows-for` · Status: current
+
+**Decision.** The ending's new-season button shows when the server offers dev tools and you are an admin (the same condition as "next day"). It calls `POST /api/dev/new-season`, then loads the new game's view, which replaces the old one whatever its version; with the characters gone, the join drawer follows.
+
+**Reasoning.** The route exists only with dev tools on (staging and local), so showing the button in production would offer something that always fails. Production keeps the ended season on screen.
+
+## 2026-11-20: Settlement actions live in the here card; from afar its card shows only attitude and favour
+
+ID: `2026-11-20-settlement-actions-live-in-the-here` · Status: current
+
+**Decision.** Parley, offer (one button per trade good carried, showing that good's icon) and the boons are buttons in your own hex's here card when you stand on a settlement, like gather and work-site on a feature. A settlement you do not stand on opens a small card when tapped: its drawing by attitude and, while wary, its favour marks; no buttons. Selected, a tap on a reachable settlement plans the walk there. Parley's risk mark shows when the core's check gives a chance below 1.
+
+**Reasoning.** Matches "the action is only reachable when standing there, as with other here-actions"; the core refuses these actions anywhere else, and the risk is only known from the check where you stand. Keeps the settlement's own card to visuals.
+
+## 2026-11-20: A tap on a threat opens its card, even while selected
+
+ID: `2026-11-20-a-tap-on-a-threat-opens` · Status: current
+
+**Decision.** A tap on a threat's hex opens the threat's card (name, strength marks, and the strike with its pips when you stand on or next to it, faded without the actions), even while your character is selected; the same tap again closes it. After a strike the card stays open while the threat stands.
+
+**Reasoning.** No one plans a walk onto a threat, and the card is the way to strike. Keeping it open after a hit makes a second strike one tap. A walk next to a threat is still planned by tapping a neighbouring hex.
+
 ## 2026-11-20: Milestone 5 core: readings of the season contract
 
 ID: `2026-11-20-milestone-5-core-readings-of-the` · Status: current

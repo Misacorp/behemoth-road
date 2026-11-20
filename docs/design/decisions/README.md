@@ -113,6 +113,10 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-20 Escort and struck marks read the core's rule through one web function until the core exports it
+- 2026-11-20 The new-season button shows for admins with dev tools on
+- 2026-11-20 Settlement actions live in the here card; from afar its card shows only attitude and favour
+- 2026-11-20 A tap on a threat opens its card, even while selected
 - 2026-11-20 Milestone 5 core: readings of the season contract
 - 2026-11-20 Threats are tagged data that appear at the window's edge and walk in openly
 - 2026-11-20 Guardians strike, defend and escort; anyone can strike a threat

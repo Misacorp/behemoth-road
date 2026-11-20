@@ -321,6 +321,16 @@ export function seasonScenario(stage: SeasonStage = {}): Scenario {
   return { ...s, state, version: s.version + 1 };
 }
 
+/** After an admin starts a new season: a new game (a new seed), no characters; everyone joins again. */
+export function newSeasonScenario(): Scenario {
+  return {
+    state: createGame(SEED + 1, { artSeed: ART_SEED + 1 }),
+    you: MISA,
+    version: 1,
+    admin: true,
+  };
+}
+
 export const notJoined = (): PlayerView => toView(notJoinedScenario());
 export const joined = (): PlayerView => toView(joinedScenario());
 export const lost = (): PlayerView => toView(lostScenario());

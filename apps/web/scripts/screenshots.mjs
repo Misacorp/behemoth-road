@@ -44,7 +44,9 @@ const {
   joinScenario,
   joinedScenario,
   lostScenario,
+  newSeasonScenario,
   notJoinedScenario,
+  seasonScenario,
   SESSION,
   toView,
   USERS,
@@ -146,6 +148,11 @@ class FakeServer {
       if (!result.ok) return [409, { error: result.reason }];
       return ok({ ...s, state: result.state, version: s.version + 1 }, result.events);
     }
+    if (path === '/api/dev/new-season') {
+      // Like the Worker: a new game with a new seed; the client reads its view afterwards.
+      this.reset(newSeasonScenario());
+      return [200, { ok: true }];
+    }
     if (path === '/api/dev/next-day') {
       // Like the Worker, the tick answers the view alone; its events wait in the log.
       const ticked = nextDayWithEvents(s.state);
@@ -224,6 +231,7 @@ async function run() {
   const browser = await chromium.launch();
   const problems = [];
   const report = [];
+  const m5Shots = [];
   try {
     // 1. The built app outside Discord: only the visual "open from Discord" state, under the real CSP.
     {
@@ -676,6 +684,181 @@ async function run() {
         if (!(await page.locator('[data-mark=stay]').count()))
           problems.push(`${vp.name}: no stay mark while the creature lingers`);
         await shot4('08-lingering');
+
+        // Milestone 5: threats, settlements, defending, peril and the route, and the season's end, staged
+        // (`seasonScenario`) and then played through the real core (strikes, a boon, a defence, the ticks).
+        const shot5 = async (name) => {
+          const file = `m5-${vp.name}-${name}.png`;
+          await page.screenshot({ path: join(out, file) });
+          m5Shots.push(file);
+        };
+        const stage5 = async (st) => {
+          fake.reset(seasonScenario(st));
+          await page.reload();
+          await page.waitForSelector('.map-world svg g');
+          await page.waitForTimeout(500);
+        };
+        const offset = async (h) => {
+          const c = fake.scenario.state.creature.centre;
+          return hexOnScreen(c.q + h.q, c.r + h.r);
+        };
+        const count = (sel) => page.locator(sel).count();
+
+        // Threats coming in: a captor band behind, a swarm on the flank, a rockslide on the road ahead.
+        await stage5({
+          role: 'scout',
+          threats: [
+            { type: 'captors', at: { q: 0, r: 4 } },
+            { type: 'swarm', at: { q: -4, r: 1 }, strength: 2 },
+            { type: 'rockslide', at: { q: 0, r: -4 } },
+          ],
+          peril: 2,
+          steps: 3,
+        });
+        if ((await count('[data-mark=threat]')) !== 3)
+          problems.push(`${vp.name}: not every threat is drawn`);
+        if (!(await count('[data-mark=approach]'))) problems.push(`${vp.name}: no approach arrows`);
+        await shot5('01-threats');
+        // The tick moves them (the real core): the arrows follow.
+        await press('[aria-label="Next day"]');
+        await page.waitForTimeout(900);
+        await shot5('02-threats-next-day');
+
+        // A swarm next to you: its card shows its name and strength and the strike; striking it is a hit.
+        await stage5({
+          role: 'guardian',
+          threats: [{ type: 'swarm', at: { q: 1, r: 3 }, strength: 3 }],
+        });
+        await tap(...(await offset({ q: 1, r: 3 })));
+        if (!(await count('[data-popover=threat] [data-action=strike]')))
+          problems.push(`${vp.name}: no strike on a threat next to you`);
+        await shot5('03-threat-card');
+        await press('[data-popover=threat] [data-action=strike]');
+        await page.waitForTimeout(300);
+        await expectMoment('hit');
+        if (fake.scenario.state.threats[0]?.strength !== 1)
+          problems.push(`${vp.name}: the strike did not reach the server`);
+        await shot5('04-threat-hit');
+        await settle();
+        // A far threat's card has no strike.
+        await stage5({ role: 'scout', threats: [{ type: 'captors', at: { q: 3, r: 4 } }] });
+        await tap(...(await offset({ q: 3, r: 4 })));
+        if (!(await has('threat')) || (await count('[data-popover=threat] [data-action=strike]')))
+          problems.push(`${vp.name}: a far threat's card offers a strike`);
+        await shot5('05-threat-card-far');
+
+        // A wary settlement where you stand: parley with the risk mark (a scout), and an offer of old coin.
+        await stage5({
+          role: 'scout',
+          settlements: [{ at: { q: 1, r: 2 }, favour: 1 }],
+          pack: { 'old-coin': 1 },
+        });
+        await openHere();
+        if (!(await count('[data-popover=here] [data-action=parley] [data-risk]')))
+          problems.push(`${vp.name}: no risk mark on a scout's parley`);
+        if (!(await count('[data-popover=here] [data-action="offer:old-coin"]')))
+          problems.push(`${vp.name}: no offer with a coin carried`);
+        await shot5('06-settlement-wary');
+        await press('[data-popover=here] [data-action="offer:old-coin"]');
+        await page.waitForTimeout(400);
+        if (fake.scenario.state.settlements[0]?.attitude !== 'friendly')
+          problems.push(`${vp.name}: the offer did not befriend the settlement`);
+        await expectMoment('befriended');
+        await shot5('07-befriended');
+        await settle();
+        // Friendly: the three boons; shelter lowers peril.
+        await stage5({
+          role: 'envoy',
+          settlements: [{ at: { q: 1, r: 2 }, attitude: 'friendly', favour: 3 }],
+          peril: 5,
+        });
+        await openHere();
+        if ((await count('[data-popover=here] [data-action^="boon:"]')) !== 3)
+          problems.push(`${vp.name}: a friendly settlement does not offer three boons`);
+        await shot5('08-settlement-friendly');
+        await press('[data-popover=here] [data-action="boon:shelter"]');
+        await page.waitForTimeout(400);
+        await expectMoment('boon');
+        if (fake.scenario.state.peril !== 2)
+          problems.push(`${vp.name}: shelter did not lower peril`);
+        await shot5('09-boon');
+        await settle();
+        // From afar, a settlement's card: its attitude and favour, no actions.
+        await stage5({ role: 'scout', settlements: [{ at: { q: 3, r: 4 }, favour: 2 }] });
+        await tap(...(await offset({ q: 3, r: 4 })));
+        if (!(await has('settlement'))) problems.push(`${vp.name}: no settlement card from afar`);
+        await shot5('10-settlement-card');
+
+        // The HUD at high peril, far along the route: the gauge past its wounded notch, the edges darker.
+        await stage5({ role: 'scout', peril: 7, steps: 28 });
+        if ((await page.locator('.hud-peril').getAttribute('data-peril')) !== '7')
+          problems.push(`${vp.name}: the peril gauge does not show the peril`);
+        if (!(await count('.peril-edge'))) problems.push(`${vp.name}: no edge shade at peril 7`);
+        await shot5('11-hud-peril-route');
+
+        // A guardian riding: the hub's defend card; defending raises its shield on the creature.
+        await stage5({ role: 'guardian', at: 'creature' });
+        await openHub();
+        if (!(await count('.drawer [data-care=defend]')))
+          problems.push(`${vp.name}: no defend card for a riding guardian`);
+        await shot5('12-defend-card');
+        await press('[data-care=defend] [aria-label=defend]');
+        await page.waitForTimeout(450);
+        await expectMoment('defend');
+        if (!fake.scenario.state.creature.defenders.length)
+          problems.push(`${vp.name}: the defence did not reach the server`);
+        await settle();
+        await idle();
+        if (!(await count('[data-mark=defending]')))
+          problems.push(`${vp.name}: no shield on the defending guardian`);
+        await shot5('13-defending');
+        // A guardian on a hex beside you: its escort ring and your shield.
+        await stage5({ role: 'scout', guardianAt: { q: 2, r: 2 } });
+        if (!(await count('[data-mark=escort]')) || !(await count('[data-mark=escorted]')))
+          problems.push(`${vp.name}: no escort ring or shield`);
+        await shot5('14-escort');
+
+        // The season's end, each outcome reached by a tick of the real core: home safe on the last step,
+        // home wounded at high peril, lost when a strike fills the gauge.
+        const routeLength = fake.scenario.state.config.routeLength;
+        const endings = [
+          ['safe', { steps: routeLength - 1, peril: 0 }],
+          ['wounded', { steps: routeLength - 1, peril: 7 }],
+          [
+            'lost',
+            {
+              steps: 2,
+              peril: 9,
+              threats: [
+                { type: 'swarm', at: { q: 0, r: -3 }, strength: 4 },
+                { type: 'swarm', at: { q: 3, r: -3 }, strength: 4 },
+                { type: 'swarm', at: { q: -3, r: 0 }, strength: 4 },
+              ],
+            },
+          ],
+        ];
+        for (const [outcome, st] of endings) {
+          await stage5({ role: 'scout', at: 'creature', ...st });
+          await press('[aria-label="Next day"]');
+          await page.waitForTimeout(900);
+          const shown = await page
+            .locator('.ending')
+            .getAttribute('data-outcome')
+            .catch(() => null);
+          if (shown !== outcome)
+            problems.push(`${vp.name}: ending ${String(shown)}, not ${outcome}`);
+          if (!(await count('.ending [aria-label="New season"]')))
+            problems.push(`${vp.name}: no new-season button for an admin`);
+          await shot5(`15-ending-${outcome}`);
+        }
+        // A new season: the ending gives way to the join drawer of a new game.
+        await press('.ending [aria-label="New season"]');
+        await page.waitForTimeout(800);
+        if (await count('.ending'))
+          problems.push(`${vp.name}: the ending stayed after a new season`);
+        if (!(await count('.drawer .offer')))
+          problems.push(`${vp.name}: no join drawer in the new season`);
+        await shot5('16-new-season');
       }
 
       // Lost and replace: the drawer opens by itself; replacing starts a new character on the creature.
@@ -791,10 +974,38 @@ async function run() {
     vite.stop();
   }
   for (const line of report) console.log(line);
+  if (m5Shots.length) await contactSheet(m5Shots, join(out, 'm5-sheet.png'));
   console.log(`Screenshots in ${out}`);
   if (problems.length) {
     console.error(problems.join('\n'));
     process.exit(1);
+  }
+}
+
+/** One page of the Milestone 5 screenshots side by side, phones and desktops apart, for review. */
+async function contactSheet(files, path) {
+  const browser = await chromium.launch();
+  try {
+    const page = await browser.newPage({ viewport: { width: 1800, height: 900 } });
+    const cell = (f) => {
+      const data = readFileSync(join(out, f)).toString('base64');
+      return `<figure><img src="data:image/png;base64,${data}"><figcaption>${f}</figcaption></figure>`;
+    };
+    const group = (kind) =>
+      files
+        .filter((f) => f.includes(`-${kind}-`))
+        .map(cell)
+        .join('');
+    await page.setContent(
+      `<!doctype html><body style="margin:12px;font:12px system-ui;background:#eee">` +
+        `<div style="display:flex;flex-wrap:wrap;gap:10px">${group('phone')}</div>` +
+        `<div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:16px">${group('desktop')}</div>` +
+        `<style>figure{margin:0}img{display:block;height:300px}</style></body>`,
+    );
+    await page.waitForTimeout(300);
+    await page.screenshot({ path, fullPage: true });
+  } finally {
+    await browser.close();
   }
 }
 
