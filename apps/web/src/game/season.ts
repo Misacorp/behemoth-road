@@ -14,12 +14,11 @@ import {
   hexEquals,
   isEscorted,
   MATERIALS,
-  neighbour,
   PEOPLE_TYPES,
   roleHas,
   THREAT_TYPES,
   threatOutlook,
-  threatPath,
+  threatNextPath,
   TRADE_TAG,
 } from '@behemoth-road/core';
 import type { CostedAction } from './chain.ts';
@@ -58,18 +57,8 @@ export function threatMarks(game: GameStateView): ThreatMark[] {
   });
 }
 
-/**
- * The hexes a threat crosses at the next tick, its end last; empty when it does not move. It walks toward
- * where the creature stands after a straight step (or where it stays, when it lingers), like the core's
- * `threatOutlook`: public view only, blind to the creature's real step. A stand-in with the signature of the
- * core's coming `threatNextPath`, swapped for it here.
- */
-export function threatNextPath(view: GameStateView, threatId: string): Hex[] {
-  const threat = view.threats.find((t) => t.id === threatId);
-  if (!threat) return [];
-  const { centre, heading, lingering } = view.creature;
-  return threatPath(view, threat, lingering ? centre : neighbour(centre, heading));
-}
+/** The hexes a threat crosses at the next tick, its end last (the core's guess: public view only). */
+export { threatNextPath };
 
 /** The threat on a hex, if any. */
 export const threatAt = (game: GameStateView, h: Hex): string | null =>

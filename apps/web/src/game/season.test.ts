@@ -1,12 +1,4 @@
-import {
-  characterOf,
-  hexDistance,
-  neighbour,
-  threatOutlook,
-  threatPath,
-  threatType,
-  toPlayerView,
-} from '@behemoth-road/core';
+import { characterOf, threatOutlook, toPlayerView } from '@behemoth-road/core';
 import { describe, expect, it } from 'vitest';
 import { type SeasonStage, seasonScenario, USERS } from '../api/fixtures.ts';
 import { IDLE, tap, tapHex } from '../map/flow.ts';
@@ -88,25 +80,6 @@ describe('threats as the map reads them', () => {
     const far = staged({ threats: [{ type: 'swarm', at: FAR }] });
     expect(threatCard(far.view, far.me, far.view.threats[0]!.id)?.strike).toBeNull();
     expect(threatCard(far.view, far.me, 'gone')).toBeNull();
-  });
-
-  it('walks the next tick toward where the creature stands after a straight step, end last', () => {
-    const { view } = staged({ threats: [{ type: 'captors', at: { q: 0, r: 6 } }] });
-    const t = view.threats[0]!;
-    const ahead = neighbour(view.creature.centre, view.creature.heading);
-    const path = threatNextPath(view, t.id);
-    expect(path).toEqual(threatPath(view, t, ahead));
-    expect(path.length).toBeGreaterThan(0);
-    expect(path.length).toBeLessThanOrEqual(threatType(t.type).speed);
-    // Each hex is one step on from the last, and the end is closer to the creature.
-    [t.hex, ...path]
-      .slice(1)
-      .forEach((h, i) => expect(hexDistance(h, [t.hex, ...path][i]!)).toBe(1));
-    expect(hexDistance(path.at(-1)!, ahead)).toBeLessThan(hexDistance(t.hex, ahead));
-    // Lingering, it walks toward where the creature stays.
-    const staying = { ...view, creature: { ...view.creature, lingering: true } };
-    expect(threatNextPath(staying, t.id)).toEqual(threatPath(view, t, view.creature.centre));
-    expect(threatNextPath(view, 'gone')).toEqual([]);
   });
 
   it("a tap on a threat's hex opens its card, even while selected; again closes it", () => {
