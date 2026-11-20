@@ -64,7 +64,8 @@ describe('survey', () => {
 
   it('says when a surveyed hex holds nothing', () => {
     let state = placeCharacter(chainGame(['scout']), 'scout', P);
-    const { [`${N.q},${N.r}`]: _, ...features } = state.features;
+    const features = { ...state.features };
+    delete features[`${N.q},${N.r}`];
     state = { ...state, features };
     expect(ok(state, 'scout', { kind: 'survey', hex: N }).events).toEqual([
       { kind: 'survey', hex: N, characterId: 'scout' },

@@ -63,7 +63,10 @@ export const report = (n: number, log: (line: string) => void): void => {
 };
 
 // Run directly with Node (no Node types in this package, so `process` is read loosely).
-const proc = (globalThis as { process?: { argv: readonly string[] } }).process;
-if (proc && import.meta.url === `file://${proc.argv[1]}`) {
-  report(Number(proc.argv[2] ?? 40), (line) => console.log(line));
+const { process: proc, console: out } = globalThis as {
+  process?: { argv: readonly string[] };
+  console?: { log: (line: string) => void };
+};
+if (proc && out && (proc.argv[1] ?? '').endsWith('findability.ts')) {
+  report(Number(proc.argv[2] ?? 40), (line) => out.log(line));
 }
