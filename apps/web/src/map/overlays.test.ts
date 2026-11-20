@@ -220,7 +220,7 @@ describe('Milestone 5 on the map', () => {
   });
 
   it("draws an open threat card's next-tick trail with its end ringed, and nothing once it closes", () => {
-    const { view, id } = season({ threats: [{ type: 'captors', at: { q: 0, r: 6 } }] });
+    const { view, id } = season({ threats: [{ type: 'captors', at: { q: 0, r: 5 } }] });
     const threat = view.threats[0]!;
     const path = threatNextPath(view, threat.id);
     expect(path.length).toBeGreaterThan(0);

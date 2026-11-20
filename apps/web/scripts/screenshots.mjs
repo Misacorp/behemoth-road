@@ -904,8 +904,10 @@ async function run() {
         await shot5('05-threat-card-far');
         // Its card open, the threat's next-tick path is on the map as an ink trail to a ringed end hex, and the
         // card shows how far it goes; the trail clears when the card closes.
-        await stage5({ role: 'scout', threats: [{ type: 'captors', at: { q: 0, r: 6 } }] });
-        await tap(...(await offset({ q: 0, r: 6 })));
+        await stage5({ role: 'scout', threats: [{ type: 'captors', at: { q: 0, r: 5 } }] });
+        if ((await count('.map-world [data-threat=figure]')) !== 1)
+          problems.push(`${vp.name}: the threat with a trail is not drawn`);
+        await tap(...(await offset({ q: 0, r: 5 })));
         if (!(await has('threat'))) problems.push(`${vp.name}: no card on a far threat`);
         if ((await count('.map-world [data-mark=threat-trail]')) !== 2)
           problems.push(`${vp.name}: no threat trail with its card open`);
