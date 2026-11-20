@@ -13,6 +13,7 @@ import {
   struckToday,
   threatCard,
   threatMarks,
+  threatNextPath,
 } from './season.ts';
 
 function staged(stage: SeasonStage) {
@@ -69,6 +70,7 @@ describe('threats as the map reads them', () => {
       icon: 'swarm',
       name: 'Pterodactyl swarm',
       strength: 2,
+      steps: threatNextPath(near.view, id).length,
       strike: { cost: near.view.config.strikeCost, enabled: true },
     });
     expect(threatCard(tired(near.view), near.me, id)?.strike).toEqual({

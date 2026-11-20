@@ -26,6 +26,14 @@ ID: `2026-11-20-threat-pacing-numbers-window-6-rockslide` · Status: current · 
 
 **Reasoning.** Captors and swarms keep speed 2, so a threat still closes in on a walking creature; the wider window alone adds a day of warning. Raiders are the one threat that starts close, so they are the slow one.
 
+## 2026-11-20: A threat's card draws its next-tick path as an ink trail and its distance as action arrows
+
+ID: `2026-11-20-a-threat-s-card-draws-its` · Status: current · Amends: `2026-11-20-threats-are-telegraphed-a-wider-window`
+
+**Decision.** While a threat's card is open, the map draws the hexes it crosses at the next tick as the same dashed ink arrow as a planned move (thinner, starting off the threat's mark), with its end hex ringed in a dotted ink outline. The card shows how far it moves as one action arrow per hex (the art kit's cost glyph, through one helper, `DistanceMarks`), under its strength marks; the card is placed clear of the trail (`trailClear`). The trail clears when the card closes. The path is the core's `threatNextPath`: it assumes the creature walks straight on, or stays when it lingers, like the approach arrows, and reads only the public view. A threat that will not move draws no trail and no marks.
+
+**Reasoning.** Misa asked for the shown path. Reusing the planned-path arrow keeps one arrow language on the map; the straight-on guess is the same one the approach arrows and tomorrow's pulse already use, so the trail never reveals the creature's real step.
+
 ## 2026-11-20: Following the popup rule: a rider's card inside the bubble, the hub beside it, the pack as passing help
 
 ID: `2026-11-20-following-the-popup-rule-a-rider` · Status: current · Amends: `2026-11-20-only-passing-help-may-cover-a`
@@ -53,7 +61,7 @@ Also in this round:
 
 ## 2026-11-20: Threats are telegraphed: a wider window, slower varied speeds and a shown path **[Misa]**
 
-ID: `2026-11-20-threats-are-telegraphed-a-wider-window` · Status: current, amended by `2026-11-20-threat-pacing-numbers-window-6-rockslide` · Amends: `2026-11-20-threats-are-tagged-data-that-appear`
+ID: `2026-11-20-threats-are-telegraphed-a-wider-window` · Status: current, amended by `2026-11-20-a-threat-s-card-draws-its`, `2026-11-20-threat-pacing-numbers-window-6-rockslide` · Amends: `2026-11-20-threats-are-tagged-data-that-appear`
 
 **Decision.** Threats must never feel unfair:
 
