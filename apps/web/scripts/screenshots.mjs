@@ -722,9 +722,10 @@ async function run() {
           peril: 2,
           steps: 3,
         });
-        if ((await count('[data-mark=threat]')) !== 3)
+        if ((await count('.map-world [data-threat=figure]')) !== 3)
           problems.push(`${vp.name}: not every threat is drawn`);
-        if (!(await count('[data-mark=approach]'))) problems.push(`${vp.name}: no approach arrows`);
+        if (!(await count('.map-world [data-threat=arrow]')))
+          problems.push(`${vp.name}: no approach arrows`);
         await shot5('01-threats');
         // The tick moves them (the real core): the arrows follow.
         await press('[aria-label="Next day"]');
@@ -821,7 +822,10 @@ async function run() {
         await shot5('13-defending');
         // A guardian on a hex beside you: its escort ring and your shield.
         await stage5({ role: 'scout', guardianAt: { q: 2, r: 2 } });
-        if (!(await count('[data-mark=escort]')) || !(await count('[data-mark=escorted]')))
+        if (
+          !(await count('.map-world [data-escort]')) ||
+          !(await count('.map-world [data-mark=escorted]'))
+        )
           problems.push(`${vp.name}: no escort ring or shield`);
         await shot5('14-escort');
 
