@@ -15,7 +15,14 @@
  * Usage: pnpm --filter @behemoth-road/web build && node apps/web/scripts/screenshots.mjs
  * Not part of the unit test run. Needs the pre-installed Playwright (require('playwright')).
  */
-import { createReadStream, existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
+import {
+  createReadStream,
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { createServer } from 'node:http';
 import { createRequire } from 'node:module';
 import { dirname, extname, join, normalize, resolve } from 'node:path';
@@ -987,22 +994,23 @@ async function contactSheet(files, path) {
   const browser = await chromium.launch();
   try {
     const page = await browser.newPage({ viewport: { width: 1800, height: 900 } });
-    const cell = (f) => {
-      const data = readFileSync(join(out, f)).toString('base64');
-      return `<figure><img src="data:image/png;base64,${data}"><figcaption>${f}</figcaption></figure>`;
-    };
+    // The images load from the screenshots folder (inlining them all would exhaust the page).
+    const cell = (f) => `<figure><img src="${f}"><figcaption>${f}</figcaption></figure>`;
     const group = (kind) =>
       files
         .filter((f) => f.includes(`-${kind}-`))
         .map(cell)
         .join('');
-    await page.setContent(
+    const html = join(out, 'm5-sheet.html');
+    writeFileSync(
+      html,
       `<!doctype html><body style="margin:12px;font:12px system-ui;background:#eee">` +
         `<div style="display:flex;flex-wrap:wrap;gap:10px">${group('phone')}</div>` +
         `<div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:16px">${group('desktop')}</div>` +
         `<style>figure{margin:0}img{display:block;height:300px}</style></body>`,
     );
-    await page.waitForTimeout(300);
+    await page.goto(`file://${html}`);
+    await page.waitForLoadState('load');
     await page.screenshot({ path, fullPage: true });
   } finally {
     await browser.close();

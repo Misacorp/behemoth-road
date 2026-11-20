@@ -7,6 +7,8 @@ import * as v from 'valibot';
 import { describe, expect, it } from 'vitest';
 import { ApiError, createApiClient, type Fetch } from './client.ts';
 import { momentsFromEvents } from '../game/moments.ts';
+import { toGameState } from '../game/viewState.ts';
+import { characterArts } from '../map/cells.ts';
 import {
   ActionAnswerSchema,
   ConfigSchema,
@@ -138,8 +140,20 @@ describe('captured contract fixtures', () => {
     expect(moments('view-boon')).toEqual(['boon']);
     expect(moments('view-angered')).toEqual(['angered', 'threat']);
     expect(moments('view-peril-since')).toEqual(['strike', 'strike']);
-    expect(moments('view-season-lost')).toEqual(['strike', 'season-over']);
+    expect(moments('view-season-lost')).toEqual(['strike', 'struck', 'season-over']);
     expect(moments('view-season-safe')).toEqual(['season-over']);
+    expect(moments('view-struck-since')).toEqual(['struck', 'threat']);
+  });
+
+  it('bandages the captured struck character for the day it was struck', () => {
+    const view = v.parse(PlayerViewSchema, fixture('view-struck-since'));
+    const game = toGameState(view.game);
+    const struck = game.characters.filter((c) => c.struckDay === game.day).map((c) => c.id);
+    expect(struck).toHaveLength(1);
+    const marked = characterArts(game)
+      .filter((f) => f.marks?.struck)
+      .map((f) => f.id);
+    expect(marked).toEqual(struck);
   });
 
   it('reads each ending from the captured season views', () => {

@@ -674,7 +674,7 @@ export function HereCard({
 
 /** The threat card, wider when it offers a strike. */
 export const threatSize = (strike: boolean): { width: number; height: number } => ({
-  width: 168 + (strike ? ACTION_W : 0),
+  width: 206 + (strike ? ACTION_W : 0),
   height: 76,
 });
 
@@ -706,7 +706,7 @@ export function ThreatCard({
         font-weight={600}
         font-family="system-ui, sans-serif"
       >
-        {threat.name.length > 18 ? `${threat.name.slice(0, 17)}…` : threat.name}
+        {threat.name.length > 20 ? `${threat.name.slice(0, 19)}…` : threat.name}
       </text>
       <g transform="translate(72 42)" data-mark="strength">
         {Array.from({ length: marks }, (_, i) => (
