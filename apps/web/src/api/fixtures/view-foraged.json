@@ -659,7 +659,8 @@
           "timber": 1,
           "forage": 1
         },
-        "status": "active"
+        "status": "active",
+        "struckDay": null
       },
       {
         "id": "222222222222222222.0",
@@ -675,7 +676,8 @@
         },
         "actionsLeft": 3,
         "pack": {},
-        "status": "active"
+        "status": "active",
+        "struckDay": null
       }
     ],
     "features": {

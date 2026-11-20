@@ -652,7 +652,8 @@
         },
         "actionsLeft": 3,
         "pack": {},
-        "status": "active"
+        "status": "active",
+        "struckDay": null
       }
     ],
     "features": {},
