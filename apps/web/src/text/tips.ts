@@ -47,13 +47,13 @@ export const tips = {
     text: 'Explores ahead. Surveys a neighbouring hex for {surveyCost.scout} action (others pay {surveyCost.other}).',
   },
   'role:scholar': {
-    text: 'Works tombs with better odds ({siteChance.scholar.1} % against {siteChance.other.1} %). The only one who can work a deep tomb, by lantern light.',
+    text: 'Works tombs: {siteChance.scholar.1} % a try, against {siteChance.other.1} % for others. Only scholars can work deep tombs ({siteChance.scholar.2} %).',
   },
   'role:keeper': {
-    text: 'Tends the creature: reads its hunger and its mood. Riding, can make it stay put for a day.',
+    text: 'Reads the creature’s signs and tends it. Riding, can make it stay put for a day.',
   },
   'role:guardian': {
-    text: 'Strikes threats harder ({strike.guardian} against {strike.other}) and is never struck. Anyone next to them is safe too.',
+    text: 'Strikes threats harder ({strike.guardian} against {strike.other}) and is never struck. Standing on a hex, keeps those next to them safe.',
   },
   'role:engineer': {
     text: 'Builds the team’s unlocks from the stores, while riding the creature.',
@@ -102,7 +102,7 @@ export const tips = {
   },
   'material:ancient-alloy': { text: 'Found in deep tombs. Builds the climbing spikes.' },
   'material:old-coin': {
-    text: 'Found in tombs. Offer it to a wary settlement for favour, without risk.',
+    text: 'Found in small tombs. Offer it to a wary settlement for favour, without risk.',
   },
   'material:forage': { text: 'Food from berry bushes. Feed it to the creature from the stores.' },
 
@@ -119,17 +119,17 @@ export const tips = {
   },
   'action:gather': { text: 'Take one unit from here into your pack.' },
   'action:work-site': {
-    text: 'Search the tomb ({workSiteCost} actions). It may take more than one try.',
+    text: 'Search the tomb ({workSiteCost} actions). If nothing turns up, try again another day.',
   },
   'action:build': {
     text: 'Engineers, riding: start or work on an unlock. Each action is one work.',
   },
   'action:light-fire': {
     title: 'Light a fire',
-    text: 'Burn {fireFuel} timber from your pack here. Fires catch the creature’s attention until the day turns.',
+    text: 'Burn {fireFuel} timber from your pack here. It burns until the day turns; the creature may take notice.',
   },
   'action:feed': {
-    text: 'Riding: give the creature food from the stores. Too much makes it sluggish.',
+    text: 'Riding: give the creature food from the stores.',
   },
   'action:linger': {
     text: 'Keepers, riding: the creature stays put when the day turns. Not two days running.',
@@ -157,7 +157,9 @@ export const tips = {
   // Threats on the map.
   'threat:captors': { text: 'On the creature’s trail. Strong, and gains on it every day.' },
   'threat:swarm': { text: 'Flies in from the side. Fast, but weaker.' },
-  'threat:rockslide': { text: 'Waits on the path ahead. Steer the creature around it.' },
+  'threat:rockslide': {
+    text: 'Blocks the path ahead. Steer around it with fires, or strike it apart.',
+  },
   'threat:raiders': { text: 'Sent by an angered settlement.' },
 
   // Settlements and the peoples.
@@ -169,7 +171,7 @@ export const tips = {
   // Marks on the map.
   'map:fire': {
     title: 'Fire',
-    text: 'Burns until the day turns. The creature notices fires nearby.',
+    text: 'Burns until the day turns. The creature may take notice.',
   },
   'map:escort': { title: 'Escorted', text: 'Next to a guardian: threats will not strike here.' },
   'map:struck': { title: 'Struck', text: 'Hit by a threat: only {struckActions} action tomorrow.' },
@@ -196,12 +198,12 @@ export const tips = {
   'hud:recentre-creature': { title: 'Behemoth', text: 'Back to the creature, and its hub.' },
   'hud:peril': {
     title: 'Peril',
-    text: 'Danger to the creature. Strikes and hunger raise it; quiet days lower it. Full, and all is lost.',
+    text: 'Danger to the creature. Strikes and deep hunger raise it; quiet days lower it. Full, and all is lost.',
   },
   'hud:route': { title: 'The way home', text: 'Steps walked toward home.' },
   'hud:appetite': {
     title: 'Appetite',
-    text: 'How hungry the creature looks. Keepers read it best.',
+    text: 'How the creature’s appetite seems: hungry or full. Keepers read it best.',
   },
   'hud:join': { title: 'Join', text: 'Pick a character and a role.' },
 } as const satisfies Record<string, Tip>;

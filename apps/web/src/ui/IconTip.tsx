@@ -5,7 +5,7 @@
  */
 import type { ComponentChildren, JSX } from 'preact';
 import type { TipId } from '../text/tips.ts';
-import { TIPS, tipProps } from './Tip.tsx';
+import { elementTarget, TIPS, tipProps } from './Tip.tsx';
 
 export function IconTip({
   id,
@@ -25,8 +25,7 @@ export function IconTip({
             onClick: (e: MouseEvent) => {
               e.stopPropagation();
               e.preventDefault();
-              const r = (e.currentTarget as Element).getBoundingClientRect();
-              TIPS.tap(id, { x: r.left, y: r.top, width: r.width, height: r.height });
+              TIPS.tap(id, elementTarget(e.currentTarget as Element));
             },
           }
         : {})}

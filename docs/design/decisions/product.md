@@ -12,9 +12,9 @@ ID: `2026-11-20-one-tip-controller-for-html-the` · Status: current · Amends: `
 
 - `tipProps(id)` goes on any icon or control, HTML or the map's SVG cards. The map itself gives tips for threats, settlements, struck or escorted characters and fires.
 - With a mouse, a tip opens after its group's delay and closes on leaving. Moving to another icon while one is open switches at once.
-- On touch, press-and-hold (`holdMs`, 450 ms) opens it, and lifting or moving more than 10 px closes it. The click after a hold is swallowed (a capture listener), so a hold never acts. A hold on the map cancels the gesture instead of tapping.
+- On touch, press-and-hold (`holdMs`, 450 ms) opens it, and lifting or moving more than 10 px closes it. A hold never acts: its own element's next click is swallowed (for 0.7 s after the finger lifts), even when Escape or a drag closed the tip first. A hold on the map cancels the gesture instead of tapping.
 - An icon with no action of its own (a trait on an offer) also opens its tip on a plain tap, without picking the card. This replaces the earlier name-on-tap tips.
-- Escape, a wheel or a press elsewhere closes it.
+- Escape closes it without reaching anything else (an open drawer stays open). A wheel, or a press on anything without a tip, closes it too. It also closes when its icon goes away (a drawer closing), and nothing opens for an icon that has gone.
 - The tip is an HTML card placed with the popovers' `placePopover`, beside the icon and never over it, with the same chevron. It is moved with `setCssTransform`, so it also shows over drawers.
 - Texts, delays per group (`hud` 0, `action` 300, `content` 500, `map` 700, `default` 400 ms) and the hold time live in `apps/web/src/text/tips.ts`. Titles fall back to the content name.
 - Traits and quirks have no mechanics yet, and their tips say so ("Not in play yet") rather than promise an effect.

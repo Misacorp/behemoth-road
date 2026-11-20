@@ -44,7 +44,7 @@ import { type Moment, STEP_MS } from '../game/moments.ts';
 import { MomentMark } from './MomentMark.tsx';
 import { mapTipAt } from './mapTips.ts';
 import type { TipId } from '../text/tips.ts';
-import type { TipAnchor } from '../ui/tip.ts';
+import type { TipTarget } from '../ui/tip.ts';
 import { TIPS } from '../ui/Tip.tsx';
 import { MAP_TUNING } from './config.ts';
 import { type Flow, isSelecting } from './flow.ts';
@@ -669,7 +669,7 @@ export function MapView(props: MapViewProps): JSX.Element {
   // Tips on the map (a threat, a settlement, a struck or escorted character, a fire): a mouse resting on one,
   // or a finger held on one; a hold never becomes a tap.
   const hoverTip = useRef<TipId | null>(null);
-  const mapTip = (e: PointerEvent): { id: TipId; anchor: () => TipAnchor } | null => {
+  const mapTip = (e: PointerEvent): { id: TipId; target: TipTarget } | null => {
     const svg = svgRef.current;
     if (!svg || (e.target instanceof Node && popRef.current?.contains(e.target))) return null;
     const v = view.current;
@@ -678,12 +678,23 @@ export function MapView(props: MapViewProps): JSX.Element {
     if (!id) return null;
     return {
       id,
-      anchor: () => {
-        const box = svg.getBoundingClientRect();
-        const c = toScreen(view.current, hexCenter(p, hex.q, hex.r));
-        const s = view.current.scale * p.size;
-        // The hex's top face and what stands on it (a figure, a threat).
-        return { x: box.left + c.x - s, y: box.top + c.y - 1.1 * s, width: 2 * s, height: 1.6 * s };
+      target: {
+        rect: () => {
+          if (!svg.isConnected) return null;
+          const box = svg.getBoundingClientRect();
+          const c = toScreen(view.current, hexCenter(p, hex.q, hex.r));
+          const s = view.current.scale * p.size;
+          // The hex's top face and what stands on it (a figure, a threat).
+          return {
+            x: box.left + c.x - s,
+            y: box.top + c.y - 1.1 * s,
+            width: 2 * s,
+            height: 1.6 * s,
+          };
+        },
+        // Still what is there: a threat that moved or was cleared takes its tip with it.
+        alive: () => svg.isConnected && mapTipAt(latest.current.state, hex) === id,
+        owns: (t) => t instanceof Node && svg.contains(t),
       },
     };
   };
@@ -702,7 +713,7 @@ export function MapView(props: MapViewProps): JSX.Element {
     unhoverTip();
     if (e.pointerType !== 'mouse') {
       const tip = tracker.current.count === 0 ? mapTip(e) : null;
-      if (tip) TIPS.press(tip.id, tip.anchor, e.clientX, e.clientY);
+      if (tip) TIPS.press(tip.id, tip.target, e.clientX, e.clientY);
       else TIPS.release();
     }
     handle(tracker.current.down(e.pointerId, local(e)));
@@ -714,7 +725,7 @@ export function MapView(props: MapViewProps): JSX.Element {
         unhoverTip();
         if (tip) {
           hoverTip.current = tip.id;
-          TIPS.hover(tip.id, tip.anchor);
+          TIPS.hover(tip.id, tip.target);
         }
       }
     } else if (e.pointerType !== 'mouse') {

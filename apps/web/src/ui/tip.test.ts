@@ -28,7 +28,18 @@ function setup() {
   return { c, seen, advance };
 }
 
-const at = () => ({ x: 10, y: 20, width: 30, height: 30 });
+/** A thing with a tip: it may be removed (`gone`), and it owns the clicks on `self`. */
+function thing() {
+  const state = { gone: false };
+  const self = {};
+  const target = {
+    rect: () => (state.gone ? null : { x: 10, y: 20, width: 30, height: 30 }),
+    alive: () => !state.gone,
+    owns: (t: unknown) => t === self,
+  };
+  return { state, self, target };
+}
+const at = thing().target;
 
 describe('tips', () => {
   it('open on hover after their group delay, and close on leaving', () => {
@@ -68,15 +79,18 @@ describe('tips', () => {
 
   it('open on a touch hold, close on lifting, and swallow the click that follows', () => {
     const { c, advance } = setup();
-    c.press('action:survey', at, 0, 0);
+    const button = thing();
+    c.press('action:survey', button.target, 0, 0);
     advance(holdMs - 1);
     expect(c.open).toBeNull();
     advance(1);
     expect(c.open?.id).toBe('action:survey');
     expect(c.release()).toBe(true);
     expect(c.open).toBeNull();
-    expect(c.takeClick()).toBe(true);
-    expect(c.takeClick()).toBe(false);
+    // Only that button's own click is swallowed, once.
+    expect(c.takeClick({})).toBe(false);
+    expect(c.takeClick(button.self)).toBe(true);
+    expect(c.takeClick(button.self)).toBe(false);
   });
 
   it('a short tap is a tap: no tip, and its click goes through', () => {
@@ -86,7 +100,7 @@ describe('tips', () => {
     expect(c.release()).toBe(false);
     advance(holdMs);
     expect(c.open).toBeNull();
-    expect(c.takeClick()).toBe(false);
+    expect(c.takeClick(at)).toBe(false);
   });
 
   it('a finger that moves is a drag, not a hold', () => {
@@ -101,11 +115,11 @@ describe('tips', () => {
 
   it('close on Escape (close), and a tap on an icon without an action toggles its tip', () => {
     const { c } = setup();
-    c.tap('trait:keen-eyed', at());
+    c.tap('trait:keen-eyed', at);
     expect(c.open?.id).toBe('trait:keen-eyed');
-    c.tap('trait:keen-eyed', at());
+    c.tap('trait:keen-eyed', at);
     expect(c.open).toBeNull();
-    c.tap('quirk:loud', at());
+    c.tap('quirk:loud', at);
     c.close();
     expect(c.open).toBeNull();
   });
@@ -114,5 +128,43 @@ describe('tips', () => {
     expect(tipFor('role', 'scout')).toBe('role:scout');
     expect(tipFor('role', 'pirate')).toBeNull();
     expect(tipFor('trait', null)).toBeNull();
+  });
+
+  it('a hold, then a drag, then a later tap: the tap goes through', () => {
+    const { c, advance } = setup();
+    const button = thing();
+    c.press('action:gather', button.target, 0, 0);
+    advance(holdMs);
+    expect(c.open?.id).toBe('action:gather');
+    c.move(HOLD_SLOP * 3, 0);
+    expect(c.open).toBeNull();
+    c.release();
+    advance(1000);
+    expect(c.takeClick(button.self)).toBe(false);
+  });
+
+  it('a hold whose tip Escape closed is still a hold when the finger lifts', () => {
+    const { c, advance } = setup();
+    const button = thing();
+    c.press('action:strike', button.target, 0, 0);
+    advance(holdMs);
+    c.close();
+    expect(c.release()).toBe(true);
+    expect(c.takeClick(button.self)).toBe(true);
+  });
+
+  it('opens nothing for a thing that is gone, and pending timers die with it', () => {
+    const { c, advance } = setup();
+    const icon = thing();
+    c.hover('unlock:lantern', icon.target);
+    icon.state.gone = true;
+    advance(delays.content);
+    expect(c.open).toBeNull();
+    const other = thing();
+    c.hover('unlock:lantern', other.target);
+    advance(delays.content);
+    expect(c.open?.alive()).toBe(true);
+    other.state.gone = true;
+    expect(c.open?.alive()).toBe(false);
   });
 });
