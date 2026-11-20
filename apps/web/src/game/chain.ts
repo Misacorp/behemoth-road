@@ -13,6 +13,7 @@ import {
   hexKey,
   MATERIALS,
   ROLES,
+  STIMULUS_TYPES,
   UNLOCKS,
   type Unlock,
 } from '@behemoth-road/core';
@@ -129,4 +130,130 @@ export function unlockOptions(game: GameStateView, characterId: string): UnlockO
       cost: check.cost ?? 0,
     };
   });
+}
+
+/** An action with a material cost, as a button shows it: its cost in actions and the material it uses. */
+export interface CostedAction {
+  readonly kind: 'light-fire' | 'feed' | 'linger';
+  readonly cost: number;
+  readonly enabled: boolean;
+  /** The material it takes (fuel from your pack, food from the stores), or null. */
+  readonly uses: string | null;
+  /** The material is missing (no fuel, no food): drawn faded. */
+  readonly short?: boolean;
+  /** Linger: already asked for today. */
+  readonly done?: boolean;
+}
+
+/** The stimulus a fire is (tagged `fire`), for its fuel tag: content, read by tag. */
+const FIRE = STIMULUS_TYPES.find((t) => t.tags.includes('fire')) ?? null;
+
+/** Materials that nourish the creature (content `nourishes`), in content order. */
+const FOODS: readonly string[] = MATERIALS.filter((m) => (m.nourishes ?? 0) > 0).map((m) => m.id);
+
+/** The first material held with this tag (in content order), or null. */
+const heldWith = (tag: string, held: Readonly<Record<string, number>>): string | null =>
+  MATERIALS.find((m) => m.tags.includes(tag) && (held[m.id] ?? 0) > 0)?.id ?? null;
+
+/**
+ * The material a revealed node on this hex yields when it is fuel for a fire (tagged like the fire's fuel,
+ * read by tag): a timber stand. Null for anything else.
+ */
+export function fuelNodeAt(game: GameStateView, h: Hex): string | null {
+  const type = featureAt(game, h)?.type;
+  if (!FIRE || type?.kind !== 'node') return null;
+  const material = MATERIALS.find((m) => m.id === type.yields.material);
+  return material?.tags.includes(FIRE.fuel.tag) ? material.id : null;
+}
+
+/**
+ * The faded fire hint on the inspect card of a hex holding a fuel node: what a fire costs and the fuel it
+ * takes, never actionable from there (a fire is lit where you stand).
+ */
+export function fireHintAt(
+  game: GameStateView,
+  h: Hex,
+): { readonly cost: number; readonly uses: string } | null {
+  const fuel = fuelNodeAt(game, h);
+  return fuel ? { cost: game.config.lightFireCost, uses: fuel } : null;
+}
+
+/**
+ * Lighting a fire where you stand, for your own hex's card, from the core's check and its refusal cost and
+ * missing material. With fuel it is offered (faded when your actions are spent). Without fuel it is
+ * offered faded, its timber faded too, only as a hint (`hint`: the card is open for something else and you
+ * have seen a fire). Never on water, on the creature or where a fire already burns.
+ */
+export function fireAction(
+  game: GameStateView,
+  characterId: string,
+  hint = false,
+): CostedAction | null {
+  const check = checkAction(game, characterId, { kind: 'light-fire' });
+  if (check.ok) {
+    return {
+      kind: 'light-fire',
+      cost: check.cost,
+      enabled: true,
+      uses: check.uses[0]?.material ?? null,
+    };
+  }
+  if (check.cost === undefined) return null;
+  if (check.reason === 'not-enough-actions') {
+    const me = game.characters.find((c) => c.id === characterId);
+    const fuel = FIRE && me ? heldWith(FIRE.fuel.tag, me.pack) : null;
+    return { kind: 'light-fire', cost: check.cost, enabled: false, uses: fuel };
+  }
+  if (check.reason === 'no-fuel' && hint) {
+    return {
+      kind: 'light-fire',
+      cost: check.cost,
+      enabled: false,
+      uses: check.missing?.[0]?.material ?? null,
+      short: true,
+    };
+  }
+  return null;
+}
+
+/**
+ * Feeding and lingering in the creature's hub, from the core's checks and their refusal cost and missing
+ * food. Feeding is for everyone (faded unless you ride, have the actions and the stores hold food; the food
+ * faded when they do not); lingering only for keepers (faded unless riding with the actions, and not the
+ * day after a linger; marked done once asked for today).
+ */
+export function careOptions(game: GameStateView, characterId: string): CostedAction[] {
+  const me = game.characters.find((c) => c.id === characterId);
+  if (me?.status !== 'active') return [];
+  const out: CostedAction[] = [];
+  const feed = checkAction(game, characterId, { kind: 'feed' });
+  if (feed.ok) {
+    out.push({
+      kind: 'feed',
+      cost: feed.cost,
+      enabled: true,
+      uses: feed.uses[0]?.material ?? null,
+    });
+  } else if (feed.cost !== undefined) {
+    const missing = feed.missing?.[0]?.material ?? null;
+    const food = FOODS.find((id) => (game.stores[id] ?? 0) > 0) ?? null;
+    out.push({
+      kind: 'feed',
+      cost: feed.cost,
+      enabled: false,
+      uses: missing ?? food,
+      short: missing !== null,
+    });
+  }
+  const linger = checkAction(game, characterId, { kind: 'linger' });
+  if (linger.ok || (linger.reason !== 'needs-keeper' && linger.cost !== undefined)) {
+    out.push({
+      kind: 'linger',
+      cost: linger.cost ?? 0,
+      enabled: linger.ok,
+      uses: null,
+      done: game.creature.lingering,
+    });
+  }
+  return out;
 }

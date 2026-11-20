@@ -50,3 +50,48 @@ describe('moments from the server events', () => {
     ]);
   });
 });
+
+describe('Milestone 4 moments', () => {
+  it('come from the fire-lit, fed, linger, fire-out and creature-ate events', () => {
+    const hex = { q: centre.q + 2, r: centre.r };
+    expect(
+      momentsFromEvents(
+        [
+          { kind: 'fire-lit', hex },
+          { kind: 'fed', material: 'forage' },
+          { kind: 'linger' },
+          { kind: 'fire-out', hex },
+          { kind: 'creature-ate', material: 'timber' },
+        ],
+        centre,
+        'me',
+      ),
+    ).toEqual([
+      { kind: 'fire', hex },
+      { kind: 'feed', hex: centre, item: 'forage' },
+      { kind: 'linger', hex: centre },
+      { kind: 'fire-out', hex },
+      { kind: 'ate', hex: centre, item: 'timber' },
+    ]);
+  });
+
+  it('play the day step as a walk, and a step that stays (a linger) as stayed', () => {
+    const from = { q: 0, r: 0 };
+    const to = { q: 1, r: -1 };
+    expect(
+      momentsFromEvents(
+        [
+          { kind: 'creature-step', from, to },
+          { kind: 'creature-step', from: to, to },
+        ],
+        centre,
+        'me',
+      ),
+    ).toEqual([
+      { kind: 'step', hex: to, from },
+      { kind: 'stayed', hex: to },
+    ]);
+    // Without its hexes, a step plays nothing.
+    expect(momentsFromEvents([{ kind: 'creature-step' }], centre, 'me')).toEqual([]);
+  });
+});

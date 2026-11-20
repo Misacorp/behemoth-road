@@ -10,6 +10,8 @@ import {
   ART_TUNING,
   DIRECTIONS,
   drawCharacter,
+  drawStayMark,
+  drawStepHint,
   drawIcon,
   drawViaMark,
   el,
@@ -161,10 +163,42 @@ function selectionRing(i: OverlayInput, feet: Point, riding: boolean): SvgNode {
   });
 }
 
-/** Faint paw prints where the creature's front would be after each likely step, stronger when likelier. */
+/** Whether the prediction is the creature staying put (it lingers): the core's `stay` option. */
+export const staysPut = (predicted: readonly CreatureStepOption[]): boolean =>
+  predicted.some((o) => o.stay === true);
+
+/**
+ * The stay mark for a lingering creature, instead of the paw prints ahead: on its footprint's near edge
+ * (the hex below its centre on screen), so the body and riders do not hide it.
+ */
+export function stayHint(i: OverlayInput): SvgNode {
+  const p = i.projection;
+  const { centre } = i.state.creature;
+  const at = hexCenter(p, centre.q, centre.r + i.state.config.creatureRadius);
+  const size = Math.max(1.1 * p.size, 40 / (i.zoom ?? 1));
+  const mark = drawStayMark(i.palette, size);
+  return el(
+    'svg',
+    {
+      ...mark.attrs,
+      x: at.x - size / 2,
+      y: at.y - size / 2,
+      width: size,
+      height: size,
+      'data-mark': 'stay',
+    },
+    [...mark.children],
+  );
+}
+
+/**
+ * Paw prints where the creature's front would be after each possible step (left, straight, right, as the
+ * core's blind prediction gives them), larger and darker the likelier the step, so a veer reads at a glance.
+ */
 function creatureHints(i: OverlayInput): SvgNode[] {
   const p = i.projection;
   const out: SvgNode[] = [];
+  if (staysPut(i.predicted)) return [];
   // One hex beyond the front of the footprint it would step into, clear of the creature's body.
   const reach = i.state.config.creatureRadius + 1;
   const from = hexCenter(p, i.state.creature.centre.q, i.state.creature.centre.r);
@@ -172,27 +206,36 @@ function creatureHints(i: OverlayInput): SvgNode[] {
     const o = directionOffset(option.direction);
     const target = hexCenter(p, option.centre.q + o.q * reach, option.centre.r + o.r * reach);
     const angle = Math.atan2(target.y - from.y, target.x - from.x);
-    out.push(pawPrint(i, target, angle, 0.25 + 0.6 * option.chance));
+    out.push(stepHint(i, target, angle, option.chance, option.direction));
   }
   return out;
 }
 
-function pawPrint(i: OverlayInput, at: Point, angle: number, opacity: number): SvgNode {
-  const p = i.projection;
-  const s = p.size * 0.11;
-  const rot = (dx: number, dy: number): Point => ({
-    x: at.x + (dx * Math.cos(angle) - dy * Math.sin(angle)) * s,
-    y: at.y + (dx * Math.sin(angle) + dy * Math.cos(angle)) * s * p.squash,
-  });
-  const pad = ellipse(rot(-0.6, 0), 1.25 * s, 1.05 * s * p.squash);
-  const toes = [
-    [1.15, -1.25],
-    [1.6, 0],
-    [1.15, 1.25],
-  ]
-    .map(([dx, dy]) => ellipse(rot(dx!, dy!), 0.5 * s, 0.5 * s * p.squash))
-    .join('');
-  return el('path', { d: pad + toes, fill: i.palette.inkSoft, opacity: n(opacity) });
+/**
+ * The art kit's step hint (a paw print pointing the walk, larger and darker the likelier the step), centred
+ * on `at`, at least about 26 screen px across whatever the zoom.
+ */
+function stepHint(
+  i: OverlayInput,
+  at: Point,
+  angle: number,
+  chance: number,
+  direction: string,
+): SvgNode {
+  const size = atLeast(i, 0.9 * i.projection.size, 26);
+  const mark = drawStepHint(i.palette, size, chance, angle);
+  return el(
+    'svg',
+    {
+      ...mark.attrs,
+      x: at.x - size / 2,
+      y: at.y - size / 2,
+      width: size,
+      height: size,
+      'data-mark': `step:${direction}`,
+    },
+    [...mark.children],
+  );
 }
 
 /** The planned path: a dashed ink line with an arrowhead, a pip per action, and a mark where a step has `via`. */
@@ -495,6 +538,7 @@ export function buildOverlays(i: OverlayInput): Overlays {
     over.push(...pathArrow(i, feet, i.flow.steps));
   }
   over.push(...lostCharacters(i));
+  if (staysPut(i.predicted)) over.push(stayHint(i));
   over.push(...actionHints(i));
   const standing = me?.status === 'active' && me.at.kind === 'hex' ? me.at.hex : null;
   if (feet && standing && grace.some((h) => h.q === standing.q && h.r === standing.r)) {

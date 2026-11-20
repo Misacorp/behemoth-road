@@ -68,5 +68,50 @@
       "role": "envoy",
       "offer": 2
     }
+  },
+  "view-foraged": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 4,
+      "action": {
+        "kind": "gather"
+      }
+    }
+  },
+  "view-fire-lit": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 5,
+      "action": {
+        "kind": "light-fire"
+      }
+    }
+  },
+  "view-fed": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 7,
+      "action": {
+        "kind": "feed"
+      }
+    }
+  },
+  "view-lingered": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 8,
+      "action": {
+        "kind": "linger"
+      }
+    }
+  },
+  "view-keeper-cue": {
+    "method": "POST",
+    "path": "/api/dev/next-day",
+    "body": {}
   }
 }

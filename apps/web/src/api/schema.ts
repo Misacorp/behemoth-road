@@ -52,6 +52,8 @@ const character = v.object({
   status: v.picklist(['active', 'lost']),
 });
 
+const weights = v.object({ left: v.number(), straight: v.number(), right: v.number() });
+
 const config = v.object({
   actionsPerDay: count,
   moveCost: count,
@@ -60,7 +62,7 @@ const config = v.object({
   graceDays: count,
   lostTileRings: count,
   playerCap: count,
-  veerWeights: v.object({ left: v.number(), straight: v.number(), right: v.number() }),
+  veerWeights: weights,
   featureChance: v.number(),
   packCapacity: count,
   surveyCostSpecialist: count,
@@ -72,6 +74,12 @@ const config = v.object({
   siteChanceSpecialistTier2: v.number(),
   siteChanceOtherTier1: v.number(),
   siteChanceOtherTier2: v.number(),
+  stimulusRange: count,
+  stimulusPull: v.number(),
+  hungryVeerWeights: weights,
+  lightFireCost: count,
+  feedCost: count,
+  lingerCost: count,
 });
 
 /** The core state without the seed (the core's `GameStateView`): known tiles carry their terrain. */
@@ -81,7 +89,14 @@ export const GameStateViewSchema = v.object({
   artSeed: v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(0xffffffff)),
   day: count,
   config,
-  creature: v.object({ centre: hex, heading: direction }),
+  creature: v.object({
+    centre: hex,
+    heading: direction,
+    /** A keeper asked it to stay put at the next tick. */
+    lingering: v.boolean(),
+    /** The last day it lingered, or null. */
+    lingeredDay: v.nullable(count),
+  }),
   tiles: v.pipe(
     v.record(v.pipe(v.string(), v.regex(/^-?\d+,-?\d+$/), v.maxLength(24)), tile),
     v.check((t) => Object.keys(t).length <= 20_000, 'too many tiles'),
@@ -98,6 +113,26 @@ export const GameStateViewSchema = v.object({
   unlocks: v.pipe(v.array(id), v.maxLength(100)),
   /** The one unlock in progress. */
   project: v.nullable(v.object({ unlock: id, work: count })),
+  /** Lit fires (public): each burns through the tick that ends the day it was lit. */
+  stimuli: v.pipe(v.array(v.object({ type: id, hex, litDay: count })), v.maxLength(200)),
+});
+
+/**
+ * What the signed-in player can read off the creature (core `CreatureSigns`): its appetite (faint for a
+ * non-keeper) and, for a keeper, how it reacted to each fire at the last tick.
+ */
+export const SignsSchema = v.object({
+  appetite: v.nullable(
+    v.object({
+      kind: v.picklist(['underfed', 'overfed']),
+      level: v.picklist([1, 2, 3]),
+      faint: v.boolean(),
+    }),
+  ),
+  cues: v.pipe(
+    v.array(v.object({ hex, stimulus: id, reaction: v.picklist(['toward', 'away', 'unmoved']) })),
+    v.maxLength(64),
+  ),
 });
 
 const player = v.object({
@@ -138,6 +173,8 @@ export const GameEventSchema = v.object({
   /** Unlock progress: work done and needed. */
   work: v.optional(count),
   needed: v.optional(count),
+  /** A fire's stimulus id (fire-lit, fire-out). */
+  stimulus: v.optional(id),
   /** The game version the event happened in (events are logged per change). */
   version: count,
 });
@@ -154,6 +191,8 @@ export const PlayerViewSchema = v.object({
   players: v.pipe(v.array(player), v.maxLength(64)),
   devTools: v.boolean(),
   offers: v.nullable(v.pipe(v.array(OfferSchema), v.maxLength(8))),
+  /** What you read off the creature (for your active character; no keeper detail without one). */
+  signs: SignsSchema,
   /**
    * What happened since the version the client asked from (`since`), or in its own move or action,
    * oldest first. Empty on a first load.
@@ -192,6 +231,7 @@ export type Offer = v.InferOutput<typeof OfferSchema>;
 export type GameResponse = v.InferOutput<typeof GameResponseSchema>;
 export type AppConfig = v.InferOutput<typeof ConfigSchema>;
 export type Session = v.InferOutput<typeof SessionSchema>;
+export type Signs = v.InferOutput<typeof SignsSchema>;
 
 /** The answer to a move or an action: the new view, what happened, and where a trap stopped a walk. */
 export const ActionAnswerSchema = v.object({
@@ -211,4 +251,7 @@ export type GameAction =
   | { readonly kind: 'survey'; readonly hex: { readonly q: number; readonly r: number } }
   | { readonly kind: 'gather' }
   | { readonly kind: 'work-site' }
-  | { readonly kind: 'build'; readonly unlock: string };
+  | { readonly kind: 'build'; readonly unlock: string }
+  | { readonly kind: 'light-fire' }
+  | { readonly kind: 'feed' }
+  | { readonly kind: 'linger' };

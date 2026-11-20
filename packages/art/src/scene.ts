@@ -1,7 +1,8 @@
 /** A map patch as one SVG: paper, the ground under the wash filter, then every upright thing back to front. */
 import { DEFAULT_LOOK, drawCharacter, type CharacterArt } from './character.ts';
 import { ART_TUNING } from './config.ts';
-import { drawCreature, inFootprint, riderAnchor, type CreatureArt } from './creature.ts';
+import { drawCreature, inFootprint, moodOf, riderAnchor, type CreatureArt } from './creature.ts';
+import { drawFire } from './fire.ts';
 import { featureDrawer } from './features.ts';
 import { figureAnchor } from './figure.ts';
 import { artDefs, refUrl } from './filters.ts';
@@ -185,7 +186,7 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
     const rng = rngFor(seed, 'props', cell.q, cell.r);
     const spots =
       cell.props ??
-      (cell.feature && !underCreature ? [] : undefined) ??
+      ((cell.feature || cell.fire) && !underCreature ? [] : undefined) ??
       (underCreature
         ? []
         : placeProps((cell.site && SITE_PROPS[cell.site]) || terrainLook(cell.terrain).props, rng));
@@ -223,6 +224,14 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
       );
       placed.push({ at, drawn, ...(opacity === undefined ? {} : { opacity }) });
     }
+    if (cell.fire && !underCreature) {
+      // A lit fire is the team's own doing: drawn in full even under the veil, beside any feature.
+      const at = cell.feature ? onPlane(p, c, -0.26, 0.2) : onPlane(p, c, 0, 0.12);
+      placed.push({
+        at,
+        drawn: drawFire(ctx(at, rngFor(seed, 'fire', cell.q, cell.r), ART_TUNING.fireScale)),
+      });
+    }
     if (cell.hint) {
       const at = onPlane(p, c, 0.05, 0.05);
       placed.push({ at, drawn: hintMark(ctx(at, rngFor(seed, 'hint', cell.q, cell.r))) });
@@ -231,18 +240,22 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
 
   if (creature) {
     const c = hexCenter(p, creature.q, creature.r);
+    const body = drawCreature(
+      palette,
+      creature.look,
+      c,
+      p.size,
+      p.squash,
+      ink,
+      creature.heading,
+      creature.stores ?? 0,
+      moodOf(creature),
+    );
+    // One group for everything the creature draws (body, aura, signs, cues), so the map can hide it, for
+    // example while a day-change animation slides a copy from the old centre to the new.
     placed.push({
       at: c,
-      drawn: drawCreature(
-        palette,
-        creature.look,
-        c,
-        p.size,
-        p.squash,
-        ink,
-        creature.heading,
-        creature.stores ?? 0,
-      ),
+      drawn: { nodes: [el('g', { 'data-layer': 'creature' }, body.nodes)], box: body.box },
     });
   }
   const sites = new Set(cells.filter((c) => c.site).map((c) => `${c.q},${c.r}`));
@@ -262,6 +275,7 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
         hexCenter(p, creature.q, creature.r),
         p.size,
         p.squash,
+        moodOf(creature),
       );
       figures.set(ch.id, c);
       const drawn = drawCharacter(

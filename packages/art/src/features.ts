@@ -1,7 +1,7 @@
 /**
  * Features that sit on a tile once revealed: resource nodes, tomb sites and traps, drawn upright in side
  * view like the other props (shrunk in height for the high view), with a used-up look. Keyed by the `icon`
- * content gives each feature (`ore`, `stones`, `logs`, `tomb`, `deep-tomb`, `snare`, `pitfall`); an unknown
+ * content gives each feature (`ore`, `stones`, `logs`, `berries`, `tomb`, `deep-tomb`, `snare`, `pitfall`); an unknown
  * key draws a neutral cairn.
  */
 import { boxOf, ellipsePath, mapper, poly, smoothClosed, smoothOpen, type Point } from './geom.ts';
@@ -529,6 +529,74 @@ const pitfall: FeatureDraw = (c) => {
   };
 };
 
+/** Berry bushes: three round leafy bushes dotted with berries; depleted, the same bushes picked bare. */
+const berryBushes: FeatureDraw = (c, state) => {
+  const { fill, line, blob, T } = kit(c);
+  const pal = c.palette;
+  // Low, wide, round shrubs hugging the ground: wider than tall, so they never read as trees.
+  const bushes: [number, number, number, number][] = [
+    [-9, -4.5, 9, 4.8],
+    [8, -5, 9.5, 5.2],
+    [-0.5, -2.8, 8.5, 4],
+  ];
+  const shapes = bushes.map(([x, y, rx, ry]) => blob(x, y, rx, ry));
+  const nodes: SvgNode[] = [groundShadow(c, 17, 4.5, 1)];
+  shapes.forEach((b, i) => {
+    const [x, y, rx, ry] = bushes[i]!;
+    nodes.push(
+      fill(smoothClosed(b), i === 2 ? pal.ramps.foliage.light : pal.ramps.foliage.base),
+      fill(
+        smoothClosed(blob(x + rx * 0.25, y + ry * 0.3, rx * 0.6, ry * 0.5)),
+        pal.ramps.foliage.shade,
+        0.45,
+      ),
+      line(smoothClosed(b)),
+    );
+  });
+  if (state === 'depleted') {
+    // Picked bare: a few stalks, and leaves fallen at the foot.
+    nodes.push(
+      line(
+        poly([T(-9, -7), T(-11, -9.5)], false) +
+          poly([T(7, -8), T(9, -10.5)], false) +
+          poly([T(0, -5), T(-1, -7.5)], false),
+        0.8,
+        pal.ramps.bark.shade,
+      ),
+      fill(
+        [blob(-15, 1, 1.6, 0.8), blob(14, 0.8, 1.4, 0.7), blob(3, 1.5, 1.3, 0.7)]
+          .map((b) => smoothClosed(b))
+          .join(''),
+        pal.ramps.foliage.shade,
+        0.8,
+      ),
+    );
+  } else {
+    // Clusters of three berries, large enough to read at map scale.
+    const clusters: [number, number][] = [
+      [-12, -6],
+      [-6, -7.5],
+      [5, -8],
+      [11, -6],
+      [-2, -3.5],
+      [3, -2.5],
+    ];
+    const berries = clusters.flatMap<[number, number]>(([x, y]) => [
+      [x, y],
+      [x + 2.5, y + 0.4],
+      [x + 1.2, y - 2],
+    ]);
+    const dots = berries.map(([x, y]) => blob(x, y, 1.9, 1.8));
+    const shine = berries.map(([x, y]) => blob(x - 0.6, y - 0.6, 0.6, 0.5));
+    nodes.push(
+      fill(dots.map((d) => smoothClosed(d)).join(''), pal.accents.rose.base),
+      line(dots.map((d) => smoothClosed(d)).join(''), 0.8, pal.accents.rose.shade),
+      fill(shine.map((d) => smoothClosed(d)).join(''), pal.paper, 0.85),
+    );
+  }
+  return { nodes, box: boxOf(shapes.flat()) };
+};
+
 /** The neutral mark for a feature look the kit does not know: a small cairn. */
 const cairn: FeatureDraw = (c) => {
   const { fill, line, blob } = kit(c);
@@ -559,6 +627,7 @@ export const FEATURE_DRAWERS: Readonly<Record<string, FeatureDraw>> = {
   'deep-tomb': tomb2,
   snare,
   pitfall,
+  berries: berryBushes,
 };
 
 export function featureDrawer(look: string): FeatureDraw {

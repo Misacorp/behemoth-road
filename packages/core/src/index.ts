@@ -48,6 +48,13 @@ export {
   type TerrainGeneration,
   type TerrainRule,
   type TerrainType,
+  CREATURE_TYPES,
+  REACTIONS,
+  STIMULUS_TYPES,
+  type CreatureType,
+  type Need,
+  type Reaction,
+  type StimulusType,
 } from './content/index.ts';
 export {
   DEFAULT_MAP_CONTENT,
@@ -59,6 +66,10 @@ export {
 } from './map.ts';
 export { noiseAt, type NoiseField } from './noise.ts';
 export type {
+  Care,
+  Cue,
+  Nature,
+  Stimulus,
   Character,
   CharacterStatus,
   Creature,
@@ -81,7 +92,27 @@ export {
   visibilityAt,
   windowHexes,
 } from './window.ts';
-export { chooseCreatureStep, predictCreature, type CreatureStepOption } from './creature.ts';
+export {
+  chooseCreatureStep,
+  predictCreature,
+  stepWeights,
+  type CreatureStepOption,
+} from './creature.ts';
+export {
+  appetiteOf,
+  creatureSigns,
+  creatureType,
+  isKeeper,
+  KEEPER_TAG,
+  reactionTo,
+  rollNature,
+  stimulusType,
+  type Appetite,
+  type AppetiteKind,
+  type CreatureSigns,
+  type CueGesture,
+  type SignLevel,
+} from './care.ts';
 export {
   entryInto,
   entryToPlace,

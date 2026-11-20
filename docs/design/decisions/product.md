@@ -4,6 +4,117 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: The day's step uses Milestone 3's creature walk; a linger plays the stayed mark
+
+ID: `2026-11-20-the-day-s-step-uses-milestone` · Status: current · Supersedes: `2026-11-20-the-step-ghost-walks-for-one` · Amends: `2026-11-20-step-hints-scale-with-chance-the`
+
+**Decision.** The Milestone 4 web's step ghost (a faded copy of the creature, hiding the scene's creature and its riders) is dropped. A `creature-step` event that moves plays Milestone 3's walk (the creature and its riders slid by `slideFrom`), drawn with your signs so it looks as it does on the map. One that stays (`from` equals `to`, a linger) plays the art kit's stayed mark on the creature instead. The step hints and their sizing by chance stay as they are.
+
+**Reasoning.** One walk for both milestones: Milestone 3's carries the riders and holds the camera still, which the minimal ghost could not.
+
+## 2026-11-20: The step hints, appetite badge and stayed mark use the art kit's drawings
+
+ID: `2026-11-20-the-step-hints-appetite-badge-and` · Status: current · Amends: `2026-11-20-the-creature-card-s-heading-loses`
+
+**Decision.** The web's stubs are replaced: the step hints are the art kit's `drawStepHint` (one per predicted option, pointing the walk, at least about 26 screen px), the bubble's badge is `drawAppetiteBadge` at 20 px inside the creature entry's corner (kept within the bubble card), and the stayed moment is `drawMoment('stayed')`. The step decision's size range (`pawScale`) is gone: the art kit sizes the hint by chance.
+
+**Reasoning.** The art kit now draws all three; one drawing language and one place to tune them.
+
+## 2026-11-20: The creature card's heading loses its ring; the bubble carries an appetite badge
+
+ID: `2026-11-20-the-creature-card-s-heading-loses` · Status: current, amended by `2026-11-20-the-step-hints-appetite-badge-and`
+
+**Decision.** The dashed ring around the heading arrow on the creature card is removed: the arrow stays, the ring was decoration that looked like a button (a playtester tapped it). The hub bubble's creature entry carries a badge of your read of the creature's appetite (`signs.appetite`) for everyone: sharp for keepers, faint for others, rings per level; a stub drawing until the art kit's appetite badge lands.
+
+**Reasoning.** Nothing real needed a control there, so removing beats wiring a fake action. The badge lets every player notice hunger from the bubble without opening the hub; a keeper's read is sharper, in line with the signs.
+
+## 2026-11-20: Step hints scale with chance; the day's step plays as a walk or a stayed mark
+
+ID: `2026-11-20-step-hints-scale-with-chance-the` · Status: current, amended by `2026-11-20-the-day-s-step-uses-milestone`, `2026-11-20-the-step-ghost-walks-for-one`
+
+**Decision.** Each of the creature's step options from `predictCreature` shows as a paw mark whose size (0.7 to 1.5 of the base) and opacity grow with its chance, so the likelier straight step and the rarer veers read at a glance. At day change a `creature-step` event plays a walk: a ghost of the creature slides from yesterday's centre to today's and fades (SVG SMIL started on mount; the CSP forbids inline styles). A step with `from` equal to `to` (a linger) plays a stayed mark on the creature: the art's `stayed` moment when it exists, the linger mark until then.
+
+**Reasoning.** Playtesters could not tell the creature veers, nor see that it walked sideways or stayed. The ghost walk is minimal on purpose: Milestone 3's day-change step animation may replace it. Scale range is one function (`pawScale`).
+
+## 2026-11-20: A timber stand hints at a fire, on your here card and its inspect card
+
+ID: `2026-11-20-a-timber-stand-hints-at-a` · Status: current · Amends: `2026-11-20-light-a-fire-hints-faded-without`
+
+**Decision.** A revealed node whose yield carries the fire's fuel tag (`wood`, read from content, never by id) hints at a fire whether or not you have seen one: on your own here card the faded light-fire (timber faded) shows without fuel; on the stand's inspect card a faded fire button with its timber and pip shows, never actionable (a fire is lit where you stand). The seen-a-fire rule still applies to other features.
+
+**Reasoning.** M4 coordinator's call after a playtest: wood is where players first meet the fuel, so that is where the hint teaches what timber is for, without words.
+
+## 2026-11-20: Hunger drains every second day
+
+ID: `2026-11-20-hunger-drains-every-second-day` · Status: current · Amends: `2026-11-20-hunger-has-a-comfortable-band-underfed`
+
+**Decision.** Satiety drops by `drainPerDay` (1) only on the ticks into a day that is a multiple of the creature type's `hunger.drainEveryDays` (2 for the Mossback: the ticks into days 2, 4, 6…), so it drains half as fast as before. One forage (+2) now lasts four days.
+
+**Reasoning.** Halving the drain was asked for in the polish round. A whole-number cadence keeps satiety an integer and the rule deterministic from the day alone, with no fractions in stored state; the cadence lives in the creature's data beside the rest of its hunger.
+
+## 2026-11-20: Appetite reads at game zoom: a ground aura, bigger shape changes, a hub badge and weighted step hints
+
+ID: `2026-11-20-appetite-reads-at-game-zoom-a` · Status: current · Amends: `2026-11-20-milestone-4-art-appetite-cues-lying`
+
+**Decision.** A playtest at the real game zoom (a hex is about 32 px on a phone) showed no hunger at all, so the appetite sign is made much stronger:
+
+- A ground aura under the creature: a cool slate wash when underfed and a warm ochre wash when overfed, stronger with the level.
+- Bigger shape changes. Underfed: up to 38 % narrower, flatter, thin legs, the moss mostly gone, and a heavier grey wash. Overfed: up to 50 % wider and taller. Levels step 0.5, 0.75, 1.
+- Faint (non-keepers): 75 % of the level's strength, never below level 1's, with the marks in lighter ink. Faint level 3 still reads as starving.
+- `drawAppetiteBadge(palette, size, appetite | null)` for the hub bubble's creature entry: a small head on a disc (narrow, grey, drooping ears on a cool disc when underfed; wide with heavy lids and a doze bubble on a warm disc when overfed). A keeper's badge shows the level as one to three dots; the faint badge is paler and has no dots.
+- `drawStepHint(palette, size, chance, angle)`: a paw print sized and darkened by its chance, for showing all three step options with their weights.
+- Moment `stayed`: settling dust and curled rest marks on the creature when it lingered over the day change.
+
+**Reasoning.** At game zoom the creature is about 100 px, so marks on its body vanish. A ground wash and a changed outline read at a glance. The badge repeats the sign where the hub lists the creature, at a size where only a glyph works.
+
+## 2026-11-20: The keeper's cue shows the creature's true attitude for the tame first creature
+
+ID: `2026-11-20-the-keeper-s-cue-shows-the` · Status: current
+
+**Decision.** For the first, tame creature the keeper's reaction cue keeps showing the creature's hidden attitude to a fire in range (toward, away, unmoved), not the rolled outcome of its step, so a single well-placed fire answers the question for a keeper. Later, harder creatures can blur or delay the cue; nothing in the data shape prevents that. The lead's call after the Milestone 4 playtest, listed for Misa.
+
+**Reasoning.** The fresh-eyes playtest never worked out the reaction at all; making the first creature's puzzle answerable in one experiment keeps the loop learnable, and difficulty can grow with later creatures as the design intends.
+
+## 2026-11-20: Light a fire hints faded without fuel once you have seen a fire
+
+ID: `2026-11-20-light-a-fire-hints-faded-without` · Status: current, amended by `2026-11-20-a-timber-stand-hints-at-a` · Amends: `2026-11-20-light-a-fire-shows-on-your`
+
+**Decision.** When your own hex's card is open for something else (a revealed feature) and you have seen a fire on the map this session (a fire in any view you received, remembered in memory only), the card also shows light-fire faded, with its timber faded, when you carry no fuel. The fuel shown is the core check's `missing` material and the pips its refusal `cost`. Without fuel the card still never opens on an empty hex just for the fire. Moments for fire, feeding and lingering, a fire going out and the creature eating from the stores come only from events.
+
+**Reasoning.** The M4 coordinator's call: once players know fires exist, a faded fire hints that timber makes one, without opening the card everywhere. Reading cost and material from the core's refusal keeps the web free of its own copy of the rules. The earlier view-diff moments could misread an unlock spending food as a feeding.
+
+## 2026-11-20: A lingering creature's stay mark sits on its footprint's near edge
+
+ID: `2026-11-20-a-lingering-creature-s-stay-mark` · Status: current
+
+**Decision.** While `predictCreature` returns the `stay` option, the paw prints ahead are not drawn; the art kit's stay mark is drawn once over the map at the hex on the near (screen-bottom) edge of the creature's footprint, at least about 40 screen px across at any zoom.
+
+**Reasoning.** At the creature's centre the body and riders would hide it, and drawn ahead it would read as where the creature goes. The near edge is at its feet, always in view. Its place is one line in `apps/web/src/map/overlays.ts` (`stayHint`).
+
+## 2026-11-20: Feed and linger sit in the hub drawer as unlock-style cards
+
+ID: `2026-11-20-feed-and-linger-sit-in-the` · Status: current
+
+**Decision.** The creature's hub drawer has a care row above the unlocks, using the unlock card layout: the action icon, the food it takes (faded when the stores hold none), the action pips and the go button. Feed shows for every active character, faded unless riding with the actions and food. Linger shows only for keepers (hidden on `needs-keeper`), faded when not riding, out of actions or the day after a linger, and sealed (done icon, no button) once asked for today. Feeding keeps the drawer open; lingering closes it so the creature is seen lying down with the stay mark.
+
+**Reasoning.** Reuses the hub's existing card and its second-tap button, so no new control to learn. A faded feed card hints that the creature eats without saying how; linger is the keeper's lever, so others never see it.
+
+## 2026-11-20: Light a fire shows on your hex's card only when you carry fuel
+
+ID: `2026-11-20-light-a-fire-shows-on-your` · Status: current, amended by `2026-11-20-light-a-fire-hints-faded-without`
+
+**Decision.** Your own hex's card offers light-fire (the fire icon, a small timber icon and the action pip) when you stand on a hex with fuel in your pack: enabled when `checkAction` allows it, faded when only actions are short. It is not offered without fuel, on water, on the creature or where a fire already burns. The card now opens on a hex without a revealed feature when an action is offered there.
+
+**Reasoning.** Offering a faded fire on every hex without timber would open the card each time you select your character and cover the neighbours you tap to move. Carrying timber is the player's own signal that they mean to burn it.
+
+## 2026-11-20: M4 tick events: a linger is a creature-step that stays; fire-out and creature-ate are public
+
+ID: `2026-11-20-m4-tick-events-a-linger-is` · Status: current
+
+**Decision.** In `nextDayWithEvents`, a creature that lingered still gets its `creature-step` event, with `from` equal to `to`, rather than a separate `lingered` event. Each fire that burns out gives `{ kind: 'fire-out', hex, stimulus }`. A starving creature that eats from the stores gives `{ kind: 'creature-ate', material }`. Order: step, ate, fires out, deposits, losses, day. No event, from an action or the tick, carries the creature's reaction, satiety or cues: signs stay per viewer in the view. M4 refusals carry `cost` like M3's; `no-fuel` and `no-food` also carry `missing` (the first material with the fuel or food tag).
+
+**Reasoning.** Every tick has exactly one step event, so the web needs no special case to find it; lingering is already public on the creature (`lingering`, `lingeredDay`). The stores and fires are public, so these events reveal nothing hidden.
+
 ## 2026-11-20: Poll every 10 seconds while the game is visible
 
 ID: `2026-11-20-poll-every-10-seconds-while-the` · Status: current · Amends: `2026-11-20-polish-after-the-m3-playtest-icon`
@@ -53,25 +164,75 @@ ID: `2026-11-20-the-here-card-is-compact-and` · Status: current · Amends: `202
 
 ## 2026-11-20: Unexplored hexes sit under one hatched paper veil; packs, stores and unlocks have their own marks
 
-ID: `2026-11-20-unexplored-hexes-sit-under-one-hatched` · Status: current
+ID: `2026-11-20-milestone-4-art-appetite-cues-lying` · Status: current, amended by `2026-11-20-appetite-reads-at-game-zoom-a`
 
-**Decision.** A new cell state, `unexplored`, draws a hex's terrain under a veil: one shared SVG `<pattern>` (paper at about 60 % with a fine slanted inkSoft hatch, in the scene's defs, also in lite mode) filling one merged path over every unexplored hex, with that hex's props at 60 % opacity and no feature. It is clearly unlike explored ground, blank paper (unseen) and the plain paper veil of fading tiles. `drawVeilLift(projection, hex)` gives one hex's veil (`data-veil="q,r"`) for the map to fade and lift when the hex becomes explored. `drawPackIcon(palette, px, units, capacity)` draws a satchel with a rising wash and one ochre pip per unit; `drawStoresIcon` draws crates and a basket, and `CreatureArt.stores` puts one to three crates on the creature's back near the tail, clear of the rider slots. Unlock icons stay hook, lantern and spikes; `drawIcon(key, …, { done: true })` adds a wax seal (`drawUnlockSeal` alone), and `drawWorkBar(palette, width, fraction, steps)` is an ink bar filled to a fraction with a tick per unit of work. The survey mark is a fourth moment kind (`drawMoment('survey')`): a spyglass sweeping a fan of looking-lines, in staged parts.
+**Decision.** The creature drawing takes a mood (`CreatureArt.appetite`, `pose`, `cues`; `drawCreature(..., stores, mood)`), and the scene draws it:
 
-**Reasoning.** Misa's revised Milestone 3 makes exploration visible on the map and moves materials through packs into the creature's stores. A single pattern on one path keeps 91 hexes cheap on phones; the per-hex lift element lets the web animate a reveal without the scene drawing hexes one by one.
+- **Underfed:** a narrow, low, sunken body on thin legs, the moss shrunk back, head and tail drooping, a cool grey wash over hide and moss, no blush, and ribs on the near flank, one per level.
+- **Overfed:** a wide body bulging a little past the footprint on thicker legs, a sheen low on the flank, heavy lids, and large doze bubbles rising from the crown, one per level.
+- **Levels** step up by strength 0.4, 0.7 and 1 (`APPETITE_STEPS` in `creature.ts`), so each level is clearly stronger at map scale.
+- **Faint** (what non-keepers see): the shape at level-1 strength and the marks in lighter ink at full opacity, so it stays visible at map scale; the count of ribs or bubbles still matches the level the core gives them.
+- **Cues** take the core's `{ hex, reaction }` (the scene turns hexes into offsets from the centre). Toward: the head turns to the first such fire, ears prick, and a dashed look-line with two alert strokes points at each such fire. Away: three heavy coral shiver arcs outside the rim on the fire's side, ears flat, head turned away. Unmoved: still sage rings on the ground on the fire's side, head straight.
+- **Lying** (`pose: 'lying'`): the body flattens onto the ground in a wide shadow pool, legs tucked with two front paws showing, head resting low, tail flat; riders sit lower (`riderAnchor` takes the same mood).
+- **Fires:** `ArtCell.fire` draws a small campfire (stones, sticks, flame, glow, smoke with `data-fire` parts to animate) on its hex, in full even under the veil, clearing the terrain props like a feature does.
+- **Keys:** feature `berries` (bushes; picked bare when depleted), material `forage`, actions `light-fire`, `feed`, `linger` on a round tile with a dashed inner ring, moments `fire`, `feed`, `linger`, and `drawStayMark` for the step hint when the creature stays put (two paws side by side in a dashed ring; the paw-print hints live in the web app).
 
-## 2026-11-20: The Stubborn quirk's icon is a boulder, so icon keys never clash
+**Reasoning.** Counting the level in ribs and bubbles keeps the sign readable without text or numbers, and the two kinds use different shapes and colours so they never look alike. The look-line, shiver arcs and calm rings are three unlike marks, so a keeper cannot mistake one reaction for another, and each sits on the fire's side so several cues can be told apart.
 
-ID: `2026-11-20-the-stubborn-quirk-s-icon-is` · Status: current · Amends: `2026-11-20-features-glints-moments-and-the-via`
+## 2026-11-20: M4 core: hunger cap in creature data, starving meals nourish, lingering twice refused
 
-**Decision.** The quirk motif formerly keyed `stone` is keyed `boulder` (content renames the Stubborn quirk's icon to match), and `drawIcon` no longer chooses between a quirk and a material by the tile option: every icon key names one drawing. `stone` is the material.
+ID: `2026-11-20-m4-core-hunger-cap-in-creature` · Status: current
 
-**Reasoning.** One key for one drawing is simpler and cannot surprise a caller that forgets the tile option.
+**Decision.** Calls the M4 contract left open, made in the core:
 
-## 2026-11-20: Features, glints, moments and the via mark are drawn by the art kit from content keys
+- The hunger cap (10), start, drain and comfortable band live in the creature type's data (`hunger.max` and so on), not in the tuning config: they are properties of the creature, and later creatures differ. The appetite levels derive from the band (level = distance outside it, up to 3).
+- A starving creature (underfed level 3 after the drain) that eats a food unit gets its nourishment, as if fed; a non-food unit just goes. The non-food pick is seeded by the game seed and day among the materials held.
+- Lingering again on a day the creature already lingers is refused with the existing `already-have`, rather than a new refusal.
+- A step option for a lingering creature is `{ direction: heading, centre: current centre, chance: 1, stay: true }`; other options have no `stay`, so existing callers keep working.
+- A creature's reaction to a stimulus is found by the stimulus's tags (the first the nature lists); a tag it has none for is indifference. Fire is found by its `fire` tag, fuel by the stimulus's fuel tag, food by `food`, the keeper by the role tag `tend`.
+- Berry bushes have placement weight 10 (about 3 in a new game's window, one more every two or three days). They slow the scripted M3 chain test (spikes by day 70 on 10 of 12 maps, was 46 on 9), so its bound moved to 70 days.
 
-ID: `2026-11-20-features-glints-moments-and-the-via` · Status: current, amended by `2026-11-20-the-stubborn-quirk-s-icon-is`
+**Reasoning.** Each is the simplest option that keeps the others possible, and every number stays in one place (content or tuning config).
 
-**Decision.** A revealed feature is drawn on its tile from the `icon` key content gives it (`ore`, `stones`, `logs`, `tomb`, `deep-tomb`, `snare`, `pitfall`; `ArtCell.feature = { look, state }`), upright like the props, 1.6 times their size (`ART_TUNING.featureScale`) so it reads on a phone, and it replaces the terrain's props on that tile. Nodes have a `depleted` look, tombs a `spent` one (the door open, the seal rolled aside); traps are drawn only once revealed, as a cut snare and a marked pit. Unknown keys draw a small cairn. The glint is the hint mark made quieter (a light four-point twinkle and two specks, parts tagged `data-glint` for the map to animate). Materials sit on a rounded-square tile and items on a double-ring roundel; where a key names both a quirk and a material (`stone`), a `quirk` or `trait` tile asks for the quirk drawing and anything else gets the material. Moments (`drawMoment`: an ink bloom for a reveal, a burst for a find, a snap for a trap) are finished frames in three parts tagged `data-part` for the map to stage. `drawViaMark` draws a hook for a step taken with the grappling hook, spikes for the climbing spikes, and a plain dot otherwise.
+## 2026-11-20: Lingering is the keeper's action and never runs two days in a row
+
+ID: `2026-11-20-lingering-is-the-keeper-s-action` · Status: current
+
+**Decision.** A keeper riding the creature can spend 2 actions to make it stay put at the next tick. It cannot linger on the day after a linger. Whether it lingers is public. Other roles cannot linger.
+
+**Reasoning.** Pace is the keeper's lever in the design, and the creature must always move: allowing only every other day keeps a whole team of keepers from stalling the journey. The cost is in the tuning config.
+
+## 2026-11-20: Hunger has a comfortable band; underfed is erratic, overfed is sluggish; anyone can feed
+
+ID: `2026-11-20-hunger-has-a-comfortable-band-underfed` · Status: current, amended by `2026-11-20-hunger-drains-every-second-day`
+
+**Decision.** Satiety is a hidden 0 to 10, starting at 6, dropping 1 per day; 4 to 7 is comfortable. Feeding (riding, 1 action, 1 food from the stores) adds the food's `nourishes` (2). Underfed makes the creature's steps erratic (even veer weights) and, at the worst level, it eats from the team stores. Overfed weakens how much stimuli pull it. Anyone can feed; the keeper's edge is reading the signs. Herbs and illness are left for later.
+
+**Reasoning.** Both failure directions need a cost, or players would always overfeed. Erratic and sluggish are distinct and both hurt steering, so keeping it comfortable is what lets the team steer. Feeding for all follows "basics for all"; the keeper's mastery is information and pace, and more comes later as upgrades.
+
+## 2026-11-20: Symptoms are computed per viewer; keepers see them earlier and see reaction cues
+
+ID: `2026-11-20-symptoms-are-computed-per-viewer-keepers` · Status: current
+
+**Decision.** The view's `signs` are computed per viewer by the core. A keeper sees the appetite kind and level from level 1, plus a cue for each fire the creature noticed at the last tick (toward, away, unmoved), showing its hidden attitude rather than the rolled outcome. Others see appetite only from level 2, always faint, and no cues.
+
+**Reasoning.** The plan asks for clearer signals for the keeper and a puzzle solvable by experiment. The step is a weighted roll, so outcomes alone can mislead; the keeper's cue makes one well-placed fire a fair experiment while others still have to trust the keeper's reading, as the design describes. Clearer or earlier signs can grow into keeper upgrades.
+
+## 2026-11-20: Fires pull the creature's step by a weighted score; the public prediction stays blind
+
+ID: `2026-11-20-fires-pull-the-creature-s-step` · Status: current
+
+**Decision.** For each fire within 3 hexes of the creature's centre, each of the three step options scores +1 closer, -1 farther or 0; its weight is multiplied by `stimulusPull` (6) to the power of the score (negated if repelled, ignored if indifferent), then the seeded roll picks. The heading stays fixed; fires shift the path sideways. `predictCreature` keeps the base weights, so the step hints never reveal the reaction or the hunger.
+
+**Reasoning.** A strong but not certain pull makes steering reliable enough to plan with and keeps the walk lively. Keeping the prediction blind is the only way the reaction stays something to learn. Turning the heading itself is left possible for later.
+
+## 2026-11-20: The creature's nature is hidden server data; the first creature is drawn to fire or shies from it
+
+ID: `2026-11-20-the-creature-s-nature-is-hidden` · Status: current
+
+**Decision.** Creature types are content (`CREATURE_TYPES`), with a need and, per stimulus tag, the reactions they may roll. A new game rolls the creature's reactions from the seed and keeps them, with its satiety, in server-only state fields that the player view never lists. The first creature, the Mossback, rolls its fire reaction from attracted or repelled.
+
+**Reasoning.** Hidden properties are the keeper's puzzle and must never reach the client. An indifferent first creature would make the milestone's done criterion (turning it with fire) impossible; the tame first creature keeps indifference for later ones.
 
 **Reasoning.** Milestone 3's chain has to be readable on the map without text: what a hex holds, whether it is used up, and what just happened. Keying everything by content's icon names keeps content as data; staging marks as parts lets the web animate them without the art kit knowing about time.
 
@@ -98,6 +259,30 @@ ID: `2026-11-20-features-are-placed-by-terrain-tags` · Status: current
 **Decision.** Each feature type has a placement: terrain tags it sits `on`, optionally tags it sits `near` (cliff edges, river banks, forest edges), and a weight against a scale of 20. A hex holds a given fitting feature with probability `featureChance × weight / 20`, and the fitting features' slices add up, so a rare feature stays rare wherever it fits. Starting values: `featureChance` 0.08; iron 30 (desert, cliff edges), stones 20 (river and banks), timber 40 (forest and edges), tomb 2, deep tomb 4, snare 2, pitfall 2 (open or dry ground). That leaves about 88% of hexes empty. A resource node and a tomb are in view from the first day, and a deep tomb typically within a few days. A scripted party of three (scout, engineer, scholar) completes the chain to climbing spikes on 10 of 12 maps, on days 21–45 (median about 34). Most of the wait is for timber and iron to come into view, then for a deep tomb after the lantern.
 
 **Reasoning.** Relative weights let plains (most of the map) fill up with tombs and traps, because nothing else fits there. Absolute weights keep each feature's frequency under control on its own. The chain timing is a tuning question for Misa: raising `featureChance` or the node weights shortens it.
+
+## 2026-11-20: Unexplored hexes sit under one hatched paper veil; packs, stores and unlocks have their own marks
+
+ID: `2026-11-20-unexplored-hexes-sit-under-one-hatched` · Status: current
+
+**Decision.** A new cell state, `unexplored`, draws a hex's terrain under a veil: one shared SVG `<pattern>` (paper at about 60 % with a fine slanted inkSoft hatch, in the scene's defs, also in lite mode) filling one merged path over every unexplored hex, with that hex's props at 60 % opacity and no feature. It is clearly unlike explored ground, blank paper (unseen) and the plain paper veil of fading tiles. `drawVeilLift(projection, hex)` gives one hex's veil (`data-veil="q,r"`) for the map to fade and lift when the hex becomes explored. `drawPackIcon(palette, px, units, capacity)` draws a satchel with a rising wash and one ochre pip per unit; `drawStoresIcon` draws crates and a basket, and `CreatureArt.stores` puts one to three crates on the creature's back near the tail, clear of the rider slots. Unlock icons stay hook, lantern and spikes; `drawIcon(key, …, { done: true })` adds a wax seal (`drawUnlockSeal` alone), and `drawWorkBar(palette, width, fraction, steps)` is an ink bar filled to a fraction with a tick per unit of work. The survey mark is a fourth moment kind (`drawMoment('survey')`): a spyglass sweeping a fan of looking-lines, in staged parts.
+
+**Reasoning.** Misa's revised Milestone 3 makes exploration visible on the map and moves materials through packs into the creature's stores. A single pattern on one path keeps 91 hexes cheap on phones; the per-hex lift element lets the web animate a reveal without the scene drawing hexes one by one.
+
+## 2026-11-20: The Stubborn quirk's icon is a boulder, so icon keys never clash
+
+ID: `2026-11-20-the-stubborn-quirk-s-icon-is` · Status: current · Amends: `2026-11-20-features-glints-moments-and-the-via`
+
+**Decision.** The quirk motif formerly keyed `stone` is keyed `boulder` (content renames the Stubborn quirk's icon to match), and `drawIcon` no longer chooses between a quirk and a material by the tile option: every icon key names one drawing. `stone` is the material.
+
+**Reasoning.** One key for one drawing is simpler and cannot surprise a caller that forgets the tile option.
+
+## 2026-11-20: Features, glints, moments and the via mark are drawn by the art kit from content keys
+
+ID: `2026-11-20-features-glints-moments-and-the-via` · Status: current, amended by `2026-11-20-the-stubborn-quirk-s-icon-is`
+
+**Decision.** A revealed feature is drawn on its tile from the `icon` key content gives it (`ore`, `stones`, `logs`, `tomb`, `deep-tomb`, `snare`, `pitfall`; `ArtCell.feature = { look, state }`), upright like the props, 1.6 times their size (`ART_TUNING.featureScale`) so it reads on a phone, and it replaces the terrain's props on that tile. Nodes have a `depleted` look, tombs a `spent` one (the door open, the seal rolled aside); traps are drawn only once revealed, as a cut snare and a marked pit. Unknown keys draw a small cairn. The glint is the hint mark made quieter (a light four-point twinkle and two specks, parts tagged `data-glint` for the map to animate). Materials sit on a rounded-square tile and items on a double-ring roundel; where a key names both a quirk and a material (`stone`), a `quirk` or `trait` tile asks for the quirk drawing and anything else gets the material. Moments (`drawMoment`: an ink bloom for a reveal, a burst for a find, a snap for a trap) are finished frames in three parts tagged `data-part` for the map to stage. `drawViaMark` draws a hook for a step taken with the grappling hook, spikes for the climbing spikes, and a plain dot otherwise.
+
+**Reasoning.** Milestone 3's chain has to be readable on the map without text: what a hex holds, whether it is used up, and what just happened. Keying everything by content's icon names keeps content as data; staging marks as parts lets the web animate them without the art kit knowing about time.
 
 ## 2026-11-20: Explored and unexplored hexes look clearly different **[Misa]**
 
@@ -550,6 +735,14 @@ ID: `2026-11-19-counts-read-1-3-and-terms` · Status: current
 <!-- Superseded entries below: kept for history, no longer in force. -->
 
 # Superseded
+
+## 2026-11-20: The step ghost walks for one second, then the creature itself returns
+
+ID: `2026-11-20-the-step-ghost-walks-for-one` · Status: superseded by `2026-11-20-the-day-s-step-uses-milestone` · Amends: `2026-11-20-step-hints-scale-with-chance-the`
+
+**Decision.** The day-step ghost slides fully visible for `STEP_MS` (1 s, in `apps/web/src/game/moments.ts`), then disappears at the same instant the scene's creature (hidden by `is-stepping`) and its riders show again. It no longer fades.
+
+**Reasoning.** Fading while the real creature stayed hidden for the whole moment made it end dim and then pop in; a hand-over at the end of the walk reads as one creature walking.
 
 ## 2026-11-20: Chain actions live in the popover and the team inventory in a satchel drawer; moments come from events
 

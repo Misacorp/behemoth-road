@@ -50,6 +50,140 @@ export interface CreatureArt {
   /** How much the team stores hold (in units); drawn as crates on its back when above 0. */
   readonly stores?: number;
   readonly look: CreatureLook;
+  /** Its appetite sign, as the viewer sees it (core `signs.appetite`, with `faint` for non-keepers). */
+  readonly appetite?: CreatureAppetite | null;
+  /** `lying` while it lingers. */
+  readonly pose?: CreaturePose;
+  /** The day's reaction cues (core `signs.cues`): each fire's hex and how the creature felt about it. */
+  readonly cues?: readonly {
+    readonly hex: { readonly q: number; readonly r: number };
+    readonly reaction: CueReaction;
+  }[];
+}
+
+export type AppetiteKind = 'underfed' | 'overfed';
+
+/**
+ * An appetite sign. Underfed: the head and tail droop, the hide and moss go dull, ribs show (one per
+ * level). Overfed: the body grows rounder and sags, the eyes grow heavy, and doze bubbles rise (one per
+ * level). `faint` is what non-keepers see: the same sign at half strength, in lighter ink.
+ */
+export interface CreatureAppetite {
+  readonly kind: AppetiteKind;
+  readonly level: 1 | 2 | 3;
+  readonly faint?: boolean;
+}
+
+export type CreaturePose = 'standing' | 'lying';
+
+/** How the creature felt about a fire: drawn to it, shying from it, or not caring. */
+export type CueReaction = 'toward' | 'away' | 'unmoved';
+
+export interface CreatureCue {
+  readonly reaction: CueReaction;
+  /** The fire's hex minus the creature's centre hex (axial); only its direction matters. */
+  readonly offset: { readonly q: number; readonly r: number };
+}
+
+/** The creature's state on the day: appetite, pose and reaction cues. All optional. */
+export interface CreatureMood {
+  readonly appetite?: CreatureAppetite | null;
+  readonly pose?: CreaturePose;
+  readonly cues?: readonly CreatureCue[];
+}
+
+/** The mood a scene draws for a creature: its cues' hexes turned into offsets from its centre. */
+export function moodOf(creature: CreatureArt): CreatureMood {
+  return {
+    appetite: creature.appetite ?? null,
+    pose: creature.pose ?? 'standing',
+    cues: (creature.cues ?? []).map((c) => ({
+      reaction: c.reaction,
+      offset: { q: c.hex.q - creature.q, r: c.hex.r - creature.r },
+    })),
+  };
+}
+
+/** How strongly the appetite shows (0 to 1 for each kind), and how many marks to draw. */
+function appetiteShow(mood: CreatureMood): {
+  under: number;
+  over: number;
+  marks: number;
+  faint: boolean;
+} {
+  const a = mood.appetite;
+  if (!a || (a.kind !== 'underfed' && a.kind !== 'overfed'))
+    return { under: 0, over: 0, marks: 0, faint: false };
+  const level = Number.isFinite(a.level) ? Math.min(3, Math.max(1, Math.round(a.level))) : 1;
+  const faint = a.faint === true;
+  // Each level a clear step; faint shows the level-1 strength of the same sign.
+  const step = APPETITE_STEPS[level - 1]!;
+  const s = faint ? Math.max(APPETITE_STEPS[0], step * FAINT_SHARE) : step;
+  return {
+    under: a.kind === 'underfed' ? s : 0,
+    over: a.kind === 'overfed' ? s : 0,
+    marks: level,
+    faint,
+  };
+}
+
+/** How strongly each appetite level shows, from level 1 to 3. */
+const APPETITE_STEPS = [0.5, 0.75, 1] as const;
+/** Faint (non-keepers): this share of the level's strength, never below level 1's. */
+const FAINT_SHARE = 0.75;
+
+/** The body cut: the body ellipsoid is drawn down to this angle below its equator; legs show beneath. */
+const BODY_CUT = -0.25;
+
+/** A build reshaped by the mood: thinner and drooping when underfed, rounder when overfed, low when lying. */
+function shapeBuild(base: Build, mood: CreatureMood): Build {
+  const { under, over } = appetiteShow(mood);
+  // Underfed: a narrow, low, sunken body on thin legs, the moss shrunk back. Overfed: a wide, bulging body.
+  let body: Solid = {
+    ...base.body,
+    a: base.body.a * (1 - 0.08 * under + 0.18 * over),
+    b: base.body.b * (1 - 0.38 * under + 0.5 * over),
+    c: base.body.c * (1 - 0.3 * under + 0.18 * over),
+    z: base.body.z - 0.08 * under - 0.12 * over,
+  };
+  let head: Solid = {
+    ...base.head,
+    u: base.head.u - 0.15 * under,
+    z: base.head.z - 0.62 * under - 0.08 * over,
+  };
+  const legRadius = base.legRadius * (1 - 0.45 * under + 0.25 * over);
+  const legSpread: Build['legSpread'] = [
+    base.legSpread[0],
+    base.legSpread[1] * (1 - 0.2 * under + 0.25 * over),
+  ];
+  const mossUp = Math.min(0.94, base.mossUp + 0.4 * under);
+  const [n0, n1] = base.neck;
+  let neck: Build['neck'] = [
+    [n0[0], n0[1] - 0.08 * over, n0[2]],
+    [n1[0] - 0.15 * under, n1[1] - 0.6 * under - 0.08 * over, n1[2] * (1 - 0.15 * under)],
+  ];
+  const [t0, t1] = base.tail;
+  let tail: Build['tail'] = [
+    [t0[0], t0[1] - 0.1 * under, t0[2]],
+    [t1[0], Math.max(0.06, t1[1] - 0.18 * under), t1[2]],
+  ];
+  if (mood.pose === 'lying') {
+    // Flatten the body and lower everything until it rests on the ground; the head comes down to rest low.
+    body = { ...body, a: body.a * 1.06, b: body.b * 1.12, c: body.c * 0.68 };
+    const drop = Math.max(0, body.z + body.c * Math.sin(BODY_CUT) + 0.02);
+    body = { ...body, z: body.z - drop };
+    const headZ = Math.max(head.c + 0.06, head.z - drop - 0.3);
+    head = { ...head, z: headZ, u: head.u - 0.08 };
+    neck = [
+      [neck[0][0], neck[0][1] - drop, neck[0][2]],
+      [neck[1][0] - 0.08, headZ + 0.02, neck[1][2]],
+    ];
+    tail = [
+      [tail[0][0], Math.max(0.1, tail[0][1] - drop), tail[0][2]],
+      [tail[1][0], 0.05, tail[1][2]],
+    ];
+  }
+  return { ...base, body, head, neck, tail, legRadius, legSpread, mossUp };
 }
 
 interface V3 {
@@ -215,8 +349,9 @@ function creatureFrame(
   origin: Point,
   size: number,
   squash: number,
+  mood: CreatureMood = {},
 ) {
-  const build = BUILDS[look.body] ?? BUILDS.highback;
+  const build = shapeBuild(BUILDS[look.body] ?? BUILDS.highback, mood);
   const S = Number.isFinite(look.scale) && look.scale > 0 ? look.scale : 1;
   const t = Number.isFinite(squash) ? Math.min(1, Math.max(0.2, squash)) : 0.8;
   const rise = Math.sqrt(Math.max(0, 1 - t * t));
@@ -266,8 +401,10 @@ export function riderAnchor(
   origin: Point,
   size: number,
   squash: number,
+  /** The creature's mood: lying or a changed appetite moves its back. */
+  mood: CreatureMood = {},
 ): Point {
-  const f = creatureFrame(look, heading, origin, size, squash);
+  const f = creatureFrame(look, heading, origin, size, squash, mood);
   const { fu, fv } = riderSlot(index);
   // Shift the slots towards the viewer (world south), where the back is seen best from the high view.
   const bias = 0.28;
@@ -284,10 +421,31 @@ export function drawCreature(
   heading: { q: number; r: number },
   /** How much the team stores hold (in units): drawn as up to three crates on the back. */
   stores = 0,
+  /** Appetite sign, pose and reaction cues. */
+  mood: CreatureMood = {},
 ): Drawn & { readonly silhouettes: readonly (readonly Point[])[] } {
   // Creature frame (u forward, v to its right, z up; hex sizes at scale 1) to the world, then the screen.
-  const frame = creatureFrame(look, heading, origin, size, squash);
-  const { build, S, t, rise, world, screen } = frame;
+  const frame = creatureFrame(look, heading, origin, size, squash, mood);
+  const { build, S, t, rise, world, screen, fwd, right } = frame;
+  const show = appetiteShow(mood);
+  const lying = mood.pose === 'lying';
+  const cues = (mood.cues ?? []).flatMap((cue) => {
+    const x = 1.5 * cue.offset.q;
+    const y = Math.sqrt(3) * (cue.offset.r + cue.offset.q / 2);
+    const fu = x * fwd.x + y * fwd.y;
+    const fv = x * right.x + y * right.y;
+    const len = Math.hypot(fu, fv);
+    if (!Number.isFinite(len) || len <= 0) return [];
+    return [{ reaction: cue.reaction, u: fu / len, v: fv / len, angle: Math.atan2(fv, fu) }];
+  });
+  // The head turns to the first fire it is drawn to; failing that, away from the first it shies from.
+  const lure = cues.find((c) => c.reaction === 'toward');
+  const fear = cues.find((c) => c.reaction === 'away');
+  const yaw = lure
+    ? Math.max(-1.1, Math.min(1.1, lure.angle)) * 0.75
+    : fear
+      ? -(Math.sign(fear.angle) || 1) * 0.45
+      : 0;
   const unit = size * S;
   const at = (u: number, v: number, z: number): Point => screen(world(u, v, z));
   // Faces the viewer: the view direction is (0, rise, t) in world terms (south and up).
@@ -362,6 +520,8 @@ export function drawCreature(
   const tube = (
     from: readonly [number, number, number],
     to: readonly [number, number, number],
+    /** How far the far end sits to the creature's right (a turned head pulls the neck along). */
+    toV = 0,
   ): Point[] => {
     const pts: Point[] = [];
     for (let k = 0; k <= 6; k += 1) {
@@ -369,9 +529,10 @@ export function drawCreature(
       const u = from[0] + (to[0] - from[0]) * f;
       const z = from[1] + (to[1] - from[1]) * f;
       const r = from[2] + (to[2] - from[2]) * f;
+      const v = toV * f * f;
       for (let i = 0; i < 16; i += 1) {
         const a = (Math.PI * 2 * i) / 16;
-        pts.push(at(u, Math.cos(a) * r, z + Math.sin(a) * r));
+        pts.push(at(u, v + Math.cos(a) * r, z + Math.sin(a) * r));
       }
     }
     const h = thin(hull(pts), minGap);
@@ -386,24 +547,73 @@ export function drawCreature(
   const depthAt = (u: number, v: number): number => world(u, v, 0).y + u * 0.002;
 
   const body = build.body;
-  const head = build.head;
+  // The head turns about the neck's end: its centre swings round, and its parts turn with it.
+  const pivot = build.neck[1][0];
+  const reach = build.head.u - pivot;
+  const cy = Math.cos(yaw);
+  const sy = Math.sin(yaw);
+  const head: Solid = { ...build.head, u: pivot + reach * cy, v: reach * sy };
+  /** A point on the head, `du` forward and `dv` to the right of its centre, in the head's own turned frame. */
+  const hp = (du: number, dv: number, z: number): V3 =>
+    world(head.u + du * cy - dv * sy, head.v + du * sy + dv * cy, z);
 
-  // Shadow on the ground.
+  // Shadow on the ground: tighter and darker when it lies down.
   const shadow = Array.from({ length: 20 }, (_, i) => {
     const a = (Math.PI * 2 * i) / 20;
-    return at(body.u + Math.cos(a) * (body.a + 0.5), Math.sin(a) * (body.b + 0.3), 0);
+    const grow = lying ? [0.75, 0.6] : [0.5, 0.3];
+    return at(body.u + Math.cos(a) * (body.a + grow[0]!), Math.sin(a) * (body.b + grow[1]!), 0);
   });
-  pieces.push({ depth: -1e6, nodes: [fill(smoothClosed(shadow), palette.shadow, 0.2)] });
+  pieces.push({
+    depth: -1e6,
+    nodes: [fill(smoothClosed(shadow), palette.shadow, lying ? 0.34 : 0.2)],
+  });
+  // Appetite aura: a wash on the ground around it that reads at a glance, cool grey when underfed, warm
+  // when overfed.
+  if (show.under > 0 || show.over > 0) {
+    const ramp = show.under > 0 ? palette.accents.slate : palette.accents.ochre;
+    const strength = Math.max(show.under, show.over);
+    const ring = (grow: number): string =>
+      smoothClosed(
+        Array.from({ length: 24 }, (_, i) => {
+          const a = (Math.PI * 2 * i) / 24;
+          const wob = 1 + 0.05 * Math.sin(i * 2.7);
+          return at(
+            body.u + Math.cos(a) * (body.a + grow) * wob,
+            Math.sin(a) * (body.b + grow) * wob,
+            0,
+          );
+        }),
+      );
+    pieces.push({
+      depth: -2e6,
+      nodes: [
+        el('path', {
+          d: ring(1.15),
+          fill: ramp.light,
+          opacity: 0.35 + 0.35 * strength,
+          'data-sign': 'aura',
+        }),
+        el('path', {
+          d: ring(0.85),
+          fill: ramp.base,
+          opacity: 0.2 + 0.3 * strength,
+          'data-sign': 'aura',
+        }),
+      ],
+    });
+  }
 
   // Legs: thick columns under the body with mossy feet; the body hides their tops.
   const legTop = body.z;
   const legs: Piece[] = [];
-  for (const [su, sv] of [
-    [1, 1],
-    [1, -1],
-    [-1, 1],
-    [-1, -1],
-  ] as const) {
+  for (const [su, sv] of (lying
+    ? []
+    : [
+        [1, 1],
+        [1, -1],
+        [-1, 1],
+        [-1, -1],
+      ]) as readonly (readonly [number, number])[]) {
     const u = body.u + su * build.legSpread[0];
     const v = sv * build.legSpread[1];
     const r = build.legRadius;
@@ -439,6 +649,32 @@ export function drawCreature(
     });
   }
   pieces.push(...legs);
+  if (lying) {
+    // Legs tucked under the body: only the two front paws peek out on the ground.
+    for (const side of [1, -1]) {
+      const paw: Solid = {
+        u: body.u + body.a * 0.98,
+        v: side * build.legSpread[1] * 0.9,
+        z: 0.06,
+        a: build.legRadius * 0.62,
+        b: build.legRadius * 0.44,
+        c: build.legRadius * 0.3,
+      };
+      const pawOutline = outline(paw);
+      const toes = [-1, 0, 1].map((k) => {
+        const q = at(paw.u + paw.a * 0.85, paw.v + k * paw.b * 0.45, paw.z + paw.c * 0.4);
+        return ellipsePath(q.x, q.y, unit * 0.03, unit * 0.022);
+      });
+      pieces.push({
+        depth: depthAt(paw.u, paw.v),
+        nodes: [
+          fill(smoothClosed(pawOutline), hide.base),
+          line(smoothClosed(pawOutline), w * 0.9),
+          line(toes.join(''), w * 0.6, palette.inkSoft),
+        ],
+      });
+    }
+  }
 
   // Tail: a tapering tube, with a tuft at its tip.
   const tailOutline = tube(build.tail[0], build.tail[1]);
@@ -452,7 +688,7 @@ export function drawCreature(
   pieces.push({ depth: -5e4, nodes: tailNodes });
 
   // Body: shaded rim, lit back, spots on the flanks, a moss blanket, and the landscape on top.
-  const bodyOutline = outline(body, -0.25);
+  const bodyOutline = outline(body, BODY_CUT);
   const bodyNodes: SvgNode[] = [
     fill(smoothClosed(bodyOutline), hide.shade),
     fill(smoothClosed(cap(body, 0.3)), hide.base),
@@ -510,6 +746,36 @@ export function drawCreature(
       (i % 2 ? light : dark).push(ellipsePath(p.x, p.y, r, r * t));
     });
     bodyNodes.push(fill(dark.join(''), moss.shade, 0.55), fill(light.join(''), moss.light, 0.7));
+  }
+  // Appetite on the body. Underfed: a dull grey wash over hide and moss, and ribs on the flank facing the
+  // viewer, one per level. Overfed: a round sheen low on the near flank.
+  const signInk = show.faint ? palette.inkSoft : palette.ink;
+  if (show.under > 0) {
+    bodyNodes.push(fill(smoothClosed(bodyOutline), palette.accents.slate.base, 0.75 * show.under));
+    const ribs: string[] = [];
+    for (const side of [1, -1]) {
+      if (!faces(surface(body, side * (Math.PI / 2), 0.1).n)) continue;
+      for (let i = 0; i < show.marks; i += 1) {
+        const th = side * (Math.PI / 2 + (i - (show.marks - 1) / 2) * 0.32);
+        ribs.push(
+          smoothOpen([-0.2, 0.08, 0.36, 0.55].map((ph) => screen(surface(body, th, ph).p))),
+        );
+      }
+    }
+    if (ribs.length)
+      bodyNodes.push(
+        el('path', {
+          d: ribs.join(''),
+          ...inkAttrs(signInk, w * 1.8),
+          'data-sign': 'ribs',
+        }),
+      );
+  }
+  if (show.over > 0) {
+    const sheen = [1, -1]
+      .map((side) => patch(body, side * (Math.PI / 2), -0.02, 0.22 + 0.2 * show.over))
+      .join('');
+    if (sheen) bodyNodes.push(fill(sheen, hide.light, 0.35 + 0.4 * show.over));
   }
   bodyNodes.push(line(smoothClosed(bodyOutline)));
 
@@ -663,7 +929,7 @@ export function drawCreature(
   pieces.push({ depth: depthAt(body.u, 0), nodes: bodyNodes });
 
   // Neck: a strong tapering tube from the shoulder to the head.
-  const neckOutline = tube(build.neck[0], build.neck[1]);
+  const neckOutline = tube(build.neck[0], build.neck[1], head.v * 0.5);
   pieces.push({
     depth: depthAt((build.neck[0][0] + build.neck[1][0]) / 2, 0),
     nodes: [
@@ -674,7 +940,11 @@ export function drawCreature(
             const [u0, z0, r0] = build.neck[0];
             const [u1, z1, r1] = build.neck[1];
             const r = r0 + (r1 - r0) * f;
-            return at(u0 + (u1 - u0) * f, -r * 0.3, z0 + (z1 - z0) * f + r * 0.7);
+            return at(
+              u0 + (u1 - u0) * f,
+              head.v * 0.5 * f * f - r * 0.3,
+              z0 + (z1 - z0) * f + r * 0.7,
+            );
           }),
         ),
         unit * build.neck[1][2] * 0.35,
@@ -686,8 +956,8 @@ export function drawCreature(
 
   // Head: large and calm, a pale muzzle, closed eyes, a blush; swept horns and small ears.
   const snout: Solid = {
-    u: head.u + head.a * 0.75,
-    v: 0,
+    u: head.u + head.a * 0.75 * cy,
+    v: head.v + head.a * 0.75 * sy,
     z: head.z - head.c * 0.3,
     a: head.a * 0.45,
     b: head.b * 0.6,
@@ -701,54 +971,78 @@ export function drawCreature(
   ];
   const face: string[] = [];
   const blush: string[] = [];
+  const lids: string[] = [];
   for (const side of [1, -1]) {
-    const th = side * 0.75;
+    const th = side * 0.75 + yaw;
     if (faces(surface(head, th, 0.3).n)) {
       const a = screen(surface(head, th - 0.2 * side, 0.32).p);
       const m = screen(surface(head, th, 0.22).p);
       const b = screen(surface(head, th + 0.2 * side, 0.32).p);
-      face.push(smoothOpen([a, m, b]));
+      if (show.over > 0) {
+        // Drowsy: a heavy lid over a flat, half-shut eye.
+        const lidTop = screen(surface(head, th, 0.42).p);
+        const flat = screen(surface(head, th, 0.27).p);
+        lids.push(smoothClosed([a, lidTop, b, flat]));
+        face.push(smoothOpen([a, flat, b]));
+      } else {
+        face.push(smoothOpen([a, m, b]));
+      }
     }
-    blush.push(patch(head, side * 0.95, -0.05, 0.16));
-    const nos = surface(snout, side * 0.4, 0.3);
+    // Underfed, the blush is gone.
+    if (show.under === 0) blush.push(patch(head, side * 0.95 + yaw, -0.05, 0.16));
+    const nos = surface(snout, side * 0.4 + yaw, 0.3);
     if (faces(nos.n)) {
       const p = screen(nos.p);
       face.push(ellipsePath(p.x, p.y, unit * 0.018, unit * 0.014));
     }
   }
   if (blush.join('')) headCore.push(fill(blush.join(''), palette.accents.rose.base, 0.4));
+  if (show.under > 0)
+    headCore.push(fill(smoothClosed(headOutline), palette.accents.slate.base, 0.75 * show.under));
+  if (lids.length)
+    headCore.push(
+      el('path', { d: lids.join(''), fill: hide.shade, 'data-sign': 'lids' }),
+      line(lids.join(''), w * 0.8, signInk),
+    );
   if (face.length) headCore.push(line(face.join(''), w * 1.1));
-  pieces.push({ depth: depthAt(head.u, 0) + 0.001, nodes: headCore });
+  pieces.push({ depth: depthAt(head.u, head.v) + 0.001, nodes: headCore });
 
   const snoutOutline = outline(snout);
   pieces.push({
-    depth: depthAt(snout.u, 0) + 0.002,
+    depth: depthAt(snout.u, snout.v) + 0.002,
     nodes: [
       fill(smoothClosed(snoutOutline), palette.belly),
       line(smoothClosed(snoutOutline), w * 0.95),
     ],
   });
   // Re-draw the face on the muzzle side when the muzzle covers it (heading towards the viewer).
-  if (face.length && depthAt(snout.u, 0) > depthAt(head.u, 0)) {
+  if (face.length && depthAt(snout.u, snout.v) > depthAt(head.u, head.v)) {
     const nostrils = face.filter((d) => d.includes('A'));
     if (nostrils.length)
       pieces.push({
-        depth: depthAt(snout.u, 0) + 0.003,
+        depth: depthAt(snout.u, snout.v) + 0.003,
         nodes: [line(nostrils.join(''), w * 1.1)],
       });
   }
 
   // Small ears low on the sides of the head.
+  // Drawn to a fire, the ears prick up and forward; shying from one, they lie flat back.
+  const ear = lure
+    ? { tipU: -0.2, tipV: 1.1, tipZ: 0.95 }
+    : fear
+      ? { tipU: -0.85, tipV: 1.05, tipZ: 0.2 }
+      : { tipU: -0.55, tipV: 1.2, tipZ: 0.25 };
   for (const side of [1, -1]) {
     const pts = [
-      at(head.u - head.a * 0.15, side * head.b * 0.75, head.z + head.c * 0.45),
-      at(head.u - head.a * 0.55, side * head.b * 1.2, head.z + head.c * 0.25),
-      at(head.u - head.a * 0.45, side * head.b * 0.8, head.z + head.c * 0.2),
+      screen(hp(-head.a * 0.15, side * head.b * 0.75, head.z + head.c * 0.45)),
+      screen(hp(head.a * ear.tipU, side * head.b * ear.tipV, head.z + head.c * ear.tipZ)),
+      screen(hp(-head.a * 0.45, side * head.b * 0.8, head.z + head.c * 0.2)),
     ];
     everything.push(...pts);
     silhouettes.push(pts);
+    const earAt = hp(-head.a * 0.4, side * head.b, 0);
     pieces.push({
-      depth: depthAt(head.u - head.a * 0.4, side * head.b) + 0.0005,
+      depth: earAt.y + (head.u - head.a * 0.4) * 0.002 + 0.0005,
       nodes: [fill(smoothClosed(pts), hide.shade), line(smoothClosed(pts), w * 0.85)],
     });
   }
@@ -760,8 +1054,8 @@ export function drawCreature(
       for (let k = 0; k <= 6; k += 1) {
         const f = k / 6;
         path.push(
-          world(
-            head.u - head.a * (0.05 + 0.95 * f),
+          hp(
+            -head.a * (0.05 + 0.95 * f),
             side * head.b * (0.38 + 0.35 * f),
             head.z + head.c * (0.85 + 0.55 * Math.sin(f * Math.PI * 0.6)),
           ),
@@ -791,6 +1085,135 @@ export function drawCreature(
       });
     }
   }
+
+  // Overfed: doze bubbles rising from the crown, one per level.
+  if (show.over > 0) {
+    const crown = screen(hp(-head.a * 0.2, 0, head.z + head.c * 1.25));
+    const bubbles = Array.from({ length: show.marks }, (_, i) => {
+      const x = crown.x + unit * (0.3 + 0.38 * i);
+      const y = crown.y - unit * (0.3 + 0.52 * i);
+      const r = unit * (0.13 + 0.07 * i);
+      everything.push({ x: x + r, y: y - r });
+      return ellipsePath(x, y, r, r);
+    });
+    pieces.push({
+      depth: 1e6,
+      nodes: [
+        el('path', {
+          d: bubbles.join(''),
+          fill: palette.paper,
+          stroke: signInk,
+          'stroke-width': w * 1.1,
+          'data-sign': 'doze',
+        }),
+      ],
+    });
+  }
+
+  // Reaction cues, each on the side of the fire it answers.
+  /** The body's rim (in the plane, from its centre) in the frame direction `angle`. */
+  const rim = (angle: number): number =>
+    1 / Math.hypot(Math.cos(angle) / body.a, Math.sin(angle) / body.b);
+  const cueNodes: SvgNode[] = [];
+  for (const cue of cues) {
+    if (cue.reaction === 'toward') {
+      // A glance: a dashed look-line from the head (or the rim, for a fire behind) towards the fire.
+      const fromHead = Math.cos(cue.angle) > -0.2;
+      const base = fromHead
+        ? { u: head.u, v: head.v, z: head.z, r: head.a + 0.2 }
+        : { u: body.u, v: 0, z: body.z, r: rim(cue.angle) + 0.15 };
+      const pt = (d: number): Point =>
+        at(base.u + cue.u * (base.r + d), base.v + cue.v * (base.r + d), base.z);
+      const a = pt(0);
+      const b = pt(1.15);
+      // Two short alert strokes fanning out from the head on the fire's side.
+      const tick = (turn: number): string => {
+        const ang = cue.angle + turn;
+        const p0 = at(
+          base.u + Math.cos(ang) * (base.r + 0.05),
+          base.v + Math.sin(ang) * (base.r + 0.05),
+          base.z + 0.25,
+        );
+        const p1 = at(
+          base.u + Math.cos(ang) * (base.r + 0.32),
+          base.v + Math.sin(ang) * (base.r + 0.32),
+          base.z + 0.42,
+        );
+        return `M${fmt(p0.x)} ${fmt(p0.y)}L${fmt(p1.x)} ${fmt(p1.y)}`;
+      };
+      everything.push(a, b);
+      cueNodes.push(
+        el('path', {
+          d: `M${fmt(a.x)} ${fmt(a.y)}L${fmt(b.x)} ${fmt(b.y)}`,
+          ...inkAttrs(palette.hint, w * 2),
+          'stroke-dasharray': `${fmt(unit * 0.12)} ${fmt(unit * 0.1)}`,
+          'data-cue': 'toward',
+        }),
+        el('path', {
+          d: ellipsePath(b.x, b.y, unit * 0.08, unit * 0.08),
+          fill: palette.hint,
+          'data-cue': 'toward',
+        }),
+        el('path', {
+          d: tick(-0.5) + tick(0.5),
+          ...inkAttrs(palette.hint, w * 1.5),
+          'data-cue': 'toward',
+        }),
+      );
+    } else if (cue.reaction === 'away') {
+      // A flinch: three short shiver arcs off the rim on the fire's side.
+      const z = body.z;
+      const arcs = [0.32, 0.6, 0.88].map((d, i) => {
+        const spread = 0.62 - i * 0.1;
+        return smoothOpen(
+          [-1, -0.5, 0, 0.5, 1].map((f) => {
+            const ang = cue.angle + f * spread;
+            const r = rim(ang) + d;
+            return at(body.u + Math.cos(ang) * r, Math.sin(ang) * r, z);
+          }),
+        );
+      });
+      const far = at(body.u + cue.u * (rim(cue.angle) + 1), cue.v * (rim(cue.angle) + 1), z);
+      everything.push(far);
+      cueNodes.push(
+        el('path', {
+          d: arcs.join(''),
+          ...inkAttrs(palette.accents.coral.shade, w * 2.6),
+          'data-cue': 'away',
+        }),
+      );
+    } else if (cue.reaction === 'unmoved') {
+      // Calm: still rings on the ground on the fire's side, like a pond nothing disturbs.
+      // Off the rim on the fire's side; past the head when the fire is ahead.
+      const ahead = Math.abs(cue.angle) < 0.7;
+      const r0 = ahead ? head.u + head.a + 0.6 - body.u : rim(cue.angle) + 0.55;
+      const cu = body.u + cue.u * r0;
+      const cv = cue.v * r0;
+      const ring = (r: number): string =>
+        smoothClosed(
+          Array.from({ length: 12 }, (_, i) => {
+            const a = (Math.PI * 2 * i) / 12;
+            return at(cu + Math.cos(a) * r, cv + Math.sin(a) * r, 0.02);
+          }),
+        );
+      everything.push(at(cu + 0.4, cv + 0.4, 0), at(cu - 0.4, cv - 0.4, 0));
+      cueNodes.push(
+        el('path', {
+          d: ring(0.2),
+          fill: palette.accents.sage.light,
+          stroke: palette.accents.sage.shade,
+          'stroke-width': w,
+          'data-cue': 'unmoved',
+        }),
+        el('path', {
+          d: ring(0.38),
+          ...inkAttrs(palette.accents.sage.shade, w * 1.1),
+          'data-cue': 'unmoved',
+        }),
+      );
+    }
+  }
+  if (cueNodes.length) pieces.push({ depth: 2e6, nodes: cueNodes });
 
   pieces.sort((a, b) => a.depth - b.depth);
   return { nodes: pieces.flatMap((p) => p.nodes), box: boxOf(everything), silhouettes };

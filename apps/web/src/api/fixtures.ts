@@ -12,9 +12,11 @@ import {
   characterOf,
   characterOffers,
   createGame,
+  creatureSigns,
   type GameState,
   type Hex,
   nextDay,
+  type Reaction,
   onHex,
   replaceCharacter,
   toPlayerView,
@@ -79,6 +81,11 @@ export function toView(s: Scenario): PlayerView {
     devTools: true,
     events: [],
     eventsTruncated: false,
+    // Per viewer, as the Worker computes them: for your active character, or no viewer.
+    signs: creatureSigns(
+      s.state,
+      mine?.status === 'active' ? mine.id : null,
+    ) as PlayerView['signs'],
   };
 }
 
@@ -152,6 +159,19 @@ export interface ChainStage {
   readonly project?: { readonly unlock: string; readonly work: number } | null;
   /** Spots already explored (their features revealed). */
   readonly explored?: readonly (keyof typeof CHAIN_SPOTS)[];
+  /** The node on the deposit spot (a feature id); default the iron deposit. */
+  readonly deposit?: string;
+  /** Milestone 4: fires lit today, as offsets from the creature's centre. */
+  readonly fires?: readonly Hex[];
+  /** The creature's hidden hunger (server only; drives the appetite sign). */
+  readonly satiety?: number;
+  /**
+   * Reactions felt at the last tick (shown to keepers today), as offsets from the centre. The hidden state
+   * holds the core's `Reaction` (attracted, repelled, indifferent); a keeper reads it as toward, away, unmoved.
+   */
+  readonly cues?: readonly { readonly at: Hex; readonly reaction: Reaction }[];
+  readonly lingering?: boolean;
+  readonly lingeredDay?: number | null;
 }
 
 /**
@@ -191,13 +211,34 @@ export function chainScenario(stage: ChainStage = {}): Scenario {
     day: stage.day ?? s.state.day,
     tiles,
     features: {
-      ...feature('iron', 'iron-deposit', 3),
+      ...feature('iron', stage.deposit ?? 'iron-deposit', 3),
       ...feature('tomb', 'tomb', 1),
       ...feature('snare', 'snare', 1),
     },
     stores: stage.stores ?? {},
     unlocks: stage.unlocks ?? [],
     project: stage.project ?? null,
+  };
+  const day = state.day;
+  state = {
+    ...state,
+    stimuli: (stage.fires ?? []).map((h) => ({ type: 'fire', hex: abs(h), litDay: day })),
+    care: {
+      satiety: stage.satiety ?? state.care.satiety,
+      cues: {
+        day,
+        list: (stage.cues ?? []).map((cue) => ({
+          hex: abs(cue.at),
+          stimulus: 'fire',
+          reaction: cue.reaction,
+        })),
+      },
+    },
+    creature: {
+      ...state.creature,
+      lingering: stage.lingering ?? false,
+      lingeredDay: stage.lingeredDay ?? null,
+    },
   };
   const at = stage.at ?? 'start';
   if (at !== 'creature') state = place(state, MISA, abs(CHAIN_SPOTS[at]));

@@ -4,7 +4,8 @@
  * their sessions. The object runs one request at a time, and every write here is one `transactionSync`.
  *
  * Every game rule goes through `game-core.ts` (the core package). Identity comes from the session only.
- * The seed stays in the stored state: only `toPlayerView` output leaves this file.
+ * The seed and the creature's nature and condition stay in the stored state: only `toPlayerView` output
+ * and the viewer's `creatureSigns` leave this file.
  */
 import type { GuildApi } from './discord.ts';
 import { DiscordError } from './discord.ts';
@@ -14,6 +15,7 @@ import {
   characterOf,
   characterOffers,
   createGame,
+  creatureSigns,
   loadGame,
   actWithEvents,
   OutdatedGameError,
@@ -24,6 +26,7 @@ import {
   replaceCharacter,
   toPlayerView,
   type CharacterOffer,
+  type CreatureSigns,
   type GameState,
   type GameStateView,
   type Seed,
@@ -65,6 +68,11 @@ export interface PlayerView {
   /** The characters this player may pick (the rolls, then the plain one): only while they have no active character. */
   offers: CharacterOffer[] | null;
   game: GameStateView;
+  /**
+   * What this viewer reads off the creature, from their active character (a keeper sees clearer and sees
+   * cues). Per viewer, a pure function of the stored state, so it changes only with the version.
+   */
+  signs: CreatureSigns;
   players: PlayerEntry[];
   devTools: boolean;
 }
@@ -533,7 +541,7 @@ export class GuildGame {
     );
   }
 
-  /** `POST /api/game/act`: gather, craft or work a site, as the player's own character at its place. */
+  /** `POST /api/game/act`: an action (survey, gather, work a site, build, light a fire, feed, linger) by the player's own character. */
   private async act(user: SessionUser, request: Request): Promise<Response> {
     const body = await parseBody(request, ActBodySchema);
     if (body === undefined) return errorResponse('invalid_body', 400);
@@ -656,6 +664,7 @@ export class GuildGame {
       you: { userId: user.id, characterId: mine?.id ?? null, admin },
       offers: mine?.status === 'active' ? null : characterOffers(game.state, user.id),
       game: toPlayerView(game.state),
+      signs: creatureSigns(game.state, mine?.status === 'active' ? mine.id : null),
       players,
       devTools: this.options.devTools,
     };

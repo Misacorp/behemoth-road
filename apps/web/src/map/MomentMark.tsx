@@ -2,8 +2,10 @@
  * One moment, drawn in world px on its own SVG layer over the map and animated by CSS (`styles.css`,
  * `.moment-*`), so it costs no per-frame work. The art kit draws the marks: an explored hex's veil lifting
  * away (`drawVeilLift`), the survey and reveal blooms, the burst of a find with the material's icon rising,
- * the snap of a trap (`drawMoment`), a material dropping into the stores on the creature, and a finished
- * unlock's sealed icon rising from the creature.
+ * the snap of a trap (`drawMoment`), a material dropping into the stores on the creature, a finished
+ * unlock's sealed icon rising from the creature, and Milestone 4's fire lit, feeding (the food dropping in),
+ * linger and stayed (`drawMoment`), a fire going out (its mark lifting away) and the creature eating from
+ * the stores (the material rising off its back).
  */
 import {
   ART_TUNING,
@@ -16,7 +18,7 @@ import {
   renderSceneFramed,
   type SvgNode,
 } from '@behemoth-road/art';
-import type { GameStateView } from '@behemoth-road/core';
+import type { CreatureSigns, GameStateView } from '@behemoth-road/core';
 import type { JSX } from 'preact';
 import { useLayoutEffect, useRef } from 'preact/hooks';
 import { accentOf, lookOf } from '../game/identity.ts';
@@ -46,7 +48,15 @@ function Marked({ kind, children }: { kind: string; children: JSX.Element }): JS
  * The creature (with its riders) walking its daily step: drawn at its new hex, slid there from the old one
  * by a Web Animation (the world layer leaves it out meanwhile).
  */
-function StepMark({ state, from }: { state: GameStateView; from: { q: number; r: number } }) {
+function StepMark({
+  state,
+  signs,
+  from,
+}: {
+  state: GameStateView;
+  signs: CreatureSigns | null;
+  from: { q: number; r: number };
+}) {
   const ref = useRef<SVGGElement>(null);
   const to = state.creature.centre;
   useLayoutEffect(() => {
@@ -59,7 +69,7 @@ function StepMark({ state, from }: { state: GameStateView; from: { q: number; r:
   }, [from.q, from.r, to.q, to.r]);
   const { svg, viewBox } = renderSceneFramed({
     cells: [],
-    creature: creatureArt(state),
+    creature: creatureArt(state, signs),
     characters: characterArts(state, 'riders'),
     projection: p,
     palette: PALETTE,
@@ -121,14 +131,17 @@ function lostFigure(characterId: string, hex: { q: number; r: number }): JSX.Ele
 export function MomentMark({
   moment,
   state,
+  signs = null,
 }: {
   moment: Moment;
   state: GameStateView;
+  /** Your signs, so the walking creature looks as it does on the map. */
+  signs?: CreatureSigns | null;
 }): JSX.Element {
   if (moment.kind === 'step') {
     return (
       <g data-moment="step">
-        <StepMark state={state} from={moment.from} />
+        <StepMark state={state} signs={signs} from={moment.from} />
       </g>
     );
   }
@@ -168,6 +181,44 @@ export function MomentMark({
         <Marked kind="drop">
           {at(drawIcon(iconOf(moment.item), PALETTE, icon), c.x, c.y - 0.6 * p.size, icon)}
         </Marked>
+      );
+      break;
+    case 'stayed':
+      // The day's step when it lingered: the art kit's stayed mark on the creature.
+      body = (
+        <Marked kind="bloom">
+          {at(drawMoment('stayed', PALETTE, size), c.x, c.y - 0.4 * p.size, size)}
+        </Marked>
+      );
+      break;
+    case 'fire-out':
+      // The fire's mark drifting up and fading, like its last smoke.
+      body = <Marked kind="lift">{at(drawMoment('fire', PALETTE, size), c.x, c.y, size)}</Marked>;
+      break;
+    case 'ate':
+      // A material leaving the stores on the creature's back.
+      body = (
+        <Marked kind="rise">
+          {at(drawIcon(iconOf(moment.item), PALETTE, icon), c.x, c.y - 0.6 * p.size, icon)}
+        </Marked>
+      );
+      break;
+    case 'fire':
+    case 'linger':
+      body = (
+        <Marked kind="bloom">{at(drawMoment(moment.kind, PALETTE, size), c.x, c.y, size)}</Marked>
+      );
+      break;
+    case 'feed':
+      body = (
+        <g>
+          <Marked kind="burst">{at(drawMoment('feed', PALETTE, size), c.x, c.y, size)}</Marked>
+          {moment.item && (
+            <Marked kind="drop">
+              {at(drawIcon(iconOf(moment.item), PALETTE, icon), c.x, c.y - 0.6 * p.size, icon)}
+            </Marked>
+          )}
+        </g>
       );
       break;
     case 'unlock': {

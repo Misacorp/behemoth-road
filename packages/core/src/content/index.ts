@@ -20,3 +20,11 @@ export {
   type TrapType,
 } from './features.ts';
 export { MATERIALS, UNLOCKS, type Material, type Unlock, type UnlockMovement } from './items.ts';
+export {
+  CREATURE_TYPES,
+  REACTIONS,
+  type CreatureType,
+  type Need,
+  type Reaction,
+} from './creatures.ts';
+export { STIMULUS_TYPES, type StimulusType } from './stimuli.ts';

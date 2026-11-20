@@ -5,7 +5,8 @@
  * in the tuning config or content.
  */
 
-import { UNLOCKS, type SiteType, type Unlock } from './content/index.ts';
+import { MATERIALS, STIMULUS_TYPES, UNLOCKS, type SiteType, type Unlock } from './content/index.ts';
+import { creatureType, FOOD_TAG, firstWithTag, isKeeper, nourishment } from './care.ts';
 import { activeCharacter, isPlaceReachable } from './actions.ts';
 import {
   addMaterials,
@@ -18,6 +19,7 @@ import {
   unlockTags,
 } from './features.ts';
 import { type Hex, hexKey, isValidHex } from './hex.ts';
+import { terrainOf } from './map.ts';
 import { arePlacesAdjacent, onHex, placeNeighbours } from './places.ts';
 import { hashString, hashToUnit } from './random.ts';
 import {
@@ -26,6 +28,7 @@ import {
   type GameState,
   type GameStateView,
   hasSeed,
+  type Materials,
 } from './state.ts';
 import { isCreatureHex } from './window.ts';
 
@@ -33,7 +36,10 @@ export type Action =
   | { readonly kind: 'survey'; readonly hex: Hex }
   | { readonly kind: 'gather' }
   | { readonly kind: 'work-site' }
-  | { readonly kind: 'build'; readonly unlock: string };
+  | { readonly kind: 'build'; readonly unlock: string }
+  | { readonly kind: 'light-fire' }
+  | { readonly kind: 'feed' }
+  | { readonly kind: 'linger' };
 
 export type ActRefusal =
   | 'invalid-action'
@@ -55,7 +61,14 @@ export type ActRefusal =
   | 'unknown-unlock'
   | 'already-have'
   | 'busy'
-  | 'missing-materials';
+  | 'missing-materials'
+  | 'cannot-burn'
+  | 'fire-here'
+  | 'no-fuel'
+  | 'no-food'
+  | 'needs-keeper'
+  | 'lingered-yesterday'
+  | 'on-creature';
 
 type Uses = readonly { readonly material: string; readonly amount: number }[];
 
@@ -70,7 +83,7 @@ export type ActCheck =
       readonly ok: true;
       /** Actions it costs. */
       readonly cost: number;
-      /** Materials taken from the stores (starting an unlock). */
+      /** Materials taken from the stores (starting an unlock, feeding) or the pack (fuel). */
       readonly uses: Uses;
       /** The published chance of success (working a site); 1 for everything else. */
       readonly chance: number;
@@ -87,6 +100,9 @@ export type ActResult =
   | { readonly ok: false; readonly reason: ActRefusal };
 
 const SITE_STREAM = hashString('site');
+
+/** The stimulus a fire is (the one tagged `fire`): content, read by tag. */
+const FIRE = STIMULUS_TYPES.find((t) => t.tags.includes('fire'));
 
 const hexOf = (c: Character): Hex | null => (c.at.kind === 'hex' ? c.at.hex : null);
 
@@ -191,9 +207,64 @@ export const checkAction = (
       if (missing.length > 0) return no('missing-materials');
       return c.actionsLeft >= cost ? done(cost, uses) : no('not-enough-actions');
     }
+    case 'light-fire': {
+      if (!FIRE) return { ok: false, reason: 'invalid-action' };
+      const cost = config.lightFireCost;
+      const no = (reason: ActRefusal, missing?: Uses): ActCheck =>
+        missing ? { ok: false, reason, cost, missing } : { ok: false, reason, cost };
+      const h = hexOf(c);
+      if (!h || isCreatureHex(state, h)) return no('on-creature');
+      const terrain = terrainOf(state, h);
+      if (!terrain || FIRE.notOn.some((tag) => terrain.tags.includes(tag))) {
+        return no('cannot-burn');
+      }
+      if (state.stimuli.some((s) => hexKey(s.hex) === hexKey(h))) return no('fire-here');
+      const fuel = firstWithTag(c.pack, FIRE.fuel.tag, FIRE.fuel.amount);
+      if (!fuel) {
+        const kind = MATERIALS.find((m) => m.tags.includes(FIRE.fuel.tag));
+        return no('no-fuel', kind ? [{ material: kind.id, amount: FIRE.fuel.amount }] : undefined);
+      }
+      return c.actionsLeft >= cost
+        ? done(cost, [{ material: fuel, amount: FIRE.fuel.amount }])
+        : no('not-enough-actions');
+    }
+    case 'feed': {
+      const cost = config.feedCost;
+      const no = (reason: ActRefusal, missing?: Uses): ActCheck =>
+        missing ? { ok: false, reason, cost, missing } : { ok: false, reason, cost };
+      if (c.at.kind !== 'creature') return no('not-riding');
+      const food = firstWithTag(state.stores, FOOD_TAG);
+      if (!food) {
+        const kind = MATERIALS.find((m) => m.tags.includes(FOOD_TAG));
+        return no('no-food', kind ? [{ material: kind.id, amount: 1 }] : undefined);
+      }
+      return c.actionsLeft >= cost
+        ? done(cost, [{ material: food, amount: 1 }])
+        : no('not-enough-actions');
+    }
+    case 'linger': {
+      const cost = config.lingerCost;
+      const no = (reason: ActRefusal): ActCheck => ({ ok: false, reason, cost });
+      if (!isKeeper(state, c.id)) return no('needs-keeper');
+      if (c.at.kind !== 'creature') return no('not-riding');
+      // Already asked today: a second linger would change nothing.
+      if (state.creature.lingering) return no('already-have');
+      if (state.creature.lingeredDay === state.day - 1) return no('lingered-yesterday');
+      return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
+    }
     default:
       return { ok: false, reason: 'invalid-action' };
   }
+};
+
+const subtract = (from: Materials, uses: Uses): Materials => {
+  const out: Record<string, number> = { ...from };
+  for (const u of uses) {
+    const left = (out[u.material] ?? 0) - u.amount;
+    if (left > 0) out[u.material] = left;
+    else delete out[u.material];
+  }
+  return out;
 };
 
 /**
@@ -221,6 +292,44 @@ export const act = (state: GameState, characterId: string, action: Action): ActR
       ok: true,
       state: withCharacter(explored.state, {}),
       events: [{ kind: 'survey', hex: action.hex, characterId }, ...explored.events],
+    };
+  }
+
+  if (action.kind === 'light-fire' && FIRE) {
+    const h = hexOf(c) as Hex;
+    const lit: GameState = {
+      ...state,
+      stimuli: [...state.stimuli, { type: FIRE.id, hex: h, litDay: state.day }],
+    };
+    return {
+      ok: true,
+      state: withCharacter(lit, { pack: subtract(c.pack, check.uses) }),
+      events: [{ kind: 'fire-lit', hex: h, characterId, stimulus: FIRE.id }],
+    };
+  }
+
+  if (action.kind === 'feed') {
+    const use = check.uses[0] as { material: string; amount: number };
+    const { max } = creatureType(state.nature.type).hunger;
+    const satiety = Math.min(max, state.care.satiety + nourishment(use.material) * use.amount);
+    const fed: GameState = {
+      ...state,
+      stores: subtract(state.stores, check.uses),
+      care: { ...state.care, satiety },
+    };
+    return {
+      ok: true,
+      state: withCharacter(fed, {}),
+      events: [{ kind: 'fed', characterId, material: use.material }],
+    };
+  }
+
+  if (action.kind === 'linger') {
+    const lingering: GameState = { ...state, creature: { ...state.creature, lingering: true } };
+    return {
+      ok: true,
+      state: withCharacter(lingering, {}),
+      events: [{ kind: 'linger', characterId }],
     };
   }
 
@@ -284,8 +393,8 @@ export const act = (state: GameState, characterId: string, action: Action): ActR
 
 /**
  * Every action a character could take now, with its check, for the interface:
- * surveying each adjacent unexplored hex, gathering and working a site here, and
- * building each unlock. Runs on a view.
+ * surveying each adjacent unexplored hex, gathering and working a site here,
+ * building each unlock, lighting a fire, feeding and lingering. Runs on a view.
  */
 export const actionsHere = (
   state: GameStateView,
@@ -303,6 +412,9 @@ export const actionsHere = (
     { kind: 'gather' },
     { kind: 'work-site' },
     ...UNLOCKS.map((u) => ({ kind: 'build' as const, unlock: u.id })),
+    { kind: 'light-fire' },
+    { kind: 'feed' },
+    { kind: 'linger' },
   ];
   return options.map((action) => ({ action, check: checkAction(state, characterId, action) }));
 };

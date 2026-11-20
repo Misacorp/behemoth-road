@@ -13,6 +13,7 @@ import {
   type SvgNode,
 } from '@behemoth-road/art';
 import {
+  type CreatureSigns,
   type GameStateView,
   type Hex,
   terrainOf,
@@ -33,6 +34,7 @@ import {
   terrainKnown,
 } from './cells.ts';
 import { chevronFor, placePopover, splitScene } from './compose.ts';
+import { fireHintAt } from '../game/chain.ts';
 import { accentOf, type Identity, lookOf } from '../game/identity.ts';
 import { type Moment, STEP_MS } from '../game/moments.ts';
 import { MomentMark } from './MomentMark.tsx';
@@ -74,15 +76,17 @@ import {
 
 export type FocusTarget = 'me' | 'creature';
 
-/** Your own hex in the "here" card: its revealed feature and the actions it offers. */
+/** Your own hex in the "here" card: its revealed feature (if any) and the actions it offers. */
 export interface Here {
   readonly terrain: string;
-  readonly feature: FeatureArt;
+  readonly feature: FeatureArt | null;
   readonly actions: readonly HereAction[];
 }
 
 export interface MapViewProps {
   readonly state: GameStateView;
+  /** What you read off the creature (your appetite sign, a keeper's cues); none by default. */
+  readonly signs?: CreatureSigns | null;
   readonly flow: Flow;
   readonly characterId: string;
   readonly onTap: (target: Target) => void;
@@ -165,6 +169,7 @@ function popoverAnchor(
   characterId: string,
   here: Here | null,
   survey: boolean,
+  fire: boolean,
 ): Anchor | null {
   const tile = 2 * p.size * p.squash;
   if (flow.kind === 'character') {
@@ -182,10 +187,10 @@ function popoverAnchor(
   if (flow.kind === 'inspect') {
     const c = hexCenter(p, flow.hex.q, flow.hex.r);
     return {
-      key: `inspect:${hexKey(flow.hex)}:${survey ? 'survey' : ''}`,
+      key: `inspect:${hexKey(flow.hex)}:${survey ? 'survey' : ''}:${fire ? 'fire' : ''}`,
       top: { x: c.x, y: c.y - tile / 2 },
       below: tile,
-      size: inspectSize(survey),
+      size: inspectSize(survey, fire),
     };
   }
   if (flow.kind === 'bubble') {
@@ -205,7 +210,7 @@ function popoverAnchor(
     if (feet) {
       const head = 0.9 * p.size;
       return {
-        key: `here:${here.feature.look}:${here.actions.map((a) => a.kind).join(',')}`,
+        key: `here:${here.feature?.look ?? ''}:${here.actions.map((a) => a.kind).join(',')}`,
         top: { x: feet.x, y: feet.y - head },
         below: head,
         size: hereSize(here.actions.length),
@@ -251,6 +256,7 @@ const LAYER_MARGIN = 2;
 
 export function MapView(props: MapViewProps): JSX.Element {
   const { state, flow, characterId } = props;
+  const signs = props.signs ?? null;
   const svgRef = useRef<SVGSVGElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
   const popRef = useRef<SVGGElement>(null);
@@ -281,7 +287,7 @@ export function MapView(props: MapViewProps): JSX.Element {
   const layers = useMemo(() => {
     const { svg: scene, viewBox } = renderSceneFramed({
       cells: sceneCells(state),
-      ...(walking ? {} : { creature: creatureArt(state) }),
+      ...(walking ? {} : { creature: creatureArt(state, signs) }),
       characters: characterArts(state, walking ? 'walkers' : 'all'),
       projection: p,
       palette: PALETTE,
@@ -306,7 +312,7 @@ export function MapView(props: MapViewProps): JSX.Element {
       box,
       raster: layerRaster(inkZoom, box, window.devicePixelRatio, MAP_TUNING.layer),
     };
-  }, [state, inkZoom, walking]);
+  }, [state, signs, inkZoom, walking]);
   const layerRef = useRef(layers);
   layerRef.current = layers;
 
@@ -326,7 +332,15 @@ export function MapView(props: MapViewProps): JSX.Element {
   }, [state, flow, characterId, inkZoom]);
 
   const survey = flow.kind === 'inspect' ? (props.surveyAt?.(flow.hex) ?? null) : null;
-  popover.current = popoverAnchor(state, flow, characterId, props.here ?? null, survey !== null);
+  const fireHint = flow.kind === 'inspect' ? fireHintAt(state, flow.hex) : null;
+  popover.current = popoverAnchor(
+    state,
+    flow,
+    characterId,
+    props.here ?? null,
+    survey !== null,
+    fireHint !== null,
+  );
 
   function apply(): void {
     frame.current = 0;
@@ -597,6 +611,7 @@ export function MapView(props: MapViewProps): JSX.Element {
         state={cellState}
         feature={known ? featureArtAt(state, hexKey(flow.hex)) : null}
         survey={survey}
+        fire={fireHint}
         onSurvey={() => props.onSurvey?.(at)}
         surveyRef={(el) => {
           popoverFocusRef.current = el;
@@ -630,6 +645,7 @@ export function MapView(props: MapViewProps): JSX.Element {
         }))}
         onCharacter={(id) => props.onCharacter(id)}
         place="creature"
+        appetite={signs?.appetite ?? null}
         onOpenPlace={props.onOpenHub}
         placeRef={(el) => {
           popoverFocusRef.current = el;
@@ -676,6 +692,7 @@ export function MapView(props: MapViewProps): JSX.Element {
                 key={`${m.kind}:${m.hex.q},${m.hex.r}:${String(i)}`}
                 moment={m}
                 state={state}
+                signs={signs}
               />
             ))}
           </svg>

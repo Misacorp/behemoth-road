@@ -91,6 +91,32 @@ export const MATERIAL_MOTIFS: Readonly<Record<string, IconMotif>> = {
     ink(pal, ellipsePath(31, 22, 4.2, 5.8), 1.1, pal.accents.ochre.shade),
     ink(pal, 'M29 21.5l2-2.5 2 2.5M31 19v6', 1.2, pal.accents.ochre.shade),
   ],
+  // Forage: a sprig of berries with a leaf, the food the creature is fed.
+  forage: (pal) => [
+    ink(pal, smoothOpen([P(30, 11), P(27, 16), P(24, 21)]), 1.6, pal.ramps.bark.shade),
+    ink(pal, 'M27 16l-7 3M27.5 15l3 6', 1.4, pal.ramps.bark.shade),
+    solid(pal, leafPath(30, 12, -0.3, 9), pal.ramps.foliage.base, 1.6),
+    ...[
+      [22, 24, 4.4],
+      [28.5, 25, 4],
+      [18, 21, 3.4],
+      [25, 30.5, 4.2],
+      [31.5, 21.5, 3.2],
+      [19, 29, 3.6],
+    ].map(([x, y, r]) => solid(pal, ellipsePath(x!, y!, r!, r!), pal.accents.rose.base, 1.6)),
+    el('path', {
+      d: [
+        [21, 23],
+        [27.5, 24],
+        [24, 29.5],
+        [18, 28],
+      ]
+        .map(([x, y]) => ellipsePath(x!, y!, 1, 0.9))
+        .join(''),
+      fill: pal.paper,
+      opacity: 0.85,
+    }),
+  ],
   alloy: (pal) => [
     solid(pal, 'M12 30l5-11h14l5 11-12 5z', pal.accents.teal.light),
     solid(pal, 'M17 19l7 5 7-5M24 24v11', pal.accents.teal.base, 1.6),
@@ -109,6 +135,49 @@ export const MATERIAL_MOTIFS: Readonly<Record<string, IconMotif>> = {
       pal.accents.teal.shade,
     ),
     ink(pal, 'M35 12v4M33 14h4M11 15v3M9.5 16.5h3', 1.3, pal.hint),
+  ],
+};
+
+/** Action motifs by key: what a character does, on a round tile with a dashed inner ring. */
+export const ACTION_MOTIFS: Readonly<Record<string, IconMotif>> = {
+  // Light a fire: crossed sticks, a flame and a spark.
+  'light-fire': (pal) => [
+    ink(pal, 'M13 36l20-7M15 29l20 7', 3.6, pal.ramps.bark.shade),
+    ink(pal, 'M13 36l20-7M15 29l20 7', 1.4, pal.ramps.bark.light),
+    solid(
+      pal,
+      'M24 31c-5 0-8-3-8-7 0-4 3-6 4-10 1 3 3 4 3 4 0-4 2-7 5-9 0 4 4 6 4 11 0 6-3 11-8 11z',
+      pal.accents.coral.base,
+      1.8,
+    ),
+    el('path', {
+      d: 'M24 30c-2.5 0-4-1.6-4-4 0-2.4 2-3.6 2.4-6 1.4 1.4 1.6 2.4 1.6 2.4.4-1.6 1.4-3 2.6-3.6.4 2.4 1.6 3.6 1.6 6 0 3-2 5.2-4.2 5.2z',
+      fill: pal.accents.ochre.light,
+    }),
+    solid(pal, ellipsePath(35, 13, 1.4, 1.4), pal.accents.ochre.base, 1.2),
+  ],
+  // Feed: a wooden bowl heaped with berries, offered up (two lift lines).
+  feed: (pal) => [
+    ...[
+      [19.5, 24, 3.4],
+      [24.5, 22, 3.6],
+      [29, 24.5, 3.2],
+      [22, 26.5, 3],
+      [27, 26.8, 3],
+    ].map(([x, y, r]) => solid(pal, ellipsePath(x!, y!, r!, r!), pal.accents.rose.base, 1.5)),
+    solid(pal, leafPath(25, 19, -0.9, 7), pal.ramps.foliage.base, 1.4),
+    solid(pal, 'M11 27h26c0 6-6 10-13 10s-13-4-13-10z', pal.ramps.bark.base),
+    ink(pal, 'M14.5 31c3 2 6 2.6 9.5 2.6', 1.2, pal.ramps.bark.light),
+    ink(pal, 'M12 14.5l2.5 3M36 14.5l-2.5 3', 1.6, pal.inkSoft),
+  ],
+  // Linger: the creature lying down, legs tucked, head resting on the ground; eyes closed.
+  linger: (pal) => [
+    ink(pal, 'M9 35.5h30', 1.4, pal.inkSoft),
+    solid(pal, 'M10 35c0-8 6-14 14-14 6 0 9 4 10 8l2 1c2 1 3 3 3 5z', pal.ramps.hide.base),
+    solid(pal, 'M14 27c2-4 6-6 10-6 4 0 6 2 7 4-4-1-11-1-17 2z', pal.ramps.moss.base, 1.4),
+    solid(pal, ellipsePath(17, 34.6, 3.4, 1.6), pal.ramps.hide.shade, 1.3),
+    ink(pal, 'M32.5 30.5c.8.8 1.8.8 2.6 0', 1.3),
+    solid(pal, 'M31 25.5l1.5-3.5 1.5 3.5z', pal.ramps.hide.shade, 1.2),
   ],
 };
 

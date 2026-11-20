@@ -25,7 +25,17 @@ import {
 import { type FocusTarget, type Here, MapView } from '../map/MapView.tsx';
 import { HubDrawer } from '../hub/HubDrawer.tsx';
 import { cellStateAt, featureArtAt } from '../map/cells.ts';
-import { actionsAt, packUnits, stockOf, surveyOf, unlockOptions } from './chain.ts';
+import {
+  actionsAt,
+  careOptions,
+  type CostedAction,
+  fireAction,
+  fuelNodeAt,
+  packUnits,
+  stockOf,
+  surveyOf,
+  unlockOptions,
+} from './chain.ts';
 import type { Target } from '../map/pick.ts';
 import { getSettings } from '../settings.ts';
 
@@ -33,7 +43,7 @@ import { getSettings } from '../settings.ts';
 const DESKTOP_FROM = 900;
 import { identities, partySeeds, setAccents } from './identity.ts';
 import { eventKeys, type Moment, momentsFromEvents, momentsMs } from './moments.ts';
-import { toGameState } from './viewState.ts';
+import { toGameState, toSigns } from './viewState.ts';
 
 export interface GameProps {
   readonly api: ApiClient;
@@ -101,6 +111,7 @@ export function Game({ api, initial }: GameProps): JSX.Element {
   }, []);
 
   const state = useMemo(() => toGameState(view.game), [view]);
+  const signs = useMemo(() => toSigns(view.signs), [view]);
   const who = useMemo(() => {
     const ids = identities(view);
     setAccents(ids);
@@ -202,21 +213,41 @@ export function Game({ api, initial }: GameProps): JSX.Element {
 
   const drawerOpen = need !== 'none' && offers.length > 0 && !drawerClosed && !fading;
 
-  // Milestone 3's chain: what you can do where you stand, a survey next to you, your pack, the hub.
+  // Whether you have seen a fire on the map this session (in memory only), for the fire hint below.
+  const [sawFire, setSawFire] = useState(false);
+  useEffect(() => {
+    if (view.game.stimuli.length > 0) setSawFire(true);
+  }, [view]);
+
+  // What you can do where you stand (gather, work a site, light a fire), a survey next to you, your pack,
+  // and the hub (unlocks, feeding, lingering).
   const here = useMemo((): Here | null => {
     if (me?.status !== 'active' || me.at.kind !== 'hex') return null;
     const feature = featureArtAt(state, hexKey(me.at.hex));
-    if (!feature) return null;
+    // Without fuel the fire never opens the card by itself. It hints, faded, on a card open for a feature
+    // once you have seen a fire, and always on a timber stand.
+    const hint = (feature !== null && sawFire) || fuelNodeAt(state, me.at.hex) !== null;
+    const fire = fireAction(state, me.id, hint);
+    const actions = [...(feature ? actionsAt(state, me.id) : []), ...(fire ? [fire] : [])];
+    if (!feature && actions.length === 0) return null;
     const terrain = terrainOf(state, me.at.hex)?.id ?? 'unknown';
-    return { terrain, feature, actions: actionsAt(state, me.id) };
-  }, [state, me]);
+    return { terrain, feature, actions };
+  }, [state, me, sawFire]);
   const stillSelected = (next: PlayerView): Flow => {
     const mine = next.game.characters.find((c) => c.id === next.you.characterId);
     return mine && mine.actionsLeft > 0 ? { kind: 'selected' } : IDLE;
   };
   const onAct = (kind: string): void => {
-    if (kind !== 'gather' && kind !== 'work-site') return;
+    if (kind !== 'gather' && kind !== 'work-site' && kind !== 'light-fire') return;
     void act(() => api.act(view.version, { kind }), stillSelected);
+  };
+  // Feeding keeps the hub open; a linger closes it, so the creature is seen lying down.
+  const onCare = (kind: CostedAction['kind']): void => {
+    if (kind !== 'feed' && kind !== 'linger') return;
+    void act(
+      () => api.act(view.version, { kind }),
+      () => (kind === 'linger' ? IDLE : { kind: 'creature' }),
+    );
   };
   const surveyAt = (h: Hex) => (me?.status === 'active' ? surveyOf(state, me.id, h) : null);
   const onSurvey = (h: Hex): void => {
@@ -243,6 +274,7 @@ export function Game({ api, initial }: GameProps): JSX.Element {
     <main class="game">
       <MapView
         state={state}
+        signs={signs}
         flow={flow}
         characterId={id}
         identities={who}
@@ -300,7 +332,10 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         open={hubOpen}
         onClose={() => setFlow(IDLE)}
         state={state}
+        signs={signs}
         stores={stockOf(state.stores)}
+        care={me ? careOptions(state, me.id) : []}
+        onCare={onCare}
         unlocks={me ? unlockOptions(state, me.id) : []}
         busy={busy}
         onBuild={onBuild}

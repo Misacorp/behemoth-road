@@ -2,7 +2,7 @@ import { env } from 'cloudflare:workers';
 import { runInDurableObject } from 'cloudflare:test';
 import { expect } from 'vitest';
 import { DiscordError, type DiscordApi, type GuildApi } from '../src/discord.ts';
-import { hiddenFeatureKeys } from '@behemoth-road/core';
+import { creatureSigns, hiddenFeatureKeys, isKeeper } from '@behemoth-road/core';
 import { loadGame, type Seed } from '../src/game-core.ts';
 import { GuildGame, type GuildGameOptions, type SessionUser } from '../src/guild-game.ts';
 import { createHandler } from '../src/handler.ts';
@@ -190,6 +190,35 @@ export function expectNoHiddenFeatures(body: unknown, sql: SqlStorage): void {
   }
 }
 
+/** Keys of the creature's hidden nature and condition: never in any response. */
+const SECRET_KEYS = ['nature', 'care', 'satiety', 'reactions'];
+
+/**
+ * Fails the test if a response carries the creature's hidden nature or condition anywhere, or signs that
+ * are not exactly what the core lets this viewer read (a non-keeper gets no cues, so no reaction).
+ */
+export function expectNoCreatureSecrets(body: unknown, sql: SqlStorage): void {
+  const walk = (value: unknown, at: string): void => {
+    if (value === null || typeof value !== 'object') return;
+    for (const [key, inner] of Object.entries(value)) {
+      if (!Array.isArray(value)) expect(SECRET_KEYS, `${at}.${key}`).not.toContain(key);
+      walk(inner, `${at}.${key}`);
+    }
+  };
+  walk(body, '$');
+  const view = body as { you?: { characterId: string | null }; signs?: unknown } | null;
+  if (view?.you === undefined) return;
+  const row = sql.exec<{ state: string }>('SELECT state FROM game WHERE id = 1').toArray()[0];
+  if (row === undefined) return;
+  const state = loadGame(JSON.parse(row.state));
+  const id = view.you.characterId;
+  const active = state.characters.find((c) => c.id === id)?.status === 'active' ? id : null;
+  expect(view.signs).toEqual(creatureSigns(state, active));
+  if (!isKeeper(state, active)) {
+    expect((view.signs as { cues: unknown[] }).cues).toEqual([]);
+  }
+}
+
 export interface Called {
   status: number;
   body: unknown;
@@ -203,7 +232,7 @@ export interface GameContext {
   storage: DurableObjectStorage;
   /** Signs a player in (as the Worker would after Discord confirmed them); returns their token. */
   signIn(user: SessionUser): Promise<string>;
-  /** One API request as that player; every body is checked for the seed. */
+  /** One API request as that player; every body is checked for the seed, hidden features and the creature's secrets. */
   call(token: string, method: string, path: string, body?: unknown): Promise<Called>;
 }
 
@@ -246,6 +275,7 @@ export async function runGame<R>(
       const parsed: unknown = await res.json();
       expectNoSeed(parsed, seed);
       expectNoHiddenFeatures(parsed, state.storage.sql);
+      expectNoCreatureSecrets(parsed, state.storage.sql);
       return { status: res.status, body: parsed };
     };
     return fn({

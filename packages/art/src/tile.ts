@@ -40,6 +40,8 @@ export interface ArtCell {
   readonly hint?: boolean;
   /** A revealed feature on the tile (a resource node, a site, a trap); it replaces the terrain's props. */
   readonly feature?: FeatureArt;
+  /** A fire burns here (lit today); visible to everyone, also under the veil. */
+  readonly fire?: boolean;
   /** Hand-placed props replacing the terrain's own: kind and offset from the centre in hex sizes. */
   readonly props?: readonly PropSpot[];
 }

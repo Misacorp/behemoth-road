@@ -26,6 +26,8 @@ export const ART_TUNING = {
   characterHeight: 0.74,
   /** Revealed features (nodes, sites, traps) are the tile's focus: drawn this much larger than props. */
   featureScale: 1.6,
+  /** A lit fire on a hex, against the props. */
+  fireScale: 1.3,
   /** Space around a scene, in hex sizes. */
   padding: 0.45,
 } as const;

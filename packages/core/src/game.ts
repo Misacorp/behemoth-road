@@ -5,6 +5,7 @@
 import { type ConfigOverrides, resolveConfig } from './config.ts';
 import { type Direction, DIRECTIONS, type Hex, isValidHex } from './hex.ts';
 import { CONTENT_VERSION } from './content/index.ts';
+import { freshCare, rollNature } from './care.ts';
 import { addFeatures, keyToHex } from './features.ts';
 import { ON_CREATURE } from './places.ts';
 import { hashInts, hashString, newArtSeed, type Seed, toSeed } from './random.ts';
@@ -59,13 +60,17 @@ export const createGame = (
 
   const day = 1;
   const tiles = updateTiles({}, centre, day, config, seed);
+  const nature = rollNature(seed);
   return {
     contentVersion: CONTENT_VERSION,
     artSeed,
     seed,
     day,
     config,
-    creature: { centre, heading },
+    creature: { centre, heading, lingering: false, lingeredDay: null },
+    nature,
+    care: freshCare(nature, day),
+    stimuli: [],
     tiles,
     features: addFeatures({}, tiles, Object.keys(tiles).map(keyToHex), seed, config.featureChance),
     stores: {},
