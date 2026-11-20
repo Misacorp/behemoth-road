@@ -183,7 +183,9 @@ export class GuildGame {
         // Only an older content version is replaced; anything else is left for `readGame` to refuse.
         if (!(err instanceof OutdatedGameError)) return;
       }
-      this.replaceGame();
+      // Its schedule starts from now, so a long-outdated game's missed ticks are not run on the new one.
+      const t = this.options.now();
+      this.replaceGame(nextOccurrence(t, tick.hour, tick.minute, tick.timeZone));
     });
   }
 

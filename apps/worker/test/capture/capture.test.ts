@@ -6,6 +6,7 @@ import {
   neighbours,
   planPath,
   reachablePlaces,
+  threatOutlook,
   type Action,
   type GameState,
   type Hex,
@@ -50,6 +51,8 @@ interface SeasonPlan {
   envoy: boolean;
   /** Ash parleys with the settlement instead (a guardian: it may anger them). */
   parley: boolean;
+  /** Robin walks to where the nearest threat steps next (unescorted, so it strikes them). */
+  bait: boolean;
 }
 
 type Captured = {
@@ -327,6 +330,7 @@ describe('capture', () => {
       strike: true,
       envoy: true,
       parley: false,
+      bait: false,
     });
     await playSeason('wounded', {
       feedEvery: 8,
@@ -334,6 +338,7 @@ describe('capture', () => {
       strike: true,
       envoy: false,
       parley: false,
+      bait: false,
     });
     await playSeason('lost', {
       feedEvery: 0,
@@ -341,6 +346,7 @@ describe('capture', () => {
       strike: false,
       envoy: false,
       parley: true,
+      bait: true,
     });
 
     console.log('FIXTURE ' + JSON.stringify({ set: 'game', responses, errors, requests }));
@@ -446,6 +452,17 @@ async function season(outcome: SeasonOutcome, plan: SeasonPlan, out: Captured): 
             }
           }
         }
+        if (plan.bait) {
+          const state = read();
+          const centre = state.creature.centre;
+          const threat = [...state.threats].sort(
+            (a, b) => hexDistance(a.hex, centre) - hexDistance(b.hex, centre),
+          )[0];
+          if (threat !== undefined) {
+            const next = threatOutlook(state).find((o) => o.id === threat.id)?.next;
+            await walk(ROBIN, next ?? threat.hex);
+          }
+        }
         const settlement = read().settlements.find((s) => s.attitude !== 'angry');
         if (plan.envoy && settlement !== undefined) {
           await walk(ROBIN, settlement.hex);
@@ -489,6 +506,8 @@ async function season(outcome: SeasonOutcome, plan: SeasonPlan, out: Captured): 
         expect((await ctx.call(token(MISA), 'POST', '/api/dev/next-day', {})).status).toBe(200);
         const since = await ctx.call(token(KAI), 'GET', `/api/game?since=${String(before)}`);
         const kinds = (since.body as { events: { kind: string }[] }).events.map((e) => e.kind);
+        if (kinds.includes('struck'))
+          keep('view-struck-since', 'GET', '/api/game?since', undefined, since);
         if (kinds.includes('peril'))
           keep('view-peril-since', 'GET', '/api/game?since', undefined, since);
         if (kinds.includes('season-over'))
