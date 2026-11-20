@@ -4,6 +4,35 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: Threats are telegraphed: a wider window, slower varied speeds and a shown path **[Misa]**
+
+ID: `2026-11-20-threats-are-telegraphed-a-wider-window` · Status: current · Amends: `2026-11-20-threats-are-tagged-data-that-appear`
+
+**Decision.** Threats must never feel unfair:
+
+- **A wider window:** the window around the creature grows by one hex in radius (5 → 6, tuning config), so threats appear further out.
+- **Slower, varied speeds:** each threat type has its own speed, 1 or 2 hexes per day as a baseline (content data), so a guardian who is near enough can intercept.
+- **A shown path:** tapping a threat shows where it is heading and how far it will move at the next tick (its path for the next day, drawn as an ink trail).
+- **Spotting threats further out is a future upgrade:** a scout seeing past the window's edge is kept in data as an inactive upgrade.
+
+**Reasoning.** Misa: attackers moved too fast, came out of nowhere and gave no sign of where they were going; a guardian far away should be a play choice, not the game being unfair.
+
+## 2026-11-20: Action costs are drawn as arrows, not coloured dots; verb labels are a switch to try **[Misa]**
+
+ID: `2026-11-20-action-costs-are-drawn-as-arrows` · Status: current
+
+**Decision.** The cost of an action is drawn as small right-pointing action arrows, one per action, next to or under the action's icon in its circle, instead of coloured dots, so the cost doesn't rely on colour alone. As an experiment, a setting (`actionLabels`, off by default) adds the action's verb under its icon ("Gather", "Strike"); the verbs live in the same text file as the tips. Popups about a place or thing show its noun as a title (e.g. "Berry bush", "Meadow").
+
+**Reasoning.** Misa likes the action in a circle with its cost beside it, and asked for an instantly recognisable action symbol as many games use, a noun naming what a popup describes, and to see a version of the game with verbs on the actions.
+
+## 2026-11-20: Only passing help may cover a popup; interactions continue inside it or in a drawer **[Misa]**
+
+ID: `2026-11-20-only-passing-help-may-cover-a` · Status: current · Amends: `2026-11-19-one-overlay-at-a-time`
+
+**Decision.** A popup may be covered only by passing, non-interactive help, such as tips. Anything that needs the player's interaction continues **inside the same popup**, wizard-style, with a back button at its top left, or opens the **drawer** while the popup stays open to show the target of the interaction. In particular, an action that needs a choice or configuration from the player (which unlock, which boon, which character) follows this pattern instead of opening another popup over the first.
+
+**Reasoning.** Misa's rule: layered popups confuse which thing an interaction is about; the open popup marks the target.
+
 ## 2026-11-20: One tip controller for HTML, the map's cards and the map itself
 
 ID: `2026-11-20-one-tip-controller-for-html-the` · Status: current · Amends: `2026-11-20-every-icon-has-a-short-tip`
@@ -177,7 +206,7 @@ ID: `2026-11-20-milestone-5-core-readings-of-the` · Status: current
 
 ## 2026-11-20: Threats are tagged data that appear at the window's edge and walk in openly
 
-ID: `2026-11-20-threats-are-tagged-data-that-appear` · Status: current
+ID: `2026-11-20-threats-are-tagged-data-that-appear` · Status: current, amended by `2026-11-20-threats-are-telegraphed-a-wider-window`
 
 **Decision.** Milestone 5's attack system (`docs/design/m5-season.md`): threat types in content with strength, speed, approach and weight (a captor band from behind, a pterodactyl swarm from the flanks, a rockslide on the path ahead, raiders from an angered settlement). Threats are public from the moment they appear; their approach is the forecast. They move after the creature's step, strike the creature at contact (peril rises by strength less defence) and strike unescorted characters within one hex (one action the next day). Appearance chance and strength scale with active players and days, from the tuning config. Terrain does not slow threats yet.
 
@@ -849,7 +878,7 @@ ID: `2026-11-19-focus-returns-to-the-opener-only` · Status: current
 
 ## 2026-11-19: One overlay at a time
 
-ID: `2026-11-19-one-overlay-at-a-time` · Status: current
+ID: `2026-11-19-one-overlay-at-a-time` · Status: current, amended by `2026-11-20-only-passing-help-may-cover-a`
 
 **Decision.** Only one drawer or sheet is open at a time: a choice made inside a drawer opens inside it as a step with "‹ Back", never as a second sheet on top. While a modal is open, the page behind it does not scroll and shows no second scrollbar. Small popovers on their own layer are the only thing that may open over a drawer.
 
