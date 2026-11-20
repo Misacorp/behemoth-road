@@ -9,7 +9,9 @@ import { renderScene } from './scene.ts';
 import { el, toSvgString, type SvgNode } from './svg.ts';
 import { assignLooks, drawCharacter } from './character.ts';
 import { drawIcon, ITEM_MOTIFS, MATERIAL_MOTIFS, ROLE_IDS, type EmblemFrame } from './icons.ts';
-import { drawMoment, drawStayMark, drawViaMark, MOMENT_KINDS } from './marks.ts';
+import { drawMoment, drawStayMark, drawStepHint, drawViaMark, MOMENT_KINDS } from './marks.ts';
+import { drawAppetiteBadge } from './signs.ts';
+import type { CreatureAppetite } from './creature.ts';
 import { drawPackIcon, drawStoresIcon, drawUnlockSeal, drawWorkBar } from './team-marks.ts';
 import { ART_TUNING } from './config.ts';
 import { drawCreature, GENTLE_AMBLER, type CreatureMood } from './creature.ts';
@@ -565,6 +567,68 @@ function careTilesSheet(): string {
 }
 
 /** The forage icon and the three action icons at 72, 48 and 32 px; the stay hint; the three moments. */
+/** Appetite at about the phone's game zoom (a hex about 34 px): calm and underfed, overfed, then the faint signs. */
+function appetitePhoneSheet(): string {
+  const a = (kind: 'underfed' | 'overfed', level: 1 | 2 | 3, faint = false): CreatureMood => ({
+    appetite: { kind, level, faint },
+  });
+  const moods: CreatureMood[] = [
+    {},
+    a('underfed', 1),
+    a('underfed', 2),
+    a('underfed', 3),
+    {},
+    a('overfed', 1),
+    a('overfed', 2),
+    a('overfed', 3),
+    a('underfed', 2, true),
+    a('underfed', 3, true),
+    a('overfed', 2, true),
+    a('overfed', 3, true),
+  ];
+  return creatureSheet(
+    moods.map((mood) => ({ heading: NORTH, mood })),
+    4,
+    34,
+    'appetite-phone',
+  );
+}
+
+/** The hub badge (calm, underfed 1-3 and faint, overfed 1-3 and faint) at 40 and 20 px; step hints; stayed. */
+function signsSheet(): string {
+  const nodes: SvgNode[] = [];
+  const badges: (CreatureAppetite | null)[] = [
+    null,
+    { kind: 'underfed', level: 1 },
+    { kind: 'underfed', level: 2 },
+    { kind: 'underfed', level: 3 },
+    { kind: 'underfed', level: 3, faint: true },
+    { kind: 'overfed', level: 1 },
+    { kind: 'overfed', level: 2 },
+    { kind: 'overfed', level: 3 },
+    { kind: 'overfed', level: 3, faint: true },
+  ];
+  badges.forEach((b, i) => {
+    nodes.push(placed(drawAppetiteBadge(PALETTE, 40, b), 24 + i * 70, 24));
+    nodes.push(placed(drawAppetiteBadge(PALETTE, 20, b), 34 + i * 70, 76));
+  });
+  // Three step options fanning ahead (likely, less likely, unlikely), then chance 0 to 1 in a row.
+  [
+    [0.62, -Math.PI / 2],
+    [0.28, -Math.PI / 2 - 0.9],
+    [0.1, -Math.PI / 2 + 0.9],
+  ].forEach(([chance, angle]) => {
+    const x = 90 + Math.cos(angle!) * 50;
+    const y = 200 + Math.sin(angle!) * 50;
+    nodes.push(placed(drawStepHint(PALETTE, 48, chance!, angle), x - 24, y - 24));
+  });
+  [0, 0.25, 0.5, 0.75, 1].forEach((chance, i) =>
+    nodes.push(placed(drawStepHint(PALETTE, 48, chance, -Math.PI / 2), 200 + i * 54, 150)),
+  );
+  nodes.push(placed(drawMoment('stayed', PALETTE, 120), 500, 110));
+  return paperSheet(670, 250, nodes);
+}
+
 function careMarksSheet(): string {
   const nodes: SvgNode[] = [];
   ['forage', 'light-fire', 'feed', 'linger'].forEach((id, i) => {
@@ -659,6 +723,22 @@ export function buildReviewItems(): ReviewDraft[] {
       file: 'features-care.svg',
       ...glance,
       svg: careTilesSheet(),
+    },
+    {
+      id: 'creature/appetite-phone',
+      group: 'Creature care',
+      title: 'Appetite at phone zoom: calm, underfed 1-3; calm, overfed 1-3; faint 2 and 3',
+      file: 'creature-appetite-phone.svg',
+      ...glance,
+      svg: appetitePhoneSheet(),
+    },
+    {
+      id: 'marks/signs',
+      group: 'Creature care',
+      title: 'Hub badge (calm, underfed, overfed, faint); weighted step hints; the stayed moment',
+      file: 'marks-signs.svg',
+      ...glance,
+      svg: signsSheet(),
     },
     {
       id: 'marks/care',
