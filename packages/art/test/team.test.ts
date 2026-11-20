@@ -110,3 +110,21 @@ describe('team marks', () => {
     expect(draw(6)).toContain(SPRING.ramps.bark.light);
   });
 });
+
+describe('action arrows', () => {
+  it('draw one ink chevron per state, told apart by line rather than colour', async () => {
+    const { actionArrowNodes, drawActionArrow } = await import('../src/team-marks.ts');
+    const states = ['ready', 'spending', 'spent'] as const;
+    const nodes = states.map((s) => actionArrowNodes(SPRING, 0, 0, 10, s)[0]!);
+    expect(nodes.map((n) => n.attrs['data-arrow'])).toEqual([...states]);
+    expect(nodes[0]!.attrs['fill']).toBe(SPRING.ink);
+    expect(nodes[1]!.attrs['stroke-dasharray']).toBeDefined();
+    expect(nodes[2]!.attrs['stroke-dasharray']).not.toBe(nodes[1]!.attrs['stroke-dasharray']);
+    // Palette colours only, and a valid standalone svg.
+    const all = paletteColours(SPRING);
+    for (const n of nodes) {
+      for (const k of ['fill', 'stroke'] as const) expect(all).toContain(n.attrs[k]);
+    }
+    expect(toSvgString(drawActionArrow(SPRING, 12))).toContain('<svg');
+  });
+});

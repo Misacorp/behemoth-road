@@ -6,6 +6,8 @@
  * engineer riding the creature starts or works on an unlock with the card's button (the second tap). Icons,
  * counts and pips only.
  */
+import { getSettings } from '../settings.ts';
+import { verbOf } from '../text/verbs.ts';
 import { tipFor } from '../ui/tip.ts';
 import { tipProps } from '../ui/Tip.tsx';
 import { drawStoresIcon, drawWorkBar } from '@behemoth-road/art';
@@ -29,6 +31,12 @@ function NeedsRole({ role }: { role: string | null | undefined }): JSX.Element |
       {toPreact(drawRoleBadge(role, PALETTE, 22))}
     </span>
   );
+}
+
+/** The action's verb under its button, when the action labels setting is on. */
+function Verb({ kind }: { kind: string }): JSX.Element | null {
+  const verb = getSettings().actionLabels ? verbOf(kind) : null;
+  return verb ? <span class="verb">{verb}</span> : null;
 }
 
 export interface HubDrawerProps {
@@ -99,6 +107,7 @@ function UnlockCard({
             <svg viewBox="-24 -24 48 48" aria-hidden="true">
               <TickMark r={20} />
             </svg>
+            <Verb kind="build" />
           </button>
         </>
       )}
@@ -151,6 +160,7 @@ function CareCard({
         <svg viewBox="-24 -24 48 48" aria-hidden="true">
           <TickMark r={20} />
         </svg>
+        <Verb kind={a.kind} />
       </button>
     </div>
   );

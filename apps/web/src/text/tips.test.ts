@@ -4,8 +4,10 @@
  */
 import {
   type Action,
+  FEATURE_TYPES,
   MATERIALS,
   PEOPLE_TYPES,
+  TERRAIN_TYPES,
   QUIRKS,
   ROLES,
   THREAT_TYPES,
@@ -44,6 +46,8 @@ describe('tip texts', () => {
       ...MATERIALS.map((x) => `material:${x.id}`),
       ...UNLOCKS.map((x) => `unlock:${x.id}`),
       ...THREAT_TYPES.map((x) => `threat:${x.id}`),
+      ...TERRAIN_TYPES.map((x) => `terrain:${x.id}`),
+      ...FEATURE_TYPES.map((x) => `feature:${x.id}`),
       ...PEOPLE_TYPES.map((x) => `people:${x.id}`),
       ...PEOPLE_TYPES.flatMap((x) => x.boons.map((b) => `boon:${b}`)),
       ...Object.keys(ACTION_KINDS).map((k) => `action:${k}`),

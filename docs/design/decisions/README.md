@@ -114,10 +114,11 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
-- 2026-11-20 A threat's card draws its next-tick path as an ink trail and its distance as step marks
+- 2026-11-20 A threat's card draws its next-tick path as an ink trail and its distance as action arrows
+- 2026-11-20 Following the popup rule: a rider's card inside the bubble, the hub beside it, the pack as passing help
 - 2026-11-20 Threats are telegraphed: a wider window, slower varied speeds and a shown path \[Misa\] (amended)
 - 2026-11-20 Action costs are drawn as arrows, not coloured dots; verb labels are a switch to try \[Misa\]
-- 2026-11-20 Only passing help may cover a popup; interactions continue inside it or in a drawer \[Misa\]
+- 2026-11-20 Only passing help may cover a popup; interactions continue inside it or in a drawer \[Misa\] (amended)
 - 2026-11-20 One tip controller for HTML, the map's cards and the map itself
 - 2026-11-20 Every icon has a short tip on hover or press-and-hold, with text in one file \[Misa\] (amended)
 - 2026-11-20 The ending's scene is drawn above a strip reserved for its summary

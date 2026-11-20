@@ -9,6 +9,7 @@ import {
   accentRamp,
   ART_TUNING,
   DIRECTIONS,
+  actionArrowNodes,
   drawCharacter,
   drawEscortRing,
   drawStayMark,
@@ -329,23 +330,30 @@ function viaMark(i: OverlayInput, at: Point, via: string): SvgNode[] {
 
 /** Action pips in a row centred on `at`, drawn in the character's accent with an ink rim. */
 export function pips(i: OverlayInput, at: Point, count: number): SvgNode[] {
+  // The cost of a stretch as action arrows in ink (the art kit's glyph), on a small paper strip so they read
+  // over any ground.
   const k = i.projection.k;
-  const r = 4.6 * k;
-  const gap = 11 * k;
-  const ramp = accentRamp(i.palette, accentOf(i.characterId, MAP_TUNING.accent));
-  const out: SvgNode[] = [];
-  for (let j = 0; j < count; j += 1) {
-    const x = at.x + (j - (count - 1) / 2) * gap;
-    out.push(
-      el('path', {
-        d: ellipse({ x, y: at.y }, r, r),
-        fill: ramp.base,
-        stroke: i.palette.ink,
-        'stroke-width': 1.4 * k,
-      }),
-    );
-  }
-  return out;
+  const w = 8 * k;
+  const gap = 2.5 * k;
+  const width = count * w + (count - 1) * gap;
+  const x0 = at.x - width / 2;
+  const y0 = at.y - w * 0.6;
+  const pad = 2.5 * k;
+  return [
+    el('rect', {
+      x: x0 - pad,
+      y: y0 - pad,
+      width: width + 2 * pad,
+      height: w * 1.2 + 2 * pad,
+      rx: 3 * k,
+      fill: i.palette.paper,
+      opacity: 0.85,
+      'data-mark': 'cost',
+    }),
+    ...Array.from({ length: count }, (_, j) =>
+      actionArrowNodes(i.palette, x0 + j * (w + gap), y0, w, 'ready'),
+    ).flat(),
+  ];
 }
 
 /**

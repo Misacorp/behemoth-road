@@ -42,7 +42,7 @@ import { fireHintAt } from '../game/chain.ts';
 import { accentOf, type Identity, lookOf } from '../game/identity.ts';
 import { type Moment, STEP_MS } from '../game/moments.ts';
 import { MomentMark } from './MomentMark.tsx';
-import { mapTipAt } from './mapTips.ts';
+import { mapTipAt, placeNoun, tileTipAt } from './mapTips.ts';
 import type { TipId } from '../text/tips.ts';
 import type { TipTarget } from '../ui/tip.ts';
 import { TIPS } from '../ui/Tip.tsx';
@@ -58,6 +58,7 @@ import {
   hereSize,
   inspectSize,
   Bubble,
+  characterSize,
   CHARACTER_SIZE,
   CharacterCard,
   bubbleSize,
@@ -129,6 +130,8 @@ export interface MapViewProps {
   readonly step?: { readonly from: Hex; readonly to: Hex } | null;
   /** Another player's character in the bubble was tapped. */
   readonly onCharacter: (id: string) => void;
+  /** The back button of a card opened inside another popup (a character from the bubble). */
+  readonly onBack?: () => void;
   /** Who each character is (names, roles, traits, quirks), from the player view. */
   readonly identities?: ReadonlyMap<string, Identity>;
   /** The map was right-clicked (the browser's menu is never shown over the map). */
@@ -200,6 +203,16 @@ function popoverAnchor(
     h && mine && hexEquals(h, mine)
       ? { clear: [mine, ...hexesInRange(mine, 1).filter((n) => !hexEquals(n, mine))] }
       : {};
+  const bubbleAnchor = (size: { width: number; height: number }): Anchor => {
+    // Above the creature's back, clear of its footprint.
+    const c = hexCenter(p, state.creature.centre.q, state.creature.centre.r);
+    const lift = tile * 1.5 + 0.5 * p.size;
+    return { key: 'bubble', top: { x: c.x, y: c.y - lift }, below: lift + tile, size };
+  };
+  if (flow.kind === 'character' && flow.back) {
+    // Opened from the bubble: in the bubble's place, as the next step of the same popup.
+    return { ...bubbleAnchor(characterSize(true)), key: `bubble:character:${flow.id}` };
+  }
   if (flow.kind === 'character') {
     // Above the character's head, wherever it stands (on a hex or on the creature's back).
     const feet = figureFeet(state, flow.id, p);
@@ -243,16 +256,9 @@ function popoverAnchor(
       ...clearOf(flow.hex),
     };
   }
-  if (flow.kind === 'bubble') {
-    // Above the creature's back, clear of its footprint.
-    const c = hexCenter(p, state.creature.centre.q, state.creature.centre.r);
-    const lift = tile * 1.5 + 0.5 * p.size;
-    return {
-      key: flow.kind,
-      top: { x: c.x, y: c.y - lift },
-      below: lift + tile,
-      size: bubbleSize(ridersOf(state).length),
-    };
+  if (flow.kind === 'bubble' || flow.kind === 'creature') {
+    // The hub's drawer opens with the bubble still open, marking the creature it is about.
+    return bubbleAnchor(bubbleSize(ridersOf(state).length));
   }
   if (flow.kind === 'selected' && here) {
     // Your own hex's feature and actions, above your figure.
@@ -654,6 +660,7 @@ export function MapView(props: MapViewProps): JSX.Element {
       const target =
         flow.kind === 'planned' ||
         flow.kind === 'bubble' ||
+        (flow.kind === 'character' && flow.back !== undefined) ||
         flow.kind === 'selected' ||
         (flow.kind === 'inspect' && survey) ||
         (flow.kind === 'threat' && popKey.endsWith(':true'))
@@ -751,12 +758,16 @@ export function MapView(props: MapViewProps): JSX.Element {
   };
 
   let card: JSX.Element | null = null;
+  const mineAt = state.characters.find((c) => c.id === characterId)?.at;
+  const mineHex = mineAt?.kind === 'hex' ? mineAt.hex : null;
   if (flow.kind === 'inspect') {
     const cellState = cellStateAt(state, `${flow.hex.q},${flow.hex.r}`);
     const known = terrainKnown(cellState);
     const at = flow.hex;
     card = (
       <InspectCard
+        title={known ? placeNoun(state, flow.hex) : null}
+        tileTip={known ? tileTipAt(state, flow.hex) : null}
         terrain={known ? (terrainOf(state, flow.hex)?.id ?? 'unknown') : 'unknown'}
         state={cellState}
         feature={known ? featureArtAt(state, hexKey(flow.hex)) : null}
@@ -772,6 +783,8 @@ export function MapView(props: MapViewProps): JSX.Element {
   } else if (flow.kind === 'selected' && props.here) {
     card = (
       <HereCard
+        title={props.here.settlement?.name ?? (mineHex ? placeNoun(state, mineHex) : null)}
+        tileTip={mineHex ? tileTipAt(state, mineHex) : null}
         terrain={props.here.terrain}
         feature={props.here.feature}
         actions={props.here.actions}
@@ -803,8 +816,20 @@ export function MapView(props: MapViewProps): JSX.Element {
     if (settlement) card = <SettlementCard settlement={settlement} />;
   } else if (flow.kind === 'character') {
     const who = props.identities?.get(flow.id);
-    if (who) card = <CharacterCard who={who} />;
-  } else if (flow.kind === 'bubble') {
+    if (who) {
+      card = flow.back ? (
+        <CharacterCard
+          who={who}
+          onBack={() => props.onBack?.()}
+          backRef={(el) => {
+            popoverFocusRef.current = el;
+          }}
+        />
+      ) : (
+        <CharacterCard who={who} />
+      );
+    }
+  } else if (flow.kind === 'bubble' || flow.kind === 'creature') {
     card = (
       <Bubble
         characters={ridersOf(state).map((c) => ({
@@ -812,7 +837,7 @@ export function MapView(props: MapViewProps): JSX.Element {
           accent: accentOf(c.id, MAP_TUNING.accent),
           look: lookOf(c.id),
           other: c.id !== characterId,
-          selected: c.id === characterId && flow.selecting,
+          selected: c.id === characterId && flow.kind === 'bubble' && flow.selecting,
         }))}
         onCharacter={(id) => props.onCharacter(id)}
         place="creature"
