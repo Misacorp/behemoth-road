@@ -138,7 +138,10 @@ export const MATERIAL_MOTIFS: Readonly<Record<string, IconMotif>> = {
   ],
 };
 
-/** Action motifs by key: what a character does, on a round tile with a dashed inner ring. */
+/**
+ * Action motifs by key: what a character does (and the boons a friendly people grants: `gift`, `mislead`,
+ * `shelter`), on a round tile with a dashed inner ring.
+ */
 export const ACTION_MOTIFS: Readonly<Record<string, IconMotif>> = {
   // Light a fire: crossed sticks, a flame and a spark.
   'light-fire': (pal) => [
@@ -178,6 +181,100 @@ export const ACTION_MOTIFS: Readonly<Record<string, IconMotif>> = {
     solid(pal, ellipsePath(17, 34.6, 3.4, 1.6), pal.ramps.hide.shade, 1.3),
     ink(pal, 'M32.5 30.5c.8.8 1.8.8 2.6 0', 1.3),
     solid(pal, 'M31 25.5l1.5-3.5 1.5 3.5z', pal.ramps.hide.shade, 1.2),
+  ],
+  // Strike: a spear thrust up to the right, its stone head biting, with impact ticks.
+  strike: (pal) => [
+    ink(pal, 'M11 37L29 19', 3.6, pal.ramps.bark.shade),
+    ink(pal, 'M11 37L29 19', 1.3, pal.ramps.bark.light),
+    solid(pal, 'M27.5 16.5l9.5-5-4.5 9.5-3.5.5z', pal.ramps.stone.base, 1.8),
+    ink(pal, 'M38.5 21l3.5 1M34.5 7.5l1-3.5M40 14.5l3.5-1.5', 1.8, pal.accents.coral.shade),
+  ],
+  // Defend: a kite shield raised before the creature's back.
+  defend: (pal) => [
+    solid(pal, 'M8 36c0-8 7-13 16-13s16 5 16 13z', pal.ramps.hide.light, 1.6),
+    ink(pal, 'M13 29c2-2 4-3 6-3.5', 1.2, pal.ramps.moss.shade),
+    solid(
+      pal,
+      'M24 11l9 3.5v8.5c0 6.5-4.5 10.5-9 13-4.5-2.5-9-6.5-9-13v-8.5z',
+      pal.ramps.stone.light,
+    ),
+    ink(pal, 'M24 12.5v22', 2.4, pal.accents.slate.base),
+    solid(pal, ellipsePath(24, 22, 2.6, 2.6), pal.accents.slate.shade, 1.4),
+  ],
+  // Parley: two speech ovals meeting, one paper with a wavy line, one sage with three dots.
+  parley: (pal) => [
+    solid(pal, `${ellipsePath(19, 20, 9.5, 7)}M14 25.5l-3.5 5.5 8-3.5`, pal.paper, 1.8),
+    ink(pal, 'M14.5 20c1.5-1.5 3-1.5 4.5 0s3 1.5 4.5 0', 1.3, pal.inkSoft),
+    solid(
+      pal,
+      `${ellipsePath(29.5, 28.5, 9.5, 7)}M34.5 34l3.5 5.5-8-3.5`,
+      pal.accents.sage.light,
+      1.8,
+    ),
+    el('path', {
+      d:
+        ellipsePath(25.5, 28.5, 1.3, 1.3) +
+        ellipsePath(29.5, 28.5, 1.3, 1.3) +
+        ellipsePath(33.5, 28.5, 1.3, 1.3),
+      fill: pal.ink,
+    }),
+  ],
+  // Offer: an open hand, palm up, holding out a coin.
+  offer: (pal) => [
+    solid(
+      pal,
+      'M9 31.5h7.5c2.5 0 4 .8 6 .8h6c1.8 0 2.5 2.4.4 3H22h8.5l7-4c1.8-1 3.4 1 2 2.4l-7 6c-1.6 1.2-3.4 1.8-5.5 1.8H9z',
+      pal.skin,
+      1.7,
+    ),
+    solid(pal, ellipsePath(26, 19, 6.5, 6.5), pal.accents.ochre.base, 1.8),
+    ink(pal, ellipsePath(26, 19, 4, 4), 1.1, pal.accents.ochre.shade),
+    ink(pal, 'M26 16.5v5', 1.2, pal.accents.ochre.shade),
+    ink(pal, 'M16 15l2.5 2.5M36 15l-2 2.5', 1.5, pal.inkSoft),
+  ],
+  // The gift boon: a full sack tied with a rose bow, a sprig poking out.
+  gift: (pal) => [
+    solid(pal, leafPath(28, 18, -1.2, 9), pal.ramps.foliage.base, 1.5),
+    solid(
+      pal,
+      'M15 37c-3.5-5.5-2.5-12.5 3-16l-2.5-5h17l-2.5 5c5.5 3.5 6.5 10.5 3 16z',
+      pal.ramps.sand.base,
+    ),
+    ink(pal, 'M17.5 31c2 1.5 4.5 2 7 2', 1.2, pal.ramps.sand.shade),
+    ink(pal, 'M17.5 20.5h13', 2.6, pal.accents.rose.shade),
+    solid(
+      pal,
+      'M24 20.5c-3-4.5-8-3.5-7 0 .8 2 4 1.5 7 0zM24 20.5c3-4.5 8-3.5 7 0-.8 2-4 1.5-7 0z',
+      pal.accents.rose.base,
+      1.4,
+    ),
+  ],
+  // The mislead boon: a signpost whose two arms point opposite ways, and a trail curling off.
+  mislead: (pal) => [
+    ink(pal, 'M24 38V11', 2.8, pal.ramps.bark.shade),
+    solid(pal, 'M24 13h10.5l3.5 3.5-3.5 3.5H24z', pal.ramps.bark.light, 1.6),
+    solid(pal, 'M24 22.5H13.5L10 26l3.5 3.5H24z', pal.ramps.bark.base, 1.6),
+    el('path', {
+      d: 'M28 38c5 0 9-2 8-5s-5-2-4.5 .5',
+      fill: 'none',
+      stroke: pal.inkSoft,
+      'stroke-width': 1.5,
+      'stroke-linecap': 'round',
+      'stroke-dasharray': '2 2.6',
+    }),
+  ],
+  // The shelter boon: a thatched lean-to over a small, warm fire.
+  shelter: (pal) => [
+    el('path', { d: ellipsePath(24, 33.5, 11, 3.6), fill: pal.accents.ochre.light }),
+    solid(pal, 'M8 31L24 13l16 18h-5L24 19 13 31z', pal.ramps.heath.base),
+    ink(pal, 'M15 26l3 1.5M30 26l3-1.5M19 21l2 1.5', 1.2, pal.ramps.heath.shade),
+    solid(
+      pal,
+      'M24 34.5c-2.6 0-4-1.5-4-3.6 0-2.4 2-3.4 2.4-5.4 1.2 1.2 1.6 2.4 1.6 2.4.4-1.6 1.4-2.8 2.4-3.4.3 2.2 1.6 3.4 1.6 5.6 0 2.6-1.6 4.4-4 4.4z',
+      pal.accents.coral.base,
+      1.4,
+    ),
+    ink(pal, 'M9 35.5h30', 1.3, pal.inkSoft),
   ],
 };
 

@@ -16,7 +16,7 @@ import {
   type IconMotif,
 } from './icon-motifs.ts';
 import { accentRamp, type Palette } from './palette.ts';
-import { sealParts } from './team-marks.ts';
+import { riskParts, sealParts } from './team-marks.ts';
 import { el, type SvgNode } from './svg.ts';
 
 export type { IconMotif } from './icon-motifs.ts';
@@ -36,6 +36,8 @@ export interface IconOptions {
   readonly tile?: 'trait' | 'quirk' | 'plain';
   /** Marks an unlock as done: a wax seal at the icon's lower right. */
   readonly done?: boolean;
+  /** Marks an action as risky (parley by a non-envoy): a cracked coral triangle at the icon's upper right. */
+  readonly risk?: boolean;
 }
 
 const P = (x: number, y: number): Point => ({ x, y });
@@ -141,7 +143,7 @@ const ROLE_MOTIFS: Readonly<Record<RoleId, IconMotif>> = {
 /** Trait and quirk icons by the `icon` key content gives them; each motif follows the same 48-unit grid. */
 export const ICON_MOTIFS: Readonly<Record<string, IconMotif>> = MOTIFS;
 /** Materials sit on a rounded square tile, items on a round tile with a double ring. */
-/** Actions (`light-fire`, `feed`, `linger`) sit on a round tile with a dashed inner ring. */
+/** Actions (`light-fire`, `feed`, `linger`, `strike`, `defend`, `parley`, `offer`) and boons (`gift`, `mislead`, `shelter`) sit on a round tile with a dashed inner ring. */
 export { ACTION_MOTIFS, ITEM_MOTIFS, MATERIAL_MOTIFS };
 
 /** Role icon keys as content names them, drawn as that role's emblem. */
@@ -300,5 +302,6 @@ export function drawIcon(
     children = neutral(palette);
   }
   if (options.done) children = [...children, ...sealParts(palette, 37, 37, 0.85)];
+  if (options.risk) children = [...children, ...riskParts(palette, 38, 10.5, 0.8)];
   return el('svg', { viewBox: '0 0 48 48', width: px, height: px }, children);
 }

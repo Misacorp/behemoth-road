@@ -5,40 +5,25 @@
  * `data-part="0" | "1" | "2"` so the map can stage them (draw 0 first, 2 last); the drawing is the
  * finished frame.
  */
-import { ellipsePath, poly, smoothClosed, smoothOpen, type Point } from './geom.ts';
+import { ellipsePath, poly, smoothOpen, type Point } from './geom.ts';
 import type { Palette } from './palette.ts';
-import { el, type AttrValue, type SvgNode } from './svg.ts';
+import { stroke, wobblyRing } from './moment-kit.ts';
+import { SEASON_MOMENT_KINDS, SEASON_MOMENTS } from './season-moments.ts';
+import { el, type SvgNode } from './svg.ts';
 
-export const MOMENT_KINDS = ['reveal', 'find', 'trap', 'survey', 'fire', 'feed', 'linger'] as const;
+export const MOMENT_KINDS = [
+  'reveal',
+  'find',
+  'trap',
+  'survey',
+  'fire',
+  'feed',
+  'linger',
+  ...SEASON_MOMENT_KINDS,
+] as const;
 export type MomentKind = (typeof MOMENT_KINDS)[number];
 
 const P = (x: number, y: number): Point => ({ x, y });
-
-function stroke(
-  colour: string,
-  width: number,
-  extra: Record<string, AttrValue> = {},
-): Record<string, AttrValue> {
-  return {
-    fill: 'none',
-    stroke: colour,
-    'stroke-width': width,
-    'stroke-linecap': 'round',
-    'stroke-linejoin': 'round',
-    ...extra,
-  };
-}
-
-/** A wobbly ring of radius r (a calm, repeatable wobble), as path data. */
-function wobblyRing(r: number, wobble: number, phase: number): string {
-  const pts: Point[] = [];
-  for (let i = 0; i < 12; i += 1) {
-    const a = (Math.PI * 2 * i) / 12;
-    const f = 1 + wobble * Math.sin(i * 2.3 + phase) * Math.cos(i * 0.7 + phase);
-    pts.push(P(Math.cos(a) * r * f, Math.sin(a) * r * f));
-  }
-  return smoothClosed(pts);
-}
 
 /** The ink bloom of a reveal: a wash spreading out in rings. */
 function reveal(pal: Palette): SvgNode[] {
@@ -260,6 +245,7 @@ const MOMENTS: Readonly<Record<MomentKind, (p: Palette) => SvgNode[]>> = {
   fire,
   feed,
   linger,
+  ...SEASON_MOMENTS,
 };
 
 /** A moment mark as a centred `<svg>` of `size` px. Unknown kinds draw the reveal bloom. */
