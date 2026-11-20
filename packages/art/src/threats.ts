@@ -37,42 +37,62 @@ interface Figure {
 
 type FigureDraw = (c: PropContext) => Figure;
 
-/** A small hooded figure standing at (x, y), cloaked in `ramp`, its face in shadow with two pale eyes. */
+/**
+ * A hostile figure standing at (x, y): hunched in a dark cloak (earthy ramps, never the characters' accent
+ * colours), a hood peaked into two horn points, a ragged hem and pale eyes in a shadowed face, so a band
+ * never reads as a player's standee (round head, smooth cloak, paper base).
+ */
 function hooded(c: PropContext, x: number, y: number, ramp: Ramp, h = 21): Figure {
   const { pts, fill, line, T } = kit(c);
   const pal = c.palette;
   const s = h / 21;
+  const P = (u: number, v: number): [number, number] => [x + u * s, y + v * s];
   const body = pts([
-    [x, y - 21 * s],
-    [x + 4.5 * s, y - 18 * s],
-    [x + 5.5 * s, y - 9 * s],
-    [x + 6.5 * s, y],
-    [x - 6.5 * s, y],
-    [x - 5.5 * s, y - 9 * s],
-    [x - 4.5 * s, y - 18 * s],
+    P(-1.6, -19),
+    P(-4.2, -24),
+    P(-4.6, -18.5),
+    P(-6.5, -14),
+    P(-7.5, -8),
+    P(-8, 0),
+    P(-5.5, -2),
+    P(-3.5, 0.5),
+    P(-1, -2),
+    P(1.5, 0.5),
+    P(4, -2),
+    P(6, 0.5),
+    P(8, -0.5),
+    P(7.5, -8),
+    P(6.5, -14),
+    P(4.6, -18.5),
+    P(4.2, -24),
+    P(1.6, -19),
   ]);
   const shade = pts([
-    [x + 1, y - 20 * s],
-    [x + 4.5 * s, y - 18 * s],
-    [x + 5.5 * s, y - 9 * s],
-    [x + 6.5 * s, y],
-    [x + 1.5 * s, y],
+    P(1.6, -19),
+    P(4.2, -24),
+    P(4.6, -18.5),
+    P(6.5, -14),
+    P(7.5, -8),
+    P(8, -0.5),
+    P(6, 0.5),
+    P(4, -2),
+    P(2.5, -10),
   ]);
-  const face = T(x + 0.6 * s, y - 15.5 * s);
-  const eyes = [T(x - 0.8 * s, y - 15.8 * s), T(x + 2 * s, y - 15.8 * s)];
+  const face = T(x, y - 15 * s);
+  const eyes = [T(x - 1.5 * s, y - 15.3 * s), T(x + 1.5 * s, y - 15.3 * s)];
   return {
     nodes: [
-      fill(smoothClosed(body), ramp.base),
-      fill(smoothClosed(shade), ramp.shade, 0.7),
-      fill(ellipsePath(face.x, face.y, 3 * s * c.k, 2.6 * s * c.k * c.rise), pal.ink, 0.85),
+      fill(poly(body), ramp.base),
+      fill(poly(shade), ramp.shade, 0.75),
+      fill(ellipsePath(face.x, face.y, 3.4 * s * c.k, 2.8 * s * c.k * c.rise), pal.ink, 0.9),
       fill(
-        eyes.map((e) => ellipsePath(e.x, e.y, 0.75 * c.k, 0.75 * c.k)).join(''),
+        eyes.map((e) => ellipsePath(e.x, e.y, 0.85 * c.k, 0.6 * c.k)).join(''),
         pal.ramps.sand.light,
       ),
-      line(smoothClosed(body)),
+      line(poly(body)),
     ],
     points: body,
-    top: y - 21 * s,
+    top: y - 24 * s,
   };
 }
 
@@ -80,8 +100,14 @@ function hooded(c: PropContext, x: number, y: number, ramp: Ramp, h = 21): Figur
 const captors: FigureDraw = (c) => {
   const { pts, line, T, fill } = kit(c);
   const pal = c.palette;
-  const ramp = pal.accents.plum;
-  const back = hooded(c, 1, -3, pal.accents.slate, 20);
+  const ramp = { ...pal.ramps.bark, base: pal.ramps.bark.shade, shade: pal.shadow };
+  const back = hooded(
+    c,
+    1,
+    -3,
+    { ...pal.ramps.rock, base: pal.ramps.rock.shade, shade: pal.shadow },
+    20,
+  );
   const left = hooded(c, -10, 0, ramp);
   const right = hooded(c, 11, 1, ramp, 20);
   const spear = pts([
@@ -359,8 +385,9 @@ function torch(c: PropContext, x: number, y: number): Figure {
 const raiders: FigureDraw = (c) => {
   const pal = c.palette;
   const sq = c.squash / 0.6;
-  const left = hooded(c, -6, -1, pal.accents.coral);
-  const right = hooded(c, 8, 1, pal.accents.rose);
+  const cloak = { ...pal.ramps.earth, base: pal.ramps.earth.shade, shade: pal.shadow };
+  const left = hooded(c, -6, -1, cloak);
+  const right = hooded(c, 8, 1, { ...cloak, base: pal.ramps.hide.shade });
   const torches = [torch(c, -13, -24), torch(c, 15, -22)];
   return {
     nodes: [
