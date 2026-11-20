@@ -18,6 +18,7 @@ ID: `2026-11-20-one-tip-controller-for-html-the` · Status: current · Amends: `
 - The tip is an HTML card placed with the popovers' `placePopover`, beside the icon and never over it, with the same chevron. It is moved with `setCssTransform`, so it also shows over drawers.
 - Texts, delays per group (`hud` 0, `action` 300, `content` 500, `map` 700, `default` 400 ms) and the hold time live in `apps/web/src/text/tips.ts`. Titles fall back to the content name.
 - Traits and quirks have no mechanics yet, and their tips say so ("Not in play yet") rather than promise an effect.
+- Every number in a tip is a placeholder (`{packSize}`, `{surveyCost.scout}`…) filled from the game's tuning config and content when the tip shows (`text/tipValues.ts`), so tips follow the rules after a change; a test fails on an unknown placeholder or a bare number.
 
 **Reasoning.** One controller makes "one at a time" and "a hold never taps" true everywhere, without each control handling it.
 

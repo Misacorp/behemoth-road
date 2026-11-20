@@ -4,10 +4,18 @@
  * text file gives one) and a line or two of text, placed like the map's popovers, beside the thing and never
  * over it, with the same chevron. The texts live in `text/tips.ts`.
  */
-import { MATERIALS, PEOPLE_TYPES, THREAT_TYPES, UNLOCKS } from '@behemoth-road/core';
+import {
+  DEFAULT_CONFIG,
+  MATERIALS,
+  PEOPLE_TYPES,
+  THREAT_TYPES,
+  type TuningConfig,
+  UNLOCKS,
+} from '@behemoth-road/core';
 import type { JSX } from 'preact';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { TIP_TABLE, type TipId } from '../text/tips.ts';
+import { fillTip, tipValues } from '../text/tipValues.ts';
 import { chevronFor, placePopover } from '../map/compose.ts';
 import { setCssTransform } from '../map/cssTransform.ts';
 import { contentName } from './emblems.tsx';
@@ -18,6 +26,17 @@ export const TIPS = new TipController({
   setTimeout: (fn, ms) => window.setTimeout(fn, ms),
   clearTimeout: (h) => window.clearTimeout(h),
 });
+
+/** The numbers tips show, from the game's tuning (the defaults until a game is loaded). */
+let values = tipValues(DEFAULT_CONFIG);
+let valuesFor: TuningConfig = DEFAULT_CONFIG;
+
+/** The game's tuning, so the numbers in tips follow it. */
+export function setTipConfig(config: TuningConfig): void {
+  if (config === valuesFor) return;
+  valuesFor = config;
+  values = tipValues(config);
+}
 
 const rectOf = (el: Element): TipAnchor => {
   const r = el.getBoundingClientRect();
@@ -146,7 +165,7 @@ export function TipLayer(): JSX.Element | null {
   return (
     <div ref={box} class="tip" role="tooltip" data-tip-open={open.id}>
       <strong class="tip-title">{titleOf(open.id)}</strong>
-      <span class="tip-text">{tip.text}</span>
+      <span class="tip-text">{fillTip(tip.text, values)}</span>
       <svg
         class="tip-chevron"
         aria-hidden="true"

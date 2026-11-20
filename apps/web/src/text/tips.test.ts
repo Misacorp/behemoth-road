@@ -13,7 +13,9 @@ import {
   UNLOCKS,
 } from '@behemoth-road/core';
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_CONFIG } from '@behemoth-road/core';
 import { delays, holdMs, tips } from './tips.ts';
+import { fillTip, placeholdersIn, tipValues } from './tipValues.ts';
 
 const has = (id: string): boolean => Object.hasOwn(tips, id);
 
@@ -70,9 +72,25 @@ describe('tip texts', () => {
     expect([...used].filter((id) => !has(id))).toEqual([]);
   });
 
+  it('fill every placeholder from the rules, and write no bare numbers but 0', () => {
+    const values = tipValues(DEFAULT_CONFIG);
+    for (const [id, tip] of Object.entries(tips)) {
+      for (const key of placeholdersIn(tip.text))
+        expect(values[key], `${id}: {${key}}`).toBeDefined();
+      expect(fillTip(tip.text, values), id).not.toMatch(/[{}]/);
+      expect(tip.text.replace(/\{[^}]*\}/g, ''), id).not.toMatch(/[1-9]/);
+    }
+    // A tuning change shows in the text.
+    const filled = fillTip(
+      tips['hud:pack'].text,
+      tipValues({ ...DEFAULT_CONFIG, packCapacity: 9 }),
+    );
+    expect(filled).toContain('up to 9');
+  });
+
   it('are short: a title of a few words and one or two lines', () => {
     for (const [id, tip] of Object.entries(tips)) {
-      expect(tip.text.length, id).toBeLessThanOrEqual(120);
+      expect(fillTip(tip.text, tipValues(DEFAULT_CONFIG)).length, id).toBeLessThanOrEqual(130);
       expect(tip.text, id).not.toMatch(/\s{2}|^\s|\s$/);
     }
   });

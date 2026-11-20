@@ -8,6 +8,10 @@
  * - `delays` sets how long the pointer must rest on an icon before its tip opens, in milliseconds, for each
  *   group of icons. One entry can wait longer or shorter with its own `delayMs`.
  * - `holdMs` is how long a finger must press before the tip opens on a phone.
+ * - Numbers come from the game's rules: write a placeholder in curly brackets, such as {packSize} or
+ *   {surveyCost.scout}, and the tip shows the current number in its place. Then a change to the rules never
+ *   leaves a tip saying something old. The placeholders you can use are listed in `tipValues.ts` next to
+ *   this file; a test fails if a tip uses one that does not exist.
  * - Never say what something undiscovered does, or how the creature secretly reacts.
  * - Every icon in the game needs an entry here; a test fails if one is missing.
  */
@@ -39,21 +43,23 @@ export const holdMs = 450;
 
 export const tips = {
   // Roles (the six emblems).
-  'role:scout': { text: 'Explores ahead. Surveys a neighbouring hex for 1 action (others pay 2).' },
+  'role:scout': {
+    text: 'Explores ahead. Surveys a neighbouring hex for {surveyCost.scout} action (others pay {surveyCost.other}).',
+  },
   'role:scholar': {
-    text: 'Works tombs with better odds (70 % against 35 %). The only one who can work a deep tomb, by lantern light.',
+    text: 'Works tombs with better odds ({siteChance.scholar.1} % against {siteChance.other.1} %). The only one who can work a deep tomb, by lantern light.',
   },
   'role:keeper': {
     text: 'Tends the creature: reads its hunger and its mood. Riding, can make it stay put for a day.',
   },
   'role:guardian': {
-    text: 'Strikes threats twice as hard and is never struck. Anyone next to them is safe too.',
+    text: 'Strikes threats harder ({strike.guardian} against {strike.other}) and is never struck. Anyone next to them is safe too.',
   },
   'role:engineer': {
     text: 'Builds the team’s unlocks from the stores, while riding the creature.',
   },
   'role:envoy': {
-    text: 'Speaks for the team. A parley wins twice the favour, with no risk of anger.',
+    text: 'Speaks for the team. A parley wins {parleyFavour.envoy} favour (others {parleyFavour.other}), with no risk of anger.',
   },
 
   // Traits: a character's knack. Not in play yet.
@@ -92,7 +98,7 @@ export const tips = {
   },
   'material:stone': { text: 'From river stones and fieldstones. Builds the lantern.' },
   'material:timber': {
-    text: 'From timber stands and deadfall. Builds unlocks, and one fuels a fire.',
+    text: 'From timber stands and deadfall. Builds unlocks, and {fireFuel} fuels a fire.',
   },
   'material:ancient-alloy': { text: 'Found in deep tombs. Builds the climbing spikes.' },
   'material:old-coin': {
@@ -101,46 +107,52 @@ export const tips = {
   'material:forage': { text: 'Food from berry bushes. Feed it to the creature from the stores.' },
 
   // Unlocks (built by engineers, for the whole team).
-  'unlock:grappling-hook': { text: 'Lets everyone climb cliffs, for 2 actions a step.' },
+  'unlock:grappling-hook': {
+    text: 'Lets everyone climb cliffs, for {climbCost.grappling-hook} actions a step.',
+  },
   'unlock:lantern': { text: 'Light for deep tombs, so a scholar can work them.' },
-  'unlock:climbing-spikes': { text: 'Cliffs cost only 1 action a step.' },
+  'unlock:climbing-spikes': { text: 'Cliffs cost only {climbCost.climbing-spikes} action a step.' },
 
   // Actions (buttons in the cards and the hub).
   'action:survey': {
-    text: 'Look into a neighbouring hex without entering it. 1 action for a scout, 2 for others.',
+    text: 'Look into a neighbouring hex without entering it. {surveyCost.scout} action for a scout, {surveyCost.other} for others.',
   },
   'action:gather': { text: 'Take one unit from here into your pack.' },
-  'action:work-site': { text: 'Search the tomb. It may take more than one try.' },
+  'action:work-site': {
+    text: 'Search the tomb ({workSiteCost} actions). It may take more than one try.',
+  },
   'action:build': {
     text: 'Engineers, riding: start or work on an unlock. Each action is one work.',
   },
   'action:light-fire': {
     title: 'Light a fire',
-    text: 'Burn 1 timber from your pack here. Fires catch the creature’s attention until the day turns.',
+    text: 'Burn {fireFuel} timber from your pack here. Fires catch the creature’s attention until the day turns.',
   },
   'action:feed': {
-    text: 'Riding: give the creature 1 food from the stores. Too much makes it sluggish.',
+    text: 'Riding: give the creature food from the stores. Too much makes it sluggish.',
   },
   'action:linger': {
     text: 'Keepers, riding: the creature stays put when the day turns. Not two days running.',
   },
   'action:strike': {
-    text: 'Weaken a threat next to you by 1, or by 2 as a guardian. At 0 it is gone.',
+    text: 'Weaken a threat next to you by {strike.other}, or by {strike.guardian} as a guardian. At 0 it is gone.',
   },
-  'action:defend': { text: 'Guardians, riding: each strike on the creature today is 2 weaker.' },
+  'action:defend': {
+    text: 'Guardians, riding: each strike on the creature today is {defendReduction} weaker.',
+  },
   'action:parley': {
-    text: 'Win a wary settlement’s favour. An envoy gains 2; others gain 1 and may anger it.',
+    text: 'Win a wary settlement’s favour. An envoy gains {parleyFavour.envoy}; others gain {parleyFavour.other} and may anger it.',
   },
-  'action:offer': { text: 'Give an old coin to a wary settlement: 2 favour, no risk.' },
+  'action:offer': { text: 'Give an old coin to a wary settlement: {offerFavour} favour, no risk.' },
   'action:ask-boon': { title: 'Ask a boon', text: 'A friendly settlement grants one boon.' },
 
   // Boons a friendly settlement can grant (one each).
   'boon:gift': { title: 'Gift', text: 'Food and timber into the team stores.' },
   'boon:mislead': {
     title: 'Mislead',
-    text: 'Captor bands lose the trail, and none follow for a few days.',
+    text: 'Captor bands lose the trail, and none follow for {misleadDays} days.',
   },
-  'boon:shelter': { title: 'Shelter', text: 'Peril falls by 3.' },
+  'boon:shelter': { title: 'Shelter', text: 'Peril falls by {shelterPeril}.' },
 
   // Threats on the map.
   'threat:captors': { text: 'On the creature’s trail. Strong, and gains on it every day.' },
@@ -160,7 +172,7 @@ export const tips = {
     text: 'Burns until the day turns. The creature notices fires nearby.',
   },
   'map:escort': { title: 'Escorted', text: 'Next to a guardian: threats will not strike here.' },
-  'map:struck': { title: 'Struck', text: 'Hit by a threat: only 1 action tomorrow.' },
+  'map:struck': { title: 'Struck', text: 'Hit by a threat: only {struckActions} action tomorrow.' },
 
   // The heads-up display.
   'hud:day': {
@@ -174,7 +186,7 @@ export const tips = {
   },
   'hud:pack': {
     title: 'Your pack',
-    text: 'What you carry, up to 6. Board the creature to empty it into the stores.',
+    text: 'What you carry, up to {packSize}. Board the creature to empty it into the stores.',
   },
   'hud:stores': {
     title: 'Stores',

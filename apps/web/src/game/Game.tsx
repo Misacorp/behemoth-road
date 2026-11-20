@@ -25,7 +25,7 @@ import {
 } from '../map/flow.ts';
 import { type FocusTarget, type Here, MapView } from '../map/MapView.tsx';
 import { HubDrawer } from '../hub/HubDrawer.tsx';
-import { TipLayer } from '../ui/Tip.tsx';
+import { setTipConfig, TipLayer } from '../ui/Tip.tsx';
 import { cellStateAt, featureArtAt } from '../map/cells.ts';
 import {
   actionsAt,
@@ -127,6 +127,8 @@ export function Game({ api, initial }: GameProps): JSX.Element {
   }, []);
 
   const state = useMemo(() => toGameState(view.game), [view]);
+  // The numbers in tips follow this game's rules.
+  setTipConfig(state.config);
   const signs = useMemo(() => toSigns(view.signs), [view]);
   const who = useMemo(() => {
     const ids = identities(view);
