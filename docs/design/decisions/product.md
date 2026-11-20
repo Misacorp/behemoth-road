@@ -115,10 +115,6 @@ ID: `2026-11-20-m4-tick-events-a-linger-is` · Status: current
 
 **Reasoning.** Every tick has exactly one step event, so the web needs no special case to find it; lingering is already public on the creature (`lingering`, `lingeredDay`). The stores and fires are public, so these events reveal nothing hidden.
 
-## 2026-11-20: Milestone 4 art: appetite, cues, lying down and fires are drawn by the art kit from the core's signs
-
-ID: `2026-11-20-milestone-4-art-appetite-cues-lying-2` · Status: current
-
 ## 2026-11-20: Poll every 10 seconds while the game is visible
 
 ID: `2026-11-20-poll-every-10-seconds-while-the` · Status: current · Amends: `2026-11-20-polish-after-the-m3-playtest-icon`

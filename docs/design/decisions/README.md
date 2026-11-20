@@ -125,7 +125,6 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-20 Feed and linger sit in the hub drawer as unlock-style cards
 - 2026-11-20 Light a fire shows on your hex's card only when you carry fuel (amended)
 - 2026-11-20 M4 tick events: a linger is a creature-step that stays; fire-out and creature-ate are public
-- 2026-11-20 Milestone 4 art: appetite, cues, lying down and fires are drawn by the art kit from the core's signs
 - 2026-11-20 Poll every 10 seconds while the game is visible
 - 2026-11-20 Polish after the M3 playtest: icon names, the window edge, a lost moment, the creature's walk and action hints (amended)
 - 2026-11-20 Moments play only from the server's event log, once per event
