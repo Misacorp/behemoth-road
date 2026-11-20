@@ -6,6 +6,7 @@
  * a phone held upright and on a wide desktop.
  */
 import { DEFAULT_LOOK, drawCharacter, type CharacterLook } from './character.ts';
+import { drawCharacterMarks } from './escort.ts';
 import { drawCreature, GENTLE_AMBLER, type CreatureLook } from './creature.ts';
 import { ellipsePath, smoothOpen, type Point } from './geom.ts';
 import { ACCENTS, type Palette } from './palette.ts';
@@ -119,12 +120,19 @@ function partyRow(
   y: number,
   u: number,
   ink: number,
+  hurt: boolean,
 ): SvgNode[] {
   const shown = party.slice(0, 8);
   const gap = 7.5 * u;
   return shown.flatMap((p, i) => {
     const at = { x: x + (i - (shown.length - 1) / 2) * gap, y: y + (i % 2) * 1.6 * u };
-    return drawCharacter(palette, p.accent, at, 11 * u, 0.8, ink, p.look ?? DEFAULT_LOOK).nodes;
+    const figure = drawCharacter(palette, p.accent, at, 11 * u, 0.8, ink, p.look ?? DEFAULT_LOOK);
+    // Coming home wounded, every other member of the party is bandaged too.
+    const marks =
+      hurt && i % 2 === 0
+        ? drawCharacterMarks(palette, at, 11 * u, 0.8, ink, { struck: true }).nodes
+        : [];
+    return [...figure.nodes, ...marks];
   });
 }
 
@@ -280,7 +288,9 @@ export function drawEnding(
       ink,
       { q: 1, r: 0 },
       0,
-      kind === 'wounded' ? { pose: 'lying' } : {},
+      // Wounded: lying down spent, head and tail drooping and the hide dulled (the underfed sign at full
+      // strength), so it reads as hurt even without the bandage or the dusk.
+      kind === 'wounded' ? { pose: 'lying', appetite: { kind: 'underfed', level: 3 } } : {},
     );
     nodes.push(...drawn.nodes);
     if (kind === 'wounded') {
@@ -300,7 +310,17 @@ export function drawEnding(
         }),
       );
     }
-    nodes.push(...partyRow(palette, party, creatureAt.x - 2 * u, ground + 17 * u, u, ink));
+    nodes.push(
+      ...partyRow(
+        palette,
+        party,
+        creatureAt.x - 2 * u,
+        ground + 17 * u,
+        u,
+        ink,
+        kind === 'wounded',
+      ),
+    );
   } else {
     // Lost: a faint shape far off in the fog, prints leading toward it and fading, fog banks over all.
     const far = drawCreature(

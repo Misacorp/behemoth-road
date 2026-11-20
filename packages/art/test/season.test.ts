@@ -380,3 +380,58 @@ describe('moments and endings', () => {
     expect(() => drawEnding('safe', SPRING, 390, 844, { idPrefix: 'x y' })).toThrow();
   });
 });
+
+describe('determinism', () => {
+  it('draws the same SVG for the same input twice', () => {
+    const cells: ArtCell[] = [
+      {
+        q: 0,
+        r: 0,
+        terrain: 'plains',
+        threat: { look: 'raiders', strength: 4, toward: DIRECTIONS[2]!, arrivesTomorrow: true },
+        settlement: { look: 'hill-folk', attitude: 'angry' },
+      },
+      {
+        q: 2,
+        r: -1,
+        terrain: 'hills',
+        state: 'unexplored',
+        threat: { look: 'swarm', strength: 2 },
+      },
+      {
+        q: -2,
+        r: 1,
+        terrain: 'forest',
+        settlement: { look: 'hill-folk', attitude: 'wary', favour: 2 },
+      },
+    ];
+    const draws: (() => SvgNode)[] = [
+      () =>
+        renderScene({
+          cells,
+          creature: { q: 0, r: 2, heading: { q: 0, r: -1 }, look: GENTLE_AMBLER },
+          characters: [
+            { id: 'a', q: 0, r: 2, accent: 'slate', marks: { defending: true } },
+            { id: 'b', q: 2, r: 0, accent: 'rose', marks: { escorted: true, struck: true } },
+          ],
+          projection: isometric(),
+          palette: SPRING,
+          seed: 'twice',
+        }),
+      ...THREAT_LOOKS.map((look) => () => drawThreatIcon(look, SPRING, 64, { strength: 3 })),
+      () => drawSettlementIcon(SPRING, 64, { look: 'hill-folk', attitude: 'friendly' }),
+      () => drawEscortRing(isometric(), { q: 1, r: 1 }, SPRING),
+      () => drawStatusMark('struck', SPRING, 24),
+      () => drawPerilGauge(SPRING, 200, 6),
+      () => drawRouteStrip(SPRING, 300, 17, 40),
+      () => drawPerilVignette(SPRING, 0.6),
+      () => drawRiskMark(SPRING, 24),
+      ...['strike', 'defend', 'parley', 'offer', 'gift', 'mislead', 'shelter'].map(
+        (k) => () => drawIcon(k, SPRING, 48, { risk: k === 'parley' }),
+      ),
+      ...SEASON_MOMENT_KINDS.map((k) => () => drawMoment(k, SPRING, 96)),
+      ...ENDINGS.map((o) => () => drawEnding(o, SPRING, 390, 844)),
+    ];
+    for (const draw of draws) expect(toSvgString(draw())).toBe(toSvgString(draw()));
+  });
+});

@@ -65,6 +65,38 @@ function shieldPath(x: number, y: number, w: number, h: number): string {
   ]);
 }
 
+/** A paper disc at `c` of radius `r` with a coloured rim, holding `inner`. */
+function badge(
+  palette: Palette,
+  c: Point,
+  r: number,
+  rim: string,
+  width: number,
+  inner: SvgNode[],
+): SvgNode[] {
+  return [
+    el('path', {
+      d: ellipsePath(c.x, c.y, r, r),
+      fill: palette.paper,
+      stroke: rim,
+      'stroke-width': width,
+    }),
+    ...inner,
+  ];
+}
+
+/** A rectangle `w` × `h` centred on `c`, turned by `a` radians, as points. */
+function skewRect(c: Point, w: number, h: number, a: number): Point[] {
+  const cs = Math.cos(a);
+  const sn = Math.sin(a);
+  return [
+    [-w / 2, -h / 2],
+    [w / 2, -h / 2],
+    [w / 2, h / 2],
+    [-w / 2, h / 2],
+  ].map(([u, v]) => ({ x: c.x + u! * cs - v! * sn, y: c.y + u! * sn + v! * cs }));
+}
+
 /**
  * A character's marks for the day, drawn over its standee at `origin` (its feet). Same arguments as
  * `drawCharacter`. Parts carry `data-mark="escorted" | "struck" | "defending"`.
@@ -131,13 +163,30 @@ export function drawCharacterMarks(
         }),
         line(band + tails, w * 0.8),
         line(poly([T(-3, -40.4), T(-1.5, -38.7)], false), w * 0.6, palette.inkSoft),
+        // A badge at the right shoulder big enough to read at phone zoom: a rose-rimmed paper disc
+        // with crossed plasters.
+        ...badge(palette, T(13.5, -27), 8.5 * k, palette.accents.rose.shade, w * 1.4, [
+          el('path', {
+            d:
+              poly(skewRect(T(13.5, -27), 11 * k, 3.6 * k, 0.7)) +
+              poly(skewRect(T(13.5, -27), 11 * k, 3.6 * k, -0.7)),
+            fill: palette.paper,
+            stroke: palette.ink,
+            'stroke-width': w * 0.8,
+            'stroke-linejoin': 'round',
+          }),
+          el('path', {
+            d: ellipsePath(T(13.5, -27).x, T(13.5, -27).y, 1.9 * k, 1.9 * k),
+            fill: palette.accents.rose.base,
+          }),
+        ]),
       ]),
     );
   }
   if (marks.escorted) {
     // A small slate shield at the left shoulder, on a paper disc so it reads over any cloak.
-    const c = T(-12, -30);
-    const r = 5.6 * k;
+    const c = T(-13.5, -27);
+    const r = 8.5 * k;
     all.push({ x: c.x - r, y: c.y - r }, { x: c.x + r, y: c.y + r });
     nodes.push(
       el('g', { 'data-mark': 'escorted' }, [
@@ -145,18 +194,18 @@ export function drawCharacterMarks(
           d: ellipsePath(c.x, c.y, r, r),
           fill: palette.paper,
           stroke: palette.accents.slate.shade,
-          'stroke-width': w * 0.9,
+          'stroke-width': w * 1.4,
         }),
         el('path', {
-          d: shieldPath(c.x, c.y + 0.3 * k, 6 * k, 7.4 * k),
+          d: shieldPath(c.x, c.y + 0.4 * k, 9.5 * k, 11.5 * k),
           fill: palette.accents.slate.base,
           stroke: palette.ink,
           'stroke-width': w * 0.8,
           'stroke-linejoin': 'round',
         }),
         line(
-          `M${c.x.toFixed(1)} ${(c.y - 3.2 * k).toFixed(1)}V${(c.y + 3.4 * k).toFixed(1)}`,
-          w * 0.7,
+          `M${c.x.toFixed(1)} ${(c.y - 5 * k).toFixed(1)}V${(c.y + 5.3 * k).toFixed(1)}`,
+          w * 1.1,
           palette.accents.slate.light,
         ),
       ]),
