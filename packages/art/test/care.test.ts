@@ -9,7 +9,8 @@ import {
 import { drawFire } from '../src/fire.ts';
 import { featureDrawer } from '../src/features.ts';
 import { ACTION_MOTIFS, drawIcon, hasIcon } from '../src/icons.ts';
-import { drawStayMark } from '../src/marks.ts';
+import { drawMoment, drawStayMark, drawStepHint } from '../src/marks.ts';
+import { drawAppetiteBadge } from '../src/signs.ts';
 import { paletteColours, SPRING } from '../src/palette.ts';
 import { DIRECTIONS, isometric } from '../src/projection.ts';
 import { rngFor } from '../src/rng.ts';
@@ -225,5 +226,101 @@ describe('care icons and the stay hint', () => {
     within(node);
     expect(node.attrs.width).toBe(32);
     expect(drawStayMark(SPRING, Number.NaN).attrs.width).toBe(48);
+  });
+});
+
+describe('appetite at a glance', () => {
+  it('washes the ground around it, cool when underfed and warm when overfed', () => {
+    const aura = (mood: CreatureMood): string[] => {
+      const fills: string[] = [];
+      walk(creature(mood), (n) => {
+        if (n.attrs['data-sign'] === 'aura') fills.push(String(n.attrs.fill));
+      });
+      return fills;
+    };
+    expect(aura({})).toEqual([]);
+    expect(aura({ appetite: { kind: 'underfed', level: 1 } })).toContain(
+      SPRING.accents.slate.light,
+    );
+    expect(aura({ appetite: { kind: 'overfed', level: 1 } })).toContain(SPRING.accents.ochre.light);
+    expect(aura({ appetite: { kind: 'underfed', level: 3, faint: true } }).length).toBeGreaterThan(
+      0,
+    );
+  });
+
+  it('draws faint stronger at a higher level, but never weaker than level 1', () => {
+    const width = (mood: CreatureMood) => {
+      const b = drawCreature(
+        SPRING,
+        GENTLE_AMBLER,
+        { x: 0, y: 0 },
+        64,
+        0.8,
+        1.4,
+        { q: 0, r: 1 },
+        0,
+        mood,
+      ).box;
+      return b.x1 - b.x0;
+    };
+    const one = width({ appetite: { kind: 'overfed', level: 1 } });
+    const faint2 = width({ appetite: { kind: 'overfed', level: 2, faint: true } });
+    const faint3 = width({ appetite: { kind: 'overfed', level: 3, faint: true } });
+    expect(faint2).toBeGreaterThanOrEqual(one);
+    expect(faint3).toBeGreaterThan(faint2);
+  });
+});
+
+describe('the appetite badge', () => {
+  it('draws calm, each kind and level, and faint, all different and within the palette', () => {
+    const seen = new Set<string>();
+    const cases = [
+      null,
+      ...(['underfed', 'overfed'] as const).flatMap((kind) =>
+        ([1, 2, 3] as const).flatMap((level) => [
+          { kind, level },
+          { kind, level, faint: true },
+        ]),
+      ),
+    ];
+    for (const a of cases) {
+      const node = drawAppetiteBadge(SPRING, 20, a);
+      within(node);
+      seen.add(toSvgString(node));
+    }
+    // Faint badges do not show the level, so the three faint badges of a kind are alike.
+    expect(seen.size).toBe(1 + 2 * 3 + 2);
+  });
+
+  it('shows the keeper the level in dots, never in text', () => {
+    for (const level of [1, 2, 3] as const) {
+      const node = drawAppetiteBadge(SPRING, 20, { kind: 'underfed', level });
+      let dots = 0;
+      walk(node, (n) => {
+        if (n.attrs['data-level'] === level) dots = String(n.attrs.d).split('M').length - 1;
+      });
+      expect(dots).toBe(level);
+      expect(toSvgString(node)).not.toMatch(/<text/);
+    }
+  });
+});
+
+describe('the stayed moment and step hints', () => {
+  it('draws the stayed moment in three parts', () => {
+    const node = drawMoment('stayed', SPRING, 48);
+    within(node);
+    expect(new Set(node.children.map((n) => n.attrs['data-part']))).toEqual(
+      new Set(['0', '1', '2']),
+    );
+    expect(toSvgString(node)).not.toBe(toSvgString(drawMoment('linger', SPRING, 48)));
+  });
+
+  it('draws a step hint larger and darker for a likelier step, and clamps bad input', () => {
+    const paw = (chance: number) => drawStepHint(SPRING, 32, chance, Math.PI / 3).children[0]!;
+    expect(Number(paw(0.8).attrs.opacity)).toBeGreaterThan(Number(paw(0.2).attrs.opacity));
+    expect(String(paw(0.8).attrs.d).length).toBeGreaterThan(0);
+    within(drawStepHint(SPRING, Number.NaN, Number.NaN, Number.NaN));
+    expect(paw(5).attrs['data-chance']).toBe(1);
+    expect(paw(-1).attrs['data-chance']).toBe(0);
   });
 });

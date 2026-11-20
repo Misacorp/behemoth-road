@@ -112,6 +112,7 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-20 Appetite reads at game zoom: a ground aura, bigger shape changes, a hub badge and weighted step hints
 - 2026-11-20 The keeper's cue shows the creature's true attitude for the tame first creature
 - 2026-11-20 Light a fire hints faded without fuel once you have seen a fire
 - 2026-11-20 A lingering creature's stay mark sits on its footprint's near edge
@@ -122,7 +123,7 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-20 Moments play only from the server's event log, once per event
 - 2026-11-20 The revised chain in the interface: survey in the inspect card, the pack on the HUD, stores and unlocks in the hub drawer (amended)
 - 2026-11-20 The here card is compact and lets taps through its body; moments use the art kit's marks
-- 2026-11-20 Unexplored hexes sit under one hatched paper veil; packs, stores and unlocks have their own marks
+- 2026-11-20 Unexplored hexes sit under one hatched paper veil; packs, stores and unlocks have their own marks (amended)
 - 2026-11-20 M4 core: hunger cap in creature data, starving meals nourish, lingering twice refused
 - 2026-11-20 Lingering is the keeper's action and never runs two days in a row
 - 2026-11-20 Hunger has a comfortable band; underfed is erratic, overfed is sluggish; anyone can feed

@@ -4,6 +4,21 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: Appetite reads at game zoom: a ground aura, bigger shape changes, a hub badge and weighted step hints
+
+ID: `2026-11-20-appetite-reads-at-game-zoom-a` · Status: current · Amends: `2026-11-20-milestone-4-art-appetite-cues-lying`
+
+**Decision.** A playtest at the real game zoom (a hex is about 32 px on a phone) showed no hunger at all, so the appetite sign is made much stronger:
+
+- A ground aura under the creature: a cool slate wash when underfed and a warm ochre wash when overfed, stronger with the level.
+- Bigger shape changes. Underfed: up to 38 % narrower, flatter, thin legs, the moss mostly gone, and a heavier grey wash. Overfed: up to 50 % wider and taller. Levels step 0.5, 0.75, 1.
+- Faint (non-keepers): 75 % of the level's strength, never below level 1's, with the marks in lighter ink. Faint level 3 still reads as starving.
+- `drawAppetiteBadge(palette, size, appetite | null)` for the hub bubble's creature entry: a small head on a disc (narrow, grey, drooping ears on a cool disc when underfed; wide with heavy lids and a doze bubble on a warm disc when overfed). A keeper's badge shows the level as one to three dots; the faint badge is paler and has no dots.
+- `drawStepHint(palette, size, chance, angle)`: a paw print sized and darkened by its chance, for showing all three step options with their weights.
+- Moment `stayed`: settling dust and curled rest marks on the creature when it lingered over the day change.
+
+**Reasoning.** At game zoom the creature is about 100 px, so marks on its body vanish. A ground wash and a changed outline read at a glance. The badge repeats the sign where the hub lists the creature, at a size where only a glyph works.
+
 ## 2026-11-20: The keeper's cue shows the creature's true attitude for the tame first creature
 
 ID: `2026-11-20-the-keeper-s-cue-shows-the` · Status: current
@@ -82,7 +97,7 @@ ID: `2026-11-20-the-here-card-is-compact-and` · Status: current · Amends: `202
 
 ## 2026-11-20: Unexplored hexes sit under one hatched paper veil; packs, stores and unlocks have their own marks
 
-ID: `2026-11-20-milestone-4-art-appetite-cues-lying` · Status: current
+ID: `2026-11-20-milestone-4-art-appetite-cues-lying` · Status: current, amended by `2026-11-20-appetite-reads-at-game-zoom-a`
 
 **Decision.** The creature drawing takes a mood (`CreatureArt.appetite`, `pose`, `cues`; `drawCreature(..., stores, mood)`), and the scene draws it:
 

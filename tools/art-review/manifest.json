@@ -7,7 +7,8 @@
     "2026-11-19-5",
     "2026-11-19-6",
     "2026-11-19-7",
-    "2026-11-19-8"
+    "2026-11-19-8",
+    "2026-11-20-1"
   ],
   "items": [
     {
@@ -296,19 +297,19 @@
       "id": "creature/underfed",
       "group": "Creature care",
       "title": "Underfed: calm, levels 1 to 3, then faint at 2 and 3",
-      "version": "9562e9f4",
+      "version": "69abcbba",
       "kind": "glance",
-      "batch": "2026-11-19-8",
-      "file": "art/creature-underfed-9562e9f4.svg"
+      "batch": "2026-11-20-1",
+      "file": "art/creature-underfed-69abcbba.svg"
     },
     {
       "id": "creature/overfed",
       "group": "Creature care",
       "title": "Overfed: calm, levels 1 to 3, then faint at 2 and 3",
-      "version": "e5b6019b",
+      "version": "c1df0d7e",
       "kind": "glance",
-      "batch": "2026-11-19-8",
-      "file": "art/creature-overfed-e5b6019b.svg"
+      "batch": "2026-11-20-1",
+      "file": "art/creature-overfed-c1df0d7e.svg"
     },
     {
       "id": "creature/cues",
@@ -323,10 +324,10 @@
       "id": "creature/linger",
       "group": "Creature care",
       "title": "Lying down to linger, beside standing",
-      "version": "e3a90eac",
+      "version": "9ac34027",
       "kind": "glance",
-      "batch": "2026-11-19-8",
-      "file": "art/creature-linger-e3a90eac.svg"
+      "batch": "2026-11-20-1",
+      "file": "art/creature-linger-9ac34027.svg"
     },
     {
       "id": "features/care",
@@ -350,19 +351,19 @@
       "id": "map/care",
       "group": "Creature care",
       "title": "On the map: fires, berries, an underfed creature and two cues",
-      "version": "79b35f37",
+      "version": "21e7dfd4",
       "kind": "glance",
-      "batch": "2026-11-19-8",
-      "file": "art/map-care-79b35f37.svg"
+      "batch": "2026-11-20-1",
+      "file": "art/map-care-21e7dfd4.svg"
     },
     {
       "id": "map/care-lite",
       "group": "Creature care",
       "title": "The same in lite mode",
-      "version": "1d145d38",
+      "version": "3fe458a5",
       "kind": "glance",
-      "batch": "2026-11-19-8",
-      "file": "art/map-care-lite-1d145d38.svg"
+      "batch": "2026-11-20-1",
+      "file": "art/map-care-lite-3fe458a5.svg"
     },
     {
       "id": "features/veil",
@@ -381,6 +382,24 @@
       "kind": "glance",
       "batch": "2026-11-19-7",
       "file": "art/team-marks-6e6388a0.svg"
+    },
+    {
+      "id": "creature/appetite-phone",
+      "group": "Creature care",
+      "title": "Appetite at phone zoom: calm, underfed 1-3; calm, overfed 1-3; faint 2 and 3",
+      "version": "410d1a2f",
+      "kind": "glance",
+      "batch": "2026-11-20-1",
+      "file": "art/creature-appetite-phone-410d1a2f.svg"
+    },
+    {
+      "id": "marks/signs",
+      "group": "Creature care",
+      "title": "Hub badge (calm, underfed, overfed, faint); weighted step hints; the stayed moment",
+      "version": "f7330f40",
+      "kind": "glance",
+      "batch": "2026-11-20-1",
+      "file": "art/marks-signs-f7330f40.svg"
     }
   ]
 }
