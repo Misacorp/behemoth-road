@@ -231,6 +231,8 @@ const event = <K extends string, E extends v.ObjectEntries>(kind: K, entries: E)
 const KNOWN_EVENTS = [
   event('explore', { hex }),
   event('survey', { hex, characterId: id }),
+  /** A survey that found nothing on the hex (after its survey and explore events). */
+  event('survey-empty', { hex, characterId: id }),
   event('reveal', { hex, feature: id }),
   event('trap', { hex, characterId: id }),
   event('gather', { hex, characterId: id, material: id, amount: count }),

@@ -19,12 +19,12 @@ ID: `2026-11-20-feedback-without-words-out-of-reach` · Status: current · Amend
 **Decision.**
 
 - **Out of reach.** With your character selected, a tap on a hex it cannot reach (too far, a cliff) shows a faded arrow from you ending in a cross, which fades by itself; you stay selected. A second tap on the same hex looks at it. A settlement still opens its card.
-- **Empty hexes.** A survey that reveals nothing plays a "nothing here" moment. Every explored hex that holds nothing (no feature, settlement, threat or fire) carries a faint explored-empty mark, however it was explored, so the map remembers where nothing was found. A `survey-empty` event from the core is read the same way.
+- **Empty hexes.** A survey that reveals nothing plays a "nothing here" moment. Every explored hex that holds nothing (no feature, settlement, threat or fire) carries a faint explored-empty mark, however it was explored, so the map remembers where nothing was found. The core's `survey-empty` event is read the same way (one moment per hex).
 - **The role a greyed action needs.** When the core refuses an action because of who you are (`needs-specialist`, `needs-keeper`, `needs-guardian`, `cannot-work`), the button shows faded with that role's emblem as a badge. The role is found by asking the core which role would not get that refusal, never from a table in the client. So a non-keeper now sees linger greyed with the keeper's emblem, anyone but a guardian sees defend greyed with the guardian's, and the unlocks show the engineer's for everyone else.
 - **Settlements.** A settlement where you stand always opens your here card, drawn by attitude, even with nothing left to do there. Once a boon is taken, its icon shows sealed on the settlement's drawing, in that card and in the card from afar. Angry settlements open their card too.
 - **Mislead and relief.** Pursuers led away by a mislead play a "misled" moment where they stood, and the misled mark sits on the creature's back while `misleadUntilDay` lasts. Any drop in peril (a shelter, a calm day) plays a relief bloom on the creature and a soft swell of the gauge.
 
-**Reasoning.** The fresh-eyes playtest of Milestone 5: surveys looked like they did nothing, greyed actions did not say who could do them, used settlements gave no popover, cliffs refused with no feedback, and mislead and shelter showed no effect. Marking every explored empty hex (not only surveyed ones) is the simplest rule that also persists across reloads, since it reads the state. Asking the core for the role keeps one copy of the rules. The marks are placeholders in `apps/web/src/map/art.ts` until the art kit draws its own.
+**Reasoning.** The fresh-eyes playtest of Milestone 5: surveys looked like they did nothing, greyed actions did not say who could do them, used settlements gave no popover, cliffs refused with no feedback, and mislead and shelter showed no effect. Marking every explored empty hex (not only surveyed ones) is the simplest rule that also persists across reloads, since it reads the state. Asking the core for the role keeps one copy of the rules. The marks and moments are the art kit's (`feedback-marks`), chosen in one place, `apps/web/src/map/art.ts`; the core's `survey-empty` event and a survey without a reveal play the same single moment.
 
 ## 2026-11-20: Map card actions arm on the first tap and spend on the second; own-hex cards keep the neighbours clear
 
@@ -37,6 +37,46 @@ ID: `2026-11-20-map-card-actions-arm-on-the` · Status: current · Amends: `2026
 - **Taps.** The popover's chevron lets taps through, so a tap on your own figure's head is never swallowed by it. A press on the map stops a camera easing (a follow or a recentre), so a tap lands where it was seen. Tap and drag are told apart by the existing 8 px slop.
 
 **Reasoning.** The fresh-eyes playtest on a phone: a card on your own tile covered the tiles to the north, so a tap meant for a tile hit a card button and lit a fire. Two taps on the same button keep a stray tap from ever spending; placing the card clear of the neighbours keeps them tappable. The decision of 2026-11-19 (spending takes a second tap in the popover) counted opening the card as the first; now the button itself takes both.
+
+## 2026-11-20: Marks for empty hexes, out of reach, a needed role and a mislead
+
+ID: `2026-11-20-marks-for-empty-hexes-out-of` · Status: current
+
+**Decision.** The art kit adds `drawEmptyMark(palette, size, fade)` (a faint dashed ring, fading as `fade` goes 0→1), `drawOutOfReachMark(palette, size, angle)` (a short faded dashed arrow ending in a coral cross), `drawRoleBadge(role, palette, size)` (the role emblem on a paper halo, for the corner of a greyed action), `drawMisledMark(palette, size)` (a slate disc with a hooked arrow turning away) and three moments: `nothing-here`, `misled`, `peril-relieved`. The web decides where each shows and how long a mark lasts.
+
+**Reasoning.** Playtest feedback: surveys that found nothing gave no sign, a tap out of reach opened the inspect card silently, a greyed action did not say which role it needs, and mislead and shelter showed no effect. Each is a picture, not text. Review batch 2026-11-20-5, item `feedback/marks`.
+
+## 2026-11-20: Features stand on a plinth; decorative props do not
+
+ID: `2026-11-20-features-stand-on-a-plinth-decorative` · Status: current
+
+**Decision.** `renderScene` draws every revealed feature (node, site, trap) and every settlement on a plinth: a squashed disc of lighter ground with a soft ink rim (`featurePlinth` in the art kit). Terrain props (rocks, tufts, trees) never get one. The three new open-ground nodes have their own looks: `fieldstones`, `outcrop`, `deadfall`.
+
+**Reasoning.** The fresh-eyes playtest took pebble and stone decorations for loot. A plinth is a shape difference, not a colour one, so it reads at phone zoom (about 0.58) and in lite mode without words. Review batch 2026-11-20-5, item `feedback/phone-features`.
+
+## 2026-11-20: A survey of an empty hex says so
+
+ID: `2026-11-20-a-survey-of-an-empty-hex` · Status: current
+
+**Decision.** A survey of a hex that holds no feature adds `{ kind: 'survey-empty', hex, characterId }` after its `survey` and `explore` events. Entering an empty hex stays an `explore` with no `reveal`; no new event for it.
+
+**Reasoning.** The fresh-eyes playtest surveyed about ten hexes and could not tell an empty hex from a failed look. The web could infer emptiness from a missing `reveal`, but one explicit event is simpler to show as a "nothing here" moment. It is public: once explored, a hex's feature (or its absence) is visible to everyone.
+
+## 2026-11-20: Dev season brings threats from the first tick
+
+ID: `2026-11-20-dev-season-brings-threats-from-the` · Status: current
+
+**Decision.** The dev season (staging and local only) sets `threatsFromDay: 1` and `threatChanceBase: 0.6` on top of its short route. Production keeps the core defaults (from day 3, base 0.25). In the capture's "wounded" season the guardian now also defends, so it still ends wounded rather than lost.
+
+**Reasoning.** The playtest's first season had no peril until day 13. Simulated through the core over 30 seeds of the 12-step dev season with 2 and 3 idle players: before, the first threat was out by day 2 in 15–17 of 30 and by day 3 in 22–23; after, 23–25 and 27–29. Strikes raise peril by day 5 in 22–24 of 30 (was 19–20) and by day 6 in 27–29. The first tick makes day 2, so `threatsFromDay: 1` and `2` behave the same; 1 says "from the start".
+
+## 2026-11-20: Stone, iron and timber also lie on open ground
+
+ID: `2026-11-20-stone-iron-and-timber-also-lie` · Status: current
+
+**Decision.** Three smaller nodes on open ground (content version 7): fieldstones (stone, weight 4), ore outcrop (iron, weight 5) and deadfall (timber, weight 3), 2 charges each, each with its own icon. Iron deposits drop from weight 30 to 15 and timber stands from 40 to 25, so about as many hexes hold something as before (about 15%). `packages/core/scripts/findability.ts` measures it and `test/findability.test.ts` holds the goal.
+
+**Reasoning.** Iron lay only on desert or by cliffs, stone only by rivers and timber only in forest, so a route over open plain could pass a week with none, and the playtest built nothing. Over 100 seeds, default config, the creature's real steps, days 1–8: the window held stone in 90 seeds before and 98 after, iron 89 → 99, timber 81 → 96, forage 100 → 100; within 3 hexes of the creature (a day trip), stone 68 → 89, iron 73 → 85, timber 61 → 82. Older games are wiped by the version bump, as before a stable release.
 
 ## 2026-11-20: Threats and settlements near you carry M4-style action badges
 

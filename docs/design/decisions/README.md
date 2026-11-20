@@ -117,6 +117,11 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-20 The ending's scene is drawn above a strip reserved for its summary
 - 2026-11-20 Feedback without words: out of reach, empty hexes, the role a greyed action needs, settlements, mislead and relief
 - 2026-11-20 Map card actions arm on the first tap and spend on the second; own-hex cards keep the neighbours clear
+- 2026-11-20 Marks for empty hexes, out of reach, a needed role and a mislead
+- 2026-11-20 Features stand on a plinth; decorative props do not
+- 2026-11-20 A survey of an empty hex says so
+- 2026-11-20 Dev season brings threats from the first tick
+- 2026-11-20 Stone, iron and timber also lie on open ground
 - 2026-11-20 Threats and settlements near you carry M4-style action badges
 - 2026-11-20 Escort and struck marks read the core's rule through one web function until the core exports it
 - 2026-11-20 The new-season button shows for admins with dev tools on

@@ -334,7 +334,7 @@ describe('capture', () => {
     });
     await playSeason('wounded', {
       feedEvery: 8,
-      defend: false,
+      defend: true,
       strike: true,
       envoy: false,
       parley: false,

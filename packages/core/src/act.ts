@@ -385,11 +385,17 @@ export const act = (state: GameState, characterId: string, action: Action): ActR
 
   if (action.kind === 'survey') {
     // Surveying explores from outside: a trap there is revealed and harmless.
+    // A hex with nothing in it says so, for the "nothing here" moment (public: it is explored now).
     const explored = exploreHex(state, action.hex);
+    const empty = !explored.state.features[hexKey(action.hex)];
     return {
       ok: true,
       state: withCharacter(explored.state, {}),
-      events: [{ kind: 'survey', hex: action.hex, characterId }, ...explored.events],
+      events: [
+        { kind: 'survey', hex: action.hex, characterId },
+        ...explored.events,
+        ...(empty ? [{ kind: 'survey-empty' as const, hex: action.hex, characterId }] : []),
+      ],
     };
   }
 

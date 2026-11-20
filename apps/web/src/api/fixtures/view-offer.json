@@ -1,5 +1,5 @@
 {
-  "version": 26,
+  "version": 27,
   "day": 5,
   "you": {
     "userId": "222222222222222222",
@@ -8,7 +8,7 @@
   },
   "offers": null,
   "game": {
-    "contentVersion": 6,
+    "contentVersion": 7,
     "artSeed": 4242,
     "day": 5,
     "config": {
@@ -45,8 +45,8 @@
       "lightFireCost": 1,
       "feedCost": 1,
       "lingerCost": 2,
-      "threatsFromDay": 2,
-      "threatChanceBase": 0.25,
+      "threatsFromDay": 1,
+      "threatChanceBase": 0.6,
       "threatChancePerPlayer": 0.05,
       "threatChancePerDay": 0.01,
       "threatChanceMax": 0.9,
@@ -387,13 +387,13 @@
       "1,-5": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "1,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "1,-3": {
@@ -457,7 +457,7 @@
       "2,-3": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "2,-2": {
@@ -497,13 +497,13 @@
       "3,-5": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "3,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "3,-3": {
@@ -659,13 +659,13 @@
       "2,-6": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "3,-6": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "4,-6": {
@@ -912,10 +912,10 @@
           "kind": "hex",
           "hex": {
             "q": 1,
-            "r": -4
+            "r": -6
           }
         },
-        "actionsLeft": 1,
+        "actionsLeft": 0,
         "pack": {},
         "status": "active",
         "struckDay": null
@@ -923,7 +923,12 @@
     ],
     "features": {
       "-1,-3": {
-        "type": "tomb",
+        "type": "berry-bushes",
+        "revealed": true,
+        "left": 3
+      },
+      "2,-6": {
+        "type": "pitfall",
         "revealed": true,
         "left": 1
       }
@@ -1016,7 +1021,7 @@
       "id": "s4",
       "characterId": "222222222222222222.0",
       "material": "old-coin",
-      "version": 26
+      "version": 27
     }
   ],
   "stopped": null

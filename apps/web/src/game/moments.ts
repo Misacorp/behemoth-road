@@ -83,7 +83,7 @@ export interface EventLike {
   readonly to?: Hex | number | undefined;
 }
 
-/** The new event the core may send for a survey that found nothing (instead of a survey without a reveal). */
+/** The core's event for a survey that found nothing (after the survey and explore events). */
 const SURVEY_EMPTY = 'survey-empty';
 
 /** Hexes surveyed in these events where nothing was revealed. */
@@ -141,6 +141,7 @@ export function momentsFromEvents(
   const thing = (kind: 'threat' | 'settlement', id: string | undefined): Hex | null =>
     id === undefined ? null : where[kind](id);
   const empty = emptySurveys(events);
+  const told = new Set<string>();
   let misleading = false;
   for (const e of events) {
     if (e.kind === 'boon' && e.boon === 'mislead') misleading = true;
@@ -158,10 +159,13 @@ export function momentsFromEvents(
     }
     if ((e.kind === 'survey' || e.kind === SURVEY_EMPTY) && e.hex) {
       const k = `${e.hex.q},${e.hex.r}`;
-      out.push(
-        empty.has(k) ? { kind: 'nothing-here', hex: e.hex } : { kind: 'survey', hex: e.hex },
-      );
-      empty.delete(k);
+      // One moment per surveyed hex: the core sends survey, explore, then survey-empty for an empty one.
+      if (!told.has(k)) {
+        out.push(
+          empty.has(k) ? { kind: 'nothing-here', hex: e.hex } : { kind: 'survey', hex: e.hex },
+        );
+        told.add(k);
+      }
       continue;
     }
     const m5 = seasonMoment(e, centre, me, where, thing);

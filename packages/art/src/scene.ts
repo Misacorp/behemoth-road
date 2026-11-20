@@ -4,6 +4,7 @@ import { ART_TUNING } from './config.ts';
 import { drawCreature, inFootprint, moodOf, riderAnchor, type CreatureArt } from './creature.ts';
 import { drawCharacterMarks } from './escort.ts';
 import { drawFire } from './fire.ts';
+import { featurePlinth } from './feedback-marks.ts';
 import { featureDrawer } from './features.ts';
 import { figureAnchor } from './figure.ts';
 import { artDefs, refUrl } from './filters.ts';
@@ -25,6 +26,7 @@ import {
   PROP_DRAWERS,
   PROP_SPACING,
   type Drawn,
+  type PropContext,
   type PropDraw,
 } from './props.ts';
 import { rngFor, type Rng } from './rng.ts';
@@ -151,6 +153,12 @@ export function paperGrain(
   return el('rect', { ...box, fill: palette.paper, filter: refUrl(idPrefix, 'grain') });
 }
 
+/** A feature or settlement drawn on its plinth (props never get one, so features stand out). */
+function withPlinth(c: PropContext, drawn: Drawn, rx?: number): Drawn {
+  const plinth = featurePlinth(c, rx);
+  return { nodes: [...plinth.nodes, ...drawn.nodes], box: unionBox([plinth.box, drawn.box]) };
+}
+
 export function renderSceneFramed(input: SceneInput): FramedScene {
   const { cells, projection: p, palette, seed } = input;
   const prefix = input.idPrefix ?? 'br';
@@ -223,10 +231,8 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
     if (cell.feature && !underCreature && state !== 'unexplored') {
       const at = onPlane(p, c, 0, 0.08);
       const draw = featureDrawer(cell.feature.look);
-      const drawn = draw(
-        ctx(at, rngFor(seed, 'feature', cell.q, cell.r), ART_TUNING.featureScale),
-        cell.feature.state ?? 'ready',
-      );
+      const fc = ctx(at, rngFor(seed, 'feature', cell.q, cell.r), ART_TUNING.featureScale);
+      const drawn = withPlinth(fc, draw(fc, cell.feature.state ?? 'ready'));
       placed.push({ at, drawn, ...(opacity === undefined ? {} : { opacity }) });
     }
     if (cell.fire && !underCreature) {
@@ -240,13 +246,8 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
     if (cell.settlement && !underCreature) {
       // A village is never hidden: drawn in full under the veil. A threat beside it stands to its front left.
       const at = cell.threat ? onPlane(p, c, 0.14, -0.06) : onPlane(p, c, 0, 0.06);
-      placed.push({
-        at,
-        drawn: drawSettlement(
-          ctx(at, rngFor(seed, 'settlement', cell.q, cell.r), ART_TUNING.settlementScale),
-          cell.settlement,
-        ),
-      });
+      const sc = ctx(at, rngFor(seed, 'settlement', cell.q, cell.r), ART_TUNING.settlementScale);
+      placed.push({ at, drawn: withPlinth(sc, drawSettlement(sc, cell.settlement), 24) });
     }
     if (cell.threat) {
       // Threats are public: drawn in full, also under the veil and wherever the creature is.

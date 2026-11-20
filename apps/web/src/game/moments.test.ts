@@ -186,8 +186,22 @@ describe('polish round moments', () => {
     ]);
   });
 
-  it('reads a survey-empty event, should the core send one', () => {
+  it("plays one nothing-here moment for the core's survey, explore and survey-empty of one hex", () => {
     const hex = { q: 0, r: 2 };
+    expect(
+      momentsFromEvents(
+        [
+          { kind: 'survey', hex },
+          { kind: 'explore', hex },
+          { kind: 'survey-empty', hex },
+        ],
+        centre,
+        'me',
+      ),
+    ).toEqual([
+      { kind: 'nothing-here', hex },
+      { kind: 'explore', hex },
+    ]);
     expect(momentsFromEvents([{ kind: 'survey-empty', hex }], centre, 'me')).toEqual([
       { kind: 'nothing-here', hex },
     ]);

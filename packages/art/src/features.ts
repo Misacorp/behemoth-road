@@ -1,7 +1,8 @@
 /**
  * Features that sit on a tile once revealed: resource nodes, tomb sites and traps, drawn upright in side
  * view like the other props (shrunk in height for the high view), with a used-up look. Keyed by the `icon`
- * content gives each feature (`ore`, `stones`, `logs`, `berries`, `tomb`, `deep-tomb`, `snare`, `pitfall`); an unknown
+ * content gives each feature (`ore`, `stones`, `logs`, `berries`, `tomb`, `deep-tomb`, `snare`, `pitfall`, `fieldstones`,
+ * `outcrop`, `deadfall`); an unknown
  * key draws a neutral cairn.
  */
 import { boxOf, ellipsePath, mapper, poly, smoothClosed, smoothOpen, type Point } from './geom.ts';
@@ -597,6 +598,263 @@ const berryBushes: FeatureDraw = (c, state) => {
   return { nodes, box: boxOf(shapes.flat()) };
 };
 
+/**
+ * Fieldstones: squared, warm-toned blocks with chisel marks, one stacked on two (cut stone, never a grey
+ * boulder like the rock props), a tuft beside them; depleted, one block left and dents.
+ */
+const fieldstones: FeatureDraw = (c, state) => {
+  const { fill, line, blob, pts } = kit(c);
+  const pal = c.palette;
+  const nodes: SvgNode[] = [groundShadow(c, 16, 4, 1)];
+  const all: Point[] = [
+    ...pts([
+      [-16, 2],
+      [16, 2],
+    ]),
+  ];
+  // Blocks as [left, base, width, height], drawn back to front.
+  const stones: [number, number, number, number][] =
+    state === 'depleted'
+      ? [[7, 0, 8, 4.5]]
+      : [
+          [-13, 0, 11, 5.5],
+          [-1, 0, 10, 5],
+          [-8, -5.5, 10, 5],
+        ];
+  if (state === 'depleted') {
+    const dents = [blob(-8, 0, 6, 1.8), blob(3, 0, 5.5, 1.8)];
+    nodes.push(
+      fill(dents.map((b) => smoothClosed(b)).join(''), pal.ramps.earth.shade, 0.35),
+      el('path', {
+        d: dents.map((b) => smoothClosed(b)).join(''),
+        ...inkAttrs(pal.inkSoft, c.ink * 0.7),
+        'stroke-dasharray': `${(1.5 * c.k).toFixed(1)} ${(2.5 * c.k).toFixed(1)}`,
+      }),
+    );
+  }
+  for (const [x, y, w, h] of stones) {
+    const face = pts([
+      [x, y],
+      [x, y - h],
+      [x + w, y - h],
+      [x + w, y],
+    ]);
+    const top = pts([
+      [x, y - h],
+      [x + 1.6, y - h - 1.8],
+      [x + w + 1.6, y - h - 1.8],
+      [x + w, y - h],
+    ]);
+    const side = pts([
+      [x + w, y],
+      [x + w, y - h],
+      [x + w + 1.6, y - h - 1.8],
+      [x + w + 1.6, y - 1.8],
+    ]);
+    // Chisel marks: short parallel strokes across the face.
+    const chisel = [0.3, 0.55, 0.8]
+      .map((t) =>
+        poly(
+          pts([
+            [x + w * t - 0.8, y - h * 0.3],
+            [x + w * t + 0.8, y - h * 0.75],
+          ]),
+          false,
+        ),
+      )
+      .join('');
+    all.push(...face, ...top, ...side);
+    nodes.push(
+      fill(poly(face), pal.ramps.sand.base),
+      fill(poly(top), pal.ramps.sand.light),
+      fill(poly(side), pal.ramps.sand.shade),
+      line(chisel, 0.7, pal.accents.ochre.shade),
+      line(poly(face) + poly(top) + poly(side)),
+    );
+  }
+  // A tuft of grass between the stones, so they sit in a field.
+  nodes.push(
+    line(
+      poly(
+        pts([
+          [-2, 0],
+          [-3.5, -5],
+        ]),
+        false,
+      ) +
+        poly(
+          pts([
+            [-1, 0],
+            [-0.5, -6],
+          ]),
+          false,
+        ) +
+        poly(
+          pts([
+            [0, 0],
+            [2, -4.5],
+          ]),
+          false,
+        ),
+      0.8,
+      pal.ramps.foliage.shade,
+    ),
+  );
+  return { nodes, box: boxOf(all) };
+};
+
+/** An ore outcrop: a low knuckle of rock with a rust bloom and streaks; depleted, cracked open and grey. */
+const oreOutcrop: FeatureDraw = (c, state) => {
+  const { pts, fill, line, blob } = kit(c);
+  const pal = c.palette;
+  const rock = pts([
+    [-12, 0],
+    [-10, -6],
+    [-3, -10],
+    [5, -9],
+    [11, -4],
+    [12, 0],
+  ]);
+  const nodes: SvgNode[] = [
+    groundShadow(c, 15, 4, 1),
+    fill(poly(rock), state === 'depleted' ? pal.ramps.rock.light : pal.ramps.rock.base),
+    fill(
+      poly(
+        pts([
+          [-3, -10],
+          [5, -9],
+          [11, -4],
+          [12, 0],
+          [3, 0],
+          [1, -6],
+        ]),
+      ),
+      pal.ramps.rock.shade,
+      0.5,
+    ),
+  ];
+  if (state !== 'depleted') {
+    // A rust bloom over the lower face, so it never reads as a grey rock prop.
+    nodes.push(
+      fill(
+        poly(
+          pts([
+            [-12, 0],
+            [-10.5, -4.5],
+            [-4, -6.5],
+            [3, -5],
+            [9, -2.5],
+            [12, 0],
+          ]),
+        ),
+        pal.accents.coral.light,
+        0.9,
+      ),
+    );
+  }
+  if (state === 'depleted') {
+    nodes.push(
+      line(
+        poly(
+          pts([
+            [-2, -10],
+            [0, -5],
+            [-2, -2],
+            [0, 0],
+          ]),
+          false,
+        ),
+        1,
+      ),
+      fill(
+        [blob(15, 1, 1.5, 0.8), blob(-15, 1.2, 1.3, 0.7)].map((b) => poly(b)).join(''),
+        pal.ramps.rock.shade,
+      ),
+    );
+  } else {
+    // Rust streaks down the face and two bright flecks.
+    nodes.push(
+      line(
+        smoothOpen(
+          pts([
+            [-7, -6],
+            [-5, -3.5],
+            [-6, -1],
+          ]),
+        ) +
+          smoothOpen(
+            pts([
+              [4, -7],
+              [6, -4],
+              [5, -1.5],
+            ]),
+          ),
+        1.3,
+        pal.accents.coral.shade,
+      ),
+      fill(
+        [blob(-4, -7.5, 1.4, 1.1), blob(7.5, -5.5, 1.2, 1)].map((b) => poly(b)).join(''),
+        pal.accents.coral.base,
+      ),
+    );
+  }
+  nodes.push(line(poly(rock)));
+  return { nodes, box: boxOf(rock) };
+};
+
+/** Deadfall: a fallen trunk with a snapped stub of branch; depleted, a short end and sawdust. */
+const deadfall: FeatureDraw = (c, state) => {
+  const { pts, fill, line, blob } = kit(c);
+  const pal = c.palette;
+  const long = state !== 'depleted';
+  const x1 = long ? 13 : 1;
+  const trunk = pts([
+    [-15, 0],
+    [-15, -6.5],
+    [x1, -5.5],
+    [x1, 0],
+  ]);
+  const end = blob(x1, -2.75, 2.2, 2.9);
+  const nodes: SvgNode[] = [
+    groundShadow(c, 17, 4, 1),
+    fill(poly(trunk), pal.ramps.bark.base),
+    line(poly(trunk)),
+    line(
+      smoothOpen(
+        pts([
+          [-12, -3.5],
+          [-5, -3],
+          [2, -3.6],
+        ]),
+      ),
+      0.6,
+      pal.ramps.bark.shade,
+    ),
+    fill(smoothClosed(end), pal.ramps.sand.light),
+    line(smoothClosed(end), 0.8),
+    fill(smoothClosed(blob(-15, -3.25, 2, 3.2)), pal.ramps.bark.shade),
+  ];
+  const all: Point[] = [...trunk, ...end];
+  if (long) {
+    const stub = pts([
+      [-5, -6],
+      [-7, -12],
+      [-5, -12.5],
+      [-3, -6],
+    ]);
+    all.push(...stub);
+    nodes.push(fill(poly(stub), pal.ramps.bark.base), line(poly(stub), 0.9));
+  } else {
+    nodes.push(
+      fill(
+        [blob(6, 1.5, 1.6, 0.7), blob(9, 0.8, 1.2, 0.6)].map((b) => poly(b)).join(''),
+        pal.ramps.sand.base,
+      ),
+    );
+  }
+  return { nodes, box: boxOf(all) };
+};
+
 /** The neutral mark for a feature look the kit does not know: a small cairn. */
 const cairn: FeatureDraw = (c) => {
   const { fill, line, blob } = kit(c);
@@ -628,6 +886,9 @@ export const FEATURE_DRAWERS: Readonly<Record<string, FeatureDraw>> = {
   snare,
   pitfall,
   berries: berryBushes,
+  fieldstones,
+  outcrop: oreOutcrop,
+  deadfall,
 };
 
 export function featureDrawer(look: string): FeatureDraw {

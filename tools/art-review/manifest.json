@@ -11,7 +11,9 @@
     "2026-11-20-1",
     "2026-11-20-2",
     "2026-11-20-3",
-    "2026-11-20-4"
+    "2026-11-20-4",
+    "2026-11-20-5",
+    "2026-11-20-6"
   ],
   "items": [
     {
@@ -170,10 +172,10 @@
       "id": "map/patch",
       "group": "Map",
       "title": "The map, Spring at tilt 0.8",
-      "version": "fa9eefc9",
+      "version": "cf05ef4c",
       "kind": "glance",
-      "batch": "2026-11-20-2",
-      "file": "art/map-patch-fa9eefc9.svg"
+      "batch": "2026-11-20-6",
+      "file": "art/map-patch-cf05ef4c.svg"
     },
     {
       "id": "creature/headings",
@@ -273,10 +275,10 @@
       "id": "features/sheet",
       "group": "Features",
       "title": "Nodes, sites and traps, as found and used up",
-      "version": "207a1932",
+      "version": "0347d934",
       "kind": "glance",
-      "batch": "2026-11-19-7",
-      "file": "art/features-sheet-207a1932.svg"
+      "batch": "2026-11-20-6",
+      "file": "art/features-sheet-0347d934.svg"
     },
     {
       "id": "features/glint",
@@ -336,10 +338,10 @@
       "id": "features/care",
       "group": "Creature care",
       "title": "Fires on four tiles and under the veil; berry bushes, picked bare, beside a fire",
-      "version": "2026261e",
+      "version": "4cc8c219",
       "kind": "glance",
-      "batch": "2026-11-19-8",
-      "file": "art/features-care-2026261e.svg"
+      "batch": "2026-11-20-6",
+      "file": "art/features-care-4cc8c219.svg"
     },
     {
       "id": "marks/care",
@@ -354,19 +356,19 @@
       "id": "map/care",
       "group": "Creature care",
       "title": "On the map: fires, berries, an underfed creature and two cues",
-      "version": "a4993980",
+      "version": "72525f3e",
       "kind": "glance",
-      "batch": "2026-11-20-2",
-      "file": "art/map-care-a4993980.svg"
+      "batch": "2026-11-20-6",
+      "file": "art/map-care-72525f3e.svg"
     },
     {
       "id": "map/care-lite",
       "group": "Creature care",
       "title": "The same in lite mode",
-      "version": "bb51122d",
+      "version": "35845c55",
       "kind": "glance",
-      "batch": "2026-11-20-2",
-      "file": "art/map-care-lite-bb51122d.svg"
+      "batch": "2026-11-20-6",
+      "file": "art/map-care-lite-35845c55.svg"
     },
     {
       "id": "features/veil",
@@ -408,19 +410,19 @@
       "id": "season/map-phone",
       "group": "Season",
       "title": "The season on a phone: threats, a village, an escort, a defender, peril 4 (full, then lite)",
-      "version": "68b98b0d",
+      "version": "5b580e5e",
       "kind": "glance",
-      "batch": "2026-11-20-4",
-      "file": "art/season-map-phone-68b98b0d.svg"
+      "batch": "2026-11-20-6",
+      "file": "art/season-map-phone-5b580e5e.svg"
     },
     {
       "id": "season/map-desktop",
       "group": "Season",
       "title": "The same at desktop scale",
-      "version": "b1fc3e49",
+      "version": "b91a5bd4",
       "kind": "glance",
-      "batch": "2026-11-20-4",
-      "file": "art/season-map-desktop-b1fc3e49.svg"
+      "batch": "2026-11-20-6",
+      "file": "art/season-map-desktop-b91a5bd4.svg"
     },
     {
       "id": "season/threats",
@@ -435,19 +437,19 @@
       "id": "season/settlements",
       "group": "Season",
       "title": "Hill folk: wary with favour 0, 1, 2 (under the veil), friendly, angry, angry with its raiders",
-      "version": "74350214",
+      "version": "171ade9c",
       "kind": "glance",
-      "batch": "2026-11-20-4",
-      "file": "art/season-settlements-74350214.svg"
+      "batch": "2026-11-20-6",
+      "file": "art/season-settlements-171ade9c.svg"
     },
     {
       "id": "season/escort",
       "group": "Season",
       "title": "A guardian’s escort ring, escorted and struck marks, guardians defending on the creature",
-      "version": "f7428ebf",
+      "version": "74be812b",
       "kind": "glance",
-      "batch": "2026-11-20-4",
-      "file": "art/season-escort-f7428ebf.svg"
+      "batch": "2026-11-20-5",
+      "file": "art/season-escort-74be812b.svg"
     },
     {
       "id": "season/icons",
@@ -462,10 +464,10 @@
       "id": "season/hud",
       "group": "Season",
       "title": "Peril gauge 0 to 10 and the route strip at phone and desktop widths; the vignette at peril 3, 6, 9",
-      "version": "0e7dead1",
+      "version": "fdaad756",
       "kind": "glance",
-      "batch": "2026-11-20-3",
-      "file": "art/season-hud-0e7dead1.svg"
+      "batch": "2026-11-20-6",
+      "file": "art/season-hud-fdaad756.svg"
     },
     {
       "id": "season/moments",
@@ -489,10 +491,10 @@
       "id": "season/ending-wounded",
       "group": "Season",
       "title": "Ending: home, wounded (desktop and phone)",
-      "version": "b8998390",
+      "version": "9e11be63",
       "kind": "glance",
-      "batch": "2026-11-20-4",
-      "file": "art/season-ending-wounded-b8998390.svg"
+      "batch": "2026-11-20-5",
+      "file": "art/season-ending-wounded-9e11be63.svg"
     },
     {
       "id": "season/ending-lost",
@@ -502,6 +504,24 @@
       "kind": "glance",
       "batch": "2026-11-20-3",
       "file": "art/season-ending-lost-7519c4a8.svg"
+    },
+    {
+      "id": "feedback/phone-features",
+      "group": "Playtest feedback",
+      "title": "At phone zoom: features on plinths (fieldstones, outcrop, deadfall, river stones, iron, picked berries, snare, logs, a village) beside plain props; two explored-empty hexes (full, then lite)",
+      "version": "768c9303",
+      "kind": "glance",
+      "batch": "2026-11-20-6",
+      "file": "art/feedback-phone-features-768c9303.svg"
+    },
+    {
+      "id": "feedback/marks",
+      "group": "Playtest feedback",
+      "title": "Explored-empty fading; out of reach; misled; greyed actions with the role they need; nothing here, misled and peril relieved moments",
+      "version": "000c7c6a",
+      "kind": "glance",
+      "batch": "2026-11-20-5",
+      "file": "art/feedback-marks-000c7c6a.svg"
     }
   ]
 }
