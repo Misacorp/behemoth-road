@@ -4,9 +4,11 @@ import {
   type GameState,
   hex,
   hexDistance,
+  hexesInRange,
   nextDayWithEvents,
   stepToward,
   terrainOf,
+  threatNextPath,
   threatOutlook,
   threatStrength,
   THREAT_TYPES,
@@ -233,5 +235,50 @@ describe('the threat outlook', () => {
     const state = withThreat(fieldGame(['a']), 'captors', hex(0, 4), 3, 'c');
     expect(threatOutlook(state)[0]?.arrives).toBe('later');
     expect(threatOutlook(lingering(state))[0]?.arrives).toBe('tomorrow');
+  });
+});
+
+describe("the threat's next path", () => {
+  it('lists the hexes it crosses at the next tick, end hex last, if the creature walks straight on', () => {
+    let state = fieldGame(['a'], STRAIGHT);
+    state = withThreat(state, 'captors', hex(0, 5), 3, 'behind');
+    state = withThreat(state, 'swarm', hex(0, 3), 2, 'close');
+    state = withThreat(state, 'rockslide', hex(0, -4), 3, 'still');
+    const view = toPlayerView(state);
+    expect(threatNextPath(view, 'behind')).toEqual([hex(0, 4), hex(0, 3)]);
+    // It stops at contact, next to the footprint of the creature's next centre (0, -1).
+    expect(threatNextPath(view, 'close')).toEqual([hex(0, 2), hex(0, 1)]);
+    expect(threatNextPath(view, 'still')).toEqual([]);
+    expect(threatNextPath(view, 'nobody')).toEqual([]);
+  });
+
+  it('assumes a lingering creature stays put', () => {
+    const state = lingering(withThreat(fieldGame(['a']), 'captors', hex(0, 3), 3, 'c'));
+    expect(threatNextPath(toPlayerView(state), 'c')).toEqual([hex(0, 2)]);
+  });
+
+  it('matches the tick and the outlook for every threat type from every hex of the window', () => {
+    const base = fieldGame(['a'], STRAIGHT);
+    const contact = base.config.creatureRadius + 1;
+    let checked = 0;
+    for (const t of THREAT_TYPES) {
+      for (const h of hexesInRange(base.creature.centre, base.config.windowRadius)) {
+        if (hexDistance(h, base.creature.centre) <= contact) continue;
+        const state = withThreat(base, t.id, h, 9, 'x');
+        const view = toPlayerView(state);
+        const path = threatNextPath(view, 'x');
+        const outlook = threatOutlook(view)[0]!;
+        const next = nextDayWithEvents(state);
+        const move = ofKind(next.events, 'threat-moves')[0];
+        expect(move?.to ?? null).toEqual(path.at(-1) ?? null);
+        expect(outlook.next).toEqual(path[0] ?? null);
+        expect(path.length).toBeLessThanOrEqual(t.speed);
+        // 'tomorrow' is exactly the threats that strike at the next tick.
+        const strikes = ofKind(next.events, 'threat-strikes').length > 0;
+        expect(strikes).toBe(outlook.arrives === 'tomorrow');
+        checked++;
+      }
+    }
+    expect(checked).toBeGreaterThan(100);
   });
 });

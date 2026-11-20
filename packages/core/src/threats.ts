@@ -177,6 +177,26 @@ export const defence = (state: GameStateView): number =>
     return c?.status === 'active' && c.at.kind === 'creature';
   }).length * state.config.defendReduction;
 
+/**
+ * Where the creature's centre will be after the next tick if it walks straight
+ * on (or stays, when it lingers): the public guess `threatOutlook` and
+ * `threatNextPath` make, blind to its real step.
+ */
+const nextCentreGuess = (state: GameStateView): Hex =>
+  state.creature.lingering
+    ? state.creature.centre
+    : neighbour(state.creature.centre, state.creature.heading);
+
+/**
+ * The hexes a threat will cross at the next tick, its end hex last, if the
+ * creature walks straight on (the same guess as `threatOutlook`). Empty when it
+ * will not move, or when there is no threat with that id. Reads only the public view.
+ */
+export const threatNextPath = (state: GameStateView, threatId: string): Hex[] => {
+  const threat = state.threats.find((t) => t.id === threatId);
+  return threat ? threatPath(state, threat, nextCentreGuess(state)) : [];
+};
+
 export type Arrival = 'tomorrow' | 'later' | 'never';
 
 export interface ThreatOutlook {
@@ -194,11 +214,11 @@ export interface ThreatOutlook {
  */
 export const threatOutlook = (state: GameStateView): ThreatOutlook[] => {
   const contact = contactDistance(state);
-  const { heading, lingering } = state.creature;
+  const { heading } = state.creature;
   // Far enough to settle any threat: it either closes in, falls out of the window or stalls.
   const horizon = 4 * (state.config.windowRadius + 1);
   return state.threats.map((threat) => {
-    let centre = lingering ? state.creature.centre : neighbour(state.creature.centre, heading);
+    let centre = nextCentreGuess(state);
     let at = threat.hex;
     let next: Hex | null = null;
     let arrives: Arrival = 'never';

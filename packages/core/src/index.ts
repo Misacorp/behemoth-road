@@ -106,6 +106,7 @@ export {
   PURSUER_TAG,
   stepToward,
   struckBy,
+  threatNextPath,
   threatOutlook,
   threatPath,
   threatStrength,
