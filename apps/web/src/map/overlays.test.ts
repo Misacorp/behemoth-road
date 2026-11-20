@@ -127,16 +127,7 @@ describe('overlays', () => {
   });
 });
 
-describe('Milestone 5 marks', () => {
-  const marksOf = (nodes: readonly SvgNode[], mark: string): SvgNode[] =>
-    nodes.flatMap((root) => {
-      const out: SvgNode[] = [];
-      walk(root, (node) => {
-        if (node.attrs['data-mark'] === mark) out.push(node);
-      });
-      return out;
-    });
-
+describe('Milestone 5 on the map', () => {
   function season(stage: SeasonStage) {
     const s = seasonScenario(stage);
     const view = toPlayerView(s.state);
@@ -150,53 +141,69 @@ describe('Milestone 5 marks', () => {
       projection: PROJECTION,
       palette: MORNING,
     });
-    return { view, id, o };
+    return { view, id, o, cells: sceneCells(view), figures: characterArts(view) };
   }
+  const cellAt = (cells: ReturnType<typeof sceneCells>, h: { q: number; r: number }) =>
+    cells.find((c) => c.q === h.q && c.r === h.r);
 
-  it('draws each threat on its hex with an approach arrow, pulsing when it arrives tomorrow', () => {
-    const { view, o } = season({
+  it("hands each threat to the scene with its strength, next step and tomorrow's pulse (core outlook)", () => {
+    const { view, cells } = season({
       threats: [
-        { type: 'captors', at: { q: 0, r: 3 } },
+        { type: 'captors', at: { q: 0, r: 3 }, strength: 4 },
         { type: 'rockslide', at: { q: 3, r: 4 } },
       ],
     });
-    const threats = marksOf(o.under, 'threat');
-    expect(threats.map((t) => t.attrs['data-threat'])).toEqual(view.threats.map((t) => t.id));
     const outlook = threatOutlook(view);
-    threats.forEach((t, i) => {
-      expect(t.attrs['data-pulse']).toBe(
-        outlook[i]!.arrives === 'tomorrow' ? 'tomorrow' : undefined,
-      );
-    });
     expect(outlook.some((x) => x.arrives === 'tomorrow')).toBe(true);
-    // The rockslide waits (speed 0): only the captors have an arrow.
-    expect(marksOf(o.under, 'approach')).toHaveLength(outlook.filter((x) => x.next).length);
+    view.threats.forEach((t, i) => {
+      const next = outlook[i]!.next;
+      expect(cellAt(cells, t.hex)?.threat).toEqual({
+        look: t.type,
+        strength: t.strength,
+        toward: next ? { q: next.q - t.hex.q, r: next.r - t.hex.r } : null,
+        arrivesTomorrow: outlook[i]!.arrives === 'tomorrow',
+      });
+    });
   });
 
-  it('draws settlements by attitude', () => {
-    const { o } = season({
+  it('hands settlements to the scene by attitude with their favour', () => {
+    const { view, cells } = season({
       settlements: [
-        { at: { q: 1, r: 3 } },
-        { at: { q: 3, r: 4 }, attitude: 'friendly', favour: 3 },
+        { at: { q: 1, r: 3 }, favour: 2 },
+        { at: { q: 3, r: 4 }, attitude: 'angry' },
       ],
     });
-    expect(marksOf(o.under, 'settlement').map((s) => s.attrs['data-attitude'])).toEqual([
-      'wary',
-      'friendly',
+    expect(view.settlements.map((s) => cellAt(cells, s.hex)?.settlement)).toEqual([
+      { look: 'hill-folk', attitude: 'wary', favour: 2, favourNeeded: 3 },
+      { look: 'hill-folk', attitude: 'angry', favour: 0, favourNeeded: 3 },
     ]);
   });
 
-  it('rings a guardian on a hex, shields the escorted and the defending riders', () => {
+  it('rings a guardian on a hex; marks the escorted and the defending riders', () => {
     const escorted = season({ guardianAt: { q: 2, r: 2 } });
-    expect(marksOf(escorted.o.under, 'escort')).toHaveLength(1);
-    expect(marksOf(escorted.o.over, 'escorted').map((m) => m.attrs['data-character'])).toEqual([
-      escorted.id,
-    ]);
+    const rings = escorted.o.under.filter((n) => n.attrs['data-escort'] !== undefined);
+    expect(rings).toHaveLength(1);
+    expect(escorted.figures.find((f) => f.id === escorted.id)?.marks).toEqual({ escorted: true });
+    // The guardian itself carries no shield mark: its ring is its sign.
+    expect(escorted.figures.filter((f) => f.marks).map((f) => f.id)).toEqual([escorted.id]);
     const defending = season({ role: 'guardian', at: 'creature', defending: true });
-    expect(marksOf(defending.o.over, 'defending').map((m) => m.attrs['data-character'])).toEqual([
-      defending.id,
-    ]);
-    expect(marksOf(defending.o.over, 'escorted')).toEqual([]);
-    expect(marksOf(defending.o.under, 'escort')).toEqual([]);
+    expect(defending.figures.find((f) => f.id === defending.id)?.marks).toEqual({
+      defending: true,
+    });
+    expect(defending.o.under.filter((n) => n.attrs['data-escort'] !== undefined)).toEqual([]);
+  });
+
+  it('bandages a character struck today, and only today', () => {
+    const s = seasonScenario({});
+    const view = toPlayerView(s.state);
+    const id = characterOf(s.state, USERS.MISA)!.id;
+    const struck = (day: number) => ({
+      ...view,
+      characters: view.characters.map((c) => (c.id === id ? { ...c, struckDay: day } : c)),
+    });
+    expect(characterArts(struck(view.day)).find((f) => f.id === id)?.marks).toEqual({
+      struck: true,
+    });
+    expect(characterArts(struck(view.day - 1)).find((f) => f.id === id)?.marks).toBeUndefined();
   });
 });

@@ -17,6 +17,7 @@ import {
   placeHex,
 } from '@behemoth-road/core';
 import { accentOf, lookOf } from '../game/identity.ts';
+import { escortedIds, settlementInfo, struckToday, threatMarks } from '../game/season.ts';
 import { MAP_TUNING } from './config.ts';
 
 /** The fog state of a hex: hidden is blank paper, a seen hex outside the window is fading. */
@@ -53,12 +54,20 @@ export function sceneCells(state: GameStateView): ArtCell[] {
   for (const c of state.characters) if (c.at.kind === 'hex') keys.set(hexKey(c.at.hex), c.at.hex);
   const fires = fireKeys(state);
   for (const s of state.stimuli) if (fires.has(hexKey(s.hex))) keys.set(hexKey(s.hex), s.hex);
+  // Threats and settlements are public: drawn wherever they are, also under the veil.
+  const threats = new Map(threatMarks(state).map((t) => [hexKey(t.hex), t]));
+  const settlements = new Map(state.settlements.map((s) => [hexKey(s.hex), s.id]));
+  for (const t of state.threats) keys.set(hexKey(t.hex), t.hex);
+  for (const s of state.settlements) keys.set(hexKey(s.hex), s.hex);
 
   const cells: ArtCell[] = [];
   for (const [key, h] of keys) {
     const cellState = cellStateAt(state, key);
     const known = terrainKnown(cellState);
     const feature = known ? featureArtAt(state, key) : null;
+    const threat = threats.get(key);
+    const settlementId = settlements.get(key);
+    const settlement = settlementId ? settlementInfo(state, settlementId) : null;
     cells.push({
       q: h.q,
       r: h.r,
@@ -67,6 +76,26 @@ export function sceneCells(state: GameStateView): ArtCell[] {
       ...(feature ? { feature } : {}),
       // A lit fire shows to everyone, also under the veil and on paper never seen.
       ...(fires.has(key) ? { fire: true } : {}),
+      ...(threat
+        ? {
+            threat: {
+              look: threat.icon,
+              strength: threat.strength,
+              toward: threat.next ? { q: threat.next.q - h.q, r: threat.next.r - h.r } : null,
+              arrivesTomorrow: threat.arrives === 'tomorrow',
+            },
+          }
+        : {}),
+      ...(settlement
+        ? {
+            settlement: {
+              look: settlement.look,
+              attitude: settlement.attitude,
+              favour: settlement.favour,
+              favourNeeded: settlement.needed,
+            },
+          }
+        : {}),
     });
   }
   return cells;
@@ -117,17 +146,26 @@ export function creatureArt(state: GameStateView, signs: CreatureSigns | null = 
 
 /** Active characters for the scene, in character order; riders stand at the creature's centre. */
 export function characterArts(state: GameStateView): CharacterArt[] {
+  const escorted = escortedIds(state);
+  const defenders = new Set(state.creature.defenders);
   return state.characters
     .filter((c) => c.status === 'active')
     .map((c) => {
       const at = placeHex(state, c.at);
       const look = lookOf(c.id);
+      // The day's signs: a shield beside a guardian, a bandage once struck, a shield raised in defence.
+      const marks = {
+        ...(escorted.has(c.id) ? { escorted: true } : {}),
+        ...(struckToday(c, state.day) ? { struck: true } : {}),
+        ...(c.at.kind === 'creature' && defenders.has(c.id) ? { defending: true } : {}),
+      };
       return {
         id: c.id,
         q: at.q,
         r: at.r,
         accent: accentOf(c.id, MAP_TUNING.accent),
         ...(look ? { look } : {}),
+        ...(Object.keys(marks).length > 0 ? { marks } : {}),
       };
     });
 }

@@ -7,7 +7,14 @@
 import type { JSX } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
 import { ENDING_TITLES } from '../game/season.ts';
-import { drawEndingScene, drawPerilGauge, drawRouteStrip, PALETTE } from '../map/art.ts';
+import {
+  type CharacterLook,
+  drawEnding,
+  drawPerilGauge,
+  drawPerilVignette,
+  drawRouteStrip,
+} from '@behemoth-road/art';
+import { PALETTE } from '../map/art.ts';
 import { toPreact } from '../map/svgToPreact.ts';
 import { NewSeasonIcon, SunIcon } from './icons.tsx';
 
@@ -36,7 +43,7 @@ export function PerilGauge({
       data-peril={peril}
       data-max={max}
     >
-      {toPreact(drawPerilGauge(PALETTE, peril, max, woundedAt, 100))}
+      {toPreact(drawPerilGauge(PALETTE, 120, peril, { max, woundedAt }))}
     </span>
   );
 }
@@ -45,29 +52,23 @@ export function PerilGauge({
 export function RouteStrip({ steps, length, width = 160 }: RouteProps & { width?: number }) {
   return (
     <span class="hud-route" aria-label="Route" data-steps={steps} data-length={length}>
-      {toPreact(drawRouteStrip(PALETTE, steps, length, width))}
+      {toPreact(drawRouteStrip(PALETTE, width, steps, length))}
     </span>
   );
 }
 
-/** How dark the map's edges get at a peril: none when calm, up to about half at the end. */
+/** How dark the map's edges get at a peril (the vignette's level, 0..1): none when calm, full at the end. */
 export const edgeShade = (peril: number, max: number): number =>
-  max > 0 ? Math.round(Math.min(1, Math.max(0, peril / max)) * 55) / 100 : 0;
+  max > 0 ? Math.round(Math.min(1, Math.max(0, peril / max)) * 100) / 100 : 0;
 
-/** The map's edges darkening a little as peril rises (an SVG gradient; no inline styles). */
+/** The map's edges darkening a little as peril rises (the art kit's vignette; no inline styles). */
 export function PerilEdge({ peril, max }: { peril: number; max: number }): JSX.Element | null {
   const shade = edgeShade(peril, max);
   if (shade === 0) return null;
   return (
-    <svg class="peril-edge" aria-hidden="true" data-shade={shade}>
-      <defs>
-        <radialGradient id="peril-edge" cx="50%" cy="50%" r="72%">
-          <stop offset="58%" stop-color={PALETTE.ink} stop-opacity={0} />
-          <stop offset="100%" stop-color={PALETTE.ink} stop-opacity={1} />
-        </radialGradient>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#peril-edge)" opacity={shade} />
-    </svg>
+    <div class="peril-edge" aria-hidden="true" data-shade={shade}>
+      {toPreact(drawPerilVignette(PALETTE, shade, 'peril'))}
+    </div>
   );
 }
 
@@ -79,6 +80,8 @@ export interface EndingProps {
   /** Admins on staging and locally: start a new season. Null hides it. */
   readonly onNewSeason: (() => void) | null;
   readonly busy: boolean;
+  /** The party, drawn by the creature when it comes home. */
+  readonly party?: readonly { readonly accent: string; readonly look?: CharacterLook }[];
 }
 
 /** The season's end, over everything: focus moves into it when it opens. */
@@ -89,8 +92,15 @@ export function Ending(props: EndingProps): JSX.Element {
   }, []);
   return (
     <div ref={root} class="ending" data-outcome={props.outcome} tabindex={-1} role="dialog">
+      <div class="ending-scene" aria-hidden="true">
+        {toPreact(
+          drawEnding(props.outcome, PALETTE, window.innerWidth, window.innerHeight, {
+            party: props.party ?? [],
+            idPrefix: 'end',
+          }),
+        )}
+      </div>
       <h1 class="ending-title">{ENDING_TITLES[props.outcome]}</h1>
-      <div class="ending-scene">{toPreact(drawEndingScene(PALETTE, props.outcome, 320))}</div>
       <div class="ending-route">
         <RouteStrip {...props.route} width={240} />
         <span class="ending-days" aria-label="Days">

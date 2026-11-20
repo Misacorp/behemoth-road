@@ -5,33 +5,18 @@ import { MAP_TUNING } from './config.ts';
 export const PROJECTION = isometric(MAP_TUNING.hexSize, MAP_TUNING.tilt);
 export const PALETTE = paletteById(MAP_TUNING.paletteId);
 
-/**
- * Milestone 5's drawings, in one place: stand-ins until the art kit's own land (`m5/art`), then each line
- * here points at the art kit instead.
- */
-export {
-  drawApproach,
-  drawBandageMark,
-  drawEndingScene,
-  drawPerilGauge,
-  drawRouteStrip,
-  drawSettlement,
-  drawShieldMark,
-  drawThreat,
-} from './m5Placeholders.ts';
-
-/** The art kit moment each Milestone 5 moment borrows for now (its own marks come with `m5/art`). */
+/** The art kit's season moment each Milestone 5 moment plays (`SEASON_MOMENT_KINDS`). */
 const M5_MOMENTS: Readonly<Record<string, string>> = {
-  threat: 'reveal',
-  strike: 'trap',
-  struck: 'trap',
-  hit: 'trap',
-  cleared: 'find',
-  defend: 'linger',
-  befriended: 'find',
-  angered: 'trap',
-  boon: 'find',
-  'season-over': 'find',
+  threat: 'threat-appears',
+  strike: 'creature-struck',
+  struck: 'character-struck',
+  hit: 'threat-hit',
+  cleared: 'threat-cleared',
+  defend: 'defence-holds',
+  befriended: 'befriended',
+  angered: 'angered',
+  boon: 'boon',
+  'season-over': 'season-end',
 };
 
 /** A Milestone 5 moment's mark. */

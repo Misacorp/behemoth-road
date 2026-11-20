@@ -7,11 +7,12 @@
 import {
   type Arrival,
   checkAction,
+  type Character,
   ESCORT_TAG,
   type GameStateView,
   type Hex,
-  hexDistance,
   hexEquals,
+  isEscorted,
   MATERIALS,
   PEOPLE_TYPES,
   roleHas,
@@ -126,6 +127,8 @@ export interface SettlementInfo {
   readonly favour: number;
   readonly needed: number;
   readonly boon: string | null;
+  /** The people's content icon (the art kit's settlement look). */
+  readonly look: string;
 }
 
 export function settlementInfo(game: GameStateView, id: string): SettlementInfo | null {
@@ -139,6 +142,7 @@ export function settlementInfo(game: GameStateView, id: string): SettlementInfo 
     favour: s.favour,
     needed: type?.favourNeeded ?? 0,
     boon: s.boon,
+    look: type?.icon ?? s.type,
   };
 }
 
@@ -181,21 +185,21 @@ export function settlementActions(game: GameStateView, characterId: string): Set
 }
 
 /**
- * Characters a guardian's escort covers: active, on a hex within 1 of an active guardian on a hex, guardians
- * themselves left out (they carry their own ring). The core's rule (`threats.ts`), read through this one
- * function until the core exports it.
+ * Characters a guardian's escort covers (the shield mark): active, on a hex the core counts as escorted
+ * (`isEscorted`), guardians themselves left out (their own escort shows as the ring).
  */
 export function escortedIds(game: GameStateView): Set<string> {
-  const guards = game.characters.filter(
-    (g) => g.status === 'active' && g.at.kind === 'hex' && roleHas(g, ESCORT_TAG),
+  return new Set(
+    game.characters
+      .filter(
+        (c) =>
+          c.status === 'active' &&
+          c.at.kind === 'hex' &&
+          !roleHas(c, ESCORT_TAG) &&
+          isEscorted(game, c.at.hex),
+      )
+      .map((c) => c.id),
   );
-  const out = new Set<string>();
-  for (const c of game.characters) {
-    if (c.status !== 'active' || c.at.kind !== 'hex' || roleHas(c, ESCORT_TAG)) continue;
-    const at = c.at.hex;
-    if (guards.some((g) => g.at.kind === 'hex' && hexDistance(g.at.hex, at) <= 1)) out.add(c.id);
-  }
-  return out;
 }
 
 /** Guardians standing on a hex: each shows the soft ring of its escort. */
@@ -205,9 +209,8 @@ export const escortCentres = (game: GameStateView): Hex[] =>
   );
 
 /** Whether a threat struck this character today (it shows a bandage for the day). */
-// Read loosely until the core's `Character.struckDay` lands; then this is `c.struckDay === day`.
-export const struckToday = (c: object, day: number): boolean =>
-  'struckDay' in c && c.struckDay === day;
+export const struckToday = (c: Pick<Character, 'struckDay'>, day: number): boolean =>
+  c.struckDay === day;
 
 /** How the season ended, or null while it goes on. */
 export const seasonEnd = (

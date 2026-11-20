@@ -8,6 +8,8 @@ import {
   drawCharacter,
   drawCreature,
   drawIcon,
+  drawSettlementIcon,
+  drawThreatIcon,
   type CharacterLook,
   type Drawn,
   GENTLE_AMBLER,
@@ -26,7 +28,7 @@ import { Pips, TickMark } from '../hud/icons.tsx';
 import type { Identity } from '../game/identity.ts';
 import { QuirkIcon, RoleEmblem, TraitIcon } from '../ui/emblems.tsx';
 import type { SettlementInfo, ThreatCardInfo } from '../game/season.ts';
-import { drawSettlement, drawThreat, PALETTE } from './art.ts';
+import { PALETTE } from './art.ts';
 import { creatureArt } from './cells.ts';
 import { MAP_TUNING } from './config.ts';
 import { toPreact } from './svgToPreact.ts';
@@ -157,13 +159,16 @@ function CardIcon({
   x,
   y,
   size,
+  risk = false,
 }: {
   id: string;
   x: number;
   y: number;
   size: number;
+  /** The art kit's risk mark (a cracked triangle) on the icon. */
+  risk?: boolean;
 }): JSX.Element {
-  const icon = drawIcon(id, PALETTE, size);
+  const icon = drawIcon(id, PALETTE, size, risk ? { risk: true } : {});
   return toPreact({ ...icon, attrs: { ...icon.attrs, x, y, width: size, height: size } });
 }
 
@@ -594,17 +599,9 @@ function ActionButton({
       }}
     >
       <rect width={ACTION_W - 6} height={50} rx={9} fill={PALETTE.paperDeep} />
-      <CardIcon id={icon} x={(ACTION_W - 6) / 2 - 14} y={3} size={28} />
-      {risk && (
-        <path
-          data-risk="true"
-          d="M40 2L47 14H33Z M40 6.5L39 9.5L41 10.5L40 12"
-          fill={PALETTE.hint}
-          stroke={PALETTE.ink}
-          stroke-width={1.2}
-          stroke-linejoin="round"
-        />
-      )}
+      <g data-risk={risk ? 'true' : undefined}>
+        <CardIcon id={icon} x={(ACTION_W - 6) / 2 - 14} y={3} size={28} risk={risk} />
+      </g>
       {uses && (
         <g opacity={short ? 0.45 : 1} data-short={short ? true : undefined}>
           <CardIcon id={uses} x={left} y={31} size={material} />
@@ -696,7 +693,7 @@ export function ThreatCard({
 }): JSX.Element {
   const size = threatSize(threat.strike !== null);
   const marks = Math.min(threat.strength, 10);
-  const drawn = drawThreat(PALETTE, threat.icon, threat.strength, 60);
+  const drawn = drawThreatIcon(threat.icon, PALETTE, 60);
   return (
     <g data-popover="threat" data-threat={threat.id} data-strength={threat.strength}>
       <Card {...size} />
@@ -742,13 +739,12 @@ export const SETTLEMENT_SIZE = { width: 84, height: 80 } as const;
 
 /** A settlement from afar: its drawing by attitude, with its favour marks while it is wary. */
 export function SettlementCard({ settlement }: { settlement: SettlementInfo }): JSX.Element {
-  const drawn = drawSettlement(
-    PALETTE,
-    settlement.attitude,
-    settlement.favour,
-    settlement.needed,
-    70,
-  );
+  const drawn = drawSettlementIcon(PALETTE, 70, {
+    look: settlement.look,
+    attitude: settlement.attitude,
+    favour: settlement.favour,
+    favourNeeded: settlement.needed,
+  });
   return (
     <g
       data-popover="settlement"

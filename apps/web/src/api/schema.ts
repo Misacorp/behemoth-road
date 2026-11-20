@@ -52,8 +52,6 @@ const character = v.object({
   /** What the character carries. */
   pack: counts,
   status: v.picklist(['active', 'lost']),
-  /** The day a threat struck this character (it starts the next day short of actions), or null. */
-  struckDay: v.optional(v.nullable(count)),
 });
 
 const weights = v.object({ left: v.number(), straight: v.number(), right: v.number() });

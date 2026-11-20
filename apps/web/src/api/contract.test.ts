@@ -115,7 +115,38 @@ describe('captured contract fixtures', () => {
       const view = v.parse(PlayerViewSchema, fixture(name));
       return momentsFromEvents(view.events, view.game.creature.centre, '').map((m) => m.kind);
     });
-    expect(kinds).toEqual([['fire-out'], ['ate']]);
+    // The recaptured since-log also carries a threat appearing at that tick.
+    expect(kinds).toEqual([['fire-out'], ['ate', 'threat']]);
+  });
+
+  it("Milestone 5's captured answers play their moments, placed on the view's own things", () => {
+    const moments = (name: string) => {
+      const view = v.parse(PlayerViewSchema, fixture(name));
+      const g = view.game;
+      return momentsFromEvents(view.events, g.creature.centre, view.you.characterId ?? '', {
+        threat: (id) => g.threats.find((t) => t.id === id)?.hex ?? null,
+        settlement: (id) => g.settlements.find((x) => x.id === id)?.hex ?? null,
+        character: (id) => {
+          const c = g.characters.find((x) => x.id === id);
+          return c?.at.kind === 'hex' ? c.at.hex : null;
+        },
+      }).map((m) => m.kind);
+    };
+    expect(moments('view-strike')).toEqual(['hit']);
+    expect(moments('view-defend')).toEqual(['defend']);
+    expect(moments('view-befriended')).toEqual(['befriended']);
+    expect(moments('view-boon')).toEqual(['boon']);
+    expect(moments('view-angered')).toEqual(['angered', 'threat']);
+    expect(moments('view-peril-since')).toEqual(['strike', 'strike']);
+    expect(moments('view-season-lost')).toEqual(['strike', 'season-over']);
+    expect(moments('view-season-safe')).toEqual(['season-over']);
+  });
+
+  it('reads each ending from the captured season views', () => {
+    for (const outcome of ['safe', 'wounded', 'lost'] as const) {
+      const view = v.parse(PlayerViewSchema, fixture(`view-season-${outcome}`));
+      expect(view.game.season).toMatchObject({ status: 'over', outcome });
+    }
   });
 
   it.each(errors.map((e) => [e.route, e.status, e.body] as const))(

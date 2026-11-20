@@ -22,8 +22,7 @@ describe('Milestone 5 view and events', () => {
     expect(parsed.game.peril).toBe(6);
     expect(parsed.game.creature.steps).toBe(12);
     expect(parsed.game.season).toEqual({ status: 'over', outcome: 'wounded', day: 14 });
-    // Until the core's struckDay lands, a character has none (read as never struck).
-    expect(parsed.game.characters[0]!.struckDay).toBeUndefined();
+    expect(parsed.game.characters[0]!.struckDay).toBeNull();
   });
 
   it('refuses an attitude, an outcome or a season it does not know', () => {

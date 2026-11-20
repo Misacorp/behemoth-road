@@ -31,7 +31,6 @@ import {
   careOptions,
   type CostedAction,
   fireAction,
-  iconOf,
   packUnits,
   stockOf,
   surveyOf,
@@ -245,7 +244,7 @@ export function Game({ api, initial }: GameProps): JSX.Element {
       kind: a.kind === 'offer' ? `offer:${a.uses ?? ''}` : a.kind,
       cost: a.cost,
       enabled: a.enabled,
-      ...(a.kind === 'offer' && a.uses ? { icon: iconOf(a.uses) } : {}),
+      ...(a.kind === 'offer' ? { icon: 'offer', uses: a.uses ?? null } : {}),
       ...(a.kind.startsWith('boon:') ? { icon: a.kind.slice(5) } : {}),
       ...(a.risk ? { risk: true } : {}),
     }));
@@ -426,6 +425,12 @@ export function Game({ api, initial }: GameProps): JSX.Element {
           days={ended.day}
           route={{ steps: state.creature.steps, length: state.config.routeLength }}
           onNewSeason={showsNextDay(view) ? onNewSeason : null}
+          party={state.characters
+            .filter((c) => c.status === 'active')
+            .map((c) => {
+              const w = who.get(c.id);
+              return { accent: w?.accent ?? '', ...(w?.look ? { look: w.look } : {}) };
+            })}
           busy={busy}
         />
       )}

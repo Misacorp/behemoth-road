@@ -160,6 +160,7 @@ describe('settlements', () => {
       favour: 1,
       needed: 3,
       boon: null,
+      look: 'hill-folk',
     });
     const card = tapHex(IDLE, view, me, abs(NEAR));
     expect(card).toEqual({ kind: 'settlement', id });
@@ -183,7 +184,6 @@ describe('escort, struck and the season', () => {
     expect(struckToday({ struckDay: 4 }, 4)).toBe(true);
     expect(struckToday({ struckDay: 3 }, 4)).toBe(false);
     expect(struckToday({ struckDay: null }, 4)).toBe(false);
-    expect(struckToday({}, 4)).toBe(false);
   });
 
   it('reads the ending from the season, with its title', () => {
