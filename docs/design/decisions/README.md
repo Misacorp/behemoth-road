@@ -110,7 +110,8 @@ Superseded: 2 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
-- 2026-11-20 Polish after the M3 playtest: icon names, the window edge, a lost moment, the creature's walk and action hints
+- 2026-11-20 Poll every 10 seconds while the game is visible
+- 2026-11-20 Polish after the M3 playtest: icon names, the window edge, a lost moment, the creature's walk and action hints (amended)
 - 2026-11-20 Moments play only from the server's event log, once per event
 - 2026-11-20 The revised chain in the interface: survey in the inspect card, the pack on the HUD, stores and unlocks in the hub drawer (amended)
 - 2026-11-20 The here card is compact and lets taps through its body; moments use the art kit's marks

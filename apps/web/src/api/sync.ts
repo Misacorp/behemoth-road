@@ -1,13 +1,13 @@
 /**
  * Keeps the player view fresh: after the player's own actions (their answer is the new view, then a read
  * of the log since the view before it, for what others did meanwhile), when the page becomes visible or the
- * window regains focus, and every 30 seconds while it is visible. Asks with `since`, so an unchanged
+ * window regains focus, and every 10 seconds while it is visible. Asks with `since`, so an unchanged
  * game costs one small answer. Timers and visibility are injected, so it is tested without a browser.
  */
 import type { ApiClient } from './client.ts';
 import type { PlayerView } from './schema.ts';
 
-export const POLL_MS = 30_000;
+export const POLL_MS = 10_000;
 
 export interface SyncDeps {
   readonly api: Pick<ApiClient, 'game'>;

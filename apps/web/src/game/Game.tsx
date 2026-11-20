@@ -2,7 +2,7 @@
  * The shared game, driven by the server's player view. The client never has the seed: every rule check
  * (what you can reach, the path, its cost) runs in the core on the view, and the server re-checks and
  * applies each move. The view is refreshed after your own actions, when the page becomes visible and every
- * 30 seconds while it is visible.
+ * 10 seconds while it is visible.
  */
 import { findCharacter, type Hex, hexKey, terrainOf } from '@behemoth-road/core';
 import type { JSX } from 'preact';

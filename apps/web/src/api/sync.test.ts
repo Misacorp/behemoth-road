@@ -38,7 +38,7 @@ describe('view sync', () => {
     expect(s.seen.map((v) => v.version)).toEqual([4, 5]);
   });
 
-  it('polls every 30 seconds only while visible', async () => {
+  it('polls every 10 seconds only while visible', async () => {
     const s = setup([at(1)]);
     s.sync.visible();
     await Promise.resolve();
