@@ -36,7 +36,7 @@ describe('tuning config', () => {
       threatChanceMax: 0.9,
       threatsMax: 3,
       threatStrengthPlayers: 3,
-      threatStrengthDays: 10,
+      threatStrengthDays: 14,
       threatPathDistance: 5,
       struckActions: 1,
       strikeCost: 1,

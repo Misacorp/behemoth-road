@@ -20,6 +20,14 @@ The threat card's placement (below the threat, off its trail) follows the popup 
 
 **Reasoning.** With the wider window, the north edge sat under the HUD and route strip on phones, and the opening view showed little of where the creature was heading.
 
+## 2026-11-20: Threats grow stronger every 14 days, not 10
+
+ID: `2026-11-20-threats-grow-stronger-every-14-days` · Status: current · Amends: `2026-11-20-threat-pacing-numbers-window-6-rockslide`
+
+**Decision.** `threatStrengthDays` is 14 (was 10): a threat gains one strength per 14 days of the season instead of per 10. Nothing else in the threat pacing changes.
+
+**Reasoning.** Careful parties lost about 30 % of full seasons, too harsh for a tame first creature. At 14 (200 seeds, 3 and 6 players) careful parties lose 14 % and 17 % of full seasons, and are safe 71 % and 73 %; careless parties still lose every full season. The lead's call; Misa to confirm, it is one number in the config.
+
 ## 2026-11-20: A seeded balance simulation with scripted careful and careless parties
 
 ID: `2026-11-20-a-seeded-balance-simulation-with-scripted` · Status: current
@@ -30,7 +38,7 @@ ID: `2026-11-20-a-seeded-balance-simulation-with-scripted` · Status: current
 
 ## 2026-11-20: Threat pacing numbers: window 6, rockslide 5 ahead, raiders speed 1
 
-ID: `2026-11-20-threat-pacing-numbers-window-6-rockslide` · Status: current · Amends: `2026-11-20-threats-are-telegraphed-a-wider-window`
+ID: `2026-11-20-threat-pacing-numbers-window-6-rockslide` · Status: current, amended by `2026-11-20-threats-grow-stronger-every-14-days` · Amends: `2026-11-20-threats-are-telegraphed-a-wider-window`
 
 **Decision.** The numbers behind telegraphed threats:
 
