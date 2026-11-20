@@ -6,6 +6,7 @@
  */
 import {
   DEFAULT_CONFIG,
+  FEATURE_TYPES,
   MATERIALS,
   PEOPLE_TYPES,
   THREAT_TYPES,
@@ -66,7 +67,9 @@ export function titleOf(id: TipId): string {
           ? THREAT_TYPES
           : kind === 'people'
             ? PEOPLE_TYPES
-            : [];
+            : kind === 'feature'
+              ? FEATURE_TYPES
+              : [];
   return named.find((x) => x.id === key)?.name ?? key;
 }
 

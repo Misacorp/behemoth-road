@@ -196,3 +196,66 @@ export function drawWorkBar(palette: Palette, width: number, fraction: number, s
     }),
   ]);
 }
+
+/** An action arrow's state: one to spend, one a plan would spend, or one already spent today. */
+export type ActionArrowState = 'ready' | 'spending' | 'spent';
+
+/**
+ * One action, as a small right-pointing arrow (a chunky ">") in ink, drawn into a box `w` wide and `w * 1.2`
+ * tall with its top left at (x, y). A cost is a row of these, one per action; the same glyph counts the
+ * actions left on the HUD. State shows by line, not colour: solid ink to spend, a dashed outline that a plan
+ * would spend, a faint dotted outline spent.
+ */
+export function actionArrowNodes(
+  palette: Palette,
+  x: number,
+  y: number,
+  w: number,
+  state: ActionArrowState = 'ready',
+): SvgNode[] {
+  const s = Number.isFinite(w) && w > 0 ? w / 10 : 1;
+  const P = (px: number, py: number): string =>
+    `${(x + px * s).toFixed(2)} ${(y + py * s).toFixed(2)}`;
+  const d = `M${P(1, 1)}L${P(5, 1)}L${P(9.5, 6)}L${P(5, 11)}L${P(1, 11)}L${P(5.5, 6)}Z`;
+  const line = Math.max(0.6, 1.1 * s);
+  if (state === 'ready') {
+    return [
+      el('path', {
+        d,
+        fill: palette.ink,
+        stroke: palette.ink,
+        'stroke-width': line,
+        'stroke-linejoin': 'round',
+        'data-arrow': 'ready',
+      }),
+    ];
+  }
+  return [
+    el('path', {
+      d,
+      fill: palette.paper,
+      stroke: state === 'spending' ? palette.ink : palette.inkSoft,
+      'stroke-width': line,
+      'stroke-linejoin': 'round',
+      'stroke-dasharray':
+        state === 'spending'
+          ? `${(2.2 * s).toFixed(2)} ${(1.6 * s).toFixed(2)}`
+          : `${(1 * s).toFixed(2)} ${(1.8 * s).toFixed(2)}`,
+      'data-arrow': state,
+    }),
+  ];
+}
+
+/** One action arrow as a self-contained `<svg>` of `px` wide. */
+export function drawActionArrow(
+  palette: Palette,
+  px: number,
+  state: ActionArrowState = 'ready',
+): SvgNode {
+  const w = Number.isFinite(px) && px > 0 ? px : 12;
+  return el(
+    'svg',
+    { viewBox: `0 0 ${w} ${w * 1.2}`, width: w, height: w * 1.2 },
+    actionArrowNodes(palette, 0, 0, w, state),
+  );
+}

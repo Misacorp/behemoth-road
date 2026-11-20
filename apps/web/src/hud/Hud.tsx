@@ -19,6 +19,7 @@ import {
   JoinIcon,
   NextDayIcon,
   Pips,
+  Slots,
   SunIcon,
 } from './icons.tsx';
 
@@ -125,7 +126,7 @@ function PackButton({
             </div>
           )}
           {/* One slot per unit the pack holds, filled as it fills: an empty pack reads as empty. */}
-          <Pips total={capacity} left={units} size={10} />
+          <Slots total={capacity} left={units} size={10} />
         </div>
       )}
     </>

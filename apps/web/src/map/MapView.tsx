@@ -42,7 +42,7 @@ import { fireHintAt } from '../game/chain.ts';
 import { accentOf, type Identity, lookOf } from '../game/identity.ts';
 import { type Moment, STEP_MS } from '../game/moments.ts';
 import { MomentMark } from './MomentMark.tsx';
-import { mapTipAt } from './mapTips.ts';
+import { mapTipAt, placeNoun, tileTipAt } from './mapTips.ts';
 import type { TipId } from '../text/tips.ts';
 import type { TipTarget } from '../ui/tip.ts';
 import { TIPS } from '../ui/Tip.tsx';
@@ -747,12 +747,16 @@ export function MapView(props: MapViewProps): JSX.Element {
   };
 
   let card: JSX.Element | null = null;
+  const mineAt = state.characters.find((c) => c.id === characterId)?.at;
+  const mineHex = mineAt?.kind === 'hex' ? mineAt.hex : null;
   if (flow.kind === 'inspect') {
     const cellState = cellStateAt(state, `${flow.hex.q},${flow.hex.r}`);
     const known = terrainKnown(cellState);
     const at = flow.hex;
     card = (
       <InspectCard
+        title={known ? placeNoun(state, flow.hex) : null}
+        tileTip={known ? tileTipAt(state, flow.hex) : null}
         terrain={known ? (terrainOf(state, flow.hex)?.id ?? 'unknown') : 'unknown'}
         state={cellState}
         feature={known ? featureArtAt(state, hexKey(flow.hex)) : null}
@@ -768,6 +772,8 @@ export function MapView(props: MapViewProps): JSX.Element {
   } else if (flow.kind === 'selected' && props.here) {
     card = (
       <HereCard
+        title={props.here.settlement?.name ?? (mineHex ? placeNoun(state, mineHex) : null)}
+        tileTip={mineHex ? tileTipAt(state, mineHex) : null}
         terrain={props.here.terrain}
         feature={props.here.feature}
         actions={props.here.actions}
