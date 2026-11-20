@@ -4,6 +4,7 @@
  * ending that fills the screen once the season is over (a title, the outcome's scene, the route and the days
  * taken; admins on staging get a new-season button). No prose: the three ending titles are the only words.
  */
+import { tipProps } from '../ui/Tip.tsx';
 import type { JSX } from 'preact';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { ENDING_TITLES } from '../game/season.ts';
@@ -41,6 +42,7 @@ export function PerilGauge({
     <span
       class={`hud-peril${jolt ? ' is-jolted' : relieved ? ' is-relieved' : ''}`}
       aria-label="Peril"
+      {...tipProps('hud:peril')}
       data-peril={peril}
       data-max={max}
     >
@@ -52,7 +54,13 @@ export function PerilGauge({
 /** The route: steps walked of the season's length, home at the end. */
 export function RouteStrip({ steps, length, width = 160 }: RouteProps & { width?: number }) {
   return (
-    <span class="hud-route" aria-label="Route" data-steps={steps} data-length={length}>
+    <span
+      class="hud-route"
+      aria-label="Route"
+      data-steps={steps}
+      data-length={length}
+      {...tipProps('hud:route')}
+    >
       {toPreact(drawRouteStrip(PALETTE, width, steps, length))}
     </span>
   );

@@ -42,12 +42,16 @@ import { fireHintAt } from '../game/chain.ts';
 import { accentOf, type Identity, lookOf } from '../game/identity.ts';
 import { type Moment, STEP_MS } from '../game/moments.ts';
 import { MomentMark } from './MomentMark.tsx';
+import { mapTipAt } from './mapTips.ts';
+import type { TipId } from '../text/tips.ts';
+import type { TipAnchor } from '../ui/tip.ts';
+import { TIPS } from '../ui/Tip.tsx';
 import { MAP_TUNING } from './config.ts';
 import { type Flow, isSelecting } from './flow.ts';
 import { GestureTracker, type Gesture } from './gestures.ts';
 import { buildOverlays } from './overlays.ts';
 import { figureFeet, pickableFeet, placePoint } from './figures.ts';
-import { pickTarget, type Point, type Target } from './pick.ts';
+import { pickTarget, type Point, type Target, worldToHex } from './pick.ts';
 import {
   HereCard,
   type HereAction,
@@ -662,6 +666,32 @@ export function MapView(props: MapViewProps): JSX.Element {
     }
   }, [popKey]);
 
+  // Tips on the map (a threat, a settlement, a struck or escorted character, a fire): a mouse resting on one,
+  // or a finger held on one; a hold never becomes a tap.
+  const hoverTip = useRef<TipId | null>(null);
+  const mapTip = (e: PointerEvent): { id: TipId; anchor: () => TipAnchor } | null => {
+    const svg = svgRef.current;
+    if (!svg || (e.target instanceof Node && popRef.current?.contains(e.target))) return null;
+    const v = view.current;
+    const hex = worldToHex(p, toWorld(v, local(e)));
+    const id = mapTipAt(latest.current.state, hex);
+    if (!id) return null;
+    return {
+      id,
+      anchor: () => {
+        const box = svg.getBoundingClientRect();
+        const c = toScreen(view.current, hexCenter(p, hex.q, hex.r));
+        const s = view.current.scale * p.size;
+        // The hex's top face and what stands on it (a figure, a threat).
+        return { x: box.left + c.x - s, y: box.top + c.y - 1.1 * s, width: 2 * s, height: 1.6 * s };
+      },
+    };
+  };
+  const unhoverTip = (): void => {
+    if (hoverTip.current) TIPS.unhover(hoverTip.current);
+    hoverTip.current = null;
+  };
+
   const onPointerDown = (e: PointerEvent): void => {
     if (e.pointerType === 'mouse' && e.button !== 0) return;
     // No compatibility mouse-down: its default focus move would pull focus out of a popover the tap opens.
@@ -669,12 +699,41 @@ export function MapView(props: MapViewProps): JSX.Element {
     // A press holds the view still (a follow or recentre easing stops), so a tap lands where it was seen.
     stopAnimation();
     svgRef.current?.setPointerCapture(e.pointerId);
+    unhoverTip();
+    if (e.pointerType !== 'mouse') {
+      const tip = tracker.current.count === 0 ? mapTip(e) : null;
+      if (tip) TIPS.press(tip.id, tip.anchor, e.clientX, e.clientY);
+      else TIPS.release();
+    }
     handle(tracker.current.down(e.pointerId, local(e)));
   };
-  const onPointerMove = (e: PointerEvent): void =>
+  const onPointerMove = (e: PointerEvent): void => {
+    if (e.pointerType === 'mouse' && e.buttons === 0) {
+      const tip = mapTip(e);
+      if (tip?.id !== hoverTip.current) {
+        unhoverTip();
+        if (tip) {
+          hoverTip.current = tip.id;
+          TIPS.hover(tip.id, tip.anchor);
+        }
+      }
+    } else if (e.pointerType !== 'mouse') {
+      TIPS.move(e.clientX, e.clientY);
+    }
     handle(tracker.current.move(e.pointerId, local(e)));
-  const onPointerUp = (e: PointerEvent): void => handle(tracker.current.up(e.pointerId, local(e)));
-  const onPointerCancel = (e: PointerEvent): void => handle(tracker.current.cancel(e.pointerId));
+  };
+  const onPointerUp = (e: PointerEvent): void => {
+    // A hold that opened a tip is not a tap.
+    if (e.pointerType !== 'mouse' && TIPS.release()) {
+      handle(tracker.current.cancel(e.pointerId));
+      return;
+    }
+    handle(tracker.current.up(e.pointerId, local(e)));
+  };
+  const onPointerCancel = (e: PointerEvent): void => {
+    TIPS.release();
+    handle(tracker.current.cancel(e.pointerId));
+  };
 
   let card: JSX.Element | null = null;
   if (flow.kind === 'inspect') {
@@ -824,6 +883,7 @@ export function MapView(props: MapViewProps): JSX.Element {
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerCancel}
+        onPointerLeave={unhoverTip}
         onContextMenu={(e) => {
           e.preventDefault();
           props.onRightClick();

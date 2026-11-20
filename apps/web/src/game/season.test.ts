@@ -49,6 +49,7 @@ describe('threats as the map reads them', () => {
     expect(threatMarks(view)).toEqual(
       view.threats.map((t, i) => ({
         id: t.id,
+        type: t.type,
         hex: t.hex,
         icon: t.type,
         name: t.type === 'captors' ? 'Captor band' : 'Rockslide',
@@ -64,6 +65,7 @@ describe('threats as the map reads them', () => {
     const id = near.view.threats[0]!.id;
     expect(threatCard(near.view, near.me, id)).toEqual({
       id,
+      type: 'swarm',
       icon: 'swarm',
       name: 'Pterodactyl swarm',
       strength: 2,

@@ -966,26 +966,64 @@ button svg,
   gap: var(--space-2);
 }
 
-/* An icon's name, shown on a tap or hover: the icon's only text. */
-.named {
-  position: relative;
+/* A tip: an icon's name and a line or two, beside the icon (never over it), one at a time. */
+.tip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 50;
+  display: grid;
+  gap: 2px;
+  max-width: min(260px, calc(100vw - 16px));
+  padding: var(--space-2) var(--space-3);
+  border-radius: 12px;
+  background: #f3f1e2;
+  border: 1.5px solid #9a9776;
+  box-shadow: 1px 2px 0 #e1ddc3;
+  color: #5c5a43;
+  font-size: 13px;
+  line-height: 1.35;
+  pointer-events: none;
+}
+
+.tip-title {
+  font-size: 14px;
+}
+
+.tip-chevron {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.tip-chevron-fill {
+  fill: #f3f1e2;
+}
+
+.tip-chevron-edge {
+  fill: none;
+  stroke: #9a9776;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.icon-tip {
   display: inline-flex;
 }
 
-.name-tip {
-  position: absolute;
-  bottom: calc(100% + 4px);
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 2px var(--space-2);
-  border-radius: 8px;
-  background: #5c5a43;
-  color: #f3f1e2;
-  font-size: 12px;
-  font-weight: 600;
-  white-space: nowrap;
-  pointer-events: none;
-  z-index: 2;
+/* The HUD's readouts (day, peril, route, actions) let the map through, except where they carry a tip. */
+.hud-top [data-tip],
+.hud-actions[data-tip] {
+  pointer-events: auto;
+}
+
+/* Icons with tips: a press-and-hold must not select text or open the system menu. */
+[data-tip] {
+  -webkit-touch-callout: none;
+  user-select: none;
 }
 
 /* A cost the stores cannot pay yet. */

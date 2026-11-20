@@ -25,6 +25,7 @@ import {
 } from '../map/flow.ts';
 import { type FocusTarget, type Here, MapView } from '../map/MapView.tsx';
 import { HubDrawer } from '../hub/HubDrawer.tsx';
+import { TipLayer } from '../ui/Tip.tsx';
 import { cellStateAt, featureArtAt } from '../map/cells.ts';
 import {
   actionsAt,
@@ -475,6 +476,7 @@ export function Game({ api, initial }: GameProps): JSX.Element {
           busy={busy}
         />
       )}
+      <TipLayer />
     </main>
   );
 }
