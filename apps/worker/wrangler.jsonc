@@ -28,8 +28,9 @@
   // DISCORD_CLIENT_ID: the Discord application's id (public). One application per environment.
   // DISCORD_PUBLIC_KEY: the application's public key (hex, not a secret). The deploy job fills it from
   // Discord's verify_key; empty (or not 64 hex characters) turns POST /api/discord/interactions off (404).
-  // DEV_TOOLS: "on" turns on /api/dev/* (the admin "next day"; staging and local only). Any other value,
-  // production included, makes every /api/dev route answer 404. A test pins production to "off".
+  // DEV_TOOLS: "on" turns on /api/dev/* (the admin "next day" and "new season"; staging and local only)
+  // and gives new games the short season (SERVER_CONFIG.devSeason). Any other value, production included,
+  // makes every /api/dev route answer 404 and keeps the core's full season. A test pins production to "off".
   // ALLOWED_GUILDS: the Discord servers (guild ids, comma-separated) that may play. The app is public, so this
   // list keeps the game to known servers; empty or malformed allows none. Locally: the dev login's server.
   // ENVIRONMENT "local" (this top level, used by wrangler dev and the tests) also turns on the dev login

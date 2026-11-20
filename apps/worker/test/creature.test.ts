@@ -1,6 +1,6 @@
 import { checkAction, creatureSigns, legalMoves } from '@behemoth-road/core';
 import { describe, expect, it } from 'vitest';
-import type { GameState } from '../src/game-core.ts';
+import { CONTENT_VERSION, type GameState } from '../src/game-core.ts';
 import type { PlayerView } from '../src/guild-game.ts';
 import { MISA, OTHER_USER_ID, ROBIN, USER_ID, runGame, type GameContext } from './helpers.ts';
 
@@ -356,7 +356,7 @@ describe('a stored game from before the living creature', () => {
       );
       ctx.game.migrate();
       const fresh = storedState(ctx.sql);
-      expect(fresh.contentVersion).toBe(5);
+      expect(fresh.contentVersion).toBe(CONTENT_VERSION);
       expect(fresh.day).toBe(1);
       expect(fresh.nature).toBeDefined();
       const view = (await ctx.call(misa, 'GET', '/api/game')).body as PlayerView;

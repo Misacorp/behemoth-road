@@ -49,6 +49,7 @@ Record a decision:
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
+- 2026-11-20 The short dev season follows the dev-tools switch; an ended season stops the schedule
 - 2026-11-20 Staging and local seasons are short; admins start a new season there
 - 2026-11-20 Web schema requires the M4 view fields now the fixtures carry them
 - 2026-11-20 The player view carries each viewer's creature signs; the creature's nature and condition never leave the server
