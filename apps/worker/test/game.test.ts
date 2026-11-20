@@ -88,6 +88,7 @@ describe('POST /api/game/join', () => {
           actionsLeft: 3,
           pack: {},
           status: 'active',
+          struckDay: null,
         },
       ]);
       // A second join changes nothing and answers the same view.
