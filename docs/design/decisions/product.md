@@ -4,6 +4,40 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: The ending's scene is drawn above a strip reserved for its summary
+
+ID: `2026-11-20-the-ending-s-scene-is-drawn` · Status: current
+
+**Decision.** The ending's scene fills the screen above a strip kept for its foot (the route, the days and, for admins, the new-season button), and is drawn at that box's measured size, so the foot never sits over the party. The strip is the same height whether or not the button shows.
+
+**Reasoning.** The fresh-eyes playtest found the summary bar over the characters. Reserving the strip keeps the art kit's scene untouched and works at any screen size.
+
+## 2026-11-20: Feedback without words: out of reach, empty hexes, the role a greyed action needs, settlements, mislead and relief
+
+ID: `2026-11-20-feedback-without-words-out-of-reach` · Status: current · Amends: `2026-11-20-settlement-actions-live-in-the-here`
+
+**Decision.**
+
+- **Out of reach.** With your character selected, a tap on a hex it cannot reach (too far, a cliff) shows a faded arrow from you ending in a cross, which fades by itself; you stay selected. A second tap on the same hex looks at it. A settlement still opens its card.
+- **Empty hexes.** A survey that reveals nothing plays a "nothing here" moment. Every explored hex that holds nothing (no feature, settlement, threat or fire) carries a faint explored-empty mark, however it was explored, so the map remembers where nothing was found. A `survey-empty` event from the core is read the same way.
+- **The role a greyed action needs.** When the core refuses an action because of who you are (`needs-specialist`, `needs-keeper`, `needs-guardian`, `cannot-work`), the button shows faded with that role's emblem as a badge. The role is found by asking the core which role would not get that refusal, never from a table in the client. So a non-keeper now sees linger greyed with the keeper's emblem, anyone but a guardian sees defend greyed with the guardian's, and the unlocks show the engineer's for everyone else.
+- **Settlements.** A settlement where you stand always opens your here card, drawn by attitude, even with nothing left to do there. Once a boon is taken, its icon shows sealed on the settlement's drawing, in that card and in the card from afar. Angry settlements open their card too.
+- **Mislead and relief.** Pursuers led away by a mislead play a "misled" moment where they stood, and the misled mark sits on the creature's back while `misleadUntilDay` lasts. Any drop in peril (a shelter, a calm day) plays a relief bloom on the creature and a soft swell of the gauge.
+
+**Reasoning.** The fresh-eyes playtest of Milestone 5: surveys looked like they did nothing, greyed actions did not say who could do them, used settlements gave no popover, cliffs refused with no feedback, and mislead and shelter showed no effect. Marking every explored empty hex (not only surveyed ones) is the simplest rule that also persists across reloads, since it reads the state. Asking the core for the role keeps one copy of the rules. The marks are placeholders in `apps/web/src/map/art.ts` until the art kit draws its own.
+
+## 2026-11-20: Map card actions arm on the first tap and spend on the second; own-hex cards keep the neighbours clear
+
+ID: `2026-11-20-map-card-actions-arm-on-the` · Status: current · Amends: `2026-11-20-the-revised-chain-in-the-interface`
+
+**Decision.**
+
+- **Two taps spend.** Every action button on a map card (gather, work a site, light a fire, parley, offer, the boons, survey, strike) arms on its first tap: its pips give way to a tick and it gets an ink edge. A second tap on the same button spends. A tap on another button arms that one instead, and the arming is dropped when the card changes. The hub drawer's buttons are already a confirm (a tick, reached through the bubble), so they spend on one tap as before.
+- **Cards on your own hex.** A card about the hex you stand on (the here card, or the inspect or settlement card there) is placed clear of your hex and its six neighbours: below them first, then to the right, the left, then above, inside the screen. Its chevron reaches toward you (up to 22 px). Only when nothing fits does it fall back to the usual place above.
+- **Taps.** The popover's chevron lets taps through, so a tap on your own figure's head is never swallowed by it. A press on the map stops a camera easing (a follow or a recentre), so a tap lands where it was seen. Tap and drag are told apart by the existing 8 px slop.
+
+**Reasoning.** The fresh-eyes playtest on a phone: a card on your own tile covered the tiles to the north, so a tap meant for a tile hit a card button and lit a fire. Two taps on the same button keep a stray tap from ever spending; placing the card clear of the neighbours keeps them tappable. The decision of 2026-11-19 (spending takes a second tap in the popover) counted opening the card as the first; now the button itself takes both.
+
 ## 2026-11-20: Threats and settlements near you carry M4-style action badges
 
 ID: `2026-11-20-threats-and-settlements-near-you-carry` · Status: current
@@ -30,7 +64,7 @@ ID: `2026-11-20-the-new-season-button-shows-for` · Status: current
 
 ## 2026-11-20: Settlement actions live in the here card; from afar its card shows only attitude and favour
 
-ID: `2026-11-20-settlement-actions-live-in-the-here` · Status: current
+ID: `2026-11-20-settlement-actions-live-in-the-here` · Status: current, amended by `2026-11-20-feedback-without-words-out-of-reach`
 
 **Decision.** Parley, offer (one button per trade good carried, showing that good's icon) and the boons are buttons in your own hex's here card when you stand on a settlement, like gather and work-site on a feature. A settlement you do not stand on opens a small card when tapped: its drawing by attitude and, while wary, its favour marks; no buttons. Selected, a tap on a reachable settlement plans the walk there. Parley's risk mark shows when the core's check gives a chance below 1.
 
@@ -245,7 +279,7 @@ ID: `2026-11-20-moments-play-only-from-the-server` · Status: current · Amends:
 
 ## 2026-11-20: The revised chain in the interface: survey in the inspect card, the pack on the HUD, stores and unlocks in the hub drawer
 
-ID: `2026-11-20-the-revised-chain-in-the-interface` · Status: current, amended by `2026-11-20-moments-play-only-from-the-server` · Supersedes: `2026-11-20-chain-actions-live-in-the-popover`
+ID: `2026-11-20-the-revised-chain-in-the-interface` · Status: current, amended by `2026-11-20-map-card-actions-arm-on-the`, `2026-11-20-moments-play-only-from-the-server` · Supersedes: `2026-11-20-chain-actions-live-in-the-popover`
 
 **Decision.** Following Misa's revised rules (`docs/design/m3-chain.md`). Unexplored hexes in the window are drawn under the art kit's veil (cell state `unexplored`); a newly explored hex's veil lifts away as a moment. Tapping an unexplored hex next to your character opens its inspect card with a survey button (a spyglass and its cost pips: 1 for a scout, 2 for others), faded when you lack the actions. Selecting your character on a revealed feature opens the compact here card (gather, work the site) as before. Your pack is the round button at the bottom left, drawn as a satchel whose fill shows how full it is; a tap shows its materials as icons with counts in a small card above it. The bubble's creature entry now opens the hub drawer instead of the creature card: the creature and its heading at the top, the team stores (crates icon and material counts), then one card per unlock: done ones carry the seal; the one in progress shows its work bar; the others show their material cost, faded where the stores fall short. Each open card has a build button with its cost pips, enabled only for an engineer riding the creature. A finished unlock closes the drawer so its moment shows. The stores also show as crates on the creature's back. Moments: veil lift, survey and reveal blooms, a find (burst and rising material), a trap (snap, pips shake), a deposit (the material drops onto the creature) and a finished unlock (its sealed icon rises from the creature). The recipe cards and the team inventory satchel are gone.
 

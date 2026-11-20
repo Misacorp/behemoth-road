@@ -117,10 +117,11 @@ describe('captured contract fixtures', () => {
       const view = v.parse(PlayerViewSchema, fixture(name));
       return momentsFromEvents(view.events, view.game.creature.centre, '').map((m) => m.kind);
     });
-    // The since-log of the second also carries a threat appearing at that tick.
+    // The since-log of the second also carries peril easing on a calm day (relieved) and a threat
+    // appearing at that tick.
     expect(kinds).toEqual([
       ['stayed', 'fire-out'],
-      ['step', 'ate', 'threat'],
+      ['step', 'ate', 'relieved', 'threat'],
     ]);
   });
 

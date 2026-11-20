@@ -112,8 +112,15 @@ describe('defending the creature in the hub', () => {
       uses: null,
       done: true,
     });
+    // Anyone else sees it greyed, with the guardian's emblem (the role the core's refusal points to).
     const scout = staged({ role: 'scout', at: 'creature' });
-    expect(defendOption(scout.view, scout.me)).toBeNull();
+    expect(defendOption(scout.view, scout.me)).toEqual({
+      kind: 'defend',
+      cost,
+      enabled: false,
+      uses: null,
+      needs: 'guardian',
+    });
   });
 });
 

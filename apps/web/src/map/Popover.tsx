@@ -33,7 +33,8 @@ import type { Identity } from '../game/identity.ts';
 import { contentName, QuirkIcon, RoleEmblem, TraitIcon } from '../ui/emblems.tsx';
 import { useEffect, useState } from 'preact/hooks';
 import type { SettlementInfo, ThreatCardInfo } from '../game/season.ts';
-import { PALETTE } from './art.ts';
+import { press } from './arm.ts';
+import { drawRoleBadge, PALETTE } from './art.ts';
 import { creatureArt } from './cells.ts';
 import { MAP_TUNING } from './config.ts';
 import { toPreact } from './svgToPreact.ts';
@@ -197,6 +198,7 @@ export function InspectCard({
   fire = null,
   onSurvey,
   surveyRef,
+  arm,
 }: {
   terrain: string;
   state: CellState;
@@ -207,6 +209,8 @@ export function InspectCard({
   fire?: { readonly cost: number; readonly uses: string } | null;
   onSurvey?: () => void;
   surveyRef?: (el: SVGGElement | null) => void;
+  /** Two taps spend the survey. */
+  arm?: Arming;
 }): JSX.Element {
   return (
     <g data-popover="inspect" data-feature={feature?.look} data-state={state}>
@@ -224,6 +228,7 @@ export function InspectCard({
           x={INSPECT_SIZE.width - 6}
           y={12}
           onRun={() => onSurvey?.()}
+          {...(arm ? { arm } : {})}
           {...(surveyRef ? { buttonRef: surveyRef } : {})}
         />
       )}
@@ -630,11 +635,28 @@ export interface HereAction {
   readonly uses?: string | null;
   /** The material is missing: drawn faded. */
   readonly short?: boolean;
+  /** Greyed because another role can: that role's id (its emblem shows on the button). */
+  readonly needs?: string | null;
 }
 
 const ACTION_W = 54;
 
-/** One action as a button: its art kit icon and cost pips; faded and inert when it cannot be done now. */
+/**
+ * Two taps spend: the card's armed button (`arm.armed`), changed by each press (`press`). Without it a
+ * button runs on its first tap (only hints that never spend go without).
+ */
+export interface Arming {
+  readonly armed: string | null;
+  readonly onArm: (key: string | null) => void;
+}
+
+const BADGE = 20;
+
+/**
+ * One action as a button: its art kit icon and cost pips; faded and inert when it cannot be done now, with
+ * the emblem of the role that can when the core says so. The first tap arms it (its pips give way to a
+ * tick), the second spends.
+ */
 function ActionButton({
   kind,
   icon,
@@ -645,6 +667,9 @@ function ActionButton({
   uses = null,
   short = false,
   risk = false,
+  needs = null,
+  arm,
+  armKey = kind,
   onRun,
   buttonRef,
 }: {
@@ -660,14 +685,26 @@ function ActionButton({
   short?: boolean;
   /** It may go wrong: a small cracked-triangle mark in the corner. */
   risk?: boolean;
+  /** Greyed because this role can: its emblem as a badge on the corner. */
+  needs?: string | null;
+  arm?: Arming;
+  /** This button's key among the card's buttons (default its kind). */
+  armKey?: string;
   onRun: () => void;
   buttonRef?: (el: SVGGElement | null) => void;
 }): JSX.Element {
   const material = uses ? 15 : 0;
   const row = material + (material ? 2 : 0) + cost * 10;
   const left = (ACTION_W - 6) / 2 - row / 2;
+  const armed = enabled && arm !== undefined && arm.armed === armKey;
   const run = (): void => {
-    if (enabled) onRun();
+    if (!arm) {
+      if (enabled) onRun();
+      return;
+    }
+    const next = press(arm.armed, armKey, enabled);
+    arm.onArm(next.armed);
+    if (next.run) onRun();
   };
   return (
     <g
@@ -677,9 +714,11 @@ function ActionButton({
       tabindex={0}
       aria-label={kind}
       aria-disabled={!enabled}
+      aria-pressed={arm ? armed : undefined}
       data-action={kind}
+      data-armed={armed ? true : undefined}
+      data-needs={needs ?? undefined}
       transform={`translate(${x} ${y})`}
-      opacity={enabled ? 1 : 0.4}
       onClick={run}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
@@ -688,18 +727,44 @@ function ActionButton({
         }
       }}
     >
-      <rect width={ACTION_W - 6} height={50} rx={9} fill={PALETTE.paperDeep} />
-      <g data-risk={risk ? 'true' : undefined}>
-        <CardIcon id={icon} x={(ACTION_W - 6) / 2 - 14} y={3} size={28} risk={risk} />
+      <g opacity={enabled ? 1 : 0.4}>
+        <rect
+          width={ACTION_W - 6}
+          height={50}
+          rx={9}
+          fill={PALETTE.paperDeep}
+          {...(armed ? { stroke: PALETTE.ink, 'stroke-width': 1.6 } : {})}
+        />
+        <g data-risk={risk ? 'true' : undefined}>
+          <CardIcon id={icon} x={(ACTION_W - 6) / 2 - 14} y={3} size={28} risk={risk} />
+        </g>
+        {armed ? (
+          <g transform={`translate(${(ACTION_W - 6) / 2} 39)`} data-mark="armed">
+            <TickMark r={10} />
+          </g>
+        ) : (
+          <>
+            {uses && (
+              <g opacity={short ? 0.45 : 1} data-short={short ? true : undefined}>
+                <CardIcon id={uses} x={left} y={31} size={material} />
+              </g>
+            )}
+            <g transform={`translate(${left + row - cost * 10 - 2} 34)`}>
+              <Pips total={cost} left={cost} size={9} />
+            </g>
+          </>
+        )}
       </g>
-      {uses && (
-        <g opacity={short ? 0.45 : 1} data-short={short ? true : undefined}>
-          <CardIcon id={uses} x={left} y={31} size={material} />
+      {needs && (
+        <g data-mark="needs-role">
+          <Placed
+            node={drawRoleBadge(needs, PALETTE, BADGE)}
+            x={ACTION_W - 6 - BADGE + 6}
+            y={-6}
+            size={BADGE}
+          />
         </g>
       )}
-      <g transform={`translate(${left + row - cost * 10 - 2} 34)`}>
-        <Pips total={cost} left={cost} size={9} />
-      </g>
     </g>
   );
 }
@@ -718,8 +783,8 @@ export const hereSize = (count: number): { width: number; height: number } => ({
 
 /**
  * Your own hex: the revealed feature there and the actions it offers (gather, work the site, light a fire),
- * each a button with its action icon and cost pips (and the material it takes). Tapping an action is the
- * second tap that spends.
+ * each a button with its action icon and cost pips (and the material it takes). The first tap on an
+ * action arms it, the second spends.
  */
 export function HereCard({
   terrain,
@@ -727,20 +792,36 @@ export function HereCard({
   actions,
   onAct,
   firstRef,
+  arm,
+  settlement = null,
 }: {
   terrain: string;
   feature: FeatureArt | null;
+  /** The settlement you stand on, drawn in place of the tile (its attitude and any boon it gave). */
+  settlement?: SettlementInfo | null;
   actions: readonly HereAction[];
   onAct: (kind: string) => void;
   firstRef: (el: SVGGElement | null) => void;
+  /** Two taps spend: the armed action. */
+  arm?: Arming;
 }): JSX.Element {
   const size = hereSize(actions.length);
   return (
-    <g data-popover="here" data-feature={feature?.look}>
+    <g
+      data-popover="here"
+      data-feature={feature?.look}
+      data-settlement={settlement?.id}
+      data-attitude={settlement?.attitude}
+      data-boon={settlement?.boon ?? undefined}
+    >
       {/* Taps on the card body reach the map below (a neighbour's hex); only the actions catch them. */}
       <g class="pass-through">
         <Card {...size} />
-        <Miniature terrain={terrain} state="seen" x={4} y={9} feature={feature} scale={0.78} />
+        {settlement ? (
+          <SettlementFigure settlement={settlement} x={5} y={7} size={48} />
+        ) : (
+          <Miniature terrain={terrain} state="seen" x={4} y={9} feature={feature} scale={0.78} />
+        )}
       </g>
       {actions.map((a, i) => (
         <ActionButton
@@ -754,6 +835,9 @@ export function HereCard({
           y={5}
           uses={a.uses ? iconOf(a.uses) : null}
           short={a.short ?? false}
+          needs={a.needs ?? null}
+          armKey={actionKey(a)}
+          {...(arm ? { arm } : {})}
           onRun={() => onAct(a.kind)}
           {...(i === 0 ? { buttonRef: firstRef } : {})}
         />
@@ -776,10 +860,13 @@ export function ThreatCard({
   threat,
   onStrike,
   strikeRef,
+  arm,
 }: {
   threat: ThreatCardInfo;
   onStrike: () => void;
   strikeRef: (el: SVGGElement | null) => void;
+  /** Two taps spend the strike. */
+  arm?: Arming;
 }): JSX.Element {
   const size = threatSize(threat.strike !== null);
   const marks = Math.min(threat.strength, 10);
@@ -818,6 +905,7 @@ export function ThreatCard({
           x={size.width - ACTION_W - 2}
           y={12}
           onRun={onStrike}
+          {...(arm ? { arm } : {})}
           buttonRef={strikeRef}
         />
       )}
@@ -827,23 +915,60 @@ export function ThreatCard({
 
 export const SETTLEMENT_SIZE = { width: 172, height: 80 } as const;
 
-/** A settlement from afar: its drawing by attitude (with its favour marks while wary) and its people's name. */
-export function SettlementCard({ settlement }: { settlement: SettlementInfo }): JSX.Element {
-  const drawn = drawSettlementIcon(PALETTE, 70, {
+/**
+ * A settlement's drawing by attitude (with its favour marks while wary), and once a boon is taken, that
+ * boon's icon sealed on its corner: what the settlement gave.
+ */
+function SettlementFigure({
+  settlement,
+  x,
+  y,
+  size,
+}: {
+  settlement: SettlementInfo;
+  x: number;
+  y: number;
+  size: number;
+}): JSX.Element {
+  const drawn = drawSettlementIcon(PALETTE, size, {
     look: settlement.look,
     attitude: settlement.attitude,
     favour: settlement.favour,
     favourNeeded: settlement.needed,
   });
+  const seal = Math.round(size * 0.42);
+  return (
+    <g>
+      {toPreact({ ...drawn, attrs: { ...drawn.attrs, x, y } })}
+      {settlement.boon && (
+        <g data-boon={settlement.boon}>
+          <Placed
+            node={drawIcon(settlement.boon, PALETTE, seal, { done: true })}
+            x={x + size - seal * 0.75}
+            y={y + size - seal * 0.9}
+            size={seal}
+          />
+        </g>
+      )}
+    </g>
+  );
+}
+
+/**
+ * A settlement from afar (or where you stand with nothing left to do there): its drawing by attitude, the
+ * boon it gave, and its people's name.
+ */
+export function SettlementCard({ settlement }: { settlement: SettlementInfo }): JSX.Element {
   return (
     <g
       data-popover="settlement"
       data-settlement={settlement.id}
       data-attitude={settlement.attitude}
       data-favour={settlement.favour}
+      data-boon={settlement.boon ?? undefined}
     >
       <Card {...SETTLEMENT_SIZE} />
-      {toPreact({ ...drawn, attrs: { ...drawn.attrs, x: 7, y: 5 } })}
+      <SettlementFigure settlement={settlement} x={7} y={5} size={70} />
       <text
         x={84}
         y={44}

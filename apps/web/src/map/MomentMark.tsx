@@ -27,7 +27,7 @@ import { MAP_TUNING } from './config.ts';
 import { slideFrom } from './cssTransform.ts';
 import { iconOf } from '../game/chain.ts';
 import { type Moment, STEP_MS } from '../game/moments.ts';
-import { drawM5Moment, PALETTE, PROJECTION } from './art.ts';
+import { drawM5Moment, drawMisledMark, PALETTE, PROJECTION } from './art.ts';
 import { toPreact } from './svgToPreact.ts';
 
 const p = PROJECTION;
@@ -249,6 +249,23 @@ export function MomentMark({
           <Marked kind="burst">{at(drawM5Moment('boon', PALETTE, size), c.x, c.y, size)}</Marked>
           <Marked kind="rise">
             {at(drawIcon(moment.item, PALETTE, icon), c.x, c.y - 0.4 * p.size, icon)}
+          </Marked>
+        </g>
+      );
+      break;
+    // The polish round: a survey that found nothing, a pursuer led away, peril relieved.
+    case 'nothing-here':
+    case 'relieved':
+      body = (
+        <Marked kind="bloom">{at(drawM5Moment(moment.kind, PALETTE, size), c.x, c.y, size)}</Marked>
+      );
+      break;
+    case 'misled':
+      body = (
+        <g>
+          <Marked kind="burst">{at(drawM5Moment('misled', PALETTE, size), c.x, c.y, size)}</Marked>
+          <Marked kind="lift">
+            {at(drawMisledMark(PALETTE, icon), c.x, c.y - 0.4 * p.size, icon)}
           </Marked>
         </g>
       );

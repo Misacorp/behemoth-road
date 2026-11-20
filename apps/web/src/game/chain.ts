@@ -17,6 +17,7 @@ import {
   UNLOCKS,
   type Unlock,
 } from '@behemoth-road/core';
+import { neededRole } from './roles.ts';
 
 export interface Feature {
   readonly type: FeatureType;
@@ -70,6 +71,8 @@ export interface PossibleAction {
   readonly kind: 'gather' | 'work-site';
   readonly cost: number;
   readonly enabled: boolean;
+  /** Greyed because another role can (the core's refusal): that role's id, for its badge. */
+  readonly needs?: string;
 }
 
 /** Refusals that mean "this exists here but cannot be done now": offered faded rather than hidden. */
@@ -86,8 +89,15 @@ export function actionsAt(game: GameStateView, characterId: string): PossibleAct
   for (const { action, check } of actionsHere(game, characterId)) {
     if (action.kind !== 'gather' && action.kind !== 'work-site') continue;
     if (check.ok) out.push({ kind: action.kind, cost: check.cost, enabled: true });
-    else if (NOT_NOW.has(check.reason) && check.cost !== undefined)
-      out.push({ kind: action.kind, cost: check.cost, enabled: false });
+    else if (NOT_NOW.has(check.reason) && check.cost !== undefined) {
+      const needs = neededRole(game, characterId, action, check);
+      out.push({
+        kind: action.kind,
+        cost: check.cost,
+        enabled: false,
+        ...(needs ? { needs } : {}),
+      });
+    }
   }
   return out;
 }
@@ -114,12 +124,15 @@ export interface UnlockOption {
   /** Whether this character can start or work on it now. */
   readonly enabled: boolean;
   readonly cost: number;
+  /** The role that can build it, when yours cannot (the core's refusal), for its badge. */
+  readonly needs: string | null;
 }
 
 /** Every unlock as the creature's drawer shows it, for this character. */
 export function unlockOptions(game: GameStateView, characterId: string): UnlockOption[] {
   return UNLOCKS.map((unlock) => {
-    const check = checkAction(game, characterId, { kind: 'build', unlock: unlock.id });
+    const action = { kind: 'build', unlock: unlock.id } as const;
+    const check = checkAction(game, characterId, action);
     const work = game.project?.unlock === unlock.id ? game.project.work : null;
     return {
       unlock,
@@ -128,6 +141,7 @@ export function unlockOptions(game: GameStateView, characterId: string): UnlockO
       missing: check.ok ? [] : (check.missing ?? []),
       enabled: check.ok,
       cost: check.cost ?? 0,
+      needs: neededRole(game, characterId, action, check),
     };
   });
 }
@@ -143,6 +157,8 @@ export interface CostedAction {
   readonly short?: boolean;
   /** Linger or defend: already done today. */
   readonly done?: boolean;
+  /** Greyed because another role can (a keeper's linger, a guardian's defence): that role, for its badge. */
+  readonly needs?: string;
 }
 
 /** The stimulus a fire is (tagged `fire`), for its fuel tag: content, read by tag. */
@@ -246,7 +262,11 @@ export function careOptions(game: GameStateView, characterId: string): CostedAct
     });
   }
   const linger = checkAction(game, characterId, { kind: 'linger' });
-  if (linger.ok || (linger.reason !== 'needs-keeper' && linger.cost !== undefined)) {
+  const keeper = neededRole(game, characterId, { kind: 'linger' }, linger);
+  if (keeper && linger.cost !== undefined) {
+    // Not a keeper: greyed, with the keeper's emblem.
+    out.push({ kind: 'linger', cost: linger.cost, enabled: false, uses: null, needs: keeper });
+  } else if (linger.ok || linger.cost !== undefined) {
     out.push({
       kind: 'linger',
       cost: linger.cost ?? 0,

@@ -13,6 +13,8 @@ import type { Hex } from '@behemoth-road/core';
 export type Moment =
   | { readonly kind: 'explore'; readonly hex: Hex }
   | { readonly kind: 'survey'; readonly hex: Hex }
+  /** A survey (or a step) that found nothing: the empty mark settles on the hex. */
+  | { readonly kind: 'nothing-here'; readonly hex: Hex }
   | { readonly kind: 'reveal'; readonly hex: Hex }
   | { readonly kind: 'find'; readonly hex: Hex; readonly item: string }
   | { readonly kind: 'trap'; readonly hex: Hex; readonly mine: boolean }
@@ -35,6 +37,10 @@ export type Moment =
   | { readonly kind: 'angered'; readonly hex: Hex }
   | { readonly kind: 'boon'; readonly hex: Hex; readonly item: string }
   | { readonly kind: 'season-over'; readonly hex: Hex }
+  /** A pursuer led away by a mislead: it turns and goes where it stood. */
+  | { readonly kind: 'misled'; readonly hex: Hex }
+  /** Peril dropped (a shelter): a soft bloom on the creature, and the gauge swells. */
+  | { readonly kind: 'relieved'; readonly hex: Hex }
   /** A character left out of reach: its figure fades into the fog where it stood. */
   | {
       readonly kind: 'lost';
@@ -72,9 +78,26 @@ export interface EventLike {
   /** Milestone 5: the threat or settlement it is about, and a boon. */
   readonly id?: string | undefined;
   readonly boon?: string | undefined;
-  /** A creature step's start and end. */
+  /** A creature step's start and end; peril before and after. */
   readonly from?: Hex | number | undefined;
   readonly to?: Hex | number | undefined;
+}
+
+/** The new event the core may send for a survey that found nothing (instead of a survey without a reveal). */
+const SURVEY_EMPTY = 'survey-empty';
+
+/** Hexes surveyed in these events where nothing was revealed. */
+function emptySurveys(events: readonly EventLike[]): Set<string> {
+  const revealed = new Set<string>();
+  for (const e of events) if (e.kind === 'reveal' && e.hex) revealed.add(`${e.hex.q},${e.hex.r}`);
+  const out = new Set<string>();
+  for (const e of events) {
+    if ((e.kind === 'survey' || e.kind === SURVEY_EMPTY) && e.hex) {
+      const k = `${e.hex.q},${e.hex.r}`;
+      if (!revealed.has(k)) out.add(k);
+    }
+  }
+  return out;
 }
 
 /**
@@ -117,7 +140,30 @@ export function momentsFromEvents(
   const out: Moment[] = [];
   const thing = (kind: 'threat' | 'settlement', id: string | undefined): Hex | null =>
     id === undefined ? null : where[kind](id);
+  const empty = emptySurveys(events);
+  let misleading = false;
   for (const e of events) {
+    if (e.kind === 'boon' && e.boon === 'mislead') misleading = true;
+    if (e.kind === 'threat-gone') {
+      // Led away by the mislead just asked for: it turns and goes.
+      const hex = misleading ? thing('threat', e.id) : null;
+      if (hex) out.push({ kind: 'misled', hex });
+      continue;
+    }
+    if (e.kind === 'peril') {
+      if (typeof e.from === 'number' && typeof e.to === 'number' && e.to < e.from) {
+        out.push({ kind: 'relieved', hex: centre });
+      }
+      continue;
+    }
+    if ((e.kind === 'survey' || e.kind === SURVEY_EMPTY) && e.hex) {
+      const k = `${e.hex.q},${e.hex.r}`;
+      out.push(
+        empty.has(k) ? { kind: 'nothing-here', hex: e.hex } : { kind: 'survey', hex: e.hex },
+      );
+      empty.delete(k);
+      continue;
+    }
     const m5 = seasonMoment(e, centre, me, where, thing);
     if (m5 !== undefined) {
       if (m5) out.push(m5);
@@ -146,7 +192,7 @@ export function momentsFromEvents(
       out.push({ kind: 'unlock', hex: centre, item: e.unlock });
     } else if (!e.hex) {
       continue;
-    } else if (e.kind === 'explore' || e.kind === 'survey' || e.kind === 'reveal') {
+    } else if (e.kind === 'explore' || e.kind === 'reveal') {
       out.push({ kind: e.kind, hex: e.hex });
     } else if (e.kind === 'trap') {
       out.push({ kind: 'trap', hex: e.hex, mine: e.characterId === me });
@@ -200,8 +246,6 @@ function seasonMoment(
     case 'season-over':
       return { kind: 'season-over', hex: centre };
     case 'threat-moves':
-    case 'threat-gone':
-    case 'peril':
     case 'settlement-appears':
     case 'parley':
     case 'offer':

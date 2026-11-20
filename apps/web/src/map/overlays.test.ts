@@ -239,3 +239,49 @@ describe('Milestone 5 on the map', () => {
     );
   });
 });
+
+describe('polish round marks', () => {
+  const marks = (state: GameState, kind: string): number => {
+    const o = buildOverlays({
+      state,
+      flow: { kind: 'idle' },
+      characterId: characterOf(state, USERS.MISA)!.id,
+      reachable: [],
+      predicted: predictCreature(state),
+      projection: PROJECTION,
+      palette: MORNING,
+    });
+    let found = 0;
+    for (const n of [...o.under, ...o.over]) {
+      walk(n, (x) => {
+        if (x.attrs['data-mark'] === kind) found += 1;
+      });
+    }
+    return found;
+  };
+
+  it('marks explored hexes that hold nothing, and only those', () => {
+    const s = seasonScenario({ role: 'scout' }).state;
+    const empty = Object.entries(s.tiles).filter(([key, t]) => t.explored && !s.features[key]);
+    expect(marks(s, 'explored-empty')).toBeGreaterThan(0);
+    expect(marks(s, 'explored-empty')).toBeLessThanOrEqual(empty.length);
+    // A feature revealed on every explored hex leaves none to mark.
+    const full: GameState = {
+      ...s,
+      features: Object.fromEntries(
+        Object.entries(s.tiles)
+          .filter(([, t]) => t.explored)
+          .map(([key]) => [key, { type: 'iron-deposit', revealed: true, left: 1 }]),
+      ),
+    };
+    expect(marks(full, 'explored-empty')).toBe(0);
+  });
+
+  it('shows the misled mark while the mislead lasts, and not after', () => {
+    const s = seasonScenario({ role: 'scout' }).state;
+    expect(marks(s, 'misled')).toBe(0);
+    expect(marks({ ...s, misleadUntilDay: s.day + 2 }, 'misled')).toBe(1);
+    expect(marks({ ...s, misleadUntilDay: s.day }, 'misled')).toBe(1);
+    expect(marks({ ...s, misleadUntilDay: s.day - 1 }, 'misled')).toBe(0);
+  });
+});

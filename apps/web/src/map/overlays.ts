@@ -38,6 +38,7 @@ import {
   hexKey,
   placeHex,
 } from '@behemoth-road/core';
+import { drawExploredEmpty, drawMisledMark } from './art.ts';
 import { accentOf } from '../game/identity.ts';
 import { escortCentres } from '../game/season.ts';
 import { cellStateAt } from './cells.ts';
@@ -532,6 +533,54 @@ function graceWarning(i: OverlayInput, feet: Point): SvgNode {
   ]);
 }
 
+/**
+ * Explored hexes known to hold nothing (no feature, settlement, threat or fire): the faint explored-empty
+ * mark, so a survey that found nothing leaves a trace. The creature's own hexes are left out.
+ */
+export function exploredEmpty(i: OverlayInput): SvgNode[] {
+  const s = i.state;
+  const taken = new Set<string>([
+    ...creatureHexes(s).map(hexKey),
+    ...s.settlements.map((x) => hexKey(x.hex)),
+    ...s.threats.map((t) => hexKey(t.hex)),
+    ...s.stimuli.map((f) => hexKey(f.hex)),
+  ]);
+  const out: SvgNode[] = [];
+  for (const [key, tile] of Object.entries(s.tiles)) {
+    if (!tile.explored || taken.has(key) || s.features[key]) continue;
+    const state = cellStateAt(s, key);
+    if (state !== 'seen' && state !== 'fading') continue;
+    const [q, r] = key.split(',').map(Number) as [number, number];
+    out.push(drawExploredEmpty(i.projection, i.palette, { q, r }));
+  }
+  return out;
+}
+
+/**
+ * Pursuers led away (a mislead, while `misleadUntilDay` lasts): the misled mark on the creature's back,
+ * on the side away from your view's top, for as long as it holds.
+ */
+export function misledMark(i: OverlayInput): SvgNode[] {
+  const until = i.state.misleadUntilDay;
+  if (until === null || i.state.day > until) return [];
+  const p = i.projection;
+  const c = hexCenter(p, i.state.creature.centre.q, i.state.creature.centre.r);
+  const size = atLeast(i, 0.5 * p.size, 22);
+  const node = drawMisledMark(i.palette, size);
+  return [
+    el('g', { 'data-mark': 'misled' }, [
+      {
+        ...node,
+        attrs: {
+          ...node.attrs,
+          x: c.x - 1.1 * p.size - size / 2,
+          y: c.y - 1.5 * p.size - size / 2,
+        },
+      },
+    ]),
+  ];
+}
+
 /** The art kit's soft ring over the hexes each guardian on a hex escorts. */
 function escortRings(i: OverlayInput): SvgNode[] {
   return escortCentres(i.state).map((g) => drawEscortRing(i.projection, g, i.palette));
@@ -546,6 +595,7 @@ export function buildOverlays(i: OverlayInput): Overlays {
   const grace = graceHexes(i);
   under.push(...graceTiles(i, grace));
   under.push(...escortRings(i));
+  under.push(...exploredEmpty(i));
   const feet = figureFeet(i.state, i.characterId, i.projection);
   const riding = me?.at.kind === 'creature';
   if (isSelecting(i.flow) && feet) {
@@ -570,6 +620,7 @@ export function buildOverlays(i: OverlayInput): Overlays {
   over.push(...lostCharacters(i));
   if (staysPut(i.predicted)) over.push(stayHint(i));
   over.push(...actionHints(i));
+  over.push(...misledMark(i));
   const standing = me?.status === 'active' && me.at.kind === 'hex' ? me.at.hex : null;
   if (feet && standing && grace.some((h) => h.q === standing.q && h.r === standing.r)) {
     over.push(graceWarning(i, feet));

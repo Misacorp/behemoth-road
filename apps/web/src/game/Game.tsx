@@ -40,7 +40,13 @@ import {
 import type { Target } from '../map/pick.ts';
 import { getSettings } from '../settings.ts';
 import { Ending, PerilEdge } from '../hud/Season.tsx';
-import { defendOption, seasonEnd, settlementActions } from './season.ts';
+import {
+  defendOption,
+  seasonEnd,
+  settlementActions,
+  settlementAt,
+  settlementInfo,
+} from './season.ts';
 
 /** The width from which the layout is the desktop one (`styles.css` media queries). */
 const DESKTOP_FROM = 900;
@@ -271,9 +277,13 @@ export function Game({ api, initial }: GameProps): JSX.Element {
       ...(fire ? [fire] : []),
       ...settlement,
     ];
-    if (!feature && actions.length === 0) return null;
+    // A settlement where you stand always opens the card (its attitude and the boon it gave), even with
+    // nothing left to do there.
+    const sid = settlementAt(state, me.at.hex);
+    const place = sid ? settlementInfo(state, sid) : null;
+    if (!feature && !place && actions.length === 0) return null;
     const terrain = terrainOf(state, me.at.hex)?.id ?? 'unknown';
-    return { terrain, feature, actions };
+    return { terrain, feature, actions, settlement: place };
   }, [state, me, sawFire]);
   const stillSelected = (next: PlayerView): Flow => {
     const mine = next.game.characters.find((c) => c.id === next.you.characterId);
@@ -427,6 +437,7 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         }}
         route={{ steps: state.creature.steps, length: state.config.routeLength }}
         jolt={moments.some((m) => m.kind === 'strike')}
+        relieved={moments.some((m) => m.kind === 'relieved')}
       />
       <HubDrawer
         open={hubOpen}

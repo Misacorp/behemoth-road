@@ -50,6 +50,8 @@ export interface HudProps {
   readonly route?: RouteProps;
   /** A threat just struck the creature: the gauge jolts. */
   readonly jolt?: boolean;
+  /** Peril just dropped (a shelter): the gauge swells softly. */
+  readonly relieved?: boolean;
 }
 
 /** Your pack as a satchel with its fill mark; a tap shows what is in it (icons and counts). */
@@ -135,7 +137,13 @@ export function Hud(props: HudProps): JSX.Element {
         <div class="hud-day" aria-label="Day">
           <SunIcon />
           <span>{props.day}</span>
-          {props.peril && <PerilGauge {...props.peril} jolt={props.jolt ?? false} />}
+          {props.peril && (
+            <PerilGauge
+              {...props.peril}
+              jolt={props.jolt ?? false}
+              relieved={props.relieved ?? false}
+            />
+          )}
         </div>
         {props.route && <RouteStrip {...props.route} />}
       </div>

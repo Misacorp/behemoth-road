@@ -160,3 +160,66 @@ describe('Milestone 5 moments', () => {
     ).toEqual([]);
   });
 });
+
+describe('polish round moments', () => {
+  it('a survey that revealed nothing is the "nothing here" moment; one that revealed something is a survey', () => {
+    const empty = { q: 1, r: 0 };
+    const found = { q: 2, r: 0 };
+    expect(
+      momentsFromEvents(
+        [
+          { kind: 'survey', hex: empty },
+          { kind: 'explore', hex: empty },
+          { kind: 'survey', hex: found },
+          { kind: 'explore', hex: found },
+          { kind: 'reveal', hex: found },
+        ],
+        centre,
+        'me',
+      ),
+    ).toEqual([
+      { kind: 'nothing-here', hex: empty },
+      { kind: 'explore', hex: empty },
+      { kind: 'survey', hex: found },
+      { kind: 'explore', hex: found },
+      { kind: 'reveal', hex: found },
+    ]);
+  });
+
+  it('reads a survey-empty event, should the core send one', () => {
+    const hex = { q: 0, r: 2 };
+    expect(momentsFromEvents([{ kind: 'survey-empty', hex }], centre, 'me')).toEqual([
+      { kind: 'nothing-here', hex },
+    ]);
+  });
+
+  it('pursuers led away by a mislead turn and go where they stood; a threat gone otherwise shows nothing', () => {
+    const where = {
+      threat: (id: string) => (id === 't1' ? { q: 3, r: 1 } : null),
+      settlement: () => ({ q: 1, r: 1 }),
+      character: () => null,
+    };
+    expect(
+      momentsFromEvents(
+        [
+          { kind: 'boon', id: 's1', boon: 'mislead' },
+          { kind: 'threat-gone', id: 't1' },
+        ],
+        centre,
+        'me',
+        where,
+      ),
+    ).toEqual([
+      { kind: 'boon', hex: { q: 1, r: 1 }, item: 'mislead' },
+      { kind: 'misled', hex: { q: 3, r: 1 } },
+    ]);
+    expect(momentsFromEvents([{ kind: 'threat-gone', id: 't1' }], centre, 'me', where)).toEqual([]);
+  });
+
+  it('peril that drops (a shelter) is relieved on the creature; peril that rises is not', () => {
+    expect(momentsFromEvents([{ kind: 'peril', from: 5, to: 2 }], centre, 'me')).toEqual([
+      { kind: 'relieved', hex: centre },
+    ]);
+    expect(momentsFromEvents([{ kind: 'peril', from: 2, to: 3 }], centre, 'me')).toEqual([]);
+  });
+});

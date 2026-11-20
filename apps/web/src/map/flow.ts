@@ -3,8 +3,8 @@
  * character or its hex to select it, tap a lit place to plan, confirm to walk. The creature's seven
  * footprint hexes are one place and the party's hub: tapping it opens a bubble with the characters riding
  * it and a way into the hub (the creature card in Milestone 1); if you ride, the same tap also selects you.
- * Tapping elsewhere changes or cancels the plan before anything is spent. Every rule check goes through
- * the core.
+ * Tapping elsewhere changes or cancels the plan before anything is spent; a tap on a hex it cannot reach
+ * shows the out-of-reach mark, and a second tap there looks at it. Every rule check goes through the core.
  */
 import {
   findCharacter,
@@ -40,6 +40,11 @@ export type Flow =
   | { readonly kind: 'bubble'; readonly selecting: boolean }
   /** Your character is selected: the places it can reach are lit. */
   | { readonly kind: 'selected' }
+  /**
+   * Selected, and a hex it cannot reach was tapped: the out-of-reach mark shows there for a moment. The
+   * same hex tapped again is looked at.
+   */
+  | { readonly kind: 'out-of-reach'; readonly hex: Hex }
   /** A path is planned and waits for confirmation. */
   | {
       readonly kind: 'planned';
@@ -52,7 +57,10 @@ export const IDLE: Flow = { kind: 'idle' };
 
 /** Whether your character is selected, so reachable places are lit and a tap on one plans a move. */
 export const isSelecting = (flow: Flow): boolean =>
-  flow.kind === 'selected' || flow.kind === 'planned' || (flow.kind === 'bubble' && flow.selecting);
+  flow.kind === 'selected' ||
+  flow.kind === 'planned' ||
+  flow.kind === 'out-of-reach' ||
+  (flow.kind === 'bubble' && flow.selecting);
 
 /**
  * Looking at a hex: a settlement's card on a settlement, else the inspect card. The same tap again closes it.
@@ -122,6 +130,10 @@ export function tap(flow: Flow, state: GameStateView, characterId: string, targe
     if (plan.ok && plan.steps.length > 0) {
       return { kind: 'planned', to, steps: plan.steps, cost: plan.cost };
     }
+    // Out of reach: the mark first (a settlement still opens its card); the same hex again is looked at.
+    const again = flow.kind === 'out-of-reach' && hexEquals(flow.hex, to.hex);
+    if (!again && settlementAt(state, to.hex) === null)
+      return { kind: 'out-of-reach', hex: to.hex };
   }
   return look(flow, state, to.hex);
 }

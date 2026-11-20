@@ -1,6 +1,7 @@
 /**
  * The creature's hub, from the bubble's creature entry: the creature and its heading (with your signs), the
- * team stores, caring for it (feed, and for keepers linger), and the unlocks: done ones sealed, the one in
+ * team stores, caring for it (feed; linger and defend greyed with the keeper's or guardian's emblem for
+ * anyone else), and the unlocks (greyed with the engineer's emblem for anyone else): done ones sealed, the one in
  * progress with its work bar, the others with their material cost (faded where the stores fall short). An
  * engineer riding the creature starts or works on an unlock with the card's button (the second tap). Icons,
  * counts and pips only.
@@ -10,13 +11,23 @@ import type { CreatureSigns, GameStateView } from '@behemoth-road/core';
 import type { JSX } from 'preact';
 import type { CostedAction, Stock, UnlockOption } from '../game/chain.ts';
 import { Pips, TickMark } from '../hud/icons.tsx';
-import { PALETTE } from '../map/art.ts';
+import { drawRoleBadge, PALETTE } from '../map/art.ts';
 import { CreatureCard, CREATURE_SIZE } from '../map/Popover.tsx';
 import { toPreact } from '../map/svgToPreact.ts';
 import { Drawer } from '../ui/Drawer.tsx';
 import { ContentIcon, Stack } from './Stack.tsx';
 
 const STORES = toPreact(drawStoresIcon(PALETTE, 40));
+
+/** The role that can do a greyed action (the core's refusal), as a badge on the action's icon. */
+function NeedsRole({ role }: { role: string | null | undefined }): JSX.Element | null {
+  if (!role) return null;
+  return (
+    <span class="unlock-needs" data-needs={role}>
+      {toPreact(drawRoleBadge(role, PALETTE, 22))}
+    </span>
+  );
+}
 
 export interface HubDrawerProps {
   readonly open: boolean;
@@ -50,6 +61,7 @@ function UnlockCard({
     >
       <span class="unlock-icon">
         <ContentIcon id={o.unlock.id} size={44} done={o.done} />
+        {!o.done && <NeedsRole role={o.needs} />}
       </span>
       {o.work !== null ? (
         <span class="unlock-work">
@@ -117,6 +129,7 @@ function CareCard({
     <div class={`unlock care${a.enabled ? '' : ' is-off'}`} data-care={a.kind}>
       <span class="unlock-icon">
         <ContentIcon id={a.kind} size={44} />
+        <NeedsRole role={a.needs} />
       </span>
       <span class="unlock-cost">
         {a.uses && <Stack id={a.uses} count={1} short={a.short ?? false} />}

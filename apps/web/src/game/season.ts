@@ -21,6 +21,7 @@ import {
   TRADE_TAG,
 } from '@behemoth-road/core';
 import type { CostedAction } from './chain.ts';
+import { neededRole } from './roles.ts';
 
 /** A threat as the map draws it: where, what (content icon), how strong, and its outlook. */
 export interface ThreatMark {
@@ -103,13 +104,15 @@ export function threatCard(
 }
 
 /**
- * Defending the creature, for the hub, like a linger: only for guardians (none otherwise), faded unless
- * riding with the actions, sealed once done today.
+ * Defending the creature, for the hub, like a linger: greyed with the guardian's emblem for anyone else,
+ * faded unless riding with the actions, sealed once done today.
  */
 export function defendOption(game: GameStateView, characterId: string): CostedAction | null {
   const check = checkAction(game, characterId, { kind: 'defend' });
   if (check.ok) return { kind: 'defend', cost: check.cost, enabled: true, uses: null };
-  if (check.reason === 'needs-guardian' || check.cost === undefined) return null;
+  if (check.cost === undefined) return null;
+  const needs = neededRole(game, characterId, { kind: 'defend' }, check);
+  if (needs) return { kind: 'defend', cost: check.cost, enabled: false, uses: null, needs };
   if (check.reason === 'already-have') {
     return { kind: 'defend', cost: check.cost, enabled: false, uses: null, done: true };
   }

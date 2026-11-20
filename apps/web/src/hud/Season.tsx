@@ -5,7 +5,7 @@
  * taken; admins on staging get a new-season button). No prose: the three ending titles are the only words.
  */
 import type { JSX } from 'preact';
-import { useEffect, useRef } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { ENDING_TITLES } from '../game/season.ts';
 import {
   type CharacterLook,
@@ -29,16 +29,17 @@ export interface RouteProps {
   readonly length: number;
 }
 
-/** The peril gauge: `max` marks, the wounded threshold notched. */
+/** The peril gauge: `max` marks, the wounded threshold notched; it jolts on a strike, swells on relief. */
 export function PerilGauge({
   peril,
   max,
   woundedAt,
   jolt = false,
-}: PerilProps & { jolt?: boolean }) {
+  relieved = false,
+}: PerilProps & { jolt?: boolean; relieved?: boolean }) {
   return (
     <span
-      class={`hud-peril${jolt ? ' is-jolted' : ''}`}
+      class={`hud-peril${jolt ? ' is-jolted' : relieved ? ' is-relieved' : ''}`}
       aria-label="Peril"
       data-peril={peril}
       data-max={max}
@@ -90,7 +91,24 @@ export interface EndingProps {
 export function Ending(props: EndingProps): JSX.Element {
   const root = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
+  const scene = useRef<HTMLDivElement>(null);
   const failed = props.failed ?? 0;
+  // The scene is drawn at the size of its box (the screen above the foot's strip), measured once laid out.
+  const [box, setBox] = useState({ width: window.innerWidth, height: window.innerHeight });
+  useLayoutEffect(() => {
+    const measure = (): void => {
+      const r = scene.current?.getBoundingClientRect();
+      if (!r || r.width <= 0 || r.height <= 0) return;
+      setBox((b) =>
+        Math.round(b.width) === Math.round(r.width) && Math.round(b.height) === Math.round(r.height)
+          ? b
+          : { width: r.width, height: r.height },
+      );
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
   useEffect(() => {
     root.current?.focus({ preventScroll: true });
   }, []);
@@ -99,9 +117,9 @@ export function Ending(props: EndingProps): JSX.Element {
   }, [failed]);
   return (
     <div ref={root} class="ending" data-outcome={props.outcome} tabindex={-1} role="dialog">
-      <div class="ending-scene" aria-hidden="true">
+      <div ref={scene} class="ending-scene" aria-hidden="true">
         {toPreact(
-          drawEnding(props.outcome, PALETTE, window.innerWidth, window.innerHeight, {
+          drawEnding(props.outcome, PALETTE, box.width, box.height, {
             party: props.party ?? [],
             idPrefix: 'end',
           }),

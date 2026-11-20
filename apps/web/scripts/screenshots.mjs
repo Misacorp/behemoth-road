@@ -41,7 +41,7 @@ if (!process.execArgv.includes('--experimental-transform-types')) {
   process.exit(res.status ?? 1);
 }
 const { SPRING } = await import('../../../packages/art/src/palette.ts');
-const { act, characterOf, hexDistance, hexesInRange, moveAlong, nextDayWithEvents } =
+const { act, characterOf, checkAction, hexDistance, hexesInRange, moveAlong, nextDayWithEvents } =
   await import('../../../packages/core/src/index.ts');
 const {
   CHAIN_SPOTS,
@@ -370,6 +370,13 @@ async function run() {
         await page.locator(selector).first().click();
         await page.waitForTimeout(150);
       };
+      /** An action on a map card spends on the second tap: the first arms it (a tick replaces its pips). */
+      const spend = async (selector) => {
+        await press(selector);
+        if (!(await page.locator(`${selector}[data-armed]`).count()))
+          problems.push(`${vp.name}: ${selector} did not arm on its first tap`);
+        await press(selector);
+      };
 
       // Join: the drawer opens by itself. Phones step through the wizard; desktop shows it all.
       await page.goto(vite.url);
@@ -586,7 +593,7 @@ async function run() {
         if (!(await page.locator('[data-popover=inspect] [data-action=survey]').count()))
           problems.push(`${vp.name}: no survey on an unexplored neighbour`);
         await shot3('01-survey-offer');
-        await press('[data-popover=inspect] [data-action=survey]');
+        await spend('[data-popover=inspect] [data-action=survey]');
         await page.waitForTimeout(450);
         await expectMoment('reveal');
         await shot3('02-surveyed');
@@ -599,7 +606,7 @@ async function run() {
         if (!(await page.locator('[data-popover=here] [data-action=gather]').count()))
           problems.push(`${vp.name}: no gather on the deposit`);
         await shot3('03-here-gather');
-        await press('[data-popover=here] [data-action=gather]');
+        await spend('[data-popover=here] [data-action=gather]');
         await page.waitForTimeout(300);
         if (!(charOf(USERS.MISA)?.pack.iron > 0))
           problems.push(`${vp.name}: gather did not fill the pack`);
@@ -666,7 +673,7 @@ async function run() {
         if (!(await page.locator('[data-popover=here] [data-action=work-site]').count()))
           problems.push(`${vp.name}: no work-site on the tomb`);
         await shot3('10-here-site');
-        await press('[data-popover=here] [data-action=work-site]');
+        await spend('[data-popover=here] [data-action=work-site]');
         await page.waitForTimeout(450);
         await expectMoment('find');
         await shot3('11-find');
@@ -693,7 +700,7 @@ async function run() {
         if (!(await page.locator('[data-popover=here] [data-action=light-fire]').count()))
           problems.push(`${vp.name}: no light-fire with timber in the pack`);
         await shot4('01-fire-offer');
-        await press('[data-popover=here] [data-action=light-fire]');
+        await spend('[data-popover=here] [data-action=light-fire]');
         await page.waitForTimeout(450);
         await expectMoment('fire');
         if (fake.scenario.state.stimuli.length !== 1)
@@ -722,7 +729,12 @@ async function run() {
         // A keeper riding: the hub offers feeding (the forage it takes) and lingering, each with pips.
         await stage({ role: 'keeper', at: 'creature', stores: { forage: 2, timber: 1 } });
         await openHub();
-        if ((await page.locator('.drawer [data-care]').count()) !== 2)
+        // (Defend shows too, greyed with the guardian's emblem.)
+        if (
+          !(await page.locator('.drawer [data-care=feed]').count()) ||
+          !(await page.locator('.drawer [data-care=linger]').count()) ||
+          !(await page.locator('.drawer [data-care=defend] [data-needs=guardian]').count())
+        )
           problems.push(`${vp.name}: the hub does not offer feed and linger to a keeper`);
         await shot4('06-hub-care');
         await press('[data-care=feed] [aria-label=feed]');
@@ -830,7 +842,7 @@ async function run() {
         if (!(await count('[data-popover=threat] [data-action=strike]')))
           problems.push(`${vp.name}: no strike on a threat next to you`);
         await shot5('03-threat-card');
-        await press('[data-popover=threat] [data-action=strike]');
+        await spend('[data-popover=threat] [data-action=strike]');
         await page.waitForTimeout(300);
         await expectMoment('hit');
         if (fake.scenario.state.threats[0]?.strength !== 1)
@@ -856,7 +868,7 @@ async function run() {
         if (!(await count('[data-popover=here] [data-action="offer:old-coin"]')))
           problems.push(`${vp.name}: no offer with a coin carried`);
         await shot5('06-settlement-wary');
-        await press('[data-popover=here] [data-action="offer:old-coin"]');
+        await spend('[data-popover=here] [data-action="offer:old-coin"]');
         await page.waitForTimeout(400);
         if (fake.scenario.state.settlements[0]?.attitude !== 'friendly')
           problems.push(`${vp.name}: the offer did not befriend the settlement`);
@@ -873,13 +885,49 @@ async function run() {
         if ((await count('[data-popover=here] [data-action^="boon:"]')) !== 3)
           problems.push(`${vp.name}: a friendly settlement does not offer three boons`);
         await shot5('08-settlement-friendly');
-        await press('[data-popover=here] [data-action="boon:shelter"]');
+        await spend('[data-popover=here] [data-action="boon:shelter"]');
         await page.waitForTimeout(400);
         await expectMoment('boon');
+        // The peril gauge drops with a moment: relief on the creature, the gauge swelling softly.
+        await expectMoment('relieved');
+        if (!(await count('.hud-peril.is-relieved')))
+          problems.push(`${vp.name}: the peril gauge shows no relief after a shelter`);
         if (fake.scenario.state.peril !== 2)
           problems.push(`${vp.name}: shelter did not lower peril`);
         await shot5('09-boon');
         await settle();
+        // The settlement where you stand stays tappable once its boon is taken: its card shows the boon.
+        await idle();
+        await openHere();
+        if (
+          !(await count(
+            '[data-popover=here][data-boon=shelter], [data-popover=settlement][data-boon=shelter]',
+          ))
+        )
+          problems.push(
+            `${vp.name}: a used settlement where you stand shows no card with its boon`,
+          );
+        await shot5('09b-settlement-used');
+        await idle();
+
+        // A mislead: the captors turn away with a moment, and the misled mark shows while it lasts.
+        await stage5({
+          role: 'envoy',
+          settlements: [{ at: { q: 1, r: 2 }, attitude: 'friendly', favour: 3 }],
+          threats: [{ type: 'captors', at: { q: 0, r: 4 } }],
+        });
+        await openHere();
+        await spend('[data-popover=here] [data-action="boon:mislead"]');
+        await page.waitForTimeout(400);
+        await expectMoment('misled');
+        if (fake.scenario.state.threats.length !== 0)
+          problems.push(`${vp.name}: the mislead did not lead the captors away`);
+        await shot5('09c-misled-moment');
+        await settle();
+        await idle();
+        if (!(await count('.map-world [data-mark=misled]')))
+          problems.push(`${vp.name}: no misled mark while the mislead lasts`);
+        await shot5('09d-misled-mark');
         // From afar, a settlement's card: its attitude and favour, no actions.
         await stage5({ role: 'scout', settlements: [{ at: { q: 3, r: 4 }, favour: 2 }] });
         await tap(...(await offset({ q: 3, r: 4 })));
@@ -918,6 +966,190 @@ async function run() {
           problems.push(`${vp.name}: no escort ring or shield`);
         await shot5('14-escort');
 
+        // The fresh-eyes playtest of Milestone 5 (docs/playtests/2026-11-20-m5-fresh-eyes.md).
+        const meNow = () => fake.scenario.state.characters.find((ch) => ch.userId === USERS.MISA);
+        /** A hex's top face on screen, corner by corner (flat-topped hexes). */
+        const hexFace = async (h) => {
+          const out = [];
+          for (let i = 0; i < 6; i += 1) {
+            const a = (Math.PI / 3) * i;
+            const [x, y] = await hexOnScreen(h.q, h.r, Math.cos(a), Math.sin(a));
+            out.push({ x, y });
+          }
+          return out;
+        };
+        /** Whether a box and a convex polygon share area (separating axes). */
+        const boxCovers = (b, poly) => {
+          const box = [
+            { x: b.x, y: b.y },
+            { x: b.x + b.width, y: b.y },
+            { x: b.x + b.width, y: b.y + b.height },
+            { x: b.x, y: b.y + b.height },
+          ];
+          const axes = [
+            { x: 1, y: 0 },
+            { x: 0, y: 1 },
+          ];
+          for (let i = 0; i < poly.length; i += 1) {
+            const a = poly[i];
+            const c = poly[(i + 1) % poly.length];
+            axes.push({ x: a.y - c.y, y: c.x - a.x });
+          }
+          for (const ax of axes) {
+            const pr = (pts) => pts.map((pt) => pt.x * ax.x + pt.y * ax.y);
+            const [p0, p1] = [Math.min(...pr(box)), Math.max(...pr(box))];
+            const [q0, q1] = [Math.min(...pr(poly)), Math.max(...pr(poly))];
+            if (p1 <= q0 + 0.5 || q1 <= p0 + 0.5) return false;
+          }
+          return true;
+        };
+        /** Your hex's card covers none of your hex and its six neighbours. */
+        const cardClear = async (kind, name) => {
+          const at = meNow()?.at;
+          const box = await page.locator(`[data-popover=${kind}]`).boundingBox();
+          if (at?.kind !== 'hex' || !box) {
+            problems.push(`${vp.name}: no ${kind} card on your own hex (${name})`);
+            return;
+          }
+          for (const h of hexesInRange(at.hex, 1)) {
+            if (boxCovers(box, await hexFace(h)))
+              problems.push(`${vp.name}: the ${kind} card covers ${h.q},${h.r} (${name})`);
+          }
+        };
+        const meTile = async () => {
+          const at = meNow()?.at;
+          // The lower half of your tile, below your figure's feet.
+          return at?.kind === 'hex' ? hexOnScreen(at.hex.q, at.hex.r, 0.35, 0.45) : null;
+        };
+
+        // 1. Your own tile on a settlement with three boons: the card sits clear of the six neighbours, and
+        // one tap on the tile opens and closes it, every time. An action's first tap only arms it.
+        await stage5({
+          role: 'envoy',
+          settlements: [{ at: { q: 1, r: 2 }, attitude: 'friendly', favour: 3 }],
+          pack: { forage: 1 },
+        });
+        await idle();
+        const flips = [];
+        for (let i = 0; i < 4; i += 1) {
+          await tap(...(await meTile()));
+          flips.push(await has('here'));
+        }
+        if (flips.join() !== 'true,false,true,false')
+          problems.push(`${vp.name}: taps on your own tile went ${flips.join()}`);
+        await tap(...(await meTile()));
+        await cardClear('here', 'settlement');
+        await shot5('p1-own-tile-card');
+        const actionsBefore = meNow()?.actionsLeft;
+        await press('[data-popover=here] [data-action="boon:gift"]');
+        if (meNow()?.actionsLeft !== actionsBefore)
+          problems.push(`${vp.name}: one tap on an action spent it`);
+        if (!(await count('[data-popover=here] [data-action="boon:gift"][data-armed]')))
+          problems.push(`${vp.name}: the first tap did not arm the action`);
+        await shot5('p1-armed');
+        await idle();
+        // The same on a bare tile with a feature, near the bottom of the screen on a phone.
+        await stage5({ role: 'scout', at: 'iron', explored: ['iron'] });
+        await openHere();
+        await cardClear('here', 'deposit');
+
+        // 2. Out of reach: a tap on the cliff (impassable) while selected shows the mark, not the card;
+        // a second tap looks at it.
+        await stage5({ role: 'scout' });
+        await idle();
+        await tap(...(await meTile()));
+        await tap(...(await offset(CHAIN_SPOTS.cliff)));
+        if (!(await count('.map-world [data-mark=out-of-reach]')))
+          problems.push(`${vp.name}: no out-of-reach mark on the cliff`);
+        if (await has('inspect'))
+          problems.push(`${vp.name}: an out-of-reach tap opened the inspect card`);
+        await page.waitForTimeout(150);
+        await shot5('p2-out-of-reach');
+        await tap(...(await offset(CHAIN_SPOTS.cliff)));
+        if (!(await has('inspect')))
+          problems.push(`${vp.name}: a second tap out of reach does not inspect`);
+        await idle();
+
+        // 3. An empty survey: the "nothing here" moment, then the explored-empty mark stays.
+        await stage5({ role: 'scout' });
+        {
+          const st = fake.scenario.state;
+          const me = meNow();
+          const empty = hexesInRange(me.at.hex, 1).find(
+            (h) =>
+              // Not straight behind your figure, which takes taps on its hex's upper part.
+              !(h.q === me.at.hex.q && h.r === me.at.hex.r - 1) &&
+              // Nor where another character stands (a tap there opens their card).
+              !st.characters.some(
+                (ch) => ch.at.kind === 'hex' && ch.at.hex.q === h.q && ch.at.hex.r === h.r,
+              ) &&
+              hexDistance(h, me.at.hex) === 1 &&
+              !st.features[`${h.q},${h.r}`] &&
+              checkAction(st, me.id, { kind: 'survey', hex: h }).ok,
+          );
+          if (!empty) problems.push(`${vp.name}: no empty neighbour to survey`);
+          else {
+            const before = await count('.map-world [data-mark=explored-empty]');
+            await tap(...(await hexOnScreen(empty.q, empty.r)));
+            if (!(await count('[data-popover=inspect] [data-action=survey]'))) {
+              problems.push(
+                `${vp.name}: no survey offered on the empty neighbour ${empty.q},${empty.r}`,
+              );
+              await shot5('x-no-survey');
+            }
+            await spend('[data-popover=inspect] [data-action=survey]');
+            await page.waitForTimeout(300);
+            await expectMoment('nothing-here');
+            await shot5('p3-nothing-here');
+            await settle();
+            if ((await count('.map-world [data-mark=explored-empty]')) <= before)
+              problems.push(`${vp.name}: no explored-empty mark after an empty survey`);
+            await shot5('p3-explored-empty');
+          }
+        }
+
+        // 4. Greyed actions show the role that can: a scout at a deep tomb (the scholar), and riding, the
+        // keeper's linger, the guardian's defence and the engineer's unlocks in the hub.
+        await stage5({ role: 'scout', at: 'iron', explored: ['iron'], deposit: 'deep-tomb' });
+        await openHere();
+        if (!(await count('[data-popover=here] [data-action=work-site][data-needs=scholar]')))
+          problems.push(`${vp.name}: no scholar badge on a deep tomb for a scout`);
+        await shot5('p4-greyed-role');
+        await idle();
+        await stage5({ role: 'scout', at: 'creature' });
+        await openHub();
+        for (const [care, role] of [
+          ['linger', 'keeper'],
+          ['defend', 'guardian'],
+        ]) {
+          if (!(await count(`.drawer [data-care=${care}] [data-needs=${role}]`)))
+            problems.push(`${vp.name}: no ${role} badge on ${care} in the hub`);
+        }
+        if (!(await count('.drawer [data-unlock] [data-needs=engineer]')))
+          problems.push(`${vp.name}: no engineer badge on the unlocks`);
+        await shot5('p4-hub-roles');
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(300);
+
+        // 5. A used (and an angry) settlement from afar: its card shows its state and the boon taken.
+        await stage5({
+          role: 'scout',
+          settlements: [
+            { at: { q: 3, r: 4 }, attitude: 'friendly', favour: 3, boon: 'gift' },
+            { at: { q: -2, r: 4 }, attitude: 'angry' },
+          ],
+        });
+        await tap(...(await offset({ q: 3, r: 4 })));
+        if (!(await count('[data-popover=settlement][data-boon=gift]')))
+          problems.push(`${vp.name}: a used settlement's card does not show its boon`);
+        await shot5('p5-settlement-used');
+        await idle();
+        await tap(...(await offset({ q: -2, r: 4 })));
+        if (!(await count('[data-popover=settlement][data-attitude=angry]')))
+          problems.push(`${vp.name}: an angry settlement gives no card`);
+        await shot5('p5-settlement-angry');
+        await idle();
+
         // The season's end, each outcome reached by a tick of the real core: home safe on the last step,
         // home wounded at high peril, lost when a strike fills the gauge.
         const routeLength = fake.scenario.state.config.routeLength;
@@ -953,6 +1185,13 @@ async function run() {
           const foot = await page.locator('.ending-route').boundingBox();
           if (!foot || foot.y < vp.height * 0.6)
             problems.push(`${vp.name}: the ending's route sits at ${String(foot?.y)} px`);
+          // The scene (and the party in it) ends above the foot: the summary never covers the characters.
+          const sceneBox = await page.locator('.ending-scene svg').boundingBox();
+          const footBox = await page.locator('.ending-foot').boundingBox();
+          if (!sceneBox || !footBox || sceneBox.y + sceneBox.height > footBox.y + 0.5)
+            problems.push(
+              `${vp.name}: the ending's foot (top ${String(footBox?.y)}) covers the scene (bottom ${String(sceneBox && sceneBox.y + sceneBox.height)})`,
+            );
           await shot5(`15-ending-${outcome}`);
         }
         // A new season that fails: the button shakes and fades back, the ending stays.
@@ -1191,6 +1430,10 @@ async function run() {
       report.push(`${vp.name}: ${nodes} SVG elements in the map`);
       await context.close();
     }
+  } catch (e) {
+    // Report what was found before the run broke off.
+    if (problems.length) console.error(problems.join('\n'));
+    throw e;
   } finally {
     await browser.close();
     server.close();
