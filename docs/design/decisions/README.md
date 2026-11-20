@@ -49,6 +49,11 @@ Record a decision:
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
+- 2026-11-20 The Durable Object keeps the last 100 game events for clients to replay
+- 2026-11-20 The core state holds exploration, packs, stores and unlocks; no glints, no migration
+- 2026-11-20 The Worker replaces an outdated game on start and refuses an unreadable one with 503
+- 2026-11-20 Features live in the state per hex; the view carries revealed ones and team glints; version-2 games migrate
+- 2026-11-20 Before a stable release, older games are wiped, not migrated \[Misa\]
 - 2026-11-19 Only allowed Discord servers can play; the app itself is public \[Misa\]
 - 2026-11-19 The web client boots as an Activity, parses every response, and runs rules on the player view
 - 2026-11-19 Sign-in, interactions and the deploy's Discord steps follow creatures (amended)
@@ -99,10 +104,26 @@ Record a decision:
 - 2026-11-19 One Worker serves the frontend and the API, configured as code
 - 2026-11-19 Strict security headers, and everything served from our own origin
 
+Superseded: 2 entries (see the topic file).
+
 ## Product
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-20 Poll every 10 seconds while the game is visible
+- 2026-11-20 Polish after the M3 playtest: icon names, the window edge, a lost moment, the creature's walk and action hints (amended)
+- 2026-11-20 Moments play only from the server's event log, once per event
+- 2026-11-20 The revised chain in the interface: survey in the inspect card, the pack on the HUD, stores and unlocks in the hub drawer (amended)
+- 2026-11-20 The here card is compact and lets taps through its body; moments use the art kit's marks
+- 2026-11-20 Unexplored hexes sit under one hatched paper veil; packs, stores and unlocks have their own marks
+- 2026-11-20 The Stubborn quirk's icon is a boulder, so icon keys never clash
+- 2026-11-20 Features, glints, moments and the via mark are drawn by the art kit from content keys (amended)
+- 2026-11-20 Milestone 3 rules after Misa's notes: the calls the plan left open
+- 2026-11-20 Features are placed by terrain tags with absolute weights
+- 2026-11-20 Explored and unexplored hexes look clearly different \[Misa\]
+- 2026-11-20 Characters carry packs; team stores live on the creature
+- 2026-11-20 Engineers build permanent team unlocks with a cost and a duration \[Misa\]
+- 2026-11-20 Everyone springs traps; scout and engineer bonuses come later as upgrades \[Misa\]
 - 2026-11-19 Joining is a drawer wizard; characters look distinct on the map
 - 2026-11-19 Character looks come from content's look seeds, so a preview matches the joined look
 - 2026-11-19 Icons follow content's icon keys; quirks sit on a split tile
@@ -153,4 +174,4 @@ Record a decision:
 - 2026-11-19 Drag and drop always has a tap and keyboard alternative
 - 2026-11-19 Counts read "1 / 3", and terms explain themselves without "?" icons
 
-Superseded: 5 entries (see the topic file).
+Superseded: 7 entries (see the topic file).

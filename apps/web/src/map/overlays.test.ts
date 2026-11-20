@@ -81,7 +81,18 @@ describe('overlays', () => {
   });
 
   it('hint one paw print per likely creature step', () => {
-    expect(overlays(state, { kind: 'idle' }).under).toHaveLength(predictCreature(state).length);
+    const under = overlays(state, { kind: 'idle' }).under;
+    const marks = under.filter((m) => m.attrs['data-mark'] !== 'window-edge');
+    expect(marks).toHaveLength(predictCreature(state).length);
+  });
+
+  it("always draw the window's edge: one segment per outer edge of the rim hexes", () => {
+    const edge = overlays(state, { kind: 'idle' }).under.find(
+      (m) => m.attrs['data-mark'] === 'window-edge',
+    );
+    const R = state.config.windowRadius;
+    // A hex ring of radius R has 6R hexes and 6(2R + 1) outer edges.
+    expect(String(edge?.attrs['d']).match(/M/g)).toHaveLength(6 * (2 * R + 1));
   });
 
   it('draw a lost character faded, outside the scene', () => {
@@ -114,5 +125,13 @@ describe('overlays', () => {
     const tip = head.split('L')[1]!.split(' ').map(Number);
     expect(tip[0]).toBeCloseTo(seat.x, 0);
     expect(tip[1]).toBeCloseTo(seat.y, 0);
+  });
+
+  it("marks a step that relies on something with that thing's icon on the arrow", () => {
+    const steps = plan.steps.map((st, n) => (n === 0 ? { ...st, via: 'grappling-hook' } : st));
+    const o = overlays(state, { kind: 'planned', to: onHex(to), steps, cost: plan.cost });
+    const marks = o.over.flatMap((n) => (n.attrs['data-mark'] ? [n.attrs['data-mark']] : []));
+    expect(marks).toEqual(['via:grappling-hook']);
+    for (const n of o.over) expect(() => toPreact(n)).not.toThrow();
   });
 });

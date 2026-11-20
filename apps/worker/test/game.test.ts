@@ -83,6 +83,7 @@ describe('POST /api/game/join', () => {
           joinedDay: 1,
           at: { kind: 'creature' },
           actionsLeft: 3,
+          pack: {},
           status: 'active',
         },
       ]);
@@ -290,6 +291,8 @@ describe('GET /api/game?since', () => {
   it('answers unchanged for the current version and the view otherwise', async () => {
     await runGame(async (ctx) => {
       const { token, view } = await joined(ctx);
+      // Created at sign-in (1), then the join (2).
+      expect(view.version).toBe(2);
       expect(await ctx.call(token, 'GET', `/api/game?since=${String(view.version)}`)).toEqual({
         status: 200,
         body: { unchanged: true },

@@ -12,6 +12,17 @@ describe('tuning config', () => {
       lostTileRings: 4,
       playerCap: 15,
       veerWeights: { left: 1, straight: 2, right: 1 },
+      featureChance: 0.08,
+      packCapacity: 6,
+      surveyCostSpecialist: 1,
+      surveyCostOther: 2,
+      gatherCost: 1,
+      workSiteCost: 2,
+      buildCost: 1,
+      siteChanceSpecialistTier1: 0.7,
+      siteChanceSpecialistTier2: 0.5,
+      siteChanceOtherTier1: 0.35,
+      siteChanceOtherTier2: 0,
     });
   });
 

@@ -493,38 +493,48 @@ const ruin: PropDraw = (outer) => {
   };
 };
 
-/** The hint mark: something here is undiscovered. A small floating glint; it never says what. */
+/**
+ * The glint (the hint mark): something here is undiscovered, never what. A small, light four-point twinkle
+ * over the tile with two specks, quieter than the props; its parts carry `data-glint` so the map can make it
+ * twinkle.
+ */
 export const hintMark: PropDraw = (c) => {
   const { palette } = c;
   const T = mapper(c.origin, c.k, 1, c.k * c.rise);
-  const cy = -24;
+  const cy = -20;
   const star: Point[] = [];
   for (let i = 0; i < 8; i += 1) {
     const a = (Math.PI / 4) * i - Math.PI / 2;
-    const rr = i % 2 === 0 ? 9 : 2.6;
+    const rr = i % 2 === 0 ? (i % 4 === 0 ? 7.5 : 5.5) : 1.4;
     star.push(T(Math.cos(a) * rr, cy + Math.sin(a) * rr));
   }
-  const d1 = T(11, cy - 8);
-  const d2 = T(-10, cy + 6);
+  const d1 = T(8.5, cy - 6.5);
+  const d2 = T(-7.5, cy + 5);
   return {
     nodes: [
       el('path', {
-        d: ellipsePath(c.origin.x, c.origin.y + cy * c.k, 13 * c.k, 13 * c.k),
+        d: ellipsePath(c.origin.x, c.origin.y + cy * c.k * c.rise, 9 * c.k, 9 * c.k),
         fill: palette.hint,
-        opacity: 0.18,
+        opacity: 0.12,
+        'data-glint': 'halo',
       }),
       el('path', {
         d: poly(star),
-        fill: palette.hint,
-        ...{ stroke: palette.ink, 'stroke-width': c.ink * 0.8, 'stroke-linejoin': 'round' },
+        fill: palette.paper,
+        stroke: palette.hint,
+        'stroke-width': c.ink * 0.9,
+        'stroke-linejoin': 'round',
+        'data-glint': 'star',
       }),
       el('path', {
         d:
-          ellipsePath(d1.x, d1.y, 1.3 * c.k, 1.3 * c.k) + ellipsePath(d2.x, d2.y, 1 * c.k, 1 * c.k),
+          ellipsePath(d1.x, d1.y, 1 * c.k, 1 * c.k) + ellipsePath(d2.x, d2.y, 0.8 * c.k, 0.8 * c.k),
         fill: palette.hint,
+        opacity: 0.8,
+        'data-glint': 'specks',
       }),
     ],
-    box: boxOf([...star, d1, d2, T(-13, cy - 13), T(13, cy + 13)]),
+    box: boxOf([...star, d1, d2, T(-9, cy - 9), T(9, cy + 9)]),
   };
 };
 

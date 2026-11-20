@@ -484,3 +484,365 @@ button svg,
   user-select: text;
   -webkit-user-select: text;
 }
+
+/* Moments: short beats on the map, drawn on their own layer and animated here (no per-frame script). */
+.map-moments {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: visible;
+  pointer-events: none;
+}
+
+.moment {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation-duration: 1.4s;
+  animation-fill-mode: both;
+  animation-timing-function: ease-out;
+}
+
+.moment-bloom {
+  animation-name: moment-bloom;
+}
+
+.moment-burst {
+  animation-name: moment-bloom;
+  animation-timing-function: cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+
+.moment-rise {
+  animation-name: moment-rise;
+}
+
+.moment-fade,
+.moment-fog {
+  animation-duration: 2.2s;
+}
+
+.moment-fade {
+  animation-name: moment-fade;
+}
+
+.moment-fog {
+  animation-name: moment-fog;
+}
+
+/* Left behind: the figure thins away while the fog gathers over where it stood. */
+@keyframes moment-fade {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6%);
+  }
+}
+
+@keyframes moment-fog {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  60% {
+    opacity: 0.85;
+  }
+  to {
+    opacity: 0.6;
+    transform: scale(1.2);
+  }
+}
+
+/* The grace day: your pips pulse gently in the warning tint. */
+.hud-actions.is-warned svg {
+  animation: pips-warn 1.6s ease-in-out infinite;
+}
+
+@keyframes pips-warn {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.moment-lift {
+  animation-name: moment-lift;
+}
+
+.moment-drop {
+  animation-name: moment-drop;
+}
+
+/* An explored hex's veil fades and drifts up. */
+@keyframes moment-lift {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-12%);
+  }
+}
+
+/* A deposit: the material falls into the stores on the creature's back. */
+@keyframes moment-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-120%);
+  }
+  25% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+    transform: translateY(40%) scale(0.8);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(50%) scale(0.6);
+  }
+}
+
+/* The art kit stages its marks in parts: the later parts follow a beat behind. */
+.moment [data-part='1'],
+.moment [data-part='2'] {
+  animation: moment-part 1.4s ease-out both;
+}
+
+.moment [data-part='2'] {
+  animation-delay: 0.12s;
+}
+
+@keyframes moment-part {
+  from {
+    opacity: 0;
+  }
+  15% {
+    opacity: 0;
+  }
+  35% {
+    opacity: 1;
+  }
+}
+
+.moment-snap {
+  animation-name: moment-snap;
+  animation-timing-function: steps(6, end);
+}
+
+/* Grows, holds long enough to read, then fades. */
+@keyframes moment-bloom {
+  from {
+    opacity: 1;
+    transform: scale(0.3);
+  }
+  35% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  70% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.08);
+  }
+}
+
+@keyframes moment-rise {
+  from {
+    opacity: 0;
+    transform: translateY(20%);
+  }
+  25% {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-80%);
+  }
+}
+
+@keyframes moment-snap {
+  from {
+    opacity: 1;
+    transform: scaleX(0.2);
+  }
+  30% {
+    transform: scaleX(1.15);
+  }
+  to {
+    opacity: 0;
+    transform: scaleX(1);
+  }
+}
+
+/* Your pips going dark when a trap ends your day. */
+.hud-actions.is-snapped svg {
+  animation: pips-snap 0.6s ease-out;
+}
+
+@keyframes pips-snap {
+  20% {
+    transform: translateX(-4px);
+  }
+  40% {
+    transform: translateX(4px);
+  }
+  60% {
+    transform: translateX(-2px);
+  }
+}
+
+/* Your pack: a satchel showing how full it is; a tap shows what is in it. */
+.hud-pack {
+  position: absolute;
+  left: var(--gutter);
+  bottom: calc(var(--space-4) + var(--safe-bottom));
+}
+
+.hud-pack svg {
+  width: 100%;
+  height: 100%;
+}
+
+.hud-pack-contents {
+  position: absolute;
+  left: var(--gutter);
+  bottom: calc(var(--space-4) + var(--safe-bottom) + var(--round) + var(--space-2));
+  display: grid;
+  justify-items: start;
+  gap: var(--space-2);
+  max-width: calc(100% - 2 * var(--gutter));
+  min-width: 44px;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: 12px;
+  background: #f3f1e2;
+  border: 1.5px solid #9a9776;
+  box-shadow: 1px 2px 0 #e1ddc3;
+}
+
+.stack {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  color: #5c5a43;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.stack svg {
+  width: 28px;
+  height: 28px;
+}
+
+.hud-pack-stock {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* An icon's name, shown on a tap or hover: the icon's only text. */
+.named {
+  position: relative;
+  display: inline-flex;
+}
+
+.name-tip {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px var(--space-2);
+  border-radius: 8px;
+  background: #5c5a43;
+  color: #f3f1e2;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* A cost the stores cannot pay yet. */
+.stack.is-short {
+  opacity: 0.45;
+}
+
+/* The creature's hub: the creature, the team stores, and the unlocks. */
+.hub {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.hub-stores {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 40px;
+}
+
+.hub-stores-icon svg {
+  width: 40px;
+  height: 40px;
+}
+
+.hub-unlocks {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.unlock {
+  display: grid;
+  grid-template-columns: 48px 1fr auto 52px;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 64px;
+  padding: var(--space-2);
+  border: 1.5px solid #e1ddc3;
+  border-radius: 12px;
+}
+
+.unlock.is-done {
+  grid-template-columns: 48px;
+}
+
+.unlock.is-off {
+  opacity: 0.6;
+}
+
+.unlock-icon svg {
+  width: 44px;
+  height: 44px;
+}
+
+.unlock-cost {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.unlock-work svg {
+  max-width: 100%;
+}
+
+.unlock-go {
+  width: 52px;
+  height: 52px;
+}
+
+.unlock-go:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.pass-through {
+  pointer-events: none;
+}
+
+.svg-button.is-off {
+  cursor: default;
+}

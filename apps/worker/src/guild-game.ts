@@ -15,8 +15,12 @@ import {
   characterOffers,
   createGame,
   loadGame,
-  moveAlong,
-  nextDay,
+  actWithEvents,
+  OutdatedGameError,
+  moveWithEvents,
+  type EventResult,
+  type GameEvent,
+  tickWithEvents,
   replaceCharacter,
   toPlayerView,
   type CharacterOffer,
@@ -28,6 +32,7 @@ import { errorResponse, json, notFound, parseBody } from './http.ts';
 import { applyMigrations } from './migrations.ts';
 import { TokenBucketLimiter } from './ratelimit.ts';
 import {
+  ActBodySchema,
   EmptyBodySchema,
   MoveBodySchema,
   PickBodySchema,
@@ -91,7 +96,28 @@ type PlayerRow = {
   display_name: string;
 };
 
-const { tick, sessions, rateLimits, adminCacheMs, maxCatchUpTicks } = SERVER_CONFIG;
+/** A stored game this build cannot read: corrupt JSON, or content it does not have (a newer build's). */
+export class GameUnreadable extends Error {
+  constructor() {
+    super('stored game unreadable');
+    this.name = 'GameUnreadable';
+  }
+}
+
+function readState(text: string): GameState {
+  try {
+    return loadGame(JSON.parse(text));
+  } catch {
+    throw new GameUnreadable();
+  }
+}
+
+/** A game event as clients get it: the core's event and the game version that produced it. */
+export type VersionedEvent = GameEvent & { readonly version: number };
+
+type EventStop = Extract<EventResult, { ok: true }>['stopped'];
+
+const { eventLogSize, tick, sessions, rateLimits, adminCacheMs, maxCatchUpTicks } = SERVER_CONFIG;
 
 export class GuildGame {
   private readonly limiter: TokenBucketLimiter;
@@ -111,6 +137,35 @@ export class GuildGame {
   /** Brings the schema up to date. Call inside `blockConcurrencyWhile`. */
   migrate(): void {
     applyMigrations(this.storage, this.sql);
+    this.replaceOutdatedGame();
+  }
+
+  /**
+   * Before a stable release there is no migration (Misa: everything can be wiped): a game stored with
+   * older content is replaced by a new game for this server, in one transaction. The players stay and
+   * rejoin with new offers; the version keeps counting up, so no client's `since` matches the new game.
+   * A newer or unreadable stored game is left alone (a rollback must not wipe a newer game); requests then
+   * answer 503 until a build that can read it is deployed.
+   */
+  private replaceOutdatedGame(): void {
+    this.storage.transactionSync(() => {
+      const row = this.sql
+        .exec<{ state: string; version: number }>('SELECT state, version FROM game WHERE id = 1')
+        .toArray()[0];
+      if (row === undefined) return;
+      try {
+        loadGame(JSON.parse(row.state));
+        return;
+      } catch (err) {
+        // Only an older content version is replaced; anything else is left for `readGame` to refuse.
+        if (!(err instanceof OutdatedGameError)) return;
+      }
+      const state = createGame(this.options.newSeed(), { artSeed: this.options.newArtSeed() });
+      const version = this.writeGame(state);
+      // The old game's events mean nothing now: a client that saw it is told it missed some.
+      this.sql.exec('DELETE FROM events');
+      this.sql.exec('UPDATE game SET events_pruned_through = ? WHERE id = 1', version - 1);
+    });
   }
 
   // --- Sessions ---
@@ -133,7 +188,7 @@ export class GuildGame {
         t - sessions.idleMs,
       );
       const before = this.player(user.id);
-      const game = this.readGame();
+      const game = this.readGameOrNull();
       this.sql.exec(
         `INSERT INTO players (user_id, display_name, created_at, last_seen_at) VALUES (?, ?, ?, ?)
          ON CONFLICT(user_id) DO UPDATE SET display_name = excluded.display_name, last_seen_at = excluded.last_seen_at`,
@@ -168,7 +223,12 @@ export class GuildGame {
         sessions.maxPerUser,
       );
     });
-    await this.catchUpAndArm();
+    try {
+      await this.catchUpAndArm();
+    } catch (err) {
+      // Sign-in still works; game requests answer 503 until the game can be read.
+      if (!(err instanceof GameUnreadable)) throw err;
+    }
     return secret;
   }
 
@@ -230,6 +290,7 @@ export class GuildGame {
     );
   }
 
+  /** The stored game, or null before the first sign-in. Throws `GameUnreadable` for a stored game this build cannot read. */
   private readGame(): GameRow | null {
     const row = this.sql
       .exec<{ state: string; version: number; next_tick_at: number }>(
@@ -239,14 +300,80 @@ export class GuildGame {
     if (row === undefined) return null;
     return {
       // Refuses a state made with content this build does not have, rather than misreading it.
-      state: loadGame(JSON.parse(row.state)),
+      state: readState(row.state),
       version: row.version,
       nextTickAt: row.next_tick_at,
     };
   }
 
+  /** The stored game, or null when there is none or it cannot be read (for paths that must not fail). */
+  private readGameOrNull(): GameRow | null {
+    try {
+      return this.readGame();
+    } catch (err) {
+      if (err instanceof GameUnreadable) return null;
+      throw err;
+    }
+  }
+
   /** Writes a changed state and bumps the version. Call inside a transaction. */
-  private writeGame(state: GameState, nextTickAt?: number): void {
+  private writeGame(
+    state: GameState,
+    nextTickAt?: number,
+    events: readonly GameEvent[] = [],
+  ): number {
+    this.writeState(state, nextTickAt);
+    const version = this.sql
+      .exec<{ version: number }>('SELECT version FROM game WHERE id = 1')
+      .one().version;
+    this.logEvents(version, events);
+    return version;
+  }
+
+  /**
+   * Keeps the events of a change, stamped with its version, and drops the oldest past `eventLogSize`,
+   * remembering the highest dropped version. Call inside a transaction.
+   */
+  private logEvents(version: number, events: readonly GameEvent[]): void {
+    for (const event of events) {
+      this.sql.exec(
+        'INSERT INTO events (version, event) VALUES (?, ?)',
+        version,
+        JSON.stringify(event),
+      );
+    }
+    const dropped = this.sql
+      .exec<{ v: number | null }>(
+        'SELECT MAX(version) AS v FROM events WHERE seq <= (SELECT MAX(seq) FROM events) - ?',
+        eventLogSize,
+      )
+      .one().v;
+    if (dropped === null) return;
+    this.sql.exec('DELETE FROM events WHERE version <= ?', dropped);
+    this.sql.exec(
+      'UPDATE game SET events_pruned_through = MAX(events_pruned_through, ?) WHERE id = 1',
+      dropped,
+    );
+  }
+
+  /** The kept events after `since`, oldest first, each with its version, and whether some were dropped. */
+  private eventsSince(since: number): { events: VersionedEvent[]; eventsTruncated: boolean } {
+    const rows = this.sql
+      .exec<{ version: number; event: string }>(
+        'SELECT version, event FROM events WHERE version > ? ORDER BY seq',
+        since,
+      )
+      .toArray();
+    const pruned = this.sql
+      .exec<{ p: number }>('SELECT events_pruned_through AS p FROM game WHERE id = 1')
+      .one().p;
+    return {
+      events: rows.map((r) => ({ ...(JSON.parse(r.event) as GameEvent), version: r.version })),
+      eventsTruncated: since < pruned,
+    };
+  }
+
+  private writeState(state: GameState, nextTickAt?: number): void {
     if (nextTickAt === undefined) {
       this.sql.exec(
         'UPDATE game SET state = ?, version = version + 1 WHERE id = 1',
@@ -281,12 +408,17 @@ export class GuildGame {
       const game = this.readGame();
       if (game === null || t < game.nextTickAt) return;
       let { state, nextTickAt } = game;
+      // Each tick is its own version, so its events are stamped with it.
       for (let i = 0; i < maxCatchUpTicks && t >= nextTickAt; i++) {
-        state = nextDay(state);
+        const ticked = tickWithEvents(state);
+        state = ticked.state;
         nextTickAt = nextOccurrence(nextTickAt, tick.hour, tick.minute, tick.timeZone);
+        // Ticks beyond the limit are skipped: the schedule jumps to the next one after now.
+        if (i === maxCatchUpTicks - 1 && t >= nextTickAt) {
+          nextTickAt = nextOccurrence(t, tick.hour, tick.minute, tick.timeZone);
+        }
+        this.writeGame(state, nextTickAt, ticked.events);
       }
-      if (t >= nextTickAt) nextTickAt = nextOccurrence(t, tick.hour, tick.minute, tick.timeZone);
-      this.writeGame(state, nextTickAt);
     });
     const game = this.readGame();
     if (game === null) return;
@@ -298,13 +430,29 @@ export class GuildGame {
 
   /** The Durable Object's alarm: the scheduled day tick. Idempotent: an early or repeated alarm only re-arms. */
   async alarm(): Promise<void> {
-    await this.catchUpAndArm();
+    try {
+      await this.catchUpAndArm();
+    } catch (err) {
+      // An unreadable game: no tick and no new alarm (a throwing alarm is retried); the next request or
+      // sign-in after a fixing deploy arms it again.
+      if (!(err instanceof GameUnreadable)) throw err;
+      console.error('game unreadable; the tick is paused');
+    }
   }
 
   // --- Requests ---
 
   /** Handles an API request the Worker forwarded after checking the token's MAC. */
   async handle(request: Request): Promise<Response> {
+    try {
+      return await this.handleRequest(request);
+    } catch (err) {
+      if (err instanceof GameUnreadable) return errorResponse('game_unavailable', 503);
+      throw err;
+    }
+  }
+
+  private async handleRequest(request: Request): Promise<Response> {
     const url = new URL(request.url);
     const { pathname } = url;
     // Checked before the session too, so the dev routes do not exist at all with the dev tools off.
@@ -332,6 +480,8 @@ export class GuildGame {
         return this.pick(user, request, 'replace');
       case 'POST /api/game/move':
         return this.move(user, request);
+      case 'POST /api/game/act':
+        return this.act(user, request);
       case 'POST /api/dev/next-day':
         return this.devNextDay(user, request);
       default:
@@ -345,7 +495,10 @@ export class GuildGame {
     const game = this.readGame();
     if (game === null) return errorResponse('no_game', 409);
     if (since !== null && Number(since) === game.version) return json({ unchanged: true });
-    return json(await this.view(user, game));
+    // Without `since` (a first load) there is nothing to replay; with it, every kept event after it.
+    const log =
+      since === null ? { events: [], eventsTruncated: false } : this.eventsSince(Number(since));
+    return json({ ...(await this.view(user, game)), ...log });
   }
 
   /** Join (the first character) or replace (a lost one): the same pick of an offer and a role. */
@@ -375,20 +528,54 @@ export class GuildGame {
   private async move(user: SessionUser, request: Request): Promise<Response> {
     const body = await parseBody(request, MoveBodySchema);
     if (body === undefined) return errorResponse('invalid_body', 400);
+    return this.withOwnCharacter(user, body.version, (state, id) =>
+      moveWithEvents(state, id, body.path),
+    );
+  }
+
+  /** `POST /api/game/act`: gather, craft or work a site, as the player's own character at its place. */
+  private async act(user: SessionUser, request: Request): Promise<Response> {
+    const body = await parseBody(request, ActBodySchema);
+    if (body === undefined) return errorResponse('invalid_body', 400);
+    return this.withOwnCharacter(user, body.version, (state, id) =>
+      actWithEvents(state, id, body.action),
+    );
+  }
+
+  /**
+   * Runs a rule for the player's newest character (a lost one is refused by the core) against the version
+   * the client saw, in one transaction. Answers the new view with what happened (`events`, and `stopped`
+   * when a trap ended a walk), or
+   * `409 { error }` for a stale version or a refusal.
+   */
+  private async withOwnCharacter(
+    user: SessionUser,
+    version: number,
+    rule: (state: GameState, characterId: string) => EventResult,
+  ): Promise<Response> {
+    let outcome: { events: readonly VersionedEvent[]; stopped: EventStop } = {
+      events: [],
+      stopped: null,
+    };
     const refusal = this.storage.transactionSync((): string | null => {
       const game = this.readGame();
       if (game === null) return 'no_game';
-      if (body.version !== game.version) return 'stale';
-      // The player's newest character: a lost one is refused by the core (`character-lost`).
+      if (version !== game.version) return 'stale';
       const character = characterOf(game.state, user.id);
       if (character === undefined) return 'no-character';
-      const result = moveAlong(game.state, character.id, body.path);
+      const result = rule(game.state, character.id);
       if (!result.ok) return result.reason;
-      this.writeGame(result.state);
+      const written = this.writeGame(result.state, undefined, result.events);
+      outcome = {
+        events: result.events.map((e) => ({ ...e, version: written })),
+        stopped: result.stopped,
+      };
       return null;
     });
     if (refusal !== null) return errorResponse(refusal, 409);
-    return this.currentView(user);
+    const game = this.readGame();
+    if (game === null) return errorResponse('no_game', 409);
+    return json({ ...(await this.view(user, game)), ...outcome });
   }
 
   /** Staging only (the route is a 404 otherwise): a server admin runs the tick now. */
@@ -406,7 +593,10 @@ export class GuildGame {
     this.storage.transactionSync(() => {
       const game = this.readGame();
       // The schedule is left alone: the next scheduled tick still comes at its time.
-      if (game !== null) this.writeGame(nextDay(game.state));
+      if (game !== null) {
+        const ticked = tickWithEvents(game.state);
+        this.writeGame(ticked.state, undefined, ticked.events);
+      }
     });
     return this.currentView(user);
   }

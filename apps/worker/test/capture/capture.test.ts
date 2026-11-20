@@ -1,6 +1,6 @@
-import { legalMoves, type GameState } from '@behemoth-road/core';
+import { checkAction, legalMoves, neighbours, type GameState } from '@behemoth-road/core';
 import { describe, expect, it } from 'vitest';
-import { createHandler } from '../../src/index.ts';
+import { createHandler } from '../../src/handler.ts';
 import type { PlayerView } from '../../src/guild-game.ts';
 import {
   MISA,
@@ -74,24 +74,61 @@ describe('capture', () => {
         };
 
         await ok('view-new', 'GET', '/api/game');
-        await ok('view-joined', 'POST', '/api/game/join', { role: 'scout', offer: 1 });
+        const read = () =>
+          JSON.parse(
+            ctx.sql.exec<{ state: string }>('SELECT state FROM game').one().state,
+          ) as GameState;
+        const versionNow = async () =>
+          ((await ctx.call(misa, 'GET', '/api/game')).body as PlayerView).version;
+        const me = `${USER_ID}.0`;
+
+        await ok('view-joined', 'POST', '/api/game/join', { role: 'engineer', offer: 1 });
         expect(
-          (await ctx.call(robin, 'POST', '/api/game/join', { role: 'keeper', offer: 0 })).status,
+          (await ctx.call(robin, 'POST', '/api/game/join', { role: 'scout', offer: 0 })).status,
         ).toBe(200);
-        const state = JSON.parse(
-          ctx.sql.exec<{ state: string }>('SELECT state FROM game').one().state,
-        ) as GameState;
-        const target = legalMoves(state, `${USER_ID}.0`)[0];
-        const { version } = (await ctx.call(misa, 'GET', '/api/game')).body as PlayerView;
-        const moved = await ok('view-moved', 'POST', '/api/game/move', { version, path: [target] });
+        // The team stores hold a grappling hook's cost: the engineer, riding, starts building it.
+        ctx.sql.exec(
+          'UPDATE game SET state = ?, version = version + 1',
+          JSON.stringify({ ...read(), stores: { iron: 2, timber: 1 } }),
+        );
+        await ok('view-built', 'POST', '/api/game/act', {
+          version: await versionNow(),
+          action: { kind: 'build', unlock: 'grappling-hook' },
+        });
+        const target = legalMoves(read(), me)[0];
+        const moved = await ok('view-moved', 'POST', '/api/game/move', {
+          version: await versionNow(),
+          path: [target],
+        });
+        // Robin catches up on Misa's walk: the view and the walk's events.
+        const since = await ctx.call(robin, 'GET', `/api/game?since=${String(moved.version - 1)}`);
+        expect(since.status).toBe(200);
+        responses['view-since'] = since.body;
         responses['unchanged'] = (
           await ctx.call(misa, 'GET', `/api/game?since=${String(moved.version)}`)
         ).body;
         await ok('view-next-day', 'POST', '/api/dev/next-day', {});
+        // Survey the first neighbouring hex the rules allow.
+        const here = read().characters.find((c) => c.id === me)?.at;
+        const surveyable =
+          here?.kind === 'hex'
+            ? neighbours(here.hex).find(
+                (hex) => checkAction(read(), me, { kind: 'survey', hex }).ok,
+              )
+            : undefined;
+        if (surveyable === undefined) throw new Error('the scenario has no hex to survey');
+        await ok('view-surveyed', 'POST', '/api/game/act', {
+          version: await versionNow(),
+          action: { kind: 'survey', hex: surveyable },
+        });
+        await refused(misa, 'POST', '/api/game/act', {
+          version: await versionNow(),
+          action: { kind: 'build', unlock: 'lantern' },
+        });
 
         await refused(misa, 'POST', '/api/game/move', { version: 1, path: [target] });
         await refused(misa, 'POST', '/api/game/move', {
-          version: moved.version + 1,
+          version: await versionNow(),
           path: [{ kind: 'hex', hex: { q: 40, r: 40 } }],
         });
         await refused(misa, 'POST', '/api/game/move', { version: 0, path: [], extra: true });

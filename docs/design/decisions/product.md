@@ -4,6 +4,133 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: Poll every 10 seconds while the game is visible
+
+ID: `2026-11-20-poll-every-10-seconds-while-the` · Status: current · Amends: `2026-11-20-polish-after-the-m3-playtest-icon`
+
+**Decision.** The client polls `GET /api/game?since=` every 10 seconds while the page is visible (was 30), in addition to refreshing after your own actions and on focus. `POLL_MS` in `apps/web/src/api/sync.ts`.
+
+**Reasoning.** Other players' moves showed up too late in the playtest. Cost (estimated): about 8 players × 6 requests a minute, only while the page is visible; an hour of play each is about 2,900 requests a day, far under the Workers free tier's 100,000 a day. An unchanged game answers with a tiny `{ unchanged: true }`.
+
+## 2026-11-20: Polish after the M3 playtest: icon names, the window edge, a lost moment, the creature's walk and action hints
+
+ID: `2026-11-20-polish-after-the-m3-playtest-icon` · Status: current, amended by `2026-11-20-poll-every-10-seconds-while-the`
+
+**Decision.** From the fresh-eyes playtest (`docs/playtests/2026-11-20-m3-fresh-eyes.md`):
+
+- Role, trait and quirk icons show their content name (only the name) in a small tip on hover or tap; in the join drawer a trait or quirk tap does not pick the card, and a chosen role shows its name. On a character card the tapped icon's name shows in the name row for a moment. Role buttons are labelled with their names.
+- The pack box closes on a tap elsewhere, Escape and right-click, and shows one slot per unit of capacity, so an empty pack reads as empty.
+- The window's edge is always drawn as a faint dashed ink line. On your grace day the hourglass sits by your figure and your HUD pips pulse in the warning tint. When your character is lost, its figure fades into the fog for 2.2 s before the join drawer opens (the tick's `lost` event).
+- On a new day the camera holds still while the creature (with its riders) walks its step for 1.2 s, then eases after it (the tick's `creature-step` event).
+- An explored node or site with something left, where you stand or next to you, carries its action glyph (the gather hand, the work key) as a small badge; while your character is selected, unexplored neighbours you could survey show a faint spyglass.
+- The client refreshes right after each of your own actions (a read of the log since the view the action started from), when the window regains focus, and every 30 s while visible (later 10 s).
+
+**Reasoning.** Each answers a point the tester could not read from the screen, keeping to names and glyphs rather than explanatory text. The walk uses a Web Animation of a transform (in `cssTransform.ts`, still the one module that writes styles), so it costs no per-frame renders.
+
+## 2026-11-20: Moments play only from the server's event log, once per event
+
+ID: `2026-11-20-moments-play-only-from-the-server` · Status: current · Amends: `2026-11-20-the-revised-chain-in-the-interface`
+
+**Decision.** Every view the client receives carries the server's events: a move or an action answers its own; a read with `since` answers every logged event after that version (others' actions and the tick). The map plays each event once, keyed by its version and its place among that version's events, and plays nothing when the log reports `eventsTruncated`. The comparison of two views is gone (no more guessing a find from a pack growing or a trap from actions dropping to zero). A trap shows its snap wherever it sprang; your pips shake only when the trap caught your own character. Because the dev "next day" answer carries no events, the client reads the log `since` its previous view right after it. What the client can do and what it costs comes from the core's checks, including the cost and the missing materials on a refusal.
+
+**Reasoning.** The lead's review: events are the record of what happened, so moments built from them are exact and work the same for your own moves, other players and the tick, while view diffs were guesses that could miss or misread changes.
+
+## 2026-11-20: The revised chain in the interface: survey in the inspect card, the pack on the HUD, stores and unlocks in the hub drawer
+
+ID: `2026-11-20-the-revised-chain-in-the-interface` · Status: current, amended by `2026-11-20-moments-play-only-from-the-server` · Supersedes: `2026-11-20-chain-actions-live-in-the-popover`
+
+**Decision.** Following Misa's revised rules (`docs/design/m3-chain.md`). Unexplored hexes in the window are drawn under the art kit's veil (cell state `unexplored`); a newly explored hex's veil lifts away as a moment. Tapping an unexplored hex next to your character opens its inspect card with a survey button (a spyglass and its cost pips: 1 for a scout, 2 for others), faded when you lack the actions. Selecting your character on a revealed feature opens the compact here card (gather, work the site) as before. Your pack is the round button at the bottom left, drawn as a satchel whose fill shows how full it is; a tap shows its materials as icons with counts in a small card above it. The bubble's creature entry now opens the hub drawer instead of the creature card: the creature and its heading at the top, the team stores (crates icon and material counts), then one card per unlock: done ones carry the seal; the one in progress shows its work bar; the others show their material cost, faded where the stores fall short. Each open card has a build button with its cost pips, enabled only for an engineer riding the creature. A finished unlock closes the drawer so its moment shows. The stores also show as crates on the creature's back. Moments: veil lift, survey and reveal blooms, a find (burst and rising material), a trap (snap, pips shake), a deposit (the material drops onto the creature) and a finished unlock (its sealed icon rises from the creature). The recipe cards and the team inventory satchel are gone.
+
+**Reasoning.** Survey lives where you already look at a hex, so it needs no new gesture; it only shows next to you. The hub was already the creature's place in the flow, and the drawer built for joining holds the longer list of unlocks. Reading every check from the core's `checkAction` keeps what the client offers the same as what the server accepts.
+
+## 2026-11-20: The here card is compact and lets taps through its body; moments use the art kit's marks
+
+ID: `2026-11-20-the-here-card-is-compact-and` · Status: current · Amends: `2026-11-20-chain-actions-live-in-the-popover`
+
+**Decision.** The here card is compact (a small drawing of your tile with its feature, then one 48 px action button each), and taps on its body pass through to the map, so only the action buttons catch them. Gather shows an open hand and working a site a key (art kit icons). The inspect card draws a revealed feature or the glint on its tile miniature instead of beside it. Moments use the art kit's marks (`drawMoment`): the reveal bloom grows, holds, then fades over 1.4 s; a find bursts and the found material's icon rises; the trap snaps. The art kit's staged parts appear a beat after the first. The via mark is the art kit's `drawViaMark`. What the client offers comes from the core's `actionsHere` (the same checks the server runs): an action refused for not enough actions, a missing item, a role that cannot work the site or a specialist-only recipe shows faded; any other refusal hides it.
+
+**Reasoning.** On a phone a wider card covered the neighbouring hexes above your figure, so you could not walk on from a feature. Making it pass through keeps the second-tap rule without a new step. Reading the rules from the core keeps the client and server in agreement.
+
+## 2026-11-20: Unexplored hexes sit under one hatched paper veil; packs, stores and unlocks have their own marks
+
+ID: `2026-11-20-unexplored-hexes-sit-under-one-hatched` · Status: current
+
+**Decision.** A new cell state, `unexplored`, draws a hex's terrain under a veil: one shared SVG `<pattern>` (paper at about 60 % with a fine slanted inkSoft hatch, in the scene's defs, also in lite mode) filling one merged path over every unexplored hex, with that hex's props at 60 % opacity and no feature. It is clearly unlike explored ground, blank paper (unseen) and the plain paper veil of fading tiles. `drawVeilLift(projection, hex)` gives one hex's veil (`data-veil="q,r"`) for the map to fade and lift when the hex becomes explored. `drawPackIcon(palette, px, units, capacity)` draws a satchel with a rising wash and one ochre pip per unit; `drawStoresIcon` draws crates and a basket, and `CreatureArt.stores` puts one to three crates on the creature's back near the tail, clear of the rider slots. Unlock icons stay hook, lantern and spikes; `drawIcon(key, …, { done: true })` adds a wax seal (`drawUnlockSeal` alone), and `drawWorkBar(palette, width, fraction, steps)` is an ink bar filled to a fraction with a tick per unit of work. The survey mark is a fourth moment kind (`drawMoment('survey')`): a spyglass sweeping a fan of looking-lines, in staged parts.
+
+**Reasoning.** Misa's revised Milestone 3 makes exploration visible on the map and moves materials through packs into the creature's stores. A single pattern on one path keeps 91 hexes cheap on phones; the per-hex lift element lets the web animate a reveal without the scene drawing hexes one by one.
+
+## 2026-11-20: The Stubborn quirk's icon is a boulder, so icon keys never clash
+
+ID: `2026-11-20-the-stubborn-quirk-s-icon-is` · Status: current · Amends: `2026-11-20-features-glints-moments-and-the-via`
+
+**Decision.** The quirk motif formerly keyed `stone` is keyed `boulder` (content renames the Stubborn quirk's icon to match), and `drawIcon` no longer chooses between a quirk and a material by the tile option: every icon key names one drawing. `stone` is the material.
+
+**Reasoning.** One key for one drawing is simpler and cannot surprise a caller that forgets the tile option.
+
+## 2026-11-20: Features, glints, moments and the via mark are drawn by the art kit from content keys
+
+ID: `2026-11-20-features-glints-moments-and-the-via` · Status: current, amended by `2026-11-20-the-stubborn-quirk-s-icon-is`
+
+**Decision.** A revealed feature is drawn on its tile from the `icon` key content gives it (`ore`, `stones`, `logs`, `tomb`, `deep-tomb`, `snare`, `pitfall`; `ArtCell.feature = { look, state }`), upright like the props, 1.6 times their size (`ART_TUNING.featureScale`) so it reads on a phone, and it replaces the terrain's props on that tile. Nodes have a `depleted` look, tombs a `spent` one (the door open, the seal rolled aside); traps are drawn only once revealed, as a cut snare and a marked pit. Unknown keys draw a small cairn. The glint is the hint mark made quieter (a light four-point twinkle and two specks, parts tagged `data-glint` for the map to animate). Materials sit on a rounded-square tile and items on a double-ring roundel; where a key names both a quirk and a material (`stone`), a `quirk` or `trait` tile asks for the quirk drawing and anything else gets the material. Moments (`drawMoment`: an ink bloom for a reveal, a burst for a find, a snap for a trap) are finished frames in three parts tagged `data-part` for the map to stage. `drawViaMark` draws a hook for a step taken with the grappling hook, spikes for the climbing spikes, and a plain dot otherwise.
+
+**Reasoning.** Milestone 3's chain has to be readable on the map without text: what a hex holds, whether it is used up, and what just happened. Keying everything by content's icon names keeps content as data; staging marks as parts lets the web animate them without the art kit knowing about time.
+
+## 2026-11-20: Milestone 3 rules after Misa's notes: the calls the plan left open
+
+ID: `2026-11-20-milestone-3-rules-after-misa-s` · Status: current · Supersedes: `2026-11-20-milestone-3-rules-the-calls-the`
+
+**Decision.**
+
+- Roles count by their tags: `survey` (Scout), `build` (Engineer), `sites` (Scholar). The later upgrades (the scout's trap sense and glints, the engineer's double yield) are `perks` on the role with `requiresUpgrade: true`, and no rule reads them yet.
+- Survey works on any hex adjacent to the character's place (from the creature, the hexes beside its footprint), that is in reach and unexplored. It explores the hex and reveals its feature; a trap there becomes harmless and is not sprung.
+- A pack holds `packCapacity` (6) units. Gathering or a find that would overfill it is refused (`pack-full`). The tick empties the pack of anyone the creature picks up into the stores, and a lost character's pack is emptied (lost).
+- Building: the first build step of an unlock takes its whole cost from the stores and starts the project; every step (`buildCost`, 1 action) adds 1 work. Any engineer riding the creature can add work. A second unlock is refused while one is in progress (`busy`), and a finished one cannot be built again (`already-have`).
+- For a site, "can this character ever work it" (`cannot-work`) is checked before "the team lacks the unlock" (`needs-unlock`).
+- A site roll is per (game seed, day, character, site): a retry by the same character on the same day repeats the result.
+- Tier-1 tombs find old coin (no use yet); only tier-2 tombs find ancient alloy, so the spikes need the lantern.
+
+**Reasoning.** Misa's notes fixed the shape (exploration, survey, packs and stores, unlocks, no scout immunity). These are the details left open, each the simplest choice that keeps the chain intact.
+
+## 2026-11-20: Features are placed by terrain tags with absolute weights
+
+ID: `2026-11-20-features-are-placed-by-terrain-tags` · Status: current
+
+**Decision.** Each feature type has a placement: terrain tags it sits `on`, optionally tags it sits `near` (cliff edges, river banks, forest edges), and a weight against a scale of 20. A hex holds a given fitting feature with probability `featureChance × weight / 20`, and the fitting features' slices add up, so a rare feature stays rare wherever it fits. Starting values: `featureChance` 0.08; iron 30 (desert, cliff edges), stones 20 (river and banks), timber 40 (forest and edges), tomb 2, deep tomb 4, snare 2, pitfall 2 (open or dry ground). That leaves about 88% of hexes empty. A resource node and a tomb are in view from the first day, and a deep tomb typically within a few days. A scripted party of three (scout, engineer, scholar) completes the chain to climbing spikes on 10 of 12 maps, on days 21–45 (median about 34). Most of the wait is for timber and iron to come into view, then for a deep tomb after the lantern.
+
+**Reasoning.** Relative weights let plains (most of the map) fill up with tombs and traps, because nothing else fits there. Absolute weights keep each feature's frequency under control on its own. The chain timing is a tuning question for Misa: raising `featureChance` or the node weights shortens it.
+
+## 2026-11-20: Explored and unexplored hexes look clearly different **[Misa]**
+
+ID: `2026-11-20-explored-and-unexplored-hexes-look-clearly` · Status: current
+
+**Decision.** A hex in the window stays **unexplored** until a character enters or surveys it, then is **explored** for everyone. Unexplored hexes show their terrain under a light veil, clearly different from explored ground and from the blank paper beyond the window. Exploring reveals the hex's feature.
+
+**Reasoning.** Misa: revealing on entry needs a clear fog-of-war indicator of which hexes have been explored.
+
+## 2026-11-20: Characters carry packs; team stores live on the creature
+
+ID: `2026-11-20-characters-carry-packs-team-stores-live` · Status: current
+
+**Decision.** Gathering and finds go into the pack of the character who did them (capacity 6 units, config). The team's stores live on the creature: a character riding or boarding it puts their whole pack into the stores automatically. Unlocks are built only from the stores. A lost character's pack is lost. Unlocked equipment is common to the whole team.
+
+**Reasoning.** Misa asked whether resources are personal or shared. This was the lead's call. Packs plus stores on the creature make gathering a trip out and back, which suits a map that moves every day and the creature as the party's hub, and it gives a lost character a real cost. Revisit after playtests.
+
+## 2026-11-20: Engineers build permanent team unlocks with a cost and a duration **[Misa]**
+
+ID: `2026-11-20-engineers-build-permanent-team-unlocks-with` · Status: current
+
+**Decision.** Engineers build **unlocks**: permanent abilities or equipment for the whole team, such as the grappling hook, lantern and climbing spikes. Each unlock has its own material cost, taken from the team stores when work starts, and a duration in work: engineers riding the creature spend actions on it, one action per unit of work, and several engineers may work together. One unlock is in progress at a time. There is no per-day crafting limit and no crafting by other roles.
+
+**Reasoning.** Misa: engineers craft permanent unlocks for the entire team, each with its own crafting cost and duration. This replaces the night's first draft (one craft a day, non-specialists at a surcharge).
+
+## 2026-11-20: Everyone springs traps; scout and engineer bonuses come later as upgrades **[Misa]**
+
+ID: `2026-11-20-everyone-springs-traps-scout-and-engineer` · Status: current
+
+**Decision.** Everyone, scouts included, springs a hidden trap when entering its hex. For now a trap ends the character's day; trap effects are meant to vary a lot later. In this milestone the scout's base ability is **survey**: reveal an adjacent hex without entering it, 1 action for a scout and 2 for anyone else. A surveyed trap is harmless. The scout's trap sense, glints and immunity, and the engineer's better gathering, are future **upgrades**: kept in data, not active.
+
+**Reasoning.** Misa: scouts detect traps only as their skills and tools grow; engineers gather double only after upgrades. Survey gives the scout a role from day one ("basics for all, mastery for specialists") without pre-empting the upgrade system.
+
 ## 2026-11-19: Joining is a drawer wizard; characters look distinct on the map
 
 ID: `2026-11-19-joining-is-a-drawer-wizard-each` · Status: current
@@ -423,6 +550,31 @@ ID: `2026-11-19-counts-read-1-3-and-terms` · Status: current
 <!-- Superseded entries below: kept for history, no longer in force. -->
 
 # Superseded
+
+## 2026-11-20: Chain actions live in the popover and the team inventory in a satchel drawer; moments come from events
+
+ID: `2026-11-20-chain-actions-live-in-the-popover` · Status: superseded by `2026-11-20-the-revised-chain-in-the-interface`
+
+**Decision.** Selecting your character on a hex with a revealed feature opens a "here" card above your figure: the feature's drawing and one button per possible action (gather, work the site), each with its action icon and cost pips. Tapping an action is the second tap that spends; an action you cannot take now (too few actions, a missing lantern, a tier your role cannot try) shows faded and does nothing. Tapping any other hex shows its terrain and fog state as before, plus the revealed feature, or the glint when the hex is only sensed. The team inventory opens from a round satchel button at the bottom left, with a small count of everything the team holds. Its drawer comes from the right on desktop and from the bottom on phones, and shows materials and items as icons with counts, then one card per recipe: inputs, an arrow, the output, the cost pips and a craft button. For a non-engineer the extra material sits inside a dashed ring. Moments are short CSS animations on their own map layer, so a running moment never redraws the map: an ink bloom for a reveal, the find's icon rising from the site, a snap mark plus your pips shaking for a trap. They come from the events the server returns with your own move or action, and otherwise from the difference between two views (what others did, the tick). They end after 1.4 seconds or at your next tap. The path arrow marks a step with a `via` with that thing's icon on a paper disc.
+
+**Reasoning.** This follows `docs/design/m3-chain.md` and the M1 rule that spending takes a second tap in the popover. The satchel keeps the map clear, and the drawer is the one already built for joining. Moments on a separate CSS-animated layer respect the earlier performance work (no per-frame Preact renders, no world-layer redraw).
+
+## 2026-11-20: Milestone 3 rules: the calls the plan left open
+
+ID: `2026-11-20-milestone-3-rules-the-calls-the` · Status: superseded by `2026-11-20-milestone-3-rules-after-misa-s`
+
+**Decision.**
+
+- Roles are read by their tags: `reveal` (Scout: reveals, senses within `senseRadius`, never triggers a trap), `gather` (Engineer: yield × `specialistYield`), `craft` (Engineer: every recipe at its listed cost), `sites` (Scholar: the better site chances, tier 2 allowed).
+- Every character may craft at most `craftsPerDay` (1) times a day, not just engineers. Others may craft tier-1 recipes only, paying `nonSpecialistExtraMaterial` (1) more of the recipe's first material.
+- Items marked `unique` (all three now) cannot be crafted twice; the craft is refused (`already-have`) rather than wasting materials.
+- A tier-1 tomb finds an old coin, a new rare material with no recipe yet (kept for the Envoy's trade). Only a tier-2 tomb finds ancient alloy, so the climbing spikes need the lantern, as the chain intends.
+- A site roll is seeded by game seed, day, character and site, so a second try by the same character on the same day gives the same result (and costs 2 actions of 3, so there is rarely time anyway).
+- Crafting works from anywhere, riding included. Gathering and working a site need the character on the hex.
+- A path walk is checked as a whole first (all or nothing). It then reveals step by step, and a hidden trap stops it there: the result says `stopped: { step, reason: 'trap' }`, and the rest is not taken or spent. Entering a revealed trap is harmless.
+- Glints belong to the team: one scout's sensing shows for everyone.
+
+**Reasoning.** The plan fixed the chain and the perks but left these open. Each is the simplest choice that keeps the chain intact and leaves room to change it. The old coin is the one addition to the content list: without it, a tier-1 tomb would make the lantern pointless.
 
 ## 2026-11-19: Characters start on a free hex next to the creature **[Misa]**
 

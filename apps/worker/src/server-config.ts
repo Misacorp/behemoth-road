@@ -30,6 +30,8 @@ export const SERVER_CONFIG = {
     /** Game requests, per player: a burst of 30, then one a second (polling is every 30 s). */
     game: { capacity: 30, refillPerSecond: 1, maxKeys: 100 },
   },
+  /** Game events kept for `GET /api/game?since=` (the last this many; older ones are dropped). */
+  eventLogSize: 100,
   /** How long a player's "may manage the server" answer is reused before Discord is asked again. */
   adminCacheMs: 10 * 60 * 1000,
   limits: {

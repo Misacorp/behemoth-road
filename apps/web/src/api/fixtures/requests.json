@@ -11,15 +11,26 @@
     "method": "POST",
     "path": "/api/game/join",
     "body": {
-      "role": "scout",
+      "role": "engineer",
       "offer": 1
+    }
+  },
+  "view-built": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 4,
+      "action": {
+        "kind": "build",
+        "unlock": "grappling-hook"
+      }
     }
   },
   "view-moved": {
     "method": "POST",
     "path": "/api/game/move",
     "body": {
-      "version": 3,
+      "version": 5,
       "path": [
         {
           "kind": "hex",
@@ -35,6 +46,20 @@
     "method": "POST",
     "path": "/api/dev/next-day",
     "body": {}
+  },
+  "view-surveyed": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 7,
+      "action": {
+        "kind": "survey",
+        "hex": {
+          "q": -2,
+          "r": 1
+        }
+      }
+    }
   },
   "view-replaced": {
     "method": "POST",

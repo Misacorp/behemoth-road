@@ -119,6 +119,7 @@ const create = (state: GameState, request: CharacterRequest): CharacterResult =>
     joinedDay: state.day,
     at: ON_CREATURE,
     actionsLeft: state.config.actionsPerDay,
+    pack: {},
     status: 'active',
   };
   return {

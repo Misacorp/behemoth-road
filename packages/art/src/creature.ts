@@ -47,6 +47,8 @@ export interface CreatureArt {
   readonly r: number;
   /** The axial step it walks along (one of the six neighbour offsets); its head points this way. */
   readonly heading: { readonly q: number; readonly r: number };
+  /** How much the team stores hold (in units); drawn as crates on its back when above 0. */
+  readonly stores?: number;
   readonly look: CreatureLook;
 }
 
@@ -280,6 +282,8 @@ export function drawCreature(
   squash: number,
   ink: number,
   heading: { q: number; r: number },
+  /** How much the team stores hold (in units): drawn as up to three crates on the back. */
+  stores = 0,
 ): Drawn & { readonly silhouettes: readonly (readonly Point[])[] } {
   // Creature frame (u forward, v to its right, z up; hex sizes at scale 1) to the world, then the screen.
   const frame = creatureFrame(look, heading, origin, size, squash);
@@ -616,6 +620,44 @@ export function drawCreature(
       line(blades.join(''), w * 0.7, palette.inkSoft),
       fill(ellipsePath(f1.x, f1.y, unit * 0.04, unit * 0.035), palette.accents.rose.base),
       fill(ellipsePath(f2.x, f2.y, unit * 0.035, unit * 0.03), palette.accents.ochre.base),
+    );
+  }
+  // The team stores: crates lashed near the tail, clear of the riders' slots; one more per few units held.
+  const crates =
+    Number.isFinite(stores) && stores > 0 ? Math.min(3, 1 + Math.floor((stores - 1) / 4)) : 0;
+  const crateSpots: [number, number][] = [
+    [-0.78, -0.22],
+    [-0.78, 0.26],
+    [-0.62, 0.02],
+  ];
+  const placedCrates = crateSpots
+    .slice(0, crates)
+    .map(([fu, fv]) => screen(frame.back(fu, fv)))
+    .sort((a, b) => a.y - b.y);
+  for (const base of placedCrates) {
+    const k = unit / 64;
+    const cw = 7 * k;
+    const h = 7 * k * rise * 1.2;
+    const front = `M${fmt(base.x - cw)} ${fmt(base.y)}h${fmt(2 * cw)}v${fmt(-h)}h${fmt(-2 * cw)}z`;
+    const lid = `M${fmt(base.x - cw)} ${fmt(base.y - h)}l${fmt(2.5 * k)} ${fmt(-3 * k * t)}h${fmt(2 * cw)}l${fmt(-2.5 * k)} ${fmt(3 * k * t)}z`;
+    everything.push(
+      { x: base.x - cw, y: base.y - h - 3 * k },
+      { x: base.x + cw + 2.5 * k, y: base.y },
+    );
+    bodyNodes.push(
+      fill(
+        ellipsePath(base.x + 1.5 * k, base.y + 0.5 * k, cw * 1.2, 2.2 * k),
+        palette.shadow,
+        0.22,
+      ),
+      fill(front, palette.ramps.bark.light),
+      fill(lid, palette.ramps.bark.base),
+      line(front + lid, w * 0.8),
+      line(
+        `M${fmt(base.x - cw)} ${fmt(base.y - h)}L${fmt(base.x + cw)} ${fmt(base.y)}`,
+        0.9,
+        palette.ramps.bark.shade,
+      ),
     );
   }
   pieces.push({ depth: depthAt(body.u, 0), nodes: bodyNodes });

@@ -7,6 +7,13 @@
     }
   },
   {
+    "route": "POST /api/game/act",
+    "status": 409,
+    "body": {
+      "error": "not-riding"
+    }
+  },
+  {
     "route": "POST /api/game/move",
     "status": 409,
     "body": {

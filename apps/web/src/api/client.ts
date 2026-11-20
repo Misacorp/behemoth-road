@@ -7,12 +7,15 @@ import type { Place } from '@behemoth-road/core';
 import * as v from 'valibot';
 import { createReauth, type Reauth } from './reauth.ts';
 import {
+  ActionAnswerSchema,
   ConfigSchema,
   ErrorBodySchema,
   GameResponseSchema,
   PlayerViewSchema,
   SessionSchema,
+  type ActionAnswer,
   type AppConfig,
+  type GameAction,
   type GameResponse,
   type PlayerView,
   type Session,
@@ -50,7 +53,10 @@ export interface ApiClient {
   game(since?: number): Promise<GameResponse>;
   join(role: string, offer: number): Promise<PlayerView>;
   replace(role: string, offer: number): Promise<PlayerView>;
-  move(version: number, path: readonly Place[]): Promise<PlayerView>;
+  /** The new view, and the events of the walk (a reveal, a trap that stopped it). */
+  move(version: number, path: readonly Place[]): Promise<ActionAnswer>;
+  /** Gather, craft or work a site, for your own character where it stands. */
+  act(version: number, action: GameAction): Promise<ActionAnswer>;
   nextDay(): Promise<PlayerView>;
 }
 
@@ -99,6 +105,8 @@ export function createApiClient(fetchImpl: Fetch = (i, init) => fetch(i, init)):
   const post = (body: unknown): RequestInit => ({ method: 'POST', body: JSON.stringify(body) });
   const view = async (path: string, body: unknown): Promise<PlayerView> =>
     parse(PlayerViewSchema, path, await authed(path, post(body)));
+  const answer = async (path: string, body: unknown): Promise<ActionAnswer> =>
+    parse(ActionAnswerSchema, path, await authed(path, post(body)));
 
   return {
     async config() {
@@ -125,7 +133,8 @@ export function createApiClient(fetchImpl: Fetch = (i, init) => fetch(i, init)):
     },
     join: (role, offer) => view('/api/game/join', { role, offer }),
     replace: (role, offer) => view('/api/game/replace', { role, offer }),
-    move: (version, path) => view('/api/game/move', { version, path }),
+    move: (version, path) => answer('/api/game/move', { version, path }),
+    act: (version, action) => answer('/api/game/act', { version, action }),
     nextDay: () => view('/api/dev/next-day', {}),
   };
 }
