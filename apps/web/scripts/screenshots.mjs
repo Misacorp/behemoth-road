@@ -676,6 +676,46 @@ async function run() {
         if (!(await page.locator('[data-mark=stay]').count()))
           problems.push(`${vp.name}: no stay mark while the creature lingers`);
         await shot4('08-lingering');
+
+        // The day turns on a lingering creature: it stays, and the stayed mark plays on it.
+        await press('[aria-label="Next day"]');
+        await page.waitForTimeout(350);
+        await expectMoment('stayed');
+        await shot4('09-stayed');
+        await settle();
+
+        // The day turns again: the creature walks its step (a ghost slides into place); the paws ahead are
+        // larger for the likelier step.
+        await freshDay();
+        await press('[aria-label="Next day"]');
+        await page.waitForTimeout(350);
+        await expectMoment('step');
+        await shot4('10-step');
+        await settle();
+        await idle();
+        if ((await page.locator('[data-mark^="step:"]').count()) < 2)
+          problems.push(`${vp.name}: the step hints do not show the veers`);
+        await shot4('11-step-hints');
+
+        // A timber stand next to you: its inspect card hints at a fire, faded, with its timber.
+        await stage({ deposit: 'timber-stand', explored: ['iron'] });
+        await idle();
+        await tap(...(await spot('iron')));
+        if (!(await page.locator('[data-popover=inspect] [data-action=light-fire]').count()))
+          problems.push(`${vp.name}: no fire hint on the timber stand's card`);
+        await shot4('12-stand-hint');
+
+        // A keeper riding a hungry creature: the bubble's creature entry carries the appetite badge.
+        await stage({ role: 'keeper', at: 'creature', satiety: 2 });
+        {
+          const c = fake.scenario.state.creature.centre;
+          await idle();
+          await tap(...(await hexOnScreen(c.q, c.r)));
+        }
+        if (!(await page.locator('[data-popover=bubble] [data-appetite]').count()))
+          problems.push(`${vp.name}: no appetite badge on the bubble`);
+        await shot4('13-bubble-badge');
+        await idle();
       }
 
       // Lost and replace: the drawer opens by itself; replacing starts a new character on the creature.

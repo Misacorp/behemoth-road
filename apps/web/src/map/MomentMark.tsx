@@ -7,14 +7,27 @@
  * and linger (`drawMoment` fire, feed, linger), a fire going out (its mark lifting away) and the creature
  * eating from the stores (the material rising off its back).
  */
-import { drawIcon, drawMoment, drawVeilLift, hexCenter, type SvgNode } from '@behemoth-road/art';
-import type { JSX } from 'preact';
+import {
+  ART_TUNING,
+  drawCreature,
+  drawIcon,
+  drawMoment,
+  drawVeilLift,
+  GENTLE_AMBLER,
+  hexCenter,
+  MOMENT_KINDS,
+  type SvgNode,
+} from '@behemoth-road/art';
+import type { ComponentChildren, JSX } from 'preact';
+import { useEffect, useRef } from 'preact/hooks';
 import { iconOf } from '../game/chain.ts';
-import type { Moment } from '../game/moments.ts';
+import { MOMENT_MS, type Moment } from '../game/moments.ts';
 import { PALETTE, PROJECTION } from './art.ts';
 import { toPreact } from './svgToPreact.ts';
 
 const p = PROJECTION;
+
+const STAYED = (MOMENT_KINDS as readonly string[]).includes('stayed') ? 'stayed' : 'linger';
 
 /** An art kit `<svg>` placed with its centre at (x, y), `size` px across. */
 function at(node: SvgNode, x: number, y: number, size: number): JSX.Element {
@@ -22,6 +35,50 @@ function at(node: SvgNode, x: number, y: number, size: number): JSX.Element {
     ...node,
     attrs: { ...node.attrs, x: x - size / 2, y: y - size / 2, width: size, height: size },
   });
+}
+
+/**
+ * Slides its drawing from (dx, dy) to where it is drawn and fades it out. SMIL started on mount
+ * (`beginElement`), since an animation added to a long-running SVG would otherwise count from the
+ * document's start and already be over.
+ */
+function StepGhost({
+  dx,
+  dy,
+  children,
+}: {
+  dx: number;
+  dy: number;
+  children: ComponentChildren;
+}): JSX.Element {
+  const ref = useRef<SVGGElement>(null);
+  useEffect(() => {
+    for (const a of ref.current?.querySelectorAll('animate, animateTransform') ?? []) {
+      (a as SVGAnimationElement).beginElement();
+    }
+  }, []);
+  const offset = `${dx.toFixed(1)} ${dy.toFixed(1)}`;
+  return (
+    <g ref={ref} opacity={0} transform={`translate(${offset})`} data-mark="step-ghost">
+      <animate
+        attributeName="opacity"
+        values="0.85;0.85;0"
+        dur={`${String(MOMENT_MS)}ms`}
+        begin="indefinite"
+        fill="freeze"
+      />
+      <animateTransform
+        attributeName="transform"
+        type="translate"
+        from={offset}
+        to="0 0"
+        dur={`${String(MOMENT_MS * 0.7)}ms`}
+        begin="indefinite"
+        fill="freeze"
+      />
+      {children}
+    </g>
+  );
 }
 
 function Marked({ kind, children }: { kind: string; children: JSX.Element }): JSX.Element {
@@ -61,6 +118,36 @@ export function MomentMark({ moment }: { moment: Moment }): JSX.Element {
       body = (
         <Marked kind="drop">
           {at(drawIcon(iconOf(moment.item), PALETTE, icon), c.x, c.y - 0.6 * p.size, icon)}
+        </Marked>
+      );
+      break;
+    case 'step': {
+      // A minimal walk: a ghost of the creature slides from yesterday's centre to today's and fades into
+      // the creature already drawn there. SMIL, not CSS, since each step has its own offset (no inline
+      // styles under the CSP). The M3 day-change step may replace this.
+      const from = hexCenter(p, moment.from.q, moment.from.r);
+      const heading = { q: moment.hex.q - moment.from.q, r: moment.hex.r - moment.from.r };
+      const ghost = drawCreature(
+        PALETTE,
+        GENTLE_AMBLER,
+        c,
+        p.size,
+        p.squash,
+        ART_TUNING.inkWidth * p.k,
+        heading,
+      );
+      body = (
+        <StepGhost dx={from.x - c.x} dy={from.y - c.y}>
+          {ghost.nodes.map(toPreact)}
+        </StepGhost>
+      );
+      break;
+    }
+    case 'stayed':
+      // The art's own "stayed" mark when it has one; the linger mark until then.
+      body = (
+        <Marked kind="bloom">
+          {at(drawMoment(STAYED, PALETTE, size), c.x, c.y - 0.4 * p.size, size)}
         </Marked>
       );
       break;

@@ -7,6 +7,7 @@ import {
   ART_TUNING,
   drawCharacter,
   drawCreature,
+  drawCreatureIcon,
   drawIcon,
   type CharacterLook,
   type Drawn,
@@ -18,8 +19,11 @@ import {
   renderScene,
   type CellState,
   type FeatureArt,
+  type SvgNode,
 } from '@behemoth-road/art';
 import type { CreatureSigns, GameStateView } from '@behemoth-road/core';
+
+type CreatureAppetiteSign = NonNullable<CreatureSigns['appetite']>;
 import type { JSX } from 'preact';
 import { iconOf } from '../game/chain.ts';
 import { Pips, TickMark } from '../hud/icons.tsx';
@@ -167,18 +171,24 @@ function CardIcon({
 }
 
 /** The inspect card, wider when it offers a survey. */
-export const inspectSize = (survey: boolean): { width: number; height: number } =>
-  survey ? { width: INSPECT_SIZE.width + ACTION_W, height: INSPECT_SIZE.height } : INSPECT_SIZE;
+/** The inspect card, wider for each button it offers (a survey, a fire hint). */
+export const inspectSize = (survey: boolean, fire = false): { width: number; height: number } => ({
+  width: INSPECT_SIZE.width + ((survey ? 1 : 0) + (fire ? 1 : 0)) * ACTION_W,
+  height: INSPECT_SIZE.height,
+});
 
 /**
  * The inspect card: the tile as the map draws it (under its veil while unexplored, with its revealed
- * feature) and its visibility; next to you and unexplored, a survey button (a spyglass and its cost).
+ * feature) and its visibility; next to you and unexplored, a survey button (a spyglass and its cost); on a
+ * timber stand, a faded fire with its timber, hinting what the wood is for (never a button that does
+ * anything: a fire is lit where you stand).
  */
 export function InspectCard({
   terrain,
   state,
   feature = null,
   survey = null,
+  fire = null,
   onSurvey,
   surveyRef,
 }: {
@@ -187,12 +197,14 @@ export function InspectCard({
   /** A revealed feature on the hex, drawn on the tile. */
   feature?: FeatureArt | null;
   survey?: { readonly cost: number; readonly enabled: boolean } | null;
+  /** The fire hint on a timber stand: what a fire costs and the fuel it takes. */
+  fire?: { readonly cost: number; readonly uses: string } | null;
   onSurvey?: () => void;
   surveyRef?: (el: SVGGElement | null) => void;
 }): JSX.Element {
   return (
     <g data-popover="inspect" data-feature={feature?.look} data-state={state}>
-      <Card {...inspectSize(survey !== null)} />
+      <Card {...inspectSize(survey !== null, fire !== null)} />
       <Miniature terrain={terrain} state={state} x={6} y={8} feature={feature} />
       <g transform="translate(84 22)">
         <VisibilityMark state={state} />
@@ -207,6 +219,18 @@ export function InspectCard({
           y={12}
           onRun={() => onSurvey?.()}
           {...(surveyRef ? { buttonRef: surveyRef } : {})}
+        />
+      )}
+      {fire && (
+        <ActionButton
+          kind="light-fire"
+          icon="light-fire"
+          cost={fire.cost}
+          enabled={false}
+          x={INSPECT_SIZE.width - 6 + (survey ? ACTION_W : 0)}
+          y={12}
+          uses={iconOf(fire.uses)}
+          onRun={() => {}}
         />
       )}
     </g>
@@ -252,7 +276,10 @@ export function ConfirmCard({
   );
 }
 
-/** The creature's heading as a compass mark: an ink arrow in a ring, pointing the way it walks on the map. */
+/**
+ * The creature's heading: an ink arrow pointing the way it walks on the map. No ring around it, so it does
+ * not read as a button.
+ */
 function HeadingMark({ heading }: { heading: { q: number; r: number } }): JSX.Element {
   const d = hexCenter(MINI, heading.q, heading.r);
   const len = Math.hypot(d.x, d.y) || 1;
@@ -269,7 +296,6 @@ function HeadingMark({ heading }: { heading: { q: number; r: number } }): JSX.El
   const b = side(-1);
   return (
     <g>
-      <circle r={r + 4} {...eyeLine} stroke={PALETTE.inkSoft} stroke-dasharray="2 3" />
       <path d={`M${tail.x} ${tail.y}L${tip.x} ${tip.y}`} {...eyeLine} stroke-width={2.2} />
       <path d={`M${a.x} ${a.y}L${tip.x} ${tip.y}L${b.x} ${b.y}`} {...eyeLine} stroke-width={2.2} />
     </g>
@@ -402,9 +428,47 @@ export interface BubbleCharacter {
  * character's details), and, for a place like the creature, a round entry into it. Generic so any hex with
  * several characters can use it later.
  */
+/** A small icon placed with its top-left at (x, y). */
+function Placed({ node, x, y, size }: { node: SvgNode; x: number; y: number; size: number }) {
+  return toPreact({ ...node, attrs: { ...node.attrs, x, y, width: size, height: size } });
+}
+
+const BADGE_CREATURE = drawCreatureIcon(PALETTE, GENTLE_AMBLER, 16, { inkPx: 0.9 });
+
+/**
+ * The creature's appetite as you read it, as a badge on its bubble entry: sharp for a keeper, faint for
+ * anyone else (the core's `faint`). Kind and level in data attributes. A stub drawing (the creature's
+ * icon on a paper disc, a ring per level) until the art kit's appetite badge lands.
+ */
+function AppetiteBadge({ appetite }: { appetite: CreatureAppetiteSign }): JSX.Element {
+  const r = 11;
+  return (
+    <g
+      data-appetite={`${appetite.kind}:${String(appetite.level)}`}
+      data-faint={appetite.faint ? true : undefined}
+      opacity={appetite.faint ? 0.55 : 1}
+      class="pass-through"
+    >
+      <circle r={r} fill={PALETTE.paper} stroke={PALETTE.ink} stroke-width={1.3} />
+      {Array.from({ length: appetite.level - 1 }, (_, i) => (
+        <circle
+          key={i}
+          r={r + 2.5 * (i + 1)}
+          fill="none"
+          stroke={PALETTE.inkSoft}
+          stroke-width={1}
+          stroke-dasharray={appetite.kind === 'underfed' ? '1.5 2' : undefined}
+        />
+      ))}
+      <Placed node={BADGE_CREATURE} x={-8} y={-8} size={16} />
+    </g>
+  );
+}
+
 export function Bubble({
   characters,
   place,
+  appetite = null,
   onOpenPlace,
   onCharacter,
   placeRef,
@@ -412,6 +476,8 @@ export function Bubble({
   characters: readonly BubbleCharacter[];
   onCharacter: (id: string) => void;
   place?: 'creature';
+  /** Your read of the creature's appetite, as a badge on its entry; none when comfortable. */
+  appetite?: CreatureAppetiteSign | null;
   onOpenPlace: () => void;
   placeRef: (el: SVGGElement | null) => void;
 }): JSX.Element {
@@ -481,6 +547,11 @@ export function Bubble({
         >
           <circle r={23} fill={PALETTE.paper} stroke={PALETTE.inkSoft} stroke-width={1.4} />
           <Fitted drawn={BUBBLE_CREATURE} x={-17} y={-17} width={34} height={34} />
+          {appetite && (
+            <g transform="translate(17 -15)">
+              <AppetiteBadge appetite={appetite} />
+            </g>
+          )}
         </g>
       )}
     </g>

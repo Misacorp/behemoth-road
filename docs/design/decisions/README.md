@@ -112,8 +112,11 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-20 The creature card's heading loses its ring; the bubble carries an appetite badge
+- 2026-11-20 Step hints scale with chance; the day's step plays as a walk or a stayed mark
+- 2026-11-20 A timber stand hints at a fire, on your here card and its inspect card
 - 2026-11-20 The keeper's cue shows the creature's true attitude for the tame first creature
-- 2026-11-20 Light a fire hints faded without fuel once you have seen a fire
+- 2026-11-20 Light a fire hints faded without fuel once you have seen a fire (amended)
 - 2026-11-20 A lingering creature's stay mark sits on its footprint's near edge
 - 2026-11-20 Feed and linger sit in the hub drawer as unlock-style cards
 - 2026-11-20 Light a fire shows on your hex's card only when you carry fuel (amended)

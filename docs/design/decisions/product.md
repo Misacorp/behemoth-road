@@ -4,6 +4,30 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: The creature card's heading loses its ring; the bubble carries an appetite badge
+
+ID: `2026-11-20-the-creature-card-s-heading-loses` · Status: current
+
+**Decision.** The dashed ring around the heading arrow on the creature card is removed: the arrow stays, the ring was decoration that looked like a button (a playtester tapped it). The hub bubble's creature entry carries a badge of your read of the creature's appetite (`signs.appetite`) for everyone: sharp for keepers, faint for others, rings per level; a stub drawing until the art kit's appetite badge lands.
+
+**Reasoning.** Nothing real needed a control there, so removing beats wiring a fake action. The badge lets every player notice hunger from the bubble without opening the hub; a keeper's read is sharper, in line with the signs.
+
+## 2026-11-20: Step hints scale with chance; the day's step plays as a walk or a stayed mark
+
+ID: `2026-11-20-step-hints-scale-with-chance-the` · Status: current
+
+**Decision.** Each of the creature's step options from `predictCreature` shows as a paw mark whose size (0.7 to 1.5 of the base) and opacity grow with its chance, so the likelier straight step and the rarer veers read at a glance. At day change a `creature-step` event plays a walk: a ghost of the creature slides from yesterday's centre to today's and fades (SVG SMIL started on mount; the CSP forbids inline styles). A step with `from` equal to `to` (a linger) plays a stayed mark on the creature: the art's `stayed` moment when it exists, the linger mark until then.
+
+**Reasoning.** Playtesters could not tell the creature veers, nor see that it walked sideways or stayed. The ghost walk is minimal on purpose: Milestone 3's day-change step animation may replace it. Scale range is one function (`pawScale`).
+
+## 2026-11-20: A timber stand hints at a fire, on your here card and its inspect card
+
+ID: `2026-11-20-a-timber-stand-hints-at-a` · Status: current · Amends: `2026-11-20-light-a-fire-hints-faded-without`
+
+**Decision.** A revealed node whose yield carries the fire's fuel tag (`wood`, read from content, never by id) hints at a fire whether or not you have seen one: on your own here card the faded light-fire (timber faded) shows without fuel; on the stand's inspect card a faded fire button with its timber and pip shows, never actionable (a fire is lit where you stand). The seen-a-fire rule still applies to other features.
+
+**Reasoning.** M4 coordinator's call after a playtest: wood is where players first meet the fuel, so that is where the hint teaches what timber is for, without words.
+
 ## 2026-11-20: The keeper's cue shows the creature's true attitude for the tame first creature
 
 ID: `2026-11-20-the-keeper-s-cue-shows-the` · Status: current
@@ -14,7 +38,7 @@ ID: `2026-11-20-the-keeper-s-cue-shows-the` · Status: current
 
 ## 2026-11-20: Light a fire hints faded without fuel once you have seen a fire
 
-ID: `2026-11-20-light-a-fire-hints-faded-without` · Status: current · Amends: `2026-11-20-light-a-fire-shows-on-your`
+ID: `2026-11-20-light-a-fire-hints-faded-without` · Status: current, amended by `2026-11-20-a-timber-stand-hints-at-a` · Amends: `2026-11-20-light-a-fire-shows-on-your`
 
 **Decision.** When your own hex's card is open for something else (a revealed feature) and you have seen a fire on the map this session (a fire in any view you received, remembered in memory only), the card also shows light-fire faded, with its timber faded, when you carry no fuel. The fuel shown is the core check's `missing` material and the pips its refusal `cost`. Without fuel the card still never opens on an empty hex just for the fire. Moments for fire, feeding and lingering, a fire going out and the creature eating from the stores come only from events.
 

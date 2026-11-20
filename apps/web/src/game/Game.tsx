@@ -30,6 +30,7 @@ import {
   careOptions,
   type CostedAction,
   fireAction,
+  fuelNodeAt,
   packUnits,
   stockOf,
   surveyOf,
@@ -205,8 +206,11 @@ export function Game({ api, initial }: GameProps): JSX.Element {
   const here = useMemo((): Here | null => {
     if (me?.status !== 'active' || me.at.kind !== 'hex') return null;
     const feature = featureArtAt(state, hexKey(me.at.hex));
-    // Without fuel the fire never opens the card by itself: only a hint on a card open for a feature.
-    const fire = fireAction(state, me.id, feature !== null && sawFire);
+    // Without fuel the fire never opens the card by itself: only a hint on a card open for a feature, once
+    // you have seen a fire or when the feature is a timber stand.
+    // A timber stand hints at it too, seen fire or not.
+    const hint = (feature !== null && sawFire) || fuelNodeAt(state, me.at.hex) !== null;
+    const fire = fireAction(state, me.id, hint);
     const actions = [...(feature ? actionsAt(state, me.id) : []), ...(fire ? [fire] : [])];
     if (!feature && actions.length === 0) return null;
     const terrain = terrainOf(state, me.at.hex)?.id ?? 'unknown';

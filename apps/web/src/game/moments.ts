@@ -2,7 +2,8 @@
  * Moments: short visual beats on the map, with no prose. A hex explored (its veil lifts), a survey, a reveal
  * (an ink bloom), a find (the material's icon rising from the site), a sprung trap (a snap; your pips go dark
  * when it caught you), a deposit into the stores and a finished unlock (on the creature), and Milestone 4's
- * fire lit, fire gone out, feeding, a linger and a starving creature eating from the stores. They come only from
+ * fire lit, fire gone out, feeding, a linger, a starving creature eating from the stores, and the day's step
+ * (the creature walking to its new centre, or a clear mark that it stayed). They come only from
  * the server's events (your own move or action, and the log of what others and the tick did since your last
  * view), so they show for anything that happened, whoever did it. They are CSS animations (no per-frame
  * renders) and end by themselves.
@@ -21,7 +22,11 @@ export type Moment =
   | { readonly kind: 'fire-out'; readonly hex: Hex }
   | { readonly kind: 'feed'; readonly hex: Hex; readonly item: string | null }
   | { readonly kind: 'linger'; readonly hex: Hex }
-  | { readonly kind: 'ate'; readonly hex: Hex; readonly item: string };
+  | { readonly kind: 'ate'; readonly hex: Hex; readonly item: string }
+  /** The day's step: the creature walking from one centre to the next. */
+  | { readonly kind: 'step'; readonly hex: Hex; readonly from: Hex }
+  /** The day's step when it lingered: it stayed where it was. */
+  | { readonly kind: 'stayed'; readonly hex: Hex };
 
 /** How long a moment stays on screen, in ms (its CSS animation is as long). */
 export const MOMENT_MS = 1400;
@@ -34,6 +39,9 @@ export interface EventLike {
   readonly material?: string | undefined;
   readonly unlock?: string | undefined;
   readonly materials?: Readonly<Record<string, number>> | undefined;
+  /** A creature step's start and end. */
+  readonly from?: Hex | undefined;
+  readonly to?: Hex | undefined;
 }
 
 /** The material there is most of, if any. */
@@ -53,7 +61,10 @@ function most(materials: Readonly<Record<string, number>>): string | null {
 export function momentsFromEvents(events: readonly EventLike[], centre: Hex, me: string): Moment[] {
   const out: Moment[] = [];
   for (const e of events) {
-    if (e.kind === 'fed') {
+    if (e.kind === 'creature-step' && e.from && e.to) {
+      const stayed = e.from.q === e.to.q && e.from.r === e.to.r;
+      out.push(stayed ? { kind: 'stayed', hex: e.to } : { kind: 'step', hex: e.to, from: e.from });
+    } else if (e.kind === 'fed') {
       out.push({ kind: 'feed', hex: centre, item: e.material ?? null });
     } else if (e.kind === 'linger') {
       out.push({ kind: 'linger', hex: centre });

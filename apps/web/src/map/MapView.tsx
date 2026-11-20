@@ -34,6 +34,7 @@ import {
   terrainKnown,
 } from './cells.ts';
 import { chevronFor, placePopover, splitScene } from './compose.ts';
+import { fireHintAt } from '../game/chain.ts';
 import { accentOf, type Identity, lookOf } from '../game/identity.ts';
 import type { Moment } from '../game/moments.ts';
 import { MomentMark } from './MomentMark.tsx';
@@ -163,6 +164,7 @@ function popoverAnchor(
   characterId: string,
   here: Here | null,
   survey: boolean,
+  fire: boolean,
 ): Anchor | null {
   const tile = 2 * p.size * p.squash;
   if (flow.kind === 'character') {
@@ -180,10 +182,10 @@ function popoverAnchor(
   if (flow.kind === 'inspect') {
     const c = hexCenter(p, flow.hex.q, flow.hex.r);
     return {
-      key: `inspect:${hexKey(flow.hex)}:${survey ? 'survey' : ''}`,
+      key: `inspect:${hexKey(flow.hex)}:${survey ? 'survey' : ''}:${fire ? 'fire' : ''}`,
       top: { x: c.x, y: c.y - tile / 2 },
       below: tile,
-      size: inspectSize(survey),
+      size: inspectSize(survey, fire),
     };
   }
   if (flow.kind === 'bubble') {
@@ -324,7 +326,15 @@ export function MapView(props: MapViewProps): JSX.Element {
   }, [state, flow, characterId, inkZoom]);
 
   const survey = flow.kind === 'inspect' ? (props.surveyAt?.(flow.hex) ?? null) : null;
-  popover.current = popoverAnchor(state, flow, characterId, props.here ?? null, survey !== null);
+  const fireHint = flow.kind === 'inspect' ? fireHintAt(state, flow.hex) : null;
+  popover.current = popoverAnchor(
+    state,
+    flow,
+    characterId,
+    props.here ?? null,
+    survey !== null,
+    fireHint !== null,
+  );
 
   function apply(): void {
     frame.current = 0;
@@ -582,6 +592,7 @@ export function MapView(props: MapViewProps): JSX.Element {
         state={cellState}
         feature={known ? featureArtAt(state, hexKey(flow.hex)) : null}
         survey={survey}
+        fire={fireHint}
         onSurvey={() => props.onSurvey?.(at)}
         surveyRef={(el) => {
           popoverFocusRef.current = el;
@@ -615,6 +626,7 @@ export function MapView(props: MapViewProps): JSX.Element {
         }))}
         onCharacter={(id) => props.onCharacter(id)}
         place="creature"
+        appetite={signs?.appetite ?? null}
         onOpenPlace={props.onOpenHub}
         placeRef={(el) => {
           popoverFocusRef.current = el;

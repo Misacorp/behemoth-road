@@ -110,12 +110,15 @@ describe('captured contract fixtures', () => {
     expect(v.parse(PlayerViewSchema, fixture('view-lingered')).game.creature.lingering).toBe(true);
   });
 
-  it("the tick's fire going out and the creature eating play as moments; its step does not", () => {
+  it("the tick's step (stayed after a linger), a fire going out and the creature eating play", () => {
     const kinds = ['view-care-since', 'view-creature-ate'].map((name) => {
       const view = v.parse(PlayerViewSchema, fixture(name));
       return momentsFromEvents(view.events, view.game.creature.centre, '').map((m) => m.kind);
     });
-    expect(kinds).toEqual([['fire-out'], ['ate']]);
+    expect(kinds).toEqual([
+      ['stayed', 'fire-out'],
+      ['step', 'ate'],
+    ]);
   });
 
   it.each(errors.map((e) => [e.route, e.status, e.body] as const))(

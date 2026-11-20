@@ -9,7 +9,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import { PROJECTION } from './art.ts';
 import { creatureArt, fireKeys, sceneCells } from './cells.ts';
-import { buildOverlays, staysPut } from './overlays.ts';
+import { buildOverlays, pawScale, staysPut } from './overlays.ts';
 
 const s = createGame(1, { characterIds: ['you'] });
 const c = s.creature.centre;
@@ -93,5 +93,15 @@ describe('the step hints', () => {
     expect(marks(o.over).filter((m) => m === 'stay')).toHaveLength(1);
     // The paw prints are the only unmarked paths in `under` on an idle map without grace tiles.
     expect(o.under.length).toBeLessThan(overlays(s).under.length);
+  });
+});
+
+describe('veering readable', () => {
+  it('draws a paw mark per step option, larger for the likelier step', () => {
+    const steps = marks(overlays(s).under).filter((m) => m.startsWith('step:'));
+    expect(steps).toHaveLength(predictCreature(s).length);
+    expect(pawScale(0.5)).toBeGreaterThan(pawScale(0.25));
+    expect(pawScale(0)).toBeCloseTo(0.7);
+    expect(pawScale(1)).toBeCloseTo(1.5);
   });
 });
