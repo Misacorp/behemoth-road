@@ -80,6 +80,38 @@ const config = v.object({
   lightFireCost: count,
   feedCost: count,
   lingerCost: count,
+  threatsFromDay: count,
+  threatChanceBase: v.number(),
+  threatChancePerPlayer: v.number(),
+  threatChancePerDay: v.number(),
+  threatChanceMax: v.number(),
+  threatsMax: count,
+  threatStrengthPlayers: count,
+  threatStrengthDays: count,
+  threatPathDistance: count,
+  struckActions: count,
+  strikeCost: count,
+  clearPowerGuardian: count,
+  clearPowerOther: count,
+  defendCost: count,
+  defendReduction: count,
+  parleyCost: count,
+  offerCost: count,
+  askBoonCost: count,
+  parleyFavourEnvoy: count,
+  parleyFavourOther: count,
+  parleyAngerChanceOther: v.number(),
+  offerFavour: count,
+  misleadDays: count,
+  shelterPeril: count,
+  settlementFirst: count,
+  settlementEvery: count,
+  perilMax: count,
+  perilWoundedAt: count,
+  perilHungry: count,
+  perilHungryLevel: count,
+  perilCalm: count,
+  routeLength: count,
 });
 
 /** The core state without the seed (the core's `GameStateView`): known tiles carry their terrain. */
@@ -96,6 +128,10 @@ export const GameStateViewSchema = v.object({
     lingering: v.boolean(),
     /** The last day it lingered, or null. */
     lingeredDay: v.nullable(count),
+    /** Steps walked this season. */
+    steps: count,
+    /** Guardians defending it until the next tick. */
+    defenders: v.pipe(v.array(id), v.maxLength(64)),
   }),
   tiles: v.pipe(
     v.record(v.pipe(v.string(), v.regex(/^-?\d+,-?\d+$/), v.maxLength(24)), tile),
@@ -115,6 +151,35 @@ export const GameStateViewSchema = v.object({
   project: v.nullable(v.object({ unlock: id, work: count })),
   /** Lit fires (public): each burns through the tick that ends the day it was lit. */
   stimuli: v.pipe(v.array(v.object({ type: id, hex, litDay: count })), v.maxLength(200)),
+  /** Threats on the map (public). */
+  threats: v.pipe(
+    v.array(v.object({ id, type: id, hex, strength: count, appearedDay: count })),
+    v.maxLength(200),
+  ),
+  /** Settlements in reach (public). */
+  settlements: v.pipe(
+    v.array(
+      v.object({
+        id,
+        type: id,
+        hex,
+        attitude: v.picklist(['wary', 'friendly', 'angry']),
+        favour: count,
+        boon: v.nullable(id),
+      }),
+    ),
+    v.maxLength(200),
+  ),
+  peril: count,
+  season: v.variant('status', [
+    v.object({ status: v.literal('on') }),
+    v.object({
+      status: v.literal('over'),
+      outcome: v.picklist(['safe', 'wounded', 'lost']),
+      day: count,
+    }),
+  ]),
+  misleadUntilDay: v.nullable(count),
 });
 
 /**

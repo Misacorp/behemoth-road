@@ -20,6 +20,7 @@ import {
   reachablePlaces,
   UNLOCKS,
 } from '../src/index.ts';
+import { CALM } from './helpers.ts';
 
 /**
  * A scripted party of three plays the chain: the scout explores (the script
@@ -200,6 +201,7 @@ const playChain = (seed: number, maxDays: number) => {
   let s = createGame([seed, 0x5eed, 0xc4a1, 0x3], {
     characterIds: ['scout', 'engineer', 'scholar'],
     artSeed: 0,
+    config: CALM,
   });
   s = { ...s, characters: s.characters.map((c) => ({ ...c, role: c.id })) };
   const milestones: Record<string, number> = {};

@@ -4,6 +4,23 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: Milestone 5 core: readings of the season contract
+
+ID: `2026-11-20-milestone-5-core-readings-of-the` · Status: current
+
+**Decision.** Where `docs/design/m5-season.md` leaves room, the core reads it so:
+
+- Guardians: strike power and `defend` read the role tag `defend`; not being struck and escorting read `escort` (both on the Guardian).
+- Added tuning values: action costs (`strikeCost`, `defendCost`, `parleyCost`, `offerCost`, `askBoonCost`, all 1), `threatPathDistance` (4, the rockslide's distance ahead) and `perilHungryLevel` (2).
+- "From day 3" means the day the tick starts. A threat within contact does not move. Characters on a hex the creature just stepped onto count as riders (never struck).
+- Approach order: `behind` and `flank` take the window edge hex nearest the edge hex straight behind (or ahead-left / ahead-right, a seeded side); `path` takes the straight-ahead line from 4 hexes out. A rolled threat never appears on another threat's hex. Raiders sent by an angered settlement ignore `threatsMax`.
+- A settlement is never placed on a threat's hex; when no leading-edge hex fits, none appears that time.
+- Ids need no counter: rolled threats `t<day>`, raiders `t<settlement id>`, settlements `s<day>`.
+- A mislead on day d sets `misleadUntilDay` to d + `misleadDays`; ticks that start days up to it roll no pursuers; it clears afterwards.
+- `ask-boon` refuses `unknown-boon` before `not-friendly`. Once the season is over, `planPath` refuses and `reachablePlaces` is empty, like moves.
+
+**Reasoning.** The simplest readings that keep the other options open: every number is in the tuning config, ids derive from the day so state stays small, and tag reads follow the role data already in content. Being struck is known only from the `struck` event; a persistent marker on the character (for a bandage after reload) can be added later without changing these rules.
+
 ## 2026-11-20: Threats are tagged data that appear at the window's edge and walk in openly
 
 ID: `2026-11-20-threats-are-tagged-data-that-appear` · Status: current

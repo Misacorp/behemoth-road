@@ -8,6 +8,7 @@ import {
   nextDayWithEvents,
   onHex,
 } from '../src/index.ts';
+import { CALM } from './helpers.ts';
 
 const stepOff = (seed: number) => {
   const state = createGame(seed, { characterIds: ['a'] });
@@ -40,7 +41,7 @@ describe('the day tick’s events', () => {
   const straight = { veerWeights: { left: 0, right: 0 } };
 
   it('reports the step and the new day, the same as nextDay', () => {
-    const state = createGame(3, { config: straight });
+    const state = createGame(3, { config: { ...straight, ...CALM } });
     const { state: next, events } = nextDayWithEvents(state);
     expect(next).toEqual(nextDay(state));
     expect(events).toEqual([
@@ -50,7 +51,10 @@ describe('the day tick’s events', () => {
   });
 
   it('reports packs deposited by those picked up, and characters left behind', () => {
-    let state = createGame(3, { characterIds: ['picked', 'left'], config: straight });
+    let state = createGame(3, {
+      characterIds: ['picked', 'left'],
+      config: { ...straight, ...CALM },
+    });
     state = {
       ...state,
       characters: state.characters.map((c) =>

@@ -55,6 +55,13 @@ export {
   type Need,
   type Reaction,
   type StimulusType,
+  BOONS,
+  PEOPLE_TYPES,
+  THREAT_TYPES,
+  type Boon,
+  type PeopleType,
+  type ThreatApproach,
+  type ThreatType,
 } from './content/index.ts';
 export {
   DEFAULT_MAP_CONTENT,
@@ -66,6 +73,11 @@ export {
 } from './map.ts';
 export { noiseAt, type NoiseField } from './noise.ts';
 export type {
+  Attitude,
+  Season,
+  SeasonOutcome,
+  Settlement,
+  Threat,
   Care,
   Cue,
   Nature,
@@ -82,7 +94,24 @@ export type {
   TileKnowledge,
   Visibility,
 } from './state.ts';
-export { findCharacter, hasSeed } from './state.ts';
+export { findCharacter, hasSeed, isSeasonOver } from './state.ts';
+export {
+  approachHexes,
+  contactDistance,
+  DEFEND_TAG,
+  ESCORT_TAG,
+  GROUND_TAG,
+  leadingEdge,
+  PURSUER_TAG,
+  stepToward,
+  threatOutlook,
+  threatPath,
+  threatStrength,
+  threatType,
+  type Arrival,
+  type ThreatOutlook,
+} from './threats.ts';
+export { PEOPLES_TAG, peopleType, settlementAt, settlementDue, TRADE_TAG } from './settlements.ts';
 export {
   creatureHexes,
   isCreatureHex,

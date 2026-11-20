@@ -47,6 +47,32 @@ describe('the player view', () => {
     for (const word of seed) expect(json).not.toMatch(new RegExp(`\\b${word}\\b`));
   });
 
+  it('carries the season, threats and settlements, but never the seed, nature or care', () => {
+    let state = played(6);
+    state = {
+      ...state,
+      peril: 3,
+      misleadUntilDay: 9,
+      threats: [{ id: 't1', type: 'captors', hex: hex(0, 4), strength: 3, appearedDay: 4 }],
+      settlements: [
+        { id: 's2', type: 'hill-folk', hex: hex(1, -5), attitude: 'wary', favour: 1, boon: null },
+      ],
+      creature: { ...state.creature, defenders: ['b'] },
+    };
+    const view = toPlayerView(state) as unknown as Record<string, unknown>;
+    for (const key of ['seed', 'nature', 'care']) expect(key in view).toBe(false);
+    expect(view).toMatchObject({
+      peril: 3,
+      season: { status: 'on' },
+      misleadUntilDay: 9,
+      threats: state.threats,
+      settlements: state.settlements,
+      creature: { steps: state.creature.steps, defenders: ['b'] },
+    });
+    const json = JSON.stringify(view);
+    expect(json).not.toMatch(/satiety|reactions|"cues"/);
+  });
+
   it('is a deep copy: changing it never reaches the server state', () => {
     const state = played(3);
     const before = JSON.stringify(state);

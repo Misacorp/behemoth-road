@@ -21,6 +21,7 @@ import type {
   GameState,
   GameStateView,
   Materials,
+  SeasonOutcome,
   TileKnowledge,
 } from './state.ts';
 
@@ -73,7 +74,54 @@ export type GameEvent =
   /** From the day tick: a starving creature ate one unit from the (public) stores. */
   | { readonly kind: 'creature-ate'; readonly material: string }
   /** From the day tick: a stimulus (a fire) burnt out. */
-  | { readonly kind: 'fire-out'; readonly hex: Hex; readonly stimulus: string };
+  | { readonly kind: 'fire-out'; readonly hex: Hex; readonly stimulus: string }
+  /** A threat appeared (from the tick, or sent by an angered settlement). */
+  | {
+      readonly kind: 'threat-appears';
+      readonly id: string;
+      readonly type: string;
+      readonly hex: Hex;
+    }
+  | { readonly kind: 'threat-moves'; readonly id: string; readonly from: Hex; readonly to: Hex }
+  /** A threat struck the creature: `damage` is the peril it adds, after defence. The threat is spent. */
+  | { readonly kind: 'threat-strikes'; readonly id: string; readonly damage: number }
+  /** A threat struck a character (who starts the next day with fewer actions). */
+  | { readonly kind: 'struck'; readonly characterId: string; readonly threat: string }
+  | {
+      readonly kind: 'threat-hit';
+      readonly id: string;
+      readonly characterId: string;
+      /** The threat's strength left. */
+      readonly strength: number;
+    }
+  | { readonly kind: 'threat-cleared'; readonly id: string; readonly characterId: string }
+  /** A threat left the map without striking (out of the window, or led away). */
+  | { readonly kind: 'threat-gone'; readonly id: string }
+  | { readonly kind: 'defend'; readonly characterId: string }
+  | { readonly kind: 'peril'; readonly from: number; readonly to: number }
+  | { readonly kind: 'settlement-appears'; readonly id: string; readonly hex: Hex }
+  /** A parley gained favour: `favour` is the settlement's favour now. */
+  | {
+      readonly kind: 'parley';
+      readonly id: string;
+      readonly characterId: string;
+      readonly favour: number;
+    }
+  | { readonly kind: 'befriended'; readonly id: string }
+  | { readonly kind: 'angered'; readonly id: string }
+  | {
+      readonly kind: 'offer';
+      readonly id: string;
+      readonly characterId: string;
+      readonly material: string;
+    }
+  | {
+      readonly kind: 'boon';
+      readonly id: string;
+      readonly characterId: string;
+      readonly boon: string;
+    }
+  | { readonly kind: 'season-over'; readonly outcome: SeasonOutcome };
 
 export const featureType = (id: string): FeatureType => {
   const type = FEATURE_TYPES.find((t) => t.id === id);

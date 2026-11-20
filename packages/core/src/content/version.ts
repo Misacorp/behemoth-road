@@ -9,8 +9,10 @@
  * 4: features, exploration, packs, team stores and unlocks. Before a stable
  *    release, older games are not migrated: the server starts a new game.
  * 5: the living creature: its hidden nature and hunger, fires, food and lingering.
+ * 6: threats and an ending: threats, peoples and settlements, peril and the
+ *    season's route.
  */
-export const CONTENT_VERSION = 5;
+export const CONTENT_VERSION = 6;
 
 /** Content versions this code can load. */
 export const KNOWN_CONTENT_VERSIONS: readonly number[] = [CONTENT_VERSION];

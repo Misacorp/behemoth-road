@@ -28,3 +28,5 @@ export {
   type Reaction,
 } from './creatures.ts';
 export { STIMULUS_TYPES, type StimulusType } from './stimuli.ts';
+export { THREAT_TYPES, type ThreatApproach, type ThreatType } from './threats.ts';
+export { BOONS, PEOPLE_TYPES, type Boon, type PeopleType } from './peoples.ts';

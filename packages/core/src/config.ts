@@ -58,6 +58,65 @@ export interface TuningConfig {
   readonly feedCost: number;
   /** Keepers only: the creature stays put at the next tick. */
   readonly lingerCost: number;
+
+  // Threats (docs/design/m5-season.md).
+  /** The first day (after a tick) on which a threat may appear. */
+  readonly threatsFromDay: number;
+  /** Daily chance of a new threat: base + per active player + per day, capped at the max. */
+  readonly threatChanceBase: number;
+  readonly threatChancePerPlayer: number;
+  readonly threatChancePerDay: number;
+  readonly threatChanceMax: number;
+  /** No new threat is rolled while this many are on the map. */
+  readonly threatsMax: number;
+  /** Strength rises by 1 per this many active players beyond the first… */
+  readonly threatStrengthPlayers: number;
+  /** …and by 1 per this many days after the first. */
+  readonly threatStrengthDays: number;
+  /** A `path` threat appears this far ahead of the creature's centre. */
+  readonly threatPathDistance: number;
+  /** Actions a character struck by a threat starts the next day with. */
+  readonly struckActions: number;
+
+  // Guardian.
+  readonly strikeCost: number;
+  /** Strength a strike takes off a threat, for a role tagged `defend` and for anyone else. */
+  readonly clearPowerGuardian: number;
+  readonly clearPowerOther: number;
+  readonly defendCost: number;
+  /** Each strike on the creature is reduced by this per defending guardian still riding. */
+  readonly defendReduction: number;
+
+  // Envoy and the peoples.
+  readonly parleyCost: number;
+  readonly offerCost: number;
+  readonly askBoonCost: number;
+  /** Favour a parley gains, for a role tagged `peoples` and for anyone else. */
+  readonly parleyFavourEnvoy: number;
+  readonly parleyFavourOther: number;
+  /** Chance a parley by anyone but an envoy angers the settlement instead. */
+  readonly parleyAngerChanceOther: number;
+  readonly offerFavour: number;
+  /** Ticks after a mislead during which no pursuer appears. */
+  readonly misleadDays: number;
+  /** Peril a shelter takes off. */
+  readonly shelterPeril: number;
+  /** A settlement appears when the creature's steps reach this, then every `settlementEvery` steps. */
+  readonly settlementFirst: number;
+  readonly settlementEvery: number;
+
+  // Peril and the ending.
+  /** Peril at which the season is lost. */
+  readonly perilMax: number;
+  /** Home with peril at or above this is home wounded. */
+  readonly perilWoundedAt: number;
+  /** Peril added at a tick that ends with the creature underfed at `perilHungryLevel` or more. */
+  readonly perilHungry: number;
+  readonly perilHungryLevel: number;
+  /** Peril lost at a tick where it did not rise. */
+  readonly perilCalm: number;
+  /** The season's length in creature steps. */
+  readonly routeLength: number;
 }
 
 export const DEFAULT_CONFIG: TuningConfig = {
@@ -86,6 +145,38 @@ export const DEFAULT_CONFIG: TuningConfig = {
   lightFireCost: 1,
   feedCost: 1,
   lingerCost: 2,
+  threatsFromDay: 3,
+  threatChanceBase: 0.25,
+  threatChancePerPlayer: 0.05,
+  threatChancePerDay: 0.01,
+  threatChanceMax: 0.9,
+  threatsMax: 3,
+  threatStrengthPlayers: 3,
+  threatStrengthDays: 10,
+  threatPathDistance: 4,
+  struckActions: 1,
+  strikeCost: 1,
+  clearPowerGuardian: 2,
+  clearPowerOther: 1,
+  defendCost: 1,
+  defendReduction: 2,
+  parleyCost: 1,
+  offerCost: 1,
+  askBoonCost: 1,
+  parleyFavourEnvoy: 2,
+  parleyFavourOther: 1,
+  parleyAngerChanceOther: 0.25,
+  offerFavour: 2,
+  misleadDays: 4,
+  shelterPeril: 3,
+  settlementFirst: 4,
+  settlementEvery: 10,
+  perilMax: 10,
+  perilWoundedAt: 5,
+  perilHungry: 1,
+  perilHungryLevel: 2,
+  perilCalm: 1,
+  routeLength: 40,
 };
 
 export type ConfigOverrides = Partial<Omit<TuningConfig, 'veerWeights' | 'hungryVeerWeights'>> & {
@@ -123,6 +214,11 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     'siteChanceSpecialistTier2',
     'siteChanceOtherTier1',
     'siteChanceOtherTier2',
+    'threatChanceBase',
+    'threatChancePerPlayer',
+    'threatChancePerDay',
+    'threatChanceMax',
+    'parleyAngerChanceOther',
   ] as const;
   for (const key of chances) {
     const p = config[key];
@@ -138,8 +234,46 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     'lightFireCost',
     'feedCost',
     'lingerCost',
+    'strikeCost',
+    'defendCost',
+    'parleyCost',
+    'offerCost',
+    'askBoonCost',
+    'threatStrengthPlayers',
+    'threatStrengthDays',
+    'settlementFirst',
+    'settlementEvery',
+    'routeLength',
+    'perilMax',
   ] as const;
   for (const key of costs) if (!isCount(config[key], 1)) problems.push(key);
+  const counts = [
+    'threatsFromDay',
+    'threatsMax',
+    'struckActions',
+    'clearPowerGuardian',
+    'clearPowerOther',
+    'defendReduction',
+    'parleyFavourEnvoy',
+    'parleyFavourOther',
+    'offerFavour',
+    'misleadDays',
+    'shelterPeril',
+    'perilHungry',
+    'perilCalm',
+  ] as const;
+  for (const key of counts) if (!isCount(config[key], 0)) problems.push(key);
+  // A path threat appears beyond contact (next to the footprint) and inside the window.
+  const path = config.threatPathDistance;
+  if (!(isCount(path, config.creatureRadius + 2) && path <= config.windowRadius)) {
+    problems.push('threatPathDistance');
+  }
+  if (!(isCount(config.perilWoundedAt, 1) && config.perilWoundedAt < config.perilMax)) {
+    problems.push('perilWoundedAt');
+  }
+  if (!(isCount(config.perilHungryLevel, 1) && config.perilHungryLevel <= 3)) {
+    problems.push('perilHungryLevel');
+  }
   if (!validWeights(config.veerWeights)) problems.push('veerWeights');
   if (!validWeights(config.hungryVeerWeights)) problems.push('hungryVeerWeights');
   if (!isCount(config.stimulusRange, 0)) problems.push('stimulusRange');

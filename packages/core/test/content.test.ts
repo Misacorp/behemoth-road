@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+  BOONS,
   CREATURE_TYPES,
   FEATURE_TYPES,
   MATERIALS,
+  PEOPLE_TYPES,
   QUIRKS,
+  THREAT_TYPES,
   REACTIONS,
   ROLES,
   STIMULUS_TYPES,
@@ -22,6 +25,8 @@ describe('content', () => {
       FEATURE_TYPES,
       CREATURE_TYPES,
       STIMULUS_TYPES,
+      THREAT_TYPES,
+      PEOPLE_TYPES,
     ].flatMap((list) => list.map((x) => x.icon));
     const repeated = icons.filter((icon, i) => icons.indexOf(icon) !== i);
     expect(repeated).toEqual([]);
@@ -75,5 +80,35 @@ describe('content', () => {
         true,
       );
     }
+  });
+
+  it('gives threats sound numbers, and at least one that the daily roll can pick', () => {
+    const ids = THREAT_TYPES.map((t) => t.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const t of THREAT_TYPES) {
+      expect(Number.isInteger(t.strength) && t.strength > 0).toBe(true);
+      expect(Number.isInteger(t.speed) && t.speed >= 0).toBe(true);
+      expect(t.weight).toBeGreaterThanOrEqual(0);
+      expect(['behind', 'flank', 'path', 'sent']).toContain(t.approach);
+      // A sent threat is never rolled; a rolled one has a place to appear.
+      expect(t.approach === 'sent').toBe(t.weight === 0);
+    }
+    expect(THREAT_TYPES.some((t) => t.weight > 0)).toBe(true);
+  });
+
+  it('gives peoples known boons, a gift of known materials and a known threat', () => {
+    const materials = new Set(MATERIALS.map((m) => m.id));
+    for (const p of PEOPLE_TYPES) {
+      expect(p.favourNeeded).toBeGreaterThan(0);
+      expect(p.boons.length).toBeGreaterThan(0);
+      for (const b of p.boons) expect(BOONS).toContain(b);
+      for (const g of p.gift) expect(materials.has(g.material) && g.amount > 0).toBe(true);
+      expect(THREAT_TYPES.some((t) => t.id === p.angryThreat)).toBe(true);
+    }
+    // The envoy's lever: something to offer exists, from a site.
+    const trade = MATERIALS.filter((m) => m.tags.includes('trade')).map((m) => m.id);
+    expect(FEATURE_TYPES.some((f) => f.kind === 'site' && trade.includes(f.finds.material))).toBe(
+      true,
+    );
   });
 });

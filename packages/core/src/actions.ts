@@ -7,10 +7,11 @@ import { depositPack, enterHex, type GameEvent } from './features.ts';
 import type { Hex } from './hex.ts';
 import { terrainOf } from './map.ts';
 import { arePlacesAdjacent, placeNeighbours, toPlace } from './places.ts';
-import type { Character, GameStateView, Place } from './state.ts';
+import { type Character, type GameStateView, isSeasonOver, type Place } from './state.ts';
 import { isCreatureHex, isReachable } from './window.ts';
 
 export type MoveRefusal =
+  | 'season-over'
   | 'invalid-hex'
   | 'unknown-character'
   | 'character-lost'
@@ -97,6 +98,7 @@ export const stepOnly = <S extends GameStateView>(
   characterId: string,
   to: Hex | Place,
 ): StepResult<S> => {
+  if (isSeasonOver(state)) return { ok: false, reason: 'season-over' };
   const target = toPlace(state, to);
   if (!target) return { ok: false, reason: 'invalid-hex' };
   const found = activeCharacter(state, characterId);
