@@ -5,7 +5,7 @@
  */
 import type { ComponentChildren, JSX } from 'preact';
 import type { TipId } from '../text/tips.ts';
-import { tipProps } from './Tip.tsx';
+import { tipProps } from './press.ts';
 
 export function IconTip({
   id,

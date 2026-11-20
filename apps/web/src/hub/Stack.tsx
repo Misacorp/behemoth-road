@@ -5,7 +5,7 @@ import { iconOf } from '../game/chain.ts';
 import { PALETTE } from '../map/art.ts';
 import { toPreact } from '../map/svgToPreact.ts';
 import { tipFor } from '../ui/tip.ts';
-import { tipProps } from '../ui/Tip.tsx';
+import { tipProps } from '../ui/press.ts';
 
 export function ContentIcon({
   id,

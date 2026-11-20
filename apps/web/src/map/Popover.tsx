@@ -34,7 +34,7 @@ import type { Identity } from '../game/identity.ts';
 import { QuirkIcon, RoleEmblem, TraitIcon } from '../ui/emblems.tsx';
 import type { TipId } from '../text/tips.ts';
 import { tipFor } from '../ui/tip.ts';
-import { tipProps } from '../ui/Tip.tsx';
+import { tipProps } from '../ui/press.ts';
 import { getSettings } from '../settings.ts';
 import { verbOf } from '../text/verbs.ts';
 import type { SettlementInfo, ThreatCardInfo } from '../game/season.ts';

@@ -47,10 +47,9 @@ import { MomentMark } from './MomentMark.tsx';
 import { mapTipAt, placeNoun, tileTipAt } from './mapTips.ts';
 import type { TipId } from '../text/tips.ts';
 import type { TipTarget } from '../ui/tip.ts';
-import { TIPS } from '../ui/Tip.tsx';
+import { holdEnded, onRightClick, TIPS } from '../ui/press.ts';
 import { MAP_TUNING } from './config.ts';
 import { type Flow, isSelecting } from './flow.ts';
-import { contextMenuDismisses, lastPress } from '../ui/pointer.ts';
 import { holdMs } from '../text/tips.ts';
 import { GestureTracker, type Gesture } from './gestures.ts';
 import { buildOverlays } from './overlays.ts';
@@ -664,6 +663,17 @@ export function MapView(props: MapViewProps): JSX.Element {
   }, [state, characterId]);
   useEffect(() => () => window.clearTimeout(followTimer.current), []);
 
+  // A mouse right-click on the map dismisses (the press module has already closed any tip).
+  useEffect(
+    () =>
+      onRightClick((e) => {
+        if (!(e.target instanceof Node && svgRef.current?.contains(e.target))) return;
+        e.preventDefault();
+        latest.current.onRightClick();
+      }),
+    [],
+  );
+
   // Recentre buttons.
   const focusN = props.focus.n;
   useEffect(() => {
@@ -796,21 +806,19 @@ export function MapView(props: MapViewProps): JSX.Element {
           TIPS.hover(tip.id, tip.target);
         }
       }
-    } else if (e.pointerType !== 'mouse') {
-      TIPS.move(e.clientX, e.clientY);
     }
     handle(tracker.current.move(e.pointerId, local(e)));
   };
   const onPointerUp = (e: PointerEvent): void => {
     // A hold that opened a tip is not a tap.
-    if (e.pointerType !== 'mouse' && TIPS.release()) {
+    // (The press module released the tip on this lift, before this ran, and says whether it was a hold.)
+    if (e.pointerType !== 'mouse' && holdEnded()) {
       handle(tracker.current.cancel(e.pointerId));
       return;
     }
     handle(tracker.current.up(e.pointerId, local(e), e.timeStamp));
   };
   const onPointerCancel = (e: PointerEvent): void => {
-    TIPS.release();
     handle(tracker.current.cancel(e.pointerId));
   };
 
@@ -981,10 +989,6 @@ export function MapView(props: MapViewProps): JSX.Element {
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerCancel}
         onPointerLeave={unhoverTip}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          if (contextMenuDismisses(lastPress.type)) props.onRightClick();
-        }}
         onLostPointerCapture={onPointerCancel}
       >
         <g

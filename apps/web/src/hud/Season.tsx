@@ -4,7 +4,7 @@
  * ending that fills the screen once the season is over (a title, the outcome's scene, the route and the days
  * taken; admins on staging get a new-season button). No prose: the three ending titles are the only words.
  */
-import { tipProps } from '../ui/Tip.tsx';
+import { tipProps } from '../ui/press.ts';
 import type { JSX } from 'preact';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { ENDING_TITLES } from '../game/season.ts';

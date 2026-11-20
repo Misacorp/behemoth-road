@@ -4,9 +4,10 @@
  */
 import { type CharacterLook, drawPackIcon } from '@behemoth-road/art';
 import type { JSX } from 'preact';
+import { useEffect } from 'preact/hooks';
 import type { Stock } from '../game/chain.ts';
 import { Stack } from '../hub/Stack.tsx';
-import { elementTarget, TIPS, tipProps } from '../ui/Tip.tsx';
+import { setTipExtra, tipProps } from '../ui/press.ts';
 import { PALETTE } from '../map/art.ts';
 import type { FocusTarget } from '../map/MapView.tsx';
 import { toPreact } from '../map/svgToPreact.ts';
@@ -80,14 +81,15 @@ function PackButton({
       <Slots total={capacity} left={units} size={10} />
     </div>
   );
+  useEffect(() => setTipExtra('hud:pack', contents));
   return (
     <button
       type="button"
       class="round hud-pack"
       aria-label="Pack"
       data-units={units}
+      data-tip-tap
       {...tipProps('hud:pack')}
-      onClick={(e) => TIPS.tap('hud:pack', elementTarget(e.currentTarget), contents)}
     >
       {toPreact(drawPackIcon(PALETTE, 44, units, capacity))}
     </button>

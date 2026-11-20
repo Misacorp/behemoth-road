@@ -9,7 +9,7 @@
 import { getSettings } from '../settings.ts';
 import { verbOf } from '../text/verbs.ts';
 import { tipFor } from '../ui/tip.ts';
-import { tipProps } from '../ui/Tip.tsx';
+import { tipProps } from '../ui/press.ts';
 import { drawStoresIcon, drawWorkBar } from '@behemoth-road/art';
 import type { CreatureSigns, GameStateView } from '@behemoth-road/core';
 import type { JSX } from 'preact';
