@@ -142,10 +142,10 @@ describe('captured contract fixtures', () => {
     expect(moments('view-befriended')).toEqual(['befriended']);
     expect(moments('view-boon')).toEqual(['boon']);
     expect(moments('view-angered')).toEqual(['angered', 'threat']);
-    expect(moments('view-peril-since')).toEqual(['strike', 'strike']);
-    expect(moments('view-season-lost')).toEqual(['strike', 'struck', 'season-over']);
-    expect(moments('view-season-safe')).toEqual(['season-over']);
-    expect(moments('view-struck-since')).toEqual(['struck', 'threat']);
+    expect(moments('view-peril-since')).toEqual(['step', 'strike', 'strike']);
+    expect(moments('view-season-lost')).toEqual(['step', 'strike', 'struck', 'season-over']);
+    expect(moments('view-season-safe')).toEqual(['step', 'season-over']);
+    expect(moments('view-struck-since')).toEqual(['step', 'struck', 'threat']);
   });
 
   it('bandages the captured struck character for the day it was struck', () => {

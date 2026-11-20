@@ -217,4 +217,25 @@ describe('Milestone 5 on the map', () => {
     });
     expect(characterArts(struck(view.day - 1)).find((f) => f.id === id)?.marks).toBeUndefined();
   });
+
+  it('badges a threat you could strike and a settlement beside you with what it offers', () => {
+    const near = season({
+      threats: [
+        { type: 'swarm', at: { q: 1, r: 3 } },
+        { type: 'captors', at: { q: 3, r: 5 } },
+      ],
+      settlements: [{ at: { q: 2, r: 2 } }, { at: { q: 0, r: 2 }, attitude: 'friendly' }],
+    });
+    const marks = near.o.over.map((m) => m.attrs['data-mark']);
+    // Only the swarm next to you; the captors are too far.
+    expect(marks.filter((m) => m === 'action:strike')).toHaveLength(1);
+    expect(marks.filter((m) => m === 'action:parley')).toHaveLength(1);
+    expect(marks.filter((m) => m === 'action:gift')).toHaveLength(1);
+    const taken = season({
+      settlements: [{ at: { q: 2, r: 2 }, attitude: 'friendly', boon: 'gift' }],
+    });
+    expect(taken.o.over.some((m) => String(m.attrs['data-mark']).startsWith('action:'))).toBe(
+      false,
+    );
+  });
 });

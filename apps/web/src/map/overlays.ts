@@ -473,6 +473,28 @@ function actionHints(i: OverlayInput): SvgNode[] {
     const at = { x: c.x + 0.45 * p.size, y: c.y - 0.55 * p.size };
     out.push(el('g', { 'data-mark': `action:${glyph}` }, [iconAt(i, glyph, at, size)]));
   }
+  // Milestone 5: a strike badge on each threat you could strike (on or next to it), and on a settlement
+  // where you stand or next to you, what it offers: a parley while wary, a boon once friendly.
+  for (const t of i.state.threats) {
+    const check = checkAction(i.state, me.id, { kind: 'strike', threat: t.id });
+    if (!check.ok && check.reason !== 'not-enough-actions') continue;
+    const c = hexCenter(p, t.hex.q, t.hex.r);
+    const at = { x: c.x + 0.45 * p.size, y: c.y - 0.95 * p.size };
+    out.push(el('g', { 'data-mark': 'action:strike' }, [iconAt(i, 'strike', at, size)]));
+  }
+  for (const s of i.state.settlements) {
+    if (hexDistance(s.hex, here) > 1) continue;
+    const glyph =
+      s.attitude === 'wary'
+        ? 'parley'
+        : s.attitude === 'friendly' && s.boon === null
+          ? 'gift'
+          : null;
+    if (!glyph) continue;
+    const c = hexCenter(p, s.hex.q, s.hex.r);
+    const at = { x: c.x + 0.5 * p.size, y: c.y - 0.85 * p.size };
+    out.push(el('g', { 'data-mark': `action:${glyph}` }, [iconAt(i, glyph, at, size)]));
+  }
   if (i.flow.kind === 'selected') {
     for (const h of hexesInRange(here, 1)) {
       if (hexDistance(h, here) !== 1) continue;

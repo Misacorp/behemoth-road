@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: Threats and settlements near you carry M4-style action badges
+
+ID: `2026-11-20-threats-and-settlements-near-you-carry` · Status: current
+
+**Decision.** Like the M4 node and site badges, a small strike glyph sits on each threat you could strike (on or next to it, from the core's check, also when your actions are spent), and a settlement where you stand or next to you shows what it offers: a parley glyph while wary, a gift glyph while friendly with no boon taken. Angry or spent settlements show none. The settlement card names its people.
+
+**Reasoning.** The polish round's pattern: hint what can be done nearby with the action's own glyph, without saying what it does. The names follow M4's "names on icons".
+
 ## 2026-11-20: Escort and struck marks read the core's rule through one web function until the core exports it
 
 ID: `2026-11-20-escort-and-struck-marks-read-the` · Status: current

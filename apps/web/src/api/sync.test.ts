@@ -81,4 +81,31 @@ describe('view sync', () => {
     expect(asked).toEqual([5]);
     expect(seen.at(-1)?.events).toEqual([reveal]);
   });
+
+  it('after a new season, drops answers to polls and actions started in the old game', async () => {
+    let answer: (a: GameResponse) => void = () => {};
+    const seen: PlayerView[] = [];
+    const sync = new Sync({
+      api: { game: () => new Promise<GameResponse>((ok) => (answer = ok)) },
+      onView: (v) => seen.push(v),
+      setInterval: () => 1,
+      clearInterval: () => {},
+    });
+    sync.accept(at(40));
+    const old = sync.generation;
+    const poll = sync.refresh();
+    sync.restart(at(2));
+    // The old game's poll answers after the restart, with a higher version: it must not come back.
+    answer(at(41));
+    await poll;
+    // So must an action's answer to a request made before the restart.
+    sync.accept(at(42), old);
+    expect(sync.current?.version).toBe(2);
+    expect(seen.map((v) => v.version)).toEqual([40, 2]);
+    // A poll made after the restart is taken.
+    const next = sync.refresh();
+    answer(at(3));
+    await next;
+    expect(sync.current?.version).toBe(3);
+  });
 });

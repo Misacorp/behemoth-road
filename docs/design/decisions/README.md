@@ -114,6 +114,7 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-20 Threats and settlements near you carry M4-style action badges
 - 2026-11-20 Escort and struck marks read the core's rule through one web function until the core exports it
 - 2026-11-20 The new-season button shows for admins with dev tools on
 - 2026-11-20 Settlement actions live in the here card; from afar its card shows only attitude and favour

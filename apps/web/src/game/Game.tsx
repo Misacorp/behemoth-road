@@ -203,9 +203,12 @@ export function Game({ api, initial }: GameProps): JSX.Element {
     setBusy(true);
     try {
       const before = view.version;
+      const generation = sync.current!.generation;
       const next = await run();
+      // An answer from before a new season belongs to the old game.
+      if (generation !== sync.current!.generation) return;
       planVersion.current = next.version;
-      sync.current!.accept(next);
+      sync.current!.accept(next, generation);
       setFlow(after(next));
       // What others (and the tick) did since the view this action started from.
       void sync.current!.catchUp(before);
@@ -333,9 +336,12 @@ export function Game({ api, initial }: GameProps): JSX.Element {
     ? [...careOptions(state, me.id), ...[defendOption(state, me.id)].filter((a) => a !== null)]
     : [];
   // Staging and local only (dev tools), admins: a new season after the end. Its view replaces this game's.
+  // A new season that failed: the button shakes and fades back (no prose).
+  const [seasonFailed, setSeasonFailed] = useState(0);
   const onNewSeason = (): void => {
     if (busy) return;
     setBusy(true);
+    setSeasonFailed(0);
     void (async () => {
       try {
         await api.newSeason();
@@ -348,6 +354,7 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         }
       } catch (err) {
         console.warn('new season failed', err);
+        setSeasonFailed((n) => n + 1);
       } finally {
         setBusy(false);
       }
@@ -447,6 +454,7 @@ export function Game({ api, initial }: GameProps): JSX.Element {
           days={ended.day}
           route={{ steps: state.creature.steps, length: state.config.routeLength }}
           onNewSeason={showsNextDay(view) ? onNewSeason : null}
+          failed={seasonFailed}
           party={state.characters
             .filter((c) => c.status === 'active')
             .map((c) => {

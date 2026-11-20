@@ -825,9 +825,9 @@ export function ThreatCard({
   );
 }
 
-export const SETTLEMENT_SIZE = { width: 84, height: 80 } as const;
+export const SETTLEMENT_SIZE = { width: 172, height: 80 } as const;
 
-/** A settlement from afar: its drawing by attitude, with its favour marks while it is wary. */
+/** A settlement from afar: its drawing by attitude (with its favour marks while wary) and its people's name. */
 export function SettlementCard({ settlement }: { settlement: SettlementInfo }): JSX.Element {
   const drawn = drawSettlementIcon(PALETTE, 70, {
     look: settlement.look,
@@ -844,6 +844,16 @@ export function SettlementCard({ settlement }: { settlement: SettlementInfo }): 
     >
       <Card {...SETTLEMENT_SIZE} />
       {toPreact({ ...drawn, attrs: { ...drawn.attrs, x: 7, y: 5 } })}
+      <text
+        x={84}
+        y={44}
+        fill={PALETTE.ink}
+        font-size={13}
+        font-weight={600}
+        font-family="system-ui, sans-serif"
+      >
+        {settlement.name.length > 12 ? `${settlement.name.slice(0, 11)}…` : settlement.name}
+      </text>
     </g>
   );
 }

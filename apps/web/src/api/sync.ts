@@ -21,6 +21,8 @@ export class Sync {
   private view: PlayerView | null = null;
   private timer: number | null = null;
   private inFlight: Promise<void> | null = null;
+  /** Counts restarts (new seasons): an answer to a request made before the last one is dropped. */
+  private gen = 0;
 
   constructor(private readonly deps: SyncDeps) {}
 
@@ -28,8 +30,17 @@ export class Sync {
     return this.view;
   }
 
-  /** A newer view (from an action's answer, or a refresh). Older versions are ignored. */
-  accept(view: PlayerView): void {
+  /** The current generation, for a caller that asks the server itself (an action) to pass back to `accept`. */
+  get generation(): number {
+    return this.gen;
+  }
+
+  /**
+   * A newer view (from an action's answer, or a refresh). Older versions are ignored, and so is an answer
+   * to a request made before a restart (`generation` then differs): it belongs to the old game.
+   */
+  accept(view: PlayerView, generation = this.gen): void {
+    if (generation !== this.gen) return;
     if (this.view && view.version < this.view.version) return;
     this.view = view;
     this.deps.onView(view);
@@ -37,24 +48,30 @@ export class Sync {
 
   /** A new game (a new season): its view replaces the old one whatever their versions. */
   restart(view: PlayerView): void {
+    this.gen += 1;
+    // A poll still in flight belongs to the old game: the next refresh asks afresh.
+    this.inFlight = null;
     this.view = view;
     this.deps.onView(view);
   }
 
   /** Asks the server for anything newer. Concurrent calls share one request. */
   refresh(): Promise<void> {
-    this.inFlight ??= this.deps.api
+    if (this.inFlight) return this.inFlight;
+    const gen = this.gen;
+    const request = this.deps.api
       .game(this.view?.version)
       .then(
         (answer) => {
-          if (!('unchanged' in answer)) this.accept(answer);
+          if (!('unchanged' in answer)) this.accept(answer, gen);
         },
         (err: unknown) => this.deps.onError?.(err),
       )
       .finally(() => {
-        this.inFlight = null;
+        if (this.inFlight === request) this.inFlight = null;
       });
-    return this.inFlight;
+    this.inFlight = request;
+    return request;
   }
 
   /**
@@ -62,9 +79,10 @@ export class Sync {
    * now with what others and the tick did in between, so their moments play too (yours play once).
    */
   catchUp(version: number): Promise<void> {
+    const gen = this.gen;
     return this.deps.api.game(version).then(
       (answer) => {
-        if (!('unchanged' in answer)) this.accept(answer);
+        if (!('unchanged' in answer)) this.accept(answer, gen);
       },
       (err: unknown) => this.deps.onError?.(err),
     );

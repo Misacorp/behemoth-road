@@ -129,6 +129,8 @@ export interface SettlementInfo {
   readonly boon: string | null;
   /** The people's content icon (the art kit's settlement look). */
   readonly look: string;
+  /** The people's name (content), shown on its card. */
+  readonly name: string;
 }
 
 export function settlementInfo(game: GameStateView, id: string): SettlementInfo | null {
@@ -143,6 +145,7 @@ export function settlementInfo(game: GameStateView, id: string): SettlementInfo 
     needed: type?.favourNeeded ?? 0,
     boon: s.boon,
     look: type?.icon ?? s.type,
+    name: type?.name ?? '',
   };
 }
 

@@ -236,9 +236,45 @@ button svg,
 }
 
 .ending-title,
-.ending-route,
-.ending-new {
+.ending-foot {
   position: relative;
+}
+
+/* The route, the days and the new-season button sit low, clear of the scene's middle. */
+.ending-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* A new season that failed: the button shakes and fades back. */
+.ending-new.is-failed {
+  animation: ending-failed 0.9s ease-out both;
+}
+
+@keyframes ending-failed {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  15% {
+    transform: translateX(-6px);
+  }
+  30% {
+    transform: translateX(6px);
+  }
+  45% {
+    transform: translateX(-4px);
+    opacity: 0.5;
+  }
+  60% {
+    transform: translateX(3px);
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 .ending-title {

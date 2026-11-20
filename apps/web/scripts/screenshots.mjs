@@ -158,6 +158,10 @@ class FakeServer {
       return ok({ ...s, state: result.state, version: s.version + 1 }, result.events);
     }
     if (path === '/api/dev/new-season') {
+      if (this.failNewSeason) {
+        this.failNewSeason = false;
+        return [500, { error: 'internal' }];
+      }
       // Like the Worker: a new game with a new seed; the client reads its view afterwards.
       this.reset(newSeasonScenario());
       return [200, { ok: true }];
@@ -945,8 +949,27 @@ async function run() {
             problems.push(`${vp.name}: ending ${String(shown)}, not ${outcome}`);
           if (!(await count('.ending [aria-label="New season"]')))
             problems.push(`${vp.name}: no new-season button for an admin`);
+          // The route and the days sit low on the screen, clear of the scene's middle.
+          const foot = await page.locator('.ending-route').boundingBox();
+          if (!foot || foot.y < vp.height * 0.6)
+            problems.push(`${vp.name}: the ending's route sits at ${String(foot?.y)} px`);
           await shot5(`15-ending-${outcome}`);
         }
+        // A new season that fails: the button shakes and fades back, the ending stays.
+        fake.failNewSeason = true;
+        const quiet5 = problems.length;
+        await press('.ending [aria-label="New season"]');
+        await page.waitForTimeout(250);
+        if (!(await count('.ending-new.is-failed')))
+          problems.push(`${vp.name}: no sign that the new season failed`);
+        await shot5('15b-new-season-failed');
+        await page.waitForTimeout(900);
+        // The failed request logs a console error; that one is expected.
+        problems.splice(
+          quiet5,
+          problems.length - quiet5,
+          ...problems.slice(quiet5).filter((p) => !/500/.test(p)),
+        );
         // A new season: the ending gives way to the join drawer of a new game.
         await press('.ending [aria-label="New season"]');
         await page.waitForTimeout(800);
