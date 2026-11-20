@@ -4,6 +4,7 @@
  */
 import {
   accentRamp,
+  actionArrowNodes,
   drawCharacter,
   drawCreatureIcon,
   GENTLE_AMBLER,
@@ -127,8 +128,49 @@ export function TickMark({ r }: { r: number }): JSX.Element {
   );
 }
 
-/** Action pips: `left` filled; the last `planned` of those drawn hollow (what the plan would spend). */
+/**
+ * Actions as the art kit's action arrows, one per action: `left` drawn solid; the last `planned` of those as
+ * dashed outlines (what the plan would spend); the rest, up to `total`, faint (spent today). In ink, not
+ * colour (`tint` is only the grace day's warning wash on the solid ones).
+ */
 export function Pips({
+  total,
+  left,
+  planned = 0,
+  size = 12,
+  tint,
+}: {
+  total: number;
+  left: number;
+  planned?: number;
+  size?: number;
+  tint?: string;
+}): JSX.Element {
+  const w = size * 0.85;
+  const h = w * 1.2;
+  const gap = w * 0.25;
+  const width = total > 0 ? total * w + (total - 1) * gap + 2 : w;
+  const nodes = Array.from({ length: total }, (_, i) => {
+    const state = i >= left ? 'spent' : i >= left - planned ? 'spending' : 'ready';
+    return actionArrowNodes(PALETTE, 1 + i * (w + gap), 1, w, state).map((n) =>
+      tint && state === 'ready' ? { ...n, attrs: { ...n.attrs, fill: tint } } : n,
+    );
+  }).flat();
+  return (
+    <svg
+      viewBox={`0 0 ${width} ${h + 2}`}
+      width={width}
+      height={h + 2}
+      aria-hidden="true"
+      data-arrows={total}
+    >
+      {nodes.map(toPreact)}
+    </svg>
+  );
+}
+
+/** Round slots (a pack's capacity): `left` filled; the last `planned` of those drawn hollow. */
+export function Slots({
   total,
   left,
   planned = 0,

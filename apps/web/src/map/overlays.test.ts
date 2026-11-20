@@ -78,8 +78,12 @@ describe('overlays', () => {
     expect(overlays(state, { kind: 'idle' }).over).toHaveLength(0);
     const idleUnder = overlays(state, { kind: 'idle' }).under.length;
     expect(overlays(state, { kind: 'selected' }).under.length).toBeGreaterThan(idleUnder);
-    // Arrow line, head, and one pip per action.
-    expect(overlays(state, planned).over).toHaveLength(2 + plan.cost);
+    // The arrow (two strokes), then each stretch's cost: a paper strip and one action arrow per action.
+    const over = overlays(state, planned).over;
+    const strips = over.filter((n) => n.attrs['data-mark'] === 'cost').length;
+    expect(strips).toBeGreaterThan(0);
+    expect(over.filter((n) => n.attrs['data-arrow'] === 'ready')).toHaveLength(plan.cost);
+    expect(over).toHaveLength(2 + strips + plan.cost);
   });
 
   it('hint one paw print per likely creature step', () => {
@@ -133,7 +137,7 @@ describe('overlays', () => {
     const steps = plan.steps.map((st, n) => (n === 0 ? { ...st, via: 'grappling-hook' } : st));
     const o = overlays(state, { kind: 'planned', to: onHex(to), steps, cost: plan.cost });
     const marks = o.over.flatMap((n) => (n.attrs['data-mark'] ? [n.attrs['data-mark']] : []));
-    expect(marks).toEqual(['via:grappling-hook']);
+    expect(marks.filter((m) => m !== 'cost')).toEqual(['via:grappling-hook']);
     for (const n of o.over) expect(() => toPreact(n)).not.toThrow();
   });
 });

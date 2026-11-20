@@ -34,6 +34,8 @@ import { QuirkIcon, RoleEmblem, TraitIcon } from '../ui/emblems.tsx';
 import type { TipId } from '../text/tips.ts';
 import { tipFor } from '../ui/tip.ts';
 import { tipProps } from '../ui/Tip.tsx';
+import { getSettings } from '../settings.ts';
+import { verbOf } from '../text/verbs.ts';
 import type { SettlementInfo, ThreatCardInfo } from '../game/season.ts';
 import { press } from './arm.ts';
 import { drawRoleBadge, PALETTE } from './art.ts';
@@ -72,6 +74,7 @@ function Miniature({
   feature = null,
   hint = false,
   scale = 1,
+  tip = null,
 }: {
   terrain: string;
   state: CellState;
@@ -83,6 +86,8 @@ function Miniature({
   feature?: FeatureArt | null;
   /** The glint: something sensed here. */
   hint?: boolean;
+  /** Its tip: what the tile is (its feature, or its ground). */
+  tip?: TipId | null;
 }) {
   const scene = renderScene({
     cells: [
@@ -95,8 +100,12 @@ function Miniature({
     // On the card, a page frame would show as a box.
     frame: 'none',
   });
-  return toPreact(
-    el('svg', { ...scene.attrs, x, y, width: 64 * scale, height: 56 * scale }, scene.children),
+  return (
+    <g {...tipProps(tip)} data-tile-tip={tip ?? undefined}>
+      {toPreact(
+        el('svg', { ...scene.attrs, x, y, width: 64 * scale, height: 56 * scale }, scene.children),
+      )}
+    </g>
   );
 }
 
@@ -183,7 +192,7 @@ function CardIcon({
 /** The inspect card, wider for each button it offers (a survey, a fire hint). */
 export const inspectSize = (survey: boolean, fire = false): { width: number; height: number } => ({
   width: INSPECT_SIZE.width + ((survey ? 1 : 0) + (fire ? 1 : 0)) * ACTION_W,
-  height: INSPECT_SIZE.height,
+  height: INSPECT_SIZE.height + TITLE_H + (survey || fire ? labelH() : 0),
 });
 
 /**
@@ -193,6 +202,8 @@ export const inspectSize = (survey: boolean, fire = false): { width: number; hei
  * anything: a fire is lit where you stand).
  */
 export function InspectCard({
+  title = null,
+  tileTip = null,
   terrain,
   state,
   feature = null,
@@ -213,39 +224,46 @@ export function InspectCard({
   surveyRef?: (el: SVGGElement | null) => void;
   /** Two taps spend the survey. */
   arm?: Arming;
+  /** Its noun ("Plains", "Berry bushes"), or null while it is unseen. */
+  title?: string | null;
+  /** The tile picture's tip. */
+  tileTip?: TipId | null;
 }): JSX.Element {
   return (
     <g data-popover="inspect" data-feature={feature?.look} data-state={state}>
       <Card {...inspectSize(survey !== null, fire !== null)} />
-      <Miniature terrain={terrain} state={state} x={6} y={8} feature={feature} />
-      <g transform="translate(84 22)">
-        <VisibilityMark state={state} />
+      <Title text={title} />
+      <g transform={`translate(0 ${TITLE_H})`}>
+        <Miniature terrain={terrain} state={state} x={6} y={8} feature={feature} tip={tileTip} />
+        <g transform="translate(84 22)">
+          <VisibilityMark state={state} />
+        </g>
+        {survey && (
+          <ActionButton
+            kind="survey"
+            icon="spyglass"
+            cost={survey.cost}
+            enabled={survey.enabled}
+            x={INSPECT_SIZE.width - 6}
+            y={12}
+            onRun={() => onSurvey?.()}
+            {...(arm ? { arm } : {})}
+            {...(surveyRef ? { buttonRef: surveyRef } : {})}
+          />
+        )}
+        {fire && (
+          <ActionButton
+            kind="light-fire"
+            icon="light-fire"
+            cost={fire.cost}
+            enabled={false}
+            x={INSPECT_SIZE.width - 6 + (survey ? ACTION_W : 0)}
+            y={12}
+            uses={iconOf(fire.uses)}
+            onRun={() => {}}
+          />
+        )}
       </g>
-      {survey && (
-        <ActionButton
-          kind="survey"
-          icon="spyglass"
-          cost={survey.cost}
-          enabled={survey.enabled}
-          x={INSPECT_SIZE.width - 6}
-          y={12}
-          onRun={() => onSurvey?.()}
-          {...(arm ? { arm } : {})}
-          {...(surveyRef ? { buttonRef: surveyRef } : {})}
-        />
-      )}
-      {fire && (
-        <ActionButton
-          kind="light-fire"
-          icon="light-fire"
-          cost={fire.cost}
-          enabled={false}
-          x={INSPECT_SIZE.width - 6 + (survey ? ACTION_W : 0)}
-          y={12}
-          uses={iconOf(fire.uses)}
-          onRun={() => {}}
-        />
-      )}
     </g>
   );
 }
@@ -567,7 +585,62 @@ export const CHARACTER_SIZE = { width: 236, height: 78 } as const;
  * Another player's character: its figure, its name (the only text, rendered as text), its role emblem
  * and its trait and quirk icons.
  */
-export function CharacterCard({ who }: { who: Identity }): JSX.Element {
+/** The back button at a card's top left, when the card continues another popup (the bubble). */
+const BACK_W = 30;
+
+export const characterSize = (back: boolean): { width: number; height: number } => ({
+  width: CHARACTER_SIZE.width + (back ? BACK_W : 0),
+  height: CHARACTER_SIZE.height,
+});
+
+function BackButton({
+  onBack,
+  buttonRef,
+}: {
+  onBack: () => void;
+  buttonRef?: (el: SVGGElement | null) => void;
+}): JSX.Element {
+  return (
+    <g
+      {...(buttonRef ? { ref: buttonRef } : {})}
+      class="svg-button"
+      role="button"
+      tabindex={0}
+      aria-label="Back"
+      data-back
+      transform="translate(4 4)"
+      onClick={onBack}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onBack();
+        }
+      }}
+    >
+      <rect width={24} height={24} rx={8} fill={PALETTE.paperDeep} />
+      <path
+        d="M15 5l-7 7 7 7"
+        fill="none"
+        stroke={PALETTE.ink}
+        stroke-width={2}
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </g>
+  );
+}
+
+export function CharacterCard({
+  who,
+  onBack,
+  backRef,
+}: {
+  who: Identity;
+  /** Opened inside another popup: the back button at its top left returns to it. */
+  onBack?: () => void;
+  backRef?: (el: SVGGElement | null) => void;
+}): JSX.Element {
+  const shift = onBack ? BACK_W : 0;
   // The role, trait and quirk icons each have their tip (hover, or press and hold).
   const tipped = (id: TipId | null, x: number, y: number, icon: JSX.Element) => (
     <g transform={`translate(${x} ${y})`} {...tipProps(id)}>
@@ -575,25 +648,28 @@ export function CharacterCard({ who }: { who: Identity }): JSX.Element {
     </g>
   );
   return (
-    <g data-popover="character" data-character={who.id}>
-      <Card {...CHARACTER_SIZE} />
-      <Fitted drawn={bubbleFigure(who.accent, who.look)} x={8} y={8} width={40} height={60} />
-      <text
-        x={56}
-        y={28}
-        fill={PALETTE.ink}
-        font-size={15}
-        font-weight={600}
-        font-family="system-ui, sans-serif"
-      >
-        {who.name.length > 22 ? `${who.name.slice(0, 21)}…` : who.name}
-      </text>
-      {who.role &&
-        tipped(tipFor('role', who.role), 54, 38, <RoleEmblem role={who.role} size={30} />)}
-      {who.trait &&
-        tipped(tipFor('trait', who.trait), 92, 43, <TraitIcon id={who.trait} size={22} />)}
-      {who.quirk &&
-        tipped(tipFor('quirk', who.quirk), 120, 43, <QuirkIcon id={who.quirk} size={22} />)}
+    <g data-popover="character" data-character={who.id} data-back={onBack ? true : undefined}>
+      <Card {...characterSize(Boolean(onBack))} />
+      {onBack && <BackButton onBack={onBack} {...(backRef ? { buttonRef: backRef } : {})} />}
+      <g transform={`translate(${shift} 0)`}>
+        <Fitted drawn={bubbleFigure(who.accent, who.look)} x={8} y={8} width={40} height={60} />
+        <text
+          x={56}
+          y={28}
+          fill={PALETTE.ink}
+          font-size={15}
+          font-weight={600}
+          font-family="system-ui, sans-serif"
+        >
+          {who.name.length > 22 ? `${who.name.slice(0, 21)}…` : who.name}
+        </text>
+        {who.role &&
+          tipped(tipFor('role', who.role), 54, 38, <RoleEmblem role={who.role} size={30} />)}
+        {who.trait &&
+          tipped(tipFor('trait', who.trait), 92, 43, <TraitIcon id={who.trait} size={22} />)}
+        {who.quirk &&
+          tipped(tipFor('quirk', who.quirk), 120, 43, <QuirkIcon id={who.quirk} size={22} />)}
+      </g>
     </g>
   );
 }
@@ -616,6 +692,29 @@ export interface HereAction {
 }
 
 const ACTION_W = 54;
+
+/** The row under each action for its verb, when the action labels setting is on. */
+export const labelH = (): number => (getSettings().actionLabels ? 12 : 0);
+/** The noun title's row on a card about a place or thing. */
+export const TITLE_H = 18;
+
+/** A card's noun title (what it is about: "Berry bushes", "Plains"), the card's only words besides names. */
+function Title({ text }: { text: string | null }): JSX.Element | null {
+  if (!text) return null;
+  return (
+    <text
+      x={10}
+      y={14}
+      fill={PALETTE.ink}
+      font-size={12}
+      font-weight={600}
+      font-family="system-ui, sans-serif"
+      data-title={text}
+    >
+      {text.length > 22 ? `${text.slice(0, 21)}…` : text}
+    </text>
+  );
+}
 
 /** The tip of an action button: a boon's own, an offer's, or the action's. */
 function actionTip(kind: string): TipId | null {
@@ -714,7 +813,7 @@ function ActionButton({
       <g opacity={enabled ? 1 : 0.4}>
         <rect
           width={ACTION_W - 6}
-          height={50}
+          height={50 + labelH()}
           rx={9}
           fill={PALETTE.paperDeep}
           {...(armed ? { stroke: PALETTE.ink, 'stroke-width': 1.6 } : {})}
@@ -737,6 +836,20 @@ function ActionButton({
               <Pips total={cost} left={cost} size={9} />
             </g>
           </>
+        )}
+        {labelH() > 0 && verbOf(kind) && (
+          <text
+            x={(ACTION_W - 6) / 2}
+            y={58}
+            text-anchor="middle"
+            fill={PALETTE.ink}
+            font-size={10}
+            font-weight={600}
+            font-family="system-ui, sans-serif"
+            data-verb={verbOf(kind)}
+          >
+            {verbOf(kind)}
+          </text>
         )}
       </g>
       {needs && (
@@ -761,8 +874,8 @@ export const actionKey = (a: HereAction): string => `${a.kind}:${a.uses ?? ''}`;
 
 // Compact, so the neighbours up-left and up-right of your figure stay tappable on a phone.
 export const hereSize = (count: number): { width: number; height: number } => ({
-  width: 58 + count * ACTION_W,
-  height: 62,
+  width: Math.max(58 + count * ACTION_W, 120),
+  height: 62 + TITLE_H + labelH(),
 });
 
 /**
@@ -771,6 +884,8 @@ export const hereSize = (count: number): { width: number; height: number } => ({
  * action arms it, the second spends.
  */
 export function HereCard({
+  title = null,
+  tileTip = null,
   terrain,
   feature,
   actions,
@@ -788,6 +903,10 @@ export function HereCard({
   firstRef: (el: SVGGElement | null) => void;
   /** Two taps spend: the armed action. */
   arm?: Arming;
+  /** Its noun: the feature or ground you stand on, or the settlement's people. */
+  title?: string | null;
+  /** The tile picture's tip. */
+  tileTip?: TipId | null;
 }): JSX.Element {
   const size = hereSize(actions.length);
   return (
@@ -801,31 +920,42 @@ export function HereCard({
       {/* Taps on the card body reach the map below (a neighbour's hex); only the actions catch them. */}
       <g class="pass-through">
         <Card {...size} />
+        <Title text={title} />
+      </g>
+      <g transform={`translate(0 ${TITLE_H})`}>
         {settlement ? (
           <SettlementFigure settlement={settlement} x={5} y={7} size={48} />
         ) : (
-          <Miniature terrain={terrain} state="seen" x={4} y={9} feature={feature} scale={0.78} />
+          <Miniature
+            terrain={terrain}
+            state="seen"
+            x={4}
+            y={9}
+            feature={feature}
+            scale={0.78}
+            tip={tileTip}
+          />
         )}
+        {actions.map((a, i) => (
+          <ActionButton
+            key={actionKey(a)}
+            kind={a.kind}
+            icon={a.icon ?? ACTION_ICONS[a.kind] ?? a.kind}
+            risk={a.risk ?? false}
+            cost={a.cost}
+            enabled={a.enabled}
+            x={56 + i * ACTION_W}
+            y={5}
+            uses={a.uses ? iconOf(a.uses) : null}
+            short={a.short ?? false}
+            needs={a.needs ?? null}
+            armKey={actionKey(a)}
+            {...(arm ? { arm } : {})}
+            onRun={() => onAct(a.kind)}
+            {...(i === 0 ? { buttonRef: firstRef } : {})}
+          />
+        ))}
       </g>
-      {actions.map((a, i) => (
-        <ActionButton
-          key={actionKey(a)}
-          kind={a.kind}
-          icon={a.icon ?? ACTION_ICONS[a.kind] ?? a.kind}
-          risk={a.risk ?? false}
-          cost={a.cost}
-          enabled={a.enabled}
-          x={56 + i * ACTION_W}
-          y={5}
-          uses={a.uses ? iconOf(a.uses) : null}
-          short={a.short ?? false}
-          needs={a.needs ?? null}
-          armKey={actionKey(a)}
-          {...(arm ? { arm } : {})}
-          onRun={() => onAct(a.kind)}
-          {...(i === 0 ? { buttonRef: firstRef } : {})}
-        />
-      ))}
     </g>
   );
 }
@@ -833,7 +963,7 @@ export function HereCard({
 /** The threat card, wider when it offers a strike. */
 export const threatSize = (strike: boolean): { width: number; height: number } => ({
   width: 206 + (strike ? ACTION_W : 0),
-  height: 76,
+  height: 76 + (strike ? labelH() : 0),
 });
 
 /**

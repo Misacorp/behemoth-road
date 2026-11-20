@@ -7,7 +7,8 @@
  *   (for example "Scout" or "Iron").
  * - `delays` sets how long the pointer must rest on an icon before its tip opens, in milliseconds, for each
  *   group of icons. One entry can wait longer or shorter with its own `delayMs`.
- * - `holdMs` is how long a finger must press before the tip opens on a phone.
+ * - `holdMs` is how long a finger must press before the tip opens on a phone, and `stayMs` how long it
+ *   stays after the finger lifts (a tap anywhere closes it sooner).
  * - Numbers come from the game's rules: write a placeholder in curly brackets, such as {packSize} or
  *   {surveyCost.scout}, and the tip shows the current number in its place. Then a change to the rules never
  *   leaves a tip saying something old. The placeholders you can use are listed in `tipValues.ts` next to
@@ -40,6 +41,9 @@ export const delays = {
 
 /** How long a finger presses before the tip opens on a touch screen, in milliseconds. */
 export const holdMs = 450;
+
+/** On a touch screen, how long a tip stays after the finger lifts (a tap anywhere closes it sooner), in ms. */
+export const stayMs = 4000;
 
 export const tips = {
   // Roles (the six emblems).
@@ -153,6 +157,26 @@ export const tips = {
     text: 'Captor bands lose the trail, and none follow for {misleadDays} days.',
   },
   'boon:shelter': { title: 'Shelter', text: 'Peril falls by {shelterPeril}.' },
+
+  // The ground a hex shows (in the cards' tile pictures).
+  'terrain:plains': { title: 'Plains', text: 'Open grassland. Easy going.' },
+  'terrain:forest': { title: 'Forest', text: 'Woods. Easy going, with more to find.' },
+  'terrain:desert': { title: 'Desert', text: 'Dry, open sand.' },
+  'terrain:river': { title: 'River', text: 'Running water. No fire will light here.' },
+  'terrain:cliff': { title: 'Cliff', text: 'Too steep to climb without gear.' },
+
+  // What a hex holds, once found.
+  'feature:iron-deposit': { text: 'Gather iron here, until it runs out.' },
+  'feature:ore-outcrop': { text: 'Gather iron here, until it runs out.' },
+  'feature:river-stones': { text: 'Gather stone here, until it runs out.' },
+  'feature:fieldstones': { text: 'Gather stone here, until it runs out.' },
+  'feature:timber-stand': { text: 'Gather timber here, until it runs out.' },
+  'feature:deadfall': { text: 'Gather timber here, until it runs out.' },
+  'feature:berry-bushes': { text: 'Gather food for the creature here, until it runs out.' },
+  'feature:tomb': { text: 'An old tomb. Search it for what lies inside.' },
+  'feature:deep-tomb': { text: 'Too dark without the lantern. Only scholars can work it.' },
+  'feature:snare': { text: 'A snare, found and sprung. Harmless now.' },
+  'feature:pitfall': { text: 'A pitfall, found. Harmless now.' },
 
   // Threats on the map.
   'threat:captors': { text: 'On the creature’s trail. Strong, and gains on it every day.' },

@@ -418,6 +418,13 @@ async function run() {
         if (!(await openTip(selector))) problems.push(`${vp.name}: no tip on ${selector}`);
         await shotT(name);
         await endTip();
+        if (cdp0) {
+          // On touch a held tip stays to be read after the finger lifts; the next tap anywhere closes it.
+          if (!(await page.locator('.tip').count()))
+            problems.push(`${vp.name}: the tip on ${selector} closed when the finger lifted`);
+          await page.touchscreen.tap(...(await centreOf('.hud-day')));
+          await page.waitForTimeout(150);
+        }
         if (await page.locator('.tip').count())
           problems.push(`${vp.name}: the tip on ${selector} stayed open`);
       };
@@ -486,6 +493,13 @@ async function run() {
       if (!(await has('character'))) problems.push(`${vp.name}: no card for the other rider`);
       await shot('other-player-card');
       // The card's role emblem has its tip, and the HUD's controls theirs.
+      // Opened from the bubble, the card continues in the same popup, with a back button to the bubble.
+      if (!(await page.locator('[data-popover=character][data-back]').count()))
+        problems.push(`${vp.name}: the rider's card has no back to the bubble`);
+      await press('[data-popover=character] [data-back]');
+      if (!(await has('bubble'))) problems.push(`${vp.name}: back did not return to the bubble`);
+      await page.screenshot({ path: join(out, `feedback-${vp.name}-bubble-back.png`) });
+      await press(`[data-popover=bubble] [data-character="${idOf(USERS.PIP)}"]`);
       await tipCheck('[data-popover=character] [data-tip^="role:"]', 'card-role');
       if (!(await has('character'))) problems.push(`${vp.name}: the tip closed the card`);
       await tipCheck('.hud-actions', 'hud-actions');
@@ -653,6 +667,23 @@ async function run() {
         if (!(await page.locator('[data-popover=here] [data-action=gather]').count()))
           problems.push(`${vp.name}: no gather on the deposit`);
         await shot3('03-here-gather');
+        // The card names what it is about, and its tile picture has a tip.
+        if (!(await page.locator('[data-popover=here] [data-title]').count()))
+          problems.push(`${vp.name}: the here card has no noun title`);
+        await tipCheck('[data-popover=here] [data-tile-tip]', 'here-tile');
+        await openHere();
+        // Action labels (an experiment, off by default): `?labels=1` puts each action's verb under it.
+        await page.goto(`${vite.url}?labels=1`);
+        await page.waitForSelector('.map-world svg g');
+        await page.waitForTimeout(500);
+        await openHere();
+        if (!(await page.locator('[data-popover=here] [data-verb=Gather]').count()))
+          problems.push(`${vp.name}: ?labels=1 does not label the actions`);
+        await shot3('03b-here-gather-labels');
+        await page.goto(vite.url);
+        await page.waitForSelector('.map-world svg g');
+        await page.waitForTimeout(500);
+        await openHere();
         await spend('[data-popover=here] [data-action=gather]');
         await page.waitForTimeout(300);
         if (!(charOf(USERS.MISA)?.pack.iron > 0))
@@ -663,7 +694,9 @@ async function run() {
         if (!(await page.locator('.hud-pack-contents [data-item=iron]').count()))
           problems.push(`${vp.name}: the pack does not show the iron`);
         await shot3('04-pack');
-        await press('.hud-pack-contents');
+        // The contents are the pack's tip: Escape (or a tap anywhere) closes it.
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(100);
 
         // A fresh day (staged without the creature's step): carry it home; boarding empties the pack.
         await freshDay();

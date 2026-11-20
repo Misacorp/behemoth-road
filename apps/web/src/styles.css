@@ -930,20 +930,10 @@ button svg,
 }
 
 .hud-pack-contents {
-  position: absolute;
-  left: var(--gutter);
-  bottom: calc(var(--space-4) + var(--safe-bottom) + var(--round) + var(--space-2));
   display: grid;
   justify-items: start;
   gap: var(--space-2);
-  max-width: calc(100% - 2 * var(--gutter));
-  min-width: 44px;
-  min-height: 44px;
-  padding: var(--space-2) var(--space-3);
-  border-radius: 12px;
-  background: #f3f1e2;
-  border: 1.5px solid #9a9776;
-  box-shadow: 1px 2px 0 #e1ddc3;
+  margin-top: var(--space-1);
 }
 
 .stack {
@@ -1018,6 +1008,27 @@ button svg,
 .hud-top [data-tip],
 .hud-actions[data-tip] {
   pointer-events: auto;
+}
+
+.unlock-go {
+  position: relative;
+}
+
+/* An action's verb under its button (the action labels setting). */
+.verb {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  margin-top: 2px;
+  color: #5c5a43;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.unlock:has(.verb) {
+  padding-bottom: var(--space-4);
 }
 
 /* Icons with tips: a press-and-hold must not select text or open the system menu. */
