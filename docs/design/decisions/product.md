@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: Verb labels under actions are on by default **[Misa]**
+
+ID: `2026-11-20-verb-labels-under-actions-are-on` · Status: current · Amends: `2026-11-20-action-costs-are-drawn-as-arrows`
+
+**Decision.** The verb under each action's icon (`actionLabels`) is on by default. `?labels=0` in the URL hides the verbs for a comparison; the verbs stay in `apps/web/src/text/verbs.ts`.
+
+**Reasoning.** Misa asked for the labels on by default when trying the action arrows on staging.
+
 ## 2026-11-20: The map is framed between the top HUD and the pips; the first view looks ahead of the creature
 
 ID: `2026-11-20-the-map-is-framed-between-the` · Status: current
@@ -98,7 +106,7 @@ ID: `2026-11-20-threats-are-telegraphed-a-wider-window` · Status: current, amen
 
 ## 2026-11-20: Action costs are drawn as arrows, not coloured dots; verb labels are a switch to try **[Misa]**
 
-ID: `2026-11-20-action-costs-are-drawn-as-arrows` · Status: current
+ID: `2026-11-20-action-costs-are-drawn-as-arrows` · Status: current, amended by `2026-11-20-verb-labels-under-actions-are-on`
 
 **Decision.** The cost of an action is drawn as small right-pointing action arrows, one per action, next to or under the action's icon in its circle, instead of coloured dots, so the cost doesn't rely on colour alone. As an experiment, a setting (`actionLabels`, off by default) adds the action's verb under its icon ("Gather", "Strike"); the verbs live in the same text file as the tips. Popups about a place or thing show its noun as a title (e.g. "Berry bush", "Meadow").
 

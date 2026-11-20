@@ -1,6 +1,6 @@
 /**
- * VERBS: the word under each action's icon, when the "action labels" setting is on (an experiment, off by
- * default; try it on staging with `?labels=1` at the end of the address). One short word each.
+ * VERBS: the word under each action's icon, when the "action labels" setting is on (on by default; hide
+ * them on staging with `?labels=0` at the end of the address). One short word each.
  */
 import type { Action } from '@behemoth-road/core';
 

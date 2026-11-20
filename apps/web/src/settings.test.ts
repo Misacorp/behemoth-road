@@ -26,6 +26,7 @@ describe('closing with Escape and right-click', () => {
 
   it('right-click closes them the same way, by default', () => {
     expect(DEFAULT_SETTINGS.closeOnRightClick).toBe(true);
+    expect(DEFAULT_SETTINGS.actionLabels).toBe(true);
     for (const f of open) expect(rightClick(f, getSettings())).toEqual(IDLE);
   });
 

@@ -537,14 +537,16 @@ async function run() {
           problems.push(`${vp.name}: the here card has no noun title`);
         await tipCheck('[data-popover=here] [data-tile-tip]', 'here-tile');
         await openHere();
-        // Action labels (an experiment, off by default): `?labels=1` puts each action's verb under it.
-        await page.goto(`${vite.url}?labels=1`);
+        // Action labels are on by default: each action's verb sits under it; `?labels=0` hides them.
+        if (!(await page.locator('[data-popover=here] [data-verb=Gather]').count()))
+          problems.push(`${vp.name}: the actions have no verb labels by default`);
+        await page.goto(`${vite.url}?labels=0`);
         await page.waitForSelector('.map-world svg g');
         await page.waitForTimeout(500);
         await openHere();
-        if (!(await page.locator('[data-popover=here] [data-verb=Gather]').count()))
-          problems.push(`${vp.name}: ?labels=1 does not label the actions`);
-        await shot3('03b-here-gather-labels');
+        if (await page.locator('[data-popover=here] [data-verb]').count())
+          problems.push(`${vp.name}: ?labels=0 still labels the actions`);
+        await shot3('03b-here-gather-no-labels');
         await page.goto(vite.url);
         await page.waitForSelector('.map-world svg g');
         await page.waitForTimeout(500);
