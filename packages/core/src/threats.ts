@@ -145,7 +145,7 @@ export const canAppearOn = (state: GameStateView, h: Hex): boolean => {
 };
 
 /** An active guardian standing on a hex escorts everyone within 1 of it. */
-const isEscorted = (state: GameStateView, h: Hex): boolean =>
+export const isEscorted = (state: GameStateView, h: Hex): boolean =>
   state.characters.some(
     (g) =>
       g.status === 'active' &&
