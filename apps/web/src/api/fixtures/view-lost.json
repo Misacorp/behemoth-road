@@ -33,7 +33,7 @@
     }
   ],
   "game": {
-    "contentVersion": 5,
+    "contentVersion": 6,
     "artSeed": 4242,
     "day": 2,
     "config": {
@@ -69,7 +69,39 @@
       },
       "lightFireCost": 1,
       "feedCost": 1,
-      "lingerCost": 2
+      "lingerCost": 2,
+      "threatsFromDay": 2,
+      "threatChanceBase": 0.25,
+      "threatChancePerPlayer": 0.05,
+      "threatChancePerDay": 0.01,
+      "threatChanceMax": 0.9,
+      "threatsMax": 3,
+      "threatStrengthPlayers": 3,
+      "threatStrengthDays": 10,
+      "threatPathDistance": 4,
+      "struckActions": 1,
+      "strikeCost": 1,
+      "clearPowerGuardian": 2,
+      "clearPowerOther": 1,
+      "defendCost": 1,
+      "defendReduction": 2,
+      "parleyCost": 1,
+      "offerCost": 1,
+      "askBoonCost": 1,
+      "parleyFavourEnvoy": 2,
+      "parleyFavourOther": 1,
+      "parleyAngerChanceOther": 0.25,
+      "offerFavour": 2,
+      "misleadDays": 4,
+      "shelterPeril": 3,
+      "settlementFirst": 3,
+      "settlementEvery": 6,
+      "perilMax": 10,
+      "perilWoundedAt": 5,
+      "perilHungry": 1,
+      "perilHungryLevel": 2,
+      "perilCalm": 1,
+      "routeLength": 12
     },
     "creature": {
       "centre": {
@@ -78,7 +110,9 @@
       },
       "heading": "n",
       "lingering": false,
-      "lingeredDay": null
+      "lingeredDay": null,
+      "steps": 1,
+      "defenders": []
     },
     "tiles": {
       "-5,0": {
@@ -713,7 +747,8 @@
         },
         "actionsLeft": 1,
         "pack": {},
-        "status": "lost"
+        "status": "lost",
+        "struckDay": null
       },
       {
         "id": "222222222222222222.0",
@@ -729,7 +764,8 @@
         },
         "actionsLeft": 3,
         "pack": {},
-        "status": "active"
+        "status": "active",
+        "struckDay": null
       }
     ],
     "features": {},
@@ -742,7 +778,14 @@
       "unlock": "grappling-hook",
       "work": 1
     },
-    "stimuli": []
+    "stimuli": [],
+    "threats": [],
+    "settlements": [],
+    "peril": 0,
+    "season": {
+      "status": "on"
+    },
+    "misleadUntilDay": null
   },
   "signs": {
     "appetite": null,

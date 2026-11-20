@@ -121,6 +121,7 @@ const create = (state: GameState, request: CharacterRequest): CharacterResult =>
     actionsLeft: state.config.actionsPerDay,
     pack: {},
     status: 'active',
+    struckDay: null,
   };
   return {
     ok: true,

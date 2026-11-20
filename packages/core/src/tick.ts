@@ -193,9 +193,7 @@ const newThreat = (state: GameState): Threat | null => {
   if (types.length === 0) return null;
   const type = pickWeighted(types, (t) => t.weight, hashToUnit(state.seed, THREAT_STREAM, day, 1));
   const side = hashToUnit(state.seed, THREAT_STREAM, day, 2) < 0.5 ? -1 : 1;
-  const hex: Hex | undefined = approachHexes(state, type, side).find((h) =>
-    canAppearOn(state, type, h),
-  );
+  const hex: Hex | undefined = approachHexes(state, type, side).find((h) => canAppearOn(state, h));
   if (!hex) return null;
   return {
     id: `t${day}`,
@@ -299,10 +297,11 @@ export const nextDayWithEvents = (
   const lost: GameEvent[] = [];
   const characters = state.characters.map((c): Character => {
     if (c.status !== 'active') return { ...c, actionsLeft: 0 };
-    const actionsLeft = fight.struck.has(c.id)
+    const struck = fight.struck.has(c.id);
+    const actionsLeft = struck
       ? Math.min(config.actionsPerDay, config.struckActions)
       : config.actionsPerDay;
-    const fresh = { ...c, actionsLeft };
+    const fresh = { ...c, actionsLeft, struckDay: struck ? day : c.struckDay };
     if (c.at.kind === 'creature') return fresh;
     if (isCreatureHex(moved, c.at.hex)) return { ...fresh, at: ON_CREATURE };
     if (isReachable(moved, c.at.hex)) return fresh;

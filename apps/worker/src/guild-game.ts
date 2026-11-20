@@ -23,9 +23,11 @@ import {
   type EventResult,
   type GameEvent,
   tickWithEvents,
+  isSeasonOver,
   replaceCharacter,
   toPlayerView,
   type CharacterOffer,
+  type ConfigOverrides,
   type CreatureSigns,
   type GameState,
   type GameStateView,
@@ -77,7 +79,18 @@ export interface PlayerView {
   devTools: boolean;
 }
 
-type Storage = Pick<DurableObjectStorage, 'sql' | 'transactionSync' | 'getAlarm' | 'setAlarm'>;
+type Storage = Pick<
+  DurableObjectStorage,
+  'sql' | 'transactionSync' | 'getAlarm' | 'setAlarm' | 'deleteAlarm'
+>;
+
+/**
+ * The core tuning overrides a new game is created with: the short dev season where the dev tools are on
+ * (staging, local), the core defaults everywhere else. `devTools` is true only for `DEV_TOOLS` "on", so
+ * any other value (or none) gives production's season.
+ */
+export const seasonConfig = (devTools: boolean): ConfigOverrides =>
+  devTools ? SERVER_CONFIG.devSeason : {};
 
 export interface GuildGameOptions {
   now(): number;
@@ -91,6 +104,8 @@ export interface GuildGameOptions {
   guildApi: GuildApi | null;
   /** Local development only (`ENVIRONMENT` "local"): every player counts as a server admin. */
   everyoneIsAdmin: boolean;
+  /** Core tuning overrides for every new game: `seasonConfig(devTools)`; tests may pass their own. */
+  gameConfig: ConfigOverrides;
 }
 
 interface GameRow {
@@ -168,12 +183,28 @@ export class GuildGame {
         // Only an older content version is replaced; anything else is left for `readGame` to refuse.
         if (!(err instanceof OutdatedGameError)) return;
       }
-      const state = createGame(this.options.newSeed(), { artSeed: this.options.newArtSeed() });
-      const version = this.writeGame(state);
-      // The old game's events mean nothing now: a client that saw it is told it missed some.
-      this.sql.exec('DELETE FROM events');
-      this.sql.exec('UPDATE game SET events_pruned_through = ? WHERE id = 1', version - 1);
+      this.replaceGame();
     });
+  }
+
+  /** A fresh game with a new seed, from these options' config. */
+  private newState(): GameState {
+    return createGame(this.options.newSeed(), {
+      artSeed: this.options.newArtSeed(),
+      config: this.options.gameConfig,
+    });
+  }
+
+  /**
+   * Replaces the stored game with a new one (no characters; players join again) and drops the old game's
+   * events, so every client that saw it is told it missed some (`eventsTruncated`) and reloads. The
+   * version keeps counting up. Call inside a transaction.
+   */
+  private replaceGame(nextTickAt?: number): number {
+    const version = this.writeGame(this.newState(), nextTickAt);
+    this.sql.exec('DELETE FROM events');
+    this.sql.exec('UPDATE game SET events_pruned_through = ? WHERE id = 1', version);
+    return version;
   }
 
   // --- Sessions ---
@@ -289,7 +320,7 @@ export class GuildGame {
   private ensureGame(t: number): void {
     const exists = this.sql.exec('SELECT 1 FROM game WHERE id = 1').toArray().length > 0;
     if (exists) return;
-    const state = createGame(this.options.newSeed(), { artSeed: this.options.newArtSeed() });
+    const state = this.newState();
     this.sql.exec(
       'INSERT INTO game (id, state, version, next_tick_at, created_at) VALUES (1, ?, 1, ?, ?)',
       JSON.stringify(state),
@@ -408,16 +439,18 @@ export class GuildGame {
 
   /**
    * Runs every tick that is due (at most `maxCatchUpTicks`; older ones are skipped), in one
-   * transaction, then makes sure the alarm is set for the next one.
+   * transaction, then makes sure the alarm is set for the next one. Once the season is over no tick
+   * runs and no alarm is set: the ended game stays as it is until a new season replaces it.
    */
   private async catchUpAndArm(): Promise<void> {
     const t = this.options.now();
     this.storage.transactionSync(() => {
       const game = this.readGame();
-      if (game === null || t < game.nextTickAt) return;
+      if (game === null || t < game.nextTickAt || isSeasonOver(game.state)) return;
       let { state, nextTickAt } = game;
-      // Each tick is its own version, so its events are stamped with it.
-      for (let i = 0; i < maxCatchUpTicks && t >= nextTickAt; i++) {
+      // Each tick is its own version, so its events are stamped with it. The tick that ends the season
+      // is the last one.
+      for (let i = 0; i < maxCatchUpTicks && t >= nextTickAt && !isSeasonOver(state); i++) {
         const ticked = tickWithEvents(state);
         state = ticked.state;
         nextTickAt = nextOccurrence(nextTickAt, tick.hour, tick.minute, tick.timeZone);
@@ -431,6 +464,10 @@ export class GuildGame {
     const game = this.readGame();
     if (game === null) return;
     const existing = await this.storage.getAlarm();
+    if (isSeasonOver(game.state)) {
+      if (existing !== null) await this.storage.deleteAlarm();
+      return;
+    }
     if (existing === null || existing !== game.nextTickAt) {
       await this.storage.setAlarm(game.nextTickAt);
     }
@@ -492,6 +529,8 @@ export class GuildGame {
         return this.act(user, request);
       case 'POST /api/dev/next-day':
         return this.devNextDay(user, request);
+      case 'POST /api/dev/new-season':
+        return this.devNewSeason(user, request);
       default:
         return notFound();
     }
@@ -586,8 +625,8 @@ export class GuildGame {
     return json({ ...(await this.view(user, game)), ...outcome });
   }
 
-  /** Staging only (the route is a 404 otherwise): a server admin runs the tick now. */
-  private async devNextDay(user: SessionUser, request: Request): Promise<Response> {
+  /** A dev route's checks: an empty body and a server admin. Null when both hold, else the answer. */
+  private async devGate(user: SessionUser, request: Request): Promise<Response | null> {
     const body = await parseBody(request, EmptyBodySchema);
     if (body === undefined) return errorResponse('invalid_body', 400);
     let admin: boolean;
@@ -597,15 +636,41 @@ export class GuildGame {
       if (err instanceof DiscordError) return errorResponse('discord_unavailable', 503);
       throw err;
     }
-    if (!admin) return errorResponse('forbidden', 403);
+    return admin ? null : errorResponse('forbidden', 403);
+  }
+
+  /**
+   * Staging only (the route is a 404 otherwise): a server admin runs the tick now. Once the season is
+   * over it changes nothing and answers the view as it is.
+   */
+  private async devNextDay(user: SessionUser, request: Request): Promise<Response> {
+    const refused = await this.devGate(user, request);
+    if (refused !== null) return refused;
     this.storage.transactionSync(() => {
       const game = this.readGame();
       // The schedule is left alone: the next scheduled tick still comes at its time.
-      if (game !== null) {
+      if (game !== null && !isSeasonOver(game.state)) {
         const ticked = tickWithEvents(game.state);
         this.writeGame(ticked.state, undefined, ticked.events);
       }
     });
+    return this.currentView(user);
+  }
+
+  /**
+   * Staging only (the route is a 404 otherwise): a server admin starts a new season, at any time. A new
+   * game with a new seed replaces the old one; every character is gone, so players join again (their
+   * sessions stay). The next tick is scheduled afresh from now.
+   */
+  private async devNewSeason(user: SessionUser, request: Request): Promise<Response> {
+    const refused = await this.devGate(user, request);
+    if (refused !== null) return refused;
+    const t = this.options.now();
+    this.storage.transactionSync(() => {
+      if (this.readGame() === null) return;
+      this.replaceGame(nextOccurrence(t, tick.hour, tick.minute, tick.timeZone));
+    });
+    await this.catchUpAndArm();
     return this.currentView(user);
   }
 

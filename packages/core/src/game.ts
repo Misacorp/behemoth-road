@@ -94,6 +94,7 @@ export const createGame = (
       actionsLeft: config.actionsPerDay,
       pack: {},
       status: 'active',
+      struckDay: null,
     })),
   };
 };

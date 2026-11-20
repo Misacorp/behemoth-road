@@ -116,6 +116,39 @@ export function sealParts(palette: Palette, x: number, y: number, s: number): Sv
   ];
 }
 
+/** The risk mark on its own: a cracked coral triangle (an action that can go wrong). */
+export function drawRiskMark(palette: Palette, px: number): SvgNode {
+  const size = Number.isFinite(px) && px > 0 ? px : 24;
+  return el(
+    'svg',
+    { viewBox: '-12 -12 24 24', width: size, height: size },
+    riskParts(palette, 0, 0, 1),
+  );
+}
+
+/** A risk mark centred at (x, y), scaled by s: a rounded coral triangle on paper, split by a crack. */
+export function riskParts(palette: Palette, x: number, y: number, s: number): SvgNode[] {
+  const P = (dx: number, dy: number): string =>
+    `${(x + dx * s).toFixed(2)} ${(y + dy * s).toFixed(2)}`;
+  return [
+    el('path', {
+      d: `M${P(0, -10)}L${P(10.5, 8)}L${P(-10.5, 8)}Z`,
+      fill: palette.accents.coral.light,
+      stroke: palette.accents.coral.shade,
+      'stroke-width': 1.8 * s,
+      'stroke-linejoin': 'round',
+    }),
+    el('path', {
+      d: `M${P(0.5, -5)}L${P(-1.5, 0)}L${P(1.5, 2)}L${P(-0.5, 6.5)}`,
+      fill: 'none',
+      stroke: palette.ink,
+      'stroke-width': 1.6 * s,
+      'stroke-linecap': 'round',
+      'stroke-linejoin': 'round',
+    }),
+  ];
+}
+
 /**
  * An unlock's work as an ink bar: an outline filled to `fraction` with a wash, and, with `steps`, a tick
  * between each unit of work. `width` × 14 px.

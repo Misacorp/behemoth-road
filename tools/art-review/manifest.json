@@ -7,7 +7,9 @@
     "2026-11-19-5",
     "2026-11-19-6",
     "2026-11-19-7",
-    "2026-11-19-8"
+    "2026-11-19-8",
+    "2026-11-20-1",
+    "2026-11-20-2"
   ],
   "items": [
     {
@@ -381,6 +383,105 @@
       "kind": "glance",
       "batch": "2026-11-19-7",
       "file": "art/team-marks-6e6388a0.svg"
+    },
+    {
+      "id": "season/map-phone",
+      "group": "Season",
+      "title": "The season on a phone: threats, a village, an escort, a defender, peril 4 (full, then lite)",
+      "version": "68b98b0d",
+      "kind": "glance",
+      "batch": "2026-11-20-2",
+      "file": "art/season-map-phone-68b98b0d.svg"
+    },
+    {
+      "id": "season/map-desktop",
+      "group": "Season",
+      "title": "The same at desktop scale",
+      "version": "b1fc3e49",
+      "kind": "glance",
+      "batch": "2026-11-20-2",
+      "file": "art/season-map-desktop-b1fc3e49.svg"
+    },
+    {
+      "id": "season/threats",
+      "group": "Season",
+      "title": "Captors, swarm, rockslide, raiders: strength marks, next-step arrows, the last of each arriving tomorrow",
+      "version": "b76122fb",
+      "kind": "glance",
+      "batch": "2026-11-20-2",
+      "file": "art/season-threats-b76122fb.svg"
+    },
+    {
+      "id": "season/settlements",
+      "group": "Season",
+      "title": "Hill folk: wary with favour 0, 1, 2 (under the veil), friendly, angry, angry with its raiders",
+      "version": "74350214",
+      "kind": "glance",
+      "batch": "2026-11-20-2",
+      "file": "art/season-settlements-74350214.svg"
+    },
+    {
+      "id": "season/escort",
+      "group": "Season",
+      "title": "A guardian’s escort ring, escorted and struck marks, guardians defending on the creature",
+      "version": "f7428ebf",
+      "kind": "glance",
+      "batch": "2026-11-20-2",
+      "file": "art/season-escort-f7428ebf.svg"
+    },
+    {
+      "id": "season/icons",
+      "group": "Season",
+      "title": "Strike, defend, parley, offer; gift, mislead, shelter; parley at risk; card icons and status marks",
+      "version": "c8e4bad8",
+      "kind": "glance",
+      "batch": "2026-11-20-2",
+      "file": "art/season-icons-c8e4bad8.svg"
+    },
+    {
+      "id": "season/hud",
+      "group": "Season",
+      "title": "Peril gauge 0 to 10 and the route strip at phone and desktop widths; the vignette at peril 3, 6, 9",
+      "version": "0e7dead1",
+      "kind": "glance",
+      "batch": "2026-11-20-1",
+      "file": "art/season-hud-0e7dead1.svg"
+    },
+    {
+      "id": "season/moments",
+      "group": "Season",
+      "title": "Threat appears, creature struck, character struck, threat hit, cleared, defence holds, befriended, angered, boon, season end",
+      "version": "e5268a06",
+      "kind": "glance",
+      "batch": "2026-11-20-1",
+      "file": "art/season-moments-e5268a06.svg"
+    },
+    {
+      "id": "season/ending-safe",
+      "group": "Season",
+      "title": "Ending: home safe (desktop and phone)",
+      "version": "3c7ac09a",
+      "kind": "glance",
+      "batch": "2026-11-20-1",
+      "file": "art/season-ending-safe-3c7ac09a.svg"
+    },
+    {
+      "id": "season/ending-wounded",
+      "group": "Season",
+      "title": "Ending: home, wounded (desktop and phone)",
+      "version": "b8998390",
+      "kind": "glance",
+      "batch": "2026-11-20-2",
+      "file": "art/season-ending-wounded-b8998390.svg"
+    },
+    {
+      "id": "season/ending-lost",
+      "group": "Season",
+      "title": "Ending: lost (desktop and phone)",
+      "version": "7519c4a8",
+      "kind": "glance",
+      "batch": "2026-11-20-1",
+      "file": "art/season-ending-lost-7519c4a8.svg"
     }
   ]
 }

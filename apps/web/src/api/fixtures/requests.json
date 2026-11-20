@@ -113,5 +113,83 @@
     "method": "POST",
     "path": "/api/dev/next-day",
     "body": {}
+  },
+  "view-defend": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 6,
+      "action": {
+        "kind": "defend"
+      }
+    }
+  },
+  "view-strike": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 13,
+      "action": {
+        "kind": "strike",
+        "threat": "t3"
+      }
+    }
+  },
+  "view-offer": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 25,
+      "action": {
+        "kind": "offer",
+        "material": "old-coin"
+      }
+    }
+  },
+  "view-befriended": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 26,
+      "action": {
+        "kind": "parley"
+      }
+    }
+  },
+  "view-boon": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 30,
+      "action": {
+        "kind": "ask-boon",
+        "boon": "gift"
+      }
+    }
+  },
+  "view-parley": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 11,
+      "action": {
+        "kind": "parley"
+      }
+    }
+  },
+  "view-angered": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 13,
+      "action": {
+        "kind": "parley"
+      }
+    }
+  },
+  "view-new-season": {
+    "method": "POST",
+    "path": "/api/dev/new-season",
+    "body": {}
   }
 }

@@ -10,6 +10,7 @@ import {
   type GameState,
   hex,
   move,
+  moveAlong,
   nextDay,
   nextDayWithEvents,
   planPath,
@@ -168,6 +169,13 @@ describe('the season', () => {
     });
     expect(planPath(state, 'guardian', edge)).toEqual({ ok: false, reason: 'season-over' });
     expect(reachablePlaces(state, 'guardian')).toEqual([]);
+    for (const path of [[], [edge]]) {
+      expect(moveAlong(state, 'guardian', path)).toEqual({
+        ok: false,
+        reason: 'season-over',
+        step: 0,
+      });
+    }
   });
 
   it('starts on, with no peril, threats or settlements', () => {

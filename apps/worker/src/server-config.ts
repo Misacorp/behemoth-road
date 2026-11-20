@@ -34,6 +34,11 @@ export const SERVER_CONFIG = {
   eventLogSize: 100,
   /** How long a player's "may manage the server" answer is reused before Discord is asked again. */
   adminCacheMs: 10 * 60 * 1000,
+  /**
+   * Core tuning overrides for a game created where the dev tools are on (staging, local): a short season,
+   * so a playtest reaches settlements, threats and the ending in days. Production uses the core defaults.
+   */
+  devSeason: { routeLength: 12, settlementFirst: 3, settlementEvery: 6, threatsFromDay: 2 },
   limits: {
     /** Bound on hex coordinates in a request; the creature walks one hex a day. */
     maxCoordinate: 100_000,

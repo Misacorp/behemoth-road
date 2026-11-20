@@ -164,6 +164,7 @@ export const moveAlong = <S extends GameStateView>(
   characterId: string,
   path: readonly (Hex | Place | PathStep)[],
 ): PathResult<S> => {
+  if (isSeasonOver(state)) return { ok: false, reason: 'season-over', step: 0 };
   const found = activeCharacter(state, characterId);
   if (!found.ok) return { ok: false, reason: found.reason, step: 0 };
   const places = path.map((item) => (isStep(item) ? item.place : item));

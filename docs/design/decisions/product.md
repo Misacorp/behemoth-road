@@ -36,6 +36,14 @@ ID: `2026-11-20-a-tap-on-a-threat-opens` · Status: current
 
 **Reasoning.** No one plans a walk onto a threat, and the card is the way to strike. Keeping it open after a hit makes a second strike one tap. A walk next to a threat is still planned by tapping a neighbouring hex.
 
+## 2026-11-20: Milestone 5 art: threats, settlements and the guardian's marks are drawn by the art kit from content keys
+
+ID: `2026-11-20-milestone-5-art-threats-settlements-and` · Status: current
+
+**Decision.** The art kit draws threats (`captors`, `swarm`, `rockslide`, `raiders`) and settlements (`hill-folk`) by content icon key as scene cells, drawn in full under the veil, with strength and favour as small marks, a coral ground stain under threats, an approach arrow and a pulse for a threat arriving tomorrow. Escorted, struck and defending are marks on the character figure; the escort ring is an overlay. The peril gauge (wounded threshold marked), the route strip, the peril vignette and the three ending scenes are standalone SVGs drawn from state, with no text. Review batch 2026-11-20-1.
+
+**Reasoning.** Same pattern as features and fires, so the web app passes data, not drawings. Threats need to read apart from features at a glance, hence the stain. Endings carry no text so the web app sets the only title.
+
 ## 2026-11-20: Milestone 5 core: readings of the season contract
 
 ID: `2026-11-20-milestone-5-core-readings-of-the` · Status: current
@@ -44,14 +52,14 @@ ID: `2026-11-20-milestone-5-core-readings-of-the` · Status: current
 
 - Guardians: strike power and `defend` read the role tag `defend`; not being struck and escorting read `escort` (both on the Guardian).
 - Added tuning values: action costs (`strikeCost`, `defendCost`, `parleyCost`, `offerCost`, `askBoonCost`, all 1), `threatPathDistance` (4, the rockslide's distance ahead) and `perilHungryLevel` (2).
-- "From day 3" means the day the tick starts. A threat within contact does not move. Characters on a hex the creature just stepped onto count as riders (never struck).
-- Approach order: `behind` and `flank` take the window edge hex nearest the edge hex straight behind (or ahead-left / ahead-right, a seeded side); `path` takes the straight-ahead line from 4 hexes out. A rolled threat never appears on another threat's hex. Raiders sent by an angered settlement ignore `threatsMax`.
+- "From day 3" means the day the tick starts. A threat within contact does not move. Characters on a hex the creature just stepped onto count as riders (never struck). A threat spent on the creature strikes no characters that tick.
+- Approach order: `behind` and `flank` take the window edge hex nearest the edge hex straight behind (or ahead-left / ahead-right, a seeded side); `path` takes the straight-ahead line from 4 hexes out. A rolled threat never appears on water (any type, so a rockslide never lands in a river) or on another threat's hex. Raiders sent by an angered settlement ignore `threatsMax`.
 - A settlement is never placed on a threat's hex; when no leading-edge hex fits, none appears that time.
 - Ids need no counter: rolled threats `t<day>`, raiders `t<settlement id>`, settlements `s<day>`.
 - A mislead on day d sets `misleadUntilDay` to d + `misleadDays`; ticks that start days up to it roll no pursuers; it clears afterwards.
 - `ask-boon` refuses `unknown-boon` before `not-friendly`. Once the season is over, `planPath` refuses and `reachablePlaces` is empty, like moves.
 
-**Reasoning.** The simplest readings that keep the other options open: every number is in the tuning config, ids derive from the day so state stays small, and tag reads follow the role data already in content. Being struck is known only from the `struck` event; a persistent marker on the character (for a bandage after reload) can be added later without changing these rules.
+**Reasoning.** The simplest readings that keep the other options open: every number is in the tuning config, ids derive from the day so state stays small, and tag reads follow the role data already in content. A struck character records the day in a public `Character.struckDay`, so the bandage shows after a reload.
 
 ## 2026-11-20: Threats are tagged data that appear at the window's edge and walk in openly
 

@@ -133,6 +133,8 @@ export interface Character {
   /** What the character carries (gathered and found), up to `packCapacity` units. */
   readonly pack: Materials;
   readonly status: CharacterStatus;
+  /** The day a threat struck them (they start it with fewer actions), or null. Public. */
+  readonly struckDay: number | null;
 }
 
 /**

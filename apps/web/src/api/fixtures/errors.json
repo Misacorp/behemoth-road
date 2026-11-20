@@ -68,5 +68,12 @@
     "body": {
       "error": "lingered-yesterday"
     }
+  },
+  {
+    "route": "POST /api/game/act",
+    "status": 409,
+    "body": {
+      "error": "season-over"
+    }
   }
 ]
