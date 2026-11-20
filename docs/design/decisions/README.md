@@ -112,6 +112,7 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-20 The keeper's cue shows the creature's true attitude for the tame first creature
 - 2026-11-20 Light a fire hints faded without fuel once you have seen a fire
 - 2026-11-20 A lingering creature's stay mark sits on its footprint's near edge
 - 2026-11-20 Feed and linger sit in the hub drawer as unlock-style cards

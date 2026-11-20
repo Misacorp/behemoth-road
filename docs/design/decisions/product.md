@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: The keeper's cue shows the creature's true attitude for the tame first creature
+
+ID: `2026-11-20-the-keeper-s-cue-shows-the` · Status: current
+
+**Decision.** For the first, tame creature the keeper's reaction cue keeps showing the creature's hidden attitude to a fire in range (toward, away, unmoved), not the rolled outcome of its step, so a single well-placed fire answers the question for a keeper. Later, harder creatures can blur or delay the cue; nothing in the data shape prevents that. The lead's call after the Milestone 4 playtest, listed for Misa.
+
+**Reasoning.** The fresh-eyes playtest never worked out the reaction at all; making the first creature's puzzle answerable in one experiment keeps the loop learnable, and difficulty can grow with later creatures as the design intends.
+
 ## 2026-11-20: Light a fire hints faded without fuel once you have seen a fire
 
 ID: `2026-11-20-light-a-fire-hints-faded-without` · Status: current · Amends: `2026-11-20-light-a-fire-shows-on-your`
