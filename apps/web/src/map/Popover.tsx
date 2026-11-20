@@ -22,7 +22,8 @@ import type { GameStateView } from '@behemoth-road/core';
 import type { JSX } from 'preact';
 import { Pips, TickMark } from '../hud/icons.tsx';
 import type { Identity } from '../game/identity.ts';
-import { QuirkIcon, RoleEmblem, TraitIcon } from '../ui/emblems.tsx';
+import { contentName, QuirkIcon, RoleEmblem, TraitIcon } from '../ui/emblems.tsx';
+import { useEffect, useState } from 'preact/hooks';
 import { PALETTE } from './art.ts';
 import { creatureArt } from './cells.ts';
 import { MAP_TUNING } from './config.ts';
@@ -481,29 +482,58 @@ export const CHARACTER_SIZE = { width: 236, height: 78 } as const;
  * and its trait and quirk icons.
  */
 export function CharacterCard({ who }: { who: Identity }): JSX.Element {
+  // A tap (or hover) on the role, trait or quirk icon shows its name in the name row for a moment.
+  const [label, setLabel] = useState<string | null>(null);
+  const [tap, setTap] = useState(0);
+  useEffect(() => {
+    if (tap === 0) return;
+    const t = window.setTimeout(() => setLabel(null), 1800);
+    return () => window.clearTimeout(t);
+  }, [tap]);
+  const named = (name: string, x: number, y: number, icon: JSX.Element) => (
+    <g
+      transform={`translate(${x} ${y})`}
+      class="svg-button"
+      data-name={name}
+      onClick={() => {
+        setLabel(name);
+        setTap((n) => n + 1);
+      }}
+      onPointerEnter={(e) => {
+        if (e.pointerType === 'mouse') setLabel(name);
+      }}
+      onPointerLeave={(e) => {
+        if (e.pointerType === 'mouse') setLabel(null);
+      }}
+    >
+      {icon}
+    </g>
+  );
+  const shown = label ?? who.name;
   return (
     <g data-popover="character" data-character={who.id}>
       <Card {...CHARACTER_SIZE} />
       <Fitted drawn={bubbleFigure(who.accent, who.look)} x={8} y={8} width={40} height={60} />
+      {label !== null && (
+        <rect x={50} y={11} width={180} height={24} rx={12} fill={PALETTE.paperDeep} />
+      )}
       <text
         x={56}
         y={28}
         fill={PALETTE.ink}
-        font-size={15}
+        font-size={label === null ? 15 : 13}
         font-weight={600}
         font-family="system-ui, sans-serif"
+        data-label={label === null ? undefined : true}
       >
-        {who.name.length > 22 ? `${who.name.slice(0, 21)}…` : who.name}
+        {shown.length > 22 ? `${shown.slice(0, 21)}…` : shown}
       </text>
-      <g transform="translate(54 38)">
-        <RoleEmblem role={who.role} size={30} />
-      </g>
-      <g transform="translate(92 43)">
-        <TraitIcon id={who.trait} size={22} />
-      </g>
-      <g transform="translate(120 43)">
-        <QuirkIcon id={who.quirk} size={22} />
-      </g>
+      {who.role &&
+        named(contentName('role', who.role), 54, 38, <RoleEmblem role={who.role} size={30} />)}
+      {who.trait &&
+        named(contentName('trait', who.trait), 92, 43, <TraitIcon id={who.trait} size={22} />)}
+      {who.quirk &&
+        named(contentName('quirk', who.quirk), 120, 43, <QuirkIcon id={who.quirk} size={22} />)}
     </g>
   );
 }

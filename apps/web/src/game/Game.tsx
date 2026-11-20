@@ -24,7 +24,7 @@ import {
 } from '../map/flow.ts';
 import { type FocusTarget, type Here, MapView } from '../map/MapView.tsx';
 import { HubDrawer } from '../hub/HubDrawer.tsx';
-import { featureArtAt } from '../map/cells.ts';
+import { cellStateAt, featureArtAt } from '../map/cells.ts';
 import { actionsAt, packUnits, stockOf, surveyOf, unlockOptions } from './chain.ts';
 import type { Target } from '../map/pick.ts';
 import { getSettings } from '../settings.ts';
@@ -32,7 +32,7 @@ import { getSettings } from '../settings.ts';
 /** The width from which the layout is the desktop one (`styles.css` media queries). */
 const DESKTOP_FROM = 900;
 import { identities, partySeeds, setAccents } from './identity.ts';
-import { eventKeys, MOMENT_MS, type Moment, momentsFromEvents } from './moments.ts';
+import { eventKeys, type Moment, momentsFromEvents, momentsMs } from './moments.ts';
 import { toGameState } from './viewState.ts';
 
 export interface GameProps {
@@ -82,10 +82,14 @@ export function Game({ api, initial }: GameProps): JSX.Element {
       if (document.visibilityState === 'visible') s.visible();
       else s.hidden();
     };
+    // Back to the window (another app or tab had focus): refresh now.
+    const onFocus = (): void => void s.refresh();
     onVisibility();
     document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', onFocus);
     return () => {
       document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', onFocus);
       s.hidden();
     };
   }, []);
@@ -116,21 +120,33 @@ export function Game({ api, initial }: GameProps): JSX.Element {
   const momentTimer = useRef(0);
   const played = useRef(new Set<string>());
   useEffect(() => () => window.clearTimeout(momentTimer.current), []);
-  useEffect(() => {
-    if (view.eventsTruncated || view.events.length === 0) return;
+  // Worked out while rendering the new view, so the map knows of a creature step in the same frame (it
+  // holds the camera and walks the creature).
+  const fresh = useMemo((): readonly Moment[] => {
+    if (view.eventsTruncated || view.events.length === 0) return [];
     const keys = eventKeys(view.events);
-    const fresh = view.events.filter((_, i) => !played.current.has(keys[i]!));
+    const unseen = view.events.filter((_, i) => !played.current.has(keys[i]!));
     for (const k of keys) played.current.add(k);
     // Forget keys for versions long past, so the set stays small.
     for (const k of played.current) {
       if (Number(k.split(':')[0]) < view.version - 200) played.current.delete(k);
     }
-    const found = momentsFromEvents(fresh, view.game.creature.centre, view.you.characterId ?? '');
-    if (found.length === 0) return;
-    window.clearTimeout(momentTimer.current);
-    setMoments(found);
-    momentTimer.current = window.setTimeout(() => setMoments([]), MOMENT_MS);
+    return momentsFromEvents(unseen, view.game.creature.centre, view.you.characterId ?? '');
   }, [view]);
+  const applied = useRef<readonly Moment[]>(fresh);
+  useEffect(() => {
+    applied.current = fresh;
+    if (fresh.length === 0) return;
+    window.clearTimeout(momentTimer.current);
+    setMoments(fresh);
+    momentTimer.current = window.setTimeout(() => setMoments([]), momentsMs(fresh));
+  }, [fresh]);
+  // New moments show from this render on; once handed to state, a tap or the timer clears them.
+  const shownMoments = fresh.length > 0 && fresh !== applied.current ? fresh : moments;
+  const walk = shownMoments.find((m) => m.kind === 'step');
+  const step = walk?.kind === 'step' ? { from: walk.from, to: walk.hex } : null;
+  // Your character lost: the fog moment plays out before the join drawer opens.
+  const fading = shownMoments.some((m) => m.kind === 'lost' && m.mine);
 
   // A plan made on an older view may no longer hold: drop it when the view changes under it.
   const planVersion = useRef(view.version);
@@ -149,10 +165,13 @@ export function Game({ api, initial }: GameProps): JSX.Element {
     if (busy) return;
     setBusy(true);
     try {
+      const before = view.version;
       const next = await run();
       planVersion.current = next.version;
       sync.current!.accept(next);
       setFlow(after(next));
+      // What others (and the tick) did since the view this action started from.
+      void sync.current!.catchUp(before);
     } catch (err) {
       if (!(err instanceof ApiError)) console.warn('action failed', err);
       setFlow(IDLE);
@@ -181,7 +200,7 @@ export function Game({ api, initial }: GameProps): JSX.Element {
     ).then(() => setFocus((f) => ({ target: 'me', n: f.n + 1 })));
   };
 
-  const drawerOpen = need !== 'none' && offers.length > 0 && !drawerClosed;
+  const drawerOpen = need !== 'none' && offers.length > 0 && !drawerClosed && !fading;
 
   // Milestone 3's chain: what you can do where you stand, a survey next to you, your pack, the hub.
   const here = useMemo((): Here | null => {
@@ -232,7 +251,8 @@ export function Game({ api, initial }: GameProps): JSX.Element {
           setMoments([]);
           setFlow((f) => tap(f, state, id, target));
         }}
-        moments={moments}
+        moments={shownMoments}
+        step={step}
         onConfirm={onConfirm}
         onOpenHub={() => setFlow(openHub())}
         onCharacter={(other) => setFlow(openCharacter(other))}
@@ -250,7 +270,12 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         actionsPerDay={state.config.actionsPerDay}
         planned={flow.kind === 'planned' && isSelecting(flow) ? flow.cost : 0}
         lost={me?.status !== 'active'}
-        snapped={moments.some((m) => m.kind === 'trap' && m.mine)}
+        snapped={shownMoments.some((m) => m.kind === 'trap' && m.mine)}
+        warned={
+          me?.status === 'active' &&
+          me.at.kind === 'hex' &&
+          cellStateAt(state, hexKey(me.at.hex)) === 'fading'
+        }
         me={who.get(id) ?? null}
         onFocus={(target) => setFocus((f) => ({ target, n: f.n + 1 }))}
         onNextDay={
@@ -258,7 +283,8 @@ export function Game({ api, initial }: GameProps): JSX.Element {
             ? () =>
                 void act(
                   async () => {
-                    // The tick's answer carries no events: read them from the log since this view.
+                    // The tick's answer carries no events: take the view from the log since this one,
+                    // so the creature's step arrives with it (the camera holds while it walks).
                     const ticked = await api.nextDay();
                     const since = await api.game(view.version);
                     return 'unchanged' in since ? ticked : since;

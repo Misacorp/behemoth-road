@@ -15,10 +15,30 @@ export type Moment =
   | { readonly kind: 'find'; readonly hex: Hex; readonly item: string }
   | { readonly kind: 'trap'; readonly hex: Hex; readonly mine: boolean }
   | { readonly kind: 'deposit'; readonly hex: Hex; readonly item: string }
-  | { readonly kind: 'unlock'; readonly hex: Hex; readonly item: string };
+  | { readonly kind: 'unlock'; readonly hex: Hex; readonly item: string }
+  /** A character left out of reach: its figure fades into the fog where it stood. */
+  | {
+      readonly kind: 'lost';
+      readonly hex: Hex;
+      readonly characterId: string;
+      readonly mine: boolean;
+    }
+  /** The creature's daily step: it walks from one hex to the next while the camera holds still. */
+  | { readonly kind: 'step'; readonly hex: Hex; readonly from: Hex };
 
 /** How long a moment stays on screen, in ms (its CSS animation is as long). */
 export const MOMENT_MS = 1400;
+/** The creature's walk of one hex, in ms; the camera follows after it. */
+export const STEP_MS = 1200;
+/** Your character fading into the fog, in ms, before the join drawer opens. */
+export const LOST_MS = 2200;
+
+/** How long a set of moments stays on screen: the longest of them. */
+export const momentsMs = (moments: readonly Moment[]): number =>
+  Math.max(
+    0,
+    ...moments.map((m) => (m.kind === 'lost' ? LOST_MS : m.kind === 'step' ? STEP_MS : MOMENT_MS)),
+  );
 
 /** The part of an event the moments read (the core's `GameEvent`, as parsed). */
 export interface EventLike {
@@ -28,6 +48,8 @@ export interface EventLike {
   readonly material?: string | undefined;
   readonly unlock?: string | undefined;
   readonly materials?: Readonly<Record<string, number>> | undefined;
+  readonly from?: Hex | undefined;
+  readonly to?: Hex | undefined;
 }
 
 /** The material there is most of, if any. */
@@ -50,6 +72,16 @@ export function momentsFromEvents(events: readonly EventLike[], centre: Hex, me:
     if (e.kind === 'deposit' && e.materials) {
       const item = most(e.materials);
       if (item) out.push({ kind: 'deposit', hex: centre, item });
+    } else if (e.kind === 'creature-step' && e.from && e.to) {
+      if (e.from.q !== e.to.q || e.from.r !== e.to.r)
+        out.push({ kind: 'step', hex: e.to, from: e.from });
+    } else if (e.kind === 'lost' && e.hex && e.characterId) {
+      out.push({
+        kind: 'lost',
+        hex: e.hex,
+        characterId: e.characterId,
+        mine: e.characterId === me,
+      });
     } else if (e.kind === 'unlock-done' && e.unlock) {
       out.push({ kind: 'unlock', hex: centre, item: e.unlock });
     } else if (!e.hex) {

@@ -9,7 +9,8 @@ import { offerLook } from '../game/identity.ts';
 import { CharacterFigure, TickMark } from '../hud/icons.tsx';
 import { PALETTE } from '../map/art.ts';
 import { Drawer } from '../ui/Drawer.tsx';
-import { QuirkIcon, RoleEmblem, ROLE_IDS, TraitIcon } from '../ui/emblems.tsx';
+import { contentName, QuirkIcon, RoleEmblem, ROLE_IDS, TraitIcon } from '../ui/emblems.tsx';
+import { Named } from '../ui/Named.tsx';
 import { ready, START, wizard, type Wizard } from './wizard.ts';
 
 export interface JoinDrawerProps {
@@ -53,8 +54,16 @@ export function OfferCard({
       </span>
       <span class="offer-name">{offer.name}</span>
       <span class="offer-icons">
-        <TraitIcon id={offer.trait} />
-        <QuirkIcon id={offer.quirk} />
+        {offer.trait && (
+          <Named name={contentName('trait', offer.trait)}>
+            <TraitIcon id={offer.trait} />
+          </Named>
+        )}
+        {offer.quirk && (
+          <Named name={contentName('quirk', offer.quirk)}>
+            <QuirkIcon id={offer.quirk} />
+          </Named>
+        )}
       </span>
     </>
   );
@@ -105,12 +114,14 @@ export function JoinDrawer(props: JoinDrawerProps): JSX.Element | null {
               type="button"
               class="role"
               role="option"
-              aria-label={r}
+              aria-label={contentName('role', r)}
               aria-selected={w.role === r}
               data-role={r}
               onClick={() => setW((s) => wizard(s, { kind: 'role', role: r }))}
             >
-              <RoleEmblem role={r} size={40} />
+              <Named name={contentName('role', r)} shown={w.role === r} passTap>
+                <RoleEmblem role={r} size={40} />
+              </Named>
             </button>
           ))}
         </div>
@@ -125,7 +136,11 @@ export function JoinDrawer(props: JoinDrawerProps): JSX.Element | null {
           </button>
           <div class="join-choice">
             {chosen && <OfferCard offer={chosen} party={props.party} />}
-            {w.role && <RoleEmblem role={w.role} size={44} />}
+            {w.role && (
+              <Named name={contentName('role', w.role)}>
+                <RoleEmblem role={w.role} size={44} />
+              </Named>
+            )}
           </div>
           <button
             type="button"
