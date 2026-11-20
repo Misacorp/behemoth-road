@@ -1,6 +1,6 @@
 import { checkAction, legalMoves, neighbours, type GameState } from '@behemoth-road/core';
 import { describe, expect, it } from 'vitest';
-import { createHandler } from '../../src/index.ts';
+import { createHandler } from '../../src/handler.ts';
 import type { PlayerView } from '../../src/guild-game.ts';
 import {
   MISA,
