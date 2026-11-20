@@ -6,6 +6,8 @@
  * engineer riding the creature starts or works on an unlock with the card's button (the second tap). Icons,
  * counts and pips only.
  */
+import { tipFor } from '../ui/tip.ts';
+import { tipProps } from '../ui/Tip.tsx';
 import { drawStoresIcon, drawWorkBar } from '@behemoth-road/art';
 import type { CreatureSigns, GameStateView } from '@behemoth-road/core';
 import type { JSX } from 'preact';
@@ -59,7 +61,7 @@ function UnlockCard({
       class={`unlock is-${state}${!o.done && !o.enabled ? ' is-off' : ''}`}
       data-unlock={o.unlock.id}
     >
-      <span class="unlock-icon">
+      <span class="unlock-icon" {...tipProps(tipFor('unlock', o.unlock.id))}>
         <ContentIcon id={o.unlock.id} size={44} done={o.done} />
         {!o.done && <NeedsRole role={o.needs} />}
       </span>
@@ -91,6 +93,7 @@ function UnlockCard({
             class="unlock-go"
             aria-label="Build"
             disabled={!o.enabled || busy}
+            {...tipProps('action:build')}
             onClick={() => onBuild(o.unlock.id)}
           >
             <svg viewBox="-24 -24 48 48" aria-hidden="true">
@@ -119,7 +122,7 @@ function CareCard({
   if (a.done) {
     return (
       <div class="unlock care is-done" data-care={a.kind}>
-        <span class="unlock-icon">
+        <span class="unlock-icon" {...tipProps(tipFor('action', a.kind))}>
           <ContentIcon id={a.kind} size={44} done />
         </span>
       </div>
@@ -127,7 +130,7 @@ function CareCard({
   }
   return (
     <div class={`unlock care${a.enabled ? '' : ' is-off'}`} data-care={a.kind}>
-      <span class="unlock-icon">
+      <span class="unlock-icon" {...tipProps(tipFor('action', a.kind))}>
         <ContentIcon id={a.kind} size={44} />
         <NeedsRole role={a.needs} />
       </span>
@@ -142,6 +145,7 @@ function CareCard({
         class="unlock-go"
         aria-label={a.kind}
         disabled={!a.enabled || busy}
+        {...tipProps(tipFor('action', a.kind))}
         onClick={() => onCare(a.kind)}
       >
         <svg viewBox="-24 -24 48 48" aria-hidden="true">
@@ -167,7 +171,9 @@ export function HubDrawer(props: HubDrawerProps): JSX.Element | null {
           </svg>
         </div>
         <div class="hub-stores" data-empty={props.stores.length === 0 ? true : undefined}>
-          <span class="hub-stores-icon">{STORES}</span>
+          <span class="hub-stores-icon" {...tipProps('hud:stores')}>
+            {STORES}
+          </span>
           {props.stores.map(([id, n]) => (
             <Stack key={id} id={id} count={n} />
           ))}

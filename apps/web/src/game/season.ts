@@ -26,6 +26,8 @@ import { neededRole } from './roles.ts';
 /** A threat as the map draws it: where, what (content icon), how strong, and its outlook. */
 export interface ThreatMark {
   readonly id: string;
+  /** Its content type id. */
+  readonly type: string;
   readonly hex: Hex;
   readonly icon: string;
   readonly name: string;
@@ -43,6 +45,7 @@ export function threatMarks(game: GameStateView): ThreatMark[] {
     const o = outlook.get(t.id);
     return {
       id: t.id,
+      type: t.type,
       hex: t.hex,
       icon: type?.icon ?? t.type,
       name: type?.name ?? '',
@@ -81,6 +84,8 @@ const offered = (check: ReturnType<typeof checkAction>): Offered | null => {
 /** A threat's card: its name, strength and, when you stand on or next to it, the strike. */
 export interface ThreatCardInfo {
   readonly id: string;
+  /** Its content type id. */
+  readonly type: string;
   readonly icon: string;
   readonly name: string;
   readonly strength: number;
@@ -96,6 +101,7 @@ export function threatCard(
   if (!mark) return null;
   return {
     id: mark.id,
+    type: mark.type,
     icon: mark.icon,
     name: mark.name,
     strength: mark.strength,

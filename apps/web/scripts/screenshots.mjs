@@ -257,6 +257,9 @@ const SCHOLAR_DAY = (() => {
   throw new Error('no day on which the staged tomb opens');
 })();
 
+/** Long enough for the slowest tip delay and the touch hold. */
+const TIP_WAIT = 900;
+
 const VIEWPORTS = [
   { name: 'phone', width: 390, height: 844, touch: true },
   { name: 'desktop', width: 1440, height: 900, touch: false },
@@ -383,17 +386,61 @@ async function run() {
       await page.waitForSelector('.drawer .offer');
       await page.waitForTimeout(400);
       await shot('join-1-characters');
-      // A trait icon names itself on a tap, without picking the card.
-      const shotP = (name) => page.screenshot({ path: join(out, `polish-${vp.name}-${name}.png`) });
-      await page.locator('.offer .named').first().click();
+      // Tips: hover (desktop) or press-and-hold (phone) on an icon shows its name and a line or two; a hold
+      // never acts, and a plain tap on a trait (which has no action) shows its tip without picking the card.
+      const shotT = (name) => page.screenshot({ path: join(out, `tips-${vp.name}-${name}.png`) });
+      const cdp0 = vp.touch ? await context.newCDPSession(page) : null;
+      const centreOf = async (selector) => {
+        const b = await page.locator(selector).first().boundingBox();
+        return [b.x + b.width / 2, b.y + b.height / 2];
+      };
+      /** Opens the tip on `selector` the way this device does; returns once it shows (or the wait ran out). */
+      const openTip = async (selector) => {
+        const [x, y] = await centreOf(selector);
+        if (cdp0) {
+          await cdp0.send('Input.dispatchTouchEvent', {
+            type: 'touchStart',
+            touchPoints: [{ x, y }],
+          });
+        } else {
+          await page.mouse.move(x, y);
+        }
+        await page.waitForTimeout(TIP_WAIT);
+        return page.locator('.tip').count();
+      };
+      const endTip = async () => {
+        if (cdp0)
+          await cdp0.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+        else await page.mouse.move(2, vp.height - 2);
+        await page.waitForTimeout(200);
+      };
+      const tipCheck = async (selector, name) => {
+        if (!(await openTip(selector))) problems.push(`${vp.name}: no tip on ${selector}`);
+        await shotT(name);
+        await endTip();
+        if (await page.locator('.tip').count())
+          problems.push(`${vp.name}: the tip on ${selector} stayed open`);
+      };
+      await tipCheck('.offer .icon-tip', 'join-trait');
+      if (await page.locator('.offer[aria-selected=true]').count())
+        problems.push(`${vp.name}: a hold or hover on a trait picked the card`);
+      await page.locator('.offer .icon-tip').first().click();
       await page.waitForTimeout(150);
-      if (!(await page.locator('.offer .name-tip').count()))
-        problems.push(`${vp.name}: a trait icon does not show its name`);
+      if (!(await page.locator('.tip').count()))
+        problems.push(`${vp.name}: a tap on a trait does not show its tip`);
       if (await page.locator('.offer[aria-selected=true]').count())
         problems.push(`${vp.name}: tapping a trait icon picked the card`);
-      await shotP('02-name-trait');
+      // A second tap closes it (Escape would close the drawer too).
+      await page.locator('.offer .icon-tip').first().click();
+      await page.waitForTimeout(100);
+      if (await page.locator('.tip').count())
+        problems.push(`${vp.name}: a second tap did not close the trait's tip`);
       await press('.offer >> nth=0');
       if (vp.touch) await shot('join-2-role');
+      // A hold (or hover) on a role names it and says what it does, without choosing it.
+      await tipCheck('.role[data-role=keeper]', 'join-role');
+      if (await page.locator('.role[data-role=keeper][aria-selected=true]').count())
+        problems.push(`${vp.name}: a hold or hover on a role chose it`);
       await press('.role[data-role=scout]');
       await shot(vp.touch ? 'join-3-confirm' : 'join-2-chosen');
       await press('.join-go');
@@ -438,12 +485,12 @@ async function run() {
       await press(`[data-popover=bubble] [data-character="${idOf(USERS.PIP)}"]`);
       if (!(await has('character'))) problems.push(`${vp.name}: no card for the other rider`);
       await shot('other-player-card');
-      // The card's role emblem names its role on a tap.
-      await page.locator('[data-popover=character] [data-name]').first().click();
-      await page.waitForTimeout(150);
-      if (!(await page.locator('[data-popover=character] text[data-label]').count()))
-        problems.push(`${vp.name}: the card's role emblem does not show its name`);
-      await shotP('02-name-card');
+      // The card's role emblem has its tip, and the HUD's controls theirs.
+      await tipCheck('[data-popover=character] [data-tip^="role:"]', 'card-role');
+      if (!(await has('character'))) problems.push(`${vp.name}: the tip closed the card`);
+      await tipCheck('.hud-actions', 'hud-actions');
+      if (await page.locator('.hud-peril, [aria-label=Peril]').count())
+        await tipCheck('[aria-label=Peril]', 'hud-peril');
       await page.keyboard.press('Escape');
       await page.waitForTimeout(100);
       if (await has('character')) problems.push(`${vp.name}: Escape did not close the card`);
@@ -1246,6 +1293,8 @@ async function run() {
         if (await page.locator('.hud-pack-contents').count())
           problems.push(`${vp.name}: the pack box stays open after a tap elsewhere`);
         await press('.hud-pack');
+        // Off the button, so its tip is not open (Escape closes an open tip first, and only that).
+        if (!vp.touch) await page.mouse.move(cx, cy * 0.5);
         await page.keyboard.press('Escape');
         await page.waitForTimeout(100);
         if (await page.locator('.hud-pack-contents').count())

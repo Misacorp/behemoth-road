@@ -7,6 +7,7 @@ import type { JSX } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import type { Stock } from '../game/chain.ts';
 import { Stack } from '../hub/Stack.tsx';
+import { tipProps } from '../ui/Tip.tsx';
 import { PALETTE } from '../map/art.ts';
 import type { FocusTarget } from '../map/MapView.tsx';
 import { toPreact } from '../map/svgToPreact.ts';
@@ -101,6 +102,7 @@ function PackButton({
         type="button"
         class="round hud-pack"
         aria-label="Pack"
+        {...tipProps('hud:pack')}
         aria-expanded={open}
         data-units={units}
         onClick={() => setOpen((o) => !o)}
@@ -134,7 +136,7 @@ export function Hud(props: HudProps): JSX.Element {
   return (
     <>
       <div class="hud-top">
-        <div class="hud-day" aria-label="Day">
+        <div class="hud-day" aria-label="Day" {...tipProps('hud:day')}>
           <SunIcon />
           <span>{props.day}</span>
           {props.peril && (
@@ -152,6 +154,7 @@ export function Hud(props: HudProps): JSX.Element {
           props.warned ? ' is-warned' : ''
         }`}
         aria-label="Actions"
+        {...tipProps('hud:actions')}
       >
         <Pips
           total={props.actionsPerDay}
@@ -166,6 +169,7 @@ export function Hud(props: HudProps): JSX.Element {
           type="button"
           class="round"
           aria-label="Your character"
+          {...tipProps('hud:recentre-me')}
           onClick={() => props.onFocus('me')}
         >
           {props.me ? (
@@ -181,6 +185,7 @@ export function Hud(props: HudProps): JSX.Element {
           type="button"
           class="round"
           aria-label="Behemoth"
+          {...tipProps('hud:recentre-creature')}
           onClick={() => props.onFocus('creature')}
         >
           <CreatureIcon />
@@ -188,13 +193,25 @@ export function Hud(props: HudProps): JSX.Element {
       </div>
       {props.pack && <PackButton {...props.pack} />}
       {props.onJoin && (
-        <button type="button" class="round hud-join" aria-label="Join" onClick={props.onJoin}>
+        <button
+          type="button"
+          class="round hud-join"
+          aria-label="Join"
+          onClick={props.onJoin}
+          {...tipProps('hud:join')}
+        >
           <JoinIcon />
         </button>
       )}
       {props.onNextDay && (
         <div class="hud-dev">
-          <button type="button" class="dev" aria-label="Next day" onClick={props.onNextDay}>
+          <button
+            type="button"
+            class="dev"
+            aria-label="Next day"
+            onClick={props.onNextDay}
+            {...tipProps('hud:next-day')}
+          >
             <NextDayIcon />
           </button>
         </div>

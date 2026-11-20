@@ -30,8 +30,10 @@ import type { JSX } from 'preact';
 import { iconOf } from '../game/chain.ts';
 import { Pips, TickMark } from '../hud/icons.tsx';
 import type { Identity } from '../game/identity.ts';
-import { contentName, QuirkIcon, RoleEmblem, TraitIcon } from '../ui/emblems.tsx';
-import { useEffect, useState } from 'preact/hooks';
+import { QuirkIcon, RoleEmblem, TraitIcon } from '../ui/emblems.tsx';
+import type { TipId } from '../text/tips.ts';
+import { tipFor } from '../ui/tip.ts';
+import { tipProps } from '../ui/Tip.tsx';
 import type { SettlementInfo, ThreatCardInfo } from '../game/season.ts';
 import { press } from './arm.ts';
 import { drawRoleBadge, PALETTE } from './art.ts';
@@ -447,7 +449,7 @@ export function AppetiteBadge({ appetite }: { appetite: CreatureAppetiteSign }):
   const size = 20;
   return (
     <g
-      class="pass-through"
+      {...tipProps('hud:appetite')}
       data-appetite={`${appetite.kind}:${String(appetite.level)}`}
       data-faint={appetite.faint ? true : undefined}
     >
@@ -566,58 +568,32 @@ export const CHARACTER_SIZE = { width: 236, height: 78 } as const;
  * and its trait and quirk icons.
  */
 export function CharacterCard({ who }: { who: Identity }): JSX.Element {
-  // A tap (or hover) on the role, trait or quirk icon shows its name in the name row for a moment.
-  const [label, setLabel] = useState<string | null>(null);
-  const [tap, setTap] = useState(0);
-  useEffect(() => {
-    if (tap === 0) return;
-    const t = window.setTimeout(() => setLabel(null), 1800);
-    return () => window.clearTimeout(t);
-  }, [tap]);
-  const named = (name: string, x: number, y: number, icon: JSX.Element) => (
-    <g
-      transform={`translate(${x} ${y})`}
-      class="svg-button"
-      data-name={name}
-      onClick={() => {
-        setLabel(name);
-        setTap((n) => n + 1);
-      }}
-      onPointerEnter={(e) => {
-        if (e.pointerType === 'mouse') setLabel(name);
-      }}
-      onPointerLeave={(e) => {
-        if (e.pointerType === 'mouse') setLabel(null);
-      }}
-    >
+  // The role, trait and quirk icons each have their tip (hover, or press and hold).
+  const tipped = (id: TipId | null, x: number, y: number, icon: JSX.Element) => (
+    <g transform={`translate(${x} ${y})`} {...tipProps(id)}>
       {icon}
     </g>
   );
-  const shown = label ?? who.name;
   return (
     <g data-popover="character" data-character={who.id}>
       <Card {...CHARACTER_SIZE} />
       <Fitted drawn={bubbleFigure(who.accent, who.look)} x={8} y={8} width={40} height={60} />
-      {label !== null && (
-        <rect x={50} y={11} width={180} height={24} rx={12} fill={PALETTE.paperDeep} />
-      )}
       <text
         x={56}
         y={28}
         fill={PALETTE.ink}
-        font-size={label === null ? 15 : 13}
+        font-size={15}
         font-weight={600}
         font-family="system-ui, sans-serif"
-        data-label={label === null ? undefined : true}
       >
-        {shown.length > 22 ? `${shown.slice(0, 21)}…` : shown}
+        {who.name.length > 22 ? `${who.name.slice(0, 21)}…` : who.name}
       </text>
       {who.role &&
-        named(contentName('role', who.role), 54, 38, <RoleEmblem role={who.role} size={30} />)}
+        tipped(tipFor('role', who.role), 54, 38, <RoleEmblem role={who.role} size={30} />)}
       {who.trait &&
-        named(contentName('trait', who.trait), 92, 43, <TraitIcon id={who.trait} size={22} />)}
+        tipped(tipFor('trait', who.trait), 92, 43, <TraitIcon id={who.trait} size={22} />)}
       {who.quirk &&
-        named(contentName('quirk', who.quirk), 120, 43, <QuirkIcon id={who.quirk} size={22} />)}
+        tipped(tipFor('quirk', who.quirk), 120, 43, <QuirkIcon id={who.quirk} size={22} />)}
     </g>
   );
 }
@@ -640,6 +616,13 @@ export interface HereAction {
 }
 
 const ACTION_W = 54;
+
+/** The tip of an action button: a boon's own, an offer's, or the action's. */
+function actionTip(kind: string): TipId | null {
+  if (kind.startsWith('boon:')) return tipFor('boon', kind.slice(5));
+  if (kind.startsWith('offer')) return 'action:offer';
+  return tipFor('action', kind);
+}
 
 /**
  * Two taps spend: the card's armed button (`arm.armed`), changed by each press (`press`). Without it a
@@ -717,6 +700,7 @@ function ActionButton({
       aria-pressed={arm ? armed : undefined}
       data-action={kind}
       data-armed={armed ? true : undefined}
+      {...tipProps(actionTip(kind))}
       data-needs={needs ?? undefined}
       transform={`translate(${x} ${y})`}
       onClick={run}
@@ -874,7 +858,9 @@ export function ThreatCard({
   return (
     <g data-popover="threat" data-threat={threat.id} data-strength={threat.strength}>
       <Card {...size} />
-      {toPreact({ ...drawn, attrs: { ...drawn.attrs, x: 6, y: 8 } })}
+      <g {...tipProps(tipFor('threat', threat.type))}>
+        {toPreact({ ...drawn, attrs: { ...drawn.attrs, x: 6, y: 8 } })}
+      </g>
       <text
         x={72}
         y={30}
@@ -939,9 +925,11 @@ function SettlementFigure({
   const seal = Math.round(size * 0.42);
   return (
     <g>
-      {toPreact({ ...drawn, attrs: { ...drawn.attrs, x, y } })}
+      <g {...tipProps(tipFor('settlement', settlement.attitude))}>
+        {toPreact({ ...drawn, attrs: { ...drawn.attrs, x, y } })}
+      </g>
       {settlement.boon && (
-        <g data-boon={settlement.boon}>
+        <g data-boon={settlement.boon} {...tipProps(tipFor('boon', settlement.boon))}>
           <Placed
             node={drawIcon(settlement.boon, PALETTE, seal, { done: true })}
             x={x + size - seal * 0.75}

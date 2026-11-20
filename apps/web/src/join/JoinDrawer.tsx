@@ -10,7 +10,9 @@ import { CharacterFigure, TickMark } from '../hud/icons.tsx';
 import { PALETTE } from '../map/art.ts';
 import { Drawer } from '../ui/Drawer.tsx';
 import { contentName, QuirkIcon, RoleEmblem, ROLE_IDS, TraitIcon } from '../ui/emblems.tsx';
-import { Named } from '../ui/Named.tsx';
+import { IconTip } from '../ui/IconTip.tsx';
+import { tipFor } from '../ui/tip.ts';
+import { tipProps } from '../ui/Tip.tsx';
 import { ready, START, wizard, type Wizard } from './wizard.ts';
 
 export interface JoinDrawerProps {
@@ -55,14 +57,14 @@ export function OfferCard({
       <span class="offer-name">{offer.name}</span>
       <span class="offer-icons">
         {offer.trait && (
-          <Named name={contentName('trait', offer.trait)}>
+          <IconTip id={tipFor('trait', offer.trait)} tapShows>
             <TraitIcon id={offer.trait} />
-          </Named>
+          </IconTip>
         )}
         {offer.quirk && (
-          <Named name={contentName('quirk', offer.quirk)}>
+          <IconTip id={tipFor('quirk', offer.quirk)} tapShows>
             <QuirkIcon id={offer.quirk} />
-          </Named>
+          </IconTip>
         )}
       </span>
     </>
@@ -118,10 +120,9 @@ export function JoinDrawer(props: JoinDrawerProps): JSX.Element | null {
               aria-selected={w.role === r}
               data-role={r}
               onClick={() => setW((s) => wizard(s, { kind: 'role', role: r }))}
+              {...tipProps(tipFor('role', r))}
             >
-              <Named name={contentName('role', r)} shown={w.role === r} passTap>
-                <RoleEmblem role={r} size={40} />
-              </Named>
+              <RoleEmblem role={r} size={40} />
             </button>
           ))}
         </div>
@@ -137,9 +138,9 @@ export function JoinDrawer(props: JoinDrawerProps): JSX.Element | null {
           <div class="join-choice">
             {chosen && <OfferCard offer={chosen} party={props.party} />}
             {w.role && (
-              <Named name={contentName('role', w.role)}>
+              <IconTip id={tipFor('role', w.role)} tapShows>
                 <RoleEmblem role={w.role} size={44} />
-              </Named>
+              </IconTip>
             )}
           </div>
           <button

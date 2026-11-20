@@ -11,6 +11,7 @@ What has landed and what is next. Newest first. Update it when a step lands or t
 
 ## Done
 
+- 2026-11-20: Icon tips (branch `ui/tips`): one tip system for every icon, with hover on desktop and press-and-hold on touch, and all texts and delays in `apps/web/src/text/tips.ts`.
 - 2026-11-20: Milestone 5 playtest polish, core and art (`m5/polish-core`): fieldstones, ore outcrops and deadfall on open ground so stone, iron and timber turn up within a week in nearly every seed (content version 7, measured by `packages/core/scripts/findability.ts`); a `survey-empty` event; the dev season brings threats from the first tick; features and settlements on a plinth, and marks for explored-empty, out of reach, a needed role and a mislead, with nothing-here, misled and peril-relieved moments; review batch 2026-11-20-5, plinth and node looks strengthened in 2026-11-20-6.
 - 2026-11-20: Milestone 5 web (`m5/web`): threats with strength, approach arrow and arrival pulse; threat and settlement cards with strike, parley (risk mark), offer and boons; escort ring, struck and defending marks; the defend card in the hub; the peril gauge, route strip and vignette on the HUD; the full-screen ending with a staging new-season button; season moments.
 - 2026-11-20: Milestone 5 server (`m5/worker`): strict schemas for the five new actions, the short dev season behind the dev-tools switch, `POST /api/dev/new-season`, no ticks once a season is over, version-5 games replaced, fixtures for every outcome.

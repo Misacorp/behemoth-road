@@ -4,6 +4,8 @@ import type { JSX } from 'preact';
 import { iconOf } from '../game/chain.ts';
 import { PALETTE } from '../map/art.ts';
 import { toPreact } from '../map/svgToPreact.ts';
+import { tipFor } from '../ui/tip.ts';
+import { tipProps } from '../ui/Tip.tsx';
 
 export function ContentIcon({
   id,
@@ -28,7 +30,11 @@ export function Stack({
   short?: boolean;
 }): JSX.Element {
   return (
-    <span class={short ? 'stack is-short' : 'stack'} data-item={id}>
+    <span
+      class={short ? 'stack is-short' : 'stack'}
+      data-item={id}
+      {...tipProps(tipFor('material', id))}
+    >
       <ContentIcon id={id} size={28} />
       <span class="stack-count">{count}</span>
     </span>
