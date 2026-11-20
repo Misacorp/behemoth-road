@@ -598,7 +598,10 @@ const berryBushes: FeatureDraw = (c, state) => {
   return { nodes, box: boxOf(shapes.flat()) };
 };
 
-/** Fieldstones: a few flat stones half sunk in the grass with a tuft between; depleted, only dents. */
+/**
+ * Fieldstones: squared, warm-toned blocks with chisel marks, one stacked on two (cut stone, never a grey
+ * boulder like the rock props), a tuft beside them; depleted, one block left and dents.
+ */
 const fieldstones: FeatureDraw = (c, state) => {
   const { fill, line, blob, pts } = kit(c);
   const pal = c.palette;
@@ -609,13 +612,14 @@ const fieldstones: FeatureDraw = (c, state) => {
       [16, 2],
     ]),
   ];
+  // Blocks as [left, base, width, height], drawn back to front.
   const stones: [number, number, number, number][] =
     state === 'depleted'
-      ? [[10, -1.5, 4, 2.2]]
+      ? [[7, 0, 8, 4.5]]
       : [
-          [-9, -2.5, 6.5, 3.4],
-          [4, -3, 6, 3.8],
-          [12, -1.5, 4, 2.4],
+          [-13, 0, 11, 5.5],
+          [-1, 0, 10, 5],
+          [-8, -5.5, 10, 5],
         ];
   if (state === 'depleted') {
     const dents = [blob(-8, 0, 6, 1.8), blob(3, 0, 5.5, 1.8)];
@@ -628,14 +632,44 @@ const fieldstones: FeatureDraw = (c, state) => {
       }),
     );
   }
-  for (const [x, y, rx, ry] of stones) {
-    const b = blob(x, y, rx, ry);
-    const top = blob(x - rx * 0.15, y - ry * 0.4, rx * 0.6, ry * 0.3);
-    all.push(...b);
+  for (const [x, y, w, h] of stones) {
+    const face = pts([
+      [x, y],
+      [x, y - h],
+      [x + w, y - h],
+      [x + w, y],
+    ]);
+    const top = pts([
+      [x, y - h],
+      [x + 1.6, y - h - 1.8],
+      [x + w + 1.6, y - h - 1.8],
+      [x + w, y - h],
+    ]);
+    const side = pts([
+      [x + w, y],
+      [x + w, y - h],
+      [x + w + 1.6, y - h - 1.8],
+      [x + w + 1.6, y - 1.8],
+    ]);
+    // Chisel marks: short parallel strokes across the face.
+    const chisel = [0.3, 0.55, 0.8]
+      .map((t) =>
+        poly(
+          pts([
+            [x + w * t - 0.8, y - h * 0.3],
+            [x + w * t + 0.8, y - h * 0.75],
+          ]),
+          false,
+        ),
+      )
+      .join('');
+    all.push(...face, ...top, ...side);
     nodes.push(
-      fill(smoothClosed(b), pal.ramps.stone.shade),
-      fill(smoothClosed(top), pal.ramps.stone.light, 0.9),
-      line(smoothClosed(b)),
+      fill(poly(face), pal.ramps.sand.base),
+      fill(poly(top), pal.ramps.sand.light),
+      fill(poly(side), pal.ramps.sand.shade),
+      line(chisel, 0.7, pal.accents.ochre.shade),
+      line(poly(face) + poly(top) + poly(side)),
     );
   }
   // A tuft of grass between the stones, so they sit in a field.
@@ -669,7 +703,7 @@ const fieldstones: FeatureDraw = (c, state) => {
   return { nodes, box: boxOf(all) };
 };
 
-/** An ore outcrop: a low, rust-streaked knuckle of rock; depleted, cracked open and grey. */
+/** An ore outcrop: a low knuckle of rock with a rust bloom and streaks; depleted, cracked open and grey. */
 const oreOutcrop: FeatureDraw = (c, state) => {
   const { pts, fill, line, blob } = kit(c);
   const pal = c.palette;
@@ -699,6 +733,25 @@ const oreOutcrop: FeatureDraw = (c, state) => {
       0.5,
     ),
   ];
+  if (state !== 'depleted') {
+    // A rust bloom over the lower face, so it never reads as a grey rock prop.
+    nodes.push(
+      fill(
+        poly(
+          pts([
+            [-12, 0],
+            [-10.5, -4.5],
+            [-4, -6.5],
+            [3, -5],
+            [9, -2.5],
+            [12, 0],
+          ]),
+        ),
+        pal.accents.coral.light,
+        0.9,
+      ),
+    );
+  }
   if (state === 'depleted') {
     nodes.push(
       line(

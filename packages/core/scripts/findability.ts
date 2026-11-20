@@ -24,10 +24,13 @@ export type FirstDays = Record<(typeof MEASURED)[number], number | null>;
 /** Hexes this close to the creature's centre are a day's walk out and back (3 actions). */
 export const NEAR = 3;
 
-/** The first day (1 = the first day) the window holds each measured node, up to `days`. */
 /** Days measured: the goal is to meet each material within about a week. */
 export const DAYS = 8;
 
+/**
+ * The first day (1 = the first day) the window holds a node of each measured material, up to `days`;
+ * with `within`, only nodes that close to the creature's centre count.
+ */
 export const firstDays = (seed: number, days: number, within = Infinity): FirstDays => {
   const found: FirstDays = { stone: null, iron: null, timber: null, forage: null };
   let state = createGame(seed, { artSeed: 0 });

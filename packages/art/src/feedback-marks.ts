@@ -17,8 +17,8 @@ const pxOr = (size: number, fallback: number): number =>
   Number.isFinite(size) && size > 0 ? size : fallback;
 
 /**
- * The plinth under a feature (a node, site, trap or settlement): a disc of trodden, lighter ground with a
- * soft ink rim, squashed with the plane. Decorative props never get one, so at phone zoom a feature reads
+ * The plinth under a feature (a node, site, trap or settlement): a raised disc of light, trodden ground with
+ * a warm inner band, an ink rim and a dark lip at the front, squashed with the plane. Decorative props never get one, so at phone zoom a feature reads
  * as "something here" and a pebble does not. `rx` is in local units at the reference hex size.
  */
 export function featurePlinth(c: PropContext, rx = 20): Drawn {
@@ -26,16 +26,26 @@ export function featurePlinth(c: PropContext, rx = 20): Drawn {
   const x = c.origin.x;
   const y = c.origin.y + 0.5 * c.k;
   const d = ellipsePath(x, y, rx * c.k, ry * c.k);
+  // A lip of darker ground under the front edge, so the disc reads as raised.
+  const lip = 1.8 * c.k * (c.squash / 0.6);
+  const pal = c.palette;
   return {
     nodes: [
-      el('path', { d, fill: c.palette.paper, opacity: 0.6, 'data-plinth': 'disc' }),
       el('path', {
-        d,
-        ...stroke(c.palette.inkSoft, c.ink * 0.9, { opacity: 0.55 }),
-        'data-plinth': 'rim',
+        d: ellipsePath(x, y + lip, rx * c.k, ry * c.k),
+        fill: pal.ramps.earth.shade,
+        opacity: 0.55,
+        'data-plinth': 'lip',
       }),
+      el('path', { d, fill: pal.paper, opacity: 0.9, 'data-plinth': 'disc' }),
+      el('path', {
+        d: ellipsePath(x, y, rx * 0.8 * c.k, ry * 0.8 * c.k),
+        ...stroke(pal.accents.ochre.light, c.ink * 1.4),
+        'data-plinth': 'band',
+      }),
+      el('path', { d, ...stroke(pal.ink, c.ink * 1.1, { opacity: 0.8 }), 'data-plinth': 'rim' }),
     ],
-    box: boxOf([P(x - rx * c.k, y - ry * c.k), P(x + rx * c.k, y + ry * c.k)]),
+    box: boxOf([P(x - rx * c.k, y - ry * c.k), P(x + rx * c.k, y + ry * c.k + lip)]),
   };
 }
 
