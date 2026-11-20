@@ -690,6 +690,8 @@ async function run() {
         await press('[aria-label="Next day"]');
         await page.waitForTimeout(350);
         await expectMoment('step');
+        if (!(await page.locator('.map-world.is-stepping [data-layer=creature]').count()))
+          problems.push(`${vp.name}: the scene's creature shows during the step ghost`);
         await shot4('10-step');
         await settle();
         await idle();

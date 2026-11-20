@@ -144,6 +144,12 @@ function targetPoint(state: GameStateView, characterId: string, target: FocusTar
   return hexCenter(p, state.creature.centre.q, state.creature.centre.r);
 }
 
+/** The scene's characters without the creature's riders. */
+const walkers = (state: GameStateView) => {
+  const riding = new Set(ridersOf(state).map((c) => c.id));
+  return characterArts(state).filter((c) => !riding.has(c.id));
+};
+
 /** The characters riding the creature, in character order (the bubble lists them). */
 const ridersOf = (state: GameStateView) =>
   state.characters.filter((c) => c.status === 'active' && c.at.kind === 'creature');
@@ -277,12 +283,17 @@ export function MapView(props: MapViewProps): JSX.Element {
     height: Math.max(1, size.current.height - (latest.current.coverBottom ?? 0)),
   });
 
+  // While the day's step plays, the ghost walk is the only creature: the scene's own creature is hidden
+  // (its `data-layer="creature"` group, by the `is-stepping` class) and riders are left out of the scene
+  // so they do not stand on air.
+  const stepping = (props.moments ?? []).some((m) => m.kind === 'step');
+
   // The scene depends on the game state only; overlays also on the flow.
   const layers = useMemo(() => {
     const { svg: scene, viewBox } = renderSceneFramed({
       cells: sceneCells(state),
       creature: creatureArt(state, signs),
-      characters: characterArts(state),
+      characters: stepping ? walkers(state) : characterArts(state),
       projection: p,
       palette: PALETTE,
       seed: state.artSeed,
@@ -306,7 +317,7 @@ export function MapView(props: MapViewProps): JSX.Element {
       box,
       raster: layerRaster(inkZoom, box, window.devicePixelRatio, MAP_TUNING.layer),
     };
-  }, [state, signs, inkZoom]);
+  }, [state, signs, inkZoom, stepping]);
   const layerRef = useRef(layers);
   layerRef.current = layers;
 
@@ -648,7 +659,7 @@ export function MapView(props: MapViewProps): JSX.Element {
   const { box, raster } = layers;
   return (
     <div class="map-root">
-      <div ref={worldRef} class="map-world">
+      <div ref={worldRef} class={stepping ? 'map-world is-stepping' : 'map-world'}>
         <svg
           viewBox={`${box.x} ${box.y} ${box.width} ${box.height}`}
           width={box.width * raster}
