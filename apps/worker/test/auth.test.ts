@@ -1,7 +1,7 @@
 import { env } from 'cloudflare:workers';
 import { listDurableObjectIds } from 'cloudflare:test';
 import { describe, expect, it, vi } from 'vitest';
-import { createHandler } from '../src/index.ts';
+import { createHandler } from '../src/handler.ts';
 import { SERVER_CONFIG } from '../src/server-config.ts';
 import { parseSessionToken } from '../src/session.ts';
 import {
