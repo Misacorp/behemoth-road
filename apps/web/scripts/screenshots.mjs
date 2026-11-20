@@ -917,6 +917,14 @@ async function run() {
             .getAttribute('data-distance'),
         );
         if (!(distance > 0)) problems.push(`${vp.name}: the threat card shows no distance`);
+        const cardBox = await page.locator('[data-popover=threat]').boundingBox();
+        const endBox = await page.locator('.map-world [data-mark=threat-end]').boundingBox();
+        const inset = (b) => ({ x: b.x + 4, y: b.y + 4, w: b.width - 8, h: b.height - 8 });
+        if (cardBox && endBox) {
+          const [a, b] = [inset(cardBox), inset(endBox)];
+          if (a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h)
+            problems.push(`${vp.name}: the threat card covers its trail's end`);
+        }
         await shot5('05b-threat-path');
         await page.keyboard.press('Escape');
         await page.waitForTimeout(300);

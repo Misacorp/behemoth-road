@@ -37,7 +37,7 @@ import {
   sceneCells,
   terrainKnown,
 } from './cells.ts';
-import { chevronFor, placeClear, placePopover, splitScene } from './compose.ts';
+import { chevronFor, placeClear, placePopover, splitScene, trailClear } from './compose.ts';
 import { fireHintAt } from '../game/chain.ts';
 import { accentOf, type Identity, lookOf } from '../game/identity.ts';
 import { type Moment, STEP_MS } from '../game/moments.ts';
@@ -71,7 +71,7 @@ import {
   ThreatCard,
   threatSize,
 } from './Popover.tsx';
-import { type SettlementInfo, settlementInfo, threatCard } from '../game/season.ts';
+import { type SettlementInfo, settlementInfo, threatCard, threatNextPath } from '../game/season.ts';
 import { setCssTransform } from './cssTransform.ts';
 import { toPreact } from './svgToPreact.ts';
 import {
@@ -227,6 +227,10 @@ function popoverAnchor(
       below: lift + tile / 2,
       size: flow.kind === 'threat' ? threatSize(Boolean(strike)) : SETTLEMENT_SIZE,
       ...clearOf(thing.hex),
+      // A threat's card stays off its trail: its hex first, then the hexes it crosses at the next tick.
+      ...(flow.kind === 'threat'
+        ? trailClear(thing.hex, threatNextPath(state, flow.id), clearOf(thing.hex).clear)
+        : {}),
     };
   }
   if (flow.kind === 'inspect') {
