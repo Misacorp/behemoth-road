@@ -213,8 +213,9 @@ describe('a new threat', () => {
     const four = fieldGame(['a', 'b', 'c', 'd']);
     expect(threatStrength(one, type('captors'), 1)).toBe(3);
     expect(threatStrength(four, type('captors'), 1)).toBe(4);
-    expect(threatStrength(four, type('swarm'), 11)).toBe(4);
-    expect(threatStrength(one, type('swarm'), 10)).toBe(2);
+    expect(threatStrength(four, type('swarm'), 15)).toBe(4);
+    expect(threatStrength(one, type('swarm'), 14)).toBe(2);
+    expect(threatStrength(one, type('swarm'), 15)).toBe(3);
   });
 });
 
