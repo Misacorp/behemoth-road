@@ -287,7 +287,9 @@ describe("the threat's next path", () => {
 
 describe('intercepting a threat', () => {
   /** Plays one action, failing the test if it is refused. */
-  const ok = (state: GameState, result: ReturnType<typeof act> | ReturnType<typeof moveAlong>) => {
+  const ok = (
+    result: { ok: true; state: GameState } | { ok: false; reason: string },
+  ): GameState => {
     if (!result.ok) throw new Error(`refused: ${result.reason}`);
     return result.state;
   };
@@ -298,14 +300,14 @@ describe('intercepting a threat', () => {
     state = placeCharacter(state, 'guardian', hex(0, 2));
     expect(threatOutlook(toPlayerView(state))[0]?.arrives).toBe('later');
     // The guardian walks one hex toward it and waits; the captors close in next to them (and do not strike them).
-    state = ok(state, moveAlong(state, 'guardian', [hex(0, 3)]));
+    state = ok(moveAlong(state, 'guardian', [hex(0, 3)]));
     let next = nextDayWithEvents(state);
     expect(next.state.threats[0]?.hex).toEqual(hex(0, 4));
     expect(ofKind(next.events, 'struck')).toEqual([]);
     state = next.state;
     // Day d + 1: two strikes clear it.
-    state = ok(state, act(state, 'guardian', { kind: 'strike', threat: 'c' }));
-    state = ok(state, act(state, 'guardian', { kind: 'strike', threat: 'c' }));
+    state = ok(act(state, 'guardian', { kind: 'strike', threat: 'c' }));
+    state = ok(act(state, 'guardian', { kind: 'strike', threat: 'c' }));
     expect(state.threats).toEqual([]);
     for (let i = 0; i < 3; i++) {
       next = nextDayWithEvents(state);

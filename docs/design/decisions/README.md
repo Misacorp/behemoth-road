@@ -114,7 +114,9 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
-- 2026-11-20 Threats are telegraphed: a wider window, slower varied speeds and a shown path \[Misa\]
+- 2026-11-20 A seeded balance simulation with scripted careful and careless parties
+- 2026-11-20 Threat pacing numbers: window 6, rockslide 5 ahead, raiders speed 1
+- 2026-11-20 Threats are telegraphed: a wider window, slower varied speeds and a shown path \[Misa\] (amended)
 - 2026-11-20 Action costs are drawn as arrows, not coloured dots; verb labels are a switch to try \[Misa\]
 - 2026-11-20 Only passing help may cover a popup; interactions continue inside it or in a drawer \[Misa\]
 - 2026-11-20 One tip controller for HTML, the map's cards and the map itself

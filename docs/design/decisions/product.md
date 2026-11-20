@@ -4,9 +4,31 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: A seeded balance simulation with scripted careful and careless parties
+
+ID: `2026-11-20-a-seeded-balance-simulation-with-scripted` · Status: current
+
+**Decision.** `packages/core/scripts/balance.ts` plays many seeded seasons through the core with two scripted party policies, at 3 and 6 players, on the dev season (12 steps) and the full one (40 steps), and prints the safe, wounded and lost rates, the average final peril and strikes. `careful`: the guardian intercepts threats it can reach (else rides and defends against one arriving tomorrow), others strike a threat arriving tomorrow in reach, the envoy befriends settlements and takes a boon, riders feed an underfed creature, the rest forage, and everyone ends the day as close to the creature as they can. `careless`: everyone rides, one forages every third day, feeding only at hunger level 2. Our goals: careful parties lose at most 30 %, careless ones win safe at most 50 %. With the telegraphed pacing (200 seeds), careful parties lose 28–30 % of full seasons (41–54 % with the old window) and 0–1 % of dev seasons; careless ones never win safe. No tuning change applied. If full seasons feel too harsh, `threatStrengthDays` 10 → 14 brings careful losses to 14–17 % and careless still loses every season.
+
+**Reasoning.** Pacing changes need numbers before Misa plays them. The policies are simple on purpose: they bound what a real party does, not predict it. Real players steer around rockslides with fire, use offers and work in parallel, so they should do better than `careful`.
+
+## 2026-11-20: Threat pacing numbers: window 6, rockslide 5 ahead, raiders speed 1
+
+ID: `2026-11-20-threat-pacing-numbers-window-6-rockslide` · Status: current · Amends: `2026-11-20-threats-are-telegraphed-a-wider-window`
+
+**Decision.** The numbers behind telegraphed threats:
+
+- `windowRadius` 6 (content version 8; older games are wiped). The feature chance per hex stays 0.08, so the window holds about 20 features instead of 13 (seeds 1–40, day 1). The density limit (under 15 % of hexes) and the findability goals still hold.
+- `threatPathDistance` 5 (was 4): the rockslide keeps its place one hex inside the window's edge, so a creature walking straight on meets it after three ticks instead of two.
+- Speeds: captors 2 (from behind they gain one hex a day: four ticks from the edge to contact, was three), swarm 2 (from the flank, two to three ticks), rockslide 0, raiders 1 (sent from a settlement on the route, often near: speed 1 leaves time to answer them).
+- `threatNextPath(view, id)` gives the hexes a threat will cross at the next tick, end hex last, under the same straight-walk guess as `threatOutlook`. A test checks both against the real tick for every type from every hex of the window.
+- The scout's `far-sight` perk (sees threats beyond the window's edge) is data only, `requiresUpgrade: true`.
+
+**Reasoning.** Captors and swarms keep speed 2, so a threat still closes in on a walking creature; the wider window alone adds a day of warning. Raiders are the one threat that starts close, so they are the slow one.
+
 ## 2026-11-20: Threats are telegraphed: a wider window, slower varied speeds and a shown path **[Misa]**
 
-ID: `2026-11-20-threats-are-telegraphed-a-wider-window` · Status: current · Amends: `2026-11-20-threats-are-tagged-data-that-appear`
+ID: `2026-11-20-threats-are-telegraphed-a-wider-window` · Status: current, amended by `2026-11-20-threat-pacing-numbers-window-6-rockslide` · Amends: `2026-11-20-threats-are-tagged-data-that-appear`
 
 **Decision.** Threats must never feel unfair:
 

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { CONTENT_VERSION, type GameState, type Seed } from '../src/game-core.ts';
 import { seasonConfig, type PlayerView } from '../src/guild-game.ts';
 import { SERVER_CONFIG } from '../src/server-config.ts';
+import { DEV_SEASON } from '../../../packages/core/scripts/balance.ts';
 import {
   DiscordError,
   MISA,
@@ -121,6 +122,8 @@ describe('the season config', () => {
   it('is the short dev season only with the dev tools on', async () => {
     expect(seasonConfig(true)).toEqual(SERVER_CONFIG.devSeason);
     expect(seasonConfig(false)).toEqual({});
+    // The core's balance simulation plays the same dev season.
+    expect(DEV_SEASON).toEqual(SERVER_CONFIG.devSeason);
     await runGame(async (ctx) => {
       const view = asView((await ctx.call(await ctx.signIn(MISA), 'GET', '/api/game')).body);
       expect(view.game.config).toMatchObject(SERVER_CONFIG.devSeason);

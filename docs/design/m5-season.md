@@ -9,10 +9,10 @@ This is a prototype slice. Three threat flavours, one people, three boons. They 
 ## Threats (the attack system)
 
 - Threats are content: `THREAT_TYPES` in `packages/core/src/content/threats.ts`. A type has an id, name, tags, icon, `strength` (base), `speed` (hexes per tick), `approach` (where it appears) and `weight` (how often it is picked). Rules read tags and properties, never ids.
-  - **Captor band**: tags `ground`, `pursuer`, `people`. Strength 3, speed 2, approach `behind` (the window's edge opposite the heading). It gains about one hex a day on the walking creature: three days of warning.
-  - **Pterodactyl swarm**: tags `flying`, `beast`. Strength 2, speed 2, approach `flank` (the window's edge, ahead-left or ahead-right). One or two days of warning.
-  - **Rockslide**: tags `terrain`, `stone`. Strength 3, speed 0, approach `path` (on the straight-ahead line, 4 hexes from the centre). It strikes only if the creature walks into it: steering around it (fire) is a way through.
-  - **Raiders**: tags `ground`, `people`. Strength 2, speed 2, weight 0 (never rolled): an angered settlement sends them, from its hex.
+  - **Captor band**: tags `ground`, `pursuer`, `people`. Strength 3, speed 2, approach `behind` (the window's edge opposite the heading). It gains about one hex a day on the walking creature: four days of warning from the edge of the window (radius 6).
+  - **Pterodactyl swarm**: tags `flying`, `beast`. Strength 2, speed 2, approach `flank` (the window's edge, ahead-left or ahead-right). Two or three days of warning.
+  - **Rockslide**: tags `terrain`, `stone`. Strength 3, speed 0, approach `path` (on the straight-ahead line, `threatPathDistance` 5 hexes from the centre). It strikes only if the creature walks into it: steering around it (fire) is a way through.
+  - **Raiders**: tags `ground`, `people`. Strength 2, speed 1, weight 0 (never rolled): an angered settlement sends them, from its hex, often near the creature, so they are the slow one.
 - **A threat on the map** is public: `GameStateView.threats = [{ id, type, hex, strength, appearedDay }]`. Everyone sees it from the moment it appears; seeing it come is the forecast.
 - **Appearing.** At each tick from day `threatsFromDay` (3), a seeded roll (game seed, day) adds a threat with chance `min(threatChanceMax, threatChanceBase + threatChancePerPlayer × active players + threatChancePerDay × day)` (0.9; 0.25, 0.05, 0.01), while fewer than `threatsMax` (3) are on the map. The type is a weighted seeded pick among types with weight above 0 (pursuers are left out while a mislead lasts). It appears on the first fitting hex of its approach that is in the window, not water for ground threats, and not on the creature or a settlement. New threats appear after the others have acted, so none strikes the tick it appears.
 - **Scaling.** Strength is the type's base `+ floor((active players − 1) / threatStrengthPlayers)` (3) `+ floor((day − 1) / threatStrengthDays)` (10). More players and later days: more and stronger threats.
@@ -21,6 +21,9 @@ This is a prototype slice. Three threat flavours, one people, three boons. They 
 - **Striking a character.** After moving, a threat strikes every active character standing on a hex within 1 of it, unless that character is a guardian or is escorted (within 1 of an active guardian on a hex). A struck character starts the next day with `struckActions` (1) actions. Riders are never struck. The threat goes on.
 - **Gone.** A threat whose hex leaves the window (a rockslide left behind) is gone.
 - `threatOutlook(view)` (public core function, for the interface): for each threat, whether it reaches contact at the next tick if the creature walks straight on (`arrives: 'tomorrow' | 'later' | 'never'`), and the neighbour it would step to first. Blind to the creature's real step, like `predictCreature`.
+- `threatNextPath(view, threatId)` (public core function, for the interface): the hexes the threat will cross at the next tick, end hex last, under the same straight-walk guess (a lingering creature stays put); empty when it does not move. The interface draws it as the threat's path for the next day.
+- **Telegraphed** (decision "Threats are telegraphed"): the window is radius 6 (`windowRadius`), speeds are 0 to 2, and a threat's next path is shown. A scout perk `far-sight` (seeing threats beyond the window's edge) is data only, for a later upgrade.
+- **Balance**: `packages/core/scripts/balance.ts` plays seeded seasons with scripted careful and careless parties. With these numbers (200 seeds), careful parties of 3 or 6 lose 28–30 % of full seasons and about 1 % of dev seasons; careless ones never win safe. See the decision "A seeded balance simulation".
 
 ## Guardian (base abilities)
 
@@ -54,7 +57,7 @@ The creature's step (or linger) is chosen as before, then the step count rises. 
 
 ## State, view and API
 
-- Core state, all public: `threats`, `settlements`, `peril`, `season`, `creature.steps`, `creature.defenders`, and server-only `misleadUntilDay` (public is fine too; it is shown as no pursuers). Content version 6; older games are wiped and recreated.
+- Core state, all public: `threats`, `settlements`, `peril`, `season`, `creature.steps`, `creature.defenders`, and server-only `misleadUntilDay` (public is fine too; it is shown as no pursuers). Content version 6 (8 since the wider window); older games are wiped and recreated.
 - Actions (`checkAction` / `act`): `{ kind: 'strike', threat: id }`, `{ kind: 'defend' }`, `{ kind: 'parley' }`, `{ kind: 'offer', material }`, `{ kind: 'ask-boon', boon }`. The check's `chance` carries parley's success chance (1 − anger chance). New refusals: `season-over`, `no-threat`, `not-near`, `needs-guardian`, `no-settlement`, `not-wary`, `not-friendly`, `boon-taken`, `unknown-boon`, `no-trade-good`; `already-have` for a second defend in a day.
 - Moves are refused with `season-over` once the season has ended.
 - Events: `threat-appears` (id, type, hex), `threat-moves` (id, from, to), `threat-strikes` (id, damage), `struck` (characterId, threat id), `threat-hit` (id, characterId, strength left), `threat-cleared` (id, characterId), `threat-gone` (id), `defend` (characterId), `peril` (from, to), `settlement-appears` (id, hex), `parley` (id, characterId, favour), `befriended` (id), `angered` (id), `offer` (id, characterId, material), `boon` (id, characterId, boon), `season-over` (outcome). Every one carries only public facts.
