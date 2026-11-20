@@ -28,6 +28,9 @@ export const ART_TUNING = {
   featureScale: 1.6,
   /** A lit fire on a hex, against the props. */
   fireScale: 1.3,
+  /** Threats and settlements are the tile's focus like features. */
+  threatScale: 1.7,
+  settlementScale: 1.8,
   /** Space around a scene, in hex sizes. */
   padding: 0.45,
 } as const;

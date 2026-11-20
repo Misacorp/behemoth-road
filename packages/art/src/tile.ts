@@ -19,6 +19,8 @@ import { inkAttrs } from './props.ts';
 import { rngFor, type Rng } from './rng.ts';
 import { el, type AttrValue, type SvgNode } from './svg.ts';
 import type { FeatureArt } from './features.ts';
+import type { SettlementArt } from './settlements.ts';
+import type { ThreatArt } from './threats.ts';
 import { terrainLook, TRODDEN_LOOK } from './terrain.ts';
 
 /**
@@ -42,6 +44,10 @@ export interface ArtCell {
   readonly feature?: FeatureArt;
   /** A fire burns here (lit today); visible to everyone, also under the veil. */
   readonly fire?: boolean;
+  /** A threat on the hex (public): drawn in full, also under the veil; it replaces the terrain's props. */
+  readonly threat?: ThreatArt;
+  /** A people's settlement on the hex (public): drawn in full, also under the veil; it replaces the props. */
+  readonly settlement?: SettlementArt;
   /** Hand-placed props replacing the terrain's own: kind and offset from the centre in hex sizes. */
   readonly props?: readonly PropSpot[];
 }

@@ -114,6 +114,7 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-20 Milestone 5 art: threats, settlements and the guardian's marks are drawn by the art kit from content keys
 - 2026-11-20 Milestone 5 core: readings of the season contract
 - 2026-11-20 Threats are tagged data that appear at the window's edge and walk in openly
 - 2026-11-20 Guardians strike, defend and escort; anyone can strike a threat

@@ -35,6 +35,8 @@ const counts = v.pipe(
 );
 
 const character = v.object({
+  /** The day a threat struck them, or null. */
+  struckDay: v.nullable(count),
   id,
   userId: id,
   name: text,

@@ -116,6 +116,8 @@ describe('striking characters', () => {
     const actions = Object.fromEntries(next.state.characters.map((c) => [c.id, c.actionsLeft]));
     // The keeper rode: riders are never struck.
     expect(actions).toEqual({ scout: 1, scholar: 1, keeper: 3 });
+    const struckDays = Object.fromEntries(next.state.characters.map((c) => [c.id, c.struckDay]));
+    expect(struckDays).toEqual({ scout: 2, scholar: 2, keeper: null });
     // The threat goes on.
     expect(next.state.threats).toHaveLength(1);
   });
@@ -187,7 +189,7 @@ describe('a new threat', () => {
         if (t.type === 'captors') expect(ahead).toBeLessThan(0);
         if (t.type === 'swarm') expect(ahead).toBeGreaterThan(0);
       }
-      if (type(t.type).tags.includes('ground')) expect(terrain.tags).not.toContain('water');
+      expect(terrain.tags).not.toContain('water');
       expect(t.strength).toBe(threatStrength(next, type(t.type), 2));
     }
     expect([...seen].sort()).toEqual(['captors', 'rockslide', 'swarm']);

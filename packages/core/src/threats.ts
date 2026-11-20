@@ -22,7 +22,7 @@ import { terrainOf } from './map.ts';
 import type { Character, GameStateView, Threat } from './state.ts';
 import { isCreatureHex } from './window.ts';
 
-/** The threat tag that keeps a threat off water. */
+/** The threat tag of threats that walk on the ground (every rolled threat stays off water). */
 export const GROUND_TAG = 'ground';
 /** The threat tag a mislead leads away. */
 export const PURSUER_TAG = 'pursuer';
@@ -135,17 +135,17 @@ export const approachHexes = (state: GameStateView, type: ThreatType, side: -1 |
   }
 };
 
-/** Whether a threat of a type may appear on a hex: known, not on the creature, a settlement or a threat, and not water for ground threats. */
-export const canAppearOn = (state: GameStateView, type: ThreatType, h: Hex): boolean => {
+/** Whether a rolled threat may appear on a hex: known, not water, not on the creature, a settlement or a threat. */
+export const canAppearOn = (state: GameStateView, h: Hex): boolean => {
   const terrain = terrainOf(state, h);
   if (!terrain || isCreatureHex(state, h)) return false;
-  if (type.tags.includes(GROUND_TAG) && terrain.tags.includes(WATER_TAG)) return false;
+  if (terrain.tags.includes(WATER_TAG)) return false;
   if (state.settlements.some((s) => hexEquals(s.hex, h))) return false;
   return !state.threats.some((t) => hexEquals(t.hex, h));
 };
 
 /** An active guardian standing on a hex escorts everyone within 1 of it. */
-const isEscorted = (state: GameStateView, h: Hex): boolean =>
+export const isEscorted = (state: GameStateView, h: Hex): boolean =>
   state.characters.some(
     (g) =>
       g.status === 'active' &&
