@@ -112,6 +112,7 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-20 Hunger drains every second day
 - 2026-11-20 The keeper's cue shows the creature's true attitude for the tame first creature
 - 2026-11-20 Light a fire hints faded without fuel once you have seen a fire
 - 2026-11-20 A lingering creature's stay mark sits on its footprint's near edge
@@ -125,7 +126,7 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-20 Unexplored hexes sit under one hatched paper veil; packs, stores and unlocks have their own marks
 - 2026-11-20 M4 core: hunger cap in creature data, starving meals nourish, lingering twice refused
 - 2026-11-20 Lingering is the keeper's action and never runs two days in a row
-- 2026-11-20 Hunger has a comfortable band; underfed is erratic, overfed is sluggish; anyone can feed
+- 2026-11-20 Hunger has a comfortable band; underfed is erratic, overfed is sluggish; anyone can feed (amended)
 - 2026-11-20 Symptoms are computed per viewer; keepers see them earlier and see reaction cues
 - 2026-11-20 Fires pull the creature's step by a weighted score; the public prediction stays blind
 - 2026-11-20 The creature's nature is hidden server data; the first creature is drawn to fire or shies from it

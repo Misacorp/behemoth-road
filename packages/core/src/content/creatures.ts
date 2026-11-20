@@ -13,8 +13,14 @@ export const REACTIONS: readonly Reaction[] = ['attracted', 'repelled', 'indiffe
 export interface Need {
   /** The value a new game starts with. */
   readonly start: number;
-  /** How much it drops at each tick. */
+  /** How much it drops on a draining tick. */
   readonly drainPerDay: number;
+  /**
+   * It drains only on the ticks into a day that is a multiple of this (2: the
+   * ticks into days 2, 4, 6…), so the drain stays a whole number but can be slower
+   * than one a day.
+   */
+  readonly drainEveryDays: number;
   /** The comfortable band (inclusive); below it is underfed, above it overfed. */
   readonly comfortable: { readonly min: number; readonly max: number };
   /** The cap (overfeeding stops here). */
@@ -37,7 +43,13 @@ export const CREATURE_TYPES: readonly CreatureType[] = [
     name: 'Mossback',
     tags: ['beast', 'tame', 'grazer'],
     icon: 'mossback',
-    hunger: { start: 6, drainPerDay: 1, comfortable: { min: 4, max: 7 }, max: 10 },
+    hunger: {
+      start: 6,
+      drainPerDay: 1,
+      drainEveryDays: 2,
+      comfortable: { min: 4, max: 7 },
+      max: 10,
+    },
     // Never indifferent to fire: the first creature must be steerable by it.
     reactions: { fire: ['attracted', 'repelled'] },
   },

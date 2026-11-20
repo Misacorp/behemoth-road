@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: Hunger drains every second day
+
+ID: `2026-11-20-hunger-drains-every-second-day` · Status: current · Amends: `2026-11-20-hunger-has-a-comfortable-band-underfed`
+
+**Decision.** Satiety drops by `drainPerDay` (1) only on the ticks into a day that is a multiple of the creature type's `hunger.drainEveryDays` (2 for the Mossback: the ticks into days 2, 4, 6…), so it drains half as fast as before. One forage (+2) now lasts four days.
+
+**Reasoning.** Halving the drain was asked for in the polish round. A whole-number cadence keeps satiety an integer and the rule deterministic from the day alone, with no fractions in stored state; the cadence lives in the creature's data beside the rest of its hunger.
+
 ## 2026-11-20: The keeper's cue shows the creature's true attitude for the tame first creature
 
 ID: `2026-11-20-the-keeper-s-cue-shows-the` · Status: current
@@ -122,7 +130,7 @@ ID: `2026-11-20-lingering-is-the-keeper-s-action` · Status: current
 
 ## 2026-11-20: Hunger has a comfortable band; underfed is erratic, overfed is sluggish; anyone can feed
 
-ID: `2026-11-20-hunger-has-a-comfortable-band-underfed` · Status: current
+ID: `2026-11-20-hunger-has-a-comfortable-band-underfed` · Status: current, amended by `2026-11-20-hunger-drains-every-second-day`
 
 **Decision.** Satiety is a hidden 0 to 10, starting at 6, dropping 1 per day; 4 to 7 is comfortable. Feeding (riding, 1 action, 1 food from the stores) adds the food's `nourishes` (2). Underfed makes the creature's steps erratic (even veer weights) and, at the worst level, it eats from the team stores. Overfed weakens how much stimuli pull it. Anyone can feed; the keeper's edge is reading the signs. Herbs and illness are left for later.
 

@@ -264,10 +264,10 @@ describe('capture', () => {
         expect(kinds).toEqual(expect.arrayContaining(['creature-step', 'fire-out']));
         await refused(misa, { version: await versionNow(), action: { kind: 'linger' } });
 
-        // Starving with forage in the stores: the next tick it eats from them.
+        // Starving (level 3 whether or not this tick drains) with forage in the stores: the next tick it eats from them.
         const before = await versionNow();
         const hungry = read();
-        write({ ...hungry, stores: { forage: 1 }, care: { ...hungry.care, satiety: 2 } });
+        write({ ...hungry, stores: { forage: 1 }, care: { ...hungry.care, satiety: 1 } });
         expect((await ctx.call(misa, 'POST', '/api/dev/next-day', {})).status).toBe(200);
         const ate = await ok(
           'view-creature-ate',

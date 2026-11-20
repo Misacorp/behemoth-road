@@ -335,8 +335,10 @@ describe('lingering', () => {
 });
 
 describe('the tick', () => {
-  it('drains hunger by one, down to zero', () => {
-    expect(nextDay(base()).care.satiety).toBe(5);
+  it('drains hunger by one on every second tick (into even days), down to zero', () => {
+    const days = [base()];
+    for (let i = 0; i < 4; i++) days.push(nextDay(days.at(-1)!));
+    expect(days.map((s) => s.care.satiety)).toEqual([6, 5, 5, 4, 4]);
     expect(nextDay(withSatiety(base(), 0)).care.satiety).toBe(0);
   });
 

@@ -58,7 +58,8 @@ const careAfter = (
   const list = state.stimuli
     .filter((s) => hexDistance(state.creature.centre, s.hex) <= state.config.stimulusRange)
     .map((s) => ({ hex: s.hex, stimulus: s.type, reaction: reactionTo(state.nature, s) }));
-  let satiety = Math.max(0, state.care.satiety - hunger.drainPerDay);
+  const drains = day % hunger.drainEveryDays === 0;
+  let satiety = Math.max(0, state.care.satiety - (drains ? hunger.drainPerDay : 0));
   let stores = state.stores;
   let ate: string | null = null;
   const drained = appetiteOf({ ...state, care: { ...state.care, satiety } });
