@@ -46,14 +46,13 @@ export function zoomAt(v: View, at: Point, factor: number, limits: ZoomLimits): 
   return { scale, x: at.x - world.x * scale, y: at.y - world.y * scale };
 }
 
-/** A view at `scale` with the world point `p` in the middle of the screen. */
 /** The part of the screen the map is seen in: below the top HUD, above the pips and any drawer. */
 export interface Frame extends Size {
   readonly x: number;
   readonly y: number;
 }
 
-/** A view that puts `p` at the middle of `frame` (a size alone is a frame at the screen's top left). */
+/** A view at `scale` with the world point `p` in the middle of `frame` (a size alone is a frame at the screen's top left). */
 export const centreOn = (
   p: Point,
   scale: number,

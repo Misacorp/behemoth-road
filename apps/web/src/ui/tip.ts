@@ -3,7 +3,8 @@
  * map itself). With a mouse a tip opens after its group's delay and closes on leaving; on a touch screen it
  * opens on press-and-hold and stays after the finger lifts until the next tap anywhere (or `stayMs`); moving
  * the finger first makes it a drag and closes it, and the hold never becomes a tap (the click that
- * follows is swallowed). Escape closes it. Timers are injected, so it is tested with fake ones.
+ * follows is swallowed, and only the held thing's own click). A tap elsewhere both closes a stay-open tip
+ * and still acts: closing never swallows it. Escape closes it. Timers are injected, so it is tested with fake ones.
  */
 import {
   delays,

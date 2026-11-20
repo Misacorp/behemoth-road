@@ -143,20 +143,20 @@ export function TipLayer(): JSX.Element | null {
       if (e.target instanceof Element && e.target.closest('[data-tip]')) return;
       TIPS.close();
     };
-    const onScroll = (): void => TIPS.close();
-    const onMenu = (): void => TIPS.close();
+    // A wheel turn or a right-click closes it.
+    const onDismiss = (): void => TIPS.close();
     document.addEventListener('click', onClick, true);
     window.addEventListener('keydown', onKey, true);
     document.addEventListener('pointerdown', onDown, true);
-    window.addEventListener('wheel', onScroll, { passive: true });
-    document.addEventListener('contextmenu', onMenu, true);
+    window.addEventListener('wheel', onDismiss, { passive: true });
+    document.addEventListener('contextmenu', onDismiss, true);
     return () => {
-      document.removeEventListener('contextmenu', onMenu, true);
+      document.removeEventListener('contextmenu', onDismiss, true);
       off();
       document.removeEventListener('click', onClick, true);
       window.removeEventListener('keydown', onKey, true);
       document.removeEventListener('pointerdown', onDown, true);
-      window.removeEventListener('wheel', onScroll);
+      window.removeEventListener('wheel', onDismiss);
     };
   }, []);
 

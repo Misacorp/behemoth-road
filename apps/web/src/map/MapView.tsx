@@ -29,6 +29,7 @@ import {
 import { Component, type ComponentChildren, type JSX } from 'preact';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { armedAfter } from './arm.ts';
+import { type Box, FrameCache, frameFrom } from './frame.ts';
 import { drawOutOfReach, PALETTE, PROJECTION } from './art.ts';
 import {
   cellStateAt,
@@ -353,22 +354,23 @@ export function MapView(props: MapViewProps): JSX.Element {
   const settleZoom = (): void => setInkZoom(inkZoomFor(view.current.scale));
   const latest = useRef(props);
   latest.current = props;
-  /**
-   * The part of the screen the map is seen in: below the top HUD (day, peril, route), above the action pips
-   * and any drawer. Read from the HUD itself, so its layout can change; the whole screen without one.
-   */
-  const seen = (): Frame => {
-    const { width, height } = size.current;
-    const box = svgRef.current?.getBoundingClientRect();
-    const pad = MAP_TUNING.framePad;
-    const hudTop = document.querySelector('.hud-top')?.getBoundingClientRect();
-    const pips = document.querySelector('.hud-actions')?.getBoundingClientRect();
-    const top = box && hudTop && hudTop.height > 0 ? Math.max(0, hudTop.bottom - box.top + pad) : 0;
-    const drawer = height - (latest.current.coverBottom ?? 0);
-    const above = box && pips && pips.height > 0 ? pips.top - box.top - pad : height;
-    const bottom = Math.max(top + 1, Math.min(drawer, above));
-    return { x: 0, y: top, width, height: bottom - top };
+  /** Measures the frame the map is seen in (the only place that reads layout for it). */
+  const readFrame = (): Frame => {
+    const rect = (el: Element | null | undefined): Box | null =>
+      el?.getBoundingClientRect() ?? null;
+    return frameFrom({
+      size: size.current,
+      map: rect(svgRef.current),
+      hudTop: rect(document.querySelector('.hud-top')),
+      pips: rect(document.querySelector('.hud-actions')),
+      coverBottom: latest.current.coverBottom ?? 0,
+      pad: MAP_TUNING.framePad,
+    });
   };
+  // Held between refreshes, so `apply` (every animation frame) reads no layout.
+  const frameCache = useRef(new FrameCache(readFrame));
+  /** The part of the screen the map is seen in: below the top HUD, above the pips and any drawer. */
+  const seen = (): Frame => frameCache.current.get();
 
   // The scene depends on the game state only; overlays also on the flow.
   const walking = props.step != null;
@@ -553,15 +555,32 @@ export function MapView(props: MapViewProps): JSX.Element {
         (next.height - size.current.height) / 2,
       );
       size.current = next;
+      frameCache.current.refresh();
       requestApply();
     });
     observer.observe(svg);
+    // The HUD's own size moves the frame without the map resizing.
+    for (const el of document.querySelectorAll('.hud-top, .hud-actions')) observer.observe(el);
+    // A rotation or window resize moves the HUD and the map's position.
+    const onResize = (): void => {
+      frameCache.current.refresh();
+      requestApply();
+    };
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
     return () => {
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('orientationchange', onResize);
       observer.disconnect();
       stopAnimation();
       if (frame.current) cancelAnimationFrame(frame.current);
     };
   }, []);
+
+  // The frame moves with the drawer cover and when a flow (a drawer, a card) opens or closes.
+  useLayoutEffect(() => {
+    frameCache.current.refresh();
+  }, [props.coverBottom, flow]);
 
   // A gesture must not outlive the window losing focus or being hidden (pointer-ups never arrive).
   useEffect(() => {

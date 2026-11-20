@@ -1,6 +1,5 @@
 #!/usr/bin/env node
-/* global console, process, window, document, performance, requestAnimationFrame, PerformanceObserver,
-   XMLSerializer, Image, MutationObserver */
+/* global console, process, window, document, performance, requestAnimationFrame, PerformanceObserver */
 /**
  * Performance measurements for the map (measure first, no fixes). Loads the app on the Vite dev server (its
  * fake session and a fake game server on the real core, see fake-game.mjs; an unminified dev build, so absolute
@@ -37,7 +36,7 @@ const arg = (name) => {
   return i === -1 ? undefined : args[i + 1];
 };
 const RATES = (arg('--rates') ?? '4,6').split(',').map(Number);
-// The ground-img and ground-bitmap experiments no longer match the scene's structure; ask for them by name.
+// Only the baseline runs by default; name others with --only.
 const ONLY = (arg('--only') ?? 'baseline').split(',');
 const PROFILE_NAMES = (arg('--profiles') ?? 'phone,desktop').split(',');
 
@@ -91,13 +90,9 @@ const EXPERIMENTS = {
       svg.style.transform = `translate(${x - k * x0}px, ${y - k * y0}px) scale(${k})`;
     };
   },
-  // The static ground (defs, the washed tiles and the dotted outlines) drawn once into an <image> holding the
-  // same SVG as a data URL (`img`), or rasterised once to a PNG on a canvas at the current zoom (`bitmap`).
-  'ground-img': () => window.__groundToImage('svg'),
-  'ground-bitmap': () => window.__groundToImage('png'),
 };
 
-/** Installed before the app loads: frame timing, input lag, Event Timing, and the ground-to-image helper. */
+/** Installed before the app loads: frame timing, input lag and Event Timing. */
 function harness() {
   const perf = { frames: [], lags: [], events: [], lastMove: 0, recording: false };
   window.__perf = perf;
@@ -133,57 +128,6 @@ function harness() {
     requestAnimationFrame(tick);
   };
   requestAnimationFrame(tick);
-
-  window.__groundToImage = async (kind) => {
-    const svg = document.querySelector('svg.map');
-    const world = svg.querySelector(':scope > g');
-    const defs = world.querySelector(':scope > defs');
-    const wash = [...world.children].find((c) => /wash\)$/.test(c.getAttribute('filter') ?? ''));
-    const parts = [defs, wash];
-    let next = wash.nextElementSibling;
-    while (next && next.tagName === 'path' && next.getAttribute('stroke-dasharray')) {
-      parts.push(next);
-      next = next.nextElementSibling;
-    }
-    const box = wash.getBBox();
-    const pad = 40;
-    const x = box.x - pad;
-    const y = box.y - pad;
-    const w = box.width + pad * 2;
-    const h = box.height + pad * 2;
-    const ser = new XMLSerializer();
-    const text =
-      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x} ${y} ${w} ${h}" width="${w}" height="${h}">` +
-      parts.map((p) => ser.serializeToString(p)).join('') +
-      '</svg>';
-    let href = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(text)}`;
-    if (kind === 'png') {
-      const scale = Number(svg.getAttribute('data-view').split(' ')[2]) * window.devicePixelRatio;
-      const img = new Image();
-      img.src = href;
-      await img.decode();
-      const canvas = document.createElement('canvas');
-      canvas.width = Math.ceil(w * scale);
-      canvas.height = Math.ceil(h * scale);
-      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-      href = canvas.toDataURL('image/png');
-    }
-    const ns = 'http://www.w3.org/2000/svg';
-    const layer = document.createElementNS(ns, 'g');
-    const image = document.createElementNS(ns, 'image');
-    for (const [k, v] of Object.entries({ href, x, y, width: w, height: h }))
-      image.setAttribute(k, v);
-    layer.append(image);
-    // Outside the app's world group (Preact owns it), following its transform.
-    world.before(layer);
-    const follow = () => layer.setAttribute('transform', world.getAttribute('transform') ?? '');
-    follow();
-    new MutationObserver(follow).observe(world, {
-      attributes: true,
-      attributeFilter: ['transform'],
-    });
-    for (const p of parts.slice(1)) p.style.display = 'none';
-  };
 }
 
 const pct = (values, q) => {
