@@ -8,7 +8,8 @@
     "2026-11-19-6",
     "2026-11-19-7",
     "2026-11-19-8",
-    "2026-11-20-1"
+    "2026-11-20-1",
+    "2026-11-20-2"
   ],
   "items": [
     {
@@ -167,10 +168,10 @@
       "id": "map/patch",
       "group": "Map",
       "title": "The map, Spring at tilt 0.8",
-      "version": "91fe610e",
+      "version": "fa9eefc9",
       "kind": "glance",
-      "batch": "2026-11-19-7",
-      "file": "art/map-patch-91fe610e.svg"
+      "batch": "2026-11-20-2",
+      "file": "art/map-patch-fa9eefc9.svg"
     },
     {
       "id": "creature/headings",
@@ -261,10 +262,10 @@
       "id": "characters/riders",
       "group": "Characters",
       "title": "Fifteen riders on the creature",
-      "version": "836bf2c1",
+      "version": "cd577019",
       "kind": "glance",
-      "batch": "2026-11-19-7",
-      "file": "art/characters-riders-836bf2c1.svg"
+      "batch": "2026-11-20-2",
+      "file": "art/characters-riders-cd577019.svg"
     },
     {
       "id": "features/sheet",
@@ -351,19 +352,19 @@
       "id": "map/care",
       "group": "Creature care",
       "title": "On the map: fires, berries, an underfed creature and two cues",
-      "version": "21e7dfd4",
+      "version": "a4993980",
       "kind": "glance",
-      "batch": "2026-11-20-1",
-      "file": "art/map-care-21e7dfd4.svg"
+      "batch": "2026-11-20-2",
+      "file": "art/map-care-a4993980.svg"
     },
     {
       "id": "map/care-lite",
       "group": "Creature care",
       "title": "The same in lite mode",
-      "version": "3fe458a5",
+      "version": "bb51122d",
       "kind": "glance",
-      "batch": "2026-11-20-1",
-      "file": "art/map-care-lite-3fe458a5.svg"
+      "batch": "2026-11-20-2",
+      "file": "art/map-care-lite-bb51122d.svg"
     },
     {
       "id": "features/veil",
