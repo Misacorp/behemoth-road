@@ -31,6 +31,8 @@ export const ROLES: readonly Role[] = [
     perks: [
       { id: 'trap-sense', name: 'Trap sense', tags: ['traps', 'immune'], requiresUpgrade: true },
       { id: 'glints', name: 'Glints', tags: ['sense', 'nearby'], requiresUpgrade: true },
+      // Sees threats beyond the window's edge, before they appear in it.
+      { id: 'far-sight', name: 'Far sight', tags: ['sense', 'threats'], requiresUpgrade: true },
     ],
   },
   { id: 'scholar', name: 'Scholar', tags: ['sites', 'lore'], icon: 'book', perks: [] },

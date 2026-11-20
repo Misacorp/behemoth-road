@@ -64,7 +64,7 @@ export const THREAT_TYPES: readonly ThreatType[] = [
     tags: ['ground', 'people'],
     icon: 'raiders',
     strength: 2,
-    speed: 2,
+    speed: 1,
     approach: 'sent',
     weight: 0,
   },

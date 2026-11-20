@@ -153,11 +153,11 @@ describe('moveAlong', () => {
   });
 
   it('applies nothing when any step is refused, and says which', () => {
-    const seed = findSeed((s) => terrainAt(s, hex(0, -5)).passable);
-    const state = gameAt(seed, hex(0, -4));
-    const result = moveAlong(state, 'a', [hex(0, -5), hex(0, -6)]);
+    const seed = findSeed((s) => terrainAt(s, hex(0, -6)).passable);
+    const state = gameAt(seed, hex(0, -5));
+    const result = moveAlong(state, 'a', [hex(0, -6), hex(0, -7)]);
     expect(result).toEqual({ ok: false, reason: 'unreachable', step: 1 });
-    const gap = moveAlong(state, 'a', [hex(0, -2)]);
+    const gap = moveAlong(state, 'a', [hex(0, -3)]);
     expect(gap).toEqual({ ok: false, reason: 'not-adjacent', step: 0 });
   });
 

@@ -67,20 +67,22 @@ describe('move', () => {
   });
 
   it('refuses a hex out of reach (hidden beyond the window)', () => {
-    expect(move(gameAt(1, hex(0, -5)), 'a', hex(0, -6))).toEqual({
+    expect(move(gameAt(1, hex(0, -6)), 'a', hex(0, -7))).toEqual({
       ok: false,
       reason: 'unreachable',
     });
   });
 
   it('lets a character on the window edge move along it but not past it', () => {
-    const seed = findSeed((s) => terrainAt(s, hex(1, -5)).passable);
-    const edge = hex(0, -5);
+    const seed = findSeed((s) => terrainAt(s, hex(1, -6)).passable);
+    const edge = hex(0, -6);
     const state = gameAt(seed, edge);
     expect(hexDistance(edge, state.creature.centre)).toBe(state.config.windowRadius);
-    expect(expectOk(move(state, 'a', hex(1, -5))).characters[0]?.at).toEqual(onHex(hex(1, -5)));
+    expect(expectOk(move(state, 'a', hex(1, -6))).characters[0]?.at).toEqual(onHex(hex(1, -6)));
     expect(
-      legalMoves(state, 'a').every((p) => p.kind === 'hex' && hexDistance(p.hex, hex(0, 0)) <= 5),
+      legalMoves(state, 'a').every(
+        (p) => p.kind === 'hex' && hexDistance(p.hex, hex(0, 0)) <= state.config.windowRadius,
+      ),
     ).toBe(true);
   });
 

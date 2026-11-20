@@ -110,8 +110,8 @@ describe('survey', () => {
       ok: false,
       reason: 'already-explored',
     });
-    const edge = placeCharacter(state, 'scout', hex(0, -5));
-    expect(checkAction(edge, 'scout', { kind: 'survey', hex: hex(0, -6) })).toMatchObject({
+    const edge = placeCharacter(state, 'scout', hex(0, -6));
+    expect(checkAction(edge, 'scout', { kind: 'survey', hex: hex(0, -7) })).toMatchObject({
       ok: false,
       reason: 'unreachable',
     });
@@ -204,7 +204,7 @@ describe('packs and stores', () => {
       ...state,
       config: { ...state.config, veerWeights: { left: 0, straight: 1, right: 0 } },
     };
-    state = withPack(placeCharacter(state, 'scout', hex(0, 5)), 'scout', { iron: 3 });
+    state = withPack(placeCharacter(state, 'scout', hex(0, 6)), 'scout', { iron: 3 });
     state = nextDay(nextDay(state));
     expect(state.characters[0]).toMatchObject({ status: 'lost', pack: {} });
     expect(state.stores).toEqual({});

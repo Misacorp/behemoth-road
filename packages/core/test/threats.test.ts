@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+  act,
   type GameEvent,
   type GameState,
   hex,
   hexDistance,
   hexesInRange,
+  moveAlong,
   nextDayWithEvents,
   stepToward,
   terrainOf,
@@ -58,9 +60,9 @@ describe('threat movement', () => {
   });
 
   it('never moves a threat with no speed; it goes once out of the window', () => {
-    let state = withThreat(fieldGame(['rider'], STRAIGHT), 'rockslide', hex(0, 4), 3);
+    let state = withThreat(fieldGame(['rider'], STRAIGHT), 'rockslide', hex(0, 5), 3);
     let next = nextDayWithEvents(state);
-    expect(next.state.threats[0]?.hex).toEqual(hex(0, 4));
+    expect(next.state.threats[0]?.hex).toEqual(hex(0, 5));
     expect(kinds(next.events)).not.toContain('threat-moves');
     state = next.state;
     next = nextDayWithEvents(state);
@@ -280,5 +282,47 @@ describe("the threat's next path", () => {
       }
     }
     expect(checked).toBeGreaterThan(100);
+  });
+});
+
+describe('intercepting a threat', () => {
+  /** Plays one action, failing the test if it is refused. */
+  const ok = (state: GameState, result: ReturnType<typeof act> | ReturnType<typeof moveAlong>) => {
+    if (!result.ok) throw new Error(`refused: ${result.reason}`);
+    return result.state;
+  };
+
+  it('lets a guardian near a threat from behind clear it before it reaches the creature', () => {
+    // Day d: captors appear on the window's edge straight behind; the guardian stands just behind the footprint.
+    let state = withThreat(fieldGame(['guardian'], STRAIGHT), 'captors', hex(0, 6), 3, 'c');
+    state = placeCharacter(state, 'guardian', hex(0, 2));
+    expect(threatOutlook(toPlayerView(state))[0]?.arrives).toBe('later');
+    // The guardian walks one hex toward it and waits; the captors close in next to them (and do not strike them).
+    state = ok(state, moveAlong(state, 'guardian', [hex(0, 3)]));
+    let next = nextDayWithEvents(state);
+    expect(next.state.threats[0]?.hex).toEqual(hex(0, 4));
+    expect(ofKind(next.events, 'struck')).toEqual([]);
+    state = next.state;
+    // Day d + 1: two strikes clear it.
+    state = ok(state, act(state, 'guardian', { kind: 'strike', threat: 'c' }));
+    state = ok(state, act(state, 'guardian', { kind: 'strike', threat: 'c' }));
+    expect(state.threats).toEqual([]);
+    for (let i = 0; i < 3; i++) {
+      next = nextDayWithEvents(state);
+      expect(ofKind(next.events, 'threat-strikes')).toEqual([]);
+      state = next.state;
+    }
+    expect(state.peril).toBe(0);
+  });
+
+  it('strikes the creature on the fourth tick when no one meets it', () => {
+    let state = withThreat(fieldGame(['rider'], STRAIGHT), 'captors', hex(0, 6), 3, 'c');
+    const struckOn: number[] = [];
+    for (let i = 1; i <= 4; i++) {
+      const next = nextDayWithEvents(state);
+      if (ofKind(next.events, 'threat-strikes').length > 0) struckOn.push(i);
+      state = next.state;
+    }
+    expect(struckOn).toEqual([4]);
   });
 });
