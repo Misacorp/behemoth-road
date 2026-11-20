@@ -194,21 +194,19 @@ export function Game({ api, initial }: GameProps): JSX.Element {
 
   const drawerOpen = need !== 'none' && offers.length > 0 && !drawerClosed;
 
-  // Whether you have seen a fire on the map this session (kept in memory only): from then on, a here card
-  // that opens for something else also hints at lighting one, faded, when you carry no fuel.
+  // Whether you have seen a fire on the map this session (in memory only), for the fire hint below.
   const [sawFire, setSawFire] = useState(false);
   useEffect(() => {
     if (view.game.stimuli.length > 0) setSawFire(true);
   }, [view]);
 
-  // Milestone 3's chain: what you can do where you stand, a survey next to you, your pack, the hub.
-  // Milestone 4: lighting a fire where you stand, feeding and lingering in the hub.
+  // What you can do where you stand (gather, work a site, light a fire), a survey next to you, your pack,
+  // and the hub (unlocks, feeding, lingering).
   const here = useMemo((): Here | null => {
     if (me?.status !== 'active' || me.at.kind !== 'hex') return null;
     const feature = featureArtAt(state, hexKey(me.at.hex));
-    // Without fuel the fire never opens the card by itself: only a hint on a card open for a feature, once
-    // you have seen a fire or when the feature is a timber stand.
-    // A timber stand hints at it too, seen fire or not.
+    // Without fuel the fire never opens the card by itself. It hints, faded, on a card open for a feature
+    // once you have seen a fire, and always on a timber stand.
     const hint = (feature !== null && sawFire) || fuelNodeAt(state, me.at.hex) !== null;
     const fire = fireAction(state, me.id, hint);
     const actions = [...(feature ? actionsAt(state, me.id) : []), ...(fire ? [fire] : [])];

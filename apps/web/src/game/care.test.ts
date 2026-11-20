@@ -114,5 +114,12 @@ describe('the fire hint on a timber stand', () => {
     };
     expect(fuelNodeAt(wooded, iron)).toBe('timber');
     expect(fireHintAt(wooded, iron)).toEqual({ cost: view.config.lightFireCost, uses: 'timber' });
+    // A stand not yet revealed gives no hint (hidden features never reach the client anyway).
+    const hidden = {
+      ...view,
+      features: { ...view.features, [key]: { type: stand.id, revealed: false, left: 2 } },
+    };
+    expect(fuelNodeAt(hidden, iron)).toBeNull();
+    expect(fireHintAt(hidden, iron)).toBeNull();
   });
 });

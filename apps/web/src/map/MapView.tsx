@@ -36,7 +36,7 @@ import {
 import { chevronFor, placePopover, splitScene } from './compose.ts';
 import { fireHintAt } from '../game/chain.ts';
 import { accentOf, type Identity, lookOf } from '../game/identity.ts';
-import type { Moment } from '../game/moments.ts';
+import { type Moment, STEP_MS } from '../game/moments.ts';
 import { MomentMark } from './MomentMark.tsx';
 import { MAP_TUNING } from './config.ts';
 import { type Flow, isSelecting } from './flow.ts';
@@ -144,8 +144,24 @@ function targetPoint(state: GameStateView, characterId: string, target: FocusTar
   return hexCenter(p, state.creature.centre.q, state.creature.centre.r);
 }
 
+/**
+ * Whether the day's step is walking: from when a step moment arrives until `STEP_MS` later (the ghost's
+ * slide), or until the moments clear, whichever is first.
+ */
+export function useStepping(moments: readonly Moment[]): boolean {
+  const step = moments.some((m) => m.kind === 'step');
+  // The moments whose walk has ended; hidden from the first render of new ones, with no gap.
+  const [walked, setWalked] = useState<readonly Moment[] | null>(null);
+  useEffect(() => {
+    if (!step) return;
+    const t = window.setTimeout(() => setWalked(moments), STEP_MS);
+    return () => window.clearTimeout(t);
+  }, [moments, step]);
+  return step && walked !== moments;
+}
+
 /** The scene's characters without the creature's riders. */
-const walkers = (state: GameStateView) => {
+export const walkers = (state: GameStateView) => {
   const riding = new Set(ridersOf(state).map((c) => c.id));
   return characterArts(state).filter((c) => !riding.has(c.id));
 };
@@ -286,7 +302,7 @@ export function MapView(props: MapViewProps): JSX.Element {
   // While the day's step plays, the ghost walk is the only creature: the scene's own creature is hidden
   // (its `data-layer="creature"` group, by the `is-stepping` class) and riders are left out of the scene
   // so they do not stand on air.
-  const stepping = (props.moments ?? []).some((m) => m.kind === 'step');
+  const stepping = useStepping(props.moments ?? []);
 
   // The scene depends on the game state only; overlays also on the flow.
   const layers = useMemo(() => {

@@ -31,6 +31,9 @@ export type Moment =
 /** How long a moment stays on screen, in ms (its CSS animation is as long). */
 export const MOMENT_MS = 1400;
 
+/** How long the creature's day step walks, in ms: its ghost slides, then the creature itself shows again. */
+export const STEP_MS = 1000;
+
 /** The part of an event the moments read (the core's `GameEvent`, as parsed). */
 export interface EventLike {
   readonly kind: string;

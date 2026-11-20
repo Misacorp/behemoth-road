@@ -170,7 +170,6 @@ function CardIcon({
   return toPreact({ ...icon, attrs: { ...icon.attrs, x, y, width: size, height: size } });
 }
 
-/** The inspect card, wider when it offers a survey. */
 /** The inspect card, wider for each button it offers (a survey, a fire hint). */
 export const inspectSize = (survey: boolean, fire = false): { width: number; height: number } => ({
   width: INSPECT_SIZE.width + ((survey ? 1 : 0) + (fire ? 1 : 0)) * ACTION_W,
@@ -423,11 +422,6 @@ export interface BubbleCharacter {
   readonly selected: boolean;
 }
 
-/**
- * The bubble by a place with characters: their figures in a row (inert for now; Milestone 2 opens a
- * character's details), and, for a place like the creature, a round entry into it. Generic so any hex with
- * several characters can use it later.
- */
 /** A small icon placed with its top-left at (x, y). */
 function Placed({ node, x, y, size }: { node: SvgNode; x: number; y: number; size: number }) {
   return toPreact({ ...node, attrs: { ...node.attrs, x, y, width: size, height: size } });
@@ -437,7 +431,7 @@ function Placed({ node, x, y, size }: { node: SvgNode; x: number; y: number; siz
  * The creature's appetite as you read it (the art kit's badge), in a corner of the bubble's creature entry:
  * sharp with level dots for a keeper, faint for anyone else.
  */
-function AppetiteBadge({ appetite }: { appetite: CreatureAppetiteSign }): JSX.Element {
+export function AppetiteBadge({ appetite }: { appetite: CreatureAppetiteSign }): JSX.Element {
   const size = 20;
   return (
     <g
@@ -455,6 +449,11 @@ function AppetiteBadge({ appetite }: { appetite: CreatureAppetiteSign }): JSX.El
   );
 }
 
+/**
+ * The bubble by a place with characters: their figures in a row (others open their card), and, for a
+ * place like the creature, a round entry into it with your read of its appetite as a badge. Generic so any
+ * hex with several characters can use it later.
+ */
 export function Bubble({
   characters,
   place,

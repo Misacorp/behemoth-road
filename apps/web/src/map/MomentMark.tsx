@@ -20,7 +20,7 @@ import {
 import type { ComponentChildren, JSX } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
 import { iconOf } from '../game/chain.ts';
-import { MOMENT_MS, type Moment } from '../game/moments.ts';
+import { type Moment, STEP_MS } from '../game/moments.ts';
 import { PALETTE, PROJECTION } from './art.ts';
 import { toPreact } from './svgToPreact.ts';
 
@@ -35,7 +35,8 @@ function at(node: SvgNode, x: number, y: number, size: number): JSX.Element {
 }
 
 /**
- * Slides its drawing from (dx, dy) to where it is drawn and fades it out. SMIL started on mount
+ * Slides its drawing from (dx, dy) to where it is drawn over `STEP_MS`, fully visible, then hides it at
+ * once: the map shows the real creature again at the same moment (`is-stepping`). SMIL started on mount
  * (`beginElement`), since an animation added to a long-running SVG would otherwise count from the
  * document's start and already be over.
  */
@@ -59,8 +60,9 @@ function StepGhost({
     <g ref={ref} opacity={0} transform={`translate(${offset})`} data-mark="step-ghost">
       <animate
         attributeName="opacity"
-        values="0.85;0.85;0"
-        dur={`${String(MOMENT_MS)}ms`}
+        values="1;1;0"
+        keyTimes="0;0.98;1"
+        dur={`${String(STEP_MS)}ms`}
         begin="indefinite"
         fill="freeze"
       />
@@ -69,7 +71,7 @@ function StepGhost({
         type="translate"
         from={offset}
         to="0 0"
-        dur={`${String(MOMENT_MS * 0.7)}ms`}
+        dur={`${String(STEP_MS)}ms`}
         begin="indefinite"
         fill="freeze"
       />
@@ -119,8 +121,8 @@ export function MomentMark({ moment }: { moment: Moment }): JSX.Element {
       );
       break;
     case 'step': {
-      // A minimal walk: a ghost of the creature slides from yesterday's centre to today's and fades into
-      // the creature already drawn there. SMIL, not CSS, since each step has its own offset (no inline
+      // A minimal walk: a ghost of the creature slides from yesterday's centre to today's, then the
+      // creature itself shows there again. SMIL, not CSS, since each step has its own offset (no inline
       // styles under the CSP). The M3 day-change step may replace this.
       const from = hexCenter(p, moment.from.q, moment.from.r);
       const heading = { q: moment.hex.q - moment.from.q, r: moment.hex.r - moment.from.r };

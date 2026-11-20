@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: The step ghost walks for one second, then the creature itself returns
+
+ID: `2026-11-20-the-step-ghost-walks-for-one` · Status: current · Amends: `2026-11-20-step-hints-scale-with-chance-the`
+
+**Decision.** The day-step ghost slides fully visible for `STEP_MS` (1 s, in `apps/web/src/game/moments.ts`), then disappears at the same instant the scene's creature (hidden by `is-stepping`) and its riders show again. It no longer fades.
+
+**Reasoning.** Fading while the real creature stayed hidden for the whole moment made it end dim and then pop in; a hand-over at the end of the walk reads as one creature walking.
+
 ## 2026-11-20: The step hints, appetite badge and stayed mark use the art kit's drawings
 
 ID: `2026-11-20-the-step-hints-appetite-badge-and` · Status: current · Amends: `2026-11-20-the-creature-card-s-heading-loses`
@@ -22,7 +30,7 @@ ID: `2026-11-20-the-creature-card-s-heading-loses` · Status: current, amended b
 
 ## 2026-11-20: Step hints scale with chance; the day's step plays as a walk or a stayed mark
 
-ID: `2026-11-20-step-hints-scale-with-chance-the` · Status: current
+ID: `2026-11-20-step-hints-scale-with-chance-the` · Status: current, amended by `2026-11-20-the-step-ghost-walks-for-one`
 
 **Decision.** Each of the creature's step options from `predictCreature` shows as a paw mark whose size (0.7 to 1.5 of the base) and opacity grow with its chance, so the likelier straight step and the rarer veers read at a glance. At day change a `creature-step` event plays a walk: a ghost of the creature slides from yesterday's centre to today's and fades (SVG SMIL started on mount; the CSP forbids inline styles). A step with `from` equal to `to` (a linger) plays a stayed mark on the creature: the art's `stayed` moment when it exists, the linger mark until then.
 
