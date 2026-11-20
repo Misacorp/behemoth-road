@@ -58,7 +58,7 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
     name: 'Iron deposit',
     tags: ['ore', 'mine'],
     icon: 'ore',
-    placement: { on: ['dry'], near: ['steep'], weight: 30 },
+    placement: { on: ['dry'], near: ['steep'], weight: 15 },
     charges: 3,
     yields: { material: 'iron', amount: 1 },
   },
@@ -78,7 +78,7 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
     name: 'Timber stand',
     tags: ['wood', 'fell'],
     icon: 'logs',
-    placement: { on: ['wooded'], near: ['wooded'], weight: 40 },
+    placement: { on: ['wooded'], near: ['wooded'], weight: 25 },
     charges: 3,
     yields: { material: 'timber', amount: 1 },
   },
@@ -131,5 +131,41 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
     placement: { on: ['wooded', 'open'], weight: 10 },
     charges: 3,
     yields: { material: 'forage', amount: 1 },
+  },
+  // Also last, for the same reason: stone, iron and timber where the land has no
+  // river, cliff or forest (most of it is open plain), so a party meets what the
+  // first unlocks need within about a week (measured by `scripts/findability.ts`).
+  // Smaller than the river, cliff and forest kinds; iron deposits (30 → 15) and
+  // timber stands (40 → 25) were lightened with them, so about as many hexes hold
+  // something as before (content version 7).
+  {
+    id: 'fieldstones',
+    kind: 'node',
+    name: 'Fieldstones',
+    tags: ['stone', 'quarry'],
+    icon: 'fieldstones',
+    placement: { on: ['open'], weight: 4 },
+    charges: 2,
+    yields: { material: 'stone', amount: 1 },
+  },
+  {
+    id: 'ore-outcrop',
+    kind: 'node',
+    name: 'Ore outcrop',
+    tags: ['ore', 'mine'],
+    icon: 'outcrop',
+    placement: { on: ['open'], weight: 5 },
+    charges: 2,
+    yields: { material: 'iron', amount: 1 },
+  },
+  {
+    id: 'deadfall',
+    kind: 'node',
+    name: 'Deadfall',
+    tags: ['wood', 'fell'],
+    icon: 'deadfall',
+    placement: { on: ['open'], weight: 3 },
+    charges: 2,
+    yields: { material: 'timber', amount: 1 },
   },
 ];

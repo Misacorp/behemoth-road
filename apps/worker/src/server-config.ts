@@ -37,8 +37,17 @@ export const SERVER_CONFIG = {
   /**
    * Core tuning overrides for a game created where the dev tools are on (staging, local): a short season,
    * so a playtest reaches settlements, threats and the ending in days. Production uses the core defaults.
+   * Threats may come from the first tick and come often: over 30 seeds with 2 to 3 idle players, the first
+   * threat is out by day 2 in about 80% and by day 3 in over 90%, and strikes raise peril by day 5 in about
+   * 75% (measured in the core, see the decision "Dev season brings threats from the first tick").
    */
-  devSeason: { routeLength: 12, settlementFirst: 3, settlementEvery: 6, threatsFromDay: 2 },
+  devSeason: {
+    routeLength: 12,
+    settlementFirst: 3,
+    settlementEvery: 6,
+    threatsFromDay: 1,
+    threatChanceBase: 0.6,
+  },
   limits: {
     /** Bound on hex coordinates in a request; the creature walks one hex a day. */
     maxCoordinate: 100_000,

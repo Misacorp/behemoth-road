@@ -8,7 +8,7 @@
   },
   "offers": null,
   "game": {
-    "contentVersion": 6,
+    "contentVersion": 7,
     "artSeed": 4242,
     "day": 2,
     "config": {
@@ -45,8 +45,8 @@
       "lightFireCost": 1,
       "feedCost": 1,
       "lingerCost": 2,
-      "threatsFromDay": 2,
-      "threatChanceBase": 0.25,
+      "threatsFromDay": 1,
+      "threatChanceBase": 0.6,
       "threatChancePerPlayer": 0.05,
       "threatChancePerDay": 0.01,
       "threatChanceMax": 0.9,
@@ -771,7 +771,18 @@
       "work": 1
     },
     "stimuli": [],
-    "threats": [],
+    "threats": [
+      {
+        "id": "t2",
+        "type": "swarm",
+        "hex": {
+          "q": 5,
+          "r": -6
+        },
+        "strength": 2,
+        "appearedDay": 2
+      }
+    ],
     "settlements": [],
     "peril": 0,
     "season": {

@@ -62,6 +62,17 @@ describe('survey', () => {
     }
   });
 
+  it('says when a surveyed hex holds nothing', () => {
+    let state = placeCharacter(chainGame(['scout']), 'scout', P);
+    const { [`${N.q},${N.r}`]: _, ...features } = state.features;
+    state = { ...state, features };
+    expect(ok(state, 'scout', { kind: 'survey', hex: N }).events).toEqual([
+      { kind: 'survey', hex: N, characterId: 'scout' },
+      { kind: 'explore', hex: N },
+      { kind: 'survey-empty', hex: N, characterId: 'scout' },
+    ]);
+  });
+
   it('makes a trap harmless: nobody springs it, then or later', () => {
     let state = placeCharacter(chainGame(['scout']), 'scout', P);
     state = withFeature(state, N, 'pitfall');

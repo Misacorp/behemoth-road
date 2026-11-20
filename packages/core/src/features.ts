@@ -32,6 +32,8 @@ export type GameEvent =
   | { readonly kind: 'explore'; readonly hex: Hex }
   | { readonly kind: 'survey'; readonly hex: Hex; readonly characterId: string }
   | { readonly kind: 'reveal'; readonly hex: Hex; readonly feature: string }
+  /** A survey found the hex empty (after its `survey` and `explore`). Entering an empty hex is an `explore` with no `reveal`. */
+  | { readonly kind: 'survey-empty'; readonly hex: Hex; readonly characterId: string }
   | { readonly kind: 'trap'; readonly hex: Hex; readonly characterId: string }
   | {
       readonly kind: 'gather';

@@ -11,8 +11,9 @@
  * 5: the living creature: its hidden nature and hunger, fires, food and lingering.
  * 6: threats and an ending: threats, peoples and settlements, peril and the
  *    season's route.
+ * 7: stone, iron and timber nodes on open ground (generation changed).
  */
-export const CONTENT_VERSION = 6;
+export const CONTENT_VERSION = 7;
 
 /** Content versions this code can load. */
 export const KNOWN_CONTENT_VERSIONS: readonly number[] = [CONTENT_VERSION];
