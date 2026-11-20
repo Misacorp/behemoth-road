@@ -15,7 +15,6 @@ import {
   drawVeilLift,
   GENTLE_AMBLER,
   hexCenter,
-  MOMENT_KINDS,
   type SvgNode,
 } from '@behemoth-road/art';
 import type { ComponentChildren, JSX } from 'preact';
@@ -26,8 +25,6 @@ import { PALETTE, PROJECTION } from './art.ts';
 import { toPreact } from './svgToPreact.ts';
 
 const p = PROJECTION;
-
-const STAYED = (MOMENT_KINDS as readonly string[]).includes('stayed') ? 'stayed' : 'linger';
 
 /** An art kit `<svg>` placed with its centre at (x, y), `size` px across. */
 function at(node: SvgNode, x: number, y: number, size: number): JSX.Element {
@@ -144,10 +141,10 @@ export function MomentMark({ moment }: { moment: Moment }): JSX.Element {
       break;
     }
     case 'stayed':
-      // The art's own "stayed" mark when it has one; the linger mark until then.
+      // The art kit's "stayed" mark: the creature did not step.
       body = (
         <Marked kind="bloom">
-          {at(drawMoment(STAYED, PALETTE, size), c.x, c.y - 0.4 * p.size, size)}
+          {at(drawMoment('stayed', PALETTE, size), c.x, c.y - 0.4 * p.size, size)}
         </Marked>
       );
       break;

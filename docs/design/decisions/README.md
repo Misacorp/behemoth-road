@@ -112,7 +112,8 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
-- 2026-11-20 The creature card's heading loses its ring; the bubble carries an appetite badge
+- 2026-11-20 The step hints, appetite badge and stayed mark use the art kit's drawings
+- 2026-11-20 The creature card's heading loses its ring; the bubble carries an appetite badge (amended)
 - 2026-11-20 Step hints scale with chance; the day's step plays as a walk or a stayed mark
 - 2026-11-20 A timber stand hints at a fire, on your here card and its inspect card
 - 2026-11-20 Hunger drains every second day

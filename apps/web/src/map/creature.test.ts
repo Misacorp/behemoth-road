@@ -9,7 +9,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import { PROJECTION } from './art.ts';
 import { creatureArt, fireKeys, sceneCells } from './cells.ts';
-import { buildOverlays, pawScale, staysPut } from './overlays.ts';
+import { buildOverlays, staysPut } from './overlays.ts';
 
 const s = createGame(1, { characterIds: ['you'] });
 const c = s.creature.centre;
@@ -97,11 +97,19 @@ describe('the step hints', () => {
 });
 
 describe('veering readable', () => {
-  it('draws a paw mark per step option, larger for the likelier step', () => {
-    const steps = marks(overlays(s).under).filter((m) => m.startsWith('step:'));
-    expect(steps).toHaveLength(predictCreature(s).length);
-    expect(pawScale(0.5)).toBeGreaterThan(pawScale(0.25));
-    expect(pawScale(0)).toBeCloseTo(0.7);
-    expect(pawScale(1)).toBeCloseTo(1.5);
+  it("draws the art kit's step hint per option, carrying its chance", () => {
+    const hints = overlays(s).under.filter((n) => String(n.attrs['data-mark']).startsWith('step:'));
+    const predicted = predictCreature(s);
+    expect(hints).toHaveLength(predicted.length);
+    const chances: number[] = [];
+    for (const h of hints)
+      walk(
+        h,
+        (x) =>
+          void (
+            x.attrs['data-chance'] !== undefined && chances.push(Number(x.attrs['data-chance']))
+          ),
+      );
+    expect(chances).toEqual(predicted.map((o) => Math.round(o.chance * 100) / 100));
   });
 });

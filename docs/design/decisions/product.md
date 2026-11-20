@@ -4,9 +4,17 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: The step hints, appetite badge and stayed mark use the art kit's drawings
+
+ID: `2026-11-20-the-step-hints-appetite-badge-and` · Status: current · Amends: `2026-11-20-the-creature-card-s-heading-loses`
+
+**Decision.** The web's stubs are replaced: the step hints are the art kit's `drawStepHint` (one per predicted option, pointing the walk, at least about 26 screen px), the bubble's badge is `drawAppetiteBadge` at 20 px inside the creature entry's corner (kept within the bubble card), and the stayed moment is `drawMoment('stayed')`. The step decision's size range (`pawScale`) is gone: the art kit sizes the hint by chance.
+
+**Reasoning.** The art kit now draws all three; one drawing language and one place to tune them.
+
 ## 2026-11-20: The creature card's heading loses its ring; the bubble carries an appetite badge
 
-ID: `2026-11-20-the-creature-card-s-heading-loses` · Status: current
+ID: `2026-11-20-the-creature-card-s-heading-loses` · Status: current, amended by `2026-11-20-the-step-hints-appetite-badge-and`
 
 **Decision.** The dashed ring around the heading arrow on the creature card is removed: the arrow stays, the ring was decoration that looked like a button (a playtester tapped it). The hub bubble's creature entry carries a badge of your read of the creature's appetite (`signs.appetite`) for everyone: sharp for keepers, faint for others, rings per level; a stub drawing until the art kit's appetite badge lands.
 

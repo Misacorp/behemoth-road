@@ -7,7 +7,7 @@ import {
   ART_TUNING,
   drawCharacter,
   drawCreature,
-  drawCreatureIcon,
+  drawAppetiteBadge,
   drawIcon,
   type CharacterLook,
   type Drawn,
@@ -433,34 +433,24 @@ function Placed({ node, x, y, size }: { node: SvgNode; x: number; y: number; siz
   return toPreact({ ...node, attrs: { ...node.attrs, x, y, width: size, height: size } });
 }
 
-const BADGE_CREATURE = drawCreatureIcon(PALETTE, GENTLE_AMBLER, 16, { inkPx: 0.9 });
-
 /**
- * The creature's appetite as you read it, as a badge on its bubble entry: sharp for a keeper, faint for
- * anyone else (the core's `faint`). Kind and level in data attributes. A stub drawing (the creature's
- * icon on a paper disc, a ring per level) until the art kit's appetite badge lands.
+ * The creature's appetite as you read it (the art kit's badge), in a corner of the bubble's creature entry:
+ * sharp with level dots for a keeper, faint for anyone else.
  */
 function AppetiteBadge({ appetite }: { appetite: CreatureAppetiteSign }): JSX.Element {
-  const r = 11;
+  const size = 20;
   return (
     <g
+      class="pass-through"
       data-appetite={`${appetite.kind}:${String(appetite.level)}`}
       data-faint={appetite.faint ? true : undefined}
-      opacity={appetite.faint ? 0.55 : 1}
-      class="pass-through"
     >
-      <circle r={r} fill={PALETTE.paper} stroke={PALETTE.ink} stroke-width={1.3} />
-      {Array.from({ length: appetite.level - 1 }, (_, i) => (
-        <circle
-          key={i}
-          r={r + 2.5 * (i + 1)}
-          fill="none"
-          stroke={PALETTE.inkSoft}
-          stroke-width={1}
-          stroke-dasharray={appetite.kind === 'underfed' ? '1.5 2' : undefined}
-        />
-      ))}
-      <Placed node={BADGE_CREATURE} x={-8} y={-8} size={16} />
+      <Placed
+        node={drawAppetiteBadge(PALETTE, size, appetite)}
+        x={-size / 2}
+        y={-size / 2}
+        size={size}
+      />
     </g>
   );
 }
@@ -548,7 +538,7 @@ export function Bubble({
           <circle r={23} fill={PALETTE.paper} stroke={PALETTE.inkSoft} stroke-width={1.4} />
           <Fitted drawn={BUBBLE_CREATURE} x={-17} y={-17} width={34} height={34} />
           {appetite && (
-            <g transform="translate(17 -15)">
+            <g transform="translate(14 -14)">
               <AppetiteBadge appetite={appetite} />
             </g>
           )}

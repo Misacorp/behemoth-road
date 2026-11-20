@@ -11,6 +11,7 @@ import {
   DIRECTIONS,
   drawCharacter,
   drawStayMark,
+  drawStepHint,
   drawViaMark,
   el,
   hexCenter,
@@ -200,51 +201,36 @@ function creatureHints(i: OverlayInput): SvgNode[] {
     const o = directionOffset(option.direction);
     const target = hexCenter(p, option.centre.q + o.q * reach, option.centre.r + o.r * reach);
     const angle = Math.atan2(target.y - from.y, target.x - from.x);
-    out.push(
-      pawPrint(
-        i,
-        target,
-        angle,
-        0.25 + 0.6 * option.chance,
-        pawScale(option.chance),
-        option.direction,
-      ),
-    );
+    out.push(stepHint(i, target, angle, option.chance, option.direction));
   }
   return out;
 }
 
-/** A paw print's size for a step's chance: from 0.7 (unlikely) to 1.5 (certain) of the base. */
-export const pawScale = (chance: number): number => 0.7 + 0.8 * Math.min(1, Math.max(0, chance));
-
-function pawPrint(
+/**
+ * The art kit's step hint (a paw print pointing the walk, larger and darker the likelier the step), centred
+ * on `at`, at least about 26 screen px across whatever the zoom.
+ */
+function stepHint(
   i: OverlayInput,
   at: Point,
   angle: number,
-  opacity: number,
-  scale: number,
+  chance: number,
   direction: string,
 ): SvgNode {
-  const p = i.projection;
-  const s = p.size * 0.11 * scale;
-  const rot = (dx: number, dy: number): Point => ({
-    x: at.x + (dx * Math.cos(angle) - dy * Math.sin(angle)) * s,
-    y: at.y + (dx * Math.sin(angle) + dy * Math.cos(angle)) * s * p.squash,
-  });
-  const pad = ellipse(rot(-0.6, 0), 1.25 * s, 1.05 * s * p.squash);
-  const toes = [
-    [1.15, -1.25],
-    [1.6, 0],
-    [1.15, 1.25],
-  ]
-    .map(([dx, dy]) => ellipse(rot(dx!, dy!), 0.5 * s, 0.5 * s * p.squash))
-    .join('');
-  return el('path', {
-    d: pad + toes,
-    fill: i.palette.inkSoft,
-    opacity: n(opacity),
-    'data-mark': `step:${direction}`,
-  });
+  const size = atLeast(i, 0.9 * i.projection.size, 26);
+  const mark = drawStepHint(i.palette, size, chance, angle);
+  return el(
+    'svg',
+    {
+      ...mark.attrs,
+      x: at.x - size / 2,
+      y: at.y - size / 2,
+      width: size,
+      height: size,
+      'data-mark': `step:${direction}`,
+    },
+    [...mark.children],
+  );
 }
 
 /** The planned path: a dashed ink line with an arrowhead, a pip per action, and a mark where a step has `via`. */
