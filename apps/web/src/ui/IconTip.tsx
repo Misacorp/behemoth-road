@@ -5,7 +5,7 @@
  */
 import type { ComponentChildren, JSX } from 'preact';
 import type { TipId } from '../text/tips.ts';
-import { elementTarget, TIPS, tipProps } from './Tip.tsx';
+import { tipProps } from './Tip.tsx';
 
 export function IconTip({
   id,
@@ -17,19 +17,7 @@ export function IconTip({
   tapShows?: boolean;
 }): JSX.Element {
   return (
-    <span
-      class="icon-tip"
-      {...tipProps(id)}
-      {...(tapShows && id
-        ? {
-            onClick: (e: MouseEvent) => {
-              e.stopPropagation();
-              e.preventDefault();
-              TIPS.tap(id, elementTarget(e.currentTarget as Element));
-            },
-          }
-        : {})}
-    >
+    <span class="icon-tip" {...tipProps(id)} {...(tapShows ? { 'data-tip-tap': true } : {})}>
       {children}
     </span>
   );

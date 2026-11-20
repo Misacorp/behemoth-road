@@ -226,6 +226,140 @@ async function run() {
         await press(selector);
       };
 
+      /**
+       * Phone only: long-press every visible element inside the open `kind` popover, firing the `contextmenu`
+       * Android sends at about 500 ms, then lifting. The same popover must still be open; an element with a
+       * tip must show it. Nothing inside a popover may be closed (or acted on) by a long press.
+       */
+      const holdAll = async (kind, label = kind, rootSel = `[data-popover=${kind}]`) => {
+        if (!cdp0) return;
+        const sel = rootSel;
+        const ident = () =>
+          page.evaluate((q) => {
+            const el = document.querySelector(q);
+            return el
+              ? `${el.getAttribute('data-popover')}:${el.getAttribute('data-character') ?? ''}`
+              : null;
+          }, sel);
+        const before = await ident();
+        if (!before) {
+          problems.push(`${vp.name}: holdAll(${label}): no ${kind} popover open`);
+          return;
+        }
+        const targets = await page.evaluate((q) => {
+          const root = document.querySelector(q);
+          const out = [];
+          const seen = new Set();
+          const list = root.querySelectorAll(
+            '[data-tip],[data-tile-tip],button,a,[role=button],[data-action],[data-character],[aria-label],[data-mark],svg g,svg use,svg image,svg path',
+          );
+          for (const el of list) {
+            const b = el.getBoundingClientRect();
+            if (b.width < 3 || b.height < 3) continue;
+            const x = b.x + b.width / 2;
+            const y = b.y + b.height / 2;
+            if (x < 0 || y < 0 || x > window.innerWidth || y > window.innerHeight) continue;
+            const top = document.elementFromPoint(x, y);
+            if (!top || !el.contains(top)) continue;
+            const key = `${Math.round(x)},${Math.round(y)},${el.tagName}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            const name =
+              el.getAttribute('data-tip') ??
+              el.getAttribute('data-action') ??
+              el.getAttribute('aria-label') ??
+              el.getAttribute('class') ??
+              el.tagName;
+            out.push({
+              plain:
+                el.hasAttribute('data-tip') &&
+                (el.hasAttribute('data-tip-tap') ||
+                  !el.closest(
+                    'button, a, [role=button], [role=option], [data-action], [data-acts]',
+                  )),
+              x,
+              y,
+              name: `${el.tagName.toLowerCase()}[${name}]`,
+              tip: el.hasAttribute('data-tip'),
+            });
+          }
+          return out;
+        }, sel);
+        let n = 0;
+        let plainTaps = 0;
+        for (const t of targets) {
+          await cdp0.send('Input.dispatchTouchEvent', {
+            type: 'touchStart',
+            touchPoints: [{ x: t.x, y: t.y }],
+          });
+          await page.waitForTimeout(500);
+          await page.evaluate(
+            ([x, y]) => {
+              const el = document.elementFromPoint(x, y);
+              el?.dispatchEvent(
+                new MouseEvent('contextmenu', {
+                  bubbles: true,
+                  cancelable: true,
+                  clientX: x,
+                  clientY: y,
+                }),
+              );
+            },
+            [t.x, t.y],
+          );
+          await page.waitForTimeout(60);
+          const tipShown = await page.locator('.tip').count();
+          await cdp0.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+          await page.waitForTimeout(150);
+          n += 1;
+          // A held tip stays after the finger lifts (about a second later it is still there).
+          await page.waitForTimeout(1000);
+          const tipStays = await page.locator('.tip').count();
+          if (t.tip && tipShown && !tipStays)
+            problems.push(
+              `${vp.name}: the tip on ${t.name} in ${label} did not stay after release`,
+            );
+          if ((await ident()) !== before) {
+            problems.push(
+              `${vp.name}: long press on ${t.name} closed or changed the ${label} popover`,
+            );
+            return;
+          }
+          if (t.tip && !tipShown)
+            problems.push(`${vp.name}: long press on ${t.name} in ${label} showed no tip`);
+          // A plain icon (not a button) shows its tip on a single tap and the container stays open.
+          if (t.plain) {
+            if (await page.locator('.tip').count()) {
+              await page.keyboard.press('Escape');
+              await page.waitForTimeout(150);
+            }
+            await page.touchscreen.tap(t.x, t.y);
+            await page.waitForTimeout(250);
+            if (!(await page.locator('.tip').count()))
+              problems.push(`${vp.name}: a tap on ${t.name} in ${label} showed no tip`);
+            if ((await ident()) !== before) {
+              problems.push(`${vp.name}: a tap on ${t.name} closed or changed the ${label}`);
+              return;
+            }
+            plainTaps += 1;
+          }
+          // Clear any tip left to be read (a tap on a HUD button closes it).
+          if (await page.locator('.tip').count()) {
+            await page.keyboard.press('Escape');
+            await page.waitForTimeout(150);
+            if ((await ident()) !== before) {
+              problems.push(
+                `${vp.name}: closing the tip after ${t.name} closed the ${label} popover`,
+              );
+              return;
+            }
+          }
+        }
+        console.log(
+          `holdAll ${vp.name} ${label}: ${n} elements long-pressed, ${plainTaps} plain icons tapped`,
+        );
+      };
+
       // Join: the drawer opens by itself. Phones step through the wizard; desktop shows it all.
       await page.goto(vite.url);
       await page.waitForSelector('.drawer .offer');
@@ -267,7 +401,8 @@ async function run() {
           // On touch a held tip stays to be read after the finger lifts; the next tap anywhere closes it.
           if (!(await page.locator('.tip').count()))
             problems.push(`${vp.name}: the tip on ${selector} closed when the finger lifted`);
-          await page.touchscreen.tap(...(await centreOf('.hud-day')));
+          // Escape closes a tip left to be read (a tap on the day would open its own tip).
+          await page.keyboard.press('Escape');
           await page.waitForTimeout(150);
         }
         if (await page.locator('.tip').count())
@@ -343,6 +478,7 @@ async function run() {
       const tapCreature = async () => tap(...(await hexOnScreen(q0, r0)));
       await tapCreature();
       if (!(await has('bubble'))) problems.push(`${vp.name}: no bubble while riding`);
+      await holdAll('bubble');
       if ((await page.locator('[data-popover=bubble] [data-character]').count()) !== 2)
         problems.push(`${vp.name}: the bubble does not list both riders`);
       await shot('bubble');
@@ -361,6 +497,7 @@ async function run() {
       // Opened from the bubble, the card continues in the same popup, with a back button to the bubble.
       if (!(await page.locator('[data-popover=character][data-back]').count()))
         problems.push(`${vp.name}: the rider's card has no back to the bubble`);
+      await holdAll('character', 'character');
       await press('[data-popover=character] [data-back]');
       if (!(await has('bubble'))) problems.push(`${vp.name}: back did not return to the bubble`);
       await page.screenshot({ path: join(out, `feedback-${vp.name}-bubble-back.png`) });
@@ -424,6 +561,7 @@ async function run() {
       await tap(...(await hexOnScreen(q1, r1)));
       await press('[data-popover=bubble] [aria-label=Behemoth]');
       if (!(await has('creature'))) problems.push(`${vp.name}: no creature card`);
+      await holdAll('creature');
       await page.keyboard.press('Escape');
       await page.waitForTimeout(100);
       if (await has('creature'))
@@ -518,6 +656,7 @@ async function run() {
         await tap(...(await spot('iron')));
         if (!(await page.locator('[data-popover=inspect] [data-action=survey]').count()))
           problems.push(`${vp.name}: no survey on an unexplored neighbour`);
+        await holdAll('inspect');
         await shot3('01-survey-offer');
         await spend('[data-popover=inspect] [data-action=survey]');
         await page.waitForTimeout(450);
@@ -531,6 +670,7 @@ async function run() {
         await openHere();
         if (!(await page.locator('[data-popover=here] [data-action=gather]').count()))
           problems.push(`${vp.name}: no gather on the deposit`);
+        await holdAll('here');
         await shot3('03-here-gather');
         // The card names what it is about, and its tile picture has a tip.
         if (!(await page.locator('[data-popover=here] [data-title]').count()))
@@ -582,6 +722,7 @@ async function run() {
         await stage({ role: 'engineer', at: 'creature', stores: { iron: 2, timber: 1 } });
         await openHub();
         await shot3('06-hub');
+        await holdAll('hub', 'hub drawer', '.drawer');
         await press('[data-unlock=grappling-hook] [aria-label=Build]');
         await page.waitForTimeout(400);
         if (fake.scenario.state.project?.unlock !== 'grappling-hook')
@@ -684,6 +825,7 @@ async function run() {
         )
           problems.push(`${vp.name}: the hub does not offer feed and linger to a keeper`);
         await shot4('06-hub-care');
+        await holdAll('hub', 'hub drawer (care)', '.drawer');
         await press('[data-care=feed] [aria-label=feed]');
         await page.waitForTimeout(300);
         if ((fake.scenario.state.stores.forage ?? 0) !== 1)
@@ -809,6 +951,7 @@ async function run() {
           problems.push(`${vp.name}: the threat with a trail is not drawn`);
         await tap(...(await offset({ q: 0, r: 5 })));
         if (!(await has('threat'))) problems.push(`${vp.name}: no card on a far threat`);
+        await holdAll('threat');
         if ((await count('.map-world [data-mark=threat-trail]')) !== 2)
           problems.push(`${vp.name}: no threat trail with its card open`);
         if ((await count('.map-world [data-mark=threat-end]')) !== 1)
@@ -909,6 +1052,7 @@ async function run() {
         await stage5({ role: 'scout', settlements: [{ at: { q: 3, r: 4 }, favour: 2 }] });
         await tap(...(await offset({ q: 3, r: 4 })));
         if (!(await has('settlement'))) problems.push(`${vp.name}: no settlement card from afar`);
+        await holdAll('settlement');
         await shot5('10-settlement-card');
 
         // The HUD at high peril, far along the route: the gauge past its wounded notch, the edges darker.

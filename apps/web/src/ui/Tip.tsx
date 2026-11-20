@@ -1,9 +1,10 @@
 /**
  * Tips on icons: `useTip(id)` gives the props to spread on any icon or control (HTML or SVG), and
  * `<TipLayer />` (rendered once, at the root) draws the one open tip: its title (the content name unless the
- * text file gives one) and a line or two of text, placed like the map's popovers, beside the thing and never
+ * text file gives one; one document-level rule makes an icon that is not a button show its tip on a tap, see `isPlainIcon`) and a line or two of text, placed like the map's popovers, beside the thing and never
  * over it, with the same chevron. The texts live in `text/tips.ts`.
  */
+import { contextMenuDismisses, isHeldClick, lastPress, watchPointers } from './pointer.ts';
 import {
   DEFAULT_CONFIG,
   FEATURE_TYPES,
@@ -83,6 +84,13 @@ export interface TipProps {
   readonly onPointerCancel?: (e: PointerEvent) => void;
 }
 
+/** Things that act on a tap: an icon inside (or being) one of these is not a plain icon. */
+const ACTS = 'button, a, [role=button], [role=option], [data-action], [data-acts]';
+
+/** A tip icon that does nothing on tap (or says so with `data-tip-tap`): its tap shows the tip. */
+export const isPlainIcon = (el: Element): boolean =>
+  el.hasAttribute('data-tip-tap') || el.closest(ACTS) === null;
+
 /** The props that give an icon or control its tip (nothing for a null id). */
 export function tipProps(id: TipId | null): TipProps {
   if (id === null) return {};
@@ -121,12 +129,24 @@ export function TipLayer(): JSX.Element | null {
   const [chevron, setChevron] = useState<{ width: number; height: number } | null>(null);
 
   useEffect(() => {
+    watchPointers();
     const off = TIPS.subscribe(setOpen);
     // A click that ends a hold must not act (only that thing's own click).
     const onClick = (e: MouseEvent): void => {
-      if (TIPS.takeClick(e.target)) {
+      // takeClick first: it must run to end the swallow. A touch press held past the hold time never acts.
+      const swallowed = TIPS.takeClick(e.target);
+      if (swallowed || isHeldClick(lastPress, e.timeStamp)) {
         e.preventDefault();
         e.stopPropagation();
+        return;
+      }
+      // One rule: an icon that is not a button shows its tip on a tap (touch or mouse), and the tap goes no further.
+      const icon = e.target instanceof Element ? e.target.closest('[data-tip]') : null;
+      const id = icon?.getAttribute('data-tip');
+      if (icon && id && isPlainIcon(icon)) {
+        e.preventDefault();
+        e.stopPropagation();
+        TIPS.tap(id as TipId, elementTarget(icon));
       }
     };
     // Escape closes the tip and goes no further (an open drawer stays open).
@@ -149,9 +169,12 @@ export function TipLayer(): JSX.Element | null {
     window.addEventListener('keydown', onKey, true);
     document.addEventListener('pointerdown', onDown, true);
     window.addEventListener('wheel', onDismiss, { passive: true });
-    document.addEventListener('contextmenu', onDismiss, true);
+    const onMenu = (): void => {
+      if (contextMenuDismisses(lastPress.type)) TIPS.close();
+    };
+    document.addEventListener('contextmenu', onMenu, true);
     return () => {
-      document.removeEventListener('contextmenu', onDismiss, true);
+      document.removeEventListener('contextmenu', onMenu, true);
       off();
       document.removeEventListener('click', onClick, true);
       window.removeEventListener('keydown', onKey, true);

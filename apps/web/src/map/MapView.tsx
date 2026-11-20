@@ -50,6 +50,8 @@ import type { TipTarget } from '../ui/tip.ts';
 import { TIPS } from '../ui/Tip.tsx';
 import { MAP_TUNING } from './config.ts';
 import { type Flow, isSelecting } from './flow.ts';
+import { contextMenuDismisses, lastPress } from '../ui/pointer.ts';
+import { holdMs } from '../text/tips.ts';
 import { GestureTracker, type Gesture } from './gestures.ts';
 import { buildOverlays } from './overlays.ts';
 import { figureFeet, pickableFeet, placePoint } from './figures.ts';
@@ -342,7 +344,7 @@ export function MapView(props: MapViewProps): JSX.Element {
   const popoverFocusRef = useRef<SVGGElement | null>(null);
   const view = useRef<View>({ x: 0, y: 0, scale: 1 });
   const size = useRef<Size>({ width: 0, height: 0 });
-  const tracker = useRef(new GestureTracker(MAP_TUNING.tapSlop));
+  const tracker = useRef(new GestureTracker(MAP_TUNING.tapSlop, holdMs));
   const frame = useRef(0);
   const animation = useRef(0);
   const popover = useRef<Anchor | null>(null);
@@ -782,7 +784,7 @@ export function MapView(props: MapViewProps): JSX.Element {
       if (tip) TIPS.press(tip.id, tip.target, e.clientX, e.clientY);
       else TIPS.release();
     }
-    handle(tracker.current.down(e.pointerId, local(e)));
+    handle(tracker.current.down(e.pointerId, local(e), e.timeStamp));
   };
   const onPointerMove = (e: PointerEvent): void => {
     if (e.pointerType === 'mouse' && e.buttons === 0) {
@@ -805,7 +807,7 @@ export function MapView(props: MapViewProps): JSX.Element {
       handle(tracker.current.cancel(e.pointerId));
       return;
     }
-    handle(tracker.current.up(e.pointerId, local(e)));
+    handle(tracker.current.up(e.pointerId, local(e), e.timeStamp));
   };
   const onPointerCancel = (e: PointerEvent): void => {
     TIPS.release();
@@ -981,7 +983,7 @@ export function MapView(props: MapViewProps): JSX.Element {
         onPointerLeave={unhoverTip}
         onContextMenu={(e) => {
           e.preventDefault();
-          props.onRightClick();
+          if (contextMenuDismisses(lastPress.type)) props.onRightClick();
         }}
         onLostPointerCapture={onPointerCancel}
       >

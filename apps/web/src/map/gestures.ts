@@ -15,6 +15,7 @@ export type Gesture =
 
 interface Tracked {
   readonly start: Point;
+  readonly at: number;
   last: Point;
 }
 
@@ -28,7 +29,11 @@ export class GestureTracker {
   /** A drag or pinch is under way. */
   private active = false;
 
-  constructor(private readonly slop: number) {}
+  /** `maxTapMs`: a press held longer than this is never a tap (it is a hold, which belongs to tips). */
+  constructor(
+    private readonly slop: number,
+    private readonly maxTapMs: number = Infinity,
+  ) {}
 
   get isActive(): boolean {
     return this.active;
@@ -39,9 +44,9 @@ export class GestureTracker {
     return this.pointers.size;
   }
 
-  down(id: number, at: Point): Gesture[] {
+  down(id: number, at: Point, now = 0): Gesture[] {
     if (this.pointers.size >= 2) return [];
-    this.pointers.set(id, { start: at, last: at });
+    this.pointers.set(id, { start: at, at: now, last: at });
     if (this.pointers.size === 2) {
       this.spoilt = true;
       return this.activate();
@@ -81,13 +86,14 @@ export class GestureTracker {
     return out;
   }
 
-  up(id: number, at: Point): Gesture[] {
+  up(id: number, at: Point, now = 0): Gesture[] {
     const p = this.pointers.get(id);
     if (!p) return [];
     const out = this.move(id, at);
     this.pointers.delete(id);
     if (this.pointers.size > 0) return out;
-    if (!this.spoilt && dist(at, p.start) <= this.slop) out.push({ type: 'tap', at: p.start });
+    if (!this.spoilt && dist(at, p.start) <= this.slop && now - p.at <= this.maxTapMs)
+      out.push({ type: 'tap', at: p.start });
     return [...out, ...this.finish()];
   }
 

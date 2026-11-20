@@ -129,6 +129,15 @@ describe('tips', () => {
     expect(c.open).toBeNull();
   });
 
+  it('a tapped tip stays for stayMs, then goes by itself', () => {
+    const { c, advance } = setup();
+    c.tap('hud:day', at);
+    advance(stayMs - 1);
+    expect(c.open?.id).toBe('hud:day');
+    advance(2);
+    expect(c.open).toBeNull();
+  });
+
   it('name content by kind and id, and nothing for an id the text file lacks', () => {
     expect(tipFor('role', 'scout')).toBe('role:scout');
     expect(tipFor('role', 'pirate')).toBeNull();

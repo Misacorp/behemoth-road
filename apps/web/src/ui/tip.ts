@@ -4,7 +4,8 @@
  * opens on press-and-hold and stays after the finger lifts until the next tap anywhere (or `stayMs`); moving
  * the finger first makes it a drag and closes it, and the hold never becomes a tap (the click that
  * follows is swallowed, and only the held thing's own click). A tap elsewhere both closes a stay-open tip
- * and still acts: closing never swallows it. Escape closes it. Timers are injected, so it is tested with fake ones.
+ * and still acts: closing never swallows it. Escape closes it. An icon that is not a button shows its tip on
+ * a single tap (`tap`), and it stays like a held one (`stayMs`). Timers are injected, so it is tested with fake ones.
  */
 import {
   delays,
@@ -186,7 +187,13 @@ export class TipController {
   tap(id: TipId, target: TipTarget, extra?: unknown): void {
     this.cancel();
     if (this.current?.id === id && this.current.tapped) this.close();
-    else this.show(id, target, true, extra);
+    else if (this.show(id, target, true, extra)) {
+      // Like a held tip it stays to be read, then goes by itself.
+      this.stayTimer = this.clock.setTimeout(() => {
+        this.stayTimer = null;
+        this.close();
+      }, stayMs);
+    }
   }
 
   /** Closes the tip and drops anything pending (Escape, a press elsewhere, its thing gone). */

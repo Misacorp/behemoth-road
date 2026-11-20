@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-20: Icons that are not buttons show their tip on a tap **[Misa]**
+
+ID: `2026-11-20-icons-that-are-not-buttons-show` · Status: current
+
+**Decision.** An icon that is not a button (emblems, tile pictures, cost and material icons, the eye, counts) opens its tip on a single tap, touch or mouse, and the tip stays like a held one (`stayMs`, or until the next tap elsewhere, which still acts). Buttons keep tap = act and long press = tip. One document-level rule decides it (a `[data-tip]` with no button, link, option or `data-action` on it or above it, or `data-tip-tap`). A long press never closes or acts on anything: touch `contextmenu` is ignored, a press held past `holdMs` is never a tap, and its click is dropped.
+
+**Reasoning.** A phone user could not read these icons without a long press, and a long press was closing popovers. One rule keeps every present and future icon consistent.
+
 ## 2026-11-20: Verb labels under actions are on by default **[Misa]**
 
 ID: `2026-11-20-verb-labels-under-actions-are-on` · Status: current · Amends: `2026-11-20-action-costs-are-drawn-as-arrows`
