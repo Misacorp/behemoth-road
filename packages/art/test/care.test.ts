@@ -324,3 +324,41 @@ describe('the stayed moment and step hints', () => {
     expect(paw(-1).attrs['data-chance']).toBe(0);
   });
 });
+
+describe('the creature layer', () => {
+  it('draws everything the creature draws in one data-layer="creature" group, and nothing else in it', () => {
+    const cells = [
+      { q: 0, r: 0, terrain: 'plains' },
+      { q: 3, r: -1, terrain: 'forest', fire: true },
+    ];
+    const svg = renderScene({
+      cells,
+      creature: {
+        q: 0,
+        r: 0,
+        heading: EAST,
+        look: GENTLE_AMBLER,
+        appetite: { kind: 'underfed', level: 2 },
+        cues: [{ hex: { q: 3, r: -1 }, reaction: 'toward' }],
+      },
+      characters: [{ id: 'rider', q: 0, r: 0, accent: 'rose' }],
+      projection: isometric(),
+      palette: SPRING,
+      seed: 'layer',
+    });
+    const groups: SvgNode[] = [];
+    walk(svg, (n) => {
+      if (n.attrs['data-layer'] === 'creature') groups.push(n);
+    });
+    expect(groups).toHaveLength(1);
+    const inside = toSvgString(groups[0]!);
+    expect(inside).toMatch(/data-sign="aura"/);
+    expect(inside).toMatch(/data-cue="toward"/);
+    expect(inside).not.toMatch(/data-fire/);
+    let none = 0;
+    walk(renderScene({ cells, projection: isometric(), palette: SPRING, seed: 'layer' }), (n) => {
+      if (n.attrs['data-layer'] === 'creature') none += 1;
+    });
+    expect(none).toBe(0);
+  });
+});

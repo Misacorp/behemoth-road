@@ -240,19 +240,22 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
 
   if (creature) {
     const c = hexCenter(p, creature.q, creature.r);
+    const body = drawCreature(
+      palette,
+      creature.look,
+      c,
+      p.size,
+      p.squash,
+      ink,
+      creature.heading,
+      creature.stores ?? 0,
+      moodOf(creature),
+    );
+    // One group for everything the creature draws (body, aura, signs, cues), so the map can hide it, for
+    // example while a day-change animation slides a copy from the old centre to the new.
     placed.push({
       at: c,
-      drawn: drawCreature(
-        palette,
-        creature.look,
-        c,
-        p.size,
-        p.squash,
-        ink,
-        creature.heading,
-        creature.stores ?? 0,
-        moodOf(creature),
-      ),
+      drawn: { nodes: [el('g', { 'data-layer': 'creature' }, body.nodes)], box: body.box },
     });
   }
   const sites = new Set(cells.filter((c) => c.site).map((c) => `${c.q},${c.r}`));
