@@ -80,16 +80,23 @@ export interface EndingProps {
   /** Admins on staging and locally: start a new season. Null hides it. */
   readonly onNewSeason: (() => void) | null;
   readonly busy: boolean;
+  /** How many times starting a new season failed in a row (0: none): each failure shakes the button. */
+  readonly failed?: number;
   /** The party, drawn by the creature when it comes home. */
   readonly party?: readonly { readonly accent: string; readonly look?: CharacterLook }[];
 }
 
-/** The season's end, over everything: focus moves into it when it opens. */
+/** The season's end, over everything: focus moves into it when it opens (and back to its button after a failed new season). */
 export function Ending(props: EndingProps): JSX.Element {
   const root = useRef<HTMLDivElement>(null);
+  const button = useRef<HTMLButtonElement>(null);
+  const failed = props.failed ?? 0;
   useEffect(() => {
     root.current?.focus({ preventScroll: true });
   }, []);
+  useEffect(() => {
+    if (failed > 0) button.current?.focus({ preventScroll: true });
+  }, [failed]);
   return (
     <div ref={root} class="ending" data-outcome={props.outcome} tabindex={-1} role="dialog">
       <div class="ending-scene" aria-hidden="true">
@@ -101,24 +108,30 @@ export function Ending(props: EndingProps): JSX.Element {
         )}
       </div>
       <h1 class="ending-title">{ENDING_TITLES[props.outcome]}</h1>
-      <div class="ending-route">
-        <RouteStrip {...props.route} width={240} />
-        <span class="ending-days" aria-label="Days">
-          <SunIcon />
-          <span>{props.days}</span>
-        </span>
+      <div class="ending-foot">
+        <div class="ending-route">
+          <RouteStrip {...props.route} width={240} />
+          <span class="ending-days" aria-label="Days">
+            <SunIcon />
+            <span>{props.days}</span>
+          </span>
+        </div>
+        {props.onNewSeason && (
+          <button
+            ref={button}
+            // A new key per failure restarts the shake.
+            key={`new-${String(failed)}`}
+            type="button"
+            class={`round ending-new${failed > 0 ? ' is-failed' : ''}`}
+            aria-label="New season"
+            data-failed={failed > 0 ? failed : undefined}
+            disabled={props.busy}
+            onClick={props.onNewSeason}
+          >
+            <NewSeasonIcon />
+          </button>
+        )}
       </div>
-      {props.onNewSeason && (
-        <button
-          type="button"
-          class="round ending-new"
-          aria-label="New season"
-          disabled={props.busy}
-          onClick={props.onNewSeason}
-        >
-          <NewSeasonIcon />
-        </button>
-      )}
     </div>
   );
 }

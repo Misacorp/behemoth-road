@@ -12,6 +12,8 @@ import {
   drawCharacter,
   drawEscortRing,
   drawStayMark,
+  drawStepHint,
+  drawIcon,
   drawViaMark,
   el,
   hexCenter,
@@ -28,7 +30,11 @@ import {
   type PathStep,
   type Place,
   type ReachablePlace,
+  checkAction,
   creatureHexes,
+  featureType,
+  hexDistance,
+  hexesInRange,
   hexKey,
   placeHex,
 } from '@behemoth-road/core';
@@ -187,7 +193,10 @@ export function stayHint(i: OverlayInput): SvgNode {
   );
 }
 
-/** Faint paw prints where the creature's front would be after each likely step, stronger when likelier. */
+/**
+ * Paw prints where the creature's front would be after each possible step (left, straight, right, as the
+ * core's blind prediction gives them), larger and darker the likelier the step, so a veer reads at a glance.
+ */
 function creatureHints(i: OverlayInput): SvgNode[] {
   const p = i.projection;
   const out: SvgNode[] = [];
@@ -199,27 +208,36 @@ function creatureHints(i: OverlayInput): SvgNode[] {
     const o = directionOffset(option.direction);
     const target = hexCenter(p, option.centre.q + o.q * reach, option.centre.r + o.r * reach);
     const angle = Math.atan2(target.y - from.y, target.x - from.x);
-    out.push(pawPrint(i, target, angle, 0.25 + 0.6 * option.chance));
+    out.push(stepHint(i, target, angle, option.chance, option.direction));
   }
   return out;
 }
 
-function pawPrint(i: OverlayInput, at: Point, angle: number, opacity: number): SvgNode {
-  const p = i.projection;
-  const s = p.size * 0.11;
-  const rot = (dx: number, dy: number): Point => ({
-    x: at.x + (dx * Math.cos(angle) - dy * Math.sin(angle)) * s,
-    y: at.y + (dx * Math.sin(angle) + dy * Math.cos(angle)) * s * p.squash,
-  });
-  const pad = ellipse(rot(-0.6, 0), 1.25 * s, 1.05 * s * p.squash);
-  const toes = [
-    [1.15, -1.25],
-    [1.6, 0],
-    [1.15, 1.25],
-  ]
-    .map(([dx, dy]) => ellipse(rot(dx!, dy!), 0.5 * s, 0.5 * s * p.squash))
-    .join('');
-  return el('path', { d: pad + toes, fill: i.palette.inkSoft, opacity: n(opacity) });
+/**
+ * The art kit's step hint (a paw print pointing the walk, larger and darker the likelier the step), centred
+ * on `at`, at least about 26 screen px across whatever the zoom.
+ */
+function stepHint(
+  i: OverlayInput,
+  at: Point,
+  angle: number,
+  chance: number,
+  direction: string,
+): SvgNode {
+  const size = atLeast(i, 0.9 * i.projection.size, 26);
+  const mark = drawStepHint(i.palette, size, chance, angle);
+  return el(
+    'svg',
+    {
+      ...mark.attrs,
+      x: at.x - size / 2,
+      y: at.y - size / 2,
+      width: size,
+      height: size,
+      'data-mark': `step:${direction}`,
+    },
+    [...mark.children],
+  );
 }
 
 /** The planned path: a dashed ink line with an arrowhead, a pip per action, and a mark where a step has `via`. */
@@ -368,6 +386,126 @@ function graceTiles(i: OverlayInput, hexes: readonly Hex[]): SvgNode[] {
   ];
 }
 
+/**
+ * The window's edge: a faint dashed ink line around the hexes in reach of the creature, always shown, so
+ * "too far" can be seen before a character is left behind. One path of the outer hex edges.
+ */
+function windowEdge(i: OverlayInput): SvgNode {
+  const p = i.projection;
+  const centre = i.state.creature.centre;
+  const radius = i.state.config.windowRadius;
+  const segments: string[] = [];
+  for (const h of hexesInRange(centre, radius)) {
+    if (hexDistance(h, centre) !== radius) continue;
+    const c = hexCenter(p, h.q, h.r);
+    const corners = hexCorners(p, c);
+    for (let k = 0; k < 6; k += 1) {
+      const a = corners[k]!;
+      const b = corners[(k + 1) % 6]!;
+      // The hex across this edge: its centre mirrors this one through the edge's midpoint.
+      const mx = (a.x + b.x) / 2;
+      const my = (a.y + b.y) / 2;
+      const across = { x: 2 * mx - c.x, y: 2 * my - c.y };
+      const q = Math.round(across.x / (1.5 * p.size));
+      const r = Math.round(across.y / (Math.sqrt(3) * p.size * p.squash) - q / 2);
+      if (hexDistance({ q, r }, centre) > radius) {
+        segments.push(`M${n(a.x)} ${n(a.y)}L${n(b.x)} ${n(b.y)}`);
+      }
+    }
+  }
+  const w = atLeast(i, 1.4 * p.k, 1.1);
+  return el('path', {
+    d: segments.join(''),
+    fill: 'none',
+    stroke: i.palette.ink,
+    'stroke-width': w,
+    'stroke-dasharray': `${n(4 * w)} ${n(4 * w)}`,
+    'stroke-linecap': 'round',
+    opacity: 0.35,
+    'data-mark': 'window-edge',
+  });
+}
+
+/** An art kit icon as a centred `<svg>` of `size` world px, with an optional opacity. */
+function iconAt(i: OverlayInput, icon: string, at: Point, size: number, opacity = 1): SvgNode {
+  const node = drawIcon(icon, i.palette, size);
+  return el(
+    'svg',
+    {
+      ...node.attrs,
+      x: at.x - size / 2,
+      y: at.y - size / 2,
+      width: size,
+      height: size,
+      ...(opacity < 1 ? { opacity } : {}),
+    },
+    [...node.children],
+  );
+}
+
+/** The action glyph a feature offers: an open hand to gather at a node, a key to work a site. */
+const ACTION_GLYPH: Readonly<Record<string, string>> = { node: 'hand', site: 'key' };
+
+/**
+ * Hints at what can be done near you: a small badge with the action glyph on each explored node or site
+ * (with something left) where you stand or next to you, and, while your character is selected, a faint
+ * spyglass on each unexplored neighbour you could survey. Only the glyphs; what they do is for the player
+ * to find out.
+ */
+function actionHints(i: OverlayInput): SvgNode[] {
+  const me = i.state.characters.find((c) => c.id === i.characterId);
+  if (me?.status !== 'active' || me.at.kind !== 'hex') return [];
+  const here = me.at.hex;
+  const p = i.projection;
+  const size = atLeast(i, 0.42 * p.size, 18);
+  const out: SvgNode[] = [];
+  for (const h of hexesInRange(here, 1)) {
+    const f = i.state.features[hexKey(h)];
+    if (!f?.revealed || f.left <= 0) continue;
+    let glyph: string | undefined;
+    try {
+      glyph = ACTION_GLYPH[featureType(f.type).kind];
+    } catch {
+      continue;
+    }
+    if (!glyph) continue;
+    const c = hexCenter(p, h.q, h.r);
+    const at = { x: c.x + 0.45 * p.size, y: c.y - 0.55 * p.size };
+    out.push(el('g', { 'data-mark': `action:${glyph}` }, [iconAt(i, glyph, at, size)]));
+  }
+  // Milestone 5: a strike badge on each threat you could strike (on or next to it), and on a settlement
+  // where you stand or next to you, what it offers: a parley while wary, a boon once friendly.
+  for (const t of i.state.threats) {
+    const check = checkAction(i.state, me.id, { kind: 'strike', threat: t.id });
+    if (!check.ok && check.reason !== 'not-enough-actions') continue;
+    const c = hexCenter(p, t.hex.q, t.hex.r);
+    const at = { x: c.x + 0.45 * p.size, y: c.y - 0.95 * p.size };
+    out.push(el('g', { 'data-mark': 'action:strike' }, [iconAt(i, 'strike', at, size)]));
+  }
+  for (const s of i.state.settlements) {
+    if (hexDistance(s.hex, here) > 1) continue;
+    const glyph =
+      s.attitude === 'wary'
+        ? 'parley'
+        : s.attitude === 'friendly' && s.boon === null
+          ? 'gift'
+          : null;
+    if (!glyph) continue;
+    const c = hexCenter(p, s.hex.q, s.hex.r);
+    const at = { x: c.x + 0.5 * p.size, y: c.y - 0.85 * p.size };
+    out.push(el('g', { 'data-mark': `action:${glyph}` }, [iconAt(i, glyph, at, size)]));
+  }
+  if (i.flow.kind === 'selected') {
+    for (const h of hexesInRange(here, 1)) {
+      if (hexDistance(h, here) !== 1) continue;
+      if (!checkAction(i.state, me.id, { kind: 'survey', hex: h }).ok) continue;
+      const c = hexCenter(p, h.q, h.r);
+      out.push(el('g', { 'data-mark': 'survey-hint' }, [iconAt(i, 'spyglass', c, size, 0.45)]));
+    }
+  }
+  return out;
+}
+
 /** A small hourglass above a figure on a grace-day tile: time is running out here. No words. */
 function graceWarning(i: OverlayInput, feet: Point): SvgNode {
   const p = i.projection;
@@ -403,6 +541,7 @@ export function buildOverlays(i: OverlayInput): Overlays {
   const under: SvgNode[] = [];
   const over: SvgNode[] = [];
   const me = i.state.characters.find((c) => c.id === i.characterId);
+  under.push(windowEdge(i));
   under.push(...creatureHints(i));
   const grace = graceHexes(i);
   under.push(...graceTiles(i, grace));
@@ -430,6 +569,7 @@ export function buildOverlays(i: OverlayInput): Overlays {
   }
   over.push(...lostCharacters(i));
   if (staysPut(i.predicted)) over.push(stayHint(i));
+  over.push(...actionHints(i));
   const standing = me?.status === 'active' && me.at.kind === 'hex' ? me.at.hex : null;
   if (feet && standing && grace.some((h) => h.q === standing.q && h.r === standing.r)) {
     over.push(graceWarning(i, feet));

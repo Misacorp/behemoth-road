@@ -83,7 +83,18 @@ describe('overlays', () => {
   });
 
   it('hint one paw print per likely creature step', () => {
-    expect(overlays(state, { kind: 'idle' }).under).toHaveLength(predictCreature(state).length);
+    const under = overlays(state, { kind: 'idle' }).under;
+    const marks = under.filter((m) => m.attrs['data-mark'] !== 'window-edge');
+    expect(marks).toHaveLength(predictCreature(state).length);
+  });
+
+  it("always draw the window's edge: one segment per outer edge of the rim hexes", () => {
+    const edge = overlays(state, { kind: 'idle' }).under.find(
+      (m) => m.attrs['data-mark'] === 'window-edge',
+    );
+    const R = state.config.windowRadius;
+    // A hex ring of radius R has 6R hexes and 6(2R + 1) outer edges.
+    expect(String(edge?.attrs['d']).match(/M/g)).toHaveLength(6 * (2 * R + 1));
   });
 
   it('draw a lost character faded, outside the scene', () => {
@@ -205,5 +216,26 @@ describe('Milestone 5 on the map', () => {
       struck: true,
     });
     expect(characterArts(struck(view.day - 1)).find((f) => f.id === id)?.marks).toBeUndefined();
+  });
+
+  it('badges a threat you could strike and a settlement beside you with what it offers', () => {
+    const near = season({
+      threats: [
+        { type: 'swarm', at: { q: 1, r: 3 } },
+        { type: 'captors', at: { q: 3, r: 5 } },
+      ],
+      settlements: [{ at: { q: 2, r: 2 } }, { at: { q: 0, r: 2 }, attitude: 'friendly' }],
+    });
+    const marks = near.o.over.map((m) => m.attrs['data-mark']);
+    // Only the swarm next to you; the captors are too far.
+    expect(marks.filter((m) => m === 'action:strike')).toHaveLength(1);
+    expect(marks.filter((m) => m === 'action:parley')).toHaveLength(1);
+    expect(marks.filter((m) => m === 'action:gift')).toHaveLength(1);
+    const taken = season({
+      settlements: [{ at: { q: 2, r: 2 }, attitude: 'friendly', boon: 'gift' }],
+    });
+    expect(taken.o.over.some((m) => String(m.attrs['data-mark']).startsWith('action:'))).toBe(
+      false,
+    );
   });
 });

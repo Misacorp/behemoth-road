@@ -3,14 +3,30 @@
  * `.moment-*`), so it costs no per-frame work. The art kit draws the marks: an explored hex's veil lifting
  * away (`drawVeilLift`), the survey and reveal blooms, the burst of a find with the material's icon rising,
  * the snap of a trap (`drawMoment`), a material dropping into the stores on the creature, a finished
- * unlock's sealed icon rising from the creature, and Milestone 4's fire lit, feeding (the food dropping in)
- * and linger (`drawMoment` fire, feed, linger), a fire going out (its mark lifting away) and the creature
- * eating from the stores (the material rising off its back).
+ * unlock's sealed icon rising from the creature, and Milestone 4's fire lit, feeding (the food dropping in),
+ * linger and stayed (`drawMoment`), a fire going out (its mark lifting away) and the creature eating from
+ * the stores (the material rising off its back).
  */
-import { drawIcon, drawMoment, drawVeilLift, hexCenter, type SvgNode } from '@behemoth-road/art';
+import {
+  ART_TUNING,
+  drawCharacter,
+  drawIcon,
+  drawMoment,
+  drawVeilLift,
+  el,
+  hexCenter,
+  renderSceneFramed,
+  type SvgNode,
+} from '@behemoth-road/art';
+import type { CreatureSigns, GameStateView } from '@behemoth-road/core';
 import type { JSX } from 'preact';
+import { useLayoutEffect, useRef } from 'preact/hooks';
+import { accentOf, lookOf } from '../game/identity.ts';
+import { characterArts, creatureArt } from './cells.ts';
+import { MAP_TUNING } from './config.ts';
+import { slideFrom } from './cssTransform.ts';
 import { iconOf } from '../game/chain.ts';
-import type { Moment } from '../game/moments.ts';
+import { type Moment, STEP_MS } from '../game/moments.ts';
 import { drawM5Moment, PALETTE, PROJECTION } from './art.ts';
 import { toPreact } from './svgToPreact.ts';
 
@@ -28,7 +44,110 @@ function Marked({ kind, children }: { kind: string; children: JSX.Element }): JS
   return <g class={`moment moment-${kind}`}>{children}</g>;
 }
 
-export function MomentMark({ moment }: { moment: Moment }): JSX.Element {
+/**
+ * The creature (with its riders) walking its daily step: drawn at its new hex, slid there from the old one
+ * by a Web Animation (the world layer leaves it out meanwhile).
+ */
+function StepMark({
+  state,
+  signs,
+  from,
+}: {
+  state: GameStateView;
+  signs: CreatureSigns | null;
+  from: { q: number; r: number };
+}) {
+  const ref = useRef<SVGGElement>(null);
+  const to = state.creature.centre;
+  useLayoutEffect(() => {
+    const a = hexCenter(p, from.q, from.r);
+    const b = hexCenter(p, to.q, to.r);
+    const g = ref.current;
+    if (!g) return;
+    const run = slideFrom(g, a.x - b.x, a.y - b.y, STEP_MS);
+    return () => run.cancel();
+  }, [from.q, from.r, to.q, to.r]);
+  const { svg, viewBox } = renderSceneFramed({
+    cells: [],
+    creature: creatureArt(state, signs),
+    characters: characterArts(state, 'riders'),
+    projection: p,
+    palette: PALETTE,
+    seed: state.artSeed,
+    minInkPx: MAP_TUNING.minInkPx,
+    frame: 'none',
+    effects: 'lite',
+    idPrefix: 'step',
+  });
+  return (
+    <g ref={ref} data-step={`${from.q},${from.r}`}>
+      {toPreact(
+        el(
+          'svg',
+          {
+            ...svg.attrs,
+            x: viewBox.x,
+            y: viewBox.y,
+            width: viewBox.width,
+            height: viewBox.height,
+          },
+          svg.children,
+        ),
+      )}
+    </g>
+  );
+}
+
+/** Your figure fading into the fog where it was left behind. */
+function lostFigure(characterId: string, hex: { q: number; r: number }): JSX.Element {
+  const c = hexCenter(p, hex.q, hex.r);
+  const feet = { x: c.x, y: c.y + 0.1 * p.size };
+  const look = lookOf(characterId);
+  const drawn = drawCharacter(
+    PALETTE,
+    accentOf(characterId, MAP_TUNING.accent),
+    feet,
+    p.size,
+    p.squash,
+    ART_TUNING.inkWidth * p.k,
+    look,
+  );
+  return (
+    <g>
+      <g class="moment moment-fade">{drawn.nodes.map(toPreact)}</g>
+      <g class="moment moment-fog">
+        <ellipse
+          cx={feet.x}
+          cy={feet.y - 0.3 * p.size}
+          rx={0.6 * p.size}
+          ry={0.5 * p.size}
+          fill={PALETTE.fog}
+        />
+      </g>
+    </g>
+  );
+}
+
+export function MomentMark({
+  moment,
+  state,
+  signs = null,
+}: {
+  moment: Moment;
+  state: GameStateView;
+  /** Your signs, so the walking creature looks as it does on the map. */
+  signs?: CreatureSigns | null;
+}): JSX.Element {
+  if (moment.kind === 'step') {
+    return (
+      <g data-moment="step">
+        <StepMark state={state} signs={signs} from={moment.from} />
+      </g>
+    );
+  }
+  if (moment.kind === 'lost') {
+    return <g data-moment="lost">{lostFigure(moment.characterId, moment.hex)}</g>;
+  }
   const c = hexCenter(p, moment.hex.q, moment.hex.r);
   const size = 2 * p.size;
   const icon = 0.7 * p.size;
@@ -61,6 +180,14 @@ export function MomentMark({ moment }: { moment: Moment }): JSX.Element {
       body = (
         <Marked kind="drop">
           {at(drawIcon(iconOf(moment.item), PALETTE, icon), c.x, c.y - 0.6 * p.size, icon)}
+        </Marked>
+      );
+      break;
+    case 'stayed':
+      // The day's step when it lingered: the art kit's stayed mark on the creature.
+      body = (
+        <Marked kind="bloom">
+          {at(drawMoment('stayed', PALETTE, size), c.x, c.y - 0.4 * p.size, size)}
         </Marked>
       );
       break;

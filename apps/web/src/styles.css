@@ -236,9 +236,45 @@ button svg,
 }
 
 .ending-title,
-.ending-route,
-.ending-new {
+.ending-foot {
   position: relative;
+}
+
+/* The route, the days and the new-season button sit low, clear of the scene's middle. */
+.ending-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+/* A new season that failed: the button shakes and fades back. */
+.ending-new.is-failed {
+  animation: ending-failed 0.9s ease-out both;
+}
+
+@keyframes ending-failed {
+  0% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  15% {
+    transform: translateX(-6px);
+  }
+  30% {
+    transform: translateX(6px);
+  }
+  45% {
+    transform: translateX(-4px);
+    opacity: 0.5;
+  }
+  60% {
+    transform: translateX(3px);
+  }
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 .ending-title {
@@ -656,6 +692,56 @@ button svg,
   animation-name: moment-rise;
 }
 
+.moment-fade,
+.moment-fog {
+  animation-duration: 2.2s;
+}
+
+.moment-fade {
+  animation-name: moment-fade;
+}
+
+.moment-fog {
+  animation-name: moment-fog;
+}
+
+/* Left behind: the figure thins away while the fog gathers over where it stood. */
+@keyframes moment-fade {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-6%);
+  }
+}
+
+@keyframes moment-fog {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  60% {
+    opacity: 0.85;
+  }
+  to {
+    opacity: 0.6;
+    transform: scale(1.2);
+  }
+}
+
+/* The grace day: your pips pulse gently in the warning tint. */
+.hud-actions.is-warned svg {
+  animation: pips-warn 1.6s ease-in-out infinite;
+}
+
+@keyframes pips-warn {
+  50% {
+    opacity: 0.55;
+  }
+}
+
 .moment-lift {
   animation-name: moment-lift;
 }
@@ -802,8 +888,8 @@ button svg,
   position: absolute;
   left: var(--gutter);
   bottom: calc(var(--space-4) + var(--safe-bottom) + var(--round) + var(--space-2));
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  justify-items: start;
   gap: var(--space-2);
   max-width: calc(100% - 2 * var(--gutter));
   min-width: 44px;
@@ -827,6 +913,34 @@ button svg,
 .stack svg {
   width: 28px;
   height: 28px;
+}
+
+.hud-pack-stock {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+/* An icon's name, shown on a tap or hover: the icon's only text. */
+.named {
+  position: relative;
+  display: inline-flex;
+}
+
+.name-tip {
+  position: absolute;
+  bottom: calc(100% + 4px);
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px var(--space-2);
+  border-radius: 8px;
+  background: #5c5a43;
+  color: #f3f1e2;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 2;
 }
 
 /* A cost the stores cannot pay yet. */

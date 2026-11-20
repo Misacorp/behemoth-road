@@ -9,7 +9,9 @@
     "2026-11-19-7",
     "2026-11-19-8",
     "2026-11-20-1",
-    "2026-11-20-2"
+    "2026-11-20-2",
+    "2026-11-20-3",
+    "2026-11-20-4"
   ],
   "items": [
     {
@@ -168,10 +170,10 @@
       "id": "map/patch",
       "group": "Map",
       "title": "The map, Spring at tilt 0.8",
-      "version": "91fe610e",
+      "version": "fa9eefc9",
       "kind": "glance",
-      "batch": "2026-11-19-7",
-      "file": "art/map-patch-91fe610e.svg"
+      "batch": "2026-11-20-2",
+      "file": "art/map-patch-fa9eefc9.svg"
     },
     {
       "id": "creature/headings",
@@ -262,10 +264,10 @@
       "id": "characters/riders",
       "group": "Characters",
       "title": "Fifteen riders on the creature",
-      "version": "836bf2c1",
+      "version": "cd577019",
       "kind": "glance",
-      "batch": "2026-11-19-7",
-      "file": "art/characters-riders-836bf2c1.svg"
+      "batch": "2026-11-20-2",
+      "file": "art/characters-riders-cd577019.svg"
     },
     {
       "id": "features/sheet",
@@ -298,19 +300,19 @@
       "id": "creature/underfed",
       "group": "Creature care",
       "title": "Underfed: calm, levels 1 to 3, then faint at 2 and 3",
-      "version": "9562e9f4",
+      "version": "69abcbba",
       "kind": "glance",
-      "batch": "2026-11-19-8",
-      "file": "art/creature-underfed-9562e9f4.svg"
+      "batch": "2026-11-20-1",
+      "file": "art/creature-underfed-69abcbba.svg"
     },
     {
       "id": "creature/overfed",
       "group": "Creature care",
       "title": "Overfed: calm, levels 1 to 3, then faint at 2 and 3",
-      "version": "e5b6019b",
+      "version": "c1df0d7e",
       "kind": "glance",
-      "batch": "2026-11-19-8",
-      "file": "art/creature-overfed-e5b6019b.svg"
+      "batch": "2026-11-20-1",
+      "file": "art/creature-overfed-c1df0d7e.svg"
     },
     {
       "id": "creature/cues",
@@ -325,10 +327,10 @@
       "id": "creature/linger",
       "group": "Creature care",
       "title": "Lying down to linger, beside standing",
-      "version": "e3a90eac",
+      "version": "9ac34027",
       "kind": "glance",
-      "batch": "2026-11-19-8",
-      "file": "art/creature-linger-e3a90eac.svg"
+      "batch": "2026-11-20-1",
+      "file": "art/creature-linger-9ac34027.svg"
     },
     {
       "id": "features/care",
@@ -352,19 +354,19 @@
       "id": "map/care",
       "group": "Creature care",
       "title": "On the map: fires, berries, an underfed creature and two cues",
-      "version": "79b35f37",
+      "version": "a4993980",
       "kind": "glance",
-      "batch": "2026-11-19-8",
-      "file": "art/map-care-79b35f37.svg"
+      "batch": "2026-11-20-2",
+      "file": "art/map-care-a4993980.svg"
     },
     {
       "id": "map/care-lite",
       "group": "Creature care",
       "title": "The same in lite mode",
-      "version": "1d145d38",
+      "version": "bb51122d",
       "kind": "glance",
-      "batch": "2026-11-19-8",
-      "file": "art/map-care-lite-1d145d38.svg"
+      "batch": "2026-11-20-2",
+      "file": "art/map-care-lite-bb51122d.svg"
     },
     {
       "id": "features/veil",
@@ -385,12 +387,30 @@
       "file": "art/team-marks-6e6388a0.svg"
     },
     {
+      "id": "creature/appetite-phone",
+      "group": "Creature care",
+      "title": "Appetite at phone zoom: calm, underfed 1-3; calm, overfed 1-3; faint 2 and 3",
+      "version": "410d1a2f",
+      "kind": "glance",
+      "batch": "2026-11-20-1",
+      "file": "art/creature-appetite-phone-410d1a2f.svg"
+    },
+    {
+      "id": "marks/signs",
+      "group": "Creature care",
+      "title": "Hub badge (calm, underfed, overfed, faint); weighted step hints; the stayed moment",
+      "version": "f7330f40",
+      "kind": "glance",
+      "batch": "2026-11-20-1",
+      "file": "art/marks-signs-f7330f40.svg"
+    },
+    {
       "id": "season/map-phone",
       "group": "Season",
       "title": "The season on a phone: threats, a village, an escort, a defender, peril 4 (full, then lite)",
       "version": "68b98b0d",
       "kind": "glance",
-      "batch": "2026-11-20-2",
+      "batch": "2026-11-20-4",
       "file": "art/season-map-phone-68b98b0d.svg"
     },
     {
@@ -399,7 +419,7 @@
       "title": "The same at desktop scale",
       "version": "b1fc3e49",
       "kind": "glance",
-      "batch": "2026-11-20-2",
+      "batch": "2026-11-20-4",
       "file": "art/season-map-desktop-b1fc3e49.svg"
     },
     {
@@ -408,7 +428,7 @@
       "title": "Captors, swarm, rockslide, raiders: strength marks, next-step arrows, the last of each arriving tomorrow",
       "version": "b76122fb",
       "kind": "glance",
-      "batch": "2026-11-20-2",
+      "batch": "2026-11-20-4",
       "file": "art/season-threats-b76122fb.svg"
     },
     {
@@ -417,7 +437,7 @@
       "title": "Hill folk: wary with favour 0, 1, 2 (under the veil), friendly, angry, angry with its raiders",
       "version": "74350214",
       "kind": "glance",
-      "batch": "2026-11-20-2",
+      "batch": "2026-11-20-4",
       "file": "art/season-settlements-74350214.svg"
     },
     {
@@ -426,7 +446,7 @@
       "title": "A guardian’s escort ring, escorted and struck marks, guardians defending on the creature",
       "version": "f7428ebf",
       "kind": "glance",
-      "batch": "2026-11-20-2",
+      "batch": "2026-11-20-4",
       "file": "art/season-escort-f7428ebf.svg"
     },
     {
@@ -435,7 +455,7 @@
       "title": "Strike, defend, parley, offer; gift, mislead, shelter; parley at risk; card icons and status marks",
       "version": "c8e4bad8",
       "kind": "glance",
-      "batch": "2026-11-20-2",
+      "batch": "2026-11-20-4",
       "file": "art/season-icons-c8e4bad8.svg"
     },
     {
@@ -444,7 +464,7 @@
       "title": "Peril gauge 0 to 10 and the route strip at phone and desktop widths; the vignette at peril 3, 6, 9",
       "version": "0e7dead1",
       "kind": "glance",
-      "batch": "2026-11-20-1",
+      "batch": "2026-11-20-3",
       "file": "art/season-hud-0e7dead1.svg"
     },
     {
@@ -453,7 +473,7 @@
       "title": "Threat appears, creature struck, character struck, threat hit, cleared, defence holds, befriended, angered, boon, season end",
       "version": "e5268a06",
       "kind": "glance",
-      "batch": "2026-11-20-1",
+      "batch": "2026-11-20-3",
       "file": "art/season-moments-e5268a06.svg"
     },
     {
@@ -462,7 +482,7 @@
       "title": "Ending: home safe (desktop and phone)",
       "version": "3c7ac09a",
       "kind": "glance",
-      "batch": "2026-11-20-1",
+      "batch": "2026-11-20-3",
       "file": "art/season-ending-safe-3c7ac09a.svg"
     },
     {
@@ -471,7 +491,7 @@
       "title": "Ending: home, wounded (desktop and phone)",
       "version": "b8998390",
       "kind": "glance",
-      "batch": "2026-11-20-2",
+      "batch": "2026-11-20-4",
       "file": "art/season-ending-wounded-b8998390.svg"
     },
     {
@@ -480,7 +500,7 @@
       "title": "Ending: lost (desktop and phone)",
       "version": "7519c4a8",
       "kind": "glance",
-      "batch": "2026-11-20-1",
+      "batch": "2026-11-20-3",
       "file": "art/season-ending-lost-7519c4a8.svg"
     }
   ]

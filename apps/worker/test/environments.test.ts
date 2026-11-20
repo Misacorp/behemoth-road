@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import wranglerText from '../wrangler.jsonc?raw';
 import { allowedGuilds } from '../src/allowlist.ts';
-import { DEV_GUILD_ID, createHandler } from '../src/index.ts';
+import { DEV_GUILD_ID, createHandler } from '../src/handler.ts';
 import { SERVER_CONFIG } from '../src/server-config.ts';
 import { parseSessionToken } from '../src/session.ts';
 import { ORIGIN, callHandler } from './helpers.ts';

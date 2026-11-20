@@ -10,7 +10,7 @@ This is a prototype slice. One creature, one need (hunger), one stimulus (fire),
 
 - Creatures are content: `CREATURE_TYPES` in `packages/core/src/content/creatures.ts`. A type has an id, name, tags, its need (hunger: start, daily drain, comfortable band) and, per stimulus tag, the reactions it may roll (`attracted`, `repelled`, `indifferent`). The first type, the Mossback, is tame: its fire reaction is rolled from `attracted` or `repelled` (an indifferent first creature could never be steered by fire; `indifferent` stays in the data for later creatures).
 - A new game rolls the nature from the seed: `GameState.nature = { type, reactions: { fire: 'attracted' | 'repelled' | 'indifferent' } }`.
-- Hunger is a hidden number, `GameState.care = { satiety }`, from 0 to `satietyMax` (10). It starts at 6 and drops by 1 each tick. Comfortable is 4 to 7.
+- Hunger is a hidden number, `GameState.care = { satiety }`, from 0 to `satietyMax` (10). It starts at 6 and drops by 1 every second tick (`drainEveryDays` 2 in the creature's hunger data: only the ticks into an even day drain). Comfortable is 4 to 7.
 - `nature` and `care` are server-only fields of `GameState`, like the seed. `toPlayerView` lists fields one by one, so they never leave the server; a test proves it.
 
 ## Symptoms (what players see)
@@ -47,7 +47,7 @@ CreatureSigns = {
 
 ## Tick order (additions)
 
-The creature's step (or its lingering) is chosen from the state before the tick, with the fires lit that day and the current satiety. Then: cues recorded for fires in range; satiety drops by 1; a starving creature eats from the stores; fires lit that day go out; `lingering` clears and `lingeredDay` is set if it lingered. The rest is as in Milestone 3.
+The creature's step (or its lingering) is chosen from the state before the tick, with the fires lit that day and the current satiety. Then: cues recorded for fires in range; satiety drops by 1 if the new day drains (every second tick); a starving creature eats from the stores; fires lit that day go out; `lingering` clears and `lingeredDay` is set if it lingered. The rest is as in Milestone 3.
 
 ## State, view and API
 

@@ -117,7 +117,8 @@ function appetiteShow(mood: CreatureMood): {
   const level = Number.isFinite(a.level) ? Math.min(3, Math.max(1, Math.round(a.level))) : 1;
   const faint = a.faint === true;
   // Each level a clear step; faint shows the level-1 strength of the same sign.
-  const s = faint ? APPETITE_STEPS[0] : APPETITE_STEPS[level - 1]!;
+  const step = APPETITE_STEPS[level - 1]!;
+  const s = faint ? Math.max(APPETITE_STEPS[0], step * FAINT_SHARE) : step;
   return {
     under: a.kind === 'underfed' ? s : 0,
     over: a.kind === 'overfed' ? s : 0,
@@ -127,7 +128,9 @@ function appetiteShow(mood: CreatureMood): {
 }
 
 /** How strongly each appetite level shows, from level 1 to 3. */
-const APPETITE_STEPS = [0.4, 0.7, 1] as const;
+const APPETITE_STEPS = [0.5, 0.75, 1] as const;
+/** Faint (non-keepers): this share of the level's strength, never below level 1's. */
+const FAINT_SHARE = 0.75;
 
 /** The body cut: the body ellipsoid is drawn down to this angle below its equator; legs show beneath. */
 const BODY_CUT = -0.25;
@@ -138,22 +141,22 @@ function shapeBuild(base: Build, mood: CreatureMood): Build {
   // Underfed: a narrow, low, sunken body on thin legs, the moss shrunk back. Overfed: a wide, bulging body.
   let body: Solid = {
     ...base.body,
-    a: base.body.a * (1 - 0.06 * under + 0.12 * over),
-    b: base.body.b * (1 - 0.26 * under + 0.34 * over),
-    c: base.body.c * (1 - 0.22 * under + 0.1 * over),
-    z: base.body.z - 0.06 * under - 0.12 * over,
+    a: base.body.a * (1 - 0.08 * under + 0.18 * over),
+    b: base.body.b * (1 - 0.38 * under + 0.5 * over),
+    c: base.body.c * (1 - 0.3 * under + 0.18 * over),
+    z: base.body.z - 0.08 * under - 0.12 * over,
   };
   let head: Solid = {
     ...base.head,
     u: base.head.u - 0.15 * under,
     z: base.head.z - 0.62 * under - 0.08 * over,
   };
-  const legRadius = base.legRadius * (1 - 0.3 * under + 0.2 * over);
+  const legRadius = base.legRadius * (1 - 0.45 * under + 0.25 * over);
   const legSpread: Build['legSpread'] = [
     base.legSpread[0],
     base.legSpread[1] * (1 - 0.2 * under + 0.25 * over),
   ];
-  const mossUp = Math.min(0.92, base.mossUp + 0.3 * under);
+  const mossUp = Math.min(0.94, base.mossUp + 0.4 * under);
   const [n0, n1] = base.neck;
   let neck: Build['neck'] = [
     [n0[0], n0[1] - 0.08 * over, n0[2]],
@@ -564,6 +567,41 @@ export function drawCreature(
     depth: -1e6,
     nodes: [fill(smoothClosed(shadow), palette.shadow, lying ? 0.34 : 0.2)],
   });
+  // Appetite aura: a wash on the ground around it that reads at a glance, cool grey when underfed, warm
+  // when overfed.
+  if (show.under > 0 || show.over > 0) {
+    const ramp = show.under > 0 ? palette.accents.slate : palette.accents.ochre;
+    const strength = Math.max(show.under, show.over);
+    const ring = (grow: number): string =>
+      smoothClosed(
+        Array.from({ length: 24 }, (_, i) => {
+          const a = (Math.PI * 2 * i) / 24;
+          const wob = 1 + 0.05 * Math.sin(i * 2.7);
+          return at(
+            body.u + Math.cos(a) * (body.a + grow) * wob,
+            Math.sin(a) * (body.b + grow) * wob,
+            0,
+          );
+        }),
+      );
+    pieces.push({
+      depth: -2e6,
+      nodes: [
+        el('path', {
+          d: ring(1.15),
+          fill: ramp.light,
+          opacity: 0.35 + 0.35 * strength,
+          'data-sign': 'aura',
+        }),
+        el('path', {
+          d: ring(0.85),
+          fill: ramp.base,
+          opacity: 0.2 + 0.3 * strength,
+          'data-sign': 'aura',
+        }),
+      ],
+    });
+  }
 
   // Legs: thick columns under the body with mossy feet; the body hides their tops.
   const legTop = body.z;
@@ -713,7 +751,7 @@ export function drawCreature(
   // viewer, one per level. Overfed: a round sheen low on the near flank.
   const signInk = show.faint ? palette.inkSoft : palette.ink;
   if (show.under > 0) {
-    bodyNodes.push(fill(smoothClosed(bodyOutline), palette.accents.slate.base, 0.5 * show.under));
+    bodyNodes.push(fill(smoothClosed(bodyOutline), palette.accents.slate.base, 0.75 * show.under));
     const ribs: string[] = [];
     for (const side of [1, -1]) {
       if (!faces(surface(body, side * (Math.PI / 2), 0.1).n)) continue;
@@ -728,7 +766,7 @@ export function drawCreature(
       bodyNodes.push(
         el('path', {
           d: ribs.join(''),
-          ...inkAttrs(signInk, w * 1.3),
+          ...inkAttrs(signInk, w * 1.8),
           'data-sign': 'ribs',
         }),
       );
@@ -960,7 +998,7 @@ export function drawCreature(
   }
   if (blush.join('')) headCore.push(fill(blush.join(''), palette.accents.rose.base, 0.4));
   if (show.under > 0)
-    headCore.push(fill(smoothClosed(headOutline), palette.accents.slate.base, 0.5 * show.under));
+    headCore.push(fill(smoothClosed(headOutline), palette.accents.slate.base, 0.75 * show.under));
   if (lids.length)
     headCore.push(
       el('path', { d: lids.join(''), fill: hide.shade, 'data-sign': 'lids' }),
@@ -1052,9 +1090,9 @@ export function drawCreature(
   if (show.over > 0) {
     const crown = screen(hp(-head.a * 0.2, 0, head.z + head.c * 1.25));
     const bubbles = Array.from({ length: show.marks }, (_, i) => {
-      const x = crown.x + unit * (0.24 + 0.3 * i);
-      const y = crown.y - unit * (0.26 + 0.44 * i);
-      const r = unit * (0.1 + 0.055 * i);
+      const x = crown.x + unit * (0.3 + 0.38 * i);
+      const y = crown.y - unit * (0.3 + 0.52 * i);
+      const r = unit * (0.13 + 0.07 * i);
       everything.push({ x: x + r, y: y - r });
       return ellipsePath(x, y, r, r);
     });

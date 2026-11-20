@@ -252,8 +252,8 @@ describe('a short season, played through', () => {
   it('comes home wounded when the creature goes hungry', () => {
     const { state } = season(3, { feed: false, defend: true });
     expect(state.season).toEqual({ status: 'over', outcome: 'wounded', day: 13 });
-    // Underfed at level 2 from the fourth tick: nine ticks of hunger.
-    expect(state.peril).toBe(9);
+    // Hunger drains every second tick (M4), so it is underfed at level 2 on fewer ticks: peril 6.
+    expect(state.peril).toBe(6);
   });
 
   it('is lost to peril when the creature goes hungry and undefended', () => {

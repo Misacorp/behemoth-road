@@ -95,3 +95,21 @@ describe('the step hints', () => {
     expect(o.under.length).toBeLessThan(overlays(s).under.length);
   });
 });
+
+describe('veering readable', () => {
+  it("draws the art kit's step hint per option, carrying its chance", () => {
+    const hints = overlays(s).under.filter((n) => String(n.attrs['data-mark']).startsWith('step:'));
+    const predicted = predictCreature(s);
+    expect(hints).toHaveLength(predicted.length);
+    const chances: number[] = [];
+    for (const h of hints)
+      walk(
+        h,
+        (x) =>
+          void (
+            x.attrs['data-chance'] !== undefined && chances.push(Number(x.attrs['data-chance']))
+          ),
+      );
+    expect(chances).toEqual(predicted.map((o) => Math.round(o.chance * 100) / 100));
+  });
+});

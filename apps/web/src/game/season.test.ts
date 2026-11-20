@@ -161,6 +161,7 @@ describe('settlements', () => {
       needed: 3,
       boon: null,
       look: 'hill-folk',
+      name: 'Hill folk',
     });
     const card = tapHex(IDLE, view, me, abs(NEAR));
     expect(card).toEqual({ kind: 'settlement', id });

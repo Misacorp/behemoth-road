@@ -112,13 +112,16 @@ describe('captured contract fixtures', () => {
     expect(v.parse(PlayerViewSchema, fixture('view-lingered')).game.creature.lingering).toBe(true);
   });
 
-  it("the tick's fire going out and the creature eating play as moments; its step does not", () => {
+  it("the tick's step (stayed after a linger), a fire going out and the creature eating play", () => {
     const kinds = ['view-care-since', 'view-creature-ate'].map((name) => {
       const view = v.parse(PlayerViewSchema, fixture(name));
       return momentsFromEvents(view.events, view.game.creature.centre, '').map((m) => m.kind);
     });
-    // The recaptured since-log also carries a threat appearing at that tick.
-    expect(kinds).toEqual([['fire-out'], ['ate', 'threat']]);
+    // The since-log of the second also carries a threat appearing at that tick.
+    expect(kinds).toEqual([
+      ['stayed', 'fire-out'],
+      ['step', 'ate', 'threat'],
+    ]);
   });
 
   it("Milestone 5's captured answers play their moments, placed on the view's own things", () => {
@@ -139,10 +142,10 @@ describe('captured contract fixtures', () => {
     expect(moments('view-befriended')).toEqual(['befriended']);
     expect(moments('view-boon')).toEqual(['boon']);
     expect(moments('view-angered')).toEqual(['angered', 'threat']);
-    expect(moments('view-peril-since')).toEqual(['strike', 'strike']);
-    expect(moments('view-season-lost')).toEqual(['strike', 'struck', 'season-over']);
-    expect(moments('view-season-safe')).toEqual(['season-over']);
-    expect(moments('view-struck-since')).toEqual(['struck', 'threat']);
+    expect(moments('view-peril-since')).toEqual(['step', 'strike', 'strike']);
+    expect(moments('view-season-lost')).toEqual(['step', 'strike', 'struck', 'season-over']);
+    expect(moments('view-season-safe')).toEqual(['step', 'season-over']);
+    expect(moments('view-struck-since')).toEqual(['step', 'struck', 'threat']);
   });
 
   it('bandages the captured struck character for the day it was struck', () => {

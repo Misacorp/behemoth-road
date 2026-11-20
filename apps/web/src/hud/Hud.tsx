@@ -30,6 +30,8 @@ export interface HudProps {
   readonly lost: boolean;
   /** A trap just ended your day: the pips shake as they go dark. */
   readonly snapped?: boolean;
+  /** Your character stands where the window has left (its grace day): the pips take the warning tint. */
+  readonly warned?: boolean;
   /** How your character looks (the recentre button shows it); null before joining. */
   readonly me: { readonly accent: string; readonly look: CharacterLook | undefined } | null;
   readonly onFocus: (target: FocusTarget) => void;
@@ -61,19 +63,39 @@ function PackButton({
   capacity: number;
 }): JSX.Element {
   const [open, setOpen] = useState(false);
+  const button = useRef<HTMLButtonElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!open) return;
     panel.current?.focus({ preventScroll: true });
+    // Closes like the map's popovers: Escape, a tap or click anywhere else, or a right-click.
+    const close = (): void => {
+      setOpen(false);
+      if (panel.current?.contains(document.activeElement))
+        button.current?.focus({ preventScroll: true });
+    };
     const onKey = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === 'Escape') close();
+    };
+    const onDown = (e: PointerEvent): void => {
+      const t = e.target as Node | null;
+      if (t && (panel.current?.contains(t) || button.current?.contains(t))) return;
+      close();
     };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    // Capture, so a press on the map (which keeps its pointer events to itself) still closes it.
+    document.addEventListener('pointerdown', onDown, true);
+    document.addEventListener('contextmenu', close, true);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.removeEventListener('pointerdown', onDown, true);
+      document.removeEventListener('contextmenu', close, true);
+    };
   }, [open]);
   return (
     <>
       <button
+        ref={button}
         type="button"
         class="round hud-pack"
         aria-label="Pack"
@@ -91,9 +113,15 @@ function PackButton({
           data-empty={stock.length === 0 ? true : undefined}
           onClick={() => setOpen(false)}
         >
-          {stock.map(([id, n]) => (
-            <Stack key={id} id={id} count={n} />
-          ))}
+          {stock.length > 0 && (
+            <div class="hud-pack-stock">
+              {stock.map(([id, n]) => (
+                <Stack key={id} id={id} count={n} />
+              ))}
+            </div>
+          )}
+          {/* One slot per unit the pack holds, filled as it fills: an empty pack reads as empty. */}
+          <Pips total={capacity} left={units} size={10} />
         </div>
       )}
     </>
@@ -112,7 +140,9 @@ export function Hud(props: HudProps): JSX.Element {
         {props.route && <RouteStrip {...props.route} />}
       </div>
       <div
-        class={`hud-actions${props.lost ? ' is-lost' : ''}${props.snapped ? ' is-snapped' : ''}`}
+        class={`hud-actions${props.lost ? ' is-lost' : ''}${props.snapped ? ' is-snapped' : ''}${
+          props.warned ? ' is-warned' : ''
+        }`}
         aria-label="Actions"
       >
         <Pips
@@ -120,6 +150,7 @@ export function Hud(props: HudProps): JSX.Element {
           left={props.lost ? 0 : props.actionsLeft}
           planned={props.planned}
           size={16}
+          {...(props.warned ? { tint: PALETTE.hint } : {})}
         />
       </div>
       <div class="hud-focus">

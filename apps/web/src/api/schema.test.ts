@@ -63,4 +63,17 @@ describe('Milestone 5 view and events', () => {
       v.safeParse(GameEventSchema, { kind: 'season-over', outcome: 'won', version: 1 }).success,
     ).toBe(false);
   });
+
+  it('checks each kind by its own fields; a kind from a newer server still parses', () => {
+    const ok = (e: object) => v.safeParse(GameEventSchema, { ...e, version: 3 }).success;
+    const hex = { q: 0, r: 1 };
+    expect(ok({ kind: 'peril', from: 1, to: 3 })).toBe(true);
+    expect(ok({ kind: 'peril', from: hex, to: hex })).toBe(false);
+    expect(ok({ kind: 'creature-step', from: hex, to: hex })).toBe(true);
+    expect(ok({ kind: 'creature-step', from: 1, to: 2 })).toBe(false);
+    expect(ok({ kind: 'threat-strikes', id: 't1' })).toBe(false);
+    expect(ok({ kind: 'boon', id: 's1', characterId: 'c1' })).toBe(false);
+    expect(ok({ kind: 'comet-falls', hex, anything: [1, 2] })).toBe(true);
+    expect(ok({ kind: 'x'.repeat(41) })).toBe(false);
+  });
 });

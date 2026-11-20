@@ -59,6 +59,8 @@ describe('content', () => {
         true,
       );
       expect(drainPerDay).toBeGreaterThan(0);
+      expect(Number.isInteger(type.hunger.drainEveryDays)).toBe(true);
+      expect(type.hunger.drainEveryDays).toBeGreaterThan(0);
       for (const [tag, options] of Object.entries(type.reactions)) {
         expect(stimulusTags.has(tag)).toBe(true);
         expect(options.length).toBeGreaterThan(0);

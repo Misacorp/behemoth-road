@@ -1028,7 +1028,7 @@
   "signs": {
     "appetite": {
       "kind": "underfed",
-      "level": 3,
+      "level": 1,
       "faint": false
     },
     "cues": []
@@ -1104,7 +1104,7 @@
     },
     {
       "kind": "peril",
-      "from": 9,
+      "from": 7,
       "to": 10,
       "version": 16
     },
