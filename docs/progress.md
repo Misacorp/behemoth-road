@@ -9,6 +9,7 @@ What has landed and what is next. Newest first. Update it when a step lands or t
 
 ## Done
 
+- 2026-11-20: Milestone 3 web polish after the fresh-eyes playtest: icon names, a pack box that closes and reads as empty, the window's edge, a stronger grace-day warning, a lost-in-the-fog moment, the creature walking its daily step, action and survey hints, and a refresh after your own actions and on focus.
 - 2026-11-20: Milestone 3 web on the revised rules (branch `m3/web`): the veil on unexplored hexes, survey from the inspect card, gather and work-site in the here card, the pack on the HUD, the hub drawer with stores, unlocks and the work bar (engineers build there), moments (veil lift, survey, reveal, find, trap, deposit, unlock done) and the hook mark on cliff steps. The screenshot script plays the whole chain on the real core.
 - 2026-11-19: Art for the revised Milestone 3: the unexplored veil (one shared pattern, a per-hex lift for the reveal), pack, stores and unlock marks (fill level, crates on the creature, done seal, work bar) and a survey moment.
 - 2026-11-19: Art for Milestone 3: feature drawings (ore, river stones, timber, two tombs, snare, pitfall) with used-up looks, a quieter glint, material and item icons, moment marks (reveal, find, trap) and via marks for the path arrow.
