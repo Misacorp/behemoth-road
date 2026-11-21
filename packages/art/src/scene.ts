@@ -3,9 +3,16 @@ import { DEFAULT_LOOK, drawCharacter, type CharacterArt } from './character.ts';
 import { ART_TUNING } from './config.ts';
 import { drawCreature, inFootprint, moodOf, riderAnchor, type CreatureArt } from './creature.ts';
 import { drawCharacterMarks } from './escort.ts';
+import { drawDefended } from './defended.ts';
 import { drawFire } from './fire.ts';
-import { featurePlinth } from './feedback-marks.ts';
-import { featureDrawer } from './features.ts';
+import {
+  drawDangerFlag,
+  featurePlinth,
+  plinthLift,
+  type PlinthOptions,
+  type PlinthTone,
+} from './feedback-marks.ts';
+import { featureDrawer, featurePlinthDy, isTrap, PLINTH_RX } from './features.ts';
 import { figureAnchor } from './figure.ts';
 import { artDefs, refUrl } from './filters.ts';
 import { ellipsePath, unionBox, type Box, type Point } from './geom.ts';
@@ -154,9 +161,23 @@ export function paperGrain(
 }
 
 /** A feature or settlement drawn on its plinth (props never get one, so features stand out). */
-function withPlinth(c: PropContext, drawn: Drawn, rx?: number): Drawn {
-  const plinth = featurePlinth(c, rx);
-  return { nodes: [...plinth.nodes, ...drawn.nodes], box: unionBox([plinth.box, drawn.box]) };
+function withPlinth(
+  c: PropContext,
+  drawn: Drawn,
+  rx?: number,
+  options?: PlinthOptions,
+  after: readonly Drawn[] = [],
+): Drawn {
+  const plinth = featurePlinth(c, rx, options);
+  return {
+    nodes: [...plinth.nodes, ...drawn.nodes, ...after.flatMap((a) => a.nodes)],
+    box: unionBox([plinth.box, drawn.box, ...after.map((a) => a.box)]),
+  };
+}
+
+/** A context for something standing on a plinth: the same, lifted to the plinth's top. */
+function lifted(c: PropContext): PropContext {
+  return { ...c, origin: { x: c.origin.x, y: c.origin.y - plinthLift(c) } };
 }
 
 export function renderSceneFramed(input: SceneInput): FramedScene {
@@ -194,13 +215,18 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
     }
     const c = hexCenter(p, cell.q, cell.r);
     const underCreature = creature !== null && hexDistance(cell, creature) <= 1;
+    // The creature's own hex is hidden by its body; the ring round it keeps its terrain props (a cliff, rocks),
+    // drawn just under the creature, so a player can see what lies under and beside it.
+    const beneath = creature !== null && cell.q === creature.q && cell.r === creature.r;
+    const behind =
+      creature !== null ? { after: hexCenter(p, creature.q, creature.r).y - 0.01 } : {};
     const rng = rngFor(seed, 'props', cell.q, cell.r);
     const spots =
       cell.props ??
       ((cell.feature || cell.fire || cell.threat || cell.settlement) && !underCreature
         ? []
         : undefined) ??
-      (underCreature
+      (beneath
         ? []
         : placeProps((cell.site && SITE_PROPS[cell.site]) || terrainLook(cell.terrain).props, rng));
     const opacity =
@@ -226,13 +252,26 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
         at,
         drawn: draw(ctx(at, propRng, 'scale' in spot ? spot.scale : 1)),
         ...(opacity === undefined ? {} : { opacity }),
+        ...(underCreature ? behind : {}),
       });
     }
     if (cell.feature && !underCreature && state !== 'unexplored') {
       const at = onPlane(p, c, 0, 0.08);
       const draw = featureDrawer(cell.feature.look);
       const fc = ctx(at, rngFor(seed, 'feature', cell.q, cell.r), ART_TUNING.featureScale);
-      const drawn = withPlinth(fc, draw(fc, cell.feature.state ?? 'ready'));
+      const fstate = cell.feature.state ?? 'ready';
+      const trap = isTrap(cell.feature);
+      const tone: PlinthTone = !trap ? 'calm' : fstate === 'ready' ? 'danger' : 'harmless';
+      const rx = PLINTH_RX;
+      // A trap's warning pennant stands at the front right of its plinth, over the trap itself.
+      const flag = tone === 'danger' ? [drawDangerFlag(fc, rx)] : [];
+      const drawn = withPlinth(
+        fc,
+        draw(lifted(fc), fstate),
+        rx,
+        { tone, dy: featurePlinthDy(cell.feature.look, rx) },
+        flag,
+      );
       placed.push({ at, drawn, ...(opacity === undefined ? {} : { opacity }) });
     }
     if (cell.fire && !underCreature) {
@@ -247,7 +286,7 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
       // A village is never hidden: drawn in full under the veil. A threat beside it stands to its front left.
       const at = cell.threat ? onPlane(p, c, 0.14, -0.06) : onPlane(p, c, 0, 0.06);
       const sc = ctx(at, rngFor(seed, 'settlement', cell.q, cell.r), ART_TUNING.settlementScale);
-      placed.push({ at, drawn: withPlinth(sc, drawSettlement(sc, cell.settlement), 24) });
+      placed.push({ at, drawn: withPlinth(sc, drawSettlement(lifted(sc), cell.settlement), 24) });
     }
     if (cell.threat) {
       // Threats are public: drawn in full, also under the veil and wherever the creature is.
@@ -286,6 +325,14 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
       at: c,
       drawn: { nodes: [el('g', { 'data-layer': 'creature' }, body.nodes)], box: body.box },
     });
+    // Guardians defending today: a ring under the creature and one big shield each in front of it.
+    const defenders =
+      creature.defenders ?? (input.characters ?? []).filter((ch) => ch.marks?.defending).length;
+    const defended = drawDefended(palette, c, p.size, p.squash, ink, defenders);
+    if (defended.ground.nodes.length) {
+      placed.push({ at: c, drawn: defended.ground, after: c.y - 0.02 });
+      placed.push({ at: c, drawn: defended.banner, after: c.y + p.size * p.squash * 1.9 });
+    }
   }
   const sites = new Set(cells.filter((c) => c.site).map((c) => `${c.q},${c.r}`));
   const perTile = new Map<string, number>();

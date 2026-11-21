@@ -111,7 +111,8 @@ export function featureArtAt(state: GameStateView, key: string): FeatureArt | nu
   } catch {
     return { look: f.type };
   }
-  if (f.left > 0 || type.kind === 'trap') return { look: type.icon };
+  if (type.kind === 'trap') return { look: type.icon, trap: true };
+  if (f.left > 0) return { look: type.icon };
   return { look: type.icon, state: type.kind === 'node' ? 'depleted' : 'spent' };
 }
 
@@ -141,6 +142,8 @@ export function creatureArt(state: GameStateView, signs: CreatureSigns | null = 
     look: GENTLE_AMBLER,
     // The team stores, as crates on its back.
     stores: Object.values(state.stores).reduce((a, n) => a + n, 0),
+    // Guardians defending it: a ring and shields on the map, for every player.
+    defenders: state.creature.defenders.length,
   };
 }
 

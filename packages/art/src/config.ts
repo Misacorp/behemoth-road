@@ -25,12 +25,12 @@ export const ART_TUNING = {
   /** Character height, in hex sizes. */
   characterHeight: 0.74,
   /** Revealed features (nodes, sites, traps) are the tile's focus: drawn this much larger than props. */
-  featureScale: 1.6,
+  featureScale: 2.3,
   /** A lit fire on a hex, against the props. */
-  fireScale: 1.3,
+  fireScale: 1.9,
   /** Threats and settlements are the tile's focus like features. */
   threatScale: 1.7,
-  settlementScale: 1.8,
+  settlementScale: 2.1,
   /** Space around a scene, in hex sizes. */
   padding: 0.45,
 } as const;

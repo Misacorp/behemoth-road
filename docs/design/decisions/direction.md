@@ -4,6 +4,14 @@ Priorities, how the owner and agents work, naming and tone.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-21: Art review round 2: features rise from plinths, traps share a danger cue, the shield is the role frame, trodden ground keeps its terrain **[Misa]**
+
+ID: `2026-11-21-art-review-round-2-features-rise` · Status: current
+
+**Decision.** Misa's second art review. (1, 4) Features (nodes, sites, traps, settlements, fires) are bigger and stand on a raised sandstone plinth (a lit top, a shaded wall), so they rise above the tile's top edge and may overlap the tile behind; they are drawn back to front like everything upright. (2) Every trap shares one danger cue, distinct from finds and sites: a coral band on the plinth, a ring of jagged coral teeth and a warning pennant (a triangle with a bar and dot, no text). The core's `trap` kind sets it (`FeatureArt.trap`), so a new trap gets it with no art change; a defused (`spent`) trap keeps flat grey teeth and no pennant. (3) A cave door's plinth sits behind the door, never in front of it. (5) A veil's side strip is drawn only under edges that show a side face, so tiles further back never paint over tiles in front. (6) The shield is the role emblem frame everywhere (the default). (7) Trodden ground is a half-transparent neutral sandy wash over the tile's own terrain, which stays readable (cliffs, rivers, rocks), and the ring hexes around the creature keep their terrain props, drawn just under it. (8) Unexplored ground inside the window has a dusky base (paperDeep with a shadow tint) under the same hatch. (9) Defending guardians are telegraphed on the creature: a slate ring round its footprint and one big shield per defender (up to six) in front of it, from `CreatureArt.defenders`.
+
+**Reasoning.** Features read as small stickers on flat tiles at phone zoom; a raised block with a taller feature gives the isometric depth Misa asked for. Danger needed one consistent, text-free cue that a player learns once. The veil and draw-order bug came from one shape covering the tile in front. The pink trodden tone hid the terrain a player walking back needs to see.
+
 ## 2026-11-19: The art review page shows only what needs Misa; silence means accepted **[Misa]**
 
 ID: `2026-11-19-the-art-review-page-shows-only` · Status: current

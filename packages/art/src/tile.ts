@@ -72,6 +72,24 @@ function veilOutline(p: Projection, corners: readonly Point[]): Point[] {
 }
 
 /**
+ * A hex's veil shape: its top face and a side strip only under the edges that show a side face (no solid tile
+ * in front). A strip over an edge with a tile in front would paint the top of that tile, so a tile further
+ * back would show its forward edge on top of the one before it.
+ */
+function veilShape(p: Projection, corners: readonly Point[], sides: readonly boolean[]): string {
+  let d = poly(corners);
+  if (p.depth > 0) {
+    for (let i = 0; i < 3; i += 1) {
+      if (!sides[i]) continue;
+      const a = corners[i]!;
+      const b = corners[i + 1]!;
+      d += poly([a, b, { x: b.x, y: b.y + p.depth }, { x: a.x, y: a.y + p.depth }]);
+    }
+  }
+  return d;
+}
+
+/**
  * One hex's veil, on its own, for the map to lift away when the hex becomes explored (fade it and drift it
  * up a little). Drawn with the scene's veil pattern (same `prefix`).
  */
@@ -150,6 +168,8 @@ export function drawGround(
   const tops = new Batch();
   const washes = new Batch();
   const marks = new Batch();
+  const treads = new Batch();
+  const scuffs = new Batch();
   const rivers = { banks: [] as string[], water: [] as string[], light: [] as string[] };
   const veils = new Batch();
   const fog = new Batch();
@@ -200,15 +220,18 @@ export function drawGround(
     }
 
     const trodden = occupied.has(hexKey(cell.q, cell.r));
-    const look = trodden ? TRODDEN_LOOK : terrainLook(cell.terrain);
+    // Trodden ground keeps its terrain (a cliff stays a cliff, a river a river) under a sandy wash.
+    const look = terrainLook(cell.terrain);
     const ground = palette.ramps[look.ground];
     const side = palette.ramps[look.side];
 
     // Side faces on the edges that face the viewer and have no solid tile in front.
+    const showsSide = [false, false, false];
     if (p.depth > 0) {
       for (let i = 0; i < 3; i += 1) {
         const d = DIRECTIONS[i]!;
         if (isSolid(byKey.get(hexKey(cell.q + d.q, cell.r + d.r)))) continue;
+        showsSide[i] = true;
         const a = corners[i]!;
         const b = corners[i + 1]!;
         const a2 = { x: a.x, y: a.y + p.depth };
@@ -234,9 +257,27 @@ export function drawGround(
         smoothClosed(blob(rng, p, sc, rng.range(0.15, 0.26), 7, 0.2)),
       );
     }
+    if (trodden) {
+      treads.add({ fill: palette.ramps[TRODDEN_LOOK.ground].base, opacity: 0.5 }, poly(corners));
+    }
     outlines.push(poly(corners));
 
     // Ground marks painted flat on the tile.
+    if (trodden) {
+      const lines: string[] = [];
+      for (let j = 0, n = rng.int(2, 3); j < n; j += 1) {
+        const o = onPlane(p, c, rng.range(-0.5, 0.45), rng.range(-0.45, 0.45));
+        const len = rng.range(0.12, 0.22) * p.size;
+        lines.push(
+          smoothOpen([
+            o,
+            { x: o.x + len * 0.5, y: o.y - len * 0.1 },
+            { x: o.x + len, y: o.y + len * 0.04 },
+          ]),
+        );
+      }
+      scuffs.add(inkAttrs(palette.ramps.trodden.shade, ink * 0.85), lines.join(''));
+    }
     if (look.marks === 'ripples') {
       const lines: string[] = [];
       for (let j = 0, n = rng.int(2, 3); j < n; j += 1) {
@@ -338,22 +379,11 @@ export function drawGround(
     }
 
     if (state === 'unexplored') {
-      veiled.push(poly(veilOutline(p, corners)));
+      veiled.push(veilShape(p, corners, showsSide));
     }
     if (state === 'fading') {
       const veil = { fill: palette.paper, opacity: ART_TUNING.fadingVeil };
-      veils.add(
-        veil,
-        poly(
-          p.depth > 0
-            ? [
-                ...corners.slice(0, 4).map((q) => ({ x: q.x, y: q.y + p.depth })),
-                ...corners.slice(3),
-                corners[0]!,
-              ]
-            : corners,
-        ),
-      );
+      veils.add(veil, veilShape(p, corners, showsSide));
     }
   }
 
@@ -383,7 +413,9 @@ export function drawGround(
     ...sides.nodes(),
     ...tops.nodes(),
     ...washes.nodes(),
+    ...treads.nodes(),
     ...marks.nodes(),
+    ...scuffs.nodes(),
     ...riverNodes,
     ...fog.nodes(),
   ];

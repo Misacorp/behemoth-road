@@ -54,7 +54,7 @@ export function drawEscortRing(p: Projection, hex: Hex, palette: Palette): SvgNo
 }
 
 /** A small kite shield at (x, y) (its centre), `s` its height scale, in screen px. */
-function shieldPath(x: number, y: number, w: number, h: number): string {
+export function shieldPath(x: number, y: number, w: number, h: number): string {
   return poly([
     { x: x - w / 2, y: y - h * 0.45 },
     { x, y: y - h * 0.55 },
