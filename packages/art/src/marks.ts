@@ -335,6 +335,22 @@ export const VIA_MARKS: Readonly<Record<string, (p: Palette) => SvgNode[]>> = {
     }),
     el('path', { d: 'M-4 0l.5 5M0 0v5M4 0l-.5 5', ...stroke(pal.ink, 1.6) }),
   ],
+  // Sand sledge: a plank on a curled runner, for a sand step taken on the sledge.
+  'sand-sledge': (pal) => [
+    el('path', {
+      d: ellipsePath(0, 0, 11, 11),
+      fill: pal.paper,
+      stroke: pal.ink,
+      'stroke-width': 1.6,
+    }),
+    el('path', {
+      d: 'M-7 -2h12l-.8 3h-10.4z',
+      fill: pal.ramps.bark.base,
+      stroke: pal.ink,
+      'stroke-width': 1.2,
+    }),
+    el('path', { d: 'M-8 4.5h13c2.5 0 3-2.5 1.5-3.5', ...stroke(pal.ink, 1.6) }),
+  ],
 };
 
 /** A `via` mark as a centred `<svg>` of `size` px; an unknown `via` draws a small plain dot. */

@@ -34,11 +34,13 @@ import {
   type Seed,
 } from './game-core.ts';
 import { errorResponse, json, notFound, parseBody } from './http.ts';
+import type { LiveHooks } from './live.ts';
 import { applyMigrations } from './migrations.ts';
 import { TokenBucketLimiter } from './ratelimit.ts';
 import {
   ActBodySchema,
   EmptyBodySchema,
+  PaceBodySchema,
   MoveBodySchema,
   PickBodySchema,
   SINCE_RE,
@@ -65,6 +67,12 @@ export interface PlayerEntry {
 export interface PlayerView {
   version: number;
   day: number;
+  /** How days advance: on the daily schedule, or (staging) as soon as every active character is done. */
+  pace: Pace;
+  /** Fast pace: when the next day starts early (epoch ms), or null. */
+  fastTickAt: number | null;
+  /** The server clock when the view was built (epoch ms), so a client can measure its own clock's skew. */
+  now: number;
   /** `admin`: may run the staging "next day"; always false with the dev tools off. */
   you: { userId: string; characterId: string | null; admin: boolean };
   /** The characters this player may pick (the rolls, then the plain one): only while they have no active character. */
@@ -106,12 +114,24 @@ export interface GuildGameOptions {
   everyoneIsAdmin: boolean;
   /** Core tuning overrides for every new game: `seasonConfig(devTools)`; tests may pass their own. */
   gameConfig: ConfigOverrides;
+  /** The live sockets (`live.ts`); absent or null where there are none (tests that do not need them). */
+  live?: LiveHooks | null;
+}
+
+interface CachedSession {
+  userId: string;
+  displayName: string;
+  lastUsedAt: number;
+  expiresAt: number;
 }
 
 interface GameRow {
   state: GameState;
   version: number;
   nextTickAt: number;
+  pace: Pace;
+  /** Fast pace: when the early tick is due, or null. */
+  fastTickAt: number | null;
 }
 
 type PlayerRow = {
@@ -140,11 +160,32 @@ export type VersionedEvent = GameEvent & { readonly version: number };
 
 type EventStop = Extract<EventResult, { ok: true }>['stopped'];
 
-const { eventLogSize, tick, sessions, rateLimits, adminCacheMs, maxCatchUpTicks } = SERVER_CONFIG;
+const { eventLogSize, tick, sessions, rateLimits, adminCacheMs, maxCatchUpTicks, fastTickDelayMs } =
+  SERVER_CONFIG;
+
+export type Pace = 'daily' | 'fast';
+
+/** Fast pace waits for this: the season runs and every active character has spent all their actions. */
+function everyoneSpent(state: GameState): boolean {
+  if (isSeasonOver(state)) return false;
+  const active = state.characters.filter((c) => c.status === 'active');
+  return active.length > 0 && active.every((c) => c.actionsLeft === 0);
+}
 
 export class GuildGame {
   private readonly limiter: TokenBucketLimiter;
   private readonly adminCache = new Map<string, { may: boolean; at: number }>();
+  /**
+   * What the object keeps in memory so a request that changes nothing reads no storage: the game row (as
+   * last read; dropped by every write transaction and reloaded on the next read), the guild id, the live
+   * sessions, and the time the alarm is known to be set for (`undefined`: not known yet).
+   */
+  private cachedGame: GameRow | null = null;
+  private cachedGuildId: string | null = null;
+  private readonly cachedSessions = new Map<string, CachedSession>();
+  private armedFor: number | null | undefined = undefined;
+  /** The highest version written in the running write transaction, for the one push after its commit. */
+  private pendingVersion: number | null = null;
 
   constructor(
     private readonly storage: Storage,
@@ -155,6 +196,79 @@ export class GuildGame {
 
   private get sql(): SqlStorage {
     return this.storage.sql;
+  }
+
+  /** Forgets what is kept in memory. Only for tests that change storage behind the object's back. */
+  dropMemory(): void {
+    this.cachedGame = null;
+    this.cachedGuildId = null;
+    this.cachedSessions.clear();
+    this.armedFor = undefined;
+  }
+
+  /**
+   * A transaction that may change the game: the in-memory game is dropped when it starts (a read inside
+   * reloads it) and again if it fails, so a rolled-back write never leaves a state in memory that is not
+   * in storage.
+   */
+  private tx<T>(fn: () => T): T {
+    this.cachedGame = null;
+    this.pendingVersion = null;
+    let result: T;
+    try {
+      result = this.storage.transactionSync(fn);
+    } catch (err) {
+      this.cachedGame = null;
+      // A rolled-back write is never announced.
+      this.pendingVersion = null;
+      throw err;
+    }
+    // One push per write transaction, after it committed (a client that asks at once sees the version).
+    const version = this.pendingVersion;
+    this.pendingVersion = null;
+    if (version !== null) this.options.live?.changed(version);
+    return result;
+  }
+
+  /** Bumps the game's version without a state change (a name, the pace). Call inside a transaction. */
+  private bumpVersion(): void {
+    this.cachedGame = null;
+    const row = this.sql
+      .exec<{ version: number }>(
+        'UPDATE game SET version = version + 1 WHERE id = 1 RETURNING version',
+      )
+      .one();
+    this.pendingVersion = row.version;
+  }
+
+  /** The game's version (for a socket's `hello`), or null when there is no readable game. */
+  version(): number | null {
+    return this.readGameOrNull()?.version ?? null;
+  }
+
+  /** The guild this object serves, or null before the first sign-in. */
+  boundGuildId(): string | null {
+    return this.guildId();
+  }
+
+  /**
+   * Whether the player has a session that is still valid. Looks at the sessions kept in memory first and
+   * reads one row only on a miss (the cache is cleared whenever someone signs in).
+   */
+  hasSession(userId: string): boolean {
+    const t = this.options.now();
+    const valid = (expiresAt: number, lastUsedAt: number): boolean =>
+      t < expiresAt && t - lastUsedAt < sessions.idleMs;
+    for (const row of this.cachedSessions.values()) {
+      if (row.userId === userId && valid(row.expiresAt, row.lastUsedAt)) return true;
+    }
+    return this.sql
+      .exec<{ expires_at: number; last_used_at: number }>(
+        'SELECT expires_at, last_used_at FROM sessions WHERE user_id = ?',
+        userId,
+      )
+      .toArray()
+      .some((r) => valid(r.expires_at, r.last_used_at));
   }
 
   /** Brings the schema up to date. Call inside `blockConcurrencyWhile`. */
@@ -171,7 +285,7 @@ export class GuildGame {
    * answer 503 until a build that can read it is deployed.
    */
   private replaceOutdatedGame(): void {
-    this.storage.transactionSync(() => {
+    this.tx(() => {
       const row = this.sql
         .exec<{ state: string; version: number }>('SELECT state, version FROM game WHERE id = 1')
         .toArray()[0];
@@ -220,7 +334,8 @@ export class GuildGame {
     const secret = generateSessionSecret();
     const tokenHash = await hashSecret(secret);
     const t = this.options.now();
-    this.storage.transactionSync(() => {
+    this.cachedSessions.clear();
+    this.tx(() => {
       this.bindGuild(guildId);
       this.ensureGame(t);
       this.sql.exec(
@@ -245,7 +360,7 @@ export class GuildGame {
         game !== null &&
         characterOf(game.state, user.id) !== undefined
       ) {
-        this.sql.exec('UPDATE game SET version = version + 1 WHERE id = 1');
+        this.bumpVersion();
       }
       this.sql.exec(
         'INSERT INTO sessions (token_hash, user_id, created_at, last_used_at, expires_at) VALUES (?, ?, ?, ?, ?)',
@@ -279,41 +394,62 @@ export class GuildGame {
     const stored = this.guildId();
     if (stored === null) {
       this.sql.exec('INSERT INTO guild_meta (id, guild_id) VALUES (1, ?)', guildId);
+      this.cachedGuildId = guildId;
     } else if (stored !== guildId) {
       throw new Error('guild id does not match this Durable Object');
     }
   }
 
   private guildId(): string | null {
+    if (this.cachedGuildId !== null) return this.cachedGuildId;
     const row = this.sql
       .exec<{ guild_id: string }>('SELECT guild_id FROM guild_meta WHERE id = 1')
       .toArray()[0];
-    return row?.guild_id ?? null;
+    this.cachedGuildId = row?.guild_id ?? null;
+    return this.cachedGuildId;
   }
 
-  /** The session's user, or null if the secret is unknown or the session expired. */
+  /** The session's user, or null if the secret is unknown or the session expired. Live sessions are kept in memory. */
   private async lookupSession(secret: string): Promise<SessionUser | null> {
     const tokenHash = await hashSecret(secret);
     const t = this.options.now();
-    const row = this.sql
-      .exec<{ user_id: string; display_name: string; last_used_at: number; expires_at: number }>(
-        `SELECT s.user_id, p.display_name, s.last_used_at, s.expires_at
+    let row = this.cachedSessions.get(tokenHash);
+    if (row === undefined) {
+      const found = this.sql
+        .exec<{
+          user_id: string;
+          display_name: string;
+          last_used_at: number;
+          expires_at: number;
+        }>(
+          `SELECT s.user_id, p.display_name, s.last_used_at, s.expires_at
          FROM sessions s JOIN players p ON p.user_id = s.user_id WHERE s.token_hash = ?`,
-        tokenHash,
-      )
-      .toArray()[0];
-    if (row === undefined) return null;
-    if (t >= row.expires_at || t - row.last_used_at >= sessions.idleMs) {
+          tokenHash,
+        )
+        .toArray()[0];
+      if (found === undefined) return null;
+      row = {
+        userId: found.user_id,
+        displayName: found.display_name,
+        lastUsedAt: found.last_used_at,
+        expiresAt: found.expires_at,
+      };
+    }
+    if (t >= row.expiresAt || t - row.lastUsedAt >= sessions.idleMs) {
+      this.cachedSessions.delete(tokenHash);
       this.sql.exec('DELETE FROM sessions WHERE token_hash = ?', tokenHash);
       return null;
     }
-    if (t - row.last_used_at >= sessions.touchIntervalMs) {
+    if (t - row.lastUsedAt >= sessions.touchIntervalMs) {
+      const userId = row.userId;
       this.storage.transactionSync(() => {
         this.sql.exec('UPDATE sessions SET last_used_at = ? WHERE token_hash = ?', t, tokenHash);
-        this.sql.exec('UPDATE players SET last_seen_at = ? WHERE user_id = ?', t, row.user_id);
+        this.sql.exec('UPDATE players SET last_seen_at = ? WHERE user_id = ?', t, userId);
       });
+      row = { ...row, lastUsedAt: t };
     }
-    return { id: row.user_id, displayName: row.display_name };
+    this.cachedSessions.set(tokenHash, row);
+    return { id: row.userId, displayName: row.displayName };
   }
 
   // --- The game row ---
@@ -333,18 +469,26 @@ export class GuildGame {
 
   /** The stored game, or null before the first sign-in. Throws `GameUnreadable` for a stored game this build cannot read. */
   private readGame(): GameRow | null {
+    if (this.cachedGame !== null) return this.cachedGame;
     const row = this.sql
-      .exec<{ state: string; version: number; next_tick_at: number }>(
-        'SELECT state, version, next_tick_at FROM game WHERE id = 1',
-      )
+      .exec<{
+        state: string;
+        version: number;
+        next_tick_at: number;
+        pace: string;
+        fast_tick_at: number | null;
+      }>('SELECT state, version, next_tick_at, pace, fast_tick_at FROM game WHERE id = 1')
       .toArray()[0];
     if (row === undefined) return null;
-    return {
+    this.cachedGame = {
       // Refuses a state made with content this build does not have, rather than misreading it.
       state: readState(row.state),
       version: row.version,
       nextTickAt: row.next_tick_at,
+      pace: row.pace === 'fast' ? 'fast' : 'daily',
+      fastTickAt: row.fast_tick_at,
     };
+    return this.cachedGame;
   }
 
   /** The stored game, or null when there is none or it cannot be read (for paths that must not fail). */
@@ -368,6 +512,7 @@ export class GuildGame {
       .exec<{ version: number }>('SELECT version FROM game WHERE id = 1')
       .one().version;
     this.logEvents(version, events);
+    this.pendingVersion = version;
     return version;
   }
 
@@ -385,11 +530,13 @@ export class GuildGame {
     }
     const dropped = this.sql
       .exec<{ v: number | null }>(
-        'SELECT MAX(version) AS v FROM events WHERE seq <= (SELECT MAX(seq) FROM events) - ?',
+        // Versions only grow with `seq`, so the newest dropped row has the highest dropped version: one
+        // primary-key lookup. (`MAX(version) ... WHERE seq <= ...` read the whole index on every write.)
+        'SELECT version AS v FROM events WHERE seq <= (SELECT MAX(seq) FROM events) - ? ORDER BY seq DESC LIMIT 1',
         eventLogSize,
       )
-      .one().v;
-    if (dropped === null) return;
+      .toArray()[0]?.v;
+    if (dropped === undefined) return;
     this.sql.exec('DELETE FROM events WHERE version <= ?', dropped);
     this.sql.exec(
       'UPDATE game SET events_pruned_through = MAX(events_pruned_through, ?) WHERE id = 1',
@@ -401,7 +548,7 @@ export class GuildGame {
   private eventsSince(since: number): { events: VersionedEvent[]; eventsTruncated: boolean } {
     const rows = this.sql
       .exec<{ version: number; event: string }>(
-        'SELECT version, event FROM events WHERE version > ? ORDER BY seq',
+        'SELECT version, event FROM events WHERE version > ? ORDER BY version, seq',
         since,
       )
       .toArray();
@@ -415,6 +562,7 @@ export class GuildGame {
   }
 
   private writeState(state: GameState, nextTickAt?: number): void {
+    this.cachedGame = null;
     if (nextTickAt === undefined) {
       this.sql.exec(
         'UPDATE game SET state = ?, version = version + 1 WHERE id = 1',
@@ -426,6 +574,29 @@ export class GuildGame {
         JSON.stringify(state),
         nextTickAt,
       );
+    }
+    this.syncFastTick(state);
+    this.cachedGame = null;
+  }
+
+  /**
+   * Fast pace: after any change, schedules the early tick when everyone is done (keeping an earlier
+   * schedule that still holds, so a harmless write does not push it back), else clears it. Daily pace never
+   * has one. Call inside a transaction.
+   */
+  private syncFastTick(state: GameState): void {
+    const row = this.sql
+      .exec<{ pace: string; fast_tick_at: number | null }>(
+        'SELECT pace, fast_tick_at FROM game WHERE id = 1',
+      )
+      .one();
+    let next: number | null = null;
+    if (row.pace === 'fast' && everyoneSpent(state)) {
+      next = row.fast_tick_at ?? this.options.now() + fastTickDelayMs;
+    }
+    if (next !== row.fast_tick_at) {
+      this.cachedGame = null;
+      this.sql.exec('UPDATE game SET fast_tick_at = ? WHERE id = 1', next);
     }
   }
 
@@ -446,37 +617,64 @@ export class GuildGame {
    */
   private async catchUpAndArm(): Promise<void> {
     const t = this.options.now();
-    this.storage.transactionSync(() => {
-      const game = this.readGame();
-      if (game === null || t < game.nextTickAt || isSeasonOver(game.state)) return;
-      let { state, nextTickAt } = game;
-      // Each tick is its own version, so its events are stamped with it. The tick that ends the season
-      // is the last one.
-      for (let i = 0; i < maxCatchUpTicks && t >= nextTickAt && !isSeasonOver(state); i++) {
-        const ticked = tickWithEvents(state);
-        state = ticked.state;
-        nextTickAt = nextOccurrence(nextTickAt, tick.hour, tick.minute, tick.timeZone);
-        // Ticks beyond the limit are skipped: the schedule jumps to the next one after now.
-        if (i === maxCatchUpTicks - 1 && t >= nextTickAt) {
-          nextTickAt = nextOccurrence(t, tick.hour, tick.minute, tick.timeZone);
+    const due = this.readGame();
+    const dailyDue = due !== null && t >= due.nextTickAt && !isSeasonOver(due.state);
+    if (dailyDue)
+      this.tx(() => {
+        const game = this.readGame();
+        if (game === null || t < game.nextTickAt || isSeasonOver(game.state)) return;
+        let { state, nextTickAt } = game;
+        // Each tick is its own version, so its events are stamped with it. The tick that ends the season
+        // is the last one.
+        for (let i = 0; i < maxCatchUpTicks && t >= nextTickAt && !isSeasonOver(state); i++) {
+          const ticked = tickWithEvents(state);
+          state = ticked.state;
+          nextTickAt = nextOccurrence(nextTickAt, tick.hour, tick.minute, tick.timeZone);
+          // Ticks beyond the limit are skipped: the schedule jumps to the next one after now.
+          if (i === maxCatchUpTicks - 1 && t >= nextTickAt) {
+            nextTickAt = nextOccurrence(t, tick.hour, tick.minute, tick.timeZone);
+          }
+          this.writeGame(state, nextTickAt, ticked.events);
         }
-        this.writeGame(state, nextTickAt, ticked.events);
-      }
-    });
+      });
+    // Fast pace: the early tick, once, when it is due (the same tick as the daily one; the schedule stays).
+    const early = this.readGame();
+    if (early !== null && early.fastTickAt !== null && t >= early.fastTickAt)
+      this.tx(() => {
+        const game = this.readGame();
+        if (game === null || game.fastTickAt === null || t < game.fastTickAt) return;
+        if (game.pace !== 'fast' || !everyoneSpent(game.state)) {
+          this.syncFastTick(game.state);
+          return;
+        }
+        const ticked = tickWithEvents(game.state);
+        this.writeGame(ticked.state, undefined, ticked.events);
+      });
+    await this.armAlarm();
+  }
+
+  /** Sets the one alarm to the earliest of the daily tick and the fast tick; none once the season is over. */
+  private async armAlarm(): Promise<void> {
     const game = this.readGame();
     if (game === null) return;
-    const existing = await this.storage.getAlarm();
     if (isSeasonOver(game.state)) {
-      if (existing !== null) await this.storage.deleteAlarm();
+      if (this.armedFor !== null) {
+        if ((await this.storage.getAlarm()) !== null) await this.storage.deleteAlarm();
+        this.armedFor = null;
+      }
       return;
     }
-    if (existing === null || existing !== game.nextTickAt) {
-      await this.storage.setAlarm(game.nextTickAt);
-    }
+    const due =
+      game.fastTickAt === null ? game.nextTickAt : Math.min(game.nextTickAt, game.fastTickAt);
+    if (this.armedFor === due) return;
+    if ((await this.storage.getAlarm()) !== due) await this.storage.setAlarm(due);
+    this.armedFor = due;
   }
 
   /** The Durable Object's alarm: the scheduled day tick. Idempotent: an early or repeated alarm only re-arms. */
   async alarm(): Promise<void> {
+    // The alarm that just fired is gone from storage.
+    this.armedFor = null;
     try {
       await this.catchUpAndArm();
     } catch (err) {
@@ -517,6 +715,14 @@ export class GuildGame {
     }
     await this.catchUpAndArm();
 
+    const response = await this.route(user, request, url);
+    // A change may have scheduled or cleared the fast tick: the alarm follows it.
+    if (request.method === 'POST') await this.armAlarm();
+    return response;
+  }
+
+  private route(user: SessionUser, request: Request, url: URL): Promise<Response> | Response {
+    const { pathname } = url;
     const route = `${request.method} ${pathname}`;
     switch (route) {
       case 'GET /api/game':
@@ -529,8 +735,12 @@ export class GuildGame {
         return this.move(user, request);
       case 'POST /api/game/act':
         return this.act(user, request);
+      case 'POST /api/live/ticket':
+        return this.liveTicket(user, request);
       case 'POST /api/dev/next-day':
         return this.devNextDay(user, request);
+      case 'POST /api/dev/pace':
+        return this.devPace(user, request);
       case 'POST /api/dev/new-season':
         return this.devNewSeason(user, request);
       default:
@@ -550,6 +760,17 @@ export class GuildGame {
     return json({ ...(await this.view(user, game)), ...log });
   }
 
+  /** A one-time ticket for a live socket, for the session's player. 404 where the flag is off. */
+  private async liveTicket(user: SessionUser, request: Request): Promise<Response> {
+    const live = this.options.live;
+    if (live === undefined || live === null || !live.enabled) return notFound();
+    const body = await parseBody(request, EmptyBodySchema);
+    if (body === undefined) return errorResponse('invalid_body', 400);
+    const guildId = this.guildId();
+    if (guildId === null) return errorResponse('no_game', 409);
+    return json({ ticket: await live.mintTicket(guildId, user.id) });
+  }
+
   /** Join (the first character) or replace (a lost one): the same pick of an offer and a role. */
   private async pick(
     user: SessionUser,
@@ -558,7 +779,7 @@ export class GuildGame {
   ): Promise<Response> {
     const body = await parseBody(request, PickBodySchema);
     if (body === undefined) return errorResponse('invalid_body', 400);
-    const refusal = this.storage.transactionSync((): string | null => {
+    const refusal = this.tx((): string | null => {
       const game = this.readGame();
       if (game === null) return 'no_game';
       // Join with a character already made answers the view unchanged, so a repeated tap is harmless.
@@ -606,7 +827,7 @@ export class GuildGame {
       events: [],
       stopped: null,
     };
-    const refusal = this.storage.transactionSync((): string | null => {
+    const refusal = this.tx((): string | null => {
       const game = this.readGame();
       if (game === null) return 'no_game';
       if (version !== game.version) return 'stale';
@@ -648,7 +869,7 @@ export class GuildGame {
   private async devNextDay(user: SessionUser, request: Request): Promise<Response> {
     const refused = await this.devGate(user, request);
     if (refused !== null) return refused;
-    this.storage.transactionSync(() => {
+    this.tx(() => {
       const game = this.readGame();
       // The schedule is left alone: the next scheduled tick still comes at its time.
       if (game !== null && !isSeasonOver(game.state)) {
@@ -656,6 +877,29 @@ export class GuildGame {
         this.writeGame(ticked.state, undefined, ticked.events);
       }
     });
+    return this.currentView(user);
+  }
+
+  /** Staging only (404 otherwise): a server admin sets the pace. Bumps the version, so every client sees it. */
+  private async devPace(user: SessionUser, request: Request): Promise<Response> {
+    const body = await parseBody(request, PaceBodySchema);
+    if (body === undefined) return errorResponse('invalid_body', 400);
+    let admin: boolean;
+    try {
+      admin = await this.isAdmin(user.id);
+    } catch (err) {
+      if (err instanceof DiscordError) return errorResponse('discord_unavailable', 503);
+      throw err;
+    }
+    if (!admin) return errorResponse('forbidden', 403);
+    this.tx(() => {
+      const game = this.readGame();
+      if (game === null || game.pace === body.pace) return;
+      this.sql.exec('UPDATE game SET pace = ? WHERE id = 1', body.pace);
+      this.bumpVersion();
+      this.syncFastTick(game.state);
+    });
+    await this.catchUpAndArm();
     return this.currentView(user);
   }
 
@@ -668,7 +912,7 @@ export class GuildGame {
     const refused = await this.devGate(user, request);
     if (refused !== null) return refused;
     const t = this.options.now();
-    this.storage.transactionSync(() => {
+    this.tx(() => {
       if (this.readGame() === null) return;
       this.replaceGame(nextOccurrence(t, tick.hour, tick.minute, tick.timeZone));
     });
@@ -728,6 +972,9 @@ export class GuildGame {
     return {
       version: game.version,
       day: game.state.day,
+      pace: game.pace,
+      fastTickAt: game.fastTickAt,
+      now: this.options.now(),
       you: { userId: user.id, characterId: mine?.id ?? null, admin },
       offers: mine?.status === 'active' ? null : characterOffers(game.state, user.id),
       game: toPlayerView(game.state),

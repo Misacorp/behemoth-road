@@ -42,6 +42,9 @@ export const RoleSchema = v.pipe(
 /** The game version a client last saw. */
 export const VersionSchema = v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(2 ** 31));
 
+/** POST /api/dev/pace: how the game's days advance. */
+export const PaceBodySchema = v.strictObject({ pace: v.picklist(['daily', 'fast']) });
+
 /** POST /api/game/join and /replace: a role, and the index of the picked character in the view's `offers`. */
 export const PickBodySchema = v.strictObject({
   role: RoleSchema,

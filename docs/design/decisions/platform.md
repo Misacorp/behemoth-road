@@ -4,6 +4,46 @@ Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-21: The view carries the server clock
+
+ID: `2026-11-21-the-view-carries-the-server-clock` · Status: current
+
+**Decision.** `PlayerView.now` is the server's clock (epoch ms) when the view was built. The client keeps `skew = view.now - its own clock` at each accepted view (`Sync.serverNow()`) and uses it to time the fast-tick refresh and the day ring, instead of comparing `fastTickAt` with the device clock.
+
+**Reasoning.** `fastTickAt` is a server time; a phone clock a few minutes off made the refresh fire at the wrong moment and the ring start empty or never drain. The skew is measured when a view arrives, so it needs no extra request; latency is a few hundred ms at most, well inside the grace.
+
+## 2026-11-21: Rows read are metered per source and budgeted in tests
+
+ID: `2026-11-21-rows-read-are-metered-per-source` · Status: current
+
+**Decision.** The Durable Object wraps its `SqlStorage` in a `ReadMeter` that sums `cursor.rowsRead` per source (`start`, `alarm`, `socket`, `request:<known route>`), in memory. `test/read-budget.test.ts` holds budgets of about 1.5 times the measured rows for the hot operations and checks the query plans of every hot statement for a full scan. Two hot queries were rewritten because of it: the events-since read (`ORDER BY version, seq`, so it uses the version index) and the event-log prune (one primary-key lookup instead of `MAX(version)` over the whole index).
+
+**Reasoning.** Free tier allows 5,000,000 rows read a day across the account, staging included, and the creatures app used it up twice with a scan on a hot path. Both queries read the whole 100-event log on every write or changed poll; with live pushes every player refetches after every change, so that would have multiplied. The counters are not stored (no write cost); production visibility is Cloudflare's dashboard until we want a stored daily total like creatures' `db_reads`.
+
+## 2026-11-21: Live sockets: ticket auth, caps, Hibernation, flag off in production
+
+ID: `2026-11-21-live-sockets-ticket-auth-caps-hibernation` · Status: current
+
+**Decision.** Sockets live in `GuildWorld` with the WebSocket Hibernation API (user tag, `serializeAttachment`, `setWebSocketAutoResponse` ping/pong, no timers, stale sockets pruned on connect, push and alarm). Server to client only: any message but `ping` closes the socket with 4002. Auth is a one-time ticket from `POST /api/live/ticket` (bearer session): 30 s, single use, HMAC under its own HKDF label, at most 200 held in memory; `GET /api/live?t=` is checked by the Worker (flag, Upgrade header, one query parameter, constant-time MAC) before the guild's object redeems it. The session token never goes in a URL. Caps: 3 sockets per player (oldest closed with 4000), 64 per guild (503 `live_full`). The `LIVE` var is `on` in staging and local, `off` in production, pinned by a test; off means both routes answer 404 before any object is woken.
+
+**Reasoning.** Adapted from the creatures app's live socket, which has run in production since October. A browser WebSocket cannot send headers, and a URL is logged, so the ticket is worth nothing after a use or 30 s. Production stays off until Misa has tried it on staging, including through Discord's proxy.
+
+## 2026-11-21: Live sockets only say "changed"; the client fetches its own view
+
+ID: `2026-11-21-live-sockets-only-say-changed-the` · Status: current
+
+**Decision.** After every write transaction (act, move, join, replace, tick including the fast tick and the alarm, pace, new season, a renamed player) the object sends `{ v: 1, type: 'changed', version }` to every socket of the guild, once per transaction; `hello` carries the version on connect. The client fetches its own view with `GET /api/game?since=` (debounced 150 ms) and polls only every 60 s while live, every 10 s otherwise.
+
+**Reasoning.** A push with no per-viewer data cannot leak anything and needs no new view code: the existing authenticated, rate-limited path builds each player's view. It costs one small fetch per change per player instead of a pushed view, and the poll stays as the fallback for anything the socket misses.
+
+## 2026-11-21: Fast pace schedules a second alarm time in the one Durable Object alarm
+
+ID: `2026-11-21-fast-pace-schedules-a-second-alarm` · Status: current
+
+**Decision.** The game row stores `pace` and `fast_tick_at` (migration 3). After every write to the game and on a pace switch, `fast_tick_at` is recomputed in the same transaction: set to now plus `fastTickDelayMs` when the pace is fast and everyone is spent (keeping an earlier schedule that still holds), else cleared. The Durable Object's single alarm is set to the earlier of the daily tick and `fast_tick_at`. `alarm()` and every request first run the due daily ticks, then the fast tick once if it is due, then re-arm. The fast tick uses `tickWithEvents` like the daily one and leaves `next_tick_at` alone. The player view carries `pace` and `fastTickAt`. Clients keep the normal poll and schedule one extra refresh just after `fastTickAt` (plus a retry 2 s later if the day has not turned); there is no faster polling and the rate limit is unchanged. To keep storage reads low, the object keeps the game row, guild id, live sessions and the armed alarm time in memory: a poll that changes nothing reads no storage (it was 6 SQL statements and an alarm lookup), a changed poll reads 3 statements (was 10 and 1) and an action 9 (was 15 and 2). Every write transaction drops the in-memory game, so it reloads on the next read and a rolled-back write never stays in memory.
+
+**Reasoning.** A Durable Object has one alarm, so two schedules share it as a minimum. Recomputing inside the write transaction means the stored schedule can never disagree with the state, and a due fast tick that was missed (the alarm and a request racing) is run by the next request. Misa wants database reads kept low (creatures had a read incident), and live WebSockets come later and will read from the same memory.
+
 ## 2026-11-20: The short dev season follows the dev-tools switch; an ended season stops the schedule
 
 ID: `2026-11-20-the-short-dev-season-follows-the` · Status: current

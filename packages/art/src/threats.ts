@@ -1,6 +1,6 @@
 /**
  * Threats on a hex, drawn upright in side view like the props, keyed by the `icon` content gives each threat
- * type (`captors`, `swarm`, `rockslide`, `raiders`); an unknown key draws a neutral dark cairn. Every threat
+ * type (`captors`, `swarm`, `rockslide`, `raiders`, `ambush`, `stampede`); an unknown key draws a neutral dark cairn. Every threat
  * stands on a faint coral stain (so it reads as hostile beside features), carries its strength as a row of
  * coral marks above it, and can show a short ground arrow toward the neighbour it steps to next and a pulsing
  * ring when it arrives tomorrow. Parts carry `data-threat="stain" | "figure" | "strength" | "arrow" | "pulse"`
@@ -14,7 +14,14 @@ import { groundShadow, inkAttrs, riseFor, type Drawn, type PropContext } from '.
 import { rngFor } from './rng.ts';
 import { el, type SvgNode } from './svg.ts';
 
-export const THREAT_LOOKS = ['captors', 'swarm', 'rockslide', 'raiders'] as const;
+export const THREAT_LOOKS = [
+  'captors',
+  'swarm',
+  'rockslide',
+  'raiders',
+  'ambush',
+  'stampede',
+] as const;
 export type ThreatLook = (typeof THREAT_LOOKS)[number];
 
 export interface ThreatArt {
@@ -407,6 +414,159 @@ const raiders: FigureDraw = (c) => {
   };
 };
 
+/**
+ * An ambush: a dark thicket of leafy bushes (never a hooded figure standing in the open) with pale eyes
+ * in the gloom, two spear tips and a rope net poking out, leaves stirring at its edge.
+ */
+const ambush: FigureDraw = (c) => {
+  const { pts, fill, line, blob } = kit(c);
+  const pal = c.palette;
+  const bushes: [number, number, number, number][] = [
+    [-9, -7, 10, 7],
+    [9, -6, 10.5, 6.5],
+    [0, -12, 10, 8],
+  ];
+  const shapes = bushes.map(([x, y, rx, ry]) => blob(x, y, rx, ry));
+  const spears = [
+    pts([
+      [-6, -10],
+      [-8, -33],
+    ]),
+    pts([
+      [7, -9],
+      [10, -30],
+    ]),
+  ];
+  const tips = [
+    pts([
+      [-9.2, -31],
+      [-8, -38],
+      [-6.6, -31.4],
+    ]),
+    pts([
+      [8.8, -28],
+      [10.4, -35],
+      [11.8, -28.4],
+    ]),
+  ];
+  const eyes = pts([
+    [-3.4, -11],
+    [-1.2, -11.2],
+    [2.2, -9.6],
+    [4.4, -9.8],
+  ]);
+  return {
+    nodes: [
+      groundShadow(c, 20, 4.5, 2),
+      ...spears.map((sp) => line(poly(sp, false), 1.4, pal.ramps.bark.shade)),
+      ...tips.flatMap((t) => [fill(poly(t), pal.ramps.stone.base), line(poly(t), 0.8)]),
+      ...shapes.flatMap((b, i) => [
+        fill(smoothClosed(b), i === 2 ? pal.ramps.foliage.shade : pal.ramps.foliage.base),
+        line(smoothClosed(b)),
+      ]),
+      fill(
+        eyes.map((e) => ellipsePath(e.x, e.y, 0.95 * c.k, 0.65 * c.k)).join(''),
+        pal.ramps.sand.light,
+      ),
+      line(
+        smoothOpen(
+          pts([
+            [12, -3],
+            [16, -6],
+            [15, -11],
+          ]),
+        ),
+        0.8,
+        pal.ramps.bark.base,
+      ),
+    ],
+    points: [...shapes.flat(), ...tips.flat()],
+    top: -38,
+  };
+};
+
+/** A charging beast at (x, y) facing `dir`: a low horned body, lowered head, four legs mid-stride. */
+function charger(c: PropContext, x: number, y: number, s: number, dir: 1 | -1): Figure {
+  const { pts, fill, line } = kit(c);
+  const pal = c.palette;
+  const P = (u: number, v: number): [number, number] => [x + dir * u * s, y + v * s];
+  const body = pts([
+    P(-9, -9),
+    P(-4, -13),
+    P(4, -12.5),
+    P(8, -10),
+    P(11, -7),
+    P(13, -3),
+    P(10, -4),
+    P(8, -6),
+    P(-2, -4),
+    P(-8, -4.5),
+    P(-10, -6),
+  ]);
+  const horn = pts([P(11.5, -7), P(14.5, -11), P(12.4, -5.5)]);
+  const hump = pts([P(-3, -12.5), P(0, -17), P(4, -12.5)]);
+  const legs = pts([
+    P(-7, -5),
+    P(-10, 0),
+    P(-4, -4.5),
+    P(-5, 1),
+    P(5, -5),
+    P(9, -1),
+    P(7, -5.5),
+    P(11, 0),
+  ]);
+  return {
+    nodes: [
+      line(
+        poly([legs[0]!, legs[1]!], false) +
+          poly([legs[2]!, legs[3]!], false) +
+          poly([legs[4]!, legs[5]!], false) +
+          poly([legs[6]!, legs[7]!], false),
+        1.5,
+        pal.ramps.hide.shade,
+      ),
+      fill(poly(body), pal.ramps.hide.base),
+      fill(poly(hump), pal.ramps.hide.shade),
+      fill(poly(horn), pal.ramps.sand.light),
+      line(poly(body) + poly(hump) + poly(horn), 0.9),
+    ],
+    points: [...body, ...hump, ...horn, ...legs],
+    top: y - 17 * s,
+  };
+}
+
+/** A stampede: three horned beasts charging side by side, a cloud of dust kicked up behind them. */
+const stampede: FigureDraw = (c) => {
+  const pal = c.palette;
+  const sq = c.squash / 0.6;
+  const beasts = [charger(c, -9, -3, 1.05, 1), charger(c, 6, -1, 1.15, 1), charger(c, -2, 3, 1, 1)];
+  const dust = [-22, -17, -13]
+    .map((x, i) =>
+      ellipsePath(
+        c.origin.x + x * c.k,
+        c.origin.y - (2 + i * 2) * c.k * sq,
+        (4 - i * 0.5) * c.k,
+        (2.4 - i * 0.3) * c.k * sq,
+      ),
+    )
+    .join('');
+  return {
+    nodes: [
+      el('path', {
+        d: dust,
+        fill: pal.ramps.sand.light,
+        stroke: pal.inkSoft,
+        'stroke-width': c.ink * 0.7,
+        opacity: 0.8,
+      }),
+      groundShadow(c, 24, 5, 2),
+      ...beasts.flatMap((b) => b.nodes),
+    ],
+    points: beasts.flatMap((b) => b.points),
+    top: Math.min(...beasts.map((b) => b.top)),
+  };
+};
+
 /** An unknown threat: a dark cairn of three stones. */
 const cairn: FigureDraw = (c) => {
   const { fill, line, blob } = kit(c);
@@ -425,7 +585,14 @@ const cairn: FigureDraw = (c) => {
   };
 };
 
-const FIGURES: Readonly<Record<ThreatLook, FigureDraw>> = { captors, swarm, rockslide, raiders };
+const FIGURES: Readonly<Record<ThreatLook, FigureDraw>> = {
+  captors,
+  swarm,
+  rockslide,
+  raiders,
+  ambush,
+  stampede,
+};
 
 /** The strength marks: `n` coral diamonds in a row on a paper pill, centred above (x, y) in screen px. */
 function strengthMarks(

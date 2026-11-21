@@ -35,4 +35,9 @@ describe('page guards', () => {
     expect(text).toMatch(/\.style\.transform = value/);
     expect(text).not.toMatch(/style=|setAttribute|cssText/);
   });
+
+  it('defines the roster peek height once, as a custom property', () => {
+    expect(css.match(/--peek-h:/g)).toHaveLength(1);
+    expect(css).not.toMatch(/var\(--peek-h,/);
+  });
 });

@@ -1,6 +1,9 @@
 {
   "version": 13,
   "day": 3,
+  "pace": "daily",
+  "fastTickAt": null,
+  "now": 1906545600000,
   "you": {
     "userId": "222222222222222222",
     "characterId": "222222222222222222.0",
@@ -8,7 +11,7 @@
   },
   "offers": null,
   "game": {
-    "contentVersion": 8,
+    "contentVersion": 9,
     "artSeed": 4242,
     "day": 3,
     "config": {
@@ -991,12 +994,12 @@
       },
       {
         "id": "t3",
-        "type": "rockslide",
+        "type": "ambush",
         "hex": {
-          "q": 1,
+          "q": 7,
           "r": -6
         },
-        "strength": 3,
+        "strength": 2,
         "appearedDay": 3
       }
     ],
@@ -1068,9 +1071,9 @@
     {
       "kind": "threat-appears",
       "id": "t3",
-      "type": "rockslide",
+      "type": "ambush",
       "hex": {
-        "q": 1,
+        "q": 7,
         "r": -6
       },
       "version": 13

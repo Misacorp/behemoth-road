@@ -4,6 +4,38 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-21: Fast rounds pace: staging only, all active characters spent, 6 s delay, 4 s day banner
+
+ID: `2026-11-21-fast-rounds-pace-staging-only-all` · Status: current
+
+**Decision.** A per-game pace, `daily` (default) or `fast`, set by a server admin where the dev tools are on (staging and local); production keeps the daily pace and has no way to change it. In fast pace, when the season runs and every active character (lost ones and players without a character are ignored) has no actions left, the next day starts 6 seconds later (`fastTickDelayMs`); anything that gives someone actions first (a join, a replacement) cancels it. The same tick as the daily one runs, and the daily schedule is untouched. Whenever the day number goes up, in either pace, a day banner (the sun and the numeral) fades over a band of the map for 4 seconds (`dayBannerMs`); the map stays visible and live beneath it. A ring drains round the day sun during the countdown; clients do not poll faster, they refresh once just after the countdown ends.
+
+**Reasoning.** Misa wants playtests that move at the speed of the players, not of the clock. Staging-only keeps the live game's rhythm unchanged until it is known whether fast rounds belong in the game proper. Waiting for every active character, not only the connected ones, is the simplest rule; an idle player can hold a round up, and the admin's next-day control still works. The 6 s delay lets the last move animate and shows the countdown; the 4 s banner is long enough to read and short enough not to hide the creature's walk.
+
+## 2026-11-21: Content version 9 balance: stampede strength 1, ambush and stampede weights halved
+
+ID: `2026-11-21-content-version-9-balance-stampede-strength` · Status: current · Amends: `2026-11-21-more-content-for-playtests-ambush-stampede`
+
+**Decision.** Stampede strength is 1 (was 2) and the ambush and stampede weights are 0.5 (rolled types now pick among those with a fitting hex, so the two appear less often than the older three at weight 1). Careful full seasons over 200 seeds, safe / wounded / lost (3 players; 6 players): baseline before content 71/15/14; 73/11/17. With the new types at strength 2 and weight 1, picking among fitting types: 72/8/21; 68/13/19. Stampede strength 1 only: 74/9/18; 71/13/17. Weights halved only: 69/13/19; 69/14/18. Both (chosen): 73/10/17; 71/12/18. Careless parties still lose every full season. No try landed within 2 points of the 3-player baseline's 14 % lost; the rest is probably slower sand.
+
+**Reasoning.** Chosen as the closest of the three tries in the order asked, using only content data.
+
+## 2026-11-21: More content for playtests: ambush, stampede, river folk, sunken shrine, undertow, sand sledge
+
+ID: `2026-11-21-more-content-for-playtests-ambush-stampede` · Status: current, amended by `2026-11-21-content-version-9-balance-stampede-strength`
+
+**Decision.** Content version 9 adds variety to existing systems, with no new role or rule. Threats: the ambush (flank, speed 1, strength 2, appears only on `wooded` ground) and the stampede (behind, speed 2, strength 2, only on `open` ground), through a new optional `on` terrain-tag condition on a threat type. Peoples: river folk (stilt huts, favour 2 instead of 3, boons gift and mislead but no shelter, a gift of forage and stone), through an optional `near` terrain-tag condition on a people; a settlement is placed with a people whose condition fits a leading-edge spot. Sites: the sunken shrine, a tier-1 site on rivers finding the river pearl (a `trade` material: an offering like the old coin). Traps: the undertow on rivers. Unlocks: the sand sledge (2 timber, 1 iron, 4 work) makes sand cost 1 action a step; sand now costs 2 without it (desert `extraMoveCost` 1), and an unlock's `movement` now also applies to passable terrain when it is cheaper than walking. No new node: no new choice would feed anything. Rolled-threat frequency is unchanged; the stampede was 3 strength at first and lowered to 2 because careful parties lost 19 % of full seasons instead of 14 %.
+
+**Reasoning.** Each new thing is data read through tags and existing hooks, so the rules stay the same and the screens render it through the data-driven paths. Slower sand is the one visible rule change, shown by the path's cost; the sledge answers it, as the grappling hook answers cliffs. All new features come last in the feature list, so earlier ones keep their places on a map.
+
+## 2026-11-21: A player roster drawer finds each player's character on the map
+
+ID: `2026-11-21-a-player-roster-drawer-finds-each` · Status: current
+
+**Decision.** A party button above the recentre buttons opens a roster drawer (phone: the one bottom drawer; desktop: a left side drawer) listing every player: you first, then the rest by Discord name (text only), each with a role emblem, the day's actions as the ink action arrows (solid left, faint spent, count from the config) and marks for done for the day, lost, riding the creature, out on the map and no character yet. The character's own name is not shown. Tapping a row with an active character recentres the map on it (on the creature if riding), opens its card (a rider's card continues the hub bubble's popup, with a back) and, on a phone, lowers the drawer to a peek so the map and card show; on desktop the drawer stays open while the card marks the target. Lost and character-less rows are not tappable. The join drawer and the hub take over from the roster (one drawer at a time).
+
+**Reasoning.** Playtesters need to see who has acted and find each other without hunting the map. Showing only Discord names keeps the roster about players; the card already shows the character. Reusing the drawer, arrows, emblems and character card follows the popup and press rules without new patterns.
+
 ## 2026-11-20: Icons that are not buttons show their tip on a tap **[Misa]**
 
 ID: `2026-11-20-icons-that-are-not-buttons-show` · Status: current

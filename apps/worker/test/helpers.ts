@@ -247,6 +247,8 @@ export interface GameContext {
   clock: { t: number };
   sql: SqlStorage;
   storage: DurableObjectStorage;
+  /** Storage reads the game made since `reads.reset()`: SQL statements run, and alarm lookups. */
+  reads: { sql: number; alarm: number; reset(): void };
   /** Signs a player in (as the Worker would after Discord confirmed them); returns their token. */
   signIn(user: SessionUser): Promise<string>;
   /**
@@ -269,7 +271,32 @@ export async function runGame<R>(
   const stub = env.GUILD_WORLD.get(env.GUILD_WORLD.idFromName(guildId));
   return runInDurableObject(stub, async (_instance, state) => {
     const clock = { t: options.now?.() ?? T0 };
-    const game = new GuildGame(state.storage, {
+    const reads = {
+      sql: 0,
+      alarm: 0,
+      reset() {
+        reads.sql = 0;
+        reads.alarm = 0;
+      },
+    };
+    // The game's storage, counting what it asks: every SQL statement, and every alarm lookup.
+    const real = state.storage;
+    const counting = {
+      sql: {
+        exec: (...args: Parameters<SqlStorage['exec']>) => {
+          reads.sql += 1;
+          return real.sql.exec(...args);
+        },
+      } as unknown as SqlStorage,
+      transactionSync: <T>(fn: () => T): T => real.transactionSync(fn),
+      getAlarm: () => {
+        reads.alarm += 1;
+        return real.getAlarm();
+      },
+      setAlarm: (t: number) => real.setAlarm(t),
+      deleteAlarm: () => real.deleteAlarm(),
+    };
+    const game = new GuildGame(counting, {
       newSeed: () => seed,
       newArtSeed: () => ART_SEED,
       devTools: true,
@@ -304,8 +331,15 @@ export async function runGame<R>(
       guildId,
       game,
       clock,
-      sql: state.storage.sql,
+      // Tests that write to the database directly change it behind the game's back: it forgets its memory.
+      sql: {
+        exec: (...args: Parameters<SqlStorage['exec']>) => {
+          if (!/^\s*select/i.test(args[0])) game.dropMemory();
+          return real.sql.exec(...args);
+        },
+      } as unknown as SqlStorage,
       storage: state.storage,
+      reads,
       signIn,
       call,
     });

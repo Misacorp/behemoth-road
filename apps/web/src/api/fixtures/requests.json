@@ -47,11 +47,25 @@
     "path": "/api/dev/next-day",
     "body": {}
   },
+  "view-pace-fast": {
+    "method": "POST",
+    "path": "/api/dev/pace",
+    "body": {
+      "pace": "fast"
+    }
+  },
+  "view-pace-daily": {
+    "method": "POST",
+    "path": "/api/dev/pace",
+    "body": {
+      "pace": "daily"
+    }
+  },
   "view-surveyed": {
     "method": "POST",
     "path": "/api/game/act",
     "body": {
-      "version": 7,
+      "version": 9,
       "action": {
         "kind": "survey",
         "hex": {

@@ -134,3 +134,34 @@ describe('API client', () => {
     expect(auth(last)).toBe(`Bearer ${SESSION.token}`);
   });
 });
+
+describe('live ticket', () => {
+  it('posts an empty body with the bearer and returns the ticket', async () => {
+    const f = fake({ body: SESSION }, { body: { ticket: 't1.x' } });
+    const api = createApiClient(f.fetch);
+    await api.signIn('code', 'instance');
+    expect(await api.liveTicket()).toBe('t1.x');
+    const call = f.calls[1];
+    expect(call?.path).toBe('/api/live/ticket');
+    expect(call?.init.method).toBe('POST');
+    expect(call === undefined ? null : bodyOf(call)).toEqual({});
+    expect(call === undefined ? null : auth(call)).toMatch(/^Bearer /);
+  });
+
+  it('surfaces a 404 (the flag is off) as an ApiError', async () => {
+    const f = fake({ body: SESSION }, { status: 404, body: { error: 'not_found' } });
+    const api = createApiClient(f.fetch);
+    await api.signIn('code', 'instance');
+    await expect(api.liveTicket()).rejects.toMatchObject({ status: 404 });
+  });
+});
+
+describe('live flag from the config', () => {
+  it('is off until the config says the server offers sockets', async () => {
+    const f = fake({ body: { ...CONFIG, live: true } });
+    const api = createApiClient(f.fetch);
+    expect(api.liveEnabled()).toBe(false);
+    await api.config();
+    expect(api.liveEnabled()).toBe(true);
+  });
+});

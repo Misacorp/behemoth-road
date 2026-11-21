@@ -168,4 +168,25 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
     charges: 2,
     yields: { material: 'timber', amount: 1 },
   },
+  // Content version 9, last again so nothing earlier moved: a shrine on the water
+  // (weight 8, about 3% of river hexes) and an undertow (about 1%).
+  {
+    id: 'sunken-shrine',
+    kind: 'site',
+    name: 'Sunken shrine',
+    tags: ['shrine', 'ancient'],
+    icon: 'shrine',
+    placement: { on: ['water'], weight: 8 },
+    tier: 1,
+    needs: [],
+    finds: { material: 'river-pearl', amount: 1 },
+  },
+  {
+    id: 'undertow',
+    kind: 'trap',
+    name: 'Undertow',
+    tags: ['trap', 'hidden'],
+    icon: 'undertow',
+    placement: { on: ['water'], weight: 3 },
+  },
 ];

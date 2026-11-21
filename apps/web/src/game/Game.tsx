@@ -10,6 +10,7 @@ import type { JSX } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { ApiError, type ApiClient } from '../api/client.ts';
 import type { ActionAnswer, PlayerView } from '../api/schema.ts';
+import { browserSocket, createLiveSocket, liveUrl } from '../api/live-socket.ts';
 import { Sync } from '../api/sync.ts';
 import { Hud } from '../hud/Hud.tsx';
 import { JoinDrawer } from '../join/JoinDrawer.tsx';
@@ -25,7 +26,11 @@ import {
   tap,
 } from '../map/flow.ts';
 import { type FocusTarget, type Here, MapView } from '../map/MapView.tsx';
+import { Roster } from '../roster/Roster.tsx';
+import { keepFound, rosterRows, type RosterRow } from '../roster/model.ts';
+import type { Snap } from '../ui/Drawer.tsx';
 import { HubDrawer } from '../hub/HubDrawer.tsx';
+import { DayBanner, DayCountdown, PaceToggle } from '../hud/Pace.tsx';
 import { setTipConfig, TipLayer } from '../ui/Tip.tsx';
 import { cellStateAt, featureArtAt } from '../map/cells.ts';
 import {
@@ -82,23 +87,53 @@ export function characterNeed(view: PlayerView): 'none' | 'join' | 'replace' {
 export const halfDrawerCover = (width: number, height: number): number =>
   width >= DESKTOP_FROM ? 0 : Math.min(height * 0.56, 520);
 
+/** How much of the screen the roster's peek covers on a phone. `peekPx` is the CSS's `--peek-h`, the one source. */
+export const peekCover = (width: number, peekPx: number): number =>
+  width >= DESKTOP_FROM ? 0 : peekPx;
+/** Reads `--peek-h` from the stylesheet (where `.drawer[data-snap='peek']` uses it). */
+const peekHeight = (): number =>
+  parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--peek-h')) || 0;
+
 /** The "next day" control shows only when the server offers dev tools and you are an admin. */
 export const showsNextDay = (view: PlayerView): boolean => view.devTools && view.you.admin;
 
 export function Game({ api, initial }: GameProps): JSX.Element {
   const [view, setView] = useState(initial);
   const [flow, setFlow] = useState<Flow>(IDLE);
-  const [focus, setFocus] = useState<{ target: FocusTarget; n: number }>({ target: 'me', n: 0 });
+  const [focus, setFocus] = useState<{ target: FocusTarget; n: number; id?: string }>({
+    target: 'me',
+    n: 0,
+  });
+  // The roster drawer: open or not, how often a row asked it to peek, and the height it settled at.
+  const [rosterOpen, setRosterOpen] = useState(false);
+  const [rosterPeek, setRosterPeek] = useState(0);
+  const [rosterSnap, setRosterSnap] = useState<Snap>('half');
   const [busy, setBusy] = useState(false);
   const [drawerClosed, setDrawerClosed] = useState(false);
 
   const sync = useRef<Sync | null>(null);
   sync.current ??= new Sync({
     api,
+    // The socket only says "something changed"; the view still comes from `api.game`. Without it (an
+    // unsupported browser, the flag off, a full guild) the poll stays at 10 s.
+    ...(api.liveEnabled()
+      ? {
+          live: createLiveSocket({
+            getTicket: () => api.liveTicket(),
+            url: (ticket) => liveUrl(window.location, ticket),
+            createSocket: browserSocket,
+            onLive: (up) => sync.current?.setLive(up),
+            onChanged: (version) => sync.current?.changed(version),
+          }),
+        }
+      : {}),
     onView: setView,
     onError: (err) => console.warn('refresh failed', err),
     setInterval: (fn, ms) => window.setInterval(fn, ms),
     clearInterval: (h) => window.clearInterval(h),
+    setTimeout: (fn, ms) => window.setTimeout(fn, ms),
+    clearTimeout: (h) => window.clearTimeout(h),
+    now: () => Date.now(),
   });
 
   // Poll while visible; refresh on becoming visible.
@@ -345,6 +380,37 @@ export function Game({ api, initial }: GameProps): JSX.Element {
       ? { stock: stockOf(me.pack), units: packUnits(me.pack), capacity: state.config.packCapacity }
       : null;
   const anyDrawer = drawerOpen || hubOpen;
+  // One drawer at a time: the join drawer or the hub takes over from the roster. A character found from the
+  // roster stops holding the map's centre once the roster closes.
+  const rosterShown = rosterOpen && !anyDrawer;
+  useEffect(() => {
+    if (!rosterShown) setFocus((f) => (f.id === undefined ? f : { target: f.target, n: f.n }));
+  }, [rosterShown]);
+  useEffect(() => {
+    if (anyDrawer) setRosterOpen(false);
+  }, [anyDrawer]);
+  const rows = useMemo(() => rosterRows(view, state.config.actionsPerDay), [view, state]);
+  // A found character that is lost or gone: close its card and let go of the map's centre.
+  useEffect(() => {
+    const kept = keepFound(rows, flow, focus.id);
+    if (kept.pinned === focus.id) return;
+    setFlow(kept.flow);
+    setFocus((f) => ({ target: f.target, n: f.n }));
+  }, [rows, flow, focus.id]);
+  /** Finds a player's character: centre on it (on the creature if riding) and open its card. */
+  const onPickRow = (row: RosterRow): void => {
+    if (!row.tappable || row.characterId === null) return;
+    setMoments([]);
+    setFocus((f) => ({ target: 'me', n: f.n + 1, id: row.characterId! }));
+    // A rider's card continues the hub bubble's popup, in its place.
+    setFlow(
+      openCharacter(
+        row.characterId,
+        row.where === 'riding' ? { kind: 'bubble', selecting: false } : undefined,
+      ),
+    );
+    setRosterPeek((n) => n + 1);
+  };
   const ended = seasonEnd(state);
   const care = me
     ? [...careOptions(state, me.id), ...[defendOption(state, me.id)].filter((a) => a !== null)]
@@ -401,7 +467,13 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         onBack={() => setFlow(goBack)}
         onRightClick={() => setFlow((f) => rightClick(f, getSettings()))}
         focus={focus}
-        coverBottom={anyDrawer ? halfDrawerCover(window.innerWidth, window.innerHeight) : 0}
+        coverBottom={
+          rosterShown && rosterSnap === 'peek'
+            ? peekCover(window.innerWidth, peekHeight())
+            : anyDrawer || (rosterShown && rosterSnap !== 'peek')
+              ? halfDrawerCover(window.innerWidth, window.innerHeight)
+              : 0
+        }
         here={here}
         onAct={onAct}
         surveyAt={surveyAt}
@@ -409,6 +481,11 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         onStrike={onStrike}
       />
       <PerilEdge peril={state.peril} max={state.config.perilMax} />
+      <DayCountdown
+        fastTickAt={view.fastTickAt}
+        now={() => sync.current?.serverNow() ?? Date.now()}
+      />
+      <DayBanner day={view.day} />
       <Hud
         day={view.day}
         actionsLeft={me?.actionsLeft ?? 0}
@@ -423,6 +500,7 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         }
         me={who.get(id) ?? null}
         onFocus={(target) => setFocus((f) => ({ target, n: f.n + 1 }))}
+        onRoster={() => setRosterOpen((o) => !o)}
         onNextDay={
           showsNextDay(view)
             ? () =>
@@ -449,6 +527,17 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         jolt={moments.some((m) => m.kind === 'strike')}
         relieved={moments.some((m) => m.kind === 'relieved')}
       />
+      {showsNextDay(view) && (
+        <PaceToggle
+          pace={view.pace}
+          onToggle={() =>
+            void act(
+              () => api.setPace(view.pace === 'fast' ? 'daily' : 'fast'),
+              () => IDLE,
+            )
+          }
+        />
+      )}
       <HubDrawer
         open={hubOpen}
         onClose={() => setFlow(IDLE)}
@@ -460,6 +549,15 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         unlocks={me ? unlockOptions(state, me.id) : []}
         busy={busy}
         onBuild={onBuild}
+      />
+      <Roster
+        open={rosterShown}
+        rows={rows}
+        selected={flow.kind === 'character' ? flow.id : null}
+        peek={rosterPeek}
+        onSnap={setRosterSnap}
+        onPick={onPickRow}
+        onClose={() => setRosterOpen(false)}
       />
       <JoinDrawer
         open={drawerOpen}

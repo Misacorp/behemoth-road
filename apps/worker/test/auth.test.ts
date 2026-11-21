@@ -307,7 +307,7 @@ describe('the Worker refuses bad tokens before any game route', () => {
 });
 
 describe('GET /api/config', () => {
-  it('is public and reports the build, the client id and the dev tools flag', async () => {
+  it('is public and reports the build, the client id and the dev tools and live flags', async () => {
     const { handler } = setup();
     const res = await callHandler(handler, new Request(`${ORIGIN}/api/config`));
     expect(res.status).toBe(200);
@@ -319,6 +319,7 @@ describe('GET /api/config', () => {
       branch: 'dev',
       discordClientId: env.DISCORD_CLIENT_ID,
       devTools: true,
+      live: true,
     });
     expectNoSeed(body);
   });

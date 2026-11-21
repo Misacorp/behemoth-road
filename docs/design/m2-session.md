@@ -16,7 +16,7 @@ Every body is checked with a strict Valibot schema (unknown keys rejected, lengt
 
 | Method and path                  | Who                 | Body                         | Returns                                                                                                                                                        |
 | -------------------------------- | ------------------- | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /api/config`                | public              |                              | environment, branch, commit, Discord client id, `devTools` flag                                                                                                |
+| `GET /api/config`                | public              |                              | environment, branch, commit, Discord client id, `devTools` flag, `live` flag                                                                                   |
 | `POST /api/auth/session`         | public              | `{ code, instanceId }`       | `{ token, accessToken, user: { id, name } }`                                                                                                                   |
 | `GET /api/game?since=<version>`  | player              |                              | `PlayerView` or `{ unchanged: true }`                                                                                                                          |
 | `POST /api/game/join`            | player              | `{ role }`                   | `PlayerView`; creates this player's character if they have none, else returns the view unchanged                                                               |
@@ -37,6 +37,8 @@ Every body is checked with a strict Valibot schema (unknown keys rejected, lengt
   offers: [{ name, trait | null, quirk | null }] | null,  // the 2–3 rolls plus the plain character; only when you have no active character
   game: GameStateView,        // the core state without the seed (tiles carry terrain); each character carries name, trait and quirk (content ids or null)
   players: [{ userId, name, characterId, role, joinedDay }],  // Discord display names, rendered as text only
+  pace: 'daily' | 'fast',     // fast: the day turns early once every active character has spent their actions (staging only)
+  fastTickAt: number | null,  // epoch ms of that early tick, while it counts down
   devTools: boolean           // the "next day" control shows only when devTools and you.admin are both true; the server enforces it regardless
 }
 ```

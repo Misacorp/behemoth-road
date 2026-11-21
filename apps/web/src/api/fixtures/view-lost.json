@@ -1,6 +1,9 @@
 {
-  "version": 9,
+  "version": 11,
   "day": 2,
+  "pace": "daily",
+  "fastTickAt": null,
+  "now": 1906545600000,
   "you": {
     "userId": "111111111111111111",
     "characterId": "111111111111111111.0",
@@ -33,7 +36,7 @@
     }
   ],
   "game": {
-    "contentVersion": 8,
+    "contentVersion": 9,
     "artSeed": 4242,
     "day": 2,
     "config": {

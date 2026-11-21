@@ -8,10 +8,11 @@ import type { ComponentChildren, JSX } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { setCssTransform } from '../map/cssTransform.ts';
 
-export type Snap = 'half' | 'full';
+export type Snap = 'peek' | 'half' | 'full';
 
 /** What a vertical drag of `dy` px (positive is down) does from `snap`, given a slop. */
 export function snapAfterDrag(snap: Snap, dy: number, slop = 48): Snap | 'close' | null {
+  if (snap === 'peek') return dy <= -slop ? 'half' : dy >= slop ? 'close' : null;
   if (dy <= -slop) return snap === 'half' ? 'full' : null;
   if (dy >= slop) return snap === 'full' ? 'half' : 'close';
   return null;
@@ -24,6 +25,10 @@ export interface DrawerProps {
   /** Desktop side. Phones always use the bottom drawer. */
   readonly side?: 'left' | 'right';
   readonly label: string;
+  /** Each increase lowers the phone drawer to a peek, so the map shows (the desktop drawer is unchanged). */
+  readonly peek?: number;
+  /** Told the height the phone drawer settles at, on open and after each change. */
+  readonly onSnap?: (snap: Snap) => void;
   readonly children: ComponentChildren;
 }
 
@@ -48,6 +53,20 @@ export function Drawer(props: DrawerProps): JSX.Element | null {
         (document.activeElement as HTMLElement).blur();
     };
   }, [props.open]);
+
+  // A request to peek (a row was tapped); the count at open is the baseline.
+  const peeked = useRef(props.peek ?? 0);
+  useEffect(() => {
+    if (!props.open) return;
+    const n = props.peek ?? 0;
+    if (n > peeked.current) setSnap('peek');
+    peeked.current = n;
+  }, [props.open, props.peek]);
+  const told = useRef(props.onSnap);
+  told.current = props.onSnap;
+  useEffect(() => {
+    if (props.open) told.current?.(snap);
+  }, [props.open, snap]);
 
   useEffect(() => {
     if (!props.open || !props.onClose) return;

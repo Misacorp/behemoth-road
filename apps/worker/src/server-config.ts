@@ -10,6 +10,11 @@ export const SERVER_CONFIG = {
    * on time; this only bounds the work after an outage). Ticks beyond it are skipped, not queued.
    */
   maxCatchUpTicks: 7,
+  /**
+   * Fast pace: how long after every active character has spent all their actions the early tick runs. It
+   * lets the last animations finish and shows a short countdown.
+   */
+  fastTickDelayMs: 6000,
   sessions: {
     /** A session unused for this long is dead. */
     idleMs: 60 * 60 * 1000,
@@ -29,6 +34,19 @@ export const SERVER_CONFIG = {
     authGlobal: { capacity: 60, refillPerSecond: 1, maxKeys: 1 },
     /** Game requests, per player: a burst of 30, then one a second (polling is every 30 s). */
     game: { capacity: 30, refillPerSecond: 1, maxKeys: 100 },
+  },
+  /**
+   * Live sockets (`docs/design/live.md`): a push tells clients to fetch their view. Caps keep one guild
+   * small; a socket with no ping for `staleMs` (clients ping every 60 s) is dead.
+   */
+  live: {
+    ticketTtlMs: 30_000,
+    ticketMaxPending: 200,
+    maxSocketsPerUser: 3,
+    maxSocketsPerGuild: 64,
+    staleMs: 150_000,
+    /** No socket outlives the session that could have made its ticket. */
+    maxAgeMs: 12 * 60 * 60 * 1000,
   },
   /** Game events kept for `GET /api/game?since=` (the last this many; older ones are dropped). */
   eventLogSize: 100,

@@ -29,5 +29,9 @@ describe('drawer drag', () => {
     expect(snapAfterDrag('half', 80)).toBe('close');
     expect(snapAfterDrag('full', -80)).toBeNull();
     expect(snapAfterDrag('half', 20)).toBeNull();
+    // The roster's peek: up raises it to half, down closes it.
+    expect(snapAfterDrag('peek', -80)).toBe('half');
+    expect(snapAfterDrag('peek', 80)).toBe('close');
+    expect(snapAfterDrag('peek', 10)).toBeNull();
   });
 });

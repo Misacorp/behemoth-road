@@ -291,6 +291,12 @@ export const GameEventSchema = v.union([
 export const PlayerViewSchema = v.object({
   version: count,
   day: count,
+  /** How days advance: on the daily schedule, or early once everyone has spent their actions. */
+  pace: v.picklist(['daily', 'fast']),
+  /** Fast pace: when the next day starts early (epoch ms), or null. */
+  fastTickAt: v.nullable(v.pipe(v.number(), v.integer(), v.minValue(0))),
+  /** The server's clock when it built this view (epoch ms): the client measures its own clock's skew from it. */
+  now: v.pipe(v.number(), v.integer(), v.minValue(0)),
   you: v.object({
     userId: id,
     characterId: v.nullable(id),
@@ -322,6 +328,8 @@ export const ConfigSchema = v.object({
   branch: v.optional(v.nullable(text), null),
   discordClientId: v.optional(text, ''),
   devTools: v.optional(v.boolean(), false),
+  /** The server offers live sockets (the `LIVE` flag): the client opens one only then. */
+  live: v.optional(v.boolean(), false),
 });
 
 export const SessionSchema = v.object({
@@ -329,6 +337,15 @@ export const SessionSchema = v.object({
   accessToken: v.optional(v.pipe(v.string(), v.maxLength(4096)), ''),
   user: v.object({ id, name: text }),
 });
+
+export const LiveTicketSchema = v.strictObject({ ticket: v.pipe(v.string(), v.maxLength(160)) });
+
+/** What the live socket pushes: only that the game changed (the client then fetches its own view). */
+export const LiveMessageSchema = v.variant('type', [
+  v.object({ v: v.literal(1), type: v.literal('hello'), version: count }),
+  v.object({ v: v.literal(1), type: v.literal('changed'), version: count }),
+]);
+export type LiveMessage = v.InferOutput<typeof LiveMessageSchema>;
 
 export const ErrorBodySchema = v.object({ error: v.pipe(v.string(), v.maxLength(100)) });
 

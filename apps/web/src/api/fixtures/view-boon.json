@@ -1,6 +1,9 @@
 {
   "version": 34,
   "day": 6,
+  "pace": "daily",
+  "fastTickAt": null,
+  "now": 1906545900000,
   "you": {
     "userId": "222222222222222222",
     "characterId": "222222222222222222.0",
@@ -8,7 +11,7 @@
   },
   "offers": null,
   "game": {
-    "contentVersion": 8,
+    "contentVersion": 9,
     "artSeed": 4242,
     "day": 6,
     "config": {
@@ -567,7 +570,7 @@
       "2,-6": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "2,-5": {
@@ -660,7 +663,7 @@
       "3,-1": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "3,0": {
@@ -687,7 +690,7 @@
       "4,-6": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "4,-5": {
@@ -711,7 +714,7 @@
       "4,-2": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "4,-1": {
@@ -744,7 +747,7 @@
       "5,-5": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "5,-4": {
@@ -756,7 +759,7 @@
       "5,-3": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "5,-2": {
@@ -789,13 +792,13 @@
       "6,-5": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "6,-4": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "6,-3": {
@@ -870,19 +873,19 @@
       "2,-7": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "3,-7": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "4,-7": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "5,-7": {
@@ -1199,11 +1202,11 @@
         "at": {
           "kind": "hex",
           "hex": {
-            "q": 2,
-            "r": -6
+            "q": 3,
+            "r": -1
           }
         },
-        "actionsLeft": 0,
+        "actionsLeft": 1,
         "pack": {},
         "status": "active",
         "struckDay": null
@@ -1214,11 +1217,6 @@
         "type": "berry-bushes",
         "revealed": true,
         "left": 3
-      },
-      "2,-6": {
-        "type": "pitfall",
-        "revealed": true,
-        "left": 1
       }
     },
     "stores": {
@@ -1231,12 +1229,12 @@
     "threats": [
       {
         "id": "t3",
-        "type": "rockslide",
+        "type": "ambush",
         "hex": {
-          "q": 1,
-          "r": -7
+          "q": 4,
+          "r": -3
         },
-        "strength": 2,
+        "strength": 1,
         "appearedDay": 3
       },
       {

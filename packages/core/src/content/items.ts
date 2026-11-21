@@ -41,6 +41,8 @@ export const MATERIALS: readonly Material[] = [
   // A tier-1 tomb's find: nothing uses it yet (the Envoy's trade, later).
   { id: 'old-coin', name: 'Old coin', tags: ['rare', 'ancient', 'trade'], icon: 'coin' },
   { id: 'forage', name: 'Forage', tags: ['food'], icon: 'forage', nourishes: 2 },
+  // A shrine's find: an offering for any people's settlement.
+  { id: 'river-pearl', name: 'River pearl', tags: ['rare', 'trade'], icon: 'pearl' },
 ];
 
 export const UNLOCKS: readonly Unlock[] = [
@@ -78,5 +80,17 @@ export const UNLOCKS: readonly Unlock[] = [
     ],
     work: 6,
     movement: { terrainTags: ['steep'], cost: 1 },
+  },
+  {
+    id: 'sand-sledge',
+    name: 'Sand sledge',
+    tags: ['glide', 'sledge'],
+    icon: 'sledge',
+    cost: [
+      { material: 'timber', amount: 2 },
+      { material: 'iron', amount: 1 },
+    ],
+    work: 4,
+    movement: { terrainTags: ['dry'], cost: 1 },
   },
 ];
