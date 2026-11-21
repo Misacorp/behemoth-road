@@ -1129,7 +1129,8 @@ button svg,
   height: 52px;
 }
 
-.unlock-go:disabled {
+.unlock-go:disabled,
+.unlock-go[aria-disabled='true'] {
   opacity: 0.4;
   cursor: default;
 }

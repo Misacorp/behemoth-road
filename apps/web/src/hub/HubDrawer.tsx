@@ -9,7 +9,7 @@
 import { getSettings } from '../settings.ts';
 import { verbOf } from '../text/verbs.ts';
 import { tipFor } from '../ui/tip.ts';
-import { tipProps } from '../ui/press.ts';
+import { greyedProps, tipProps } from '../ui/press.ts';
 import { drawStoresIcon, drawWorkBar } from '@behemoth-road/art';
 import type { CreatureSigns, GameStateView } from '@behemoth-road/core';
 import type { JSX } from 'preact';
@@ -100,9 +100,12 @@ function UnlockCard({
             type="button"
             class="unlock-go"
             aria-label="Build"
-            disabled={!o.enabled || busy}
-            {...tipProps('action:build')}
-            onClick={() => onBuild(o.unlock.id)}
+            disabled={busy}
+            aria-disabled={!o.enabled}
+            {...greyedProps(o.enabled, o.why, 'action:build')}
+            onClick={() => {
+              if (o.enabled) onBuild(o.unlock.id);
+            }}
           >
             <svg viewBox="-24 -24 48 48" aria-hidden="true">
               <TickMark r={20} />
@@ -153,9 +156,12 @@ function CareCard({
         type="button"
         class="unlock-go"
         aria-label={a.kind}
-        disabled={!a.enabled || busy}
-        {...tipProps(tipFor('action', a.kind))}
-        onClick={() => onCare(a.kind)}
+        disabled={busy}
+        aria-disabled={!a.enabled}
+        {...greyedProps(a.enabled, a.why, tipFor('action', a.kind))}
+        onClick={() => {
+          if (a.enabled) onCare(a.kind);
+        }}
       >
         <svg viewBox="-24 -24 48 48" aria-hidden="true">
           <TickMark r={20} />

@@ -1017,6 +1017,14 @@ async function run() {
           return hexOnScreen(c.q + h.q, c.r + h.r);
         };
         const count = (sel) => page.locator(sel).count();
+        /** A real tap on the middle of an element (touch on a phone, a click on desktop). */
+        const tapEl = async (selector) => {
+          await page.locator(selector).first().scrollIntoViewIfNeeded();
+          await page.waitForTimeout(150);
+          const b = await page.locator(selector).first().boundingBox();
+          await tap(b.x + b.width / 2, b.y + b.height / 2);
+          await page.waitForTimeout(100);
+        };
 
         // Threats coming in: a captor band behind, a swarm on the flank, a rockslide on the road ahead.
         await stage5({
@@ -1195,6 +1203,78 @@ async function run() {
         if (!(await count('[data-mark=defending]')))
           problems.push(`${vp.name}: no shield on the defending guardian`);
         await shot5('13-defending');
+        // A defended creature: the hub's creature card and a threat's card show the shields, and a tap on the
+        // mark gives a hint. Defending is staged (the guardian has defended today).
+        await stage5({
+          role: 'guardian',
+          at: 'creature',
+          defending: true,
+          threats: [{ type: 'captors', at: { q: 0, r: 4 }, strength: 4 }],
+        });
+        await openHub();
+        if (!(await count('.drawer [data-mark=defended]')))
+          problems.push(`${vp.name}: the hub's creature card does not show it is defended`);
+        await shot5('15-defended-creature');
+        await tapEl('.drawer [data-mark=defended]');
+        if (!(await count('.tip')))
+          problems.push(`${vp.name}: a tap on the defended mark showed no tip`);
+        if (!(await count('.drawer [data-care=defend]')))
+          problems.push(`${vp.name}: the tip on the defended mark closed the hub`);
+        await shot5('15b-defended-tip');
+        await page.keyboard.press('Escape');
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(500);
+        await tap(...(await offset({ q: 0, r: 4 })));
+        if (!(await count('[data-popover=threat] [data-mark=defence]')))
+          problems.push(`${vp.name}: a threat's card shows no shields against its strength`);
+        await shot5('15c-defended-threat-card');
+        await idle();
+
+        // A greyed action: a tap shows why in a tip, the card stays open, and nothing acts (the server's
+        // state is the same afterwards). The hub: a scout's linger, defend and an unlock; a card: a strike
+        // with no actions left.
+        const snapshot = () => JSON.stringify(fake.scenario.state);
+        const greyedTap = async (selector, label) => {
+          const before = snapshot();
+          await tapEl(selector);
+          await page.waitForTimeout(250);
+          if (!(await count('.tip')))
+            problems.push(`${vp.name}: a tap on greyed ${label} showed no tip`);
+          if (!(await count(selector)))
+            problems.push(`${vp.name}: greyed ${label} closed its card`);
+          if (snapshot() !== before) problems.push(`${vp.name}: greyed ${label} acted on a tap`);
+          await page.keyboard.press('Escape');
+          await page.waitForTimeout(150);
+        };
+        await stage5({ role: 'scout', at: 'creature', stores: { forage: 2 } });
+        await openHub();
+        await greyedTap('.drawer [data-care=linger] .unlock-go', 'linger');
+        await greyedTap('.drawer [data-care=defend] .unlock-go', 'defend');
+        await greyedTap('.drawer [data-unlock] .unlock-go[aria-disabled=true]', 'build');
+        await tapEl('.drawer [data-care=linger] .unlock-go');
+        await shot5('16-greyed-reason-tip');
+        await page.keyboard.press('Escape');
+        await page.keyboard.press('Escape');
+        await stage5({
+          role: 'guardian',
+          threats: [{ type: 'swarm', at: { q: 1, r: 3 }, strength: 3 }],
+        });
+        {
+          const s0 = fake.scenario;
+          const characters = s0.state.characters.map((c) => ({ ...c, actionsLeft: 0 }));
+          fake.reset({ ...s0, state: { ...s0.state, characters }, version: s0.version + 1 });
+          await page.reload();
+          await page.waitForSelector('.map-world svg g');
+          await page.waitForTimeout(500);
+        }
+        await tap(...(await offset({ q: 1, r: 3 })));
+        if (!(await count('[data-popover=threat] [data-action=strike][aria-disabled=true]')))
+          problems.push(`${vp.name}: no greyed strike without actions`);
+        await greyedTap('[data-popover=threat] [data-action=strike]', 'strike');
+        await holdAll('threat', 'threat (greyed strike)');
+        await shot5('16b-greyed-strike-tip');
+        await idle();
+
         // A guardian on a hex beside you: its escort ring and your shield.
         await stage5({ role: 'scout', guardianAt: { q: 2, r: 2 } });
         if (

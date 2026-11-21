@@ -39,6 +39,25 @@ export function tipProps(id: TipId | null): { readonly 'data-tip'?: string } {
   return id === null ? {} : { 'data-tip': id };
 }
 
+/**
+ * The attributes of a greyed action: a button that does not act. Its tip is the reason it is greyed, and
+ * `data-tip-tap` makes a tap show it (a button's tap does not, otherwise); the click handler below stops
+ * that tap there, so it never reaches the action. A hold or hover shows the same reason. With no reason
+ * (the action can be taken) the given `fallback` tip, if any, is the button's ordinary hold tip.
+ */
+export function greyedProps(
+  enabled: boolean,
+  why: TipId | null | undefined,
+  fallback: TipId | null = null,
+): {
+  readonly 'data-tip'?: string;
+  readonly 'data-tip-tap'?: string;
+  readonly 'data-greyed'?: string;
+} {
+  if (enabled || !why) return tipProps(fallback);
+  return { 'data-tip': why, 'data-tip-tap': '', 'data-greyed': '' };
+}
+
 /** Things that act on a tap: an icon inside (or being) one of these is not a plain icon. */
 const ACTS = 'button, a, [role=button], [role=option], [data-action], [data-acts]';
 

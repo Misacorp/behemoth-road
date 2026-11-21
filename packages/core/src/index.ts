@@ -98,6 +98,7 @@ export { findCharacter, hasSeed, isSeasonOver } from './state.ts';
 export {
   approachHexes,
   contactDistance,
+  defence,
   DEFEND_TAG,
   ESCORT_TAG,
   GROUND_TAG,

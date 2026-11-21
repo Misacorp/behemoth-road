@@ -146,7 +146,7 @@ export const tips = {
     text: 'Weaken a threat next to you by {strike.other}, or by {strike.guardian} as a guardian. At 0 it is gone.',
   },
   'action:defend': {
-    text: 'Guardians, riding: each strike on the creature today is {defendReduction} weaker.',
+    text: 'Guardians, riding: stand guard over the creature. Every strike on it today lands {defendReduction} weaker, for each guardian.',
   },
   'action:parley': {
     text: 'Win a wary settlement’s favour. An envoy gains {parleyFavour.envoy}; others gain {parleyFavour.other} and may anger it.',
@@ -163,6 +163,39 @@ export const tips = {
     text: 'Captor bands lose the trail, and none follow for {misleadDays} days.',
   },
   'boon:shelter': { title: 'Shelter', text: 'Peril falls by {shelterPeril}.' },
+
+  // Why an action is greyed (a tap on it shows one of these, and it never acts). One short line each.
+  'why:role-scout': { title: 'Not your role', text: 'A scout can do this.' },
+  'why:role-scholar': { title: 'Not your role', text: 'A scholar can do this.' },
+  'why:role-keeper': { title: 'Not your role', text: 'A keeper can do this.' },
+  'why:role-guardian': { title: 'Not your role', text: 'A guardian can do this.' },
+  'why:role-engineer': { title: 'Not your role', text: 'An engineer can do this.' },
+  'why:role-envoy': { title: 'Not your role', text: 'An envoy can do this.' },
+  'why:not-enough-actions': {
+    title: 'Not now',
+    text: 'Not enough actions left today. They refill when the day turns.',
+  },
+  'why:pack-full': {
+    title: 'Not now',
+    text: 'Your pack is full ({packSize}). Board the creature to empty it.',
+  },
+  'why:needs-unlock': { title: 'Not yet', text: 'The team has yet to build what this needs.' },
+  'why:missing-materials': { title: 'Not yet', text: 'The stores lack what this takes.' },
+  'why:no-fuel': { title: 'Not now', text: 'You carry no fuel.' },
+  'why:no-food': { title: 'Not now', text: 'The stores hold no food.' },
+  'why:not-riding': { title: 'Not here', text: 'Only from the creature’s back.' },
+  'why:on-creature': { title: 'Not here', text: 'Not from the creature’s back.' },
+  'why:elsewhere': { title: 'Not here', text: 'Do it where you stand.' },
+  'why:not-near': { title: 'Not here', text: 'Too far. Stand on or next to it.' },
+  'why:wrong-place': { title: 'Not here', text: 'Not possible from this place.' },
+  'why:lingered-yesterday': { title: 'Not now', text: 'Not two days running.' },
+  'why:done': { title: 'Done', text: 'Already done today.' },
+  'why:busy': { title: 'Not now', text: 'Another build is under way.' },
+  'why:no-fire': { title: 'Not here', text: 'No fire will light here.' },
+  'why:settlement': { title: 'Not now', text: 'This settlement is not in that mood.' },
+  'why:nothing': { title: 'Not now', text: 'Nothing left to take here.' },
+  'why:season-over': { title: 'Over', text: 'The season is over.' },
+  'why:other': { title: 'Not now', text: 'Not possible just now.' },
 
   // The ground a hex shows (in the cards' tile pictures).
   'terrain:plains': { title: 'Plains', text: 'Open grassland. Easy going.' },
@@ -210,6 +243,10 @@ export const tips = {
     text: 'Burns until the day turns. The creature may take notice.',
   },
   'map:escort': { title: 'Escorted', text: 'Next to a guardian: threats will not strike here.' },
+  'map:defended': {
+    title: 'Defended',
+    text: 'Each guardian on its back takes {defendReduction} off every strike today.',
+  },
   'map:struck': { title: 'Struck', text: 'Hit by a threat: only {struckActions} action tomorrow.' },
 
   // The heads-up display.
