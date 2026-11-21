@@ -36,6 +36,7 @@ export class GuildWorld extends DurableObject<Env> {
       clientSecret: env.DISCORD_CLIENT_SECRET,
       guildId: () => this.game.boundGuildId(),
       version: () => this.game.version(),
+      hasSession: (userId) => this.game.hasSession(userId),
       now: () => Date.now(),
     });
     this.game = new GuildGame(storage, {

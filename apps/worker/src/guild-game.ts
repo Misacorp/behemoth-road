@@ -251,6 +251,26 @@ export class GuildGame {
     return this.guildId();
   }
 
+  /**
+   * Whether the player has a session that is still valid. Looks at the sessions kept in memory first and
+   * reads one row only on a miss (the cache is cleared whenever someone signs in).
+   */
+  hasSession(userId: string): boolean {
+    const t = this.options.now();
+    const valid = (expiresAt: number, lastUsedAt: number): boolean =>
+      t < expiresAt && t - lastUsedAt < sessions.idleMs;
+    for (const row of this.cachedSessions.values()) {
+      if (row.userId === userId && valid(row.expiresAt, row.lastUsedAt)) return true;
+    }
+    return this.sql
+      .exec<{ expires_at: number; last_used_at: number }>(
+        'SELECT expires_at, last_used_at FROM sessions WHERE user_id = ?',
+        userId,
+      )
+      .toArray()
+      .some((r) => valid(r.expires_at, r.last_used_at));
+  }
+
   /** Brings the schema up to date. Call inside `blockConcurrencyWhile`. */
   migrate(): void {
     applyMigrations(this.storage, this.sql);

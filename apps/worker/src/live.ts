@@ -197,6 +197,8 @@ export interface LiveSocketsDeps {
   guildId: () => string | null;
   /** The game's current version (for `hello`), or null when there is no readable game. */
   version: () => number | null;
+  /** True while the player has a live session (from memory, or one row on a miss). */
+  hasSession: (userId: string) => boolean;
   now: () => number;
 }
 
@@ -261,17 +263,25 @@ export class LiveSockets implements LiveHooks {
     const userId = await this.tickets.redeem(ticket.secret);
     if (userId === null) return errorResponse('invalid_ticket', 401);
 
+    if (!this.deps.hasSession(userId)) return errorResponse('invalid_session', 401);
+
     this.pruneStale();
-    if (this.deps.ctx.getWebSockets().length >= maxSocketsPerGuild) {
-      return errorResponse('live_full', 503);
-    }
+    // This player's oldest sockets go first, so a reconnecting player is not refused at the guild cap
+    // by their own dead sockets.
     const mine = this.deps.ctx
       .getWebSockets(userTag(userId))
       .map((ws) => ({ ws, at: readAttachment(ws)?.connectedAt ?? 0 }))
       .sort((a, b) => a.at - b.at);
+    let evicted = 0;
     while (mine.length >= maxSocketsPerUser) {
       const oldest = mine.shift();
-      if (oldest !== undefined) closeQuietly(oldest.ws, CLOSE_REPLACED, 'replaced');
+      if (oldest !== undefined) {
+        closeQuietly(oldest.ws, CLOSE_REPLACED, 'replaced');
+        evicted++;
+      }
+    }
+    if (this.deps.ctx.getWebSockets().length - evicted >= maxSocketsPerGuild) {
+      return errorResponse('live_full', 503);
     }
 
     const version = this.deps.version();

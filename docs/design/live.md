@@ -26,7 +26,8 @@ client                          Worker                          guild Durable Ob
 - `guild-game.ts`: `tx()` records the highest version written in a transaction and calls `live.changed(version)` once after it commits (a rolled-back write is never announced). Raw version bumps (a renamed player, the pace) use `bumpVersion()`.
 - `handler.ts`: with `LIVE` not `on`, `/api/live` and `/api/live/ticket` are a 404 before any object is addressed.
 - Server to client only: any frame but `ping` closes the socket with 4002. Close codes: 4000 replaced, 4001 stale, 4002 protocol.
-- Caps (`SERVER_CONFIG.live`): 3 sockets per player (oldest closed 4000), 64 per guild (`503 live_full`, the client polls), none older than 12 h.
+- Sessions: the upgrade refuses (401) a player with no valid session (memory first, one row on a miss). Sockets of sessions that later expire are not force-closed; pushes carry only a version, never game data, and a socket ends at the 12 h maximum age.
+- Caps (`SERVER_CONFIG.live`): 3 sockets per player (oldest closed 4000, checked before the guild cap so a reconnecting player is not refused by their own dead sockets), 64 per guild (`503 live_full`, the client polls), none older than 12 h.
 
 ## Client (`apps/web/src/api`)
 

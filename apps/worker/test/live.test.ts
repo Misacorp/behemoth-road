@@ -1,4 +1,5 @@
 import { env } from 'cloudflare:workers';
+import { runInDurableObject } from 'cloudflare:test';
 import { describe, expect, it } from 'vitest';
 import wranglerText from '../wrangler.jsonc?raw';
 import type { SessionUser } from '../src/guild-game.ts';
@@ -65,6 +66,8 @@ async function connect(token: string): Promise<Client> {
   if (ws === null) throw new Error('no socket');
   const client: Client = { ws, messages: [], closed: null };
   ws.addEventListener('message', (e) => {
+    // The runtime's auto-response `pong` is not JSON.
+    if (e.data === 'pong') return;
     client.messages.push(JSON.parse(e.data as string));
   });
   ws.addEventListener('close', (e) => {
@@ -259,6 +262,43 @@ describe('caps', () => {
     expect(res.status).toBe(503);
     expect(await res.json()).toEqual({ error: 'live_full' });
     for (const x of clients) x.ws.close();
+  });
+});
+
+describe('caps and sessions on upgrade', () => {
+  it("evicts a reconnecting player's oldest socket before the guild cap applies", async () => {
+    const guildId = freshGuildId();
+    const cap = SERVER_CONFIG.live.maxSocketsPerGuild;
+    const perUser = SERVER_CONFIG.live.maxSocketsPerUser;
+    const clients: Client[] = [];
+    const mineToken = await signIn(guildId, MISA);
+    for (let i = 0; i < perUser; i++) {
+      clients.push(await connect(mineToken));
+      await new Promise((r) => setTimeout(r, 5));
+    }
+    for (let i = 0; i < cap - perUser; i++) {
+      const user = { id: `4${String(i).padStart(17, '0')}`, displayName: `P${String(i)}` };
+      clients.push(await connect(await signIn(guildId, user)));
+    }
+    // The guild is full, yet this player's reconnect is not refused.
+    const again = await connect(mineToken);
+    await until(() => clients[0]?.closed !== null);
+    expect(clients[0]?.closed?.code).toBe(CLOSE_REPLACED);
+    for (const x of [...clients, again]) x.ws.close();
+  });
+
+  it('refuses an upgrade when the player no longer has a session', async () => {
+    const guildId = freshGuildId();
+    const token = await signIn(guildId, MISA);
+    const ticket = await ticketFor(token);
+    const stub = env.GUILD_WORLD.get(env.GUILD_WORLD.idFromName(guildId));
+    await runInDurableObject(stub, (instance, state) => {
+      state.storage.sql.exec('DELETE FROM sessions');
+      (instance as unknown as { game: { dropMemory(): void } }).game.dropMemory();
+    });
+    const res = await upgrade(`?t=${ticket}`);
+    expect(res.status).toBe(401);
+    expect(await res.json()).toEqual({ error: 'invalid_session' });
   });
 });
 
