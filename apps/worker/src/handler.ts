@@ -15,6 +15,7 @@ import {
   parseBody,
   type Routes,
 } from './http.ts';
+import { LIVE_PATH, TICKET_PATH, parseTicket, ticketParam, verifyTicketMac } from './live.ts';
 import { TokenBucketLimiter } from './ratelimit.ts';
 import { SERVER_CONFIG } from './server-config.ts';
 import {
@@ -119,6 +120,26 @@ export function createHandler(overrides: Partial<HandlerDeps> = {}): ExportedHan
     const match = matchRoute(publicRoutes, pathname, request.method);
     if (match.kind === 'ok') return dispatch(publicRoutes, request, pathname, env);
     if (match.kind === 'method_not_allowed') return methodNotAllowed(match.allow);
+
+    // The live socket upgrade: a browser WebSocket sends no Authorization header, so it carries a one-time
+    // ticket. Flag, method and Upgrade header, a strict single query parameter and a constant-time MAC
+    // come first, so junk never wakes a Durable Object; the object redeems the ticket.
+    if (pathname === LIVE_PATH) {
+      if (env.LIVE !== 'on') return notFound();
+      if (
+        request.method !== 'GET' ||
+        request.headers.get('Upgrade')?.toLowerCase() !== 'websocket'
+      ) {
+        return errorResponse('upgrade_required', 426, { Upgrade: 'websocket' });
+      }
+      const ticket = parseTicket(ticketParam(request));
+      if (ticket === null || !(await verifyTicketMac(env.DISCORD_CLIENT_SECRET, ticket))) {
+        return errorResponse('invalid_ticket', 401);
+      }
+      return guildWorld(env, ticket.guildId).fetch(request);
+    }
+    // Without the flag the ticket route does not exist (and wakes no object).
+    if (pathname === TICKET_PATH && env.LIVE !== 'on') return notFound();
 
     // Parse strictly before touching any Durable Object, so junk never wakes one up.
     const token = parseAuthorization(request.headers.get('Authorization'));
