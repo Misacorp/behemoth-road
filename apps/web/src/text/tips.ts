@@ -226,7 +226,7 @@ export const tips = {
     text: 'Flies in from the side. Fast, but weaker. Tap it to see its next step.',
   },
   'threat:rockslide': {
-    text: 'Harms whoever walks into it, and the creature if it passes over. Steer around it with fires, or strike it apart.',
+    text: 'Loose rock on the road ahead. Best not to walk into it.',
   },
   'threat:ambush': {
     text: 'Lies in wait among the trees. Slow, but close. Tap it to see its next step.',

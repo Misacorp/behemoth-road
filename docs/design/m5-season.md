@@ -23,7 +23,7 @@ This is a prototype slice. Three threat flavours, one people, three boons. They 
 - `threatOutlook(view)` (public core function, for the interface): for each threat, whether it reaches contact at the next tick if the creature walks straight on (`arrives: 'tomorrow' | 'later' | 'never'`), and the neighbour it would step to first. Blind to the creature's real step, like `predictCreature`.
 - `threatNextPath(view, threatId)` (public core function, for the interface): the hexes the threat will cross at the next tick, end hex last, under the same straight-walk guess (a lingering creature stays put); empty when it does not move. The interface draws it as the threat's path for the next day.
 - **Telegraphed** (decision "Threats are telegraphed"): the window is radius 6 (`windowRadius`), speeds are 0 to 2, and a threat's next path is shown. A scout perk `far-sight` (seeing threats beyond the window's edge) is data only, for a later upgrade.
-- **Balance**: `packages/core/scripts/balance.ts` plays seeded seasons with scripted careful and careless parties. With these numbers (200 seeds), careful parties of 3 or 6 lose 28–30 % of full seasons and about 1 % of dev seasons; careless ones never win safe. See the decision "A seeded balance simulation".
+- **Balance**: `packages/core/scripts/balance.ts` plays seeded seasons with scripted careful and careless parties. With these numbers (200 seeds), careful parties of 3 or 6 lose 12–14 % of full seasons and about 1 % of dev seasons; careless ones never win safe. See the decision "A seeded balance simulation".
 
 ## Guardian (base abilities)
 

@@ -24,6 +24,7 @@ import {
   type ConfigOverrides,
   createGame,
   featureType,
+  hazardAt,
   type GameState,
   type Hex,
   hexDistance,
@@ -131,7 +132,8 @@ const goHome = (state: GameState, id: string): GameState => {
 const intercept = (state: GameState, id: string, threatId: string): GameState => {
   const threat = state.threats.find((t) => t.id === threatId);
   if (!threat) return state;
-  const spots = [threat.hex, ...neighbours(threat.hex)];
+  // Strikes from beside it; never walks into a hazard (it ends the day before the blow).
+  const spots = [threat.hex, ...neighbours(threat.hex)].filter((h) => !hazardAt(state, id, h));
   const here = hexOf(state, id);
   const target =
     here && hexDistance(here, threat.hex) <= 1
@@ -240,8 +242,11 @@ const carefulDay = (state: GameState, ids: readonly string[]): GameState => {
         s = tryAct(s, id, { kind: 'defend' });
       }
     } else {
+      // A hazard that waits (a rockslide ahead) is struck down while it is still ahead, not only on the day it is reached.
       for (const t of byUrgency(s)) {
-        if (t.arrives === 'tomorrow') s = intercept(s, id, t.id);
+        if (t.arrives === 'tomorrow' || (t.speed === 0 && t.arrives === 'later')) {
+          s = intercept(s, id, t.id);
+        }
       }
     }
     if (role === 'envoy') s = envoy(s, id);
