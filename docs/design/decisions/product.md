@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-21: Fast rounds pace: staging only, all active characters spent, 6 s delay, 4 s day banner
+
+ID: `2026-11-21-fast-rounds-pace-staging-only-all` · Status: current
+
+**Decision.** A per-game pace, `daily` (default) or `fast`, set by a server admin where the dev tools are on (staging and local); production keeps the daily pace and has no way to change it. In fast pace, when the season runs and every active character (lost ones and players without a character are ignored) has no actions left, the next day starts 6 seconds later (`fastTickDelayMs`); anything that gives someone actions first (a join, a replacement) cancels it. The same tick as the daily one runs, and the daily schedule is untouched. Whenever the day number goes up, in either pace, a day banner (the sun and the numeral) fades over a band of the map for 4 seconds (`dayBannerMs`); the map stays visible and live beneath it. A ring drains round the day sun during the countdown; clients do not poll faster, they refresh once just after the countdown ends.
+
+**Reasoning.** Misa wants playtests that move at the speed of the players, not of the clock. Staging-only keeps the live game's rhythm unchanged until it is known whether fast rounds belong in the game proper. Waiting for every active character, not only the connected ones, is the simplest rule; an idle player can hold a round up, and the admin's next-day control still works. The 6 s delay lets the last move animate and shows the countdown; the 4 s banner is long enough to read and short enough not to hide the creature's walk.
+
 ## 2026-11-20: Icons that are not buttons show their tip on a tap **[Misa]**
 
 ID: `2026-11-20-icons-that-are-not-buttons-show` · Status: current

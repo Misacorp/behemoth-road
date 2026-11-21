@@ -200,6 +200,8 @@ describe('captured contract fixtures', () => {
       if (req.path === '/api/game/act')
         cases.push([name, (a) => a.act(b.version as number, b.action as GameAction)]);
       if (req.path === '/api/dev/next-day') cases.push([name, (a) => a.nextDay()]);
+      if (req.path === '/api/dev/pace')
+        cases.push([name, (a) => a.setPace(b.pace as 'daily' | 'fast')]);
       if (req.path === '/api/auth/session')
         cases.push([name, (a) => a.signIn(b.code as string, b.instanceId as string)]);
     }

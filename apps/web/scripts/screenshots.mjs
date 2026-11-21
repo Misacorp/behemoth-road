@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* global URL, console, process, window, document, performance, requestAnimationFrame, MouseEvent, setTimeout */
+/* global URL, console, process, window, document, getComputedStyle, performance, requestAnimationFrame, MouseEvent, setTimeout */
 /**
  * Screenshots and browser checks for the web client, written to screenshots/ at the repo root (gitignored).
  *
@@ -555,6 +555,35 @@ async function run() {
       if (fake.scenario.state.day !== 2)
         problems.push(`${vp.name}: next day did not reach the server`);
       await shot('next-day');
+
+      // The day banner: the day went up, so a band with the sun and the numeral shows over the map and
+      // takes no pointer; it fades out again after its four seconds.
+      const banner = await page.$('.day-banner');
+      if (!banner) problems.push(`${vp.name}: no day banner after the day went up`);
+      else {
+        if ((await banner.evaluate((el) => getComputedStyle(el).pointerEvents)) !== 'none')
+          problems.push(`${vp.name}: the day banner takes the pointer`);
+        const box = await banner.boundingBox();
+        if (box && box.height > vp.height * 0.4)
+          problems.push(`${vp.name}: the day banner covers too much of the screen`);
+        await shot('day-banner');
+      }
+      await page.waitForTimeout(4200);
+      if (await page.$('.day-banner')) problems.push(`${vp.name}: the day banner stays`);
+
+      // Fast pace (the admin's toggle) and its countdown ring round the day sun.
+      await press('[aria-label="Pace"]');
+      await page.waitForTimeout(300);
+      if (fake.scenario.pace !== 'fast')
+        problems.push(`${vp.name}: the pace toggle did not reach the server`);
+      await page.waitForSelector('.day-ring', { timeout: 3000 }).catch(() => {
+        problems.push(`${vp.name}: no countdown ring in fast pace`);
+      });
+      await page.waitForTimeout(1500);
+      await shot('fast-countdown');
+      await press('[aria-label="Pace"]');
+      await page.waitForTimeout(300);
+      if (fake.scenario.pace !== 'daily') problems.push(`${vp.name}: pace did not switch back`);
 
       // The hub entry opens the creature card; right-click (desktop) and Escape close.
       const [q1, r1] = await creature();

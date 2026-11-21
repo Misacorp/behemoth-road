@@ -1,0 +1,53 @@
+/* Fast pace: the countdown ring round the day sun, the day banner, the pace toggle. Palette colours only. */
+
+/* Over the sun at the top left (the day readout's own position: see .hud-top and .hud-day). */
+.day-ring {
+  position: absolute;
+  top: calc(var(--space-3) + var(--safe-top) - 4px);
+  left: calc(var(--gutter) - 6px);
+  width: 44px;
+  height: 44px;
+  pointer-events: none;
+}
+
+/* A band across the upper map: the creature and the moves stay visible below and beside it. */
+.day-banner {
+  position: absolute;
+  top: 18%;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  background: #f3f1e2;
+  color: #5c5a43;
+  font-size: clamp(3rem, 14vmin, 6rem);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  opacity: 0;
+  transition: opacity 400ms ease;
+  pointer-events: none;
+  z-index: 20;
+}
+
+.day-banner[data-shown='true'] {
+  opacity: 0.88;
+}
+
+.day-banner > svg {
+  width: 1em;
+  height: 1em;
+}
+
+/* Beside the "next day" control (44 px wide). */
+.hud-pace {
+  right: calc(var(--gutter-right) + 44px + var(--space-1));
+}
+
+.hud-pace .dev:focus,
+.hud-pace .dev:focus-visible {
+  outline: none;
+}

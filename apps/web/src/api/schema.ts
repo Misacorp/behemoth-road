@@ -291,6 +291,10 @@ export const GameEventSchema = v.union([
 export const PlayerViewSchema = v.object({
   version: count,
   day: count,
+  /** How days advance: on the daily schedule, or early once everyone has spent their actions. */
+  pace: v.picklist(['daily', 'fast']),
+  /** Fast pace: when the next day starts early (epoch ms), or null. */
+  fastTickAt: v.nullable(v.pipe(v.number(), v.integer(), v.minValue(0))),
   you: v.object({
     userId: id,
     characterId: v.nullable(id),

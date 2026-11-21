@@ -49,6 +49,7 @@ Record a decision:
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
+- 2026-11-21 Fast pace schedules a second alarm time in the one Durable Object alarm
 - 2026-11-20 The short dev season follows the dev-tools switch; an ended season stops the schedule
 - 2026-11-20 Staging and local seasons are short; admins start a new season there
 - 2026-11-20 Web schema requires the M4 view fields now the fixtures carry them
@@ -114,6 +115,7 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-21 Fast rounds pace: staging only, all active characters spent, 6 s delay, 4 s day banner
 - 2026-11-20 Icons that are not buttons show their tip on a tap \[Misa\]
 - 2026-11-20 Verb labels under actions are on by default \[Misa\]
 - 2026-11-20 The map is framed between the top HUD and the pips; the first view looks ahead of the creature

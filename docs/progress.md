@@ -11,6 +11,7 @@ What has landed and what is next. Newest first. Update it when a step lands or t
 
 ## Done
 
+- 2026-11-21: Fast rounds (branch `next/fast`): a per-game pace, staging only; in fast pace the day turns 6 s after every active character has spent their actions (one alarm shared with the daily tick), a ring drains round the day sun meanwhile, clients refresh once just after the countdown, the object answers an unchanged poll without reading storage, a 4 s day banner shows whenever the day goes up, and admins get a pace toggle beside next day.
 - 2026-11-20: Telegraphed threats, core (`m5/threat-pace`): window radius 6 (content version 8), rockslide 5 ahead, raiders speed 1, `threatNextPath` for drawing a threat's next path, the scout's inactive `far-sight` perk, and a seeded balance simulation (`packages/core/scripts/balance.ts`).
 - 2026-11-20: Threat path (`m5/threat-path`): an open threat card draws the threat's next-tick path as an ink trail with its end hex ringed, and its distance as action arrows on the card, placed clear of the trail.
 - 2026-11-20: Threat strength grows every 14 days instead of 10 (careful parties lost about 30 % of full seasons; now 14 to 17 % in the 200-seed simulation); `apps/web/scripts/perf.mjs` now boots the map through a fake game server shared with `screenshots.mjs` (`fake-game.mjs`) and measures hex taps and the desktop.

@@ -149,6 +149,9 @@ describe('capture', () => {
           await ctx.call(misa, 'GET', `/api/game?since=${String(moved.version)}`)
         ).body;
         await ok('view-next-day', 'POST', '/api/dev/next-day', {});
+        // The pace switch (back to daily at once, so the rest of the game is as before).
+        await ok('view-pace-fast', 'POST', '/api/dev/pace', { pace: 'fast' });
+        await ok('view-pace-daily', 'POST', '/api/dev/pace', { pace: 'daily' });
         // Survey the first neighbouring hex the rules allow.
         const here = read().characters.find((c) => c.id === me)?.at;
         const surveyable =

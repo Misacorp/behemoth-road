@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { joined } from './fixtures.ts';
 import type { GameResponse, PlayerView } from './schema.ts';
-import { POLL_MS, Sync } from './sync.ts';
+import { POLL_MS, Sync, TICK_GRACE_MS, TICK_RETRY_MS } from './sync.ts';
 
 function setup(answers: GameResponse[]) {
   const asked: (number | undefined)[] = [];
   const seen: PlayerView[] = [];
   const timers = new Map<number, { fn: () => void; ms: number }>();
+  const timeouts = new Map<number, { fn: () => void; ms: number }>();
+  const clock = { t: 1_000_000 };
   let next = 1;
   const sync = new Sync({
     api: {
@@ -22,8 +24,14 @@ function setup(answers: GameResponse[]) {
       return next++;
     },
     clearInterval: (h) => timers.delete(h),
+    setTimeout: (fn, ms) => {
+      timeouts.set(next, { fn, ms });
+      return next++;
+    },
+    clearTimeout: (h) => timeouts.delete(h),
+    now: () => clock.t,
   });
-  return { sync, asked, seen, timers };
+  return { sync, asked, seen, timers, timeouts, clock };
 }
 
 const at = (version: number): PlayerView => ({ ...joined(), version });
@@ -47,6 +55,46 @@ describe('view sync', () => {
     expect(s.timers.size).toBe(1);
     s.sync.hidden();
     expect(s.timers.size).toBe(0);
+  });
+
+  it('refreshes once just after fastTickAt, retries if the day has not turned, and keeps the slow poll', async () => {
+    const s = setup([at(2), at(3)]);
+    s.sync.visible();
+    await new Promise((r) => setTimeout(r, 0));
+    expect([...s.timers.values()].map((t) => t.ms)).toEqual([POLL_MS]);
+    const fastTickAt = s.clock.t + 6000;
+    s.sync.accept({ ...at(4), pace: 'fast', fastTickAt });
+    expect([...s.timeouts.values()].map((t) => t.ms)).toEqual([6000 + TICK_GRACE_MS]);
+    // The same countdown again changes nothing.
+    s.sync.accept({ ...at(5), pace: 'fast', fastTickAt });
+    expect(s.timeouts.size).toBe(1);
+    expect([...s.timers.values()].map((t) => t.ms)).toEqual([POLL_MS]);
+
+    // It fires: one refresh; the answer still shows the countdown, so one retry two seconds later.
+    const [first] = [...s.timeouts.keys()];
+    s.asked.length = 0;
+    const fire = s.timeouts.get(first!)!.fn;
+    s.timeouts.delete(first!);
+    fire();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(s.asked).toEqual([5]);
+    expect([...s.timeouts.values()].map((t) => t.ms)).toEqual([TICK_RETRY_MS]);
+  });
+
+  it('does not retry when the day has turned, and a cleared countdown cancels the refresh', async () => {
+    const s = setup([{ ...at(7), fastTickAt: null }]);
+    s.sync.accept({ ...at(6), fastTickAt: s.clock.t + 1000 });
+    expect(s.timeouts.size).toBe(1);
+    const [key, pending] = [...s.timeouts.entries()][0]!;
+    s.timeouts.delete(key);
+    pending.fn();
+    await new Promise((r) => setTimeout(r, 0));
+    expect(s.timeouts.size).toBe(0);
+
+    s.sync.accept({ ...at(8), fastTickAt: s.clock.t + 1000 });
+    expect(s.timeouts.size).toBe(1);
+    s.sync.accept({ ...at(9), fastTickAt: null });
+    expect(s.timeouts.size).toBe(0);
   });
 
   it("takes an action's answer as the new view, and never goes back to an older one", async () => {
@@ -90,6 +138,9 @@ describe('view sync', () => {
       onView: (v) => seen.push(v),
       setInterval: () => 1,
       clearInterval: () => {},
+      setTimeout: () => 1,
+      clearTimeout: () => {},
+      now: () => 0,
     });
     sync.accept(at(40));
     const old = sync.generation;

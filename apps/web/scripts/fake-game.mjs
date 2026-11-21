@@ -136,6 +136,12 @@ export class FakeServer {
       this.reset(newSeasonScenario());
       return [200, { ok: true }];
     }
+    if (path === '/api/dev/pace') {
+      // The fake counts down as if everyone had spent their actions.
+      const fastTickAt = body.pace === 'fast' ? Date.now() + 6000 : null;
+      ok({ ...s, pace: body.pace, fastTickAt, version: s.version + 1 });
+      return [200, toView(this.scenario)];
+    }
     if (path === '/api/dev/next-day') {
       // Like the Worker, the tick answers the view alone; its events wait in the log.
       const ticked = nextDayWithEvents(s.state);

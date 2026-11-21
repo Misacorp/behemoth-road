@@ -10,6 +10,11 @@ export const SERVER_CONFIG = {
    * on time; this only bounds the work after an outage). Ticks beyond it are skipped, not queued.
    */
   maxCatchUpTicks: 7,
+  /**
+   * Fast pace: how long after every active character has spent all their actions the early tick runs. It
+   * lets the last animations finish and shows a short countdown.
+   */
+  fastTickDelayMs: 6000,
   sessions: {
     /** A session unused for this long is dead. */
     idleMs: 60 * 60 * 1000,

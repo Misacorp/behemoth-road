@@ -1,6 +1,8 @@
 {
   "version": 1,
   "day": 1,
+  "pace": "daily",
+  "fastTickAt": null,
   "you": {
     "userId": "111111111111111111",
     "characterId": null,

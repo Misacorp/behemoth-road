@@ -206,6 +206,14 @@ export const tips = {
     text: 'Everyone acts, then the creature walks one step as the day turns.',
   },
   'hud:next-day': { title: 'Next day', text: 'Testing only: turn the day now.' },
+  'hud:pace-daily': {
+    title: 'Slow days',
+    text: 'Testing only: the day turns on its own time. Tap for fast days.',
+  },
+  'hud:pace-fast': {
+    title: 'Fast days',
+    text: 'Testing only: the day turns soon after everyone has acted. Tap for slow days.',
+  },
   'hud:actions': {
     title: 'Actions',
     text: 'What you can still do today. They refill when the day turns.',

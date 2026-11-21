@@ -54,6 +54,12 @@ export const MIGRATIONS: readonly Migration[] = [
     sql.exec('CREATE INDEX events_version ON events(version)');
     sql.exec('ALTER TABLE game ADD COLUMN events_pruned_through INTEGER NOT NULL DEFAULT 0');
   },
+  (sql) => {
+    // The pace ('daily' or 'fast', staging only for now) and, in fast pace, when the early tick is due
+    // (UTC epoch ms) because every active character has spent all their actions; null otherwise.
+    sql.exec("ALTER TABLE game ADD COLUMN pace TEXT NOT NULL DEFAULT 'daily'");
+    sql.exec('ALTER TABLE game ADD COLUMN fast_tick_at INTEGER');
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

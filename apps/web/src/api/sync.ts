@@ -8,6 +8,10 @@ import type { ApiClient } from './client.ts';
 import type { PlayerView } from './schema.ts';
 
 export const POLL_MS = 10_000;
+/** After `fastTickAt` the extra refresh waits this long (the server runs the tick at that time). */
+export const TICK_GRACE_MS = 300;
+/** If the day has not turned by then, one more refresh. */
+export const TICK_RETRY_MS = 2_000;
 
 export interface SyncDeps {
   readonly api: Pick<ApiClient, 'game'>;
@@ -15,11 +19,18 @@ export interface SyncDeps {
   readonly onError?: (err: unknown) => void;
   readonly setInterval: (fn: () => void, ms: number) => number;
   readonly clearInterval: (handle: number) => void;
+  /** For the one refresh after the early next day is due (fast pace). */
+  readonly setTimeout: (fn: () => void, ms: number) => number;
+  readonly clearTimeout: (handle: number) => void;
+  readonly now: () => number;
 }
 
 export class Sync {
   private view: PlayerView | null = null;
   private timer: number | null = null;
+  /** The pending refresh for the early next day, and the `fastTickAt` it is for. */
+  private tickTimer: number | null = null;
+  private tickFor: number | null = null;
   private inFlight: Promise<void> | null = null;
   /** Counts restarts (new seasons): an answer to a request made before the last one is dropped. */
   private gen = 0;
@@ -43,6 +54,7 @@ export class Sync {
     if (generation !== this.gen) return;
     if (this.view && view.version < this.view.version) return;
     this.view = view;
+    this.scheduleTick();
     this.deps.onView(view);
   }
 
@@ -52,7 +64,33 @@ export class Sync {
     // A poll still in flight belongs to the old game: the next refresh asks afresh.
     this.inFlight = null;
     this.view = view;
+    this.scheduleTick();
     this.deps.onView(view);
+  }
+
+  /**
+   * While the view has `fastTickAt`, one extra refresh just after it (the normal poll stays slow, so the
+   * server is not asked more often), and one more two seconds later if the view still shows the same
+   * countdown. A new or cleared `fastTickAt` replaces the pending one.
+   */
+  private scheduleTick(): void {
+    const at = this.view?.fastTickAt ?? null;
+    if (at === this.tickFor) return;
+    if (this.tickTimer !== null) this.deps.clearTimeout(this.tickTimer);
+    this.tickTimer = null;
+    this.tickFor = at;
+    if (at === null) return;
+    const delay = Math.max(0, at - this.deps.now()) + TICK_GRACE_MS;
+    this.tickTimer = this.deps.setTimeout(() => {
+      this.tickTimer = null;
+      void this.refresh().then(() => {
+        if (this.tickFor !== at || this.view?.fastTickAt !== at) return;
+        this.tickTimer = this.deps.setTimeout(() => {
+          this.tickTimer = null;
+          void this.refresh();
+        }, TICK_RETRY_MS);
+      });
+    }, delay);
   }
 
   /** Asks the server for anything newer. Concurrent calls share one request. */

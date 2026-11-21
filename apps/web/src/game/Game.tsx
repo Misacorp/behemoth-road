@@ -26,6 +26,7 @@ import {
 } from '../map/flow.ts';
 import { type FocusTarget, type Here, MapView } from '../map/MapView.tsx';
 import { HubDrawer } from '../hub/HubDrawer.tsx';
+import { DayBanner, DayCountdown, PaceToggle } from '../hud/Pace.tsx';
 import { setTipConfig, TipLayer } from '../ui/Tip.tsx';
 import { cellStateAt, featureArtAt } from '../map/cells.ts';
 import {
@@ -99,6 +100,9 @@ export function Game({ api, initial }: GameProps): JSX.Element {
     onError: (err) => console.warn('refresh failed', err),
     setInterval: (fn, ms) => window.setInterval(fn, ms),
     clearInterval: (h) => window.clearInterval(h),
+    setTimeout: (fn, ms) => window.setTimeout(fn, ms),
+    clearTimeout: (h) => window.clearTimeout(h),
+    now: () => Date.now(),
   });
 
   // Poll while visible; refresh on becoming visible.
@@ -409,6 +413,8 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         onStrike={onStrike}
       />
       <PerilEdge peril={state.peril} max={state.config.perilMax} />
+      <DayCountdown fastTickAt={view.fastTickAt} />
+      <DayBanner day={view.day} />
       <Hud
         day={view.day}
         actionsLeft={me?.actionsLeft ?? 0}
@@ -449,6 +455,17 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         jolt={moments.some((m) => m.kind === 'strike')}
         relieved={moments.some((m) => m.kind === 'relieved')}
       />
+      {showsNextDay(view) && (
+        <PaceToggle
+          pace={view.pace}
+          onToggle={() =>
+            void act(
+              () => api.setPace(view.pace === 'fast' ? 'daily' : 'fast'),
+              () => IDLE,
+            )
+          }
+        />
+      )}
       <HubDrawer
         open={hubOpen}
         onClose={() => setFlow(IDLE)}

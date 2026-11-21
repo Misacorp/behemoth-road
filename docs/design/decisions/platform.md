@@ -4,6 +4,14 @@ Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-21: Fast pace schedules a second alarm time in the one Durable Object alarm
+
+ID: `2026-11-21-fast-pace-schedules-a-second-alarm` · Status: current
+
+**Decision.** The game row stores `pace` and `fast_tick_at` (migration 3). After every write to the game and on a pace switch, `fast_tick_at` is recomputed in the same transaction: set to now plus `fastTickDelayMs` when the pace is fast and everyone is spent (keeping an earlier schedule that still holds), else cleared. The Durable Object's single alarm is set to the earlier of the daily tick and `fast_tick_at`. `alarm()` and every request first run the due daily ticks, then the fast tick once if it is due, then re-arm. The fast tick uses `tickWithEvents` like the daily one and leaves `next_tick_at` alone. The player view carries `pace` and `fastTickAt`. Clients keep the normal poll and schedule one extra refresh just after `fastTickAt` (plus a retry 2 s later if the day has not turned); there is no faster polling and the rate limit is unchanged. To keep storage reads low, the object keeps the game row, guild id, live sessions and the armed alarm time in memory: a poll that changes nothing reads no storage (it was 6 SQL statements and an alarm lookup), a changed poll reads 3 statements (was 10 and 1) and an action 9 (was 15 and 2). Every write transaction drops the in-memory game, so it reloads on the next read and a rolled-back write never stays in memory.
+
+**Reasoning.** A Durable Object has one alarm, so two schedules share it as a minimum. Recomputing inside the write transaction means the stored schedule can never disagree with the state, and a due fast tick that was missed (the alarm and a request racing) is run by the next request. Misa wants database reads kept low (creatures had a read incident), and live WebSockets come later and will read from the same memory.
+
 ## 2026-11-20: The short dev season follows the dev-tools switch; an ended season stops the schedule
 
 ID: `2026-11-20-the-short-dev-season-follows-the` · Status: current
