@@ -18,7 +18,7 @@ export interface FeatureArt {
   readonly state?: FeatureState;
   /**
    * The content says this feature is a trap: it gets the shared danger cue (a coral band, jagged teeth and a
-   * warning pennant on its plinth; muted once `spent`). The look ids in `TRAP_LOOKS` count as traps too.
+   * warning pennant on its footing; muted once `spent`). The look ids in `TRAP_LOOKS` count as traps too.
    */
   readonly trap?: boolean;
 }
@@ -28,18 +28,38 @@ export const TRAP_LOOKS: ReadonlySet<string> = new Set(['snare', 'pitfall', 'und
 
 export const isTrap = (f: FeatureArt): boolean => f.trap === true || TRAP_LOOKS.has(f.look);
 
-/** Half-width of a feature's plinth, in local units at the reference hex size. */
-export const PLINTH_RX = 16;
+/** Half-width of a feature's ground footing, in local units at the reference hex size. */
+export const FOOTING_RX = 16;
 
 /**
- * Looks with a cave door at their base: their plinth sits behind the door (its front edge level with the
- * door's foot) instead of lying in front of it like a door mat.
+ * How much taller than the plain side view each look is drawn, so features rise above the tile's top edge
+ * and the tile "pops" (tall rock faces, a cave mouth in a raised outcrop, tall trees, ore spires). Unknown
+ * looks use `DEFAULT_FEATURE_RISE`.
  */
-const DOORED: ReadonlySet<string> = new Set(['tomb', 'deep-tomb']);
+export const FEATURE_RISE: Readonly<Record<string, number>> = {
+  ore: 2.3,
+  logs: 2.4,
+  tomb: 2.5,
+  'deep-tomb': 2.5,
+  outcrop: 3.6,
+  shrine: 2.3,
+  berries: 3.2,
+  stones: 2.6,
+  fieldstones: 2.5,
+  deadfall: 2.8,
+  snare: 1.4,
+  pitfall: 1.3,
+  undertow: 1.4,
+};
+export const DEFAULT_FEATURE_RISE = 1.6;
 
-/** How far the plinth moves down the screen for a look, in local units (negative: back). */
-export const featurePlinthDy = (look: string, rx: number): number =>
-  DOORED.has(look) ? -0.36 * rx : 0;
+/** The look's height stretch (settlements and fires have their own in `SETTLEMENT_RISE`, `FIRE_RISE`). */
+export const featureRise = (look: string): number =>
+  Object.hasOwn(FEATURE_RISE, look) ? FEATURE_RISE[look]! : DEFAULT_FEATURE_RISE;
+
+/** Settlements and fires stand taller than before: stilt huts, a hill-folk gate, a taller flame. */
+export const SETTLEMENT_RISE = 1.6;
+export const FIRE_RISE = 1.5;
 
 export type FeatureDraw = (c: PropContext, state: FeatureState) => Drawn;
 

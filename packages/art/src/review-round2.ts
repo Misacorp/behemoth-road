@@ -1,5 +1,5 @@
 /**
- * Review sheets for the second art review round: features rising from sandstone plinths, the shared danger
+ * Review sheets for the second art review round: features rising tall from the ground, the shared danger
  * cue on traps (live and harmless) next to nodes and sites, and the creature's ring of trodden ground with
  * the defended mark, next to the darker unexplored veil.
  */
@@ -45,6 +45,48 @@ function dangerSheet(): string {
   );
 }
 
+/** Every feature look, two settlements and fires on packed tiles, a character on some: tall, over their neighbours. */
+function tallSheet(): string {
+  const looks = [
+    'ore',
+    'logs',
+    'tomb',
+    'deep-tomb',
+    'outcrop',
+    'shrine',
+    'berries',
+    'stones',
+    'fieldstones',
+    'deadfall',
+  ];
+  const cells: ArtCell[] = looks.map((look, i) => ({
+    q: (i % 5) * 2 - Math.floor(i / 5),
+    r: Math.floor(i / 5) * 2 - (i % 5),
+    terrain: look === 'logs' ? 'forest' : 'plains',
+    feature: { look },
+  }));
+  cells.push(
+    { q: 9, r: -2, terrain: 'plains', settlement: { look: 'hill-folk', attitude: 'wary' } },
+    { q: 9, r: -4, terrain: 'plains', settlement: { look: 'river-folk', attitude: 'friendly' } },
+    { q: 10, r: -2, terrain: 'plains', fire: true },
+    { q: 8, r: 0, terrain: 'plains', feature: { look: 'snare' } },
+  );
+  const characters = [
+    { id: 'a', q: 0, r: 0, accent: 'rose' },
+    { id: 'b', q: 4, r: -2, accent: 'teal' },
+    { id: 'c', q: 9, r: -2, accent: 'sage' },
+  ];
+  return toSvgString(
+    renderScene({
+      cells,
+      characters,
+      projection: isometric(42),
+      palette: SPRING,
+      seed: 'round3-tall',
+    }),
+  );
+}
+
 /** The creature on cliffs and a river, two guardians defending, with explored, unexplored and fading ground. */
 function telegraphSheet(): string {
   const cells: ArtCell[] = [];
@@ -74,10 +116,19 @@ export function round2ReviewItems(): ReviewDraft[] {
       id: 'features/danger',
       group: 'Features',
       title:
-        'Features on raised plinths: finds and sites calm, live traps with the coral danger cue, defused traps muted',
+        'Features drawn tall, rising above the tile with a ground shadow, no platform: finds and sites calm, live traps with the coral danger cue, defused traps muted',
       file: 'features-danger.svg',
       kind: 'glance',
       svg: dangerSheet(),
+    },
+    {
+      id: 'features/tall',
+      group: 'Features',
+      title:
+        'Tall features that rise above their tiles, no platform: iron, timber, tombs, outcrop, shrine, berries, stones, fieldstones, deadfall, villages, a fire and a snare, with characters standing in front',
+      file: 'features-tall.svg',
+      kind: 'glance',
+      svg: tallSheet(),
     },
     {
       id: 'map/telegraph',
