@@ -71,6 +71,8 @@ export interface PlayerView {
   pace: Pace;
   /** Fast pace: when the next day starts early (epoch ms), or null. */
   fastTickAt: number | null;
+  /** The server clock when the view was built (epoch ms), so a client can measure its own clock's skew. */
+  now: number;
   /** `admin`: may run the staging "next day"; always false with the dev tools off. */
   you: { userId: string; characterId: string | null; admin: boolean };
   /** The characters this player may pick (the rolls, then the plain one): only while they have no active character. */
@@ -952,6 +954,7 @@ export class GuildGame {
       day: game.state.day,
       pace: game.pace,
       fastTickAt: game.fastTickAt,
+      now: this.options.now(),
       you: { userId: user.id, characterId: mine?.id ?? null, admin },
       offers: mine?.status === 'active' ? null : characterOffers(game.state, user.id),
       game: toPlayerView(game.state),

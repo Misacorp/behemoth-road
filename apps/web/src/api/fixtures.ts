@@ -58,6 +58,8 @@ export interface Scenario {
   /** How days advance (default daily) and, in fast pace, when the early tick is due (default none). */
   readonly pace?: 'daily' | 'fast';
   readonly fastTickAt?: number | null;
+  /** The server's clock (epoch ms); default: this machine's, so no skew. */
+  readonly now?: number;
 }
 
 /** The view the server would send `scenario.you`. */
@@ -70,6 +72,7 @@ export function toView(s: Scenario): PlayerView {
     day: s.state.day,
     pace: s.pace ?? 'daily',
     fastTickAt: s.fastTickAt ?? null,
+    now: s.now ?? Date.now(),
     you: { userId: s.you, characterId: mine?.id ?? null, admin: s.admin },
     offers: needsCharacter ? characterOffers(s.state, s.you) : null,
     // The core's view type is read-only; the parsed type is the same shape.
