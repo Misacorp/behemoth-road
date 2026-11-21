@@ -7,6 +7,7 @@ import {
   HEARTBEAT_MS,
   HELLO_TIMEOUT_MS,
   MAX_FAILURES,
+  STABLE_AFTER_MS,
   backoffDelay,
   createLiveSocket,
   liveUrl,
@@ -165,6 +166,38 @@ describe('failing', () => {
     }
     expect(socket.state()).toBe('failed');
     expect(sockets).toHaveLength(MAX_FAILURES);
+  });
+
+  it('backs off and gives up when the server accepts, says hello and closes at once, every time', async () => {
+    const { socket, sockets } = setup();
+    socket.start();
+    for (let i = 0; i < MAX_FAILURES; i++) {
+      const s = await reach(sockets, i + 1);
+      s.hello();
+      s.drop();
+    }
+    expect(socket.state()).toBe('failed');
+    await vi.advanceTimersByTimeAsync(BACKOFF_MAX_MS * 2);
+    expect(sockets).toHaveLength(MAX_FAILURES);
+  });
+
+  it('forgives earlier failures only after the socket stayed open for 30 s', async () => {
+    const { socket, sockets } = setup();
+    socket.start();
+    for (let i = 0; i < MAX_FAILURES - 1; i++) {
+      const s = await reach(sockets, i + 1);
+      s.hello();
+      s.drop();
+    }
+    const stable = await reach(sockets, MAX_FAILURES);
+    stable.hello();
+    await vi.advanceTimersByTimeAsync(STABLE_AFTER_MS);
+    stable.drop();
+    expect(socket.state()).toBe('backoff');
+    const next = await reach(sockets, MAX_FAILURES + 1);
+    next.hello();
+    next.drop();
+    expect(socket.state()).toBe('backoff');
   });
 
   it('gives up at once on a ticket 404 (flag off) and on close 4000 (replaced)', async () => {

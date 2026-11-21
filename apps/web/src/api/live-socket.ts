@@ -25,6 +25,8 @@ export const BACKOFF_FIRST_MS = 1000;
 export const BACKOFF_MAX_MS = 30_000;
 /** Tries in a row that never reached `hello` before it gives up. */
 export const MAX_FAILURES = 6;
+/** A socket must stay open this long after `hello` before the failure count resets (a server that accepts, then closes, must still back off). */
+export const STABLE_AFTER_MS = 30_000;
 /** The server closes the older socket of a player's 4th with this code: do not fight for it. */
 export const CLOSE_REPLACED = 4000;
 
@@ -113,6 +115,8 @@ export function createLiveSocket(deps: LiveSocketDeps): LiveSocket {
   let lastHeardAt = 0;
   let lastPingAt = 0;
   let announcedLive = false;
+  /** When the current socket said `hello`, or null. */
+  let liveSince: number | null = null;
 
   const clearTimers = (): void => {
     for (const t of [retryTimer, tickTimer, helloTimer]) if (t !== null) clearTimer(t);
@@ -149,6 +153,9 @@ export function createLiveSocket(deps: LiveSocketDeps): LiveSocket {
     clearTimers();
     dropSocket();
     setLive(false);
+    // Only a socket that stayed up for a while counts as a success.
+    if (liveSince !== null && now() - liveSince >= STABLE_AFTER_MS) failures = 0;
+    liveSince = null;
     failures++;
     if (giveUp || failures >= MAX_FAILURES) {
       state = 'failed';
@@ -174,7 +181,7 @@ export function createLiveSocket(deps: LiveSocketDeps): LiveSocket {
       if (helloTimer !== null) clearTimer(helloTimer);
       helloTimer = null;
       state = 'live';
-      failures = 0;
+      liveSince = now();
       setLive(true);
       deps.onChanged(message.version);
       return;
@@ -206,6 +213,7 @@ export function createLiveSocket(deps: LiveSocketDeps): LiveSocket {
   async function connect(thisRun: number): Promise<void> {
     if (thisRun !== run) return;
     state = 'connecting';
+    liveSince = null;
     let ticket: string;
     try {
       ticket = await deps.getTicket();
