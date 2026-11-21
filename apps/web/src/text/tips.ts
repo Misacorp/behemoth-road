@@ -98,7 +98,7 @@ export const tips = {
 
   // Materials (in packs and the team stores).
   'material:iron': {
-    text: 'From iron deposits and outcrops. Builds the grappling hook, the spikes and the sledge.',
+    text: 'From iron deposits and outcrops. Builds the grappling hook, the spikes and the marsh boards.',
   },
   'material:stone': { text: 'From river stones and fieldstones. Builds the lantern.' },
   'material:timber': {
@@ -119,7 +119,7 @@ export const tips = {
   },
   'unlock:lantern': { text: 'Light for deep tombs, so a scholar can work them.' },
   'unlock:climbing-spikes': { text: 'Cliffs cost only {climbCost.climbing-spikes} action a step.' },
-  'unlock:sand-sledge': { text: 'Sand costs only {climbCost.sand-sledge} action a step.' },
+  'unlock:marsh-boards': { text: 'Swamp costs only {climbCost.marsh-boards} action a step.' },
 
   // Actions (buttons in the cards and the hub).
   'action:survey': {
@@ -167,7 +167,8 @@ export const tips = {
   // The ground a hex shows (in the cards' tile pictures).
   'terrain:plains': { title: 'Plains', text: 'Open grassland. Easy going.' },
   'terrain:forest': { title: 'Forest', text: 'Woods. Easy going, with more to find.' },
-  'terrain:desert': { title: 'Desert', text: 'Dry, open sand. Heavy going.' },
+  'terrain:desert': { title: 'Desert', text: 'Dry, open sand.' },
+  'terrain:swamp': { title: 'Swamp', text: 'Reeds and standing water. Heavy going.' },
   'terrain:river': { title: 'River', text: 'Running water. No fire will light here.' },
   'terrain:cliff': { title: 'Cliff', text: 'Too steep to climb without gear.' },
 

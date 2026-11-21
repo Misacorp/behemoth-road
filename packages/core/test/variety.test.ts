@@ -27,25 +27,50 @@ import {
 
 const at = hex(3, -1);
 
-describe('sand and the sand sledge', () => {
-  const desert = (unlocks: string[]): GameState => ({
-    ...withTerrain(fieldGame(['a'], QUIET), at, 'desert'),
+describe('swamp and the marsh boards', () => {
+  const swamp = (unlocks: string[], terrain = 'swamp'): GameState => ({
+    ...withTerrain(fieldGame(['a'], QUIET), at, terrain),
     unlocks,
   });
 
-  it('costs 2 to enter sand on foot, and 1 with the sledge, while plains stay 1', () => {
-    expect(entryInto(desert([]), at)).toEqual({ cost: 2 });
-    expect(entryInto(desert(['sand-sledge']), at)).toEqual({ cost: 1, via: 'sand-sledge' });
-    expect(entryInto(desert(['sand-sledge']), hex(3, -2))).toEqual({ cost: 1 });
+  it('costs 2 to enter swamp on foot, and 1 with the boards, while plains stay 1', () => {
+    expect(entryInto(swamp([]), at)).toEqual({ cost: 2 });
+    expect(entryInto(swamp(['marsh-boards']), at)).toEqual({ cost: 1, via: 'marsh-boards' });
+    expect(entryInto(swamp(['marsh-boards']), hex(3, -2))).toEqual({ cost: 1 });
   });
 
-  it('is not made dearer by the cliff gear, nor the cliff cheaper by the sledge', () => {
-    const state = withTerrain(desert(['sand-sledge']), at, 'cliff');
+  it('keeps sand at 1 a step, boards or not', () => {
+    expect(entryInto(swamp([], 'desert'), at)).toEqual({ cost: 1 });
+    expect(entryInto(swamp(['marsh-boards'], 'desert'), at)).toEqual({ cost: 1 });
+  });
+
+  it('does not make the cliff passable', () => {
+    const state = swamp(['marsh-boards'], 'cliff');
     expect(entryInto(state, at)).toBeNull();
     expect(entryInto({ ...state, unlocks: ['climbing-spikes'] }, at)).toEqual({
       cost: 1,
       via: 'climbing-spikes',
     });
+  });
+
+  it('generates swamp deterministically, in patches beside rivers, not crowding the map', () => {
+    let swampHexes = 0;
+    let total = 0;
+    let byWater = 0;
+    for (const seed of [1, 2, 3, 4, 5, 6]) {
+      for (const h of hexesInRange(hex(0, 0), 30)) {
+        total += 1;
+        expect(terrainAt(toSeed(seed), h).id).toBe(terrainAt(toSeed(seed), h).id);
+        if (terrainAt(toSeed(seed), h).id !== 'swamp') continue;
+        swampHexes += 1;
+        if (hexesInRange(h, 3).some((n) => terrainAt(toSeed(seed), n).tags.includes('water'))) {
+          byWater += 1;
+        }
+      }
+    }
+    expect(swampHexes / total).toBeGreaterThan(0.01);
+    expect(swampHexes / total).toBeLessThan(0.08);
+    expect(byWater / swampHexes).toBeGreaterThan(0.8);
   });
 });
 
@@ -59,7 +84,7 @@ describe('river folk', () => {
     return state;
   };
 
-  it('settle only where there is water, and the hill folk settle anywhere', () => {
+  it('settle only by water or swamp, and the hill folk settle anywhere', () => {
     const seen = new Set<string>();
     for (let seed = 1; seed <= 40; seed++) {
       const wet = nextDayWithEvents(byTheWater(seed)).state;
@@ -67,7 +92,7 @@ describe('river folk', () => {
         seen.add(s.type);
         if (s.type === 'river-folk') {
           const tags = [s.hex, ...neighbours(s.hex)].flatMap((h) => terrainOf(wet, h)!.tags);
-          expect(tags).toContain('water');
+          expect(tags.includes('water') || tags.includes('boggy')).toBe(true);
         }
       }
     }
@@ -100,14 +125,15 @@ describe('river folk', () => {
 });
 
 describe('the sunken shrine and the undertow', () => {
-  it('stand only on rivers, and the shrine finds a river pearl a settlement takes', () => {
+  it('stand only on rivers and swamp, and the shrine finds a river pearl a settlement takes', () => {
     const seed = toSeed(17);
     const seen = new Set<string>();
     for (const h of hexesInRange(hex(0, 0), 60)) {
       const type = generateFeature(seed, h, 0.08);
       if (type?.id !== 'sunken-shrine' && type?.id !== 'undertow') continue;
       seen.add(type.id);
-      expect(terrainAt(seed, h).tags).toContain('water');
+      const tags = terrainAt(seed, h).tags;
+      expect(tags.includes('water') || tags.includes('boggy')).toBe(true);
     }
     expect([...seen].sort()).toEqual(['sunken-shrine', 'undertow']);
     const shrine = FEATURE_TYPES.find((f) => f.id === 'sunken-shrine');

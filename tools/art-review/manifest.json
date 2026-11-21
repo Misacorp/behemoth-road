@@ -14,7 +14,9 @@
     "2026-11-20-4",
     "2026-11-20-5",
     "2026-11-20-6",
-    "2026-11-21-1"
+    "2026-11-21-1",
+    "2026-11-21-2",
+    "2026-11-21-3"
   ],
   "items": [
     {
@@ -93,10 +95,10 @@
       "id": "sheet/terrain",
       "group": "Sheets",
       "title": "Terrain tiles",
-      "version": "6cd73b36",
+      "version": "274855b2",
       "kind": "glance",
-      "batch": "2026-11-19-7",
-      "file": "art/sheet-terrain-6cd73b36.svg"
+      "batch": "2026-11-21-3",
+      "file": "art/sheet-terrain-274855b2.svg"
     },
     {
       "id": "sheet/props",
@@ -249,10 +251,10 @@
       "id": "icons/sheet",
       "group": "Icons",
       "title": "Every icon, and the fallback",
-      "version": "64ae0225",
+      "version": "7e7223bb",
       "kind": "glance",
-      "batch": "2026-11-21-1",
-      "file": "art/icons-sheet-64ae0225.svg"
+      "batch": "2026-11-21-2",
+      "file": "art/icons-sheet-7e7223bb.svg"
     },
     {
       "id": "characters/lineup",
@@ -527,20 +529,20 @@
     {
       "id": "variety/map",
       "group": "More content",
-      "title": "Sunken shrine (ready, spent), undertow and river stones on rivers; an ambush in the forest, a stampede on the plains; river folk wary, friendly and angry beside hill folk",
-      "version": "4d565ae3",
+      "title": "Sunken shrine (ready, spent), undertow and river stones on rivers; an ambush in the forest, a stampede on the plains; river folk wary, friendly and angry beside hill folk; a desert, a swamp and a swamp with a sunken shrine",
+      "version": "20a5afcb",
       "kind": "glance",
-      "batch": "2026-11-21-1",
-      "file": "art/variety-map-4d565ae3.svg"
+      "batch": "2026-11-21-3",
+      "file": "art/variety-map-20a5afcb.svg"
     },
     {
       "id": "variety/icons",
       "group": "More content",
-      "title": "River pearl; sand sledge (and done) with its path mark; ambush and stampede cards; river folk cards in each attitude",
-      "version": "fc840e1d",
+      "title": "River pearl; marsh boards (and done) with their path mark; ambush and stampede cards; river folk cards in each attitude",
+      "version": "d819533f",
       "kind": "glance",
-      "batch": "2026-11-21-1",
-      "file": "art/variety-icons-fc840e1d.svg"
+      "batch": "2026-11-21-2",
+      "file": "art/variety-icons-d819533f.svg"
     }
   ]
 }

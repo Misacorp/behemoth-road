@@ -267,6 +267,24 @@ export function drawGround(
         );
       }
       marks.add(inkAttrs(palette.ramps.water.shade, ink * 0.8), lines.join(''));
+    } else if (look.marks === 'pools') {
+      // Standing water: a few small shallow pools with a short ripple stroke across each.
+      const pools: string[] = [];
+      const glints: string[] = [];
+      for (let j = 0, n = rng.int(3, 4); j < n; j += 1) {
+        const o = onPlane(p, c, rng.range(-0.5, 0.5), rng.range(-0.45, 0.45));
+        const rx = rng.range(2.6, 4.6) * k;
+        pools.push(ellipsePath(o.x, o.y, rx, rx * p.squash));
+        glints.push(
+          smoothOpen([
+            { x: o.x - rx * 0.5, y: o.y },
+            { x: o.x, y: o.y - rx * p.squash * 0.35 },
+            { x: o.x + rx * 0.5, y: o.y },
+          ]),
+        );
+      }
+      marks.add({ fill: palette.ramps.water.base, opacity: 0.85 }, pools.join(''));
+      marks.add(inkAttrs(palette.ramps.water.shade, ink * 0.7), glints.join(''));
     } else if (look.marks === 'scree') {
       const dots: string[] = [];
       for (let j = 0, n = rng.int(4, 7); j < n; j += 1) {

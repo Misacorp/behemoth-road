@@ -56,6 +56,6 @@ export const PEOPLE_TYPES: readonly PeopleType[] = [
       { material: 'stone', amount: 2 },
     ],
     angryThreat: 'raiders',
-    near: ['water'],
+    near: ['water', 'boggy'],
   },
 ];

@@ -21,7 +21,14 @@ export const TERRAIN_TYPES: readonly TerrainType[] = [
     id: 'desert',
     tags: ['dry', 'open'],
     passable: true,
-    // Soft sand slows a walker (2 actions a step); the sand sledge undoes it.
+    extraMoveCost: 0,
+    elevation: 0,
+  },
+  {
+    id: 'swamp',
+    tags: ['wet', 'boggy'],
+    passable: true,
+    // Mud and reeds slow a walker (2 actions a step); marsh boards undo it.
     extraMoveCost: 1,
     elevation: 0,
   },

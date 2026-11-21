@@ -250,6 +250,50 @@ const dune: PropDraw = (c) => {
   };
 };
 
+const reeds: PropDraw = (c) => {
+  const { rng, palette } = c;
+  const stems = rng.int(5, 8);
+  const T = mapper(c.origin, c.k, 1, c.k * c.rise);
+  const P = (x: number, y: number): Point => T(x, y);
+  const parts: string[] = [];
+  const heads: string[] = [];
+  const pts: Point[] = [];
+  for (let i = 0; i < stems; i += 1) {
+    const x = (i - (stems - 1) / 2) * 1.9 + rng.range(-0.5, 0.5);
+    const len = rng.range(13, 22);
+    const lean = (i - (stems - 1) / 2) * rng.range(0.5, 1.1);
+    const a = P(x, 0);
+    const m = P(x + lean * 0.4, -len * 0.55);
+    const b = P(x + lean, -len);
+    parts.push(smoothOpen([a, m, b]));
+    pts.push(a, b);
+    // Every other stem carries a brown seed head: a narrow oval at its tip.
+    if (i % 2 === 0) {
+      const t = P(x + lean * 1.05, -len - 1.8);
+      heads.push(ellipsePath(t.x, t.y, 0.9 * c.k, 1.9 * c.k));
+      pts.push(t);
+    }
+  }
+  const pool = P(0, 0.6);
+  return {
+    nodes: [
+      el('path', {
+        d: ellipsePath(pool.x, pool.y, 9 * c.k, 2 * c.k * c.rise),
+        fill: palette.ramps.water.base,
+        opacity: 0.8,
+      }),
+      el('path', { d: parts.join(''), ...inkAttrs(palette.ramps.foliage.shade, c.ink * 0.9) }),
+      el('path', {
+        d: heads.join(''),
+        fill: palette.ramps.bark.base,
+        stroke: palette.ink,
+        'stroke-width': c.ink * 0.6,
+      }),
+    ],
+    box: boxOf(pts),
+  };
+};
+
 const rock: PropDraw = (c) => {
   const { rng, palette } = c;
   const ramp = palette.ramps.rock;
@@ -544,6 +588,7 @@ export const PROP_DRAWERS: Readonly<Record<string, PropDraw>> = {
   broadleaf,
   tuft,
   dune,
+  reeds,
   rock,
   cliff,
   hill,
@@ -556,6 +601,7 @@ export const PROP_SPACING: Readonly<Record<string, number>> = {
   broadleaf: 0.32,
   tuft: 0.14,
   dune: 0.42,
+  reeds: 0.3,
   rock: 0.24,
   cliff: 0.9,
   hill: 0.44,

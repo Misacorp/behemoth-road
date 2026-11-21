@@ -82,15 +82,15 @@ export const UNLOCKS: readonly Unlock[] = [
     movement: { terrainTags: ['steep'], cost: 1 },
   },
   {
-    id: 'sand-sledge',
-    name: 'Sand sledge',
-    tags: ['glide', 'sledge'],
-    icon: 'sledge',
+    id: 'marsh-boards',
+    name: 'Marsh boards',
+    tags: ['glide', 'boards'],
+    icon: 'boards',
     cost: [
       { material: 'timber', amount: 2 },
       { material: 'iron', amount: 1 },
     ],
     work: 4,
-    movement: { terrainTags: ['dry'], cost: 1 },
+    movement: { terrainTags: ['boggy'], cost: 1 },
   },
 ];

@@ -122,6 +122,7 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-21 The scripted chain reaches the climbing spikes about twice as fast \[Misa\]
 - 2026-11-21 Hunger drains every day and food restores more \[Misa\]
 - 2026-11-21 Fires steer the creature sideways only, and several fires add up by side \[Misa\]
+- 2026-11-21 The slow terrain is a swamp, not sand: marsh boards replace the sand sledge \[Misa\]
 - 2026-11-21 Fast rounds pace: staging only, all active characters spent, 6 s delay, 4 s day banner
 - 2026-11-21 Content version 9 balance: stampede strength 1, ambush and stampede weights halved
 - 2026-11-21 More content for playtests: ambush, stampede, river folk, sunken shrine, undertow, sand sledge (amended)

@@ -180,7 +180,7 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
     name: 'Sunken shrine',
     tags: ['shrine', 'ancient'],
     icon: 'shrine',
-    placement: { on: ['water'], weight: 8 },
+    placement: { on: ['water', 'boggy'], weight: 8 },
     tier: 1,
     needs: [],
     finds: { material: 'river-pearl', amount: 1 },
@@ -191,6 +191,6 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
     name: 'Undertow',
     tags: ['trap', 'hidden'],
     icon: 'undertow',
-    placement: { on: ['water'], weight: 3 },
+    placement: { on: ['water', 'boggy'], weight: 3 },
   },
 ];

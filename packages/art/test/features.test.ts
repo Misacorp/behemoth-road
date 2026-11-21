@@ -84,7 +84,7 @@ describe('marks', () => {
       toSvgString(drawViaMark('rope', SPRING, 24)),
     );
     expect(drawViaMark('rope', SPRING, 24).children).toHaveLength(1);
-    expect(toSvgString(drawViaMark('sand-sledge', SPRING, 24))).not.toBe(
+    expect(toSvgString(drawViaMark('marsh-boards', SPRING, 24))).not.toBe(
       toSvgString(drawViaMark('rope', SPRING, 24)),
     );
   });

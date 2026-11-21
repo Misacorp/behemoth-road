@@ -335,8 +335,8 @@ export const VIA_MARKS: Readonly<Record<string, (p: Palette) => SvgNode[]>> = {
     }),
     el('path', { d: 'M-4 0l.5 5M0 0v5M4 0l-.5 5', ...stroke(pal.ink, 1.6) }),
   ],
-  // Sand sledge: a plank on a curled runner, for a sand step taken on the sledge.
-  'sand-sledge': (pal) => [
+  // Marsh boards: two planks laid side by side, for a swamp step taken on the boards.
+  'marsh-boards': (pal) => [
     el('path', {
       d: ellipsePath(0, 0, 11, 11),
       fill: pal.paper,
@@ -344,12 +344,17 @@ export const VIA_MARKS: Readonly<Record<string, (p: Palette) => SvgNode[]>> = {
       'stroke-width': 1.6,
     }),
     el('path', {
-      d: 'M-7 -2h12l-.8 3h-10.4z',
+      d: 'M-7 -1l9-3 2 2-9 3z',
       fill: pal.ramps.bark.base,
       stroke: pal.ink,
       'stroke-width': 1.2,
     }),
-    el('path', { d: 'M-8 4.5h13c2.5 0 3-2.5 1.5-3.5', ...stroke(pal.ink, 1.6) }),
+    el('path', {
+      d: 'M-3 3l9-3 2 2-9 3z',
+      fill: pal.ramps.bark.light,
+      stroke: pal.ink,
+      'stroke-width': 1.2,
+    }),
   ],
 };
 
