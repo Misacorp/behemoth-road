@@ -5,6 +5,7 @@
 import { UNLOCKS } from './content/index.ts';
 import { depositPack, enterHex, type GameEvent } from './features.ts';
 import type { Hex } from './hex.ts';
+import { recordEvents } from './stats.ts';
 import { terrainOf } from './map.ts';
 import { arePlacesAdjacent, placeNeighbours, toPlace } from './places.ts';
 import { type Character, type GameStateView, isSeasonOver, type Place } from './state.ts';
@@ -137,7 +138,12 @@ export const move = <S extends GameStateView>(
     return { ok: true, state: boarded.state, events: boarded.events, trapped: false };
   }
   const entered = enterHex(stepped.state, characterId, stepped.to.hex);
-  return { ok: true, state: entered.state, events: entered.events, trapped: entered.trapped };
+  return {
+    ok: true,
+    state: recordEvents(entered.state, entered.events, characterId),
+    events: entered.events,
+    trapped: entered.trapped,
+  };
 };
 
 /** The places a character can move to with one step right now. */

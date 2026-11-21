@@ -52,6 +52,14 @@ ID: `2026-11-21-misa-a-greyed-action-says-why` · Status: current
 
 **Reasoning.** Misa asked that a greyed action explain itself, but only as a hint. Taking the reason from the same check that greys the action keeps one copy of the rules, and a greyed button that only shows its tip cannot act by accident.
 
+## 2026-11-21: A quick recap screen when a season ends **[Misa]**
+
+ID: `2026-11-21-a-quick-recap-screen-when-a` · Status: current
+
+**Decision.** When a season ends (safe, wounded or lost) the ending shows a quick recap: four shared stats (threats turned back, finds, unlocks built, settlements won over) with the peak of peril as a gauge, and for each player (Discord name, role emblem) three stats (hexes explored, strikes, units gathered) with a star on whoever led each. Icons and numbers only, with tips; the ending scene stays as the header. The core keeps the counters in `GameStateView.stats` as events happen (`stats.ts`), public and harmless, so the view carries them always. Nothing else happens at the end in production; only staging has the new-season button.
+
+**Reasoning.** Misa asked for something light but interesting at the end of a season. Counting from events keeps it deterministic and cheap, and the counters are facts every player already saw. Fed and unlock counts beyond these are kept or cheap to add later.
+
 ## 2026-11-21: Fast rounds pace: staging only, all active characters spent, 6 s delay, 4 s day banner
 
 ID: `2026-11-21-fast-rounds-pace-staging-only-all` · Status: current

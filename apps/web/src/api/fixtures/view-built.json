@@ -909,6 +909,16 @@
     "season": {
       "status": "on"
     },
+    "stats": {
+      "shared": {
+        "threatsTurned": 0,
+        "finds": 0,
+        "unlocks": 0,
+        "befriended": 0,
+        "peakPeril": 0
+      },
+      "byCharacter": {}
+    },
     "misleadUntilDay": null
   },
   "signs": {

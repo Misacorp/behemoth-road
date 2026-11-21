@@ -48,6 +48,7 @@ import type {
   Threat,
 } from './state.ts';
 import { keepSettlements, placeSettlement, settlementDue } from './settlements.ts';
+import { recordEvents } from './stats.ts';
 import {
   activeCount,
   approachHexes,
@@ -324,7 +325,10 @@ export const nextDayWithEvents = (
   events.push(...lost);
   if (outcome) events.push({ kind: 'season-over', outcome });
   events.push({ kind: 'day', day });
-  return { state: pruneFeatures({ ...settled, tiles: pruneLostTiles(settled) }), events };
+  return {
+    state: recordEvents(pruneFeatures({ ...settled, tiles: pruneLostTiles(settled) }), events),
+    events,
+  };
 };
 
 /** The day tick (see `nextDayWithEvents` for what happened). */

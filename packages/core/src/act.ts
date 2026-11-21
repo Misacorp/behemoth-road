@@ -54,6 +54,8 @@ import {
   TRADE_TAG,
 } from './settlements.ts';
 
+import { recordEvents } from './stats.ts';
+
 export type Action =
   | { readonly kind: 'survey'; readonly hex: Hex }
   | { readonly kind: 'gather' }
@@ -371,7 +373,7 @@ const subtract = (from: Materials, uses: Uses): Materials => {
  * repeatable but unknown in advance; a retry by the same character on the same
  * day rolls the same).
  */
-export const act = (state: GameState, characterId: string, action: Action): ActResult => {
+const actCore = (state: GameState, characterId: string, action: Action): ActResult => {
   if (!hasSeed(state)) throw new TypeError('Acting needs the seed: server only');
   const check = checkAction(state, characterId, action);
   if (!check.ok) return check;
@@ -589,6 +591,13 @@ export const act = (state: GameState, characterId: string, action: Action): ActR
 };
 
 /** Boons any people offers, in content order. */
+/** Does the action; the season's tallies follow its events. */
+export const act = (state: GameState, characterId: string, action: Action): ActResult => {
+  const result = actCore(state, characterId, action);
+  if (!result.ok) return result;
+  return { ...result, state: recordEvents(result.state, result.events, characterId) };
+};
+
 const ALL_BOONS = BOONS.filter((b) => PEOPLE_TYPES.some((p) => p.boons.includes(b)));
 /** Materials a settlement takes as an offering. */
 const TRADE_GOODS = MATERIALS.filter((m) => m.tags.includes(TRADE_TAG));

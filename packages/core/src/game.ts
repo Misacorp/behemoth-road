@@ -9,6 +9,7 @@ import { freshCare, rollNature } from './care.ts';
 import { addFeatures, keyToHex } from './features.ts';
 import { ON_CREATURE } from './places.ts';
 import { hashInts, hashString, newArtSeed, type Seed, toSeed } from './random.ts';
+import { emptyStats } from './stats.ts';
 import type { GameState } from './state.ts';
 import { updateTiles } from './window.ts';
 
@@ -75,6 +76,7 @@ export const createGame = (
     settlements: [],
     peril: 0,
     season: { status: 'on' },
+    stats: emptyStats(),
     misleadUntilDay: null,
     tiles,
     features: addFeatures({}, tiles, Object.keys(tiles).map(keyToHex), seed, config.featureChance),

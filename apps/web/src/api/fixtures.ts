@@ -19,6 +19,8 @@ import {
   type Reaction,
   onHex,
   type Season,
+  type CharacterTally,
+  type SeasonStats,
   replaceCharacter,
   toPlayerView,
 } from '@behemoth-road/core';
@@ -284,6 +286,11 @@ export interface SeasonStage extends ChainStage {
   readonly guardianAt?: Hex;
   /** Your character defends the creature today (it must be a guardian riding). */
   readonly defending?: boolean;
+  /** The season's tallies so far (the recap's numbers), the players' by user id; default none. */
+  readonly stats?: {
+    readonly shared?: Partial<SeasonStats['shared']>;
+    readonly byUser?: Readonly<Record<string, Partial<CharacterTally>>>;
+  };
 }
 
 /**
@@ -315,6 +322,15 @@ export function seasonScenario(stage: SeasonStage = {}): Scenario {
     })),
     peril: stage.peril ?? 0,
     season: stage.season ?? { status: 'on' },
+    stats: {
+      shared: { ...s.state.stats.shared, ...stage.stats?.shared },
+      byCharacter: Object.fromEntries(
+        s.state.characters.flatMap((ch) => {
+          const t = stage.stats?.byUser?.[ch.userId];
+          return t ? [[ch.id, { explored: 0, strikes: 0, gathered: 0, fed: 0, ...t }]] : [];
+        }),
+      ),
+    },
     creature: { ...s.state.creature, steps: stage.steps ?? 0, defenders: [] },
   };
   if (stage.guardianAt) {

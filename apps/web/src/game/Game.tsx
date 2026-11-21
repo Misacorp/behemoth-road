@@ -46,6 +46,7 @@ import {
 } from './chain.ts';
 import type { Target } from '../map/pick.ts';
 import { getSettings } from '../settings.ts';
+import { recapOf } from './recap.ts';
 import { Ending, PerilEdge } from '../hud/Season.tsx';
 import {
   defendOption,
@@ -570,6 +571,9 @@ export function Game({ api, initial }: GameProps): JSX.Element {
       />
       {ended && (
         <Ending
+          recap={recapOf(view, who)}
+          perilMax={state.config.perilMax}
+          perilWoundedAt={state.config.perilWoundedAt}
           outcome={ended.outcome}
           days={ended.day}
           route={{ steps: state.creature.steps, length: state.config.routeLength }}

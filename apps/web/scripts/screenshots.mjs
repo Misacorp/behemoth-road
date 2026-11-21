@@ -1471,14 +1471,23 @@ async function run() {
         // The season's end, each outcome reached by a tick of the real core: home safe on the last step,
         // home wounded at high peril, lost when a strike fills the gauge.
         const routeLength = fake.scenario.state.config.routeLength;
+        const RECAP_STATS = {
+          shared: { threatsTurned: 3, finds: 2, unlocks: 1, befriended: 1, peakPeril: 8 },
+          byUser: {
+            '100000000000000001': { explored: 14, strikes: 2, gathered: 5 },
+            '100000000000000002': { explored: 6, strikes: 5, gathered: 9 },
+            '100000000000000003': { explored: 6, strikes: 0, gathered: 0 },
+          },
+        };
         const endings = [
-          ['safe', { steps: routeLength - 1, peril: 0 }],
-          ['wounded', { steps: routeLength - 1, peril: 7 }],
+          ['safe', { steps: routeLength - 1, peril: 0, stats: RECAP_STATS }],
+          ['wounded', { steps: routeLength - 1, peril: 7, stats: RECAP_STATS }],
           [
             'lost',
             {
               steps: 2,
               peril: 9,
+              stats: RECAP_STATS,
               threats: [
                 { type: 'swarm', at: { q: 0, r: -3 }, strength: 4 },
                 { type: 'swarm', at: { q: 3, r: -3 }, strength: 4 },
@@ -1510,6 +1519,14 @@ async function run() {
             problems.push(
               `${vp.name}: the ending's foot (top ${String(footBox?.y)}) covers the scene (bottom ${String(sceneBox && sceneBox.y + sceneBox.height)})`,
             );
+          // The recap is part of the ending: three players by name with a role emblem, and the foot stays clear.
+          if ((await count('.ending .recap-player')) < 2)
+            problems.push(`${vp.name}: no recap on the ${String(outcome)} ending`);
+          if (!(await count('.ending .recap-player [data-top]')))
+            problems.push(`${vp.name}: the recap highlights no one`);
+          const recapBox = await page.locator('.ending .recap').boundingBox();
+          if (!recapBox || recapBox.y + recapBox.height > footBox.y + 0.5)
+            problems.push(`${vp.name}: the recap runs into the ending's foot`);
           await shot5(`15-ending-${outcome}`);
         }
         // A new season that fails: the button shakes and fades back, the ending stays.

@@ -1247,6 +1247,29 @@
     "season": {
       "status": "on"
     },
+    "stats": {
+      "shared": {
+        "threatsTurned": 0,
+        "finds": 0,
+        "unlocks": 0,
+        "befriended": 0,
+        "peakPeril": 3
+      },
+      "byCharacter": {
+        "222222222222222222.0": {
+          "explored": 6,
+          "strikes": 0,
+          "gathered": 0,
+          "fed": 0
+        },
+        "666666666666666666.0": {
+          "explored": 5,
+          "strikes": 0,
+          "gathered": 0,
+          "fed": 0
+        }
+      }
+    },
     "misleadUntilDay": null
   },
   "signs": {

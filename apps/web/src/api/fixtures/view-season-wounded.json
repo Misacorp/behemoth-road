@@ -1363,6 +1363,23 @@
       "outcome": "wounded",
       "day": 13
     },
+    "stats": {
+      "shared": {
+        "threatsTurned": 4,
+        "finds": 0,
+        "unlocks": 0,
+        "befriended": 0,
+        "peakPeril": 7
+      },
+      "byCharacter": {
+        "666666666666666666.0": {
+          "explored": 19,
+          "strikes": 7,
+          "gathered": 0,
+          "fed": 0
+        }
+      }
+    },
     "misleadUntilDay": null
   },
   "signs": {
