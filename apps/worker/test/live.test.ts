@@ -348,6 +348,7 @@ describe('stale pruning', () => {
       clientSecret: 's',
       guildId: () => null,
       version: () => 1,
+      hasSession: () => true,
       now: () => now,
     });
     expect(live.pruneStale()).toBe(1);
