@@ -1,6 +1,7 @@
 /**
  * Settlements of a people on a hex, drawn upright in side view like the props, keyed by the people's content
- * icon key (`hill-folk`; unknown keys draw the same huts). The attitude reads at a glance: wary is plain huts
+ * icon key (`hill-folk`: round huts and a fence; `river-folk`: huts on stilts over shallows, a net rack and a boat;
+ * unknown keys draw the hill huts). The attitude reads at a glance: wary is plain huts
  * with smoke rising, friendly raises a banner on a tall pole, angry turns the roofs and ground red and lights
  * two torches. Favour shows as a row of small marks in front, one per point needed, filled up to the favour
  * held (none while angry). Parts carry `data-settlement="huts" | "smoke" | "banner" | "torches" | "favour"`.
@@ -14,7 +15,7 @@ import { rngFor } from './rng.ts';
 import { el, type SvgNode } from './svg.ts';
 import { squareIcon } from './threats.ts';
 
-export const SETTLEMENT_LOOKS = ['hill-folk'] as const;
+export const SETTLEMENT_LOOKS = ['hill-folk', 'river-folk'] as const;
 export type Attitude = 'wary' | 'friendly' | 'angry';
 
 export interface SettlementArt {
@@ -249,40 +250,118 @@ export function drawSettlement(c: PropContext, settlement: SettlementArt): Drawn
   const angry = settlement.attitude === 'angry';
   const friendly = settlement.attitude === 'friendly';
   const sq = c.squash / 0.6;
-  const roof = angry ? pal.accents.coral.base : pal.ramps.heath.base;
-  const roofBack = angry ? pal.accents.coral.light : pal.ramps.heath.light;
+  const river = settlement.look === 'river-folk';
+  // River folk: the huts stand raised on stilts, thatched in reed brown, over shallows.
+  const thatch = river ? pal.ramps.bark : pal.ramps.heath;
+  const roof = angry ? pal.accents.coral.base : thatch.base;
+  const roofBack = angry ? pal.accents.coral.light : thatch.light;
   const wall = pal.ramps.sand.light;
-  const big = hut(c, -5, -1, 17, 23, roof, wall);
-  const small = hut(c, 10.5, 3, 12, 16, roofBack, wall);
-  const fence = kit(c).line(
-    [-18, -15.5, -13, -10.5]
-      .map((x, i) =>
+  const lift = river ? 5 : 0;
+  const big = hut(c, -5, -1 - lift, 17, 23, roof, wall);
+  const small = hut(c, 10.5, 3 - lift, 12, 16, roofBack, wall);
+  const stilts = river
+    ? kit(c).line(
+        [-10, -5, 0, 7, 10.5, 14]
+          .map((x) => {
+            const base = x > 4 ? 3 - lift : -1 - lift;
+            return poly(
+              kit(c).pts([
+                [x, base],
+                [x, base + lift + 3],
+              ]),
+              false,
+            );
+          })
+          .join(''),
+        1.3,
+        pal.ramps.bark.shade,
+      )
+    : null;
+  const rack = river
+    ? kit(c).line(
         poly(
           kit(c).pts([
-            [x, 6 - i * 0.2],
-            [x + 0.3, -1.5 - i * 0.2],
+            [-20, 5],
+            [-20, -9],
+            [-13, -9],
+            [-13, 5],
           ]),
           false,
-        ),
+        ) +
+          poly(
+            kit(c).pts([
+              [-20, -6],
+              [-13, -6],
+              [-20, -3],
+              [-13, -3],
+            ]),
+            false,
+          ),
+        0.9,
+        pal.ramps.bark.shade,
       )
-      .join('') +
-      poly(
-        kit(c).pts([
-          [-19, 2.5],
-          [-9.5, 1.6],
-        ]),
-        false,
-      ),
-    1.1,
-    pal.ramps.bark.shade,
-  );
+    : null;
+  const boat = river
+    ? [
+        kit(c).fill(
+          smoothClosed(
+            kit(c).pts([
+              [8, 8],
+              [14, 9.5],
+              [21, 8],
+              [19, 11],
+              [11, 11.5],
+            ]),
+          ),
+          pal.ramps.bark.base,
+        ),
+        kit(c).line(
+          smoothClosed(
+            kit(c).pts([
+              [8, 8],
+              [14, 9.5],
+              [21, 8],
+              [19, 11],
+              [11, 11.5],
+            ]),
+          ),
+          0.9,
+        ),
+      ]
+    : [];
+  const fence = river
+    ? null
+    : kit(c).line(
+        [-18, -15.5, -13, -10.5]
+          .map((x, i) =>
+            poly(
+              kit(c).pts([
+                [x, 6 - i * 0.2],
+                [x + 0.3, -1.5 - i * 0.2],
+              ]),
+              false,
+            ),
+          )
+          .join('') +
+          poly(
+            kit(c).pts([
+              [-19, 2.5],
+              [-9.5, 1.6],
+            ]),
+            false,
+          ),
+        1.1,
+        pal.ramps.bark.shade,
+      );
   const ground = el('path', {
     d: ellipsePath(c.origin.x + 1 * c.k, c.origin.y + 2 * c.k, 24 * c.k, 7 * c.k * sq),
     fill: angry
       ? pal.accents.coral.light
-      : friendly
-        ? pal.accents.sage.light
-        : pal.ramps.earth.light,
+      : river
+        ? pal.ramps.water.light
+        : friendly
+          ? pal.accents.sage.light
+          : pal.ramps.earth.light,
     opacity: angry ? 0.7 : 0.55,
   });
   const extras: SvgNode[] = [];
@@ -313,7 +392,14 @@ export function drawSettlement(c: PropContext, settlement: SettlementArt): Drawn
     nodes: [
       ground,
       groundShadow(c, 20, 4.5, 2),
-      el('g', { 'data-settlement': 'huts' }, [...big.nodes, ...small.nodes, fence]),
+      el('g', { 'data-settlement': 'huts' }, [
+        ...(stilts ? [stilts] : []),
+        ...big.nodes,
+        ...small.nodes,
+        ...(fence ? [fence] : []),
+        ...(rack ? [rack] : []),
+        ...boat,
+      ]),
       ...extras,
       ...front,
       ...favour.nodes,

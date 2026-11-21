@@ -2,7 +2,7 @@
  * Features that sit on a tile once revealed: resource nodes, tomb sites and traps, drawn upright in side
  * view like the other props (shrunk in height for the high view), with a used-up look. Keyed by the `icon`
  * content gives each feature (`ore`, `stones`, `logs`, `berries`, `tomb`, `deep-tomb`, `snare`, `pitfall`, `fieldstones`,
- * `outcrop`, `deadfall`); an unknown
+ * `outcrop`, `deadfall`, `shrine`, `undertow`); an unknown
  * key draws a neutral cairn.
  */
 import { boxOf, ellipsePath, mapper, poly, smoothClosed, smoothOpen, type Point } from './geom.ts';
@@ -855,6 +855,113 @@ const deadfall: FeatureDraw = (c, state) => {
   return { nodes, box: boxOf(all) };
 };
 
+/**
+ * A sunken shrine: a small stone arch standing in the shallows with a niche (and a pale pearl in it),
+ * ripples about its feet; spent, the niche is empty and dark and the ripples gone still.
+ */
+const shrine: FeatureDraw = (c, state) => {
+  const { fill, line, pts, blob } = kit(c);
+  const pal = c.palette;
+  const sq = c.squash / 0.6;
+  const water = blob(0, -1, 17, 3.4 * sq);
+  const left = pts([
+    [-11, 0],
+    [-10.5, -14],
+    [-6, -17],
+    [-4.5, -14],
+    [-5, 0],
+  ]);
+  const right = pts([
+    [11, 0],
+    [10.5, -14],
+    [6, -17],
+    [4.5, -14],
+    [5, 0],
+  ]);
+  const lintel = pts([
+    [-12.5, -14],
+    [-8, -20],
+    [8, -20],
+    [12.5, -14],
+    [8, -15.5],
+    [-8, -15.5],
+  ]);
+  const niche = blob(0, -8, 3.4, 4);
+  const nodes: SvgNode[] = [
+    fill(smoothClosed(water), pal.ramps.water.light, 0.8),
+    line(smoothClosed(water), 0.6, pal.ramps.water.shade),
+    fill(poly(left), pal.ramps.stone.base),
+    fill(poly(right), pal.ramps.stone.light),
+    line(poly(left) + poly(right)),
+    fill(poly(lintel), pal.ramps.stone.light),
+    line(poly(lintel)),
+    fill(smoothClosed(niche), state === 'spent' ? pal.inkSoft : pal.ramps.stone.shade),
+  ];
+  if (state !== 'spent') {
+    const pearl = blob(0, -7.5, 2, 2);
+    nodes.push(
+      fill(smoothClosed(pearl), pal.paper),
+      line(smoothClosed(pearl), 0.7),
+      line(
+        smoothOpen(
+          pts([
+            [-14, 1.5],
+            [-10, 2.6],
+            [-6, 1.8],
+          ]),
+        ) +
+          smoothOpen(
+            pts([
+              [7, 2],
+              [11, 2.8],
+              [15, 1.8],
+            ]),
+          ),
+        0.7,
+        pal.ramps.water.shade,
+      ),
+    );
+  }
+  return { nodes, box: boxOf([...water, ...lintel]) };
+};
+
+/** A revealed undertow: a ring of swirling ripples in the water with a snapped branch caught in it. */
+const undertow: FeatureDraw = (c) => {
+  const { fill, line, pts } = kit(c);
+  const pal = c.palette;
+  const sq = c.squash / 0.6;
+  const ring = (rx: number, ry: number): Point[] =>
+    pts(
+      Array.from({ length: 12 }, (_, i) => {
+        const a = (Math.PI * 2 * i) / 12;
+        return [Math.cos(a) * rx, -2 + Math.sin(a) * ry * sq] as const;
+      }),
+    );
+  const outer = ring(14, 4.6);
+  const mid = ring(9, 3);
+  const eye = ring(4, 1.4);
+  const branch = pts([
+    [-9, -4],
+    [-2, -1.5],
+    [3, -3],
+  ]);
+  const twig = pts([
+    [-4, -2.5],
+    [-5, -7],
+  ]);
+  return {
+    nodes: [
+      fill(smoothClosed(outer), pal.ramps.water.light, 0.85),
+      line(smoothClosed(outer), 0.7, pal.ramps.water.shade),
+      line(smoothClosed(mid), 0.7, pal.ramps.water.shade),
+      fill(smoothClosed(eye), pal.ramps.water.shade),
+      line(smoothOpen(branch), 1.4, pal.ramps.bark.shade),
+      line(poly(twig, false), 1.1, pal.ramps.bark.shade),
+    ],
+    box: boxOf([...outer, ...twig]),
+  };
+};
+
 /** The neutral mark for a feature look the kit does not know: a small cairn. */
 const cairn: FeatureDraw = (c) => {
   const { fill, line, blob } = kit(c);
@@ -889,6 +996,8 @@ export const FEATURE_DRAWERS: Readonly<Record<string, FeatureDraw>> = {
   fieldstones,
   outcrop: oreOutcrop,
   deadfall,
+  shrine,
+  undertow,
 };
 
 export function featureDrawer(look: string): FeatureDraw {

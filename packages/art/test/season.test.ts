@@ -159,6 +159,15 @@ describe('settlements', () => {
   it('draws a card icon', () => {
     within(drawSettlementIcon(SPRING, 96, { look: 'hill-folk', attitude: 'angry' }));
   });
+
+  it('draws the river folk on stilts, apart from the hill folk in every attitude', () => {
+    for (const attitude of ['wary', 'friendly', 'angry'] as const) {
+      const river = settlement({ look: 'river-folk', attitude });
+      within(river);
+      expect(toSvgString(river)).not.toBe(toSvgString(settlement({ attitude })));
+      within(drawSettlementIcon(SPRING, 96, { look: 'river-folk', attitude }));
+    }
+  });
 });
 
 describe('threats and settlements in the scene', () => {
