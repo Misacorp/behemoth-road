@@ -643,7 +643,7 @@ export const characterSize = (back: boolean): { width: number; height: number } 
   height: CHARACTER_SIZE.height,
 });
 
-function BackButton({
+export function BackButton({
   onBack,
   buttonRef,
 }: {
@@ -1194,3 +1194,106 @@ export function SettlementCard({ settlement }: { settlement: SettlementInfo }): 
     </g>
   );
 }
+
+/** One thing on a shared tile, as a round bubble: its own drawing, no text. */
+export interface PickBubble {
+  /** Its key among the bubbles (`me`, `character:id`, `threat:id`, `tile`). */
+  readonly key: string;
+  readonly kind: 'character' | 'threat' | 'tile';
+  /** A character's accent and look. */
+  readonly accent?: string;
+  readonly look?: CharacterLook | undefined;
+  /** A threat's content icon and type (for its tip). */
+  readonly threat?: { readonly icon: string; readonly type: string };
+  /** The tile: a settlement's drawing, or the ground with its revealed feature. */
+  readonly settlement?: SettlementInfo | null;
+  readonly terrain?: string;
+  readonly feature?: FeatureArt | null;
+  /** Your own character: its bubble carries a ring. */
+  readonly mine?: boolean;
+}
+
+const BUBBLE_D = 44;
+const BUBBLE_GAP = 6;
+
+/** The picker's size: the bubbles side by side. */
+export const pickSize = (count: number): { width: number; height: number } => ({
+  width: count * BUBBLE_D + (count - 1) * BUBBLE_GAP,
+  height: BUBBLE_D,
+});
+
+/**
+ * Choosing among several things on one tile: a round bubble for each (a character's figure, a threat, the
+ * settlement or feature), side by side. A bubble is a button: a tap opens that thing's card, a hold shows its tip.
+ */
+export function Picker({
+  bubbles,
+  onPick,
+  firstRef,
+}: {
+  bubbles: readonly PickBubble[];
+  onPick: (key: string) => void;
+  firstRef: (el: SVGGElement | null) => void;
+}): JSX.Element {
+  const r = BUBBLE_D / 2;
+  return (
+    <g data-popover="pick">
+      {bubbles.map((b, i) => {
+        const open = (): void => onPick(b.key);
+        const tip = b.kind === 'threat' && b.threat ? tipFor('threat', b.threat.type) : null;
+        return (
+          <g
+            key={b.key}
+            {...(i === 0 ? { ref: firstRef } : {})}
+            class="svg-button"
+            role="button"
+            tabindex={0}
+            aria-label={b.kind}
+            data-pick={b.key}
+            transform={`translate(${i * (BUBBLE_D + BUBBLE_GAP)} 0)`}
+            {...tipProps(tip)}
+            onClick={open}
+            onKeyDown={(e: KeyboardEvent) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                open();
+              }
+            }}
+          >
+            <circle cx={r} cy={r} r={r} fill={PALETTE.paperDeep} />
+            <circle
+              cx={r}
+              cy={r}
+              r={r - 0.6}
+              fill={PALETTE.paper}
+              stroke={b.mine ? PALETTE.ink : PALETTE.inkSoft}
+              stroke-width={b.mine ? 2 : 1.2}
+            />
+            {b.kind === 'character' && b.accent && (
+              <Fitted drawn={bubbleFigure(b.accent, b.look)} x={9} y={3} width={26} height={38} />
+            )}
+            {b.kind === 'threat' && b.threat && <g>{toPreact(pickThreat(b.threat.icon))}</g>}
+            {b.kind === 'tile' &&
+              (b.settlement ? (
+                <SettlementFigure settlement={b.settlement} x={5} y={5} size={34} />
+              ) : (
+                <Miniature
+                  terrain={b.terrain ?? 'unknown'}
+                  state="seen"
+                  x={4}
+                  y={7}
+                  feature={b.feature ?? null}
+                  scale={0.56}
+                />
+              ))}
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
+const pickThreat = (icon: string) => {
+  const drawn = drawThreatIcon(icon, PALETTE, 36);
+  return { ...drawn, attrs: { ...drawn.attrs, x: 4, y: 4 } };
+};

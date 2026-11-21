@@ -21,8 +21,9 @@
  *    (more deep tombs, ore and fieldstones; cheaper hook; shorter builds).
  * 11: swamp (2 actions a step on foot) and the marsh boards replace slower sand
  *    and the sand sledge; shrine, undertow and river folk also fit swamp.
+ * 12: settlements only appear on unexplored hexes (settlement placement changed).
  */
-export const CONTENT_VERSION = 11;
+export const CONTENT_VERSION = 12;
 
 /** Content versions this code can load. */
 export const KNOWN_CONTENT_VERSIONS: readonly number[] = [CONTENT_VERSION];

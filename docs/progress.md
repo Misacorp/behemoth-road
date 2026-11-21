@@ -11,6 +11,8 @@ What has landed and what is next. Newest first. Update it when a step lands or t
 
 ## Done
 
+- 2026-11-21: Threat fixes from the staging playtest (`r2/threat-fixes`): settlements no longer appear on explored hexes; a tile with several things (characters, a threat, a settlement or feature) opens a picker of round bubbles with a back from each card; a selected threat marks its end hex and the creature when it will strike at the next tick.
+
 - 2026-11-21: Creature rules and chain pacing (`r2/creature`, content version 10): fires steer sideways only, with several fires adding up by side (decisions in `product.md`); hunger drains every day with forage nourishing 4, on a doubled satiety scale (0 to 20) so the feeding workload is unchanged; a seeded pacing measure (`packages/core/scripts/pacing.ts`) and a chain retune that brings the climbing spikes from a median of day 43 to day 24; careful full seasons 76 / 9 / 16 % (3 players) and 71 / 12 / 18 % (6) safe / wounded / lost over 200 seeds (before: 73 / 10 / 17 and 71 / 12 / 18); fixtures recaptured.
 
 - 2026-11-21: Greyed actions and defence (`r2/web`): a tap on a greyed action (cards and hub rows) shows a one-line reason from the core's refusal and never acts; the defended creature shows shields on its hub card and against a threat's strength marks, with tips. Decisions in `product.md`.

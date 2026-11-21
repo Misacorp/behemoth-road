@@ -1101,6 +1101,58 @@ async function run() {
         if (await count('.map-world [data-mark=threat-trail], .map-world [data-mark=threat-end]'))
           problems.push(`${vp.name}: the threat trail stays after its card closes`);
 
+        // The tile picker: you, Ola (a guardian) and a swarm on one tile. A tap shows one round bubble each,
+        // above the tile; a bubble opens its card with a back to the picker.
+        await stage5({
+          role: 'scout',
+          guardianAt: { q: 1, r: 2 },
+          threats: [{ type: 'swarm', at: { q: 1, r: 2 }, strength: 3 }],
+        });
+        {
+          const [hx, hy] = await offset({ q: 1, r: 2 });
+          await tap(hx, hy);
+          if (!(await has('pick'))) problems.push(`${vp.name}: no picker on a shared tile`);
+          if ((await count('[data-popover=pick] [data-pick]')) !== 3)
+            problems.push(`${vp.name}: the picker is not one bubble per thing`);
+          const box = await page.locator('[data-popover=pick]').boundingBox();
+          if (box && !(box.y + box.height <= hy + 4))
+            problems.push(`${vp.name}: the picker is not above the tile`);
+          await holdAll('pick');
+          await shot5('07-picker');
+          await page.locator('[data-pick="threat:threat-1"]').click();
+          await page.waitForTimeout(300);
+          if (!(await has('threat')))
+            problems.push(`${vp.name}: the swarm's bubble opened no card`);
+          if (!(await count('[data-popover=threat] [data-action=strike]')))
+            problems.push(`${vp.name}: no strike on the card opened from the picker`);
+          if (!(await count('[data-back]')))
+            problems.push(`${vp.name}: the card from the picker has no back`);
+          await shot5('07b-picker-threat');
+          await page.locator('[data-back]').first().click();
+          await page.waitForTimeout(300);
+          if (!(await has('pick'))) problems.push(`${vp.name}: back did not return to the picker`);
+          await page.keyboard.press('Escape');
+          await page.waitForTimeout(200);
+        }
+        // Near the top of the screen there is no room above: the bubbles open below the tile.
+        await stage5({
+          role: 'scout',
+          guardianAt: { q: 0, r: -5 },
+          threats: [{ type: 'swarm', at: { q: 0, r: -5 }, strength: 3 }],
+        });
+        {
+          const [hx, hy] = await offset({ q: 0, r: -5 });
+          await tap(hx, hy);
+          if (!(await has('pick')))
+            problems.push(`${vp.name}: no picker on a shared tile at the top`);
+          const box = await page.locator('[data-popover=pick]').boundingBox();
+          if (box && !(box.y >= hy - 4))
+            problems.push(`${vp.name}: the picker did not flip below a tile near the top`);
+          await shot5('07c-picker-below');
+          await page.keyboard.press('Escape');
+          await page.waitForTimeout(200);
+        }
+
         // A wary settlement where you stand: parley with the risk mark (a scout), and an offer of old coin.
         await stage5({
           role: 'scout',
