@@ -398,7 +398,8 @@ async function run() {
         await shotT(name);
         await endTip();
         if (cdp0) {
-          // On touch a held tip stays to be read after the finger lifts; the next tap anywhere closes it.
+          // On touch a held tip stays to be read after the finger lifts, with no timer; the next tap closes it.
+          await page.waitForTimeout(4500);
           if (!(await page.locator('.tip').count()))
             problems.push(`${vp.name}: the tip on ${selector} closed when the finger lifted`);
           // Escape closes a tip left to be read (a tap on the day would open its own tip).

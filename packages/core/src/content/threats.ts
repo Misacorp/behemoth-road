@@ -28,6 +28,13 @@ export interface ThreatType {
    * ambush in the forest). Absent: anywhere but water.
    */
   readonly on?: readonly string[];
+  /**
+   * How far from where it stands it strikes: the creature when its footprint
+   * lies within `reach` hexes of it (a moving threat stops there), and characters
+   * on a hex within `reach` of it. 1: next to it. 0: only on its own hex (a
+   * hazard that strikes whoever walks into it, never its neighbours).
+   */
+  readonly reach: number;
   /** How often the daily roll picks it; 0 means never rolled. */
   readonly weight: number;
 }
@@ -41,6 +48,7 @@ export const THREAT_TYPES: readonly ThreatType[] = [
     strength: 3,
     speed: 2,
     approach: 'behind',
+    reach: 1,
     weight: 1,
   },
   {
@@ -51,6 +59,7 @@ export const THREAT_TYPES: readonly ThreatType[] = [
     strength: 2,
     speed: 2,
     approach: 'flank',
+    reach: 1,
     weight: 1,
   },
   {
@@ -61,6 +70,7 @@ export const THREAT_TYPES: readonly ThreatType[] = [
     strength: 3,
     speed: 0,
     approach: 'path',
+    reach: 0,
     weight: 1,
   },
   // Added with content version 9: the same behaviour as the first three, other data.
@@ -72,6 +82,7 @@ export const THREAT_TYPES: readonly ThreatType[] = [
     strength: 2,
     speed: 1,
     approach: 'flank',
+    reach: 1,
     on: ['wooded'],
     weight: 0.5,
   },
@@ -83,6 +94,7 @@ export const THREAT_TYPES: readonly ThreatType[] = [
     strength: 1,
     speed: 2,
     approach: 'behind',
+    reach: 1,
     on: ['open'],
     weight: 0.5,
   },
@@ -94,6 +106,7 @@ export const THREAT_TYPES: readonly ThreatType[] = [
     strength: 2,
     speed: 1,
     approach: 'sent',
+    reach: 1,
     weight: 0,
   },
 ];

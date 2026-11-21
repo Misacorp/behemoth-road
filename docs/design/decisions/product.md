@@ -4,6 +4,30 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-21: Tips have no timer: they stay until the next tap **[Misa]**
+
+ID: `2026-11-21-tips-have-no-timer-they-stay` · Status: current · Amends: `2026-11-20-icons-that-are-not-buttons-show`
+
+**Decision.** The auto-close (`stayMs`) is gone. A held or tapped tip stays open until the player's next tap (which closes it and still goes through to whatever it lands on; a tap on empty map only closes it, and if a popover is open the popover rule applies to that same tap), Escape or a wheel turn. A hover tip on desktop still closes when the mouse leaves.
+
+**Reasoning.** Misa's playtest: a tip that vanished on a timer was gone before it was read. Closing on the next tap needs no extra state: the press-anywhere handler already closes it.
+
+## 2026-11-21: A tap elsewhere only closes an open popover **[Misa]**
+
+ID: `2026-11-21-a-tap-elsewhere-only-closes-an` · Status: current · Amends: `2026-11-20-only-passing-help-may-cover-a`
+
+**Decision.** A popover is open to be looked at: an inspect card, the picker, a character, threat, settlement or creature card, and the bubble when it did not also select you. A tap anywhere else on the map closes it and does nothing more; a second tap opens what it lands on. A selection in progress is not a popover: selected, planned, out-of-reach and the bubble that also selected you (you ride, with actions left). The next tap goes on through a selection (plan a destination, change it, let go), so the move flow (select, tap destination, arrow and cost, confirm) is unchanged. Taps inside a popover, HUD buttons and drawers never reach the map's tap, so they still act with one tap. In code: `isPopover` in `map/flow.ts`.
+
+**Reasoning.** Misa's playtest: tapping elsewhere both closed a card and opened another, which was hard to follow. Selection states are a mode the player chose, not a card in the way, so they keep acting on taps.
+
+## 2026-11-21: A rockslide strikes only its own hex (threat reach) **[Misa]**
+
+ID: `2026-11-21-a-rockslide-strikes-only-its-own` · Status: current · Amends: `2026-11-20-threats-are-tagged-data-that-appear`
+
+**Decision.** Threat types get a data field `reach`: how far from its hex it strikes. Every type keeps reach 1 (next to it), except the rockslide, reach 0. A threat strikes the creature when it is within `creatureRadius + reach` of its centre (a moving threat stops there) and characters standing within `reach` of it (guardians and the escorted spared, riders never). So a rockslide never strikes its neighbours: it strikes the creature only when the footprint covers its hex (strength as a strike, defence applies), and a character only on its own hex. Walking into a rockslide hex (`hazardAt`) stops the walk and ends the day, like a trap; the tick then strikes whoever still stands there. The interface shows a coral outline and strike badge on a planned path's hex that holds a rockslide, and the creature's arrival mark appears when its straight-on guess covers it. Content version 13. Careful full seasons over 200 seeds, safe / wounded / lost (3 players; 6 players): 75/12/14 and 65/9/27 (version 11: 75/11/14 and 74/12/14); dev seasons 97/4/0 and 94/6/1; careless parties still lose every full season (dev: 71 % and 93 % lost).
+
+**Reasoning.** Misa's playtest: a character beside a rockslide was struck at the new day. A hazard that waits should hurt whoever walks into it, not whoever stands near. The rule is data (`reach`), not a check on the id. The rockslide also now warns one day later (its arrival mark shows when the creature is one step from covering it), which is the likely cause of the lower 6-player result; still inside the goal of at most 30 % lost.
+
 ## 2026-11-21: The scripted chain reaches the climbing spikes about twice as fast **[Misa]**
 
 ID: `2026-11-21-the-scripted-chain-reaches-the-climbing` · Status: current
@@ -110,7 +134,7 @@ ID: `2026-11-21-a-player-roster-drawer-finds-each` · Status: current
 
 ## 2026-11-20: Icons that are not buttons show their tip on a tap **[Misa]**
 
-ID: `2026-11-20-icons-that-are-not-buttons-show` · Status: current
+ID: `2026-11-20-icons-that-are-not-buttons-show` · Status: current, amended by `2026-11-21-tips-have-no-timer-they-stay`
 
 **Decision.** An icon that is not a button (emblems, tile pictures, cost and material icons, the eye, counts) opens its tip on a single tap, touch or mouse, and the tip stays like a held one (`stayMs`, or until the next tap elsewhere, which still acts). Buttons keep tap = act and long press = tip. One document-level rule decides it (a `[data-tip]` with no button, link, option or `data-action` on it or above it, or `data-tip-tap`). A long press never closes or acts on anything: touch `contextmenu` is ignored, a press held past `holdMs` is never a tap, and its click is dropped.
 
@@ -226,7 +250,7 @@ ID: `2026-11-20-action-costs-are-drawn-as-arrows` · Status: current, amended by
 
 ## 2026-11-20: Only passing help may cover a popup; interactions continue inside it or in a drawer **[Misa]**
 
-ID: `2026-11-20-only-passing-help-may-cover-a` · Status: current, amended by `2026-11-20-following-the-popup-rule-a-rider` · Amends: `2026-11-19-one-overlay-at-a-time`
+ID: `2026-11-20-only-passing-help-may-cover-a` · Status: current, amended by `2026-11-20-following-the-popup-rule-a-rider`, `2026-11-21-a-tap-elsewhere-only-closes-an` · Amends: `2026-11-19-one-overlay-at-a-time`
 
 **Decision.** A popup may be covered only by passing, non-interactive help, such as tips. Anything that needs the player's interaction continues **inside the same popup**, wizard-style, with a back button at its top left, or opens the **drawer** while the popup stays open to show the target of the interaction. In particular, an action that needs a choice or configuration from the player (which unlock, which boon, which character) follows this pattern instead of opening another popup over the first.
 
@@ -405,7 +429,7 @@ ID: `2026-11-20-milestone-5-core-readings-of-the` · Status: current
 
 ## 2026-11-20: Threats are tagged data that appear at the window's edge and walk in openly
 
-ID: `2026-11-20-threats-are-tagged-data-that-appear` · Status: current, amended by `2026-11-20-threats-are-telegraphed-a-wider-window`
+ID: `2026-11-20-threats-are-tagged-data-that-appear` · Status: current, amended by `2026-11-20-threats-are-telegraphed-a-wider-window`, `2026-11-21-a-rockslide-strikes-only-its-own`
 
 **Decision.** Milestone 5's attack system (`docs/design/m5-season.md`): threat types in content with strength, speed, approach and weight (a captor band from behind, a pterodactyl swarm from the flanks, a rockslide on the path ahead, raiders from an angered settlement). Threats are public from the moment they appear; their approach is the forecast. They move after the creature's step, strike the creature at contact (peril rises by strength less defence) and strike unescorted characters within one hex (one action the next day). Appearance chance and strength scale with active players and days, from the tuning config. Terrain does not slow threats yet.
 

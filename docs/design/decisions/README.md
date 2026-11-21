@@ -121,6 +121,9 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-21 Tips have no timer: they stay until the next tap \[Misa\]
+- 2026-11-21 A tap elsewhere only closes an open popover \[Misa\]
+- 2026-11-21 A rockslide strikes only its own hex (threat reach) \[Misa\]
 - 2026-11-21 The scripted chain reaches the climbing spikes about twice as fast \[Misa\]
 - 2026-11-21 Hunger drains every day and food restores more \[Misa\]
 - 2026-11-21 Fires steer the creature sideways only, and several fires add up by side \[Misa\]
@@ -134,7 +137,7 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-21 Content version 9 balance: stampede strength 1, ambush and stampede weights halved
 - 2026-11-21 More content for playtests: ambush, stampede, river folk, sunken shrine, undertow, sand sledge (amended)
 - 2026-11-21 A player roster drawer finds each player's character on the map
-- 2026-11-20 Icons that are not buttons show their tip on a tap \[Misa\]
+- 2026-11-20 Icons that are not buttons show their tip on a tap \[Misa\] (amended)
 - 2026-11-20 Verb labels under actions are on by default \[Misa\]
 - 2026-11-20 The map is framed between the top HUD and the pips; the first view looks ahead of the creature
 - 2026-11-20 Threats grow stronger every 14 days, not 10

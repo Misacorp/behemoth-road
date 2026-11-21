@@ -7,8 +7,8 @@
  *   (for example "Scout" or "Iron").
  * - `delays` sets how long the pointer must rest on an icon before its tip opens, in milliseconds, for each
  *   group of icons. One entry can wait longer or shorter with its own `delayMs`.
- * - `holdMs` is how long a finger must press before the tip opens on a phone, and `stayMs` how long it
- *   stays after the finger lifts (a tap anywhere closes it sooner).
+ * - `holdMs` is how long a finger must press before the tip opens on a phone. A tip then stays until
+ *   the next tap anywhere (there is no timer); a mouse tip closes when the mouse leaves.
  * - Numbers come from the game's rules: write a placeholder in curly brackets, such as {packSize} or
  *   {surveyCost.scout}, and the tip shows the current number in its place. Then a change to the rules never
  *   leaves a tip saying something old. The placeholders you can use are listed in `tipValues.ts` next to
@@ -41,9 +41,6 @@ export const delays = {
 
 /** How long a finger presses before the tip opens on a touch screen, in milliseconds. */
 export const holdMs = 450;
-
-/** On a touch screen, how long a tip stays after the finger lifts (a tap anywhere closes it sooner), in ms. */
-export const stayMs = 4000;
 
 export const tips = {
   // Roles (the six emblems).
@@ -229,7 +226,7 @@ export const tips = {
     text: 'Flies in from the side. Fast, but weaker. Tap it to see its next step.',
   },
   'threat:rockslide': {
-    text: 'Blocks the path ahead. Steer around it with fires, or strike it apart.',
+    text: 'Harms whoever walks into it, and the creature if it passes over. Steer around it with fires, or strike it apart.',
   },
   'threat:ambush': {
     text: 'Lies in wait among the trees. Slow, but close. Tap it to see its next step.',

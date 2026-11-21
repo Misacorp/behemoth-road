@@ -47,7 +47,7 @@ export type PathResult<S extends GameStateView = GameStateView> =
       readonly state: S;
       /** What happened on the way: reveals, a scout's glints, a trap. */
       readonly events: readonly GameEvent[];
-      /** Set when a hidden trap stopped the walk at that step (the rest was not taken). */
+      /** Set when a hidden trap or a hazard stopped the walk at that step (the rest was not taken). */
       readonly stopped: { readonly step: number; readonly reason: 'trap' } | null;
     }
   | {

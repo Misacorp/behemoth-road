@@ -5,6 +5,13 @@
  * it and a way into the hub (the creature card in Milestone 1); if you ride, the same tap also selects you.
  * Tapping elsewhere changes or cancels the plan before anything is spent; a tap on a hex it cannot reach
  * shows the out-of-reach mark, and a second tap there looks at it. Every rule check goes through the core.
+ *
+ * Two kinds of open state. A popover (`isPopover`: a hex's inspect card, the picker, a character, threat,
+ * settlement or creature card, the bubble when it is only a look) is looked at: a tap anywhere else on the
+ * map just closes it, and a second tap opens whatever it lands on. A selection in progress (`isSelecting`:
+ * selected, planned, out-of-reach, and the bubble that also selected you) is a mode: the next tap goes on
+ * through it (plan a destination, change it, let go). Taps inside a popover (its bubbles, back, buttons)
+ * and the HUD and drawers never reach `tap`.
  */
 import {
   findCharacter,
@@ -70,6 +77,9 @@ export const isSelecting = (flow: Flow): boolean =>
   flow.kind === 'planned' ||
   flow.kind === 'out-of-reach' ||
   (flow.kind === 'bubble' && flow.selecting);
+
+/** Whether a popover is open only to be looked at: the next map tap closes it and does nothing more. */
+export const isPopover = (flow: Flow): boolean => flow.kind !== 'idle' && !isSelecting(flow);
 
 /**
  * Looking at a hex: a settlement's card on a settlement, else the inspect card. The same tap again closes it.
@@ -181,6 +191,8 @@ function shareOf(flow: Flow, state: GameStateView, characterId: string, hex: Hex
 
 /** What a tap does. */
 export function tap(flow: Flow, state: GameStateView, characterId: string, target: Target): Flow {
+  // A popover being looked at: the tap closes it and nothing more (a second tap opens what it lands on).
+  if (isPopover(flow)) return IDLE;
   const me = findCharacter(state, characterId);
   const active = me?.status === 'active';
   const mine: Place | null = active ? me.at : null;

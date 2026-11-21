@@ -39,8 +39,12 @@ export const threatType = (id: string): ThreatType => {
   return type;
 };
 
-/** Distance from the creature's centre at which a threat strikes it: next to the footprint. */
-export const contactDistance = (state: GameStateView): number => state.config.creatureRadius + 1;
+/**
+ * Distance from the creature's centre at which a threat of a type strikes it:
+ * `reach` hexes beyond the footprint (next to it, or on it for a reach of 0).
+ */
+export const contactDistance = (state: GameStateView, type: ThreatType): number =>
+  state.config.creatureRadius + type.reach;
 
 export const activeCount = (state: GameStateView): number =>
   state.characters.filter((c) => c.status === 'active').length;
@@ -70,10 +74,11 @@ export const stepToward = (from: Hex, to: Hex): Hex => {
  * stopping at contact. Empty when it does not move.
  */
 export const threatPath = (state: GameStateView, threat: Threat, centre: Hex): Hex[] => {
-  const contact = contactDistance(state);
+  const type = threatType(threat.type);
+  const contact = contactDistance(state, type);
   const path: Hex[] = [];
   let at = threat.hex;
-  for (let i = 0; i < threatType(threat.type).speed; i++) {
+  for (let i = 0; i < type.speed; i++) {
     if (hexDistance(at, centre) <= contact) break;
     at = stepToward(at, centre);
     path.push(at);
@@ -156,20 +161,30 @@ export const isEscorted = (state: GameStateView, h: Hex): boolean =>
   );
 
 /**
- * The characters a threat on `at` strikes: every active one on a hex within 1
- * of it (not on the creature's footprint), unless a guardian or escorted. Riders
- * are never struck.
+ * The characters a threat on `at` strikes: every active one on a hex within its
+ * `reach` of it (not on the creature's footprint), unless a guardian or escorted.
+ * Riders are never struck. A reach of 0 strikes only those standing on its hex.
  */
-export const struckBy = (state: GameStateView, at: Hex): Character[] =>
+export const struckBy = (state: GameStateView, at: Hex, reach: number): Character[] =>
   state.characters.filter(
     (c) =>
       c.status === 'active' &&
       c.at.kind === 'hex' &&
       !isCreatureHex(state, c.at.hex) &&
-      hexDistance(c.at.hex, at) <= 1 &&
+      hexDistance(c.at.hex, at) <= reach &&
       !roleHas(c, ESCORT_TAG) &&
       !isEscorted(state, c.at.hex),
   );
+
+/**
+ * The hazard on a hex a character is about to walk into: a threat standing there that strikes only its own
+ * hex (reach 0, a rockslide), unless the character is a guardian or escorted. Null when the way is safe.
+ */
+export const hazardAt = (state: GameStateView, characterId: string, h: Hex): Threat | null => {
+  const character = state.characters.find((c) => c.id === characterId);
+  if (!character || roleHas(character, ESCORT_TAG) || isEscorted(state, h)) return null;
+  return state.threats.find((t) => hexEquals(t.hex, h) && threatType(t.type).reach === 0) ?? null;
+};
 
 /** How much the creature's defenders take off each strike: per defender still riding. */
 export const defence = (state: GameStateView): number =>
@@ -214,11 +229,11 @@ export interface ThreatOutlook {
  * real step, like `predictCreature`: it reads only the public view.
  */
 export const threatOutlook = (state: GameStateView): ThreatOutlook[] => {
-  const contact = contactDistance(state);
   const { heading } = state.creature;
   // Far enough to settle any threat: it either closes in, falls out of the window or stalls.
   const horizon = 4 * (state.config.windowRadius + 1);
   return state.threats.map((threat) => {
+    const contact = contactDistance(state, threatType(threat.type));
     let centre = nextCentreGuess(state);
     let at = threat.hex;
     let next: Hex | null = null;

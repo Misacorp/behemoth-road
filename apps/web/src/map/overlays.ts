@@ -34,6 +34,7 @@ import {
   checkAction,
   creatureHexes,
   featureType,
+  hazardAt,
   hexDistance,
   hexesInRange,
   hexKey,
@@ -304,6 +305,25 @@ function pathArrow(i: OverlayInput, from: Point, steps: readonly PathStep[]): Sv
     out.push(...pips(i, { x: midpoint.x, y: midpoint.y - 12 * k }, step.cost));
   });
   return out;
+}
+
+/**
+ * The danger cue on a planned path: a hex it walks into that holds a hazard (a rockslide strikes whoever
+ * enters its hex) is outlined in coral under a strike badge, the same cue as a threat arriving.
+ */
+function pathDanger(i: OverlayInput, steps: readonly PathStep[]): SvgNode[] {
+  const p = i.projection;
+  const coral = i.palette.accents.coral.shade;
+  return steps.flatMap((step) => {
+    if (step.place.kind !== 'hex' || !hazardAt(i.state, i.characterId, step.place.hex)) return [];
+    const c = hexCenter(p, step.place.hex.q, step.place.hex.r);
+    return [
+      el('g', { 'data-mark': 'path-danger' }, [
+        hexOutline(i, step.place.hex, coral, 3.4),
+        iconAt(i, 'strike', { x: c.x, y: c.y - 0.9 * p.size }, atLeast(i, 0.8 * p.size, 24)),
+      ]),
+    ];
+  });
 }
 
 /**
@@ -689,6 +709,7 @@ export function buildOverlays(i: OverlayInput): Overlays {
       ),
     );
     over.push(...pathArrow(i, feet, i.flow.steps));
+    over.push(...pathDanger(i, i.flow.steps));
   }
   // The threat whose card is open, or the one on your hex while you are selected (its card is in the here card).
   const looked =

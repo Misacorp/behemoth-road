@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { delays, holdMs, stayMs } from '../text/tips.ts';
+import { delays, holdMs } from '../text/tips.ts';
 import { delayOf, HOLD_SLOP, type OpenTip, TipController, tipFor } from './tip.ts';
 
 /** A controller on fake timers: `advance(ms)` runs what is due. */
@@ -90,11 +90,11 @@ describe('tips', () => {
     expect(c.takeClick({})).toBe(false);
     expect(c.takeClick(button.self)).toBe(true);
     expect(c.takeClick(button.self)).toBe(false);
-    // It stays to be read after the finger lifts, then goes by itself.
+    // It stays to be read after the finger lifts: no timer closes it, only the next tap.
     expect(c.open?.id).toBe('action:survey');
-    advance(stayMs - 1);
+    advance(600_000);
     expect(c.open?.id).toBe('action:survey');
-    advance(1);
+    c.close();
     expect(c.open).toBeNull();
   });
 
@@ -129,12 +129,12 @@ describe('tips', () => {
     expect(c.open).toBeNull();
   });
 
-  it('a tapped tip stays for stayMs, then goes by itself', () => {
+  it('a tapped tip has no timer: it stays until the next tap', () => {
     const { c, advance } = setup();
     c.tap('hud:day', at);
-    advance(stayMs - 1);
+    advance(600_000);
     expect(c.open?.id).toBe('hud:day');
-    advance(2);
+    c.close();
     expect(c.open).toBeNull();
   });
 
@@ -199,8 +199,8 @@ describe('tips', () => {
     // Only the held thing's own click, once, is still swallowed.
     expect(c.takeClick(held.self)).toBe(true);
     expect(c.takeClick(held.self)).toBe(false);
-    // The stay timer died with the tip: nothing closes or reopens later.
-    advance(stayMs);
+    // Nothing closes or reopens later.
+    advance(600_000);
     expect(c.open).toBeNull();
   });
 });

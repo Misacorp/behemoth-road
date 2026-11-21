@@ -71,7 +71,7 @@ describe('threat movement', () => {
   });
 
   it('strikes a creature that walks into it', () => {
-    const state = withThreat(fieldGame(['rider'], STRAIGHT), 'rockslide', hex(0, -3), 3);
+    const state = withThreat(fieldGame(['rider'], STRAIGHT), 'rockslide', hex(0, -2), 3);
     const next = nextDayWithEvents(state);
     expect(ofKind(next.events, 'threat-strikes')).toEqual([
       { kind: 'threat-strikes', id: 'xrockslide', damage: 3 },
@@ -103,19 +103,19 @@ describe('defence', () => {
 });
 
 describe('striking characters', () => {
-  // A rockslide 4 hexes east-north-east, which never moves: (3, -1) and (4, -1) are next to it.
-  const SLIDE = hex(4, -2);
+  // An ambush (reach 1) at (0, 4) steps to (0, 3) and strikes everyone within 1 of it.
+  const AMBUSH = hex(0, 4);
   const near = (roles: string[], places: Record<string, ReturnType<typeof hex>>) => {
-    let state = withThreat(lingering(fieldGame(roles)), 'rockslide', SLIDE, 3);
+    let state = withThreat(lingering(fieldGame(roles)), 'ambush', AMBUSH, 3);
     for (const [id, h] of Object.entries(places)) state = placeCharacter(state, id, h);
     return nextDayWithEvents(state);
   };
 
-  it('strikes everyone within 1; they start the next day with struckActions', () => {
-    const next = near(['scout', 'scholar', 'keeper'], { scout: hex(3, -1), scholar: hex(4, -2) });
+  it('strikes everyone within its reach; they start the next day with struckActions', () => {
+    const next = near(['scout', 'scholar', 'keeper'], { scout: hex(-1, 4), scholar: hex(0, 3) });
     expect(ofKind(next.events, 'struck')).toEqual([
-      { kind: 'struck', characterId: 'scout', threat: 'xrockslide' },
-      { kind: 'struck', characterId: 'scholar', threat: 'xrockslide' },
+      { kind: 'struck', characterId: 'scout', threat: 'xambush' },
+      { kind: 'struck', characterId: 'scholar', threat: 'xambush' },
     ]);
     const actions = Object.fromEntries(next.state.characters.map((c) => [c.id, c.actionsLeft]));
     // The keeper rode: riders are never struck.
@@ -128,17 +128,54 @@ describe('striking characters', () => {
 
   it('spares guardians and anyone they escort', () => {
     const next = near(['guardian', 'scout', 'scholar'], {
-      guardian: hex(3, -1),
-      scout: hex(3, 0),
-      scholar: hex(5, -2),
+      guardian: hex(-1, 4),
+      scout: hex(-1, 5),
+      scholar: hex(1, 3),
     });
-    // The scout stands beside the guardian; the scholar, beside the slide, is out of escort.
+    // The scout stands beside the guardian; the scholar, beside the ambush, is out of escort.
     expect(ofKind(next.events, 'struck').map((e) => e.characterId)).toEqual(['scholar']);
   });
 
   it('is not escorted by a guardian who rides', () => {
-    const next = near(['guardian', 'scout'], { scout: hex(3, -1) });
+    const next = near(['guardian', 'scout'], { scout: hex(-1, 4) });
     expect(ofKind(next.events, 'struck').map((e) => e.characterId)).toEqual(['scout']);
+  });
+
+  it('strikes with a reach of 0 only a character on its own hex, never its neighbours', () => {
+    expect(type('rockslide').reach).toBe(0);
+    const SLIDE = hex(4, -2);
+    let state = withThreat(
+      lingering(fieldGame(['scout', 'scholar', 'keeper'])),
+      'rockslide',
+      SLIDE,
+      3,
+    );
+    state = placeCharacter(state, 'scout', hex(3, -1));
+    state = placeCharacter(state, 'scholar', SLIDE);
+    const next = nextDayWithEvents(state);
+    expect(ofKind(next.events, 'struck')).toEqual([
+      { kind: 'struck', characterId: 'scholar', threat: 'xrockslide' },
+    ]);
+    expect(next.state.characters.find((c) => c.id === 'scout')?.actionsLeft).toBe(3);
+  });
+
+  it('does not strike the creature from beside a rockslide, only when its footprint reaches it', () => {
+    const { creatureRadius } = fieldGame(['a']).config;
+    // Walking north the creature's centre ends at (0, -1): a slide at distance radius is on its footprint.
+    const onIt = withThreat(
+      fieldGame(['rider'], STRAIGHT),
+      'rockslide',
+      hex(0, -1 - creatureRadius),
+      3,
+    );
+    expect(ofKind(nextDayWithEvents(onIt).events, 'threat-strikes')).toHaveLength(1);
+    const beside = withThreat(
+      fieldGame(['rider'], STRAIGHT),
+      'rockslide',
+      hex(0, -2 - creatureRadius),
+      3,
+    );
+    expect(ofKind(nextDayWithEvents(beside).events, 'threat-strikes')).toEqual([]);
   });
 });
 
@@ -261,7 +298,7 @@ describe('the threat outlook', () => {
     let state = fieldGame(['a']);
     state = withThreat(state, 'captors', hex(0, 5), 3, 'behind');
     state = withThreat(state, 'swarm', hex(0, 3), 2, 'close');
-    state = withThreat(state, 'rockslide', hex(0, -4), 3, 'ahead');
+    state = withThreat(state, 'rockslide', hex(0, -3), 3, 'ahead');
     state = withThreat(state, 'rockslide', hex(4, -2), 3, 'aside');
     expect(threatOutlook(toPlayerView(state))).toEqual([
       { id: 'behind', arrives: 'later', next: hex(0, 4) },
@@ -364,5 +401,34 @@ describe('intercepting a threat', () => {
       state = next.state;
     }
     expect(struckOn).toEqual([4]);
+  });
+});
+
+describe('walking into a hazard', () => {
+  const SLIDE = hex(4, -2);
+  const setup = (roles: string[]) => {
+    let state = withThreat(lingering(fieldGame(roles)), 'rockslide', SLIDE, 3);
+    state = placeCharacter(state, roles[0]!, hex(3, -2));
+    return state;
+  };
+
+  it('ends the day at once, then the tick strikes whoever stands there', () => {
+    const state = setup(['scout']);
+    const result = moveAlong(state, 'scout', [SLIDE]);
+    if (!result.ok) throw new Error(result.reason);
+    expect(result.stopped).toEqual({ step: 0, reason: 'trap' });
+    expect(result.state.characters[0]?.actionsLeft).toBe(0);
+    const next = nextDayWithEvents(result.state);
+    expect(ofKind(next.events, 'struck').map((e) => e.characterId)).toEqual(['scout']);
+    expect(next.state.characters[0]?.actionsLeft).toBe(1);
+  });
+
+  it('does not stop a walk beside it, nor a guardian', () => {
+    const beside = moveAlong(setup(['scout']), 'scout', [hex(3, -1)]);
+    if (!beside.ok) throw new Error(beside.reason);
+    expect(beside.stopped).toBeNull();
+    const guardian = moveAlong(setup(['guardian']), 'guardian', [SLIDE]);
+    if (!guardian.ok) throw new Error(guardian.reason);
+    expect(guardian.stopped).toBeNull();
   });
 });

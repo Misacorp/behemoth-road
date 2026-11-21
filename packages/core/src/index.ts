@@ -106,6 +106,7 @@ export {
   leadingEdge,
   PURSUER_TAG,
   stepToward,
+  hazardAt,
   struckBy,
   threatNextPath,
   threatOutlook,

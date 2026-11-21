@@ -30,7 +30,7 @@
     }
   ],
   "game": {
-    "contentVersion": 12,
+    "contentVersion": 13,
     "artSeed": 4242,
     "day": 1,
     "config": {

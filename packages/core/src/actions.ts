@@ -7,6 +7,7 @@ import { depositPack, enterHex, type GameEvent } from './features.ts';
 import type { Hex } from './hex.ts';
 import { recordEvents } from './stats.ts';
 import { terrainOf } from './map.ts';
+import { hazardAt } from './threats.ts';
 import { arePlacesAdjacent, placeNeighbours, toPlace } from './places.ts';
 import { type Character, type GameStateView, isSeasonOver, type Place } from './state.ts';
 import { isCreatureHex, isReachable } from './window.ts';
@@ -27,7 +28,7 @@ export type ActionResult<S extends GameStateView = GameStateView> =
       readonly state: S;
       /** What happened on arrival: reveals, a scout's glints, a trap. */
       readonly events: readonly GameEvent[];
-      /** A hidden trap caught the character here: its day is over. */
+      /** A hidden trap or a hazard (a rockslide) caught the character here: its day is over. */
       readonly trapped: boolean;
     }
   | { readonly ok: false; readonly reason: MoveRefusal };
@@ -138,11 +139,21 @@ export const move = <S extends GameStateView>(
     return { ok: true, state: boarded.state, events: boarded.events, trapped: false };
   }
   const entered = enterHex(stepped.state, characterId, stepped.to.hex);
+  // Walking into a hazard (a rockslide) ends the day like a trap; the tick then strikes whoever still stands there.
+  const hazard = !entered.trapped && hazardAt(entered.state, characterId, stepped.to.hex) !== null;
+  const settled = hazard
+    ? {
+        ...entered.state,
+        characters: entered.state.characters.map((c) =>
+          c.id === characterId ? { ...c, actionsLeft: 0 } : c,
+        ),
+      }
+    : entered.state;
   return {
     ok: true,
-    state: recordEvents(entered.state, entered.events, characterId),
+    state: recordEvents(settled, entered.events, characterId),
     events: entered.events,
-    trapped: entered.trapped,
+    trapped: entered.trapped || hazard,
   };
 };
 

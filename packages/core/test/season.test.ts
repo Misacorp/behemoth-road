@@ -121,7 +121,7 @@ describe('the season', () => {
   const ends = (config: ConfigOverrides, peril: number, threat = false) => {
     const straight = { veerWeights: { left: 0, right: 0 } };
     let state: GameState = { ...fieldGame(['a'], { ...QUIET, ...straight, ...config }), peril };
-    if (threat) state = withThreat(state, 'rockslide', hex(0, -3), 3);
+    if (threat) state = withThreat(state, 'rockslide', hex(0, -2), 3);
     return nextDayWithEvents(state);
   };
 

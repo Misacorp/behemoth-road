@@ -57,6 +57,7 @@ import {
   defence,
   PURSUER_TAG,
   struckBy,
+  threatType,
   threatPath,
   threatStrength,
 } from './threats.ts';
@@ -127,7 +128,6 @@ const threatsAct = (
   readonly events: GameEvent[];
 } => {
   const { centre } = state.creature;
-  const contact = contactDistance(state);
   const events: GameEvent[] = [];
   const moved = state.threats.map((t) => {
     const path = threatPath(state, t, centre);
@@ -140,7 +140,7 @@ const threatsAct = (
   let damage = 0;
   const left: Threat[] = [];
   for (const t of moved) {
-    if (hexDistance(t.hex, centre) <= contact) {
+    if (hexDistance(t.hex, centre) <= contactDistance(state, threatType(t.type))) {
       const hit = Math.max(0, t.strength - guard);
       damage += hit;
       events.push({ kind: 'threat-strikes', id: t.id, damage: hit });
@@ -148,7 +148,7 @@ const threatsAct = (
   }
   const struck = new Set<string>();
   for (const t of left) {
-    for (const c of struckBy(state, t.hex)) {
+    for (const c of struckBy(state, t.hex, threatType(t.type).reach)) {
       struck.add(c.id);
       events.push({ kind: 'struck', characterId: c.id, threat: t.id });
     }

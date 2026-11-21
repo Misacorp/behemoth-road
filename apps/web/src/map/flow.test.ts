@@ -13,7 +13,16 @@ import {
   type GameState,
 } from '@behemoth-road/core';
 import { describe, expect, it } from 'vitest';
-import { confirmMove, type Flow, IDLE, isSelecting, openHub, tap, tapHex } from './flow.ts';
+import {
+  confirmMove,
+  type Flow,
+  IDLE,
+  isPopover,
+  isSelecting,
+  openHub,
+  tap,
+  tapHex,
+} from './flow.ts';
 
 const ME = { kind: 'me' } as const;
 
@@ -106,6 +115,46 @@ describe('move flow', () => {
     const open = tapHex(IDLE, s, ID, h);
     expect(open).toEqual({ kind: 'inspect', hex: h });
     expect(tapHex(open, s, ID, h)).toEqual(IDLE);
+  });
+
+  it('a tap elsewhere closes an open popover and does nothing more; a second tap opens it', () => {
+    const s = game();
+    const a = { q: 3, r: -1 };
+    const b = { q: 2, r: 1 };
+    const open = tapHex(IDLE, s, ID, a);
+    expect(isPopover(open)).toBe(true);
+    expect(tapHex(open, s, ID, b)).toEqual(IDLE);
+    expect(tapHex(tapHex(open, s, ID, b), s, ID, b)).toEqual({ kind: 'inspect', hex: b });
+    // Every looking state closes on any map tap, your own figure and the creature included.
+    const looking: Flow[] = [
+      open,
+      { kind: 'pick', hex: a },
+      { kind: 'character', id: 'other' },
+      { kind: 'threat', id: 'x' },
+      { kind: 'settlement', id: 'x' },
+      { kind: 'creature' },
+      { kind: 'bubble', selecting: false },
+    ];
+    for (const flow of looking) {
+      expect(isPopover(flow)).toBe(true);
+      expect(tapHex(flow, s, ID, b)).toEqual(IDLE);
+      expect(tap(flow, s, ID, ME)).toEqual(IDLE);
+      expect(tap(flow, s, ID, { kind: 'character', id: 'other' })).toEqual(IDLE);
+    }
+  });
+
+  it('a selection in progress is not a popover: the next tap goes on through it', () => {
+    const s = game();
+    for (const flow of [
+      { kind: 'selected' },
+      { kind: 'out-of-reach', hex: { q: 5, r: 5 } },
+      { kind: 'bubble', selecting: true },
+    ] as Flow[]) {
+      expect(isPopover(flow)).toBe(false);
+      expect(isSelecting(flow)).toBe(true);
+    }
+    expect(isPopover(IDLE)).toBe(false);
+    expect(tapHex({ kind: 'selected' }, s, ID, target(s, 1)).kind).toBe('planned');
   });
 
   it('a plan the state no longer allows is refused by the core and spends nothing', () => {

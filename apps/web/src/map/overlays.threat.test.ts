@@ -43,6 +43,48 @@ const marks = (state: ReturnType<typeof game>, flow: Flow): unknown[] =>
     palette: MORNING,
   }).over.map((m) => m.attrs['data-mark']);
 
+describe('the danger cue on a planned path', () => {
+  const planned = (steps: Hex[]): Flow => ({
+    kind: 'planned',
+    to: onHex(steps.at(-1)!),
+    steps: steps.map((h) => ({ place: onHex(h), cost: 1 })),
+    cost: steps.length,
+  });
+
+  it('marks a hex of the path that holds a rockslide, and nothing for other hexes or threats', () => {
+    const slide = game('rockslide', { q: 0, r: 3 });
+    expect(
+      marks(
+        slide,
+        planned([
+          { q: 0, r: 3 },
+          { q: 0, r: 2 },
+        ]),
+      ),
+    ).toContain('path-danger');
+    expect(
+      marks(
+        slide,
+        planned([
+          { q: 1, r: 3 },
+          { q: 1, r: 2 },
+        ]),
+      ),
+    ).not.toContain('path-danger');
+    // A moving threat strikes beside it, not on entering: no cue on its hex.
+    const captors = game('captors', { q: 0, r: 3 });
+    expect(
+      marks(
+        captors,
+        planned([
+          { q: 0, r: 3 },
+          { q: 0, r: 2 },
+        ]),
+      ),
+    ).not.toContain('path-danger');
+  });
+});
+
 describe('a threat sharing your hex, and its next-tick mark', () => {
   it('draws its trail while you are selected on its hex, with no card open', () => {
     const view = game('captors');
@@ -65,7 +107,7 @@ describe('a threat sharing your hex, and its next-tick mark', () => {
   it('rings the hex of a threat that waits when the creature walks into it', () => {
     const { centre, heading } = createGame(1, { characterIds: [ID] }).creature;
     let ahead = centre;
-    for (let i = 0; i < 3; i++) ahead = neighbour(ahead, heading);
+    for (let i = 0; i < 2; i++) ahead = neighbour(ahead, heading);
     const view = game('rockslide', ahead);
     expect(threatNextPath(view, 't1')).toEqual([]);
     expect(threatOutlook(view)[0]!.arrives).toBe('tomorrow');
