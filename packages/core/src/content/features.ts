@@ -68,7 +68,7 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
     name: 'Sturdy river stones',
     tags: ['stone', 'quarry'],
     icon: 'stones',
-    placement: { on: ['water'], near: ['water'], weight: 20 },
+    placement: { on: ['water'], near: ['water'], weight: 10 },
     charges: 3,
     yields: { material: 'stone', amount: 1 },
   },
@@ -88,7 +88,7 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
     name: 'Tomb',
     tags: ['tomb', 'ancient'],
     icon: 'tomb',
-    placement: { on: ['open', 'dry'], weight: 2 },
+    placement: { on: ['open', 'dry'], weight: 1 },
     tier: 1,
     needs: [],
     finds: { material: 'old-coin', amount: 1 },
@@ -99,7 +99,7 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
     name: 'Deep tomb',
     tags: ['tomb', 'ancient', 'dark'],
     icon: 'deep-tomb',
-    placement: { on: ['open', 'dry'], weight: 4 },
+    placement: { on: ['open', 'dry'], weight: 9 },
     tier: 2,
     needs: ['light'],
     finds: { material: 'ancient-alloy', amount: 1 },
@@ -110,7 +110,7 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
     name: 'Snare',
     tags: ['trap', 'hidden'],
     icon: 'snare',
-    placement: { on: ['wooded', 'open'], weight: 2 },
+    placement: { on: ['wooded', 'open'], weight: 1 },
   },
   {
     id: 'pitfall',
@@ -118,7 +118,7 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
     name: 'Pitfall',
     tags: ['trap', 'hidden'],
     icon: 'pitfall',
-    placement: { on: ['open', 'dry'], weight: 2 },
+    placement: { on: ['open', 'dry'], weight: 1 },
   },
   // Last, so adding it left every earlier feature where it was. Weight 10: about
   // 3 bushes in a new game's window and one more every two or three days of walking.
@@ -145,7 +145,7 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
     tags: ['stone', 'quarry'],
     icon: 'fieldstones',
     placement: { on: ['open'], weight: 4 },
-    charges: 2,
+    charges: 3,
     yields: { material: 'stone', amount: 1 },
   },
   {
@@ -154,8 +154,8 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
     name: 'Ore outcrop',
     tags: ['ore', 'mine'],
     icon: 'outcrop',
-    placement: { on: ['open'], weight: 5 },
-    charges: 2,
+    placement: { on: ['open'], weight: 7 },
+    charges: 3,
     yields: { material: 'iron', amount: 1 },
   },
   {
@@ -164,10 +164,14 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
     name: 'Deadfall',
     tags: ['wood', 'fell'],
     icon: 'deadfall',
-    placement: { on: ['open'], weight: 3 },
-    charges: 2,
+    placement: { on: ['open'], weight: 2 },
+    charges: 3,
     yields: { material: 'timber', amount: 1 },
   },
+  // Content version 10 retuned weights and charges so the scripted chain reaches the
+  // spikes sooner (`scripts/pacing.ts`): deep tomb 4 -> 9, tomb 2 -> 1, river stones
+  // 20 -> 10, ore outcrop 5 -> 7, deadfall 3 -> 2, snare and pitfall 2 -> 1, 3 charges on
+  // fieldstones, ore outcrops and deadfall; the sum stays under the sparse-map test.
   // Content version 9, last again so nothing earlier moved: a shrine on the water
   // (weight 8, about 3% of river hexes) and an undertow (about 1%).
   {

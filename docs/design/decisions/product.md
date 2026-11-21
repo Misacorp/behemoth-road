@@ -4,6 +4,30 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-21: The scripted chain reaches the climbing spikes about twice as fast **[Misa]**
+
+ID: `2026-11-21-the-scripted-chain-reaches-the-climbing` · Status: current
+
+**Decision.** Content version 10 retunes the chain (find materials, build, climbing spikes) to arrive sooner: deep tombs (the source of ancient alloy) weigh 9 instead of 4 and the tier-1 tomb 1 instead of 2, ore outcrops 7 (was 5), deadfall 2 (was 3), fieldstones, ore outcrops and deadfall hold 3 charges (was 2), river stones weigh 10 (was 20) and snares and pitfalls 1 (was 2) to hold the share of hexes with a feature under the sparse test, a scholar works a tier-2 site with chance 0.8 (was 0.5), and the climbing spikes need 4 work (was 6). A new seeded measure, `packages/core/scripts/pacing.ts` (the party the chain test used, now shared), builds the lantern first and has the scholar survey for a deep tomb once the lantern stands. Measured over seeds 1 to 48: climbing spikes at a median of day 24 (before 43 on 12 seeds, with the same party minus the scholar's search: 25 to 69), a quarter of the maps by day 16, 43 of 48 maps finish (the rest lose a scripted character). Findability of stone, iron and timber is unchanged in its test.
+
+**Reasoning.** Misa asked for the spikes around day 15 to 20 of a 40-step route; the median is near day 24, so it is not there yet. The limit is how fast a party meets a deep tomb and the lantern (each content change moves it by about three days from seed noise), and the sparse-map test caps how many features can be added. The next levers are more features overall (the density test would move), a first tomb known at the start, or a cheaper lantern.
+
+## 2026-11-21: Hunger drains every day and food restores more **[Misa]**
+
+ID: `2026-11-21-hunger-drains-every-day-and-food` · Status: current · Amends: `2026-11-20-hunger-drains-every-second-day`
+
+**Decision.** Satiety drains by 1 every day (`drainEveryDays` 1), and food restores more to compensate: forage nourishes 4. To keep each step of hunger as long as before, the scale doubled: satiety runs 0 to 20 (start 12), the comfortable band is 8 to 15, and an appetite level is two steps of satiety (`levelStep` 2 in the creature's hunger data). One forage still feeds the creature for four days, the symptoms and levels read as before, and the feeding workload is unchanged.
+
+**Reasoning.** Misa asked for a daily drain with more food per feed and did not mind either way. A plain drain of 1 with forage 4 on the old 0 to 10 scale made every level last half as long, and the scripted careful party went hungry about twice as often (a third of full seasons lost, up from 17 per cent). Doubling the scale keeps the old pacing exactly, with whole numbers. All values live in the creature's data.
+
+## 2026-11-21: Fires steer the creature sideways only, and several fires add up by side **[Misa]**
+
+ID: `2026-11-21-fires-steer-the-creature-sideways-only` · Status: current · Amends: `2026-11-20-fires-pull-the-creature-s-step`
+
+**Decision.** Fires steer the creature sideways only; that sideways turn is the visible sign that it reacts to a stimulus. Each stimulus within `stimulusRange` of the creature's centre adds its type's `push` (1 for fire) toward its side of the heading if the creature is attracted, away from it if repelled, and nothing if indifferent. A side is the side of the heading's line the stimulus lies on, by plane geometry (`sideOf`: left, right, or on the line). A stimulus straight ahead or straight behind (on the line) pushes neither way. The pushes add up into a net push n (left positive): fires on opposite sides cancel, several on one side add, a net of zero leaves the step alone. With n the left step's weight is multiplied by `stimulusPull` to the power n and the right step's by the pull to the power minus n; the straight weight never changes, and the creature never turns back. Hunger still applies on top (erratic base weights when underfed, a weaker pull when overfed). The keeper's cue is unchanged: it names the creature's reaction (toward, away, unmoved) to every fire in range, wherever the fire is, so a keeper can still learn the reaction from a fire straight ahead that bends nothing.
+
+**Reasoning.** Misa asked for sideways steering only, as the readable signal, with a rule players can predict. Summing pushes by side is the simplest rule that handles every arrangement (both sides, one side, ahead, behind) and ties go straight. The push per stimulus type is content data and the pull and range stay in the tuning config, so a later stimulus or creature can differ without a new rule. A single fire behaves as before (left about three times in four with the base weights), so existing feel is kept. Amends the weighted-score rule, which scored each step by distance and so also pushed a fire ahead or behind.
+
 ## 2026-11-21: Fast rounds pace: staging only, all active characters spent, 6 s delay, 4 s day banner
 
 ID: `2026-11-21-fast-rounds-pace-staging-only-all` · Status: current
@@ -405,7 +429,7 @@ ID: `2026-11-20-a-timber-stand-hints-at-a` · Status: current · Amends: `2026-1
 
 ## 2026-11-20: Hunger drains every second day
 
-ID: `2026-11-20-hunger-drains-every-second-day` · Status: current · Amends: `2026-11-20-hunger-has-a-comfortable-band-underfed`
+ID: `2026-11-20-hunger-drains-every-second-day` · Status: current, amended by `2026-11-21-hunger-drains-every-day-and-food` · Amends: `2026-11-20-hunger-has-a-comfortable-band-underfed`
 
 **Decision.** Satiety drops by `drainPerDay` (1) only on the ticks into a day that is a multiple of the creature type's `hunger.drainEveryDays` (2 for the Mossback: the ticks into days 2, 4, 6…), so it drains half as fast as before. One forage (+2) now lasts four days.
 
@@ -579,7 +603,7 @@ ID: `2026-11-20-symptoms-are-computed-per-viewer-keepers` · Status: current
 
 ## 2026-11-20: Fires pull the creature's step by a weighted score; the public prediction stays blind
 
-ID: `2026-11-20-fires-pull-the-creature-s-step` · Status: current
+ID: `2026-11-20-fires-pull-the-creature-s-step` · Status: current, amended by `2026-11-21-fires-steer-the-creature-sideways-only`
 
 **Decision.** For each fire within 3 hexes of the creature's centre, each of the three step options scores +1 closer, -1 farther or 0; its weight is multiplied by `stimulusPull` (6) to the power of the score (negated if repelled, ignored if indifferent), then the seeded roll picks. The heading stays fixed; fires shift the path sideways. `predictCreature` keeps the base weights, so the step hints never reveal the reaction or the hunger.
 

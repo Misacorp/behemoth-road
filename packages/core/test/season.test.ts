@@ -99,18 +99,18 @@ describe('peril', () => {
   });
 
   it('rises with hunger at underfed level 2 or more, else falls by perilCalm', () => {
-    // Satiety 3 drains to 2: underfed level 2.
-    const hungry = nextDayWithEvents({ ...withSatiety(fieldGame(['a'], HUNGRY), 3), peril: 4 });
+    // Satiety 6 drains to 5: underfed level 2.
+    const hungry = nextDayWithEvents({ ...withSatiety(fieldGame(['a'], HUNGRY), 6), peril: 4 });
     expect(hungry.state.peril).toBe(5);
-    // Satiety 4 drains to 3: level 1, no rise, so it calms.
-    const calm = nextDayWithEvents({ ...withSatiety(fieldGame(['a'], HUNGRY), 4), peril: 4 });
+    // Satiety 7 drains to 6: level 1, no rise, so it calms.
+    const calm = nextDayWithEvents({ ...withSatiety(fieldGame(['a'], HUNGRY), 7), peril: 4 });
     expect(calm.state.peril).toBe(3);
     expect(ofKind(calm.events, 'peril')).toEqual([{ kind: 'peril', from: 4, to: 3 }]);
     expect(nextDay(fieldGame(['a'], HUNGRY)).peril).toBe(0);
   });
 
   it('adds strikes and hunger together, and never passes perilMax', () => {
-    let state = withSatiety(fieldGame(['a'], HUNGRY), 3);
+    let state = withSatiety(fieldGame(['a'], HUNGRY), 6);
     state = withThreat(lingering(state), 'captors', hex(0, 3), 3);
     expect(nextDay({ ...state, peril: 1 }).peril).toBe(5);
     expect(nextDay({ ...state, peril: 8 }).peril).toBe(10);
@@ -222,7 +222,7 @@ const season = (
   };
   const events: GameEvent[] = [];
   for (let i = 0; i < 60 && state.season.status === 'on'; i++) {
-    if (plan.feed && state.day % 2 === 0) state = ok(act(state, 'keeper', { kind: 'feed' })).state;
+    if (plan.feed && state.day % 4 === 0) state = ok(act(state, 'keeper', { kind: 'feed' })).state;
     if (plan.defend) {
       for (const g of ['g1', 'g2']) state = ok(act(state, g, { kind: 'defend' })).state;
     }
@@ -252,7 +252,7 @@ describe('a short season, played through', () => {
   it('comes home wounded when the creature goes hungry', () => {
     const { state } = season(3, { feed: false, defend: true });
     expect(state.season).toEqual({ status: 'over', outcome: 'wounded', day: 13 });
-    // Hunger drains every second tick (M4), so it is underfed at level 2 on fewer ticks: peril 6.
+    // Hunger drains 1 a day (of 20, two a level), so an unfed creature is underfed at level 2 from day 7: peril 6.
     expect(state.peril).toBe(6);
   });
 

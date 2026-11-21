@@ -1,14 +1,21 @@
 /**
  * The creature: a footprint that steps one hex per day, straight ahead or one
  * sixth of a turn to either side of its general heading, never back.
- * It ignores terrain for now. Fires within range sway the step by the
- * creature's hidden reaction to them, and hunger changes how it walks: that
+ * It ignores terrain for now. Fires within range steer the step sideways by the
+ * creature's hidden reaction to them (never straight on or back), and hunger changes how it walks: that
  * part is server only (`stepWeights`); the public prediction uses the base weights.
  */
 
-import { appetiteOf, reactionTo } from './care.ts';
+import { appetiteOf, reactionTo, stimulusType } from './care.ts';
 import type { VeerWeights } from './config.ts';
-import { type Direction, hexDistance, neighbour, rotate, type Hex } from './hex.ts';
+import {
+  type Direction,
+  directionOffset,
+  hexDistance,
+  neighbour,
+  rotate,
+  type Hex,
+} from './hex.ts';
 import { hashString, hashToUnit, pickWeighted } from './random.ts';
 import { type GameState, type GameStateView, hasSeed } from './state.ts';
 
@@ -58,40 +65,63 @@ export const predictCreature = (state: GameStateView): CreatureStepOption[] =>
     ? stayOption(state)
     : toChances(optionsWith(state, state.config.veerWeights));
 
+/** A hex offset as flat-top plane coordinates (x east, y south), for telling sides apart. */
+const plane = (h: Hex): readonly [number, number] => [1.5 * h.q, Math.sqrt(3) * (h.r + h.q / 2)];
+
+/**
+ * Which side of the creature's heading a hex lies on: 1 left (anticlockwise), -1
+ * right, 0 straight ahead or straight behind (on the heading's line), and for the
+ * creature's own centre. Fires on the line push neither way.
+ */
+export const sideOf = (state: GameStateView, target: Hex): -1 | 0 | 1 => {
+  const { heading, centre } = state.creature;
+  const [tx, ty] = plane({ q: target.q - centre.q, r: target.r - centre.r });
+  const [lx, ly] = plane(directionOffset(rotate(heading, -1)));
+  const [rx, ry] = plane(directionOffset(rotate(heading, 1)));
+  const lean = tx * (lx - rx) + ty * (ly - ry);
+  return Math.abs(lean) < 1e-9 ? 0 : lean > 0 ? 1 : -1;
+};
+
+/**
+ * The sideways push of the stimuli in range, server only: each one within
+ * `stimulusRange` of the centre adds its type's `push` toward its side if the
+ * creature is attracted, away from it if repelled, nothing if indifferent or if
+ * it lies on the heading's line. Positive is left, negative right; pushes on
+ * opposite sides cancel, and a tie of zero leaves the step alone.
+ */
+export const stimulusPush = (state: GameState): number => {
+  let push = 0;
+  for (const s of state.stimuli) {
+    if (hexDistance(state.creature.centre, s.hex) > state.config.stimulusRange) continue;
+    const reaction = reactionTo(state.nature, s);
+    const sign = reaction === 'attracted' ? 1 : reaction === 'repelled' ? -1 : 0;
+    push += sign * sideOf(state, s.hex) * stimulusType(s.type).push;
+  }
+  return push;
+};
+
 /**
  * The real weights of the three step options (left, straight, right), server
- * only. Base: the veer weights, or the hungry ones while underfed. Each stimulus
- * within `stimulusRange` of the centre scores each option +1 if it ends closer,
- * −1 if farther; the weight is multiplied by the pull to the power of the summed
- * score (attracted), of minus it (repelled), or left alone (indifferent). An
- * overfed creature feels a weaker pull: `1 + (pull − 1) / (level + 1)`.
+ * only. Base: the veer weights, or the hungry ones while underfed. Fires only
+ * steer sideways: with a net push of n (see `stimulusPush`), the left weight is
+ * multiplied by the pull to the power of n and the right weight by the pull to
+ * the power of minus n; straight is unchanged, and the creature never turns
+ * back. An overfed creature feels a weaker pull: `1 + (pull - 1) / (level + 1)`.
  */
 export const stepWeights = (state: GameState): VeerWeights => {
-  const { config, creature } = state;
+  const { config } = state;
   const appetite = appetiteOf(state);
   const base = appetite?.kind === 'underfed' ? config.hungryVeerWeights : config.veerWeights;
   const pull =
     appetite?.kind === 'overfed'
       ? 1 + (config.stimulusPull - 1) / (appetite.level + 1)
       : config.stimulusPull;
-  const options = optionsWith(state, base);
-  const scores = options.map(() => 0);
-  for (const s of state.stimuli) {
-    const from = hexDistance(creature.centre, s.hex);
-    if (from > config.stimulusRange) continue;
-    const reaction = reactionTo(state.nature, s);
-    const sign = reaction === 'attracted' ? 1 : reaction === 'repelled' ? -1 : 0;
-    options.forEach((o, i) => {
-      const to = hexDistance(o.centre, s.hex);
-      scores[i] = (scores[i] ?? 0) + sign * Math.sign(from - to);
-    });
-  }
-  const [left, straight, right] = options.map((o, i) => o.weight * pull ** (scores[i] ?? 0)) as [
-    number,
-    number,
-    number,
-  ];
-  return { left, straight, right };
+  const push = stimulusPush(state);
+  return {
+    left: base.left * pull ** push,
+    straight: base.straight,
+    right: base.right * pull ** -push,
+  };
 };
 
 /**
