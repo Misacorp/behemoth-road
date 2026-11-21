@@ -13,6 +13,11 @@ export interface StimulusType {
   readonly fuel: { readonly tag: string; readonly amount: number };
   /** Ticks it lasts: 1 means it acts on the tick that ends the day it was set, then is gone. */
   readonly lastsTicks: number;
+  /**
+   * How hard it pushes the step sideways when the creature reacts to it: a whole
+   * number of pushes (the net push of every stimulus in range steers the step).
+   */
+  readonly push: number;
   /** Terrain tags it cannot be set on. */
   readonly notOn: readonly string[];
 }
@@ -25,6 +30,7 @@ export const STIMULUS_TYPES: readonly StimulusType[] = [
     icon: 'campfire',
     fuel: { tag: 'wood', amount: 1 },
     lastsTicks: 1,
+    push: 1,
     notOn: ['water'],
   },
 ];

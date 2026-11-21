@@ -77,12 +77,14 @@ export interface Appetite {
 
 /**
  * The creature's appetite from its satiety: how far below or above the
- * comfortable band it is, from 1 to 3; null inside the band.
+ * comfortable band it is, in steps of the type's `levelStep`, from 1 to 3; null
+ * inside the band.
  */
 export const appetiteOf = (state: GameState): Appetite | null => {
-  const { comfortable } = creatureType(state.nature.type).hunger;
+  const { comfortable, levelStep } = creatureType(state.nature.type).hunger;
   const satiety = state.care.satiety;
-  const level = (by: number): SignLevel => Math.min(MAX_SIGN_LEVEL, by) as SignLevel;
+  const level = (by: number): SignLevel =>
+    Math.min(MAX_SIGN_LEVEL, Math.ceil(by / levelStep)) as SignLevel;
   if (satiety < comfortable.min)
     return { kind: 'underfed', level: level(comfortable.min - satiety) };
   if (satiety > comfortable.max)

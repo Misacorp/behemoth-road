@@ -288,7 +288,7 @@ describe('capture', () => {
 
         // Hungry enough that the tick leaves it underfed at level 2: the non-keeper sees it faintly.
         const fed = read();
-        write({ ...fed, care: { ...fed.care, satiety: 3 } });
+        write({ ...fed, care: { ...fed.care, satiety: 5 } });
         const cue = await ok('view-keeper-cue', misa, 'POST', '/api/dev/next-day', {});
         expect(cue.signs.cues.length).toBeGreaterThan(0);
         expect(cue.signs.appetite).toMatchObject({ kind: 'underfed', faint: false });
@@ -308,10 +308,10 @@ describe('capture', () => {
         expect(kinds).toEqual(expect.arrayContaining(['creature-step', 'fire-out']));
         await refused(misa, { version: await versionNow(), action: { kind: 'linger' } });
 
-        // Starving (level 3 whether or not this tick drains) with forage in the stores: the next tick it eats from them.
+        // Starving after this tick's drain (level 3) with forage in the stores: it eats from them and is back to level 1.
         const before = await versionNow();
         const hungry = read();
-        write({ ...hungry, stores: { forage: 1 }, care: { ...hungry.care, satiety: 1 } });
+        write({ ...hungry, stores: { forage: 1 }, care: { ...hungry.care, satiety: 4 } });
         expect((await ctx.call(misa, 'POST', '/api/dev/next-day', {})).status).toBe(200);
         const ate = await ok(
           'view-creature-ate',

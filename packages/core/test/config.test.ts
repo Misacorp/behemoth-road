@@ -20,7 +20,7 @@ describe('tuning config', () => {
       workSiteCost: 2,
       buildCost: 1,
       siteChanceSpecialistTier1: 0.7,
-      siteChanceSpecialistTier2: 0.5,
+      siteChanceSpecialistTier2: 0.8,
       siteChanceOtherTier1: 0.35,
       siteChanceOtherTier2: 0,
       stimulusRange: 3,

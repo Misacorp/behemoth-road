@@ -53,7 +53,7 @@ describe('the hidden nature', () => {
       expect(createGame(seed).nature).toEqual(a.nature);
       expect(a.nature.type).toBe('mossback');
       seen.add(a.nature.reactions.fire ?? 'none');
-      expect(a.care).toEqual({ satiety: 6, cues: { day: 1, list: [] } });
+      expect(a.care).toEqual({ satiety: 12, cues: { day: 1, list: [] } });
     }
     expect([...seen].sort()).toEqual(['attracted', 'repelled']);
   });
@@ -135,12 +135,17 @@ describe('step weights', () => {
 
   it('turn erratic when underfed and weaker when overfed', () => {
     const lit = withFire(withNature(base(), 'attracted'), LEFT_FIRE);
-    expect(stepWeights(withSatiety(lit, 3))).toEqual({ left: 6, straight: 1, right: 1 / 6 });
+    expect(stepWeights(withSatiety(lit, 6))).toEqual({ left: 6, straight: 1, right: 1 / 6 });
     expect(stepWeights(withSatiety(base(), 0))).toEqual({ left: 1, straight: 1, right: 1 });
-    // Overfed level 1: pull 1 + 5/2; level 3: 1 + 5/4.
-    expect(stepWeights(withSatiety(lit, 8))).toEqual({ left: 3.5, straight: 2, right: 1 / 3.5 });
-    expect(stepWeights(withSatiety(lit, 10))).toEqual({ left: 2.25, straight: 2, right: 1 / 2.25 });
-    expect(stepWeights(withSatiety(lit, 7))).toEqual({ left: 6, straight: 2, right: 1 / 6 });
+    // Overfed level 1 (16 or 17): pull 1 + 5/2; level 2 (18 or 19): 1 + 5/3.
+    expect(stepWeights(withSatiety(lit, 16))).toEqual({ left: 3.5, straight: 2, right: 1 / 3.5 });
+    const level2 = 1 + 5 / 3;
+    expect(stepWeights(withSatiety(lit, 18))).toEqual({
+      left: level2,
+      straight: 2,
+      right: 1 / level2,
+    });
+    expect(stepWeights(withSatiety(lit, 15))).toEqual({ left: 6, straight: 2, right: 1 / 6 });
   });
 
   it('drive the real step', () => {
@@ -160,20 +165,23 @@ describe('signs', () => {
     creatureSigns(withSatiety(base(), satiety), viewer).appetite;
 
   it('show the appetite to a keeper from level 1, to others faintly from level 2', () => {
-    expect(signs(6, 'keeper')).toBeNull();
-    expect(signs(4, 'keeper')).toBeNull();
-    expect(signs(7, 'keeper')).toBeNull();
-    expect(signs(3, 'keeper')).toEqual({ kind: 'underfed', level: 1, faint: false });
-    expect(signs(2, 'keeper')).toEqual({ kind: 'underfed', level: 2, faint: false });
-    expect(signs(1, 'keeper')).toEqual({ kind: 'underfed', level: 3, faint: false });
+    // The comfortable band is 8 to 15; each level is two steps of satiety.
+    expect(signs(12, 'keeper')).toBeNull();
+    expect(signs(8, 'keeper')).toBeNull();
+    expect(signs(15, 'keeper')).toBeNull();
+    expect(signs(7, 'keeper')).toEqual({ kind: 'underfed', level: 1, faint: false });
+    expect(signs(6, 'keeper')).toEqual({ kind: 'underfed', level: 1, faint: false });
+    expect(signs(5, 'keeper')).toEqual({ kind: 'underfed', level: 2, faint: false });
+    expect(signs(4, 'keeper')).toEqual({ kind: 'underfed', level: 2, faint: false });
+    expect(signs(3, 'keeper')).toEqual({ kind: 'underfed', level: 3, faint: false });
     expect(signs(0, 'keeper')).toEqual({ kind: 'underfed', level: 3, faint: false });
-    expect(signs(8, 'keeper')).toEqual({ kind: 'overfed', level: 1, faint: false });
-    expect(signs(9, 'keeper')).toEqual({ kind: 'overfed', level: 2, faint: false });
-    expect(signs(10, 'keeper')).toEqual({ kind: 'overfed', level: 3, faint: false });
-    expect(signs(3, 'scout')).toBeNull();
-    expect(signs(8, null)).toBeNull();
-    expect(signs(2, 'scout')).toEqual({ kind: 'underfed', level: 1, faint: true });
-    expect(signs(10, null)).toEqual({ kind: 'overfed', level: 1, faint: true });
+    expect(signs(16, 'keeper')).toEqual({ kind: 'overfed', level: 1, faint: false });
+    expect(signs(18, 'keeper')).toEqual({ kind: 'overfed', level: 2, faint: false });
+    expect(signs(20, 'keeper')).toEqual({ kind: 'overfed', level: 3, faint: false });
+    expect(signs(6, 'scout')).toBeNull();
+    expect(signs(16, null)).toBeNull();
+    expect(signs(4, 'scout')).toEqual({ kind: 'underfed', level: 1, faint: true });
+    expect(signs(18, null)).toEqual({ kind: 'overfed', level: 1, faint: true });
   });
 
   it("show a keeper the day's reaction cues, and nobody else", () => {
@@ -281,9 +289,12 @@ describe('feeding', () => {
     const r = act(stocked, 'scout', { kind: 'feed' });
     const fed = ok(r);
     expect(r.ok && r.events).toEqual([{ kind: 'fed', characterId: 'scout', material: 'forage' }]);
-    expect(fed.care.satiety).toBe(8);
+    // Forage nourishes 4 (of 20).
+    expect(fed.care.satiety).toBe(16);
     expect(fed.stores).toEqual({ forage: 1, timber: 1 });
-    expect(ok(act(withSatiety(stocked, 9), 'keeper', { kind: 'feed' })).care.satiety).toBe(10);
+    const low = ok(act(withSatiety(stocked, 6), 'keeper', { kind: 'feed' }));
+    expect(low.care.satiety).toBe(10);
+    expect(ok(act(withSatiety(stocked, 18), 'keeper', { kind: 'feed' })).care.satiety).toBe(20);
   });
 });
 
@@ -323,7 +334,7 @@ describe('lingering', () => {
     expect(day2.day).toBe(2);
     expect(day2.creature).toMatchObject({ centre: hex(0, 0), lingering: false, lingeredDay: 1 });
     expect(day2.stimuli).toEqual([]);
-    expect(day2.care.satiety).toBe(5);
+    expect(day2.care.satiety).toBe(11);
     expect(day2.characters.every((c) => c.actionsLeft === 3)).toBe(true);
     expect(checkAction(day2, 'keeper', { kind: 'linger' })).toEqual({
       ok: false,
@@ -342,10 +353,10 @@ describe('lingering', () => {
 });
 
 describe('the tick', () => {
-  it('drains hunger by one on every second tick (into even days), down to zero', () => {
+  it('drains hunger by one on every tick, down to zero', () => {
     const days = [base()];
     for (let i = 0; i < 4; i++) days.push(nextDay(days.at(-1)!));
-    expect(days.map((s) => s.care.satiety)).toEqual([6, 5, 5, 4, 4]);
+    expect(days.map((s) => s.care.satiety)).toEqual([12, 11, 10, 9, 8]);
     expect(nextDay(withSatiety(base(), 0)).care.satiety).toBe(0);
   });
 
@@ -360,12 +371,12 @@ describe('the tick', () => {
 
   it('lets a starving creature eat from the stores: food first', () => {
     const stocked: GameState = { ...base(), stores: { iron: 2, forage: 1 } };
-    // 2 drops to 1: underfed level 3, so it eats a forage (+2).
-    const ate = nextDay(withSatiety(stocked, 2));
+    // 4 drops to 3: underfed level 3, so it eats a forage (+4).
+    const ate = nextDay(withSatiety(stocked, 4));
     expect(ate.stores).toEqual({ iron: 2 });
-    expect(ate.care.satiety).toBe(3);
-    // 3 drops to 2: level 2, it does not eat.
-    expect(nextDay(withSatiety(stocked, 3)).stores).toEqual(stocked.stores);
+    expect(ate.care.satiety).toBe(7);
+    // 5 drops to 4: level 2, it does not eat.
+    expect(nextDay(withSatiety(stocked, 5)).stores).toEqual(stocked.stores);
   });
 
   it('lets a starving creature eat something else when there is no food, by a seeded pick', () => {

@@ -127,7 +127,9 @@ export {
 export {
   chooseCreatureStep,
   predictCreature,
+  sideOf,
   stepWeights,
+  stimulusPush,
   type CreatureStepOption,
 } from './creature.ts';
 export {

@@ -89,12 +89,12 @@ describe('caring for the creature in the hub', () => {
 describe('the scenarios send signs per viewer', () => {
   it('a keeper sees the appetite from level 1 and the cues; anyone else only a faint level 2', () => {
     const cue = { at: { q: 2, r: 2 }, reaction: 'attracted' as const };
-    const keeper = toView(chainScenario({ role: 'keeper', satiety: 3, cues: [cue] }));
+    const keeper = toView(chainScenario({ role: 'keeper', satiety: 7, cues: [cue] }));
     expect(keeper.signs.appetite).toEqual({ kind: 'underfed', level: 1, faint: false });
     expect(keeper.signs.cues.map((c) => c.reaction)).toEqual(['toward']);
-    const scout = toView(chainScenario({ role: 'scout', satiety: 3, cues: [cue] }));
+    const scout = toView(chainScenario({ role: 'scout', satiety: 7, cues: [cue] }));
     expect(scout.signs).toEqual({ appetite: null, cues: [] });
-    const starving = toView(chainScenario({ role: 'scout', satiety: 2 }));
+    const starving = toView(chainScenario({ role: 'scout', satiety: 4 }));
     expect(starving.signs.appetite).toEqual({ kind: 'underfed', level: 1, faint: true });
   });
 });

@@ -25,6 +25,8 @@ export interface Need {
   readonly comfortable: { readonly min: number; readonly max: number };
   /** The cap (overfeeding stops here). */
   readonly max: number;
+  /** How far outside the comfortable band one appetite level is (levels 1 to 3). */
+  readonly levelStep: number;
 }
 
 export interface CreatureType {
@@ -44,11 +46,13 @@ export const CREATURE_TYPES: readonly CreatureType[] = [
     tags: ['beast', 'tame', 'grazer'],
     icon: 'mossback',
     hunger: {
-      start: 6,
+      // Drains every day (1 of 20); a forage gives 4, so one feeding lasts four days.
+      start: 12,
       drainPerDay: 1,
-      drainEveryDays: 2,
-      comfortable: { min: 4, max: 7 },
-      max: 10,
+      drainEveryDays: 1,
+      comfortable: { min: 8, max: 15 },
+      max: 20,
+      levelStep: 2,
     },
     // Never indifferent to fire: the first creature must be steerable by it.
     reactions: { fire: ['attracted', 'repelled'] },

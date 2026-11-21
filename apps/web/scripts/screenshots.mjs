@@ -925,10 +925,10 @@ async function run() {
         await shot4('03b-fire-hint');
 
         // A keeper: the hungry creature droops (level 2) and turns its head toward yesterday's fire.
-        await stage({ role: 'keeper', satiety: 2, cues: [cueAt], fires: [cueAt.at] });
+        await stage({ role: 'keeper', satiety: 4, cues: [cueAt], fires: [cueAt.at] });
         await shot4('04-keeper-signs');
         // Anyone else sees the same hunger only faintly, and no cue.
-        await stage({ role: 'scout', satiety: 2, cues: [cueAt], fires: [cueAt.at] });
+        await stage({ role: 'scout', satiety: 4, cues: [cueAt], fires: [cueAt.at] });
         await shot4('05-faint-sign');
 
         // A keeper riding: the hub offers feeding (the forage it takes) and lingering, each with pips.
@@ -988,7 +988,7 @@ async function run() {
         await shot4('12-stand-hint');
 
         // A keeper riding a hungry creature: the bubble's creature entry carries the appetite badge.
-        await stage({ role: 'keeper', at: 'creature', satiety: 2 });
+        await stage({ role: 'keeper', at: 'creature', satiety: 4 });
         {
           const c = fake.scenario.state.creature.centre;
           await idle();

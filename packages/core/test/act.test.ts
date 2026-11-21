@@ -275,7 +275,7 @@ describe('work-site', () => {
     const lit = scholarAt('deep-tomb', ['lantern']);
     expect(checkAction(lit, 'scholar', { kind: 'work-site' })).toMatchObject({
       ok: true,
-      chance: 0.5,
+      chance: 0.8,
       cost: 2,
     });
     expect(
