@@ -3,6 +3,7 @@
   "day": 1,
   "pace": "daily",
   "fastTickAt": null,
+  "now": 1906545600000,
   "you": {
     "userId": "111111111111111111",
     "characterId": "111111111111111111.0",

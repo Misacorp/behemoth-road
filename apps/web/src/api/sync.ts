@@ -1,13 +1,19 @@
 /**
  * Keeps the player view fresh: after the player's own actions (their answer is the new view, then a read
  * of the log since the view before it, for what others did meanwhile), when the page becomes visible or the
- * window regains focus, and every 10 seconds while it is visible. Asks with `since`, so an unchanged
- * game costs one small answer. Timers and visibility are injected, so it is tested without a browser.
+ * window regains focus, and by polling while it is visible: every 10 seconds, or only every 60 seconds as a
+ * safety net while the live socket is up (`live-socket.ts`), whose `changed` pushes trigger a debounced
+ * refresh. Asks with `since`, so an unchanged game costs one small answer. Timers, the socket and
+ * visibility are injected, so it is tested without a browser.
  */
 import type { ApiClient } from './client.ts';
 import type { PlayerView } from './schema.ts';
 
 export const POLL_MS = 10_000;
+/** While the live socket is up the poll is only a safety net. */
+export const LIVE_POLL_MS = 60_000;
+/** A push waits this long for more before the refresh, so a burst of changes is one request. */
+export const PUSH_DEBOUNCE_MS = 150;
 /** After `fastTickAt` the extra refresh waits this long (the server runs the tick at that time). */
 export const TICK_GRACE_MS = 300;
 /** If the day has not turned by then, one more refresh. */
@@ -23,6 +29,8 @@ export interface SyncDeps {
   readonly setTimeout: (fn: () => void, ms: number) => number;
   readonly clearTimeout: (handle: number) => void;
   readonly now: () => number;
+  /** The live socket, started while the page is visible and stopped when it is hidden. */
+  readonly live?: { start(): void; stop(): void };
 }
 
 export class Sync {
@@ -34,11 +42,21 @@ export class Sync {
   private inFlight: Promise<void> | null = null;
   /** Counts restarts (new seasons): an answer to a request made before the last one is dropped. */
   private gen = 0;
+  /** The live socket is up: poll slowly, refresh on pushes. */
+  private liveUp = false;
+  private pushTimer: number | null = null;
+  /** The server's clock minus ours, measured when a view arrived. */
+  private skew = 0;
 
   constructor(private readonly deps: SyncDeps) {}
 
   get current(): PlayerView | null {
     return this.view;
+  }
+
+  /** The server's clock now, from ours and the skew measured at the last view. */
+  serverNow(): number {
+    return this.deps.now() + this.skew;
   }
 
   /** The current generation, for a caller that asks the server itself (an action) to pass back to `accept`. */
@@ -53,6 +71,7 @@ export class Sync {
   accept(view: PlayerView, generation = this.gen): void {
     if (generation !== this.gen) return;
     if (this.view && view.version < this.view.version) return;
+    this.skew = view.now - this.deps.now();
     this.view = view;
     this.scheduleTick();
     this.deps.onView(view);
@@ -63,6 +82,7 @@ export class Sync {
     this.gen += 1;
     // A poll still in flight belongs to the old game: the next refresh asks afresh.
     this.inFlight = null;
+    this.skew = view.now - this.deps.now();
     this.view = view;
     this.scheduleTick();
     this.deps.onView(view);
@@ -80,7 +100,8 @@ export class Sync {
     this.tickTimer = null;
     this.tickFor = at;
     if (at === null) return;
-    const delay = Math.max(0, at - this.deps.now()) + TICK_GRACE_MS;
+    // The server's time, not ours: a device clock that is off must not move the refresh.
+    const delay = Math.max(0, at - this.serverNow()) + TICK_GRACE_MS;
     this.tickTimer = this.deps.setTimeout(() => {
       this.tickTimer = null;
       void this.refresh().then(() => {
@@ -126,17 +147,50 @@ export class Sync {
     );
   }
 
-  /** The page became visible (or started visible): refresh now and poll while it stays visible. */
-  visible(): void {
-    void this.refresh();
-    if (this.timer === null) {
-      this.timer = this.deps.setInterval(() => void this.refresh(), POLL_MS);
-    }
+  /** The live socket came up or dropped: the poll slows or returns to normal, and a new socket refreshes once. */
+  setLive(up: boolean): void {
+    if (this.liveUp === up) return;
+    this.liveUp = up;
+    if (this.timer !== null) this.startPoll();
+    if (up) void this.refresh();
   }
 
-  /** The page was hidden: stop polling. */
+  /** A push (or the greeting) says the game is at `version`: refresh, debounced, if that is news. */
+  changed(version: number): void {
+    if (this.view && version <= this.view.version) return;
+    if (this.pushTimer !== null) return;
+    this.pushTimer = this.deps.setTimeout(() => {
+      this.pushTimer = null;
+      void this.refresh();
+    }, PUSH_DEBOUNCE_MS);
+  }
+
+  private startPoll(): void {
+    if (this.timer !== null) this.deps.clearInterval(this.timer);
+    this.timer = this.deps.setInterval(
+      () => void this.refresh(),
+      this.liveUp ? LIVE_POLL_MS : POLL_MS,
+    );
+  }
+
+  /** The page became visible (or started visible): refresh now, poll while it stays visible, open the socket. */
+  visible(): void {
+    void this.refresh();
+    if (this.timer === null) this.startPoll();
+    this.scheduleTick();
+    this.deps.live?.start();
+  }
+
+  /** The page was hidden (or the game closed): stop polling, close the socket, drop pending timers. */
   hidden(): void {
     if (this.timer !== null) this.deps.clearInterval(this.timer);
     this.timer = null;
+    this.deps.live?.stop();
+    if (this.pushTimer !== null) this.deps.clearTimeout(this.pushTimer);
+    this.pushTimer = null;
+    if (this.tickTimer !== null) this.deps.clearTimeout(this.tickTimer);
+    this.tickTimer = null;
+    // Forget what the timer was for, so becoming visible schedules it again.
+    this.tickFor = null;
   }
 }

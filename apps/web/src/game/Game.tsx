@@ -10,6 +10,7 @@ import type { JSX } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { ApiError, type ApiClient } from '../api/client.ts';
 import type { ActionAnswer, PlayerView } from '../api/schema.ts';
+import { browserSocket, createLiveSocket, liveUrl } from '../api/live-socket.ts';
 import { Sync } from '../api/sync.ts';
 import { Hud } from '../hud/Hud.tsx';
 import { JoinDrawer } from '../join/JoinDrawer.tsx';
@@ -113,6 +114,19 @@ export function Game({ api, initial }: GameProps): JSX.Element {
   const sync = useRef<Sync | null>(null);
   sync.current ??= new Sync({
     api,
+    // The socket only says "something changed"; the view still comes from `api.game`. Without it (an
+    // unsupported browser, the flag off, a full guild) the poll stays at 10 s.
+    ...(api.liveEnabled()
+      ? {
+          live: createLiveSocket({
+            getTicket: () => api.liveTicket(),
+            url: (ticket) => liveUrl(window.location, ticket),
+            createSocket: browserSocket,
+            onLive: (up) => sync.current?.setLive(up),
+            onChanged: (version) => sync.current?.changed(version),
+          }),
+        }
+      : {}),
     onView: setView,
     onError: (err) => console.warn('refresh failed', err),
     setInterval: (fn, ms) => window.setInterval(fn, ms),
@@ -467,7 +481,10 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         onStrike={onStrike}
       />
       <PerilEdge peril={state.peril} max={state.config.perilMax} />
-      <DayCountdown fastTickAt={view.fastTickAt} />
+      <DayCountdown
+        fastTickAt={view.fastTickAt}
+        now={() => sync.current?.serverNow() ?? Date.now()}
+      />
       <DayBanner day={view.day} />
       <Hud
         day={view.day}

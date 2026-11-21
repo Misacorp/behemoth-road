@@ -35,6 +35,19 @@ export const SERVER_CONFIG = {
     /** Game requests, per player: a burst of 30, then one a second (polling is every 30 s). */
     game: { capacity: 30, refillPerSecond: 1, maxKeys: 100 },
   },
+  /**
+   * Live sockets (`docs/design/live.md`): a push tells clients to fetch their view. Caps keep one guild
+   * small; a socket with no ping for `staleMs` (clients ping every 60 s) is dead.
+   */
+  live: {
+    ticketTtlMs: 30_000,
+    ticketMaxPending: 200,
+    maxSocketsPerUser: 3,
+    maxSocketsPerGuild: 64,
+    staleMs: 150_000,
+    /** No socket outlives the session that could have made its ticket. */
+    maxAgeMs: 12 * 60 * 60 * 1000,
+  },
   /** Game events kept for `GET /api/game?since=` (the last this many; older ones are dropped). */
   eventLogSize: 100,
   /** How long a player's "may manage the server" answer is reused before Discord is asked again. */

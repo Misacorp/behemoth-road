@@ -47,16 +47,25 @@ export function PaceFastIcon(): JSX.Element {
 const RING_RADIUS = 20;
 const RING_LENGTH = 2 * Math.PI * RING_RADIUS;
 
-/** A ring round the day sun that drains while `fastTickAt` is set (no text). */
-export function DayCountdown({ fastTickAt }: { fastTickAt: number | null }): JSX.Element | null {
+/**
+ * A ring round the day sun that drains while `fastTickAt` is set (no text). `now` is the server's clock
+ * (`Sync.serverNow`), so a device clock that is off does not skew the ring.
+ */
+export function DayCountdown({
+  fastTickAt,
+  now = Date.now,
+}: {
+  fastTickAt: number | null;
+  now?: () => number;
+}): JSX.Element | null {
   const arc = useRef<SVGCircleElement>(null);
   useEffect(() => {
     if (fastTickAt === null) return;
     // The ring is full when the countdown is first seen and empty when the day turns.
-    const total = Math.max(1, fastTickAt - Date.now());
+    const total = Math.max(1, fastTickAt - now());
     let frame = 0;
     const draw = (): void => {
-      const left = ringFraction(fastTickAt - Date.now(), total);
+      const left = ringFraction(fastTickAt - now(), total);
       arc.current?.setAttribute('stroke-dashoffset', String(RING_LENGTH * (1 - left)));
       frame = window.requestAnimationFrame(draw);
     };

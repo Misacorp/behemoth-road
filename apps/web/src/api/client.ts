@@ -11,6 +11,7 @@ import {
   ConfigSchema,
   ErrorBodySchema,
   GameResponseSchema,
+  LiveTicketSchema,
   PlayerViewSchema,
   SessionSchema,
   type ActionAnswer,
@@ -44,6 +45,8 @@ export type Fetch = (input: string, init?: RequestInit) => Promise<Response>;
 
 export interface ApiClient {
   config(): Promise<AppConfig>;
+  /** Whether the config said the server offers live sockets (false before it was read). */
+  liveEnabled(): boolean;
   /** Exchanges a Discord authorisation code for a session, and keeps the token. */
   signIn(code: string, instanceId: string): Promise<Session>;
   /** Uses a session obtained elsewhere (local development's fake session). */
@@ -51,6 +54,8 @@ export interface ApiClient {
   /** Signs in again when a request finds the session expired. */
   setReauthenticator(reauthenticate: () => Promise<void>): void;
   game(since?: number): Promise<GameResponse>;
+  /** A one-time ticket for the live socket (404 where the server has it off). */
+  liveTicket(): Promise<string>;
   join(role: string, offer: number): Promise<PlayerView>;
   replace(role: string, offer: number): Promise<PlayerView>;
   /** The new view, and the events of the walk (a reveal, a trap that stopped it). */
@@ -77,6 +82,7 @@ function parse<T extends v.GenericSchema>(
 export function createApiClient(fetchImpl: Fetch = (i, init) => fetch(i, init)): ApiClient {
   let token: string | null = null;
   let reauth: Reauth | null = null;
+  let live = false;
 
   async function request(path: string, init: RequestInit = {}): Promise<unknown> {
     const headers = new Headers(init.headers);
@@ -114,8 +120,11 @@ export function createApiClient(fetchImpl: Fetch = (i, init) => fetch(i, init)):
 
   return {
     async config() {
-      return parse(ConfigSchema, '/api/config', await request('/api/config'));
+      const config = parse(ConfigSchema, '/api/config', await request('/api/config'));
+      live = config.live;
+      return config;
     },
+    liveEnabled: () => live,
     async signIn(code, instanceId) {
       const path = '/api/auth/session';
       const session = parse(SessionSchema, path, await request(path, post({ code, instanceId })));
@@ -134,6 +143,10 @@ export function createApiClient(fetchImpl: Fetch = (i, init) => fetch(i, init)):
     async game(since) {
       const path = since === undefined ? '/api/game' : `/api/game?since=${String(since)}`;
       return parse(GameResponseSchema, '/api/game', await authed(path));
+    },
+    async liveTicket() {
+      const path = '/api/live/ticket';
+      return parse(LiveTicketSchema, path, await authed(path, post({}))).ticket;
     },
     join: (role, offer) => view('/api/game/join', { role, offer }),
     replace: (role, offer) => view('/api/game/replace', { role, offer }),

@@ -49,6 +49,10 @@ Record a decision:
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
+- 2026-11-21 The view carries the server clock
+- 2026-11-21 Rows read are metered per source and budgeted in tests
+- 2026-11-21 Live sockets: ticket auth, caps, Hibernation, flag off in production
+- 2026-11-21 Live sockets only say "changed"; the client fetches its own view
 - 2026-11-21 Fast pace schedules a second alarm time in the one Durable Object alarm
 - 2026-11-20 The short dev season follows the dev-tools switch; an ended season stops the schedule
 - 2026-11-20 Staging and local seasons are short; admins start a new season there

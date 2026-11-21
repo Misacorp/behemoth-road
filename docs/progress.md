@@ -11,6 +11,8 @@ What has landed and what is next. Newest first. Update it when a step lands or t
 
 ## Done
 
+- 2026-11-21: Live updates (`next/live`, `docs/design/live.md`): WebSocket Hibernation push in `GuildWorld` (a `changed` message after every write, one-time ticket auth, caps, off in production), a client that refreshes on pushes and polls every 60 s while live, a read meter with row budgets in tests (two hot queries that scanned the whole event log rewritten), and the server clock in the view so the fast-tick refresh and day ring ignore device clock skew.
+
 - 2026-11-21: Fast rounds (branch `next/fast`): a per-game pace, staging only; in fast pace the day turns 6 s after every active character has spent their actions (one alarm shared with the daily tick), a ring drains round the day sun meanwhile, clients refresh once just after the countdown, the object answers an unchanged poll without reading storage, a 4 s day banner shows whenever the day goes up, and admins get a pace toggle beside next day.
 - 2026-11-21: More content for playtests (`next/content`, content version 9): ambush and stampede threats, river folk, the sunken shrine (river pearl), the undertow, the sand sledge (sand now costs 2 a step without it), with art, tips and review batch 2026-11-21-1; careful 3-player full seasons 75 / 9 / 17 % safe / wounded / lost over 200 seeds (before: 71 / 15 / 14). Decision in `product.md`.
 - 2026-11-21: Player roster (`next/roster`): a party button opens a drawer of every player (Discord name, role emblem, the day's action arrows, done, lost, riding or out on the map, no character); a row recentres the map and opens the character's card, lowering the phone drawer to a peek.

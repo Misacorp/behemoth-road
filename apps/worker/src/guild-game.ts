@@ -34,6 +34,7 @@ import {
   type Seed,
 } from './game-core.ts';
 import { errorResponse, json, notFound, parseBody } from './http.ts';
+import type { LiveHooks } from './live.ts';
 import { applyMigrations } from './migrations.ts';
 import { TokenBucketLimiter } from './ratelimit.ts';
 import {
@@ -70,6 +71,8 @@ export interface PlayerView {
   pace: Pace;
   /** Fast pace: when the next day starts early (epoch ms), or null. */
   fastTickAt: number | null;
+  /** The server clock when the view was built (epoch ms), so a client can measure its own clock's skew. */
+  now: number;
   /** `admin`: may run the staging "next day"; always false with the dev tools off. */
   you: { userId: string; characterId: string | null; admin: boolean };
   /** The characters this player may pick (the rolls, then the plain one): only while they have no active character. */
@@ -111,6 +114,8 @@ export interface GuildGameOptions {
   everyoneIsAdmin: boolean;
   /** Core tuning overrides for every new game: `seasonConfig(devTools)`; tests may pass their own. */
   gameConfig: ConfigOverrides;
+  /** The live sockets (`live.ts`); absent or null where there are none (tests that do not need them). */
+  live?: LiveHooks | null;
 }
 
 interface CachedSession {
@@ -179,6 +184,8 @@ export class GuildGame {
   private cachedGuildId: string | null = null;
   private readonly cachedSessions = new Map<string, CachedSession>();
   private armedFor: number | null | undefined = undefined;
+  /** The highest version written in the running write transaction, for the one push after its commit. */
+  private pendingVersion: number | null = null;
 
   constructor(
     private readonly storage: Storage,
@@ -206,12 +213,42 @@ export class GuildGame {
    */
   private tx<T>(fn: () => T): T {
     this.cachedGame = null;
+    this.pendingVersion = null;
+    let result: T;
     try {
-      return this.storage.transactionSync(fn);
+      result = this.storage.transactionSync(fn);
     } catch (err) {
       this.cachedGame = null;
+      // A rolled-back write is never announced.
+      this.pendingVersion = null;
       throw err;
     }
+    // One push per write transaction, after it committed (a client that asks at once sees the version).
+    const version = this.pendingVersion;
+    this.pendingVersion = null;
+    if (version !== null) this.options.live?.changed(version);
+    return result;
+  }
+
+  /** Bumps the game's version without a state change (a name, the pace). Call inside a transaction. */
+  private bumpVersion(): void {
+    this.cachedGame = null;
+    const row = this.sql
+      .exec<{ version: number }>(
+        'UPDATE game SET version = version + 1 WHERE id = 1 RETURNING version',
+      )
+      .one();
+    this.pendingVersion = row.version;
+  }
+
+  /** The game's version (for a socket's `hello`), or null when there is no readable game. */
+  version(): number | null {
+    return this.readGameOrNull()?.version ?? null;
+  }
+
+  /** The guild this object serves, or null before the first sign-in. */
+  boundGuildId(): string | null {
+    return this.guildId();
   }
 
   /** Brings the schema up to date. Call inside `blockConcurrencyWhile`. */
@@ -303,8 +340,7 @@ export class GuildGame {
         game !== null &&
         characterOf(game.state, user.id) !== undefined
       ) {
-        this.sql.exec('UPDATE game SET version = version + 1 WHERE id = 1');
-        this.cachedGame = null;
+        this.bumpVersion();
       }
       this.sql.exec(
         'INSERT INTO sessions (token_hash, user_id, created_at, last_used_at, expires_at) VALUES (?, ?, ?, ?, ?)',
@@ -456,6 +492,7 @@ export class GuildGame {
       .exec<{ version: number }>('SELECT version FROM game WHERE id = 1')
       .one().version;
     this.logEvents(version, events);
+    this.pendingVersion = version;
     return version;
   }
 
@@ -473,11 +510,13 @@ export class GuildGame {
     }
     const dropped = this.sql
       .exec<{ v: number | null }>(
-        'SELECT MAX(version) AS v FROM events WHERE seq <= (SELECT MAX(seq) FROM events) - ?',
+        // Versions only grow with `seq`, so the newest dropped row has the highest dropped version: one
+        // primary-key lookup. (`MAX(version) ... WHERE seq <= ...` read the whole index on every write.)
+        'SELECT version AS v FROM events WHERE seq <= (SELECT MAX(seq) FROM events) - ? ORDER BY seq DESC LIMIT 1',
         eventLogSize,
       )
-      .one().v;
-    if (dropped === null) return;
+      .toArray()[0]?.v;
+    if (dropped === undefined) return;
     this.sql.exec('DELETE FROM events WHERE version <= ?', dropped);
     this.sql.exec(
       'UPDATE game SET events_pruned_through = MAX(events_pruned_through, ?) WHERE id = 1',
@@ -489,7 +528,7 @@ export class GuildGame {
   private eventsSince(since: number): { events: VersionedEvent[]; eventsTruncated: boolean } {
     const rows = this.sql
       .exec<{ version: number; event: string }>(
-        'SELECT version, event FROM events WHERE version > ? ORDER BY seq',
+        'SELECT version, event FROM events WHERE version > ? ORDER BY version, seq',
         since,
       )
       .toArray();
@@ -676,6 +715,8 @@ export class GuildGame {
         return this.move(user, request);
       case 'POST /api/game/act':
         return this.act(user, request);
+      case 'POST /api/live/ticket':
+        return this.liveTicket(user, request);
       case 'POST /api/dev/next-day':
         return this.devNextDay(user, request);
       case 'POST /api/dev/pace':
@@ -697,6 +738,17 @@ export class GuildGame {
     const log =
       since === null ? { events: [], eventsTruncated: false } : this.eventsSince(Number(since));
     return json({ ...(await this.view(user, game)), ...log });
+  }
+
+  /** A one-time ticket for a live socket, for the session's player. 404 where the flag is off. */
+  private async liveTicket(user: SessionUser, request: Request): Promise<Response> {
+    const live = this.options.live;
+    if (live === undefined || live === null || !live.enabled) return notFound();
+    const body = await parseBody(request, EmptyBodySchema);
+    if (body === undefined) return errorResponse('invalid_body', 400);
+    const guildId = this.guildId();
+    if (guildId === null) return errorResponse('no_game', 409);
+    return json({ ticket: await live.mintTicket(guildId, user.id) });
   }
 
   /** Join (the first character) or replace (a lost one): the same pick of an offer and a role. */
@@ -823,8 +875,8 @@ export class GuildGame {
     this.tx(() => {
       const game = this.readGame();
       if (game === null || game.pace === body.pace) return;
-      this.sql.exec('UPDATE game SET pace = ?, version = version + 1 WHERE id = 1', body.pace);
-      this.cachedGame = null;
+      this.sql.exec('UPDATE game SET pace = ? WHERE id = 1', body.pace);
+      this.bumpVersion();
       this.syncFastTick(game.state);
     });
     await this.catchUpAndArm();
@@ -902,6 +954,7 @@ export class GuildGame {
       day: game.state.day,
       pace: game.pace,
       fastTickAt: game.fastTickAt,
+      now: this.options.now(),
       you: { userId: user.id, characterId: mine?.id ?? null, admin },
       offers: mine?.status === 'active' ? null : characterOffers(game.state, user.id),
       game: toPlayerView(game.state),
