@@ -56,7 +56,16 @@ export function artDefs(palette: Palette, prefix: string, k: number, effects = t
       patternTransform: 'rotate(32)',
     },
     [
-      el('rect', { x: 0, y: 0, width: 7 * k, height: 7 * k, fill: palette.paper, opacity: 0.62 }),
+      // A dusky base (darker than any explored ground), so unexplored hexes inside the window stand out at a glance.
+      el('rect', {
+        x: 0,
+        y: 0,
+        width: 7 * k,
+        height: 7 * k,
+        fill: palette.paperDeep,
+        opacity: 0.8,
+      }),
+      el('rect', { x: 0, y: 0, width: 7 * k, height: 7 * k, fill: palette.shadow, opacity: 0.2 }),
       el('path', {
         d: `M${(1.5 * k).toFixed(2)} 0V${(7 * k).toFixed(2)}`,
         stroke: palette.inkSoft,
