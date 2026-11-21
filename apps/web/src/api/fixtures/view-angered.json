@@ -1,5 +1,5 @@
 {
-  "version": 19,
+  "version": 16,
   "day": 6,
   "you": {
     "userId": "666666666666666666",
@@ -8,7 +8,7 @@
   },
   "offers": null,
   "game": {
-    "contentVersion": 8,
+    "contentVersion": 9,
     "artSeed": 4242,
     "day": 6,
     "config": {
@@ -423,25 +423,25 @@
       "0,-6": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "0,-5": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "0,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "0,-3": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "0,-2": {
@@ -498,7 +498,7 @@
       "1,-6": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "1,-5": {
@@ -585,7 +585,7 @@
       "2,-3": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "2,-2": {
@@ -630,19 +630,19 @@
       "3,-6": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "3,-5": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "3,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "3,-3": {
@@ -693,7 +693,7 @@
       "4,-5": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "4,-4": {
@@ -864,19 +864,19 @@
       "1,-7": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "2,-7": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "3,-7": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "4,-7": {
@@ -1161,11 +1161,11 @@
         "at": {
           "kind": "hex",
           "hex": {
-            "q": 1,
+            "q": 0,
             "r": -6
           }
         },
-        "actionsLeft": 0,
+        "actionsLeft": 1,
         "pack": {},
         "status": "active",
         "struckDay": 6
@@ -1222,14 +1222,14 @@
     "stimuli": [],
     "threats": [
       {
-        "id": "t3",
+        "id": "t2",
         "type": "rockslide",
         "hex": {
-          "q": 1,
-          "r": -7
+          "q": 0,
+          "r": -6
         },
         "strength": 4,
-        "appearedDay": 3
+        "appearedDay": 2
       },
       {
         "id": "t4",
@@ -1242,14 +1242,14 @@
         "appearedDay": 4
       },
       {
-        "id": "t5",
+        "id": "t6",
         "type": "swarm",
         "hex": {
-          "q": 3,
-          "r": -6
+          "q": -6,
+          "r": -3
         },
         "strength": 3,
-        "appearedDay": 5
+        "appearedDay": 6
       },
       {
         "id": "ts4",
@@ -1275,7 +1275,7 @@
         "boon": null
       }
     ],
-    "peril": 1,
+    "peril": 3,
     "season": {
       "status": "on"
     },
@@ -1320,7 +1320,7 @@
     {
       "kind": "angered",
       "id": "s4",
-      "version": 19
+      "version": 16
     },
     {
       "kind": "threat-appears",
@@ -1330,7 +1330,7 @@
         "q": -1,
         "r": -7
       },
-      "version": 19
+      "version": 16
     }
   ],
   "stopped": null

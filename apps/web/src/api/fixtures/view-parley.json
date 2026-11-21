@@ -1,5 +1,5 @@
 {
-  "version": 16,
+  "version": 14,
   "day": 5,
   "you": {
     "userId": "666666666666666666",
@@ -8,7 +8,7 @@
   },
   "offers": null,
   "game": {
-    "contentVersion": 8,
+    "contentVersion": 9,
     "artSeed": 4242,
     "day": 5,
     "config": {
@@ -423,25 +423,25 @@
       "0,-6": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "0,-5": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "0,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "0,-3": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "0,-2": {
@@ -587,7 +587,7 @@
       "2,-3": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "2,-2": {
@@ -633,19 +633,19 @@
       "3,-6": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "3,-5": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "3,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "3,-3": {
@@ -697,7 +697,7 @@
       "4,-5": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "4,-4": {
@@ -871,19 +871,19 @@
       "1,-7": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "2,-7": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "3,-7": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "4,-7": {
@@ -1126,14 +1126,14 @@
         "at": {
           "kind": "hex",
           "hex": {
-            "q": 1,
-            "r": -7
+            "q": 0,
+            "r": -6
           }
         },
-        "actionsLeft": 1,
+        "actionsLeft": 3,
         "pack": {},
         "status": "active",
-        "struckDay": 3
+        "struckDay": 4
       },
       {
         "id": "555555555555555555.0",
@@ -1187,13 +1187,23 @@
     "stimuli": [],
     "threats": [
       {
-        "id": "t3",
+        "id": "t2",
         "type": "rockslide",
         "hex": {
-          "q": 1,
-          "r": -7
+          "q": 0,
+          "r": -6
         },
         "strength": 4,
+        "appearedDay": 2
+      },
+      {
+        "id": "t3",
+        "type": "stampede",
+        "hex": {
+          "q": 1,
+          "r": 0
+        },
+        "strength": 3,
         "appearedDay": 3
       },
       {
@@ -1205,16 +1215,6 @@
         },
         "strength": 4,
         "appearedDay": 4
-      },
-      {
-        "id": "t5",
-        "type": "swarm",
-        "hex": {
-          "q": 5,
-          "r": -8
-        },
-        "strength": 3,
-        "appearedDay": 5
       }
     ],
     "settlements": [
@@ -1230,7 +1230,7 @@
         "boon": null
       }
     ],
-    "peril": 2,
+    "peril": 0,
     "season": {
       "status": "on"
     },
@@ -1277,7 +1277,7 @@
       "id": "s4",
       "characterId": "666666666666666666.0",
       "favour": 1,
-      "version": 16
+      "version": 14
     }
   ],
   "stopped": null

@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-21: More content for playtests: ambush, stampede, river folk, sunken shrine, undertow, sand sledge
+
+ID: `2026-11-21-more-content-for-playtests-ambush-stampede` · Status: current
+
+**Decision.** Content version 9 adds variety to existing systems, with no new role or rule. Threats: the ambush (flank, speed 1, strength 2, appears only on `wooded` ground) and the stampede (behind, speed 2, strength 2, only on `open` ground), through a new optional `on` terrain-tag condition on a threat type. Peoples: river folk (stilt huts, favour 2 instead of 3, boons gift and mislead but no shelter, a gift of forage and stone), through an optional `near` terrain-tag condition on a people; a settlement is placed with a people whose condition fits a leading-edge spot. Sites: the sunken shrine, a tier-1 site on rivers finding the river pearl (a `trade` material: an offering like the old coin). Traps: the undertow on rivers. Unlocks: the sand sledge (2 timber, 1 iron, 4 work) makes sand cost 1 action a step; sand now costs 2 without it (desert `extraMoveCost` 1), and an unlock's `movement` now also applies to passable terrain when it is cheaper than walking. No new node: no new choice would feed anything. Rolled-threat frequency is unchanged; the stampede was 3 strength at first and lowered to 2 because careful parties lost 19 % of full seasons instead of 14 %.
+
+**Reasoning.** Each new thing is data read through tags and existing hooks, so the rules stay the same and the screens render it through the data-driven paths. Slower sand is the one visible rule change, shown by the path's cost; the sledge answers it, as the grappling hook answers cliffs. All new features come last in the feature list, so earlier ones keep their places on a map.
+
 ## 2026-11-20: Icons that are not buttons show their tip on a tap **[Misa]**
 
 ID: `2026-11-20-icons-that-are-not-buttons-show` · Status: current

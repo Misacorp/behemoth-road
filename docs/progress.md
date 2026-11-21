@@ -11,6 +11,7 @@ What has landed and what is next. Newest first. Update it when a step lands or t
 
 ## Done
 
+- 2026-11-21: More content for playtests (`next/content`, content version 9): ambush and stampede threats, river folk, the sunken shrine (river pearl), the undertow, the sand sledge (sand now costs 2 a step without it), with art, tips and review batch 2026-11-21-1; careful 3-player full seasons 75 / 9 / 17 % safe / wounded / lost over 200 seeds (before: 71 / 15 / 14). Decision in `product.md`.
 - 2026-11-20: Telegraphed threats, core (`m5/threat-pace`): window radius 6 (content version 8), rockslide 5 ahead, raiders speed 1, `threatNextPath` for drawing a threat's next path, the scout's inactive `far-sight` perk, and a seeded balance simulation (`packages/core/scripts/balance.ts`).
 - 2026-11-20: Threat path (`m5/threat-path`): an open threat card draws the threat's next-tick path as an ink trail with its end hex ringed, and its distance as action arrows on the card, placed clear of the trail.
 - 2026-11-20: Threat strength grows every 14 days instead of 10 (careful parties lost about 30 % of full seasons; now 14 to 17 % in the 200-seed simulation); `apps/web/scripts/perf.mjs` now boots the map through a fake game server shared with `screenshots.mjs` (`fake-game.mjs`) and measures hex taps and the desktop.

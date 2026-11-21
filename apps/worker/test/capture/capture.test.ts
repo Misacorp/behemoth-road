@@ -333,7 +333,7 @@ describe('capture', () => {
       bait: false,
     });
     await playSeason('wounded', {
-      feedEvery: 8,
+      feedEvery: 20,
       defend: true,
       strike: true,
       envoy: false,

@@ -8,7 +8,7 @@
   },
   "offers": null,
   "game": {
-    "contentVersion": 8,
+    "contentVersion": 9,
     "artSeed": 4242,
     "day": 2,
     "config": {
@@ -903,12 +903,12 @@
     "threats": [
       {
         "id": "t2",
-        "type": "swarm",
+        "type": "rockslide",
         "hex": {
-          "q": 6,
-          "r": -6
+          "q": 0,
+          "r": -5
         },
-        "strength": 2,
+        "strength": 3,
         "appearedDay": 2
       }
     ],

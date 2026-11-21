@@ -1,5 +1,5 @@
 {
-  "version": 33,
+  "version": 32,
   "day": 6,
   "you": {
     "userId": "222222222222222222",
@@ -8,7 +8,7 @@
   },
   "offers": null,
   "game": {
-    "contentVersion": 8,
+    "contentVersion": 9,
     "artSeed": 4242,
     "day": 6,
     "config": {
@@ -423,25 +423,25 @@
       "0,-6": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "0,-5": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "0,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "0,-3": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "0,-2": {
@@ -453,7 +453,7 @@
       "0,-1": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "0,0": {
@@ -498,13 +498,13 @@
       "1,-6": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "1,-5": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "1,-4": {
@@ -567,7 +567,7 @@
       "2,-6": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "2,-5": {
@@ -585,7 +585,7 @@
       "2,-3": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "2,-2": {
@@ -642,7 +642,7 @@
       "3,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "3,-3": {
@@ -687,13 +687,13 @@
       "4,-6": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "4,-5": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "4,-4": {
@@ -870,19 +870,19 @@
       "2,-7": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "3,-7": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "4,-7": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "5,-7": {
@@ -1199,8 +1199,8 @@
         "at": {
           "kind": "hex",
           "hex": {
-            "q": 2,
-            "r": -6
+            "q": 0,
+            "r": -1
           }
         },
         "actionsLeft": 0,
@@ -1214,11 +1214,6 @@
         "type": "berry-bushes",
         "revealed": true,
         "left": 3
-      },
-      "2,-6": {
-        "type": "pitfall",
-        "revealed": true,
-        "left": 1
       }
     },
     "stores": {
@@ -1229,23 +1224,13 @@
     "stimuli": [],
     "threats": [
       {
-        "id": "t3",
-        "type": "rockslide",
-        "hex": {
-          "q": 1,
-          "r": -7
-        },
-        "strength": 2,
-        "appearedDay": 3
-      },
-      {
         "id": "t4",
         "type": "captors",
         "hex": {
           "q": 0,
           "r": 0
         },
-        "strength": 4,
+        "strength": 2,
         "appearedDay": 4
       },
       {
@@ -1257,6 +1242,16 @@
         },
         "strength": 3,
         "appearedDay": 5
+      },
+      {
+        "id": "t6",
+        "type": "swarm",
+        "hex": {
+          "q": -6,
+          "r": -3
+        },
+        "strength": 3,
+        "appearedDay": 6
       }
     ],
     "settlements": [
@@ -1272,7 +1267,7 @@
         "boon": null
       }
     ],
-    "peril": 0,
+    "peril": 1,
     "season": {
       "status": "on"
     },
@@ -1323,12 +1318,12 @@
       "id": "s4",
       "characterId": "222222222222222222.0",
       "favour": 4,
-      "version": 33
+      "version": 32
     },
     {
       "kind": "befriended",
       "id": "s4",
-      "version": 33
+      "version": 32
     }
   ],
   "stopped": null
