@@ -19,7 +19,10 @@ import {
   IDLE,
   isSelecting,
   keyDown,
+  choose,
+  entryKey,
   goBack,
+  pickEntries,
   openCharacter,
   openHub,
   rightClick,
@@ -465,6 +468,14 @@ export function Game({ api, initial }: GameProps): JSX.Element {
           )
         }
         onBack={() => setFlow(goBack)}
+        onPick={(key) =>
+          setFlow((f) => {
+            const entry = pickEntries(state, id, f.kind === 'pick' ? f.hex : { q: 0, r: 0 }).find(
+              (e) => entryKey(e) === key,
+            );
+            return entry ? choose(state, id, f, entry) : f;
+          })
+        }
         onRightClick={() => setFlow((f) => rightClick(f, getSettings()))}
         focus={focus}
         coverBottom={

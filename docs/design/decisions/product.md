@@ -4,6 +4,22 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-21: Settlements and features only appear on unexplored hexes
+
+ID: `2026-11-21-settlements-and-features-only-appear-on` · Status: current
+
+**Decision.** A settlement is never placed on an explored hex. Its spot is an unexplored hex of the window's leading edge; if scouts have swept the whole edge, the arc one ring in is tried, then another, and failing that no settlement appears that step. Features are only generated for hexes newly in view, so an explored hex never gains one (tested over many seeds: explore, tick, nothing new on explored hexes).
+
+**Reasoning.** The creature's step moves the edge inward over hexes players had already scouted, so a village could appear on a hex shown empty (the staging playtest). Generation of features was already tied to new hexes; only settlements broke the promise.
+
+## 2026-11-21: A tile with several things shows a picker of round bubbles **[Misa]**
+
+ID: `2026-11-21-a-tile-with-several-things-shows` · Status: current
+
+**Decision.** Tapping a tile (or a figure on it) with more than one thing to tap (your character, other characters, a threat, its settlement or revealed feature when you do not stand there) opens a picker: small round bubbles side by side above the tile, below it when there is no room, one per thing, each with its own drawing and no text. A bubble is a button (tap opens that thing's card, hold shows its tip). The card opens with a back button at its top left corner returning to the picker; the same tile again, another tap or Escape closes it. A tile with one thing skips the picker. Your own bubble selects you as before (no back). The creature's hub bubble keeps its list of riders and the hub entry for now.
+
+**Reasoning.** Misa's pick, replacing the idea of listing the threat in the here card or hit-testing by shape: one pattern for every choice between things on a tile, found by a playtest where a swarm on your own hex could not be tapped.
+
 ## 2026-11-21: Fast rounds pace: staging only, all active characters spent, 6 s delay, 4 s day banner
 
 ID: `2026-11-21-fast-rounds-pace-staging-only-all` · Status: current

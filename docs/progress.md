@@ -11,6 +11,7 @@ What has landed and what is next. Newest first. Update it when a step lands or t
 
 ## Done
 
+- 2026-11-21: Threat fixes from the staging playtest (`r2/threat-fixes`): settlements no longer appear on explored hexes; a tile with several things (characters, a threat, a settlement or feature) opens a picker of round bubbles with a back from each card; a selected threat marks its end hex and the creature when it will strike at the next tick.
 - 2026-11-21: Live updates (`next/live`, `docs/design/live.md`): WebSocket Hibernation push in `GuildWorld` (a `changed` message after every write, one-time ticket auth, caps, off in production), a client that refreshes on pushes and polls every 60 s while live, a read meter with row budgets in tests (two hot queries that scanned the whole event log rewritten), and the server clock in the view so the fast-tick refresh and day ring ignore device clock skew.
 
 - 2026-11-21: Fast rounds (branch `next/fast`): a per-game pace, staging only; in fast pace the day turns 6 s after every active character has spent their actions (one alarm shared with the daily tick), a ring drains round the day sun meanwhile, clients refresh once just after the countdown, the object answers an unchanged poll without reading storage, a 4 s day banner shows whenever the day goes up, and admins get a pace toggle beside next day.

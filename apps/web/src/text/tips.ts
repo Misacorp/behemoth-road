@@ -188,14 +188,22 @@ export const tips = {
   'feature:undertow': { text: 'An undertow, found. Harmless now.' },
 
   // Threats on the map.
-  'threat:captors': { text: 'On the creature’s trail. Strong, and gains on it every day.' },
-  'threat:swarm': { text: 'Flies in from the side. Fast, but weaker.' },
+  'threat:captors': {
+    text: 'On the creature’s trail. Strong, and gains on it every day. Tap it to see its next step.',
+  },
+  'threat:swarm': {
+    text: 'Flies in from the side. Fast, but weaker. Tap it to see its next step.',
+  },
   'threat:rockslide': {
     text: 'Blocks the path ahead. Steer around it with fires, or strike it apart.',
   },
-  'threat:ambush': { text: 'Lies in wait among the trees. Slow, but close.' },
-  'threat:stampede': { text: 'Charges across open ground. Fast and heavy.' },
-  'threat:raiders': { text: 'Sent by an angered settlement.' },
+  'threat:ambush': {
+    text: 'Lies in wait among the trees. Slow, but close. Tap it to see its next step.',
+  },
+  'threat:stampede': {
+    text: 'Charges across open ground. Fast and heavy. Tap it to see its next step.',
+  },
+  'threat:raiders': { text: 'Sent by an angered settlement. Tap it to see its next step.' },
 
   // Settlements and the peoples.
   'people:hill-folk': { text: 'Herders of the hills. Win their favour for a boon.' },
