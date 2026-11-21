@@ -64,6 +64,15 @@ Sources: pnpm.io/supply-chain-security · docs.github.com Dependabot options ref
 - 🔜 Rate limiting per user once there are users.
 - ✅ Rendering: text only. `dangerouslySetInnerHTML`, `innerHTML` and raw HTML insertion are banned by lint.
 
+### Live sockets (`docs/design/live.md`)
+
+- ✅ **A one-time ticket opens a socket; the session token is never in a URL.** `POST /api/live/ticket` (bearer session, rate limited like every game request) returns `t1.<guildId>.<secret>.<mac>`: 30 s, single use, at most 200 held in the guild object's memory (only the secret's hash), MAC under its own HKDF label so a session token is not a ticket and the reverse.
+- ✅ **The Worker checks before any object wakes:** the `LIVE` flag, method and `Upgrade` header, exactly one `t` parameter, and the MAC in constant time (`crypto.subtle.verify`). The object checks the guild, redeems the ticket and takes the user from it, never from anything the client sends.
+- ✅ **Server to client only.** Any client frame except `ping` closes the socket (4002); intents stay on the HTTP routes, so every schema, rate limit and version check still applies. A push is `{ type: 'changed', version }`: no per-viewer data; the client fetches its own view over the authenticated path.
+- ✅ **Limits:** 3 sockets per player (oldest closed), 64 per guild (`503 live_full`), no socket older than 12 h, stale ones (no ping for 150 s) pruned on connect, push and alarm. No timers.
+- ✅ `LIVE` is off in production until Misa turns it on; off means a 404 before any object is addressed (a test pins the flag per environment).
+- ✅ **Rows read are budgeted** (`apps/worker/test/read-budget.test.ts`): the free tier's 5,000,000 rows read a day is account-wide, and a hot-path scan used it up in the creatures app.
+
 ## 6. HTTP headers
 
 - ✅ Frontend (`apps/web/public/_headers`): strict CSP (`default-src 'self'`, no inline scripts or styles, `object-src 'none'`, `base-uri 'none'`, `frame-ancestors 'none'`), `X-Content-Type-Options: nosniff`, `Referrer-Policy`, HSTS, `Permissions-Policy`. Vite never inlines assets (the CSP would block them).

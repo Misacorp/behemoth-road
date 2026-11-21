@@ -11,6 +11,8 @@ What has landed and what is next. Newest first. Update it when a step lands or t
 
 ## Done
 
+- 2026-11-21: Live updates (`next/live`, `docs/design/live.md`): WebSocket Hibernation push in `GuildWorld` (a `changed` message after every write, one-time ticket auth, caps, off in production), a client that refreshes on pushes and polls every 60 s while live, a read meter with row budgets in tests (two hot queries that scanned the whole event log rewritten), and the server clock in the view so the fast-tick refresh and day ring ignore device clock skew.
+
 - 2026-11-21: Fast rounds (branch `next/fast`): a per-game pace, staging only; in fast pace the day turns 6 s after every active character has spent their actions (one alarm shared with the daily tick), a ring drains round the day sun meanwhile, clients refresh once just after the countdown, the object answers an unchanged poll without reading storage, a 4 s day banner shows whenever the day goes up, and admins get a pace toggle beside next day.
 - 2026-11-20: Telegraphed threats, core (`m5/threat-pace`): window radius 6 (content version 8), rockslide 5 ahead, raiders speed 1, `threatNextPath` for drawing a threat's next path, the scout's inactive `far-sight` perk, and a seeded balance simulation (`packages/core/scripts/balance.ts`).
 - 2026-11-20: Threat path (`m5/threat-path`): an open threat card draws the threat's next-tick path as an ink trail with its end hex ringed, and its distance as action arrows on the card, placed clear of the trail.
