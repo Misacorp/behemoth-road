@@ -23,6 +23,7 @@ export const MATERIALS = [
   'stone',
   'hide',
   'trodden',
+  'mire',
 ] as const;
 export type Material = (typeof MATERIALS)[number];
 
@@ -82,6 +83,7 @@ export const MORNING: Palette = {
     stone: r('#e8dfcf', '#cbbfa9', '#a69983'),
     hide: r('#e2c8b6', '#c9a693', '#a3816f'),
     trodden: r('#e9d2b6', '#d6b994', '#b39672'),
+    mire: r('#cfd2a8', '#b0b88d', '#8a946b'),
   },
   accents: {
     rose: r('#ecc8c3', '#d9a3a0', '#b48280'),
@@ -126,6 +128,7 @@ export const MIST: Palette = {
     stone: r('#e2e2dd', '#c6c7c1', '#a2a49e'),
     hide: r('#d6d2e2', '#b0abc4', '#8d88a3'),
     trodden: r('#e2d8cc', '#cbbca9', '#a89884'),
+    mire: r('#c9d3be', '#a8b8a2', '#869a82'),
   },
   accents: {
     rose: r('#ead0d3', '#d6a7ad', '#b4878e'),
@@ -170,6 +173,7 @@ export const SPRING: Palette = {
     stone: r('#e6e2ce', '#cbc5ab', '#a7a187'),
     hide: r('#e6d2b8', '#cfb393', '#ab9071'),
     trodden: r('#ebd6bd', '#d9b996', '#b59574'),
+    mire: r('#cadaa8', '#a8c086', '#84a064'),
   },
   accents: {
     rose: r('#efcdc4', '#e0a99e', '#bc887e'),

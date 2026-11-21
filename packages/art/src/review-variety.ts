@@ -48,6 +48,8 @@ function mapSheet(): string {
       { terrain: 'plains', settlement: { look: 'river-folk', attitude: 'angry' } },
       { terrain: 'plains', settlement: { look: 'hill-folk', attitude: 'wary', favour: 1 } },
       { terrain: 'desert' },
+      { terrain: 'swamp' },
+      { terrain: 'swamp', feature: { look: 'shrine', state: 'ready' } },
     ],
   ];
   const cells: ArtCell[] = rows.flatMap((row, r) =>
@@ -58,13 +60,13 @@ function mapSheet(): string {
   );
 }
 
-/** The new icons: the pearl, the sledge (and done), its path mark, both threats and river folk. */
+/** The new icons: the pearl, the marsh boards (and done), their path mark, both threats and river folk. */
 function iconsSheet(): string {
   const nodes: SvgNode[] = [
     placed(drawIcon('pearl', PALETTE, 72), 24, 24),
-    placed(drawIcon('sledge', PALETTE, 72), 120, 24),
-    placed(drawIcon('sledge', PALETTE, 72, { done: true }), 216, 24),
-    placed(drawViaMark('sand-sledge', PALETTE, 48), 320, 36),
+    placed(drawIcon('boards', PALETTE, 72), 120, 24),
+    placed(drawIcon('boards', PALETTE, 72, { done: true }), 216, 24),
+    placed(drawViaMark('marsh-boards', PALETTE, 48), 320, 36),
     placed(drawThreatIcon('ambush', PALETTE, 96, { strength: 2 }), 24, 120),
     placed(drawThreatIcon('stampede', PALETTE, 96, { strength: 3 }), 140, 120),
     placed(drawSettlementIcon(PALETTE, 96, { look: 'river-folk', attitude: 'wary' }), 280, 120),
@@ -82,7 +84,7 @@ export function varietyReviewItems(): ReviewDraft[] {
       id: 'variety/map',
       group,
       title:
-        'Sunken shrine (ready, spent), undertow and river stones on rivers; an ambush in the forest, a stampede on the plains; river folk wary, friendly and angry beside hill folk',
+        'Sunken shrine (ready, spent), undertow and river stones on rivers; an ambush in the forest, a stampede on the plains; river folk wary, friendly and angry beside hill folk; a desert, a swamp and a swamp with a sunken shrine',
       file: 'variety-map.svg',
       ...glance,
       svg: mapSheet(),
@@ -91,7 +93,7 @@ export function varietyReviewItems(): ReviewDraft[] {
       id: 'variety/icons',
       group,
       title:
-        'River pearl; sand sledge (and done) with its path mark; ambush and stampede cards; river folk cards in each attitude',
+        'River pearl; marsh boards (and done) with their path mark; ambush and stampede cards; river folk cards in each attitude',
       file: 'variety-icons.svg',
       ...glance,
       svg: iconsSheet(),

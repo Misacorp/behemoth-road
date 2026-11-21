@@ -4,7 +4,7 @@
  */
 import type { Material } from './palette.ts';
 
-export type GroundMark = 'flecks' | 'ripples' | 'waves' | 'scree' | 'scuffs' | 'none';
+export type GroundMark = 'flecks' | 'ripples' | 'waves' | 'scree' | 'scuffs' | 'pools' | 'none';
 
 export interface PropRule {
   /** A prop kind (`props.ts`). */
@@ -63,6 +63,15 @@ export const TERRAIN_LOOKS: Readonly<Record<string, TerrainLook>> = {
     side: 'earth',
     marks: 'ripples',
     props: [{ kind: 'dune', count: [1, 2] }],
+  },
+  swamp: {
+    ground: 'mire',
+    side: 'earth',
+    marks: 'pools',
+    props: [
+      { kind: 'reeds', count: [3, 4] },
+      { kind: 'tuft', count: [0, 1] },
+    ],
   },
   rocks: {
     ground: 'heath',

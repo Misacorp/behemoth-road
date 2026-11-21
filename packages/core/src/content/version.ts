@@ -15,9 +15,11 @@
  * 8: threats are telegraphed: a wider window (radius 6), slower raiders, the
  *    rockslide further ahead.
  * 9: more variety: ambush and stampede threats, river folk, the sunken shrine,
- *    the undertow, the sand sledge (and slower sand).
+ *    the undertow.
+ * 10: swamp (2 actions a step on foot) and the marsh boards replace slower sand
+ *    and the sand sledge; shrine, undertow and river folk also fit swamp.
  */
-export const CONTENT_VERSION = 9;
+export const CONTENT_VERSION = 10;
 
 /** Content versions this code can load. */
 export const KNOWN_CONTENT_VERSIONS: readonly number[] = [CONTENT_VERSION];

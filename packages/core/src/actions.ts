@@ -49,13 +49,13 @@ export interface Entry {
  * cannot be entered. Terrain that is not passable can be entered with a team
  * unlock whose `movement` covers its tags; the cheapest wins, and its id is the
  * step's `via` (the grappling hook over a cliff). On passable terrain such an
- * unlock replaces the walking cost when it is lower (a sledge over sand).
+ * unlock replaces the walking cost when it is lower (marsh boards over a swamp).
  */
 export const entryInto = (state: GameStateView, h: Hex): Entry | null => {
   if (isCreatureHex(state, h)) return null;
   const terrain = terrainOf(state, h);
   if (!terrain) return null;
-  // Over passable ground an unlock counts only when it is cheaper than walking (the sand sledge).
+  // Over passable ground an unlock counts only when it is cheaper than walking (the marsh boards).
   let best: Entry | null = terrain.passable
     ? { cost: state.config.moveCost + terrain.extraMoveCost }
     : null;

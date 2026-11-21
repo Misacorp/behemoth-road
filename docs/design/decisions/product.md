@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-21: The slow terrain is a swamp, not sand: marsh boards replace the sand sledge **[Misa]**
+
+ID: `2026-11-21-the-slow-terrain-is-a-swamp` · Status: current · Amends: `2026-11-21-more-content-for-playtests-ambush-stampede`
+
+**Decision.** Content version 10. Sand goes back to 1 action a step (desert `extraMoveCost` 0). A new `swamp` terrain (tags `wet`, `boggy`) costs 2 actions a step on foot. It is generated on the low ground just under a river's contour (the water field between 0.47 and 0.5), broken into patches by a second `bog` field, about 2-4 % of hexes. The sand sledge is replaced by the marsh boards (same cost, 2 timber, 1 iron, 4 work; tags `glide`, `boards`), whose `movement` covers `boggy` terrain at cost 1. Placement through tags: the sunken shrine, the undertow and river folk's settlements also fit `boggy` ground (a new `between` field condition serves the generation rule). Art: a mire ground with pools, reeds, the boards icon and its path mark; tips for swamp and the boards. Careful full seasons over 200 seeds, safe / wounded / lost (3 players; 6 players): 75/11/14 and 74/12/14 (the sand version was 73/10/17 and 71/12/18); careless parties still lose every full season. Stone, iron, timber and forage stay findable in every seed within 8 days.
+
+**Reasoning.** Misa asked for it: a wet, boggy slowdown fits the world better than slow sand and keeps the desert as plain open ground. Swamp is rarer than sand was, so fewer paths are slowed and careful parties lose about 3 points fewer seasons; no tuning back was needed.
+
 ## 2026-11-21: Fast rounds pace: staging only, all active characters spent, 6 s delay, 4 s day banner
 
 ID: `2026-11-21-fast-rounds-pace-staging-only-all` · Status: current
@@ -22,7 +30,7 @@ ID: `2026-11-21-content-version-9-balance-stampede-strength` · Status: current 
 
 ## 2026-11-21: More content for playtests: ambush, stampede, river folk, sunken shrine, undertow, sand sledge
 
-ID: `2026-11-21-more-content-for-playtests-ambush-stampede` · Status: current, amended by `2026-11-21-content-version-9-balance-stampede-strength`
+ID: `2026-11-21-more-content-for-playtests-ambush-stampede` · Status: current, amended by `2026-11-21-content-version-9-balance-stampede-strength`, `2026-11-21-the-slow-terrain-is-a-swamp`
 
 **Decision.** Content version 9 adds variety to existing systems, with no new role or rule. Threats: the ambush (flank, speed 1, strength 2, appears only on `wooded` ground) and the stampede (behind, speed 2, strength 2, only on `open` ground), through a new optional `on` terrain-tag condition on a threat type. Peoples: river folk (stilt huts, favour 2 instead of 3, boons gift and mislead but no shelter, a gift of forage and stone), through an optional `near` terrain-tag condition on a people; a settlement is placed with a people whose condition fits a leading-edge spot. Sites: the sunken shrine, a tier-1 site on rivers finding the river pearl (a `trade` material: an offering like the old coin). Traps: the undertow on rivers. Unlocks: the sand sledge (2 timber, 1 iron, 4 work) makes sand cost 1 action a step; sand now costs 2 without it (desert `extraMoveCost` 1), and an unlock's `movement` now also applies to passable terrain when it is cheaper than walking. No new node: no new choice would feed anything. Rolled-threat frequency is unchanged; the stampede was 3 strength at first and lowered to 2 because careful parties lost 19 % of full seasons instead of 14 %.
 
