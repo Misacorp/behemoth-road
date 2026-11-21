@@ -49,7 +49,7 @@ import type { TipId } from '../text/tips.ts';
 import type { TipTarget } from '../ui/tip.ts';
 import { holdEnded, onRightClick, TIPS } from '../ui/press.ts';
 import { MAP_TUNING } from './config.ts';
-import { type Flow, isSelecting } from './flow.ts';
+import { type Flow, entryKey, isSelecting, pickEntries } from './flow.ts';
 import { holdMs } from '../text/tips.ts';
 import { GestureTracker, type Gesture } from './gestures.ts';
 import { buildOverlays } from './overlays.ts';
@@ -74,8 +74,19 @@ import {
   SettlementCard,
   ThreatCard,
   threatSize,
+  BackButton,
+  Picker,
+  type PickBubble,
+  pickSize,
 } from './Popover.tsx';
-import { type SettlementInfo, settlementInfo, threatCard, threatNextPath } from '../game/season.ts';
+import {
+  type SettlementInfo,
+  settlementAt,
+  settlementInfo,
+  threatCard,
+  threatMarks,
+  threatNextPath,
+} from '../game/season.ts';
 import { setCssTransform } from './cssTransform.ts';
 import { toPreact } from './svgToPreact.ts';
 import {
@@ -136,6 +147,8 @@ export interface MapViewProps {
   readonly onCharacter: (id: string) => void;
   /** The back button of a card opened inside another popup (a character from the bubble). */
   readonly onBack?: () => void;
+  /** A bubble in the tile picker was tapped (its key: `me`, `character:id`, `threat:id`, `tile`). */
+  readonly onPick?: (key: string) => void;
   /** Who each character is (names, roles, traits, quirks), from the player view. */
   readonly identities?: ReadonlyMap<string, Identity>;
   /** The map was right-clicked (the browser's menu is never shown over the map). */
@@ -206,6 +219,40 @@ interface Anchor {
   readonly clear?: readonly Hex[];
 }
 
+/** The bubbles of a tile's picker: one per thing on it, each with its own drawing. */
+function pickBubbles(state: GameStateView, characterId: string, hex: Hex): PickBubble[] {
+  return pickEntries(state, characterId, hex).map((e): PickBubble => {
+    const key = entryKey(e);
+    if (e.kind === 'me' || e.kind === 'character') {
+      const id = e.kind === 'me' ? characterId : e.id;
+      return {
+        key,
+        kind: 'character',
+        accent: accentOf(id, MAP_TUNING.accent),
+        look: lookOf(id),
+        ...(e.kind === 'me' ? { mine: true } : {}),
+      };
+    }
+    if (e.kind === 'threat') {
+      const t = state.threats.find((x) => x.id === e.id);
+      const mark = threatMarks(state).find((x) => x.id === e.id);
+      return {
+        key,
+        kind: 'threat',
+        threat: { icon: mark?.icon ?? t?.type ?? '', type: t?.type ?? '' },
+      };
+    }
+    const sid = settlementAt(state, hex);
+    return {
+      key,
+      kind: 'tile',
+      settlement: sid ? settlementInfo(state, sid) : null,
+      terrain: terrainOf(state, hex)?.id ?? 'unknown',
+      feature: featureArtAt(state, hexKey(hex)),
+    };
+  });
+}
+
 function popoverAnchor(
   state: GameStateView,
   flow: Flow,
@@ -228,7 +275,19 @@ function popoverAnchor(
     const lift = tile * 1.5 + 0.5 * p.size;
     return { key: 'bubble', top: { x: c.x, y: c.y - lift }, below: lift + tile, size };
   };
-  if (flow.kind === 'character' && flow.back) {
+  if (flow.kind === 'pick') {
+    // Round bubbles above the tile (below it when there is no room above: the placement flips by itself).
+    const c = hexCenter(p, flow.hex.q, flow.hex.r);
+    const lift = 0.9 * p.size;
+    const count = pickBubbles(state, characterId, flow.hex).length;
+    return {
+      key: `pick:${hexKey(flow.hex)}:${String(count)}`,
+      top: { x: c.x, y: c.y - lift },
+      below: lift + tile / 2,
+      size: pickSize(count),
+    };
+  }
+  if (flow.kind === 'character' && flow.back && flow.back.kind !== 'pick') {
     // Opened from the bubble: in the bubble's place, as the next step of the same popup.
     return { ...bubbleAnchor(characterSize(true)), key: `bubble:character:${flow.id}` };
   }
@@ -238,10 +297,10 @@ function popoverAnchor(
     if (!feet) return null;
     const head = 0.9 * p.size;
     return {
-      key: `character:${flow.id}`,
+      key: `character:${flow.id}:${flow.back ? 'back' : ''}`,
       top: { x: feet.x, y: feet.y - head },
       below: head,
-      size: CHARACTER_SIZE,
+      size: flow.back ? characterSize(true) : CHARACTER_SIZE,
     };
   }
   if (flow.kind === 'threat' || flow.kind === 'settlement') {
@@ -731,6 +790,7 @@ export function MapView(props: MapViewProps): JSX.Element {
       const target =
         flow.kind === 'planned' ||
         flow.kind === 'bubble' ||
+        flow.kind === 'pick' ||
         (flow.kind === 'character' && flow.back !== undefined) ||
         flow.kind === 'selected' ||
         (flow.kind === 'inspect' && survey) ||
@@ -827,6 +887,23 @@ export function MapView(props: MapViewProps): JSX.Element {
   };
 
   let card: JSX.Element | null = null;
+  // A card opened from the picker carries a back button at its top left corner, returning to it.
+  const withBack = (inner: JSX.Element): JSX.Element =>
+    'back' in flow && flow.back ? (
+      <g data-back-card="true">
+        {inner}
+        <g transform="translate(-14 -14)">
+          <BackButton
+            onBack={() => props.onBack?.()}
+            buttonRef={(el) => {
+              popoverFocusRef.current = el;
+            }}
+          />
+        </g>
+      </g>
+    ) : (
+      inner
+    );
   const mineAt = state.characters.find((c) => c.id === characterId)?.at;
   const mineHex = mineAt?.kind === 'hex' ? mineAt.hex : null;
   if (flow.kind === 'inspect') {
@@ -927,6 +1004,23 @@ export function MapView(props: MapViewProps): JSX.Element {
         }}
       />
     );
+  }
+
+  if (flow.kind === 'pick') {
+    card = (
+      <Picker
+        bubbles={pickBubbles(state, characterId, flow.hex)}
+        onPick={(key) => props.onPick?.(key)}
+        firstRef={(el) => {
+          popoverFocusRef.current = el;
+        }}
+      />
+    );
+  } else if (
+    card &&
+    (flow.kind === 'inspect' || flow.kind === 'threat' || flow.kind === 'settlement')
+  ) {
+    card = withBack(card);
   }
 
   // Out of reach: a faded arrow from your feet ending in a cross on the tapped hex, fading by itself (CSS);

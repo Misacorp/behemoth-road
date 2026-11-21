@@ -218,7 +218,7 @@ describe('signs in the player view', () => {
         expect((await act(ctx, misa, { kind: 'light-fire' })).status).toBe(200);
         expect((await ctx.call(misa, 'POST', '/api/dev/next-day', {})).status).toBe(200);
         // Underfed at level 2: a keeper sees it clearly, anyone else faintly.
-        edit(ctx.sql, (s) => ({ ...s, care: { ...s.care, satiety: 2 } }));
+        edit(ctx.sql, (s) => ({ ...s, care: { ...s.care, satiety: 4 } }));
 
         // Expected from the stored state and the known character ids, not from any response.
         const stored = storedState(ctx.sql);

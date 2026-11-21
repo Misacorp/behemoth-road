@@ -36,7 +36,7 @@ const cliffBeside = (seed: number): { cliff: Hex; from: Hex } | undefined => {
 
 const north = nearP(0, -1);
 const openNorth = (s: number) =>
-  terrainAt(s, north).passable && !terrainAt(s, north).tags.includes('dry');
+  terrainAt(s, north).passable && !terrainAt(s, north).tags.includes('boggy');
 
 describe('move', () => {
   it('moves one hex for one action and leaves the old state untouched', () => {

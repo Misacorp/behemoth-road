@@ -7,6 +7,9 @@ import { boxOf, ellipsePath, mapper, poly, smoothClosed, smoothOpen, type Point 
 import { inkAttrs, type PropDraw } from './props.ts';
 import { el } from './svg.ts';
 
+/** How much taller the flame and smoke are drawn than the plain side view. */
+const FLAME_RISE = 1.7;
+
 export const drawFire: PropDraw = (c) => {
   const pal = c.palette;
   const T = mapper(c.origin, c.k, 1, c.k * c.rise);
@@ -19,6 +22,10 @@ export const drawFire: PropDraw = (c) => {
   });
   // A small sway so neighbouring fires do not match.
   const sway = c.rng.range(-1.2, 1.2);
+  // The flame and its smoke rise taller than the ring of stones round them.
+  const Tt = mapper(c.origin, c.k, 1, c.k * c.rise * FLAME_RISE);
+  const tall = (raw: readonly (readonly [number, number])[]): Point[] =>
+    raw.map(([x, y]) => Tt(x, y));
 
   const glow = el('path', {
     d: ellipsePath(c.origin.x, c.origin.y, 13 * c.k, 5.5 * c.k * sq),
@@ -53,7 +60,7 @@ export const drawFire: PropDraw = (c) => {
       [7, -0.2],
     ]),
   ];
-  const flame = pts([
+  const flame = tall([
     [0, 0],
     [-5.5, -3],
     [-5, -9],
@@ -63,7 +70,7 @@ export const drawFire: PropDraw = (c) => {
     [5.5, -8],
     [5, -2.5],
   ]);
-  const core = pts([
+  const core = tall([
     [0, -1],
     [-2.6, -3.5],
     [-1.8, -8],
@@ -71,15 +78,18 @@ export const drawFire: PropDraw = (c) => {
     [2.2, -7.5],
     [2.6, -3],
   ]);
-  const smoke = pts([
+  const smoke = tall([
     [0.5 + sway, -21],
     [-2.5, -26],
     [1.5, -31],
     [-1, -36],
-    [2.5, -40],
+    [3.5, -40],
+    [6, -44],
+    [3.5, -47],
+    [1.5, -44.5],
   ]);
-  const spark = T(6 + sway, -16);
-  const puffAt = [T(-1.5, -37), T(3, -43)];
+  const spark = Tt(6 + sway, -16);
+  const puffAt = [Tt(-1.5, -37), Tt(3, -43)];
   const puffs = puffAt
     .map((p, i) => ellipsePath(p.x, p.y, (2.6 + i) * c.k, (1.9 + i * 0.7) * c.k))
     .join('');
@@ -120,6 +130,6 @@ export const drawFire: PropDraw = (c) => {
       }),
       ...stoneNodes(front),
     ],
-    box: boxOf([...flame, ...smoke, T(-13, 4), T(13, 4), T(7, -46)]),
+    box: boxOf([...flame, ...smoke, T(-13, 4), T(13, 4), Tt(7, -46)]),
   };
 };

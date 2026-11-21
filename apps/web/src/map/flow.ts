@@ -18,22 +18,28 @@ import {
   placeEquals,
   planPath,
 } from '@behemoth-road/core';
+import { revealedFeatureAt } from '@behemoth-road/core';
 import { settlementAt, threatAt } from '../game/season.ts';
 import type { Target } from './pick.ts';
 
 export type Flow =
   | { readonly kind: 'idle' }
-  /** Looking at a hex: its popover shows what is known about it. */
-  | { readonly kind: 'inspect'; readonly hex: Hex }
+  /** Looking at a hex: its popover shows what is known about it. `back` is the picker it was chosen from. */
+  | { readonly kind: 'inspect'; readonly hex: Hex; readonly back?: Flow }
+  /**
+   * A tile with more than one thing to tap on it (characters, a threat, its feature or settlement): small
+   * round bubbles, one per thing, to choose from. Tapping one opens that thing's card, with a back to here.
+   */
+  | { readonly kind: 'pick'; readonly hex: Hex }
   /**
    * Looking at another player's character: its card shows who it is. `back` is where it was opened from
    * (the bubble): the card then shows in that same popup, with a back button to it.
    */
   | { readonly kind: 'character'; readonly id: string; readonly back?: Flow }
   /** Looking at a threat: its card shows its name and strength, and the strike when you are near. */
-  | { readonly kind: 'threat'; readonly id: string }
+  | { readonly kind: 'threat'; readonly id: string; readonly back?: Flow }
   /** Looking at a settlement from afar: its card shows its attitude and favour. */
-  | { readonly kind: 'settlement'; readonly id: string }
+  | { readonly kind: 'settlement'; readonly id: string; readonly back?: Flow }
   /** Looking at the creature (the hub): its card shows it and its heading. */
   | { readonly kind: 'creature' }
   /**
@@ -79,6 +85,69 @@ function look(flow: Flow, state: GameStateView, hex: Hex): Flow {
   return { kind: 'inspect', hex };
 }
 
+/** One thing on a tile to choose from in the picker. */
+export type PickEntry =
+  | { readonly kind: 'me' }
+  | { readonly kind: 'character'; readonly id: string }
+  | { readonly kind: 'threat'; readonly id: string }
+  /** The tile's own settlement or revealed feature (when you are not standing there: then it is part of you). */
+  | { readonly kind: 'tile' };
+
+/** The key of a picker entry, for its bubble. */
+export const entryKey = (e: PickEntry): string =>
+  e.kind === 'me' ? 'me' : e.kind === 'tile' ? 'tile' : `${e.kind}:${e.id}`;
+
+/**
+ * What can be tapped on a hex: your character, other active characters, the threats, and the settlement or
+ * revealed feature (which belongs to your own entry when you stand there: the here card).
+ */
+export function pickEntries(state: GameStateView, characterId: string, hex: Hex): PickEntry[] {
+  const out: PickEntry[] = [];
+  for (const c of state.characters) {
+    if (c.status !== 'active' || c.at.kind !== 'hex' || !hexEquals(c.at.hex, hex)) continue;
+    out.push(c.id === characterId ? { kind: 'me' } : { kind: 'character', id: c.id });
+  }
+  for (const t of state.threats) if (hexEquals(t.hex, hex)) out.push({ kind: 'threat', id: t.id });
+  if (!out.some((e) => e.kind === 'me')) {
+    if (settlementAt(state, hex) !== null || revealedFeatureAt(state, hex) !== null) {
+      out.push({ kind: 'tile' });
+    }
+  }
+  return out;
+}
+
+/** Your own character's tap: select it (with actions left), else look at its hex. */
+function tapMe(flow: Flow, state: GameStateView, characterId: string, hex: Hex): Flow {
+  const me = findCharacter(state, characterId);
+  if (isSelecting(flow)) return IDLE;
+  if (me && me.actionsLeft > 0) return { kind: 'selected' };
+  return look(flow, state, hex);
+}
+
+/** Choosing a bubble in the picker: that thing's card, with a back to the picker. */
+export function choose(
+  state: GameStateView,
+  characterId: string,
+  pick: Flow,
+  entry: PickEntry,
+): Flow {
+  if (pick.kind !== 'pick') return pick;
+  switch (entry.kind) {
+    case 'me':
+      return tapMe(IDLE, state, characterId, pick.hex);
+    case 'character':
+      return openCharacter(entry.id, pick);
+    case 'threat':
+      return { kind: 'threat', id: entry.id, back: pick };
+    case 'tile': {
+      const settlement = settlementAt(state, pick.hex);
+      return settlement !== null
+        ? { kind: 'settlement', id: settlement, back: pick }
+        : { kind: 'inspect', hex: pick.hex, back: pick };
+    }
+  }
+}
+
 /** A tap on the creature. */
 function tapCreature(flow: Flow, state: GameStateView, characterId: string): Flow {
   const me = findCharacter(state, characterId);
@@ -101,19 +170,38 @@ function tapCreature(flow: Flow, state: GameStateView, characterId: string): Flo
   return { kind: 'bubble', selecting: false };
 }
 
+/** The picker for a tile with more than one thing on it (or closing it), else null. */
+function shareOf(flow: Flow, state: GameStateView, characterId: string, hex: Hex): Flow | null {
+  if (flow.kind === 'pick' && hexEquals(flow.hex, hex)) return IDLE;
+  if (pickEntries(state, characterId, hex).length < 2) return null;
+  // Walking onto a tile with characters is a plan, unless a threat stands on it (no one walks onto one).
+  if (isSelecting(flow) && threatAt(state, hex) === null) return null;
+  return { kind: 'pick', hex: { q: hex.q, r: hex.r } };
+}
+
 /** What a tap does. */
 export function tap(flow: Flow, state: GameStateView, characterId: string, target: Target): Flow {
   const me = findCharacter(state, characterId);
   const active = me?.status === 'active';
   const mine: Place | null = active ? me.at : null;
   if (target.kind === 'character') {
-    // Another player's character: show who it is (you can only move your own). Again closes.
+    // Another player's character on a tile shared with something else: the picker; else its card (you
+    // can only move your own). Again closes.
+    const who = findCharacter(state, target.id);
+    if (who?.status === 'active' && who.at.kind === 'hex') {
+      const shared = shareOf(flow, state, characterId, who.at.hex);
+      if (shared) return shared;
+    }
     return flow.kind === 'character' && flow.id === target.id ? IDLE : openCharacter(target.id);
   }
   const hex = target.kind === 'hex' ? target.hex : null;
   const to = hex ? placeAt(state, hex) : mine;
   if (!to) return flow;
   if (to.kind === 'creature') return tapCreature(flow, state, characterId);
+  // A tile with several things to tap: the picker (a plan in progress still plans a walk to a tile that
+  // holds no threat; the same tile again closes it).
+  const shared = shareOf(flow, state, characterId, to.hex);
+  if (shared) return shared;
   const onMe = mine !== null && placeEquals(mine, to);
   if (onMe && active) {
     // Your own character first: select it, or let go of it.
@@ -150,8 +238,7 @@ export const openCharacter = (id: string, back?: Flow): Flow =>
   back ? { kind: 'character', id, back } : { kind: 'character', id };
 
 /** The back button of a card opened inside another popup: back to it (else closed). */
-export const goBack = (flow: Flow): Flow =>
-  flow.kind === 'character' && flow.back ? flow.back : IDLE;
+export const goBack = (flow: Flow): Flow => ('back' in flow && flow.back ? flow.back : IDLE);
 
 /** The bubble's way into the hub: the creature card. */
 export const openHub = (): Flow => ({ kind: 'creature' });

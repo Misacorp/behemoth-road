@@ -38,10 +38,11 @@ import {
   hexesInRange,
   hexKey,
   placeHex,
+  threatOutlook,
 } from '@behemoth-road/core';
 import { drawExploredEmpty, drawMisledMark } from './art.ts';
 import { accentOf } from '../game/identity.ts';
-import { escortCentres, threatNextPath } from '../game/season.ts';
+import { escortCentres, threatAt, threatNextPath } from '../game/season.ts';
 import { cellStateAt } from './cells.ts';
 import { MAP_TUNING } from './config.ts';
 import { figureFeet, placePoint } from './figures.ts';
@@ -362,23 +363,41 @@ export function pips(i: OverlayInput, at: Point, count: number): SvgNode[] {
  */
 export function threatTrail(i: OverlayInput, threatId: string): SvgNode[] {
   const threat = i.state.threats.find((t) => t.id === threatId);
+  if (!threat) return [];
   const path = threatNextPath(i.state, threatId);
-  const end = path.at(-1);
-  if (!threat || !end) return [];
+  const arrives = threatOutlook(i.state).find((o) => o.id === threatId)?.arrives === 'tomorrow';
+  // A threat that waits (a rockslide) has no trail, but it still strikes when the creature walks into it.
+  const end = path.at(-1) ?? (arrives ? threat.hex : undefined);
+  if (!end) return [];
   const p = i.projection;
-  const pts = [threat.hex, ...path].map((h) => hexCenter(p, h.q, h.r));
-  return [
+  const coral = i.palette.accents.coral.shade;
+  const out: SvgNode[] = [
     el('path', {
       d: hexPath(p, end, 0.8),
       fill: 'none',
-      stroke: i.palette.ink,
-      'stroke-width': 1.8 * p.k,
+      stroke: arrives ? coral : i.palette.ink,
+      'stroke-width': (arrives ? 3 : 2.4) * p.k,
       'stroke-dasharray': `${n(3 * p.k)} ${n(3 * p.k)}`,
       'stroke-linejoin': 'round',
       'data-mark': 'threat-end',
     }),
-    ...inkArrow(i, pts, { inset: 16 * p.k, width: 2.2, mark: 'threat-trail' }),
   ];
+  if (path.length > 0) {
+    const pts = [threat.hex, ...path].map((h) => hexCenter(p, h.q, h.r));
+    out.push(...inkArrow(i, pts, { inset: 16 * p.k, width: 2.2, mark: 'threat-trail' }));
+  }
+  if (arrives) {
+    // It reaches the creature at the next tick: the footprint outlined in coral under a strike badge.
+    const c = hexCenter(p, i.state.creature.centre.q, i.state.creature.centre.r);
+    const size = atLeast(i, 0.9 * p.size, 26);
+    out.push(
+      el('g', { 'data-mark': 'threat-arrives' }, [
+        placeOutline(i, { kind: 'creature' }, coral, 3.4),
+        iconAt(i, 'strike', { x: c.x, y: c.y - 1.1 * p.size }, size),
+      ]),
+    );
+  }
+  return out;
 }
 
 /** A lost character: its standee faded into the fog. */
@@ -671,7 +690,14 @@ export function buildOverlays(i: OverlayInput): Overlays {
     );
     over.push(...pathArrow(i, feet, i.flow.steps));
   }
-  if (i.flow.kind === 'threat') over.push(...threatTrail(i, i.flow.id));
+  // The threat whose card is open, or the one on your hex while you are selected (its card is in the here card).
+  const looked =
+    i.flow.kind === 'threat'
+      ? i.flow.id
+      : i.flow.kind === 'selected' && me?.status === 'active' && me.at.kind === 'hex'
+        ? threatAt(i.state, me.at.hex)
+        : null;
+  if (looked) over.push(...threatTrail(i, looked));
   over.push(...lostCharacters(i));
   if (staysPut(i.predicted)) over.push(stayHint(i));
   over.push(...actionHints(i));

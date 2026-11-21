@@ -22,6 +22,8 @@ Record a decision:
 
 [direction.md](direction.md): Priorities, how the owner and agents work, naming and tone.
 
+- 2026-11-21 Features rise tall from the ground, no raised plinth \[Misa\]
+- 2026-11-21 Art review round 2: features rise from plinths, traps share a danger cue, the shield is the role frame, trodden ground keeps its terrain \[Misa\] (amended)
 - 2026-11-19 The art review page shows only what needs Misa; silence means accepted \[Misa\]
 - 2026-11-19 Art costs no money; code draws it, local generation is optional \[Misa\]
 - 2026-11-19 Agents commit as the owner \[Misa\]
@@ -119,6 +121,15 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-21 The scripted chain reaches the climbing spikes about twice as fast \[Misa\]
+- 2026-11-21 Hunger drains every day and food restores more \[Misa\]
+- 2026-11-21 Fires steer the creature sideways only, and several fires add up by side \[Misa\]
+- 2026-11-21 The slow terrain is a swamp, not sand: marsh boards replace the sand sledge \[Misa\]
+- 2026-11-21 Misa: the defended creature reads as shields against a threat's strength \[Misa\]
+- 2026-11-21 Misa: a greyed action says why when tapped \[Misa\]
+- 2026-11-21 A quick recap screen when a season ends \[Misa\]
+- 2026-11-21 Settlements and features only appear on unexplored hexes
+- 2026-11-21 A tile with several things shows a picker of round bubbles \[Misa\]
 - 2026-11-21 Fast rounds pace: staging only, all active characters spent, 6 s delay, 4 s day banner
 - 2026-11-21 Content version 9 balance: stampede strength 1, ambush and stampede weights halved
 - 2026-11-21 More content for playtests: ambush, stampede, river folk, sunken shrine, undertow, sand sledge (amended)
@@ -160,7 +171,7 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-20 The creature card's heading loses its ring; the bubble carries an appetite badge (amended)
 - 2026-11-20 Step hints scale with chance; the day's step plays as a walk or a stayed mark (amended)
 - 2026-11-20 A timber stand hints at a fire, on your here card and its inspect card
-- 2026-11-20 Hunger drains every second day
+- 2026-11-20 Hunger drains every second day (amended)
 - 2026-11-20 Appetite reads at game zoom: a ground aura, bigger shape changes, a hub badge and weighted step hints
 - 2026-11-20 The keeper's cue shows the creature's true attitude for the tame first creature
 - 2026-11-20 Light a fire hints faded without fuel once you have seen a fire (amended)
@@ -178,7 +189,7 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-20 Lingering is the keeper's action and never runs two days in a row
 - 2026-11-20 Hunger has a comfortable band; underfed is erratic, overfed is sluggish; anyone can feed (amended)
 - 2026-11-20 Symptoms are computed per viewer; keepers see them earlier and see reaction cues
-- 2026-11-20 Fires pull the creature's step by a weighted score; the public prediction stays blind
+- 2026-11-20 Fires pull the creature's step by a weighted score; the public prediction stays blind (amended)
 - 2026-11-20 The creature's nature is hidden server data; the first creature is drawn to fire or shies from it
 - 2026-11-20 Milestone 3 rules after Misa's notes: the calls the plan left open
 - 2026-11-20 Features are placed by terrain tags with absolute weights

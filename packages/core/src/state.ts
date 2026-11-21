@@ -7,6 +7,7 @@ import type { TuningConfig } from './config.ts';
 import type { Reaction } from './content/creatures.ts';
 import type { Direction, Hex } from './hex.ts';
 import { isSeed, type Seed } from './random.ts';
+import type { SeasonStats } from './stats.ts';
 
 /** hidden: never in view. seen: in play (in the window or its grace). lost: gone to the fog. */
 export type Visibility = 'hidden' | 'seen' | 'lost';
@@ -195,6 +196,8 @@ export interface GameStateView {
   /** The creature's peril: 0 to `perilMax`. At the max the season is lost. */
   readonly peril: number;
   readonly season: Season;
+  /** The season's tallies for the recap (public counters; see `stats.ts`). */
+  readonly stats: SeasonStats;
   /** No pursuer appears at a tick that starts a day up to this one (a mislead); null for none. */
   readonly misleadUntilDay: number | null;
 }

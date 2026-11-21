@@ -6,7 +6,7 @@
  */
 
 import { PEOPLE_TYPES, type PeopleType } from './content/index.ts';
-import { type Hex, hexEquals, hexKey, neighbours } from './hex.ts';
+import { type Hex, hexDistance, hexEquals, hexKey, hexRing, neighbour, neighbours } from './hex.ts';
 import { terrainOf } from './map.ts';
 import { hashString, hashToUnit } from './random.ts';
 import type { GameState, GameStateView, Settlement, Threat } from './state.ts';
@@ -39,16 +39,36 @@ export const settlementDue = (state: GameStateView, steps: number): boolean => {
 };
 
 /**
- * Where a new settlement may stand: the leading edge's hexes that are known,
- * not water or steep, and hold no feature (hidden or not), a settlement or a threat.
+ * Where a new settlement may stand: unexplored hexes of the leading edge that
+ * are known, not water or steep, and hold no feature (hidden or not), a
+ * settlement or a threat. An explored hex never gains a village: players have
+ * seen it empty. If scouts have swept the whole leading edge, the arc one ring
+ * further in is tried, then another, so the route still meets its settlement.
  */
-export const settlementSpots = (state: GameState): Hex[] =>
-  leadingEdge(state).filter((h) => {
+export const settlementSpots = (state: GameState): Hex[] => {
+  const fits = (h: Hex): boolean => {
     const terrain = terrainOf(state, h);
     if (!terrain || NOT_ON.some((tag) => terrain.tags.includes(tag))) return false;
+    if (state.tiles[hexKey(h)]?.explored) return false;
     if (state.features[hexKey(h)] || settlementAt(state, h)) return false;
     return !state.threats.some((t) => hexEquals(t.hex, h));
-  });
+  };
+  const edge = leadingEdge(state).filter(fits);
+  if (edge.length > 0) return edge;
+  const { centre, heading } = state.creature;
+  const radius = state.config.windowRadius;
+  for (
+    let ring = radius - 1;
+    ring >= radius - 2 && ring > state.config.creatureRadius + 1;
+    ring--
+  ) {
+    let anchor = centre;
+    for (let i = 0; i < ring; i++) anchor = neighbour(anchor, heading);
+    const inward = hexRing(centre, ring).filter((h) => hexDistance(h, anchor) <= ring && fits(h));
+    if (inward.length > 0) return inward;
+  }
+  return [];
+};
 
 /** Whether a people settles on a hex: its terrain or a neighbour's has one of the people's `near` tags. */
 const fitsPeople = (state: GameState, people: PeopleType, h: Hex): boolean => {

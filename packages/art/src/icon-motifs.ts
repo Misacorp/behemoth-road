@@ -310,14 +310,13 @@ export const ITEM_MOTIFS: Readonly<Record<string, IconMotif>> = {
     ink(pal, 'M24 19v12M20.5 25h7', 1.1, pal.ramps.bark.shade),
     solid(pal, 'M18 31h12v3H18z', pal.ramps.bark.base, 1.6),
   ],
-  // Sand sledge: two curled runners under a plank, a tow rope trailing off.
-  sledge: (pal) => [
-    ink(pal, 'M10 34h24c4 0 5-4 2-6', 3.6),
-    ink(pal, 'M10 34h24c4 0 5-4 2-6', 1.6, pal.ramps.bark.light),
-    solid(pal, 'M14 28h18l-1 4H15z', pal.ramps.bark.base, 1.6),
-    ink(pal, 'M19 28v-4M27 28v-4', 1.6, pal.ramps.bark.shade),
-    ink(pal, 'M36 28c3-3 5-3 7-6', 1.3, pal.ramps.bark.base),
-    ink(pal, 'M9 38h8M22 38h6', 1.2, pal.ramps.sand.shade),
+  // Marsh boards: two planks side by side with cross battens, reeds at one edge.
+  boards: (pal) => [
+    solid(pal, 'M9 30l16-5 3 3-16 5z', pal.ramps.bark.base, 1.6),
+    solid(pal, 'M17 34l16-5 3 3-16 5z', pal.ramps.bark.light, 1.6),
+    ink(pal, 'M16 27l3 3M24 25l3 3M22 31l3 3M30 29l3 3', 1.3, pal.ramps.bark.shade),
+    ink(pal, 'M38 36c0-6 1-10 2-14M41 36c0-5 1-8 3-11', 1.4, pal.ramps.foliage.shade),
+    ink(pal, 'M7 40h9M24 41h8', 1.2, pal.ramps.water.shade),
   ],
   spikes: (pal) => [
     solid(pal, 'M12 22h24l-2 5H14z', pal.ramps.stone.light),

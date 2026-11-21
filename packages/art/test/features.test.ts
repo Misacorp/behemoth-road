@@ -56,7 +56,7 @@ describe('features', () => {
     const withFeature = toSvgString(
       renderScene({
         ...base,
-        cells: [{ q: 0, r: 0, terrain: 'forest', feature: { look: 'logs' } }],
+        cells: [{ q: 0, r: 0, terrain: 'forest', feature: { look: 'ore' } }],
       }),
     );
     // Forest props draw foliage; a feature tile draws none of it.
@@ -84,7 +84,7 @@ describe('marks', () => {
       toSvgString(drawViaMark('rope', SPRING, 24)),
     );
     expect(drawViaMark('rope', SPRING, 24).children).toHaveLength(1);
-    expect(toSvgString(drawViaMark('sand-sledge', SPRING, 24))).not.toBe(
+    expect(toSvgString(drawViaMark('marsh-boards', SPRING, 24))).not.toBe(
       toSvgString(drawViaMark('rope', SPRING, 24)),
     );
   });

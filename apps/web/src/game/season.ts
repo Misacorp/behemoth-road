@@ -8,6 +8,7 @@ import {
   type Arrival,
   checkAction,
   type Character,
+  defence,
   ESCORT_TAG,
   type GameStateView,
   type Hex,
@@ -22,7 +23,9 @@ import {
   TRADE_TAG,
 } from '@behemoth-road/core';
 import type { CostedAction } from './chain.ts';
+import type { TipId } from '../text/tips.ts';
 import { neededRole } from './roles.ts';
+import { whyTip } from './why.ts';
 
 /** A threat as the map draws it: where, what (content icon), how strong, and its outlook. */
 export interface ThreatMark {
@@ -72,6 +75,8 @@ export const settlementAt = (game: GameStateView, h: Hex): string | null =>
 export interface Offered {
   readonly cost: number;
   readonly enabled: boolean;
+  /** Why it is greyed (the core's refusal, as a tip), when it is. */
+  readonly why?: TipId;
 }
 
 /** Refusals that mean "this is for you here, just not now": the button shows faded. */
@@ -80,7 +85,7 @@ const NOT_NOW: ReadonlySet<string> = new Set(['not-enough-actions']);
 const offered = (check: ReturnType<typeof checkAction>): Offered | null => {
   if (check.ok) return { cost: check.cost, enabled: true };
   if (NOT_NOW.has(check.reason) && check.cost !== undefined) {
-    return { cost: check.cost, enabled: false };
+    return { cost: check.cost, enabled: false, why: whyTip(check.reason) };
   }
   return null;
 };
@@ -96,6 +101,8 @@ export interface ThreatCardInfo {
   /** How many hexes it moves at the next tick (`threatNextPath`). */
   readonly steps: number;
   readonly strike: Offered | null;
+  /** What the creature's defenders take off this threat's strike on it (the core's `defence`); 0 undefended. */
+  readonly defence: number;
 }
 
 export function threatCard(
@@ -113,7 +120,21 @@ export function threatCard(
     strength: mark.strength,
     steps: threatNextPath(game, threatId).length,
     strike: offered(checkAction(game, characterId, { kind: 'strike', threat: threatId })),
+    defence: defence(game),
   };
+}
+
+/**
+ * How the creature is defended today: the guardians riding it who defended (each one's shield) and what
+ * their defence takes off every strike on it (the core's `defence`, so the number is the rule's own).
+ */
+export function defendedBy(game: GameStateView): {
+  readonly guardians: number;
+  readonly reduction: number;
+} {
+  const reduction = defence(game);
+  const per = game.config.defendReduction;
+  return { guardians: per > 0 ? Math.round(reduction / per) : 0, reduction };
 }
 
 /**
@@ -125,12 +146,13 @@ export function defendOption(game: GameStateView, characterId: string): CostedAc
   if (check.ok) return { kind: 'defend', cost: check.cost, enabled: true, uses: null };
   if (check.cost === undefined) return null;
   const needs = neededRole(game, characterId, { kind: 'defend' }, check);
-  if (needs) return { kind: 'defend', cost: check.cost, enabled: false, uses: null, needs };
+  const why = whyTip(check.reason, needs);
+  if (needs) return { kind: 'defend', cost: check.cost, enabled: false, uses: null, needs, why };
   if (check.reason === 'already-have') {
-    return { kind: 'defend', cost: check.cost, enabled: false, uses: null, done: true };
+    return { kind: 'defend', cost: check.cost, enabled: false, uses: null, done: true, why };
   }
   if (check.reason === 'not-riding' || check.reason === 'not-enough-actions') {
-    return { kind: 'defend', cost: check.cost, enabled: false, uses: null };
+    return { kind: 'defend', cost: check.cost, enabled: false, uses: null, why };
   }
   return null;
 }
@@ -174,6 +196,8 @@ export interface SettlementAction {
   readonly uses?: string | null;
   /** Parley may anger it (the core's published chance is below 1). */
   readonly risk?: boolean;
+  /** Why it is greyed (the core's refusal, as a tip), when it is. */
+  readonly why?: TipId;
 }
 
 const TRADE_GOODS = MATERIALS.filter((m) => m.tags.includes(TRADE_TAG)).map((m) => m.id);

@@ -19,7 +19,10 @@ import {
   IDLE,
   isSelecting,
   keyDown,
+  choose,
+  entryKey,
   goBack,
+  pickEntries,
   openCharacter,
   openHub,
   rightClick,
@@ -46,6 +49,7 @@ import {
 } from './chain.ts';
 import type { Target } from '../map/pick.ts';
 import { getSettings } from '../settings.ts';
+import { recapOf } from './recap.ts';
 import { Ending, PerilEdge } from '../hud/Season.tsx';
 import {
   defendOption,
@@ -310,6 +314,7 @@ export function Game({ api, initial }: GameProps): JSX.Element {
       ...(a.kind === 'offer' ? { icon: 'offer', uses: a.uses ?? null } : {}),
       ...(a.kind.startsWith('boon:') ? { icon: a.kind.slice(5) } : {}),
       ...(a.risk ? { risk: true } : {}),
+      ...(a.why ? { why: a.why } : {}),
     }));
     const actions = [
       ...(feature ? actionsAt(state, me.id) : []),
@@ -465,6 +470,14 @@ export function Game({ api, initial }: GameProps): JSX.Element {
           )
         }
         onBack={() => setFlow(goBack)}
+        onPick={(key) =>
+          setFlow((f) => {
+            const entry = pickEntries(state, id, f.kind === 'pick' ? f.hex : { q: 0, r: 0 }).find(
+              (e) => entryKey(e) === key,
+            );
+            return entry ? choose(state, id, f, entry) : f;
+          })
+        }
         onRightClick={() => setFlow((f) => rightClick(f, getSettings()))}
         focus={focus}
         coverBottom={
@@ -569,6 +582,9 @@ export function Game({ api, initial }: GameProps): JSX.Element {
       />
       {ended && (
         <Ending
+          recap={recapOf(view, who)}
+          perilMax={state.config.perilMax}
+          perilWoundedAt={state.config.perilWoundedAt}
           outcome={ended.outcome}
           days={ended.day}
           route={{ steps: state.creature.steps, length: state.config.routeLength }}

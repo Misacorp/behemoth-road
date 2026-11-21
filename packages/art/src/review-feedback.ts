@@ -1,5 +1,5 @@
 /**
- * Review sheets for the playtest feedback marks (`feedback-marks.ts`): features on their plinths beside
+ * Review sheets for the playtest feedback marks (`feedback-marks.ts`): features rising from the ground beside
  * plain props at phone zoom, and the small marks and moments on their own.
  */
 import { ART_TUNING } from './config.ts';
@@ -166,7 +166,7 @@ export function feedbackReviewItems(): ReviewDraft[] {
       id: 'feedback/phone-features',
       group,
       title:
-        'At phone zoom: features on plinths (fieldstones, outcrop, deadfall, river stones, iron, picked berries, snare, logs, a village) beside plain props; two explored-empty hexes (full, then lite)',
+        'At phone zoom: tall features on ground shadows (fieldstones, outcrop, deadfall, river stones, iron, picked berries, snare, logs, a village) beside plain props; two explored-empty hexes (full, then lite)',
       file: 'feedback-phone-features.svg',
       ...glance,
       svg: phoneFeatures(),

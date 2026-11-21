@@ -98,6 +98,7 @@ export { findCharacter, hasSeed, isSeasonOver } from './state.ts';
 export {
   approachHexes,
   contactDistance,
+  defence,
   DEFEND_TAG,
   ESCORT_TAG,
   GROUND_TAG,
@@ -127,7 +128,9 @@ export {
 export {
   chooseCreatureStep,
   predictCreature,
+  sideOf,
   stepWeights,
+  stimulusPush,
   type CreatureStepOption,
 } from './creature.ts';
 export {
@@ -181,6 +184,13 @@ export {
   toPlace,
 } from './places.ts';
 export { nextDay, nextDayWithEvents } from './tick.ts';
+export {
+  emptyStats,
+  recordEvents,
+  type CharacterTally,
+  type SeasonStats,
+  type SharedTally,
+} from './stats.ts';
 export { createGame, type CreateGameOptions } from './game.ts';
 export {
   addCharacter,

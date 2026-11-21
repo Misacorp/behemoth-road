@@ -11,7 +11,7 @@
   },
   "offers": null,
   "game": {
-    "contentVersion": 9,
+    "contentVersion": 12,
     "artSeed": 4242,
     "day": 5,
     "config": {
@@ -35,7 +35,7 @@
       "workSiteCost": 2,
       "buildCost": 1,
       "siteChanceSpecialistTier1": 0.7,
-      "siteChanceSpecialistTier2": 0.5,
+      "siteChanceSpecialistTier2": 0.8,
       "siteChanceOtherTier1": 0.35,
       "siteChanceOtherTier2": 0,
       "stimulusRange": 3,
@@ -1238,6 +1238,35 @@
     "peril": 0,
     "season": {
       "status": "on"
+    },
+    "stats": {
+      "shared": {
+        "threatsTurned": 1,
+        "finds": 0,
+        "unlocks": 0,
+        "befriended": 0,
+        "peakPeril": 0
+      },
+      "byCharacter": {
+        "555555555555555555.0": {
+          "explored": 0,
+          "strikes": 0,
+          "gathered": 0,
+          "fed": 2
+        },
+        "666666666666666666.0": {
+          "explored": 7,
+          "strikes": 3,
+          "gathered": 0,
+          "fed": 0
+        },
+        "222222222222222222.0": {
+          "explored": 5,
+          "strikes": 0,
+          "gathered": 0,
+          "fed": 0
+        }
+      }
     },
     "misleadUntilDay": null
   },

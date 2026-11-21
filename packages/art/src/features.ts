@@ -5,7 +5,10 @@
  * `outcrop`, `deadfall`, `shrine`, `undertow`); an unknown
  * key draws a neutral cairn.
  */
-import { boxOf, ellipsePath, mapper, poly, smoothClosed, smoothOpen, type Point } from './geom.ts';
+import { boxOf, ellipsePath, poly, smoothClosed, smoothOpen, type Point } from './geom.ts';
+import { kit } from './feature-kit.ts';
+export { kit };
+import { TALL_DRAWERS } from './features-tall.ts';
 import { groundShadow, inkAttrs, type Drawn, type PropContext } from './props.ts';
 import { el, type SvgNode } from './svg.ts';
 
@@ -16,29 +19,22 @@ export interface FeatureArt {
   /** A look id (`FEATURE_DRAWERS`); unknown ids draw the neutral cairn. */
   readonly look: string;
   readonly state?: FeatureState;
+  /**
+   * The content says this feature is a trap: it gets the shared danger cue (a coral band, jagged teeth and a
+   * warning pennant on its footing; muted once `spent`). The look ids in `TRAP_LOOKS` count as traps too.
+   */
+  readonly trap?: boolean;
 }
+
+/** Looks that are traps, for callers that only know the look. */
+export const TRAP_LOOKS: ReadonlySet<string> = new Set(['snare', 'pitfall', 'undertow']);
+
+export const isTrap = (f: FeatureArt): boolean => f.trap === true || TRAP_LOOKS.has(f.look);
+
+/** Half-width of a feature's ground footing, in local units at the reference hex size. */
+export const FOOTING_RX = 16;
 
 export type FeatureDraw = (c: PropContext, state: FeatureState) => Drawn;
-
-type Raw = readonly (readonly [number, number])[];
-
-export function kit(c: PropContext) {
-  const T = mapper(c.origin, c.k, 1, c.k * c.rise);
-  const pts = (raw: Raw): Point[] => raw.map(([x, y]) => T(x, y));
-  const fill = (d: string, colour: string, opacity = 1): SvgNode =>
-    el('path', opacity === 1 ? { d, fill: colour } : { d, fill: colour, opacity });
-  const line = (d: string, scale = 1, colour = c.palette.ink): SvgNode =>
-    el('path', { d, ...inkAttrs(colour, c.ink * scale) });
-  const blob = (cx: number, cy: number, rx: number, ry: number): Point[] =>
-    pts(
-      Array.from({ length: 8 }, (_, i) => {
-        const a = (Math.PI * 2 * i) / 8;
-        const f = 1 + (i % 2 ? -0.06 : 0.05);
-        return [cx + Math.cos(a) * rx * f, cy + Math.sin(a) * ry * f] as const;
-      }),
-    );
-  return { T, pts, fill, line, blob };
-}
 
 /** Iron: a rocky outcrop with rust-red veins; depleted, chipped hollow and scattered chips. */
 const ironDeposit: FeatureDraw = (c, state) => {
@@ -984,7 +980,7 @@ function xy(p: Point): [number, number] {
 }
 
 /** Feature drawers by look id. */
-export const FEATURE_DRAWERS: Readonly<Record<string, FeatureDraw>> = {
+const LOW_DRAWERS: Readonly<Record<string, FeatureDraw>> = {
   ore: ironDeposit,
   stones: riverStones,
   logs: timberStand,
@@ -998,6 +994,12 @@ export const FEATURE_DRAWERS: Readonly<Record<string, FeatureDraw>> = {
   deadfall,
   shrine,
   undertow,
+};
+
+/** Feature drawers by look id: the tall looks over the low ones (traps and the cairn). */
+export const FEATURE_DRAWERS: Readonly<Record<string, FeatureDraw>> = {
+  ...LOW_DRAWERS,
+  ...TALL_DRAWERS,
 };
 
 export function featureDrawer(look: string): FeatureDraw {

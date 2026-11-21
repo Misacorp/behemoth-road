@@ -4,6 +4,78 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-21: The scripted chain reaches the climbing spikes about twice as fast **[Misa]**
+
+ID: `2026-11-21-the-scripted-chain-reaches-the-climbing` · Status: current
+
+**Decision.** Content version 10 retunes the chain (find materials, build, climbing spikes) to arrive sooner: deep tombs (the source of ancient alloy) weigh 9 instead of 4 and the tier-1 tomb 1 instead of 2, ore outcrops 7 (was 5), deadfall 2 (was 3), fieldstones, ore outcrops and deadfall hold 3 charges (was 2), river stones weigh 10 (was 20) and snares and pitfalls 1 (was 2) to hold the share of hexes with a feature under the sparse test, a scholar works a tier-2 site with chance 0.8 (was 0.5), and the climbing spikes need 4 work (was 6). A new seeded measure, `packages/core/scripts/pacing.ts` (the party the chain test used, now shared), builds the lantern first and has the scholar survey for a deep tomb once the lantern stands. Measured over seeds 1 to 48: climbing spikes at a median of day 24 (before 43 on 12 seeds, with the same party minus the scholar's search: 25 to 69), a quarter of the maps by day 16, 43 of 48 maps finish (the rest lose a scripted character). Findability of stone, iron and timber is unchanged in its test.
+
+**Reasoning.** Misa asked for the spikes around day 15 to 20 of a 40-step route; the median is near day 24, so it is not there yet. The limit is how fast a party meets a deep tomb and the lantern (each content change moves it by about three days from seed noise), and the sparse-map test caps how many features can be added. The next levers are more features overall (the density test would move), a first tomb known at the start, or a cheaper lantern.
+
+## 2026-11-21: Hunger drains every day and food restores more **[Misa]**
+
+ID: `2026-11-21-hunger-drains-every-day-and-food` · Status: current · Amends: `2026-11-20-hunger-drains-every-second-day`
+
+**Decision.** Satiety drains by 1 every day (`drainEveryDays` 1), and food restores more to compensate: forage nourishes 4. To keep each step of hunger as long as before, the scale doubled: satiety runs 0 to 20 (start 12), the comfortable band is 8 to 15, and an appetite level is two steps of satiety (`levelStep` 2 in the creature's hunger data). One forage still feeds the creature for four days, the symptoms and levels read as before, and the feeding workload is unchanged.
+
+**Reasoning.** Misa asked for a daily drain with more food per feed and did not mind either way. A plain drain of 1 with forage 4 on the old 0 to 10 scale made every level last half as long, and the scripted careful party went hungry about twice as often (a third of full seasons lost, up from 17 per cent). Doubling the scale keeps the old pacing exactly, with whole numbers. All values live in the creature's data.
+
+## 2026-11-21: Fires steer the creature sideways only, and several fires add up by side **[Misa]**
+
+ID: `2026-11-21-fires-steer-the-creature-sideways-only` · Status: current · Amends: `2026-11-20-fires-pull-the-creature-s-step`
+
+**Decision.** Fires steer the creature sideways only; that sideways turn is the visible sign that it reacts to a stimulus. Each stimulus within `stimulusRange` of the creature's centre adds its type's `push` (1 for fire) toward its side of the heading if the creature is attracted, away from it if repelled, and nothing if indifferent. A side is the side of the heading's line the stimulus lies on, by plane geometry (`sideOf`: left, right, or on the line). A stimulus straight ahead or straight behind (on the line) pushes neither way. The pushes add up into a net push n (left positive): fires on opposite sides cancel, several on one side add, a net of zero leaves the step alone. With n the left step's weight is multiplied by `stimulusPull` to the power n and the right step's by the pull to the power minus n; the straight weight never changes, and the creature never turns back. Hunger still applies on top (erratic base weights when underfed, a weaker pull when overfed). The keeper's cue is unchanged: it names the creature's reaction (toward, away, unmoved) to every fire in range, wherever the fire is, so a keeper can still learn the reaction from a fire straight ahead that bends nothing.
+
+**Reasoning.** Misa asked for sideways steering only, as the readable signal, with a rule players can predict. Summing pushes by side is the simplest rule that handles every arrangement (both sides, one side, ahead, behind) and ties go straight. The push per stimulus type is content data and the pull and range stay in the tuning config, so a later stimulus or creature can differ without a new rule. A single fire behaves as before (left about three times in four with the base weights), so existing feel is kept. Amends the weighted-score rule, which scored each step by distance and so also pushed a fire ahead or behind.
+
+## 2026-11-21: The slow terrain is a swamp, not sand: marsh boards replace the sand sledge **[Misa]**
+
+ID: `2026-11-21-the-slow-terrain-is-a-swamp` · Status: current · Amends: `2026-11-21-more-content-for-playtests-ambush-stampede`
+
+**Decision.** Content version 11 (after the creature work took 10). Sand goes back to 1 action a step (desert `extraMoveCost` 0). A new `swamp` terrain (tags `wet`, `boggy`) costs 2 actions a step on foot. It is generated on the low ground just under a river's contour (the water field between 0.47 and 0.5), broken into patches by a second `bog` field, about 2-4 % of hexes. The sand sledge is replaced by the marsh boards (same cost, 2 timber, 1 iron, 4 work; tags `glide`, `boards`), whose `movement` covers `boggy` terrain at cost 1. Placement through tags: the sunken shrine, the undertow and river folk's settlements also fit `boggy` ground (a new `between` field condition serves the generation rule). Art: a mire ground with pools, reeds, the boards icon and its path mark; tips for swamp and the boards. Careful full seasons over 200 seeds, safe / wounded / lost (3 players; 6 players): 75/11/14 and 74/12/14 (the sand version was 73/10/17 and 71/12/18); careless parties still lose every full season. Stone, iron, timber and forage stay findable in every seed within 8 days.
+
+**Reasoning.** Misa asked for it: a wet, boggy slowdown fits the world better than slow sand and keeps the desert as plain open ground. Swamp is rarer than sand was, so fewer paths are slowed and careful parties lose about 3 points fewer seasons; no tuning back was needed.
+
+## 2026-11-21: Misa: the defended creature reads as shields against a threat's strength **[Misa]**
+
+ID: `2026-11-21-misa-the-defended-creature-reads-as` · Status: current
+
+**Decision.** The defended creature shows as shields. The hub's creature card shows one shield per guardian riding who defended today; a threat's card draws shields over the first strength marks (one per point the defence takes off, the marks faded), so the reduction reads against the threat's strength. A tap or hold on a shield mark, and on the defend action, shows a hinting tip. Nothing shows while undefended. The numbers are the core's own (`defence`).
+
+**Reasoning.** Misa did not know how defending worked. Shields set against the threat's marks show the effect with no words, in the cards players already open. The map mark on the creature is the art kit's.
+
+## 2026-11-21: Misa: a greyed action says why when tapped **[Misa]**
+
+ID: `2026-11-21-misa-a-greyed-action-says-why` · Status: current
+
+**Decision.** An action that cannot be taken shows greyed with the emblem of the role that could. A tap on it shows a one-line tip saying why (which role can, not enough actions, pack full, needs an unlock, wrong place, already done today and so on) and never acts; a hold or hover shows the same. It is one rule in the press layer (`greyedProps`: the reason as the button's tip, with `data-tip-tap`), used by the here, inspect, threat and settlement cards and the hub rows. The reason is the core's refusal, mapped to a tip in one place (`game/why.ts`); the texts are `why:*` in `tips.ts`.
+
+**Reasoning.** Misa asked that a greyed action explain itself, but only as a hint. Taking the reason from the same check that greys the action keeps one copy of the rules, and a greyed button that only shows its tip cannot act by accident.
+
+## 2026-11-21: A quick recap screen when a season ends **[Misa]**
+
+ID: `2026-11-21-a-quick-recap-screen-when-a` · Status: current
+
+**Decision.** When a season ends (safe, wounded or lost) the ending shows a quick recap: four shared stats (threats turned back, finds, unlocks built, settlements won over) with the peak of peril as a gauge, and for each player (Discord name, role emblem) three stats (hexes explored, strikes, units gathered) with a star on whoever led each. Icons and numbers only, with tips; the ending scene stays as the header. The core keeps the counters in `GameStateView.stats` as events happen (`stats.ts`), public and harmless, so the view carries them always. Nothing else happens at the end in production; only staging has the new-season button.
+
+**Reasoning.** Misa asked for something light but interesting at the end of a season. Counting from events keeps it deterministic and cheap, and the counters are facts every player already saw. Fed and unlock counts beyond these are kept or cheap to add later.
+
+## 2026-11-21: Settlements and features only appear on unexplored hexes
+
+ID: `2026-11-21-settlements-and-features-only-appear-on` · Status: current
+
+**Decision.** A settlement is never placed on an explored hex. Its spot is an unexplored hex of the window's leading edge; if scouts have swept the whole edge, the arc one ring in is tried, then another, and failing that no settlement appears that step. Features are only generated for hexes newly in view, so an explored hex never gains one (tested over many seeds: explore, tick, nothing new on explored hexes).
+
+**Reasoning.** The creature's step moves the edge inward over hexes players had already scouted, so a village could appear on a hex shown empty (the staging playtest). Generation of features was already tied to new hexes; only settlements broke the promise.
+
+## 2026-11-21: A tile with several things shows a picker of round bubbles **[Misa]**
+
+ID: `2026-11-21-a-tile-with-several-things-shows` · Status: current
+
+**Decision.** Tapping a tile (or a figure on it) with more than one thing to tap (your character, other characters, a threat, its settlement or revealed feature when you do not stand there) opens a picker: small round bubbles side by side above the tile, below it when there is no room, one per thing, each with its own drawing and no text. A bubble is a button (tap opens that thing's card, hold shows its tip). The card opens with a back button at its top left corner returning to the picker; the same tile again, another tap or Escape closes it. A tile with one thing skips the picker. Your own bubble selects you as before (no back). The creature's hub bubble keeps its list of riders and the hub entry for now.
+
+**Reasoning.** Misa's pick, replacing the idea of listing the threat in the here card or hit-testing by shape: one pattern for every choice between things on a tile, found by a playtest where a swarm on your own hex could not be tapped.
+
 ## 2026-11-21: Fast rounds pace: staging only, all active characters spent, 6 s delay, 4 s day banner
 
 ID: `2026-11-21-fast-rounds-pace-staging-only-all` · Status: current
@@ -22,7 +94,7 @@ ID: `2026-11-21-content-version-9-balance-stampede-strength` · Status: current 
 
 ## 2026-11-21: More content for playtests: ambush, stampede, river folk, sunken shrine, undertow, sand sledge
 
-ID: `2026-11-21-more-content-for-playtests-ambush-stampede` · Status: current, amended by `2026-11-21-content-version-9-balance-stampede-strength`
+ID: `2026-11-21-more-content-for-playtests-ambush-stampede` · Status: current, amended by `2026-11-21-content-version-9-balance-stampede-strength`, `2026-11-21-the-slow-terrain-is-a-swamp`
 
 **Decision.** Content version 9 adds variety to existing systems, with no new role or rule. Threats: the ambush (flank, speed 1, strength 2, appears only on `wooded` ground) and the stampede (behind, speed 2, strength 2, only on `open` ground), through a new optional `on` terrain-tag condition on a threat type. Peoples: river folk (stilt huts, favour 2 instead of 3, boons gift and mislead but no shelter, a gift of forage and stone), through an optional `near` terrain-tag condition on a people; a settlement is placed with a people whose condition fits a leading-edge spot. Sites: the sunken shrine, a tier-1 site on rivers finding the river pearl (a `trade` material: an offering like the old coin). Traps: the undertow on rivers. Unlocks: the sand sledge (2 timber, 1 iron, 4 work) makes sand cost 1 action a step; sand now costs 2 without it (desert `extraMoveCost` 1), and an unlock's `movement` now also applies to passable terrain when it is cheaper than walking. No new node: no new choice would feed anything. Rolled-threat frequency is unchanged; the stampede was 3 strength at first and lowered to 2 because careful parties lost 19 % of full seasons instead of 14 %.
 
@@ -405,7 +477,7 @@ ID: `2026-11-20-a-timber-stand-hints-at-a` · Status: current · Amends: `2026-1
 
 ## 2026-11-20: Hunger drains every second day
 
-ID: `2026-11-20-hunger-drains-every-second-day` · Status: current · Amends: `2026-11-20-hunger-has-a-comfortable-band-underfed`
+ID: `2026-11-20-hunger-drains-every-second-day` · Status: current, amended by `2026-11-21-hunger-drains-every-day-and-food` · Amends: `2026-11-20-hunger-has-a-comfortable-band-underfed`
 
 **Decision.** Satiety drops by `drainPerDay` (1) only on the ticks into a day that is a multiple of the creature type's `hunger.drainEveryDays` (2 for the Mossback: the ticks into days 2, 4, 6…), so it drains half as fast as before. One forage (+2) now lasts four days.
 
@@ -579,7 +651,7 @@ ID: `2026-11-20-symptoms-are-computed-per-viewer-keepers` · Status: current
 
 ## 2026-11-20: Fires pull the creature's step by a weighted score; the public prediction stays blind
 
-ID: `2026-11-20-fires-pull-the-creature-s-step` · Status: current
+ID: `2026-11-20-fires-pull-the-creature-s-step` · Status: current, amended by `2026-11-21-fires-steer-the-creature-sideways-only`
 
 **Decision.** For each fire within 3 hexes of the creature's centre, each of the three step options scores +1 closer, -1 farther or 0; its weight is multiplied by `stimulusPull` (6) to the power of the score (negated if repelled, ignored if indifferent), then the seeded roll picks. The heading stays fixed; fires shift the path sideways. `predictCreature` keeps the base weights, so the step hints never reveal the reaction or the hunger.
 

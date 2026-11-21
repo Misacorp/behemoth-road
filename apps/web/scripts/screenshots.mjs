@@ -925,10 +925,10 @@ async function run() {
         await shot4('03b-fire-hint');
 
         // A keeper: the hungry creature droops (level 2) and turns its head toward yesterday's fire.
-        await stage({ role: 'keeper', satiety: 2, cues: [cueAt], fires: [cueAt.at] });
+        await stage({ role: 'keeper', satiety: 4, cues: [cueAt], fires: [cueAt.at] });
         await shot4('04-keeper-signs');
         // Anyone else sees the same hunger only faintly, and no cue.
-        await stage({ role: 'scout', satiety: 2, cues: [cueAt], fires: [cueAt.at] });
+        await stage({ role: 'scout', satiety: 4, cues: [cueAt], fires: [cueAt.at] });
         await shot4('05-faint-sign');
 
         // A keeper riding: the hub offers feeding (the forage it takes) and lingering, each with pips.
@@ -988,7 +988,7 @@ async function run() {
         await shot4('12-stand-hint');
 
         // A keeper riding a hungry creature: the bubble's creature entry carries the appetite badge.
-        await stage({ role: 'keeper', at: 'creature', satiety: 2 });
+        await stage({ role: 'keeper', at: 'creature', satiety: 4 });
         {
           const c = fake.scenario.state.creature.centre;
           await idle();
@@ -1017,6 +1017,14 @@ async function run() {
           return hexOnScreen(c.q + h.q, c.r + h.r);
         };
         const count = (sel) => page.locator(sel).count();
+        /** A real tap on the middle of an element (touch on a phone, a click on desktop). */
+        const tapEl = async (selector) => {
+          await page.locator(selector).first().scrollIntoViewIfNeeded();
+          await page.waitForTimeout(150);
+          const b = await page.locator(selector).first().boundingBox();
+          await tap(b.x + b.width / 2, b.y + b.height / 2);
+          await page.waitForTimeout(100);
+        };
 
         // Threats coming in: a captor band behind, a swarm on the flank, a rockslide on the road ahead.
         await stage5({
@@ -1092,6 +1100,58 @@ async function run() {
         await page.waitForTimeout(300);
         if (await count('.map-world [data-mark=threat-trail], .map-world [data-mark=threat-end]'))
           problems.push(`${vp.name}: the threat trail stays after its card closes`);
+
+        // The tile picker: you, Ola (a guardian) and a swarm on one tile. A tap shows one round bubble each,
+        // above the tile; a bubble opens its card with a back to the picker.
+        await stage5({
+          role: 'scout',
+          guardianAt: { q: 1, r: 2 },
+          threats: [{ type: 'swarm', at: { q: 1, r: 2 }, strength: 3 }],
+        });
+        {
+          const [hx, hy] = await offset({ q: 1, r: 2 });
+          await tap(hx, hy);
+          if (!(await has('pick'))) problems.push(`${vp.name}: no picker on a shared tile`);
+          if ((await count('[data-popover=pick] [data-pick]')) !== 3)
+            problems.push(`${vp.name}: the picker is not one bubble per thing`);
+          const box = await page.locator('[data-popover=pick]').boundingBox();
+          if (box && !(box.y + box.height <= hy + 4))
+            problems.push(`${vp.name}: the picker is not above the tile`);
+          await holdAll('pick');
+          await shot5('07-picker');
+          await page.locator('[data-pick="threat:threat-1"]').click();
+          await page.waitForTimeout(300);
+          if (!(await has('threat')))
+            problems.push(`${vp.name}: the swarm's bubble opened no card`);
+          if (!(await count('[data-popover=threat] [data-action=strike]')))
+            problems.push(`${vp.name}: no strike on the card opened from the picker`);
+          if (!(await count('[data-back]')))
+            problems.push(`${vp.name}: the card from the picker has no back`);
+          await shot5('07b-picker-threat');
+          await page.locator('[data-back]').first().click();
+          await page.waitForTimeout(300);
+          if (!(await has('pick'))) problems.push(`${vp.name}: back did not return to the picker`);
+          await page.keyboard.press('Escape');
+          await page.waitForTimeout(200);
+        }
+        // Near the top of the screen there is no room above: the bubbles open below the tile.
+        await stage5({
+          role: 'scout',
+          guardianAt: { q: 0, r: -5 },
+          threats: [{ type: 'swarm', at: { q: 0, r: -5 }, strength: 3 }],
+        });
+        {
+          const [hx, hy] = await offset({ q: 0, r: -5 });
+          await tap(hx, hy);
+          if (!(await has('pick')))
+            problems.push(`${vp.name}: no picker on a shared tile at the top`);
+          const box = await page.locator('[data-popover=pick]').boundingBox();
+          if (box && !(box.y >= hy - 4))
+            problems.push(`${vp.name}: the picker did not flip below a tile near the top`);
+          await shot5('07c-picker-below');
+          await page.keyboard.press('Escape');
+          await page.waitForTimeout(200);
+        }
 
         // A wary settlement where you stand: parley with the risk mark (a scout), and an offer of old coin.
         await stage5({
@@ -1195,6 +1255,78 @@ async function run() {
         if (!(await count('[data-mark=defending]')))
           problems.push(`${vp.name}: no shield on the defending guardian`);
         await shot5('13-defending');
+        // A defended creature: the hub's creature card and a threat's card show the shields, and a tap on the
+        // mark gives a hint. Defending is staged (the guardian has defended today).
+        await stage5({
+          role: 'guardian',
+          at: 'creature',
+          defending: true,
+          threats: [{ type: 'captors', at: { q: 0, r: 4 }, strength: 4 }],
+        });
+        await openHub();
+        if (!(await count('.drawer [data-mark=defended]')))
+          problems.push(`${vp.name}: the hub's creature card does not show it is defended`);
+        await shot5('15-defended-creature');
+        await tapEl('.drawer [data-mark=defended]');
+        if (!(await count('.tip')))
+          problems.push(`${vp.name}: a tap on the defended mark showed no tip`);
+        if (!(await count('.drawer [data-care=defend]')))
+          problems.push(`${vp.name}: the tip on the defended mark closed the hub`);
+        await shot5('15b-defended-tip');
+        await page.keyboard.press('Escape');
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(500);
+        await tap(...(await offset({ q: 0, r: 4 })));
+        if (!(await count('[data-popover=threat] [data-mark=defence]')))
+          problems.push(`${vp.name}: a threat's card shows no shields against its strength`);
+        await shot5('15c-defended-threat-card');
+        await idle();
+
+        // A greyed action: a tap shows why in a tip, the card stays open, and nothing acts (the server's
+        // state is the same afterwards). The hub: a scout's linger, defend and an unlock; a card: a strike
+        // with no actions left.
+        const snapshot = () => JSON.stringify(fake.scenario.state);
+        const greyedTap = async (selector, label) => {
+          const before = snapshot();
+          await tapEl(selector);
+          await page.waitForTimeout(250);
+          if (!(await count('.tip')))
+            problems.push(`${vp.name}: a tap on greyed ${label} showed no tip`);
+          if (!(await count(selector)))
+            problems.push(`${vp.name}: greyed ${label} closed its card`);
+          if (snapshot() !== before) problems.push(`${vp.name}: greyed ${label} acted on a tap`);
+          await page.keyboard.press('Escape');
+          await page.waitForTimeout(150);
+        };
+        await stage5({ role: 'scout', at: 'creature', stores: { forage: 2 } });
+        await openHub();
+        await greyedTap('.drawer [data-care=linger] .unlock-go', 'linger');
+        await greyedTap('.drawer [data-care=defend] .unlock-go', 'defend');
+        await greyedTap('.drawer [data-unlock] .unlock-go[aria-disabled=true]', 'build');
+        await tapEl('.drawer [data-care=linger] .unlock-go');
+        await shot5('16-greyed-reason-tip');
+        await page.keyboard.press('Escape');
+        await page.keyboard.press('Escape');
+        await stage5({
+          role: 'guardian',
+          threats: [{ type: 'swarm', at: { q: 1, r: 3 }, strength: 3 }],
+        });
+        {
+          const s0 = fake.scenario;
+          const characters = s0.state.characters.map((c) => ({ ...c, actionsLeft: 0 }));
+          fake.reset({ ...s0, state: { ...s0.state, characters }, version: s0.version + 1 });
+          await page.reload();
+          await page.waitForSelector('.map-world svg g');
+          await page.waitForTimeout(500);
+        }
+        await tap(...(await offset({ q: 1, r: 3 })));
+        if (!(await count('[data-popover=threat] [data-action=strike][aria-disabled=true]')))
+          problems.push(`${vp.name}: no greyed strike without actions`);
+        await greyedTap('[data-popover=threat] [data-action=strike]', 'strike');
+        await holdAll('threat', 'threat (greyed strike)');
+        await shot5('16b-greyed-strike-tip');
+        await idle();
+
         // A guardian on a hex beside you: its escort ring and your shield.
         await stage5({ role: 'scout', guardianAt: { q: 2, r: 2 } });
         if (
@@ -1391,14 +1523,23 @@ async function run() {
         // The season's end, each outcome reached by a tick of the real core: home safe on the last step,
         // home wounded at high peril, lost when a strike fills the gauge.
         const routeLength = fake.scenario.state.config.routeLength;
+        const RECAP_STATS = {
+          shared: { threatsTurned: 3, finds: 2, unlocks: 1, befriended: 1, peakPeril: 8 },
+          byUser: {
+            '100000000000000001': { explored: 14, strikes: 2, gathered: 5 },
+            '100000000000000002': { explored: 6, strikes: 5, gathered: 9 },
+            '100000000000000003': { explored: 6, strikes: 0, gathered: 0 },
+          },
+        };
         const endings = [
-          ['safe', { steps: routeLength - 1, peril: 0 }],
-          ['wounded', { steps: routeLength - 1, peril: 7 }],
+          ['safe', { steps: routeLength - 1, peril: 0, stats: RECAP_STATS }],
+          ['wounded', { steps: routeLength - 1, peril: 7, stats: RECAP_STATS }],
           [
             'lost',
             {
               steps: 2,
               peril: 9,
+              stats: RECAP_STATS,
               threats: [
                 { type: 'swarm', at: { q: 0, r: -3 }, strength: 4 },
                 { type: 'swarm', at: { q: 3, r: -3 }, strength: 4 },
@@ -1430,6 +1571,14 @@ async function run() {
             problems.push(
               `${vp.name}: the ending's foot (top ${String(footBox?.y)}) covers the scene (bottom ${String(sceneBox && sceneBox.y + sceneBox.height)})`,
             );
+          // The recap is part of the ending: three players by name with a role emblem, and the foot stays clear.
+          if ((await count('.ending .recap-player')) < 2)
+            problems.push(`${vp.name}: no recap on the ${String(outcome)} ending`);
+          if (!(await count('.ending .recap-player [data-top]')))
+            problems.push(`${vp.name}: the recap highlights no one`);
+          const recapBox = await page.locator('.ending .recap').boundingBox();
+          if (!recapBox || recapBox.y + recapBox.height > footBox.y + 0.5)
+            problems.push(`${vp.name}: the recap runs into the ending's foot`);
           await shot5(`15-ending-${outcome}`);
         }
         // A new season that fails: the button shakes and fades back, the ending stays.

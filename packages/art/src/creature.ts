@@ -49,6 +49,8 @@ export interface CreatureArt {
   readonly heading: { readonly q: number; readonly r: number };
   /** How much the team stores hold (in units); drawn as crates on its back when above 0. */
   readonly stores?: number;
+  /** Guardians defending it today: a ring and that many shields mark it (default: the characters marked defending). */
+  readonly defenders?: number;
   readonly look: CreatureLook;
   /** Its appetite sign, as the viewer sees it (core `signs.appetite`, with `faint` for non-keepers). */
   readonly appetite?: CreatureAppetite | null;

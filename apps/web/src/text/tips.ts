@@ -98,7 +98,7 @@ export const tips = {
 
   // Materials (in packs and the team stores).
   'material:iron': {
-    text: 'From iron deposits and outcrops. Builds the grappling hook, the spikes and the sledge.',
+    text: 'From iron deposits and outcrops. Builds the grappling hook, the spikes and the marsh boards.',
   },
   'material:stone': { text: 'From river stones and fieldstones. Builds the lantern.' },
   'material:timber': {
@@ -119,7 +119,7 @@ export const tips = {
   },
   'unlock:lantern': { text: 'Light for deep tombs, so a scholar can work them.' },
   'unlock:climbing-spikes': { text: 'Cliffs cost only {climbCost.climbing-spikes} action a step.' },
-  'unlock:sand-sledge': { text: 'Sand costs only {climbCost.sand-sledge} action a step.' },
+  'unlock:marsh-boards': { text: 'Swamp costs only {climbCost.marsh-boards} action a step.' },
 
   // Actions (buttons in the cards and the hub).
   'action:survey': {
@@ -146,7 +146,7 @@ export const tips = {
     text: 'Weaken a threat next to you by {strike.other}, or by {strike.guardian} as a guardian. At 0 it is gone.',
   },
   'action:defend': {
-    text: 'Guardians, riding: each strike on the creature today is {defendReduction} weaker.',
+    text: 'Guardians, riding: stand guard over the creature. Every strike on it today lands {defendReduction} weaker, for each guardian.',
   },
   'action:parley': {
     text: 'Win a wary settlement’s favour. An envoy gains {parleyFavour.envoy}; others gain {parleyFavour.other} and may anger it.',
@@ -164,10 +164,44 @@ export const tips = {
   },
   'boon:shelter': { title: 'Shelter', text: 'Peril falls by {shelterPeril}.' },
 
+  // Why an action is greyed (a tap on it shows one of these, and it never acts). One short line each.
+  'why:role-scout': { title: 'Not your role', text: 'A scout can do this.' },
+  'why:role-scholar': { title: 'Not your role', text: 'A scholar can do this.' },
+  'why:role-keeper': { title: 'Not your role', text: 'A keeper can do this.' },
+  'why:role-guardian': { title: 'Not your role', text: 'A guardian can do this.' },
+  'why:role-engineer': { title: 'Not your role', text: 'An engineer can do this.' },
+  'why:role-envoy': { title: 'Not your role', text: 'An envoy can do this.' },
+  'why:not-enough-actions': {
+    title: 'Not now',
+    text: 'Not enough actions left today. They refill when the day turns.',
+  },
+  'why:pack-full': {
+    title: 'Not now',
+    text: 'Your pack is full ({packSize}). Board the creature to empty it.',
+  },
+  'why:needs-unlock': { title: 'Not yet', text: 'The team has yet to build what this needs.' },
+  'why:missing-materials': { title: 'Not yet', text: 'The stores lack what this takes.' },
+  'why:no-fuel': { title: 'Not now', text: 'You carry no fuel.' },
+  'why:no-food': { title: 'Not now', text: 'The stores hold no food.' },
+  'why:not-riding': { title: 'Not here', text: 'Only from the creature’s back.' },
+  'why:on-creature': { title: 'Not here', text: 'Not from the creature’s back.' },
+  'why:elsewhere': { title: 'Not here', text: 'Do it where you stand.' },
+  'why:not-near': { title: 'Not here', text: 'Too far. Stand on or next to it.' },
+  'why:wrong-place': { title: 'Not here', text: 'Not possible from this place.' },
+  'why:lingered-yesterday': { title: 'Not now', text: 'Not two days running.' },
+  'why:done': { title: 'Done', text: 'Already done today.' },
+  'why:busy': { title: 'Not now', text: 'Another build is under way.' },
+  'why:no-fire': { title: 'Not here', text: 'No fire will light here.' },
+  'why:settlement': { title: 'Not now', text: 'This settlement is not in that mood.' },
+  'why:nothing': { title: 'Not now', text: 'Nothing left to take here.' },
+  'why:season-over': { title: 'Over', text: 'The season is over.' },
+  'why:other': { title: 'Not now', text: 'Not possible just now.' },
+
   // The ground a hex shows (in the cards' tile pictures).
   'terrain:plains': { title: 'Plains', text: 'Open grassland. Easy going.' },
   'terrain:forest': { title: 'Forest', text: 'Woods. Easy going, with more to find.' },
-  'terrain:desert': { title: 'Desert', text: 'Dry, open sand. Heavy going.' },
+  'terrain:desert': { title: 'Desert', text: 'Dry, open sand.' },
+  'terrain:swamp': { title: 'Swamp', text: 'Reeds and standing water. Heavy going.' },
   'terrain:river': { title: 'River', text: 'Running water. No fire will light here.' },
   'terrain:cliff': { title: 'Cliff', text: 'Too steep to climb without gear.' },
 
@@ -188,14 +222,22 @@ export const tips = {
   'feature:undertow': { text: 'An undertow, found. Harmless now.' },
 
   // Threats on the map.
-  'threat:captors': { text: 'On the creature’s trail. Strong, and gains on it every day.' },
-  'threat:swarm': { text: 'Flies in from the side. Fast, but weaker.' },
+  'threat:captors': {
+    text: 'On the creature’s trail. Strong, and gains on it every day. Tap it to see its next step.',
+  },
+  'threat:swarm': {
+    text: 'Flies in from the side. Fast, but weaker. Tap it to see its next step.',
+  },
   'threat:rockslide': {
     text: 'Blocks the path ahead. Steer around it with fires, or strike it apart.',
   },
-  'threat:ambush': { text: 'Lies in wait among the trees. Slow, but close.' },
-  'threat:stampede': { text: 'Charges across open ground. Fast and heavy.' },
-  'threat:raiders': { text: 'Sent by an angered settlement.' },
+  'threat:ambush': {
+    text: 'Lies in wait among the trees. Slow, but close. Tap it to see its next step.',
+  },
+  'threat:stampede': {
+    text: 'Charges across open ground. Fast and heavy. Tap it to see its next step.',
+  },
+  'threat:raiders': { text: 'Sent by an angered settlement. Tap it to see its next step.' },
 
   // Settlements and the peoples.
   'people:hill-folk': { text: 'Herders of the hills. Win their favour for a boon.' },
@@ -210,6 +252,10 @@ export const tips = {
     text: 'Burns until the day turns. The creature may take notice.',
   },
   'map:escort': { title: 'Escorted', text: 'Next to a guardian: threats will not strike here.' },
+  'map:defended': {
+    title: 'Defended',
+    text: 'Each guardian on its back takes {defendReduction} off every strike today.',
+  },
   'map:struck': { title: 'Struck', text: 'Hit by a threat: only {struckActions} action tomorrow.' },
 
   // The heads-up display.
@@ -249,6 +295,7 @@ export const tips = {
     title: 'Appetite',
     text: 'How the creature’s appetite seems: hungry or full. Keepers read it best.',
   },
+  'hud:recap': { title: 'The season', text: 'Show or hide how the season went.' },
   'hud:join': { title: 'Join', text: 'Pick a character and a role.' },
   'hud:roster': { title: 'Players', text: 'Everyone in the game: tap one to find them.' },
   'roster:actions': {
@@ -261,6 +308,20 @@ export const tips = {
   'roster:riding': { title: 'Riding', text: 'On the creature’s back.', group: 'hud' },
   'roster:map': { title: 'Out on the map', text: 'Away from the creature.', group: 'hud' },
   'roster:none': { title: 'No character', text: 'Has not joined yet.', group: 'hud' },
+
+  // The season's recap, on the ending.
+  'stat:turned': {
+    title: 'Threats turned back',
+    text: 'Threats the party struck down.',
+    group: 'hud',
+  },
+  'stat:finds': { title: 'Finds', text: 'Sites opened with something found.', group: 'hud' },
+  'stat:unlocks': { title: 'Unlocks', text: 'Team unlocks built.', group: 'hud' },
+  'stat:friends': { title: 'Friends', text: 'Settlements won over.', group: 'hud' },
+  'stat:explored': { title: 'Explored', text: 'Hexes explored.', group: 'hud' },
+  'stat:strikes': { title: 'Strikes', text: 'Blows struck against threats.', group: 'hud' },
+  'stat:gathered': { title: 'Gathered', text: 'Units gathered from resource nodes.', group: 'hud' },
+  'stat:top': { title: 'Most', text: 'Led the party in this.', group: 'hud' },
 } as const satisfies Record<string, Tip>;
 
 export type TipId = keyof typeof tips;

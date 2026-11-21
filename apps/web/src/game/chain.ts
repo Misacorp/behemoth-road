@@ -17,7 +17,9 @@ import {
   UNLOCKS,
   type Unlock,
 } from '@behemoth-road/core';
+import type { TipId } from '../text/tips.ts';
 import { neededRole } from './roles.ts';
+import { whyOfCheck, whyTip } from './why.ts';
 
 export interface Feature {
   readonly type: FeatureType;
@@ -73,6 +75,8 @@ export interface PossibleAction {
   readonly enabled: boolean;
   /** Greyed because another role can (the core's refusal): that role's id, for its badge. */
   readonly needs?: string;
+  /** Why it is greyed (the core's refusal, as a tip): a tap on it shows this and never acts. */
+  readonly why?: TipId;
 }
 
 /** Refusals that mean "this exists here but cannot be done now": offered faded rather than hidden. */
@@ -96,6 +100,7 @@ export function actionsAt(game: GameStateView, characterId: string): PossibleAct
         cost: check.cost,
         enabled: false,
         ...(needs ? { needs } : {}),
+        why: whyTip(check.reason, needs),
       });
     }
   }
@@ -107,11 +112,11 @@ export function surveyOf(
   game: GameStateView,
   characterId: string,
   h: Hex,
-): { readonly cost: number; readonly enabled: boolean } | null {
+): { readonly cost: number; readonly enabled: boolean; readonly why?: TipId } | null {
   const check = checkAction(game, characterId, { kind: 'survey', hex: h });
   if (check.ok) return { cost: check.cost, enabled: true };
   if (check.reason !== 'not-enough-actions' || check.cost === undefined) return null;
-  return { cost: check.cost, enabled: false };
+  return { cost: check.cost, enabled: false, why: whyTip(check.reason) };
 }
 
 export interface UnlockOption {
@@ -126,6 +131,8 @@ export interface UnlockOption {
   readonly cost: number;
   /** The role that can build it, when yours cannot (the core's refusal), for its badge. */
   readonly needs: string | null;
+  /** Why it is greyed, as a tip, or null when it can be done. */
+  readonly why: TipId | null;
 }
 
 /** Every unlock as the creature's drawer shows it, for this character. */
@@ -142,6 +149,7 @@ export function unlockOptions(game: GameStateView, characterId: string): UnlockO
       enabled: check.ok,
       cost: check.cost ?? 0,
       needs: neededRole(game, characterId, action, check),
+      why: whyOfCheck(check, neededRole(game, characterId, action, check)),
     };
   });
 }
@@ -159,6 +167,8 @@ export interface CostedAction {
   readonly done?: boolean;
   /** Greyed because another role can (a keeper's linger, a guardian's defence): that role, for its badge. */
   readonly needs?: string;
+  /** Why it is greyed (the core's refusal, as a tip): a tap on it shows this and never acts. */
+  readonly why?: TipId;
 }
 
 /** The stimulus a fire is (tagged `fire`), for its fuel tag: content, read by tag. */
@@ -218,7 +228,13 @@ export function fireAction(
   if (check.reason === 'not-enough-actions') {
     const me = game.characters.find((c) => c.id === characterId);
     const fuel = FIRE && me ? heldWith(FIRE.fuel.tag, me.pack) : null;
-    return { kind: 'light-fire', cost: check.cost, enabled: false, uses: fuel };
+    return {
+      kind: 'light-fire',
+      cost: check.cost,
+      enabled: false,
+      uses: fuel,
+      why: whyTip(check.reason),
+    };
   }
   if (check.reason === 'no-fuel' && hint) {
     return {
@@ -227,6 +243,7 @@ export function fireAction(
       enabled: false,
       uses: check.missing?.[0]?.material ?? null,
       short: true,
+      why: whyTip(check.reason),
     };
   }
   return null;
@@ -259,13 +276,21 @@ export function careOptions(game: GameStateView, characterId: string): CostedAct
       enabled: false,
       uses: missing ?? food,
       short: missing !== null,
+      why: whyTip(feed.reason),
     });
   }
   const linger = checkAction(game, characterId, { kind: 'linger' });
   const keeper = neededRole(game, characterId, { kind: 'linger' }, linger);
   if (keeper && linger.cost !== undefined) {
     // Not a keeper: greyed, with the keeper's emblem.
-    out.push({ kind: 'linger', cost: linger.cost, enabled: false, uses: null, needs: keeper });
+    out.push({
+      kind: 'linger',
+      cost: linger.cost,
+      enabled: false,
+      uses: null,
+      needs: keeper,
+      why: whyTip(linger.ok ? 'needs-keeper' : linger.reason, keeper),
+    });
   } else if (linger.ok || linger.cost !== undefined) {
     out.push({
       kind: 'linger',
@@ -273,6 +298,7 @@ export function careOptions(game: GameStateView, characterId: string): CostedAct
       enabled: linger.ok,
       uses: null,
       done: game.creature.lingering,
+      ...(linger.ok ? {} : { why: whyTip(linger.reason) }),
     });
   }
   return out;

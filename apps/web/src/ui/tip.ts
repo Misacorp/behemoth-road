@@ -60,6 +60,7 @@ const SWALLOW_MS = 700;
 const GROUP_BY_PREFIX: Readonly<Record<string, TipGroup>> = {
   hud: 'hud',
   action: 'action',
+  why: 'action',
   role: 'content',
   trait: 'content',
   quirk: 'content',

@@ -72,10 +72,12 @@ describe('threats as the map reads them', () => {
       strength: 2,
       steps: threatNextPath(near.view, id).length,
       strike: { cost: near.view.config.strikeCost, enabled: true },
+      defence: 0,
     });
     expect(threatCard(tired(near.view), near.me, id)?.strike).toEqual({
       cost: near.view.config.strikeCost,
       enabled: false,
+      why: 'why:not-enough-actions',
     });
     const far = staged({ threats: [{ type: 'swarm', at: FAR }] });
     expect(threatCard(far.view, far.me, far.view.threats[0]!.id)?.strike).toBeNull();
@@ -115,6 +117,7 @@ describe('defending the creature in the hub', () => {
       enabled: false,
       uses: null,
       done: true,
+      why: 'why:done',
     });
     // Anyone else sees it greyed, with the guardian's emblem (the role the core's refusal points to).
     const scout = staged({ role: 'scout', at: 'creature' });
@@ -124,6 +127,7 @@ describe('defending the creature in the hub', () => {
       enabled: false,
       uses: null,
       needs: 'guardian',
+      why: 'why:role-guardian',
     });
   });
 });
@@ -141,7 +145,7 @@ describe('settlements', () => {
       { kind: 'parley', cost, enabled: true, risk: false },
     ]);
     expect(settlementActions(tired(envoy.view), envoy.me)).toEqual([
-      { kind: 'parley', cost, enabled: false, risk: false },
+      { kind: 'parley', cost, enabled: false, risk: false, why: 'why:not-enough-actions' },
     ]);
   });
 

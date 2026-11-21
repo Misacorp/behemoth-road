@@ -1,5 +1,5 @@
 /**
- * Feedback marks from the Milestone 5 playtest: the ground plinth that sets a feature apart from the
+ * Feedback marks from the Milestone 5 playtest: the ground footing that sets a feature apart from the
  * decorative props, the explored-empty mark and its "nothing here" moment, the "out of reach" mark, a role
  * badge for a greyed action, and the mislead and relief moments with the small "misled" state mark.
  * Marks are self-contained `<svg>`s; moments follow `marks.ts` (three `data-part`s on the −24…24 grid).
@@ -16,36 +16,113 @@ const P = (x: number, y: number): Point => ({ x, y });
 const pxOr = (size: number, fallback: number): number =>
   Number.isFinite(size) && size > 0 ? size : fallback;
 
+/** What a footing says about the feature on it: a find (`calm`) or a trap (`danger`, `harmless` once defused). */
+export type FootingTone = 'calm' | 'danger' | 'harmless';
+
+export interface FootingOptions {
+  /** Moves the footing this far down the screen, in local units (negative: back). */
+  readonly dy?: number;
+  /** Default `calm`. */
+  readonly tone?: FootingTone;
+}
+
 /**
- * The plinth under a feature (a node, site, trap or settlement): a raised disc of light, trodden ground with
- * a warm inner band, an ink rim and a dark lip at the front, squashed with the plane. Decorative props never get one, so at phone zoom a feature reads
- * as "something here" and a pebble does not. `rx` is in local units at the reference hex size.
+ * The ground contact under a feature (a node, site, trap or settlement): a soft cast shadow and a darker
+ * patch of ground, no platform. The feature itself rises from it, taller than the tile. A trap's footing
+ * carries the shared danger cue: a coral band and a ring of jagged teeth on the ground (with
+ * `drawDangerFlag`); defused (`harmless`) the teeth lie flat and grey. `rx` is in local units at the
+ * reference hex size.
  */
-export function featurePlinth(c: PropContext, rx = 20): Drawn {
-  const ry = rx * 0.36 * (c.squash / 0.6);
+export function featureFooting(c: PropContext, rx = 20, options: FootingOptions = {}): Drawn {
+  const tone = options.tone ?? 'calm';
+  const sq = c.squash / 0.6;
+  const ry = rx * 0.36 * sq;
   const x = c.origin.x;
-  const y = c.origin.y + 0.5 * c.k;
-  const d = ellipsePath(x, y, rx * c.k, ry * c.k);
-  // A lip of darker ground under the front edge, so the disc reads as raised.
-  const lip = 1.8 * c.k * (c.squash / 0.6);
+  const y = c.origin.y + 0.5 * c.k + (options.dy ?? 0) * c.k * sq;
   const pal = c.palette;
+  const w = rx * c.k;
+  const h = ry * c.k;
+  const nodes: SvgNode[] = [];
+  const all: Point[] = [P(x - w * 1.1, y - h * 1.1), P(x + w * 1.1, y + h * 1.1)];
+  if (tone !== 'calm') {
+    // The danger ring: jagged teeth around the spot, on the ground.
+    const n = 14;
+    const teeth: Point[] = [];
+    for (let i = 0; i < n * 2; i += 1) {
+      const a = (Math.PI * i) / n;
+      const f = i % 2 === 0 ? 1.12 : tone === 'danger' ? 1.62 : 1.2;
+      teeth.push(P(x + Math.cos(a) * w * f, y + Math.sin(a) * h * f));
+    }
+    const ring = poly(teeth);
+    all.push(P(x - w * 1.62, y - h * 1.62), P(x + w * 1.62, y + h * 1.62));
+    const danger = tone === 'danger';
+    nodes.push(
+      el('path', {
+        d: ring,
+        fill: danger ? pal.accents.coral.base : pal.ramps.neutral.shade,
+        opacity: danger ? 0.95 : 0.6,
+        'data-footing': 'teeth',
+      }),
+      el('path', {
+        d: ring,
+        ...stroke(danger ? pal.accents.coral.shade : pal.inkSoft, c.ink * 0.9),
+      }),
+    );
+  }
+  nodes.push(
+    el('path', {
+      d: ellipsePath(x + w * 0.1, y, w * 1.05, h * 1.05),
+      fill: pal.shadow,
+      opacity: 0.32,
+      'data-footing': 'shadow',
+    }),
+    el('path', {
+      d: ellipsePath(x, y, w * 0.62, h * 0.62),
+      fill: pal.ramps.earth.shade,
+      opacity: 0.35,
+      'data-footing': 'foot',
+    }),
+  );
+  if (tone === 'danger') {
+    nodes.push(
+      el('path', {
+        d: ellipsePath(x, y, w * 0.9, h * 0.9),
+        ...stroke(pal.accents.coral.base, c.ink * 2.2),
+        'data-footing': 'band',
+      }),
+    );
+  }
+  return { nodes, box: boxOf(all) };
+}
+
+/**
+ * The warning pennant every live trap carries: a coral triangle with a bold ink bar and dot on a short
+ * post at the footing's front right, so danger reads at phone zoom without any text. `c.origin` is the
+ * feature's base; `rx` is the footing's half-width in local units.
+ */
+export function drawDangerFlag(c: PropContext, rx = 20): Drawn {
+  const pal = c.palette;
+  const T = (u: number, v: number): Point =>
+    P(c.origin.x + (rx * 0.66 + u) * c.k, c.origin.y + (3 + v * c.rise) * c.k);
+  const post = [T(0, 2), T(0, -24)];
+  const tri = [T(-7, -22), T(7, -22), T(0, -34)];
+  const bar = [T(0, -27.6), T(0, -30.6)];
+  const dot = T(0, -24.6);
   return {
     nodes: [
+      el('path', { d: poly(post, false), ...stroke(pal.ramps.bark.shade, c.ink * 1.6) }),
       el('path', {
-        d: ellipsePath(x, y + lip, rx * c.k, ry * c.k),
-        fill: pal.ramps.earth.shade,
-        opacity: 0.55,
-        'data-plinth': 'lip',
+        d: poly(tri),
+        fill: pal.accents.coral.base,
+        stroke: pal.ink,
+        'stroke-width': c.ink * 1.2,
+        'stroke-linejoin': 'round',
+        'data-mark': 'danger',
       }),
-      el('path', { d, fill: pal.paper, opacity: 0.9, 'data-plinth': 'disc' }),
-      el('path', {
-        d: ellipsePath(x, y, rx * 0.8 * c.k, ry * 0.8 * c.k),
-        ...stroke(pal.accents.ochre.light, c.ink * 1.4),
-        'data-plinth': 'band',
-      }),
-      el('path', { d, ...stroke(pal.ink, c.ink * 1.1, { opacity: 0.8 }), 'data-plinth': 'rim' }),
+      el('path', { d: poly(bar, false), ...stroke(pal.ink, c.ink * 1.8) }),
+      el('path', { d: ellipsePath(dot.x, dot.y, 0.9 * c.k, 0.9 * c.k), fill: pal.ink }),
     ],
-    box: boxOf([P(x - rx * c.k, y - ry * c.k), P(x + rx * c.k, y + ry * c.k + lip)]),
+    box: boxOf([...post, ...tri]),
   };
 }
 

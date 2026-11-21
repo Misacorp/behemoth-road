@@ -27,7 +27,7 @@ export type RoleId = (typeof ROLE_IDS)[number];
 export type EmblemFrame = 'roundel' | 'shield';
 
 export interface IconOptions {
-  /** The shared frame of the role emblems (default `roundel`). */
+  /** The shared frame of the role emblems (default `shield`, Misa's pick). */
   readonly frame?: EmblemFrame;
   /**
    * The tile behind a trait or quirk icon: `quirk` adds a ring split into two colours (it helps and
@@ -243,7 +243,7 @@ export function drawIcon(
   const role = roleOf(id);
   let children: SvgNode[];
   if (role) {
-    children = emblem(palette, role, options.frame ?? 'roundel');
+    children = emblem(palette, role, options.frame ?? 'shield');
   } else if (Object.hasOwn(ICON_MOTIFS, id)) {
     children = [
       el('path', {

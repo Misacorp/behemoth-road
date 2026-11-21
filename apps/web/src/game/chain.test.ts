@@ -38,14 +38,20 @@ describe('the chain as the client reads it', () => {
       ...scout.view,
       characters: scout.view.characters.map((c) => ({ ...c, actionsLeft: 0 })),
     };
-    expect(surveyOf(tired, scout.me, scout.spot('iron'))).toEqual({ cost: 1, enabled: false });
+    expect(surveyOf(tired, scout.me, scout.spot('iron'))).toEqual({
+      cost: 1,
+      enabled: false,
+      why: 'why:not-enough-actions',
+    });
   });
 
   it('offers gather on a revealed node, faded with a full pack, and nothing on bare ground', () => {
     const on = staged({ at: 'iron', explored: ['iron'] });
     expect(actionsAt(on.view, on.me)).toEqual([{ kind: 'gather', cost: 1, enabled: true }]);
     const full = staged({ at: 'iron', explored: ['iron'], pack: { stone: 6 } });
-    expect(actionsAt(full.view, full.me)).toEqual([{ kind: 'gather', cost: 1, enabled: false }]);
+    expect(actionsAt(full.view, full.me)).toEqual([
+      { kind: 'gather', cost: 1, enabled: false, why: 'why:pack-full' },
+    ]);
     const bare = staged({});
     expect(actionsAt(bare.view, bare.me)).toEqual([]);
   });

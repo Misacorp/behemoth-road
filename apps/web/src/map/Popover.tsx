@@ -33,8 +33,10 @@ import { Pips, TickMark } from '../hud/icons.tsx';
 import type { Identity } from '../game/identity.ts';
 import { QuirkIcon, RoleEmblem, TraitIcon } from '../ui/emblems.tsx';
 import type { TipId } from '../text/tips.ts';
+import { defendedBy } from '../game/season.ts';
+import { WHY_ELSEWHERE } from '../game/why.ts';
 import { tipFor } from '../ui/tip.ts';
-import { tipProps } from '../ui/press.ts';
+import { greyedProps, tipProps } from '../ui/press.ts';
 import { getSettings } from '../settings.ts';
 import { verbOf } from '../text/verbs.ts';
 import type { SettlementInfo, ThreatCardInfo } from '../game/season.ts';
@@ -218,7 +220,7 @@ export function InspectCard({
   state: CellState;
   /** A revealed feature on the hex, drawn on the tile. */
   feature?: FeatureArt | null;
-  survey?: { readonly cost: number; readonly enabled: boolean } | null;
+  survey?: { readonly cost: number; readonly enabled: boolean; readonly why?: TipId } | null;
   /** The fire hint on a timber stand: what a fire costs and the fuel it takes. */
   fire?: { readonly cost: number; readonly uses: string } | null;
   onSurvey?: () => void;
@@ -245,6 +247,7 @@ export function InspectCard({
             icon="spyglass"
             cost={survey.cost}
             enabled={survey.enabled}
+            why={survey.why ?? null}
             x={INSPECT_SIZE.width - 6}
             y={12}
             onRun={() => onSurvey?.()}
@@ -258,6 +261,7 @@ export function InspectCard({
             icon="light-fire"
             cost={fire.cost}
             enabled={false}
+            why={WHY_ELSEWHERE}
             x={INSPECT_SIZE.width - 6 + (survey ? ACTION_W : 0)}
             y={12}
             uses={iconOf(fire.uses)}
@@ -334,6 +338,49 @@ function HeadingMark({ heading }: { heading: { q: number; r: number } }): JSX.El
   );
 }
 
+/** A small shield, its top-left corner at the origin (the defence mark, as one guardian's or one point's). */
+function Shield({ x, y, w = 10 }: { x: number; y: number; w?: number }): JSX.Element {
+  const h = w * 1.2;
+  return (
+    <path
+      d={`M${x} ${y}h${w}v${h * 0.5}c0 ${h * 0.35} ${-w * 0.5} ${h * 0.5} ${-w * 0.5} ${h * 0.5}s${-w * 0.5} ${-h * 0.15} ${-w * 0.5} ${-h * 0.5}z`}
+      fill={PALETTE.accents.sky.base}
+      stroke={PALETTE.ink}
+      stroke-width={1}
+      stroke-linejoin="round"
+    />
+  );
+}
+
+/**
+ * The creature is defended: one shield per guardian riding who defended today, bottom right of its card
+ * (the reduction they give shows against a threat's strength on its card). Nothing while undefended.
+ */
+function DefendedMark({
+  guardians,
+  reduction,
+}: {
+  guardians: number;
+  reduction: number;
+}): JSX.Element | null {
+  if (guardians <= 0) return null;
+  const shown = Math.min(guardians, 5);
+  return (
+    <g
+      transform={`translate(${CREATURE_SIZE.width - 14 - shown * 13} 54)`}
+      data-mark="defended"
+      data-guardians={guardians}
+      data-reduction={reduction}
+      {...tipProps('map:defended')}
+    >
+      <rect x={-3} y={-3} width={shown * 13 + 3} height={20} fill="transparent" />
+      {Array.from({ length: shown }, (_, i) => (
+        <Shield key={i} x={i * 13} y={0} />
+      ))}
+    </g>
+  );
+}
+
 /**
  * The creature: a small drawing of it, turned to its heading (lying down while it lingers, with your signs:
  * its appetite as you see it), and the heading as a compass mark.
@@ -346,6 +393,7 @@ export function CreatureCard({
   signs?: CreatureSigns | null;
 }): JSX.Element {
   const art = creatureArt(state, signs);
+  const defended = defendedBy(state);
   const drawn = drawCreature(
     PALETTE,
     art.look,
@@ -369,6 +417,7 @@ export function CreatureCard({
       <g transform="translate(110 37)">
         <HeadingMark heading={art.heading} />
       </g>
+      <DefendedMark guardians={defended.guardians} reduction={defended.reduction} />
     </g>
   );
 }
@@ -594,7 +643,7 @@ export const characterSize = (back: boolean): { width: number; height: number } 
   height: CHARACTER_SIZE.height,
 });
 
-function BackButton({
+export function BackButton({
   onBack,
   buttonRef,
 }: {
@@ -690,6 +739,8 @@ export interface HereAction {
   readonly short?: boolean;
   /** Greyed because another role can: that role's id (its emblem shows on the button). */
   readonly needs?: string | null;
+  /** Why it is greyed, as a tip: a tap on the greyed button shows it and never acts. */
+  readonly why?: TipId | null;
 }
 
 const ACTION_W = 54;
@@ -751,6 +802,7 @@ function ActionButton({
   short = false,
   risk = false,
   needs = null,
+  why = null,
   arm,
   armKey = kind,
   onRun,
@@ -770,6 +822,8 @@ function ActionButton({
   risk?: boolean;
   /** Greyed because this role can: its emblem as a badge on the corner. */
   needs?: string | null;
+  /** Why it is greyed, as a tip id: the tap on a greyed button shows it (see `greyedProps`). */
+  why?: TipId | null;
   arm?: Arming;
   /** This button's key among the card's buttons (default its kind). */
   armKey?: string;
@@ -781,6 +835,8 @@ function ActionButton({
   const left = (ACTION_W - 6) / 2 - row / 2;
   const armed = enabled && arm !== undefined && arm.armed === armKey;
   const run = (): void => {
+    // A greyed button never acts (its tap shows the reason, in the press layer).
+    if (!enabled) return;
     if (!arm) {
       if (enabled) onRun();
       return;
@@ -800,7 +856,7 @@ function ActionButton({
       aria-pressed={arm ? armed : undefined}
       data-action={kind}
       data-armed={armed ? true : undefined}
-      {...tipProps(actionTip(kind))}
+      {...greyedProps(enabled, why, actionTip(kind))}
       data-needs={needs ?? undefined}
       transform={`translate(${x} ${y})`}
       onClick={run}
@@ -950,6 +1006,7 @@ export function HereCard({
             uses={a.uses ? iconOf(a.uses) : null}
             short={a.short ?? false}
             needs={a.needs ?? null}
+            why={a.why ?? null}
             armKey={actionKey(a)}
             {...(arm ? { arm } : {})}
             onRun={() => onAct(a.kind)}
@@ -1009,6 +1066,7 @@ export function ThreatCard({
 }): JSX.Element {
   const size = threatSize(threat.strike !== null);
   const marks = Math.min(threat.strength, 10);
+  const blocked = Math.min(threat.defence, marks);
   const drawn = drawThreatIcon(threat.icon, PALETTE, 60);
   return (
     <g data-popover="threat" data-threat={threat.id} data-strength={threat.strength}>
@@ -1034,8 +1092,17 @@ export function ThreatCard({
             fill={PALETTE.accents.coral.shade}
             stroke={PALETTE.ink}
             stroke-width={1}
+            opacity={i < blocked ? 0.3 : 1}
           />
         ))}
+        {/* The creature's defence, as shields over the marks it takes off a strike on the creature. */}
+        {blocked > 0 && (
+          <g data-mark="defence" data-blocked={blocked} {...tipProps('map:defended')}>
+            {Array.from({ length: blocked }, (_, i) => (
+              <Shield key={i} x={i * 9 - 0.5} y={-1} w={8} />
+            ))}
+          </g>
+        )}
       </g>
       <DistanceMarks count={threat.steps} x={72} y={56} />
       {threat.strike && (
@@ -1044,6 +1111,7 @@ export function ThreatCard({
           icon="strike"
           cost={threat.strike.cost}
           enabled={threat.strike.enabled}
+          why={threat.strike.why ?? null}
           x={size.width - ACTION_W - 2}
           y={12}
           onRun={onStrike}
@@ -1126,3 +1194,106 @@ export function SettlementCard({ settlement }: { settlement: SettlementInfo }): 
     </g>
   );
 }
+
+/** One thing on a shared tile, as a round bubble: its own drawing, no text. */
+export interface PickBubble {
+  /** Its key among the bubbles (`me`, `character:id`, `threat:id`, `tile`). */
+  readonly key: string;
+  readonly kind: 'character' | 'threat' | 'tile';
+  /** A character's accent and look. */
+  readonly accent?: string;
+  readonly look?: CharacterLook | undefined;
+  /** A threat's content icon and type (for its tip). */
+  readonly threat?: { readonly icon: string; readonly type: string };
+  /** The tile: a settlement's drawing, or the ground with its revealed feature. */
+  readonly settlement?: SettlementInfo | null;
+  readonly terrain?: string;
+  readonly feature?: FeatureArt | null;
+  /** Your own character: its bubble carries a ring. */
+  readonly mine?: boolean;
+}
+
+const BUBBLE_D = 44;
+const BUBBLE_GAP = 6;
+
+/** The picker's size: the bubbles side by side. */
+export const pickSize = (count: number): { width: number; height: number } => ({
+  width: count * BUBBLE_D + (count - 1) * BUBBLE_GAP,
+  height: BUBBLE_D,
+});
+
+/**
+ * Choosing among several things on one tile: a round bubble for each (a character's figure, a threat, the
+ * settlement or feature), side by side. A bubble is a button: a tap opens that thing's card, a hold shows its tip.
+ */
+export function Picker({
+  bubbles,
+  onPick,
+  firstRef,
+}: {
+  bubbles: readonly PickBubble[];
+  onPick: (key: string) => void;
+  firstRef: (el: SVGGElement | null) => void;
+}): JSX.Element {
+  const r = BUBBLE_D / 2;
+  return (
+    <g data-popover="pick">
+      {bubbles.map((b, i) => {
+        const open = (): void => onPick(b.key);
+        const tip = b.kind === 'threat' && b.threat ? tipFor('threat', b.threat.type) : null;
+        return (
+          <g
+            key={b.key}
+            {...(i === 0 ? { ref: firstRef } : {})}
+            class="svg-button"
+            role="button"
+            tabindex={0}
+            aria-label={b.kind}
+            data-pick={b.key}
+            transform={`translate(${i * (BUBBLE_D + BUBBLE_GAP)} 0)`}
+            {...tipProps(tip)}
+            onClick={open}
+            onKeyDown={(e: KeyboardEvent) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                open();
+              }
+            }}
+          >
+            <circle cx={r} cy={r} r={r} fill={PALETTE.paperDeep} />
+            <circle
+              cx={r}
+              cy={r}
+              r={r - 0.6}
+              fill={PALETTE.paper}
+              stroke={b.mine ? PALETTE.ink : PALETTE.inkSoft}
+              stroke-width={b.mine ? 2 : 1.2}
+            />
+            {b.kind === 'character' && b.accent && (
+              <Fitted drawn={bubbleFigure(b.accent, b.look)} x={9} y={3} width={26} height={38} />
+            )}
+            {b.kind === 'threat' && b.threat && <g>{toPreact(pickThreat(b.threat.icon))}</g>}
+            {b.kind === 'tile' &&
+              (b.settlement ? (
+                <SettlementFigure settlement={b.settlement} x={5} y={5} size={34} />
+              ) : (
+                <Miniature
+                  terrain={b.terrain ?? 'unknown'}
+                  state="seen"
+                  x={4}
+                  y={7}
+                  feature={b.feature ?? null}
+                  scale={0.56}
+                />
+              ))}
+          </g>
+        );
+      })}
+    </g>
+  );
+}
+
+const pickThreat = (icon: string) => {
+  const drawn = drawThreatIcon(icon, PALETTE, 36);
+  return { ...drawn, attrs: { ...drawn.attrs, x: 4, y: 4 } };
+};

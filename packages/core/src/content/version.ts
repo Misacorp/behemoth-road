@@ -16,8 +16,14 @@
  *    rockslide further ahead.
  * 9: more variety: ambush and stampede threats, river folk, the sunken shrine,
  *    the undertow, the sand sledge (and slower sand).
+ * 10: fires steer sideways only, hunger drains every day (food nourishes 4,
+ *    comfortable 4 to 8), and the scripted chain reaches the spikes by day 15-20
+ *    (more deep tombs, ore and fieldstones; cheaper hook; shorter builds).
+ * 11: swamp (2 actions a step on foot) and the marsh boards replace slower sand
+ *    and the sand sledge; shrine, undertow and river folk also fit swamp.
+ * 12: settlements only appear on unexplored hexes (settlement placement changed).
  */
-export const CONTENT_VERSION = 9;
+export const CONTENT_VERSION = 12;
 
 /** Content versions this code can load. */
 export const KNOWN_CONTENT_VERSIONS: readonly number[] = [CONTENT_VERSION];

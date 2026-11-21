@@ -40,7 +40,7 @@ export const MATERIALS: readonly Material[] = [
   { id: 'ancient-alloy', name: 'Ancient alloy', tags: ['metal', 'rare', 'ancient'], icon: 'alloy' },
   // A tier-1 tomb's find: nothing uses it yet (the Envoy's trade, later).
   { id: 'old-coin', name: 'Old coin', tags: ['rare', 'ancient', 'trade'], icon: 'coin' },
-  { id: 'forage', name: 'Forage', tags: ['food'], icon: 'forage', nourishes: 2 },
+  { id: 'forage', name: 'Forage', tags: ['food'], icon: 'forage', nourishes: 4 },
   // A shrine's find: an offering for any people's settlement.
   { id: 'river-pearl', name: 'River pearl', tags: ['rare', 'trade'], icon: 'pearl' },
 ];
@@ -78,19 +78,19 @@ export const UNLOCKS: readonly Unlock[] = [
       { material: 'ancient-alloy', amount: 1 },
       { material: 'iron', amount: 1 },
     ],
-    work: 6,
+    work: 4,
     movement: { terrainTags: ['steep'], cost: 1 },
   },
   {
-    id: 'sand-sledge',
-    name: 'Sand sledge',
-    tags: ['glide', 'sledge'],
-    icon: 'sledge',
+    id: 'marsh-boards',
+    name: 'Marsh boards',
+    tags: ['glide', 'boards'],
+    icon: 'boards',
     cost: [
       { material: 'timber', amount: 2 },
       { material: 'iron', amount: 1 },
     ],
     work: 4,
-    movement: { terrainTags: ['dry'], cost: 1 },
+    movement: { terrainTags: ['boggy'], cost: 1 },
   },
 ];

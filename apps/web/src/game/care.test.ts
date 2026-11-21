@@ -39,6 +39,7 @@ describe('lighting a fire where you stand', () => {
       enabled: false,
       uses: 'timber',
       short: true,
+      why: 'why:no-fuel',
     });
     expect(fireAction(view, me, false)).toBeNull();
   });
@@ -56,7 +57,14 @@ describe('caring for the creature in the hub', () => {
     const scout = staged({ role: 'scout', at: 'creature', stores: { forage: 2 } });
     expect(careOptions(scout.view, scout.me)).toEqual([
       { kind: 'feed', cost: 1, enabled: true, uses: 'forage' },
-      { kind: 'linger', cost: 2, enabled: false, uses: null, needs: 'keeper' },
+      {
+        kind: 'linger',
+        cost: 2,
+        enabled: false,
+        uses: null,
+        needs: 'keeper',
+        why: 'why:role-keeper',
+      },
     ]);
     const keeper = staged({ role: 'keeper', at: 'creature', stores: { forage: 2 } });
     expect(careOptions(keeper.view, keeper.me).map((a) => [a.kind, a.enabled])).toEqual([
@@ -89,12 +97,12 @@ describe('caring for the creature in the hub', () => {
 describe('the scenarios send signs per viewer', () => {
   it('a keeper sees the appetite from level 1 and the cues; anyone else only a faint level 2', () => {
     const cue = { at: { q: 2, r: 2 }, reaction: 'attracted' as const };
-    const keeper = toView(chainScenario({ role: 'keeper', satiety: 3, cues: [cue] }));
+    const keeper = toView(chainScenario({ role: 'keeper', satiety: 7, cues: [cue] }));
     expect(keeper.signs.appetite).toEqual({ kind: 'underfed', level: 1, faint: false });
     expect(keeper.signs.cues.map((c) => c.reaction)).toEqual(['toward']);
-    const scout = toView(chainScenario({ role: 'scout', satiety: 3, cues: [cue] }));
+    const scout = toView(chainScenario({ role: 'scout', satiety: 7, cues: [cue] }));
     expect(scout.signs).toEqual({ appetite: null, cues: [] });
-    const starving = toView(chainScenario({ role: 'scout', satiety: 2 }));
+    const starving = toView(chainScenario({ role: 'scout', satiety: 4 }));
     expect(starving.signs.appetite).toEqual({ kind: 'underfed', level: 1, faint: true });
   });
 });

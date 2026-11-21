@@ -96,11 +96,15 @@ export { drawVeilLift, type ArtCell, type CellState } from './tile.ts';
 export {
   FEATURE_DRAWERS,
   featureDrawer,
+  isTrap,
+  FOOTING_RX,
+  TRAP_LOOKS,
   type FeatureArt,
   type FeatureDraw,
   type FeatureState,
 } from './features.ts';
 export { drawFire } from './fire.ts';
+export { DEFENDED_MAX, drawDefended } from './defended.ts';
 export { drawAppetiteBadge } from './signs.ts';
 export {
   drawMoment,
@@ -150,6 +154,9 @@ export {
   drawOutOfReachMark,
   drawRoleBadge,
   FEEDBACK_MOMENT_KINDS,
-  featurePlinth,
+  drawDangerFlag,
+  featureFooting,
+  type FootingOptions,
+  type FootingTone,
   type FeedbackMomentKind,
 } from './feedback-marks.ts';
