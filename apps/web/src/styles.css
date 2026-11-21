@@ -1257,7 +1257,7 @@ button.roster-row:active {
   min-height: 0;
   padding: var(--space-3);
   border-radius: 16px;
-  background: rgba(243, 241, 226, 0.94);
+  background: #f3f1e2;
   border: 1.5px solid #9a9776;
   box-shadow: 1px 2px 0 #e1ddc3;
   color: #5c5a43;
@@ -1293,7 +1293,7 @@ button.roster-row:active {
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-1) 0;
-  border-top: 1px solid #d7d3b6;
+  border-top: 1px solid #e1ddc3;
 }
 
 .recap-name {
