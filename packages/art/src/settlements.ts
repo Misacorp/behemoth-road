@@ -256,7 +256,8 @@ export function drawSettlement(c: PropContext, settlement: SettlementArt): Drawn
   const roof = angry ? pal.accents.coral.base : thatch.base;
   const roofBack = angry ? pal.accents.coral.light : thatch.light;
   const wall = pal.ramps.sand.light;
-  const lift = river ? 5 : 0;
+  // River folk stand on tall stilts; hill folk on a raised mound of earth.
+  const lift = river ? 10 : 6;
   const big = hut(c, -5, -1 - lift, 17, 23, roof, wall);
   const small = hut(c, 10.5, 3 - lift, 12, 16, roofBack, wall);
   const stilts = river
@@ -336,8 +337,8 @@ export function drawSettlement(c: PropContext, settlement: SettlementArt): Drawn
           .map((x, i) =>
             poly(
               kit(c).pts([
-                [x, 6 - i * 0.2],
-                [x + 0.3, -1.5 - i * 0.2],
+                [x, 2 - lift - i * 0.2],
+                [x + 0.3, -5.5 - lift - i * 0.2],
               ]),
               false,
             ),
@@ -345,14 +346,87 @@ export function drawSettlement(c: PropContext, settlement: SettlementArt): Drawn
           .join('') +
           poly(
             kit(c).pts([
-              [-19, 2.5],
-              [-9.5, 1.6],
+              [-19, -lift - 0.5],
+              [-9.5, -lift - 1.4],
             ]),
             false,
           ),
         1.1,
         pal.ramps.bark.shade,
       );
+  const K = kit(c);
+  const mound = river
+    ? null
+    : [
+        K.fill(
+          smoothClosed(
+            K.pts([
+              [-23, 3],
+              [-19, -lift + 1],
+              [-5, -lift - 1.5],
+              [12, -lift - 0.5],
+              [22, -lift + 2],
+              [25, 3],
+            ]),
+          ),
+          pal.ramps.earth.base,
+        ),
+        K.fill(
+          smoothClosed(
+            K.pts([
+              [4, -lift - 1],
+              [22, -lift + 2],
+              [25, 3],
+              [8, 3],
+            ]),
+          ),
+          pal.ramps.earth.shade,
+          0.5,
+        ),
+        K.line(
+          smoothClosed(
+            K.pts([
+              [-23, 3],
+              [-19, -lift + 1],
+              [-5, -lift - 1.5],
+              [12, -lift - 0.5],
+              [22, -lift + 2],
+              [25, 3],
+            ]),
+          ),
+          0.9,
+        ),
+      ];
+  // A tall pole with a bright pennant over the huts: hill folk's mark, visible above the tile's edge.
+  const polePts = K.pts([
+    [23, -lift],
+    [23, -lift - 40],
+  ]);
+  const pole = river
+    ? null
+    : [
+        K.line(poly(polePts, false), 1.5, pal.ramps.bark.shade),
+        K.fill(
+          poly(
+            K.pts([
+              [23, -lift - 40],
+              [32, -lift - 37],
+              [23, -lift - 33],
+            ]),
+          ),
+          angry ? pal.ramps.rock.shade : pal.accents.ochre.base,
+        ),
+        K.line(
+          poly(
+            K.pts([
+              [23, -lift - 40],
+              [32, -lift - 37],
+              [23, -lift - 33],
+            ]),
+          ),
+          0.8,
+        ),
+      ];
   const ground = el('path', {
     d: ellipsePath(c.origin.x + 1 * c.k, c.origin.y + 2 * c.k, 24 * c.k, 7 * c.k * sq),
     fill: angry
@@ -365,7 +439,7 @@ export function drawSettlement(c: PropContext, settlement: SettlementArt): Drawn
     opacity: angry ? 0.7 : 0.55,
   });
   const extras: SvgNode[] = [];
-  const points: Point[] = [...big.points, ...small.points];
+  const points: Point[] = [...big.points, ...small.points, ...(river ? [] : polePts)];
   let front: SvgNode[] = [];
   if (angry) {
     const torches = [stakeTorch(c, -14, 4), stakeTorch(c, 19, 5)];
@@ -393,11 +467,13 @@ export function drawSettlement(c: PropContext, settlement: SettlementArt): Drawn
       ground,
       groundShadow(c, 20, 4.5, 2),
       el('g', { 'data-settlement': 'huts' }, [
+        ...(mound ?? []),
         ...(stilts ? [stilts] : []),
         ...big.nodes,
         ...small.nodes,
         ...(fence ? [fence] : []),
         ...(rack ? [rack] : []),
+        ...(pole ?? []),
         ...boat,
       ]),
       ...extras,

@@ -11,14 +11,7 @@ import {
   type FootingOptions,
   type FootingTone,
 } from './feedback-marks.ts';
-import {
-  featureDrawer,
-  featureRise,
-  FIRE_RISE,
-  FOOTING_RX,
-  isTrap,
-  SETTLEMENT_RISE,
-} from './features.ts';
+import { featureDrawer, FOOTING_RX, isTrap } from './features.ts';
 import { figureAnchor } from './figure.ts';
 import { artDefs, refUrl } from './filters.ts';
 import { ellipsePath, unionBox, type Box, type Point } from './geom.ts';
@@ -181,7 +174,7 @@ function withFooting(
   };
 }
 
-/** A context drawn taller: the same, with its height stretched so the thing rises above its tile. */
+/** A context with its height stretched: used for the trap pennant's post, which stands above the trap. */
 function taller(c: PropContext, by: number): PropContext {
   return { ...c, rise: c.rise * by };
 }
@@ -270,9 +263,8 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
       const tone: FootingTone = !trap ? 'calm' : fstate === 'ready' ? 'danger' : 'harmless';
       const rx = FOOTING_RX;
       // A trap's warning pennant stands at the front right of its footing, over the trap itself.
-      const flag = tone === 'danger' ? [drawDangerFlag(taller(fc, 1.5), rx)] : [];
-      const tall = taller(fc, featureRise(cell.feature.look));
-      const drawn = withFooting(fc, draw(tall, fstate), rx, { tone }, flag);
+      const flag = tone === 'danger' ? [drawDangerFlag(taller(fc, 1.3), rx)] : [];
+      const drawn = withFooting(fc, draw(fc, fstate), rx, { tone }, flag);
       placed.push({ at, drawn, ...(opacity === undefined ? {} : { opacity }) });
     }
     if (cell.fire && !underCreature) {
@@ -280,9 +272,7 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
       const at = cell.feature ? onPlane(p, c, -0.26, 0.2) : onPlane(p, c, 0, 0.12);
       placed.push({
         at,
-        drawn: drawFire(
-          taller(ctx(at, rngFor(seed, 'fire', cell.q, cell.r), ART_TUNING.fireScale), FIRE_RISE),
-        ),
+        drawn: drawFire(ctx(at, rngFor(seed, 'fire', cell.q, cell.r), ART_TUNING.fireScale)),
       });
     }
     if (cell.settlement && !underCreature) {
@@ -291,7 +281,7 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
       const sc = ctx(at, rngFor(seed, 'settlement', cell.q, cell.r), ART_TUNING.settlementScale);
       placed.push({
         at,
-        drawn: withFooting(sc, drawSettlement(taller(sc, SETTLEMENT_RISE), cell.settlement), 24),
+        drawn: withFooting(sc, drawSettlement(sc, cell.settlement), 24),
       });
     }
     if (cell.threat) {

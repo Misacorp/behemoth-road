@@ -5,7 +5,10 @@
  * `outcrop`, `deadfall`, `shrine`, `undertow`); an unknown
  * key draws a neutral cairn.
  */
-import { boxOf, ellipsePath, mapper, poly, smoothClosed, smoothOpen, type Point } from './geom.ts';
+import { boxOf, ellipsePath, poly, smoothClosed, smoothOpen, type Point } from './geom.ts';
+import { kit } from './feature-kit.ts';
+export { kit };
+import { TALL_DRAWERS } from './features-tall.ts';
 import { groundShadow, inkAttrs, type Drawn, type PropContext } from './props.ts';
 import { el, type SvgNode } from './svg.ts';
 
@@ -31,57 +34,7 @@ export const isTrap = (f: FeatureArt): boolean => f.trap === true || TRAP_LOOKS.
 /** Half-width of a feature's ground footing, in local units at the reference hex size. */
 export const FOOTING_RX = 16;
 
-/**
- * How much taller than the plain side view each look is drawn, so features rise above the tile's top edge
- * and the tile "pops" (tall rock faces, a cave mouth in a raised outcrop, tall trees, ore spires). Unknown
- * looks use `DEFAULT_FEATURE_RISE`.
- */
-export const FEATURE_RISE: Readonly<Record<string, number>> = {
-  ore: 2.3,
-  logs: 2.4,
-  tomb: 2.5,
-  'deep-tomb': 2.5,
-  outcrop: 3.6,
-  shrine: 2.3,
-  berries: 3.2,
-  stones: 2.6,
-  fieldstones: 2.5,
-  deadfall: 2.8,
-  snare: 1.4,
-  pitfall: 1.3,
-  undertow: 1.4,
-};
-export const DEFAULT_FEATURE_RISE = 1.6;
-
-/** The look's height stretch (settlements and fires have their own in `SETTLEMENT_RISE`, `FIRE_RISE`). */
-export const featureRise = (look: string): number =>
-  Object.hasOwn(FEATURE_RISE, look) ? FEATURE_RISE[look]! : DEFAULT_FEATURE_RISE;
-
-/** Settlements and fires stand taller than before: stilt huts, a hill-folk gate, a taller flame. */
-export const SETTLEMENT_RISE = 1.6;
-export const FIRE_RISE = 1.5;
-
 export type FeatureDraw = (c: PropContext, state: FeatureState) => Drawn;
-
-type Raw = readonly (readonly [number, number])[];
-
-export function kit(c: PropContext) {
-  const T = mapper(c.origin, c.k, 1, c.k * c.rise);
-  const pts = (raw: Raw): Point[] => raw.map(([x, y]) => T(x, y));
-  const fill = (d: string, colour: string, opacity = 1): SvgNode =>
-    el('path', opacity === 1 ? { d, fill: colour } : { d, fill: colour, opacity });
-  const line = (d: string, scale = 1, colour = c.palette.ink): SvgNode =>
-    el('path', { d, ...inkAttrs(colour, c.ink * scale) });
-  const blob = (cx: number, cy: number, rx: number, ry: number): Point[] =>
-    pts(
-      Array.from({ length: 8 }, (_, i) => {
-        const a = (Math.PI * 2 * i) / 8;
-        const f = 1 + (i % 2 ? -0.06 : 0.05);
-        return [cx + Math.cos(a) * rx * f, cy + Math.sin(a) * ry * f] as const;
-      }),
-    );
-  return { T, pts, fill, line, blob };
-}
 
 /** Iron: a rocky outcrop with rust-red veins; depleted, chipped hollow and scattered chips. */
 const ironDeposit: FeatureDraw = (c, state) => {
@@ -1027,7 +980,7 @@ function xy(p: Point): [number, number] {
 }
 
 /** Feature drawers by look id. */
-export const FEATURE_DRAWERS: Readonly<Record<string, FeatureDraw>> = {
+const LOW_DRAWERS: Readonly<Record<string, FeatureDraw>> = {
   ore: ironDeposit,
   stones: riverStones,
   logs: timberStand,
@@ -1041,6 +994,12 @@ export const FEATURE_DRAWERS: Readonly<Record<string, FeatureDraw>> = {
   deadfall,
   shrine,
   undertow,
+};
+
+/** Feature drawers by look id: the tall looks over the low ones (traps and the cairn). */
+export const FEATURE_DRAWERS: Readonly<Record<string, FeatureDraw>> = {
+  ...LOW_DRAWERS,
+  ...TALL_DRAWERS,
 };
 
 export function featureDrawer(look: string): FeatureDraw {

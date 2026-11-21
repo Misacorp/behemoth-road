@@ -96,10 +96,6 @@ export { drawVeilLift, type ArtCell, type CellState } from './tile.ts';
 export {
   FEATURE_DRAWERS,
   featureDrawer,
-  featureRise,
-  FEATURE_RISE,
-  FIRE_RISE,
-  SETTLEMENT_RISE,
   isTrap,
   FOOTING_RX,
   TRAP_LOOKS,

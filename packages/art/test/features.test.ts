@@ -56,7 +56,7 @@ describe('features', () => {
     const withFeature = toSvgString(
       renderScene({
         ...base,
-        cells: [{ q: 0, r: 0, terrain: 'forest', feature: { look: 'logs' } }],
+        cells: [{ q: 0, r: 0, terrain: 'forest', feature: { look: 'ore' } }],
       }),
     );
     // Forest props draw foliage; a feature tile draws none of it.
