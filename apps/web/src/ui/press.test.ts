@@ -3,7 +3,9 @@ import { holdMs } from '../text/tips.ts';
 import {
   contextMenuDismisses,
   enteredHost,
+  idOf,
   isHeldClick,
+  keepsNativeMenu,
   isPlainIcon,
   leftHost,
   setTipExtra,
@@ -47,6 +49,9 @@ class Fake {
   ) {}
   hasAttribute(n: string): boolean {
     return n in this.attrs;
+  }
+  getAttribute(n: string): string | null {
+    return Object.hasOwn(this.attrs, n) ? this.attrs[n]! : null;
   }
   matches(sel: string): boolean {
     return sel.split(',').some((part) => {
@@ -110,5 +115,21 @@ describe('tip delegation', () => {
   it('a tip extra can be registered and removed', () => {
     const off = setTipExtra('hud:pack', () => 1);
     expect(() => off()).not.toThrow();
+  });
+  it('only ids in the tips table count', () => {
+    expect(idOf(el(icon))).toBe('role:scout');
+    expect(idOf(el(new Fake('span', { 'data-tip': 'no:such-tip' })))).toBeNull();
+    expect(idOf(el(new Fake('span', { 'data-tip': 'constructor' })))).toBeNull();
+    expect(idOf(el(outside))).toBeNull();
+    expect(idOf(null)).toBeNull();
+  });
+  it("a long press in a text field keeps the phone's own menu; elsewhere it is dropped", () => {
+    const input = new Fake('input');
+    expect(keepsNativeMenu(input)).toBe(true);
+    expect(keepsNativeMenu(new Fake('span', {}, new Fake('div', { contenteditable: '' })))).toBe(
+      true,
+    );
+    expect(keepsNativeMenu(inner)).toBe(false);
+    expect(keepsNativeMenu(null)).toBe(false);
   });
 });

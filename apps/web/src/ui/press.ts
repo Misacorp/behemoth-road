@@ -12,7 +12,7 @@
  * A touch or pen long press fires `contextmenu` and may end in a click; neither may close or act on
  * anything. A mouse right-click closes the tip and is announced to `onRightClick` subscribers.
  */
-import { holdMs, type TipId } from '../text/tips.ts';
+import { holdMs, TIP_TABLE, type TipId } from '../text/tips.ts';
 import { TipController, type TipTarget } from './tip.ts';
 
 /** The app's one tip controller. */
@@ -122,8 +122,18 @@ export function onRightClick(fn: (e: MouseEvent) => void): () => void {
   return () => rightClicks.delete(fn);
 }
 
-const idOf = (host: Element | null): TipId | null =>
-  (host?.getAttribute('data-tip') ?? null) as TipId | null;
+/** The tip id an element names, only if the tips table has it. */
+export const idOf = (host: Element | null): TipId | null => {
+  const id = host?.getAttribute('data-tip') ?? null;
+  return id !== null && Object.hasOwn(TIP_TABLE, id) ? (id as TipId) : null;
+};
+
+/** Where the phone's own long-press menu is still wanted: text the player types or selects. */
+const EDITABLE = 'input, textarea, select, [contenteditable]';
+export const keepsNativeMenu = (target: unknown): boolean => {
+  const el = target as Element | null | undefined;
+  return typeof el?.closest === 'function' && el.closest(EDITABLE) !== null;
+};
 
 /** The one set of document listeners for tips and presses. Idempotent. */
 export function watchPress(): void {
@@ -218,8 +228,8 @@ export function watchPress(): void {
     'contextmenu',
     (e) => {
       if (!contextMenuDismisses(lastPress.type)) {
-        // A touch or pen long press: no menu, and nothing hears it.
-        e.preventDefault();
+        // A touch or pen long press: no menu (except in a text field, for paste), and nothing hears it.
+        if (!keepsNativeMenu(e.target)) e.preventDefault();
         e.stopImmediatePropagation();
         return;
       }
