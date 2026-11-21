@@ -447,13 +447,13 @@
       "0,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "0,-3": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "0,-2": {
@@ -603,7 +603,7 @@
       "2,-3": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "2,-2": {
@@ -663,7 +663,7 @@
       "3,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "3,-3": {
@@ -995,7 +995,7 @@
         "at": {
           "kind": "hex",
           "hex": {
-            "q": 0,
+            "q": 3,
             "r": -4
           }
         },
@@ -1015,12 +1015,12 @@
     "threats": [
       {
         "id": "t2",
-        "type": "rockslide",
+        "type": "swarm",
         "hex": {
-          "q": 0,
-          "r": -6
+          "q": 6,
+          "r": -7
         },
-        "strength": 4,
+        "strength": 3,
         "appearedDay": 2
       }
     ],

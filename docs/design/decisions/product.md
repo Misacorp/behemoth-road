@@ -4,9 +4,17 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-21: Content version 9 balance: stampede strength 1, ambush and stampede weights halved
+
+ID: `2026-11-21-content-version-9-balance-stampede-strength` · Status: current · Amends: `2026-11-21-more-content-for-playtests-ambush-stampede`
+
+**Decision.** Stampede strength is 1 (was 2) and the ambush and stampede weights are 0.5 (rolled types now pick among those with a fitting hex, so the two appear less often than the older three at weight 1). Careful full seasons over 200 seeds, safe / wounded / lost (3 players; 6 players): baseline before content 71/15/14; 73/11/17. With the new types at strength 2 and weight 1, picking among fitting types: 72/8/21; 68/13/19. Stampede strength 1 only: 74/9/18; 71/13/17. Weights halved only: 69/13/19; 69/14/18. Both (chosen): 73/10/17; 71/12/18. Careless parties still lose every full season. No try landed within 2 points of the 3-player baseline's 14 % lost; the rest is probably slower sand.
+
+**Reasoning.** Chosen as the closest of the three tries in the order asked, using only content data.
+
 ## 2026-11-21: More content for playtests: ambush, stampede, river folk, sunken shrine, undertow, sand sledge
 
-ID: `2026-11-21-more-content-for-playtests-ambush-stampede` · Status: current
+ID: `2026-11-21-more-content-for-playtests-ambush-stampede` · Status: current, amended by `2026-11-21-content-version-9-balance-stampede-strength`
 
 **Decision.** Content version 9 adds variety to existing systems, with no new role or rule. Threats: the ambush (flank, speed 1, strength 2, appears only on `wooded` ground) and the stampede (behind, speed 2, strength 2, only on `open` ground), through a new optional `on` terrain-tag condition on a threat type. Peoples: river folk (stilt huts, favour 2 instead of 3, boons gift and mislead but no shelter, a gift of forage and stone), through an optional `near` terrain-tag condition on a people; a settlement is placed with a people whose condition fits a leading-edge spot. Sites: the sunken shrine, a tier-1 site on rivers finding the river pearl (a `trade` material: an offering like the old coin). Traps: the undertow on rivers. Unlocks: the sand sledge (2 timber, 1 iron, 4 work) makes sand cost 1 action a step; sand now costs 2 without it (desert `extraMoveCost` 1), and an unlock's `movement` now also applies to passable terrain when it is cheaper than walking. No new node: no new choice would feed anything. Rolled-threat frequency is unchanged; the stampede was 3 strength at first and lowered to 2 because careful parties lost 19 % of full seasons instead of 14 %.
 

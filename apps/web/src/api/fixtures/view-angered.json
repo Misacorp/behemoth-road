@@ -1,5 +1,5 @@
 {
-  "version": 16,
+  "version": 19,
   "day": 6,
   "you": {
     "userId": "666666666666666666",
@@ -423,25 +423,25 @@
       "0,-6": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "0,-5": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "0,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "0,-3": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "0,-2": {
@@ -585,7 +585,7 @@
       "2,-3": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "2,-2": {
@@ -642,7 +642,7 @@
       "3,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "3,-3": {
@@ -654,7 +654,7 @@
       "3,-2": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "3,-1": {
@@ -693,19 +693,19 @@
       "4,-5": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "4,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "4,-3": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "4,-2": {
@@ -750,7 +750,7 @@
       "5,-4": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "5,-3": {
@@ -1161,11 +1161,11 @@
         "at": {
           "kind": "hex",
           "hex": {
-            "q": 0,
-            "r": -6
+            "q": 3,
+            "r": -2
           }
         },
-        "actionsLeft": 1,
+        "actionsLeft": 0,
         "pack": {},
         "status": "active",
         "struckDay": 6
@@ -1214,6 +1214,16 @@
         "type": "berry-bushes",
         "revealed": true,
         "left": 3
+      },
+      "4,-3": {
+        "type": "timber-stand",
+        "revealed": true,
+        "left": 3
+      },
+      "5,-4": {
+        "type": "timber-stand",
+        "revealed": true,
+        "left": 3
       }
     },
     "stores": {},
@@ -1222,14 +1232,14 @@
     "stimuli": [],
     "threats": [
       {
-        "id": "t2",
-        "type": "rockslide",
+        "id": "t3",
+        "type": "ambush",
         "hex": {
-          "q": 0,
-          "r": -6
+          "q": 4,
+          "r": -3
         },
-        "strength": 4,
-        "appearedDay": 2
+        "strength": 3,
+        "appearedDay": 3
       },
       {
         "id": "t4",
@@ -1242,14 +1252,14 @@
         "appearedDay": 4
       },
       {
-        "id": "t6",
+        "id": "t5",
         "type": "swarm",
         "hex": {
-          "q": -6,
-          "r": -3
+          "q": 3,
+          "r": -6
         },
         "strength": 3,
-        "appearedDay": 6
+        "appearedDay": 5
       },
       {
         "id": "ts4",
@@ -1275,7 +1285,7 @@
         "boon": null
       }
     ],
-    "peril": 3,
+    "peril": 1,
     "season": {
       "status": "on"
     },
@@ -1320,7 +1330,7 @@
     {
       "kind": "angered",
       "id": "s4",
-      "version": 16
+      "version": 19
     },
     {
       "kind": "threat-appears",
@@ -1330,7 +1340,7 @@
         "q": -1,
         "r": -7
       },
-      "version": 16
+      "version": 19
     }
   ],
   "stopped": null

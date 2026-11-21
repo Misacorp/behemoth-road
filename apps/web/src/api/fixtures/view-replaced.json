@@ -1002,12 +1002,12 @@
     "threats": [
       {
         "id": "t2",
-        "type": "rockslide",
+        "type": "swarm",
         "hex": {
-          "q": 0,
-          "r": -6
+          "q": 6,
+          "r": -7
         },
-        "strength": 3,
+        "strength": 2,
         "appearedDay": 2
       }
     ],

@@ -1,5 +1,5 @@
 {
-  "version": 33,
+  "version": 34,
   "day": 6,
   "you": {
     "userId": "222222222222222222",
@@ -423,25 +423,25 @@
       "0,-6": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "0,-5": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "0,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "0,-3": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "0,-2": {
@@ -453,7 +453,7 @@
       "0,-1": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "0,0": {
@@ -498,13 +498,13 @@
       "1,-6": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "1,-5": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "1,-4": {
@@ -585,7 +585,7 @@
       "2,-3": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "2,-2": {
@@ -642,7 +642,7 @@
       "3,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "3,-3": {
@@ -660,7 +660,7 @@
       "3,-1": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "3,0": {
@@ -693,7 +693,7 @@
       "4,-5": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "4,-4": {
@@ -711,7 +711,7 @@
       "4,-2": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "4,-1": {
@@ -744,7 +744,7 @@
       "5,-5": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "5,-4": {
@@ -756,7 +756,7 @@
       "5,-3": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "5,-2": {
@@ -789,13 +789,13 @@
       "6,-5": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "6,-4": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "6,-3": {
@@ -1199,11 +1199,11 @@
         "at": {
           "kind": "hex",
           "hex": {
-            "q": 0,
+            "q": 3,
             "r": -1
           }
         },
-        "actionsLeft": 0,
+        "actionsLeft": 1,
         "pack": {},
         "status": "active",
         "struckDay": null
@@ -1225,13 +1225,23 @@
     "stimuli": [],
     "threats": [
       {
+        "id": "t3",
+        "type": "ambush",
+        "hex": {
+          "q": 4,
+          "r": -3
+        },
+        "strength": 1,
+        "appearedDay": 3
+      },
+      {
         "id": "t4",
         "type": "captors",
         "hex": {
           "q": 0,
           "r": 0
         },
-        "strength": 2,
+        "strength": 4,
         "appearedDay": 4
       },
       {
@@ -1243,16 +1253,6 @@
         },
         "strength": 3,
         "appearedDay": 5
-      },
-      {
-        "id": "t6",
-        "type": "swarm",
-        "hex": {
-          "q": -6,
-          "r": -3
-        },
-        "strength": 3,
-        "appearedDay": 6
       }
     ],
     "settlements": [
@@ -1268,7 +1268,7 @@
         "boon": "gift"
       }
     ],
-    "peril": 1,
+    "peril": 0,
     "season": {
       "status": "on"
     },
@@ -1319,7 +1319,7 @@
       "id": "s4",
       "characterId": "222222222222222222.0",
       "boon": "gift",
-      "version": 33
+      "version": 34
     }
   ],
   "stopped": null

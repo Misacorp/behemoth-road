@@ -435,19 +435,19 @@
       "0,-5": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "0,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "0,-3": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "0,-2": {
@@ -595,7 +595,7 @@
       "2,-3": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "2,-2": {
@@ -654,7 +654,7 @@
       "3,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "3,-3": {
@@ -707,7 +707,7 @@
       "4,-5": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "4,-4": {
@@ -1026,7 +1026,7 @@
         "at": {
           "kind": "hex",
           "hex": {
-            "q": 0,
+            "q": 4,
             "r": -5
           }
         },
@@ -1078,20 +1078,20 @@
     "threats": [
       {
         "id": "t2",
-        "type": "rockslide",
+        "type": "swarm",
         "hex": {
-          "q": 0,
-          "r": -6
+          "q": 4,
+          "r": -5
         },
-        "strength": 4,
+        "strength": 3,
         "appearedDay": 2
       },
       {
         "id": "t3",
-        "type": "stampede",
+        "type": "ambush",
         "hex": {
-          "q": 1,
-          "r": 4
+          "q": 7,
+          "r": -6
         },
         "strength": 3,
         "appearedDay": 3
@@ -1153,6 +1153,19 @@
       "version": 8
     },
     {
+      "kind": "threat-moves",
+      "id": "t2",
+      "from": {
+        "q": 6,
+        "r": -7
+      },
+      "to": {
+        "q": 4,
+        "r": -5
+      },
+      "version": 8
+    },
+    {
       "kind": "struck",
       "characterId": "222222222222222222.0",
       "threat": "t2",
@@ -1161,10 +1174,10 @@
     {
       "kind": "threat-appears",
       "id": "t3",
-      "type": "stampede",
+      "type": "ambush",
       "hex": {
-        "q": 1,
-        "r": 4
+        "q": 7,
+        "r": -6
       },
       "version": 8
     },

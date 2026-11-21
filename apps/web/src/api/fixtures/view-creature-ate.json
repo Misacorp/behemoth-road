@@ -981,20 +981,20 @@
     "threats": [
       {
         "id": "t2",
-        "type": "rockslide",
+        "type": "swarm",
         "hex": {
-          "q": 0,
-          "r": -5
+          "q": 4,
+          "r": -4
         },
-        "strength": 3,
+        "strength": 2,
         "appearedDay": 2
       },
       {
         "id": "t3",
-        "type": "stampede",
+        "type": "ambush",
         "hex": {
-          "q": 1,
-          "r": 5
+          "q": 7,
+          "r": -6
         },
         "strength": 2,
         "appearedDay": 3
@@ -1047,6 +1047,19 @@
       "version": 13
     },
     {
+      "kind": "threat-moves",
+      "id": "t2",
+      "from": {
+        "q": 6,
+        "r": -6
+      },
+      "to": {
+        "q": 4,
+        "r": -4
+      },
+      "version": 13
+    },
+    {
       "kind": "peril",
       "from": 1,
       "to": 0,
@@ -1055,10 +1068,10 @@
     {
       "kind": "threat-appears",
       "id": "t3",
-      "type": "stampede",
+      "type": "ambush",
       "hex": {
-        "q": 1,
-        "r": 5
+        "q": 7,
+        "r": -6
       },
       "version": 13
     },

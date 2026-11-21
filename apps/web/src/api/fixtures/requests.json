@@ -139,7 +139,7 @@
     "method": "POST",
     "path": "/api/game/act",
     "body": {
-      "version": 25,
+      "version": 27,
       "action": {
         "kind": "offer",
         "material": "old-coin"
@@ -150,7 +150,7 @@
     "method": "POST",
     "path": "/api/game/act",
     "body": {
-      "version": 31,
+      "version": 32,
       "action": {
         "kind": "parley"
       }
@@ -160,7 +160,7 @@
     "method": "POST",
     "path": "/api/game/act",
     "body": {
-      "version": 32,
+      "version": 33,
       "action": {
         "kind": "ask-boon",
         "boon": "gift"
@@ -171,7 +171,7 @@
     "method": "POST",
     "path": "/api/game/act",
     "body": {
-      "version": 13,
+      "version": 15,
       "action": {
         "kind": "parley"
       }
@@ -181,7 +181,7 @@
     "method": "POST",
     "path": "/api/game/act",
     "body": {
-      "version": 15,
+      "version": 18,
       "action": {
         "kind": "parley"
       }

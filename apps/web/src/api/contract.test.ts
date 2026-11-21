@@ -143,14 +143,8 @@ describe('captured contract fixtures', () => {
     expect(moments('view-befriended')).toEqual(['befriended']);
     expect(moments('view-boon')).toEqual(['boon']);
     expect(moments('view-angered')).toEqual(['angered', 'threat']);
-    expect(moments('view-peril-since')).toEqual(['step', 'strike', 'threat']);
-    expect(moments('view-season-lost')).toEqual([
-      'step',
-      'strike',
-      'strike',
-      'strike',
-      'season-over',
-    ]);
+    expect(moments('view-peril-since')).toEqual(['step', 'strike', 'strike', 'threat']);
+    expect(moments('view-season-lost')).toEqual(['step', 'strike', 'struck', 'season-over']);
     expect(moments('view-season-safe')).toEqual(['step', 'season-over']);
     expect(moments('view-struck-since')).toEqual(['step', 'struck', 'threat']);
   });

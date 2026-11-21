@@ -1,5 +1,5 @@
 {
-  "version": 18,
+  "version": 22,
   "day": 8,
   "you": {
     "userId": "555555555555555555",
@@ -417,25 +417,25 @@
       "0,-6": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "0,-5": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "0,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "0,-3": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "0,-2": {
@@ -567,7 +567,7 @@
       "2,-3": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "2,-2": {
@@ -618,19 +618,19 @@
       "3,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "3,-3": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "3,-2": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "3,-1": {
@@ -663,19 +663,19 @@
       "4,-5": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "4,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "4,-3": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "4,-2": {
@@ -714,7 +714,7 @@
       "5,-4": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "5,-3": {
@@ -1226,14 +1226,14 @@
         "at": {
           "kind": "hex",
           "hex": {
-            "q": 0,
-            "r": -6
+            "q": 3,
+            "r": -3
           }
         },
-        "actionsLeft": 3,
+        "actionsLeft": 1,
         "pack": {},
         "status": "active",
-        "struckDay": 7
+        "struckDay": 8
       },
       {
         "id": "555555555555555555.0",
@@ -1279,13 +1279,44 @@
         "type": "berry-bushes",
         "revealed": true,
         "left": 3
+      },
+      "4,-3": {
+        "type": "timber-stand",
+        "revealed": true,
+        "left": 3
+      },
+      "5,-4": {
+        "type": "timber-stand",
+        "revealed": true,
+        "left": 3
       }
     },
     "stores": {},
     "unlocks": [],
     "project": null,
     "stimuli": [],
-    "threats": [],
+    "threats": [
+      {
+        "id": "t3",
+        "type": "ambush",
+        "hex": {
+          "q": 3,
+          "r": -4
+        },
+        "strength": 3,
+        "appearedDay": 3
+      },
+      {
+        "id": "t7",
+        "type": "stampede",
+        "hex": {
+          "q": -1,
+          "r": 1
+        },
+        "strength": 2,
+        "appearedDay": 7
+      }
+    ],
     "settlements": [
       {
         "id": "s4",
@@ -1357,54 +1388,61 @@
         "q": -1,
         "r": -4
       },
-      "version": 18
+      "version": 22
     },
     {
       "kind": "threat-moves",
-      "id": "t6",
+      "id": "t3",
       "from": {
-        "q": -4,
+        "q": 3,
         "r": -3
       },
       "to": {
-        "q": -3,
+        "q": 3,
         "r": -4
       },
-      "version": 18
+      "version": 22
     },
     {
-      "kind": "threat-strikes",
-      "id": "t2",
-      "damage": 4,
-      "version": 18
-    },
-    {
-      "kind": "threat-strikes",
-      "id": "t6",
-      "damage": 3,
-      "version": 18
+      "kind": "threat-moves",
+      "id": "t7",
+      "from": {
+        "q": -1,
+        "r": 3
+      },
+      "to": {
+        "q": -1,
+        "r": 1
+      },
+      "version": 22
     },
     {
       "kind": "threat-strikes",
       "id": "ts4",
       "damage": 3,
-      "version": 18
+      "version": 22
+    },
+    {
+      "kind": "struck",
+      "characterId": "222222222222222222.0",
+      "threat": "t3",
+      "version": 22
     },
     {
       "kind": "peril",
-      "from": 7,
+      "from": 8,
       "to": 10,
-      "version": 18
+      "version": 22
     },
     {
       "kind": "season-over",
       "outcome": "lost",
-      "version": 18
+      "version": 22
     },
     {
       "kind": "day",
       "day": 8,
-      "version": 18
+      "version": 22
     }
   ],
   "eventsTruncated": false
