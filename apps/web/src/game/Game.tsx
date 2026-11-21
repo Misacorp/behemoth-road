@@ -310,6 +310,7 @@ export function Game({ api, initial }: GameProps): JSX.Element {
       ...(a.kind === 'offer' ? { icon: 'offer', uses: a.uses ?? null } : {}),
       ...(a.kind.startsWith('boon:') ? { icon: a.kind.slice(5) } : {}),
       ...(a.risk ? { risk: true } : {}),
+      ...(a.why ? { why: a.why } : {}),
     }));
     const actions = [
       ...(feature ? actionsAt(state, me.id) : []),

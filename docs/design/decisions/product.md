@@ -36,6 +36,22 @@ ID: `2026-11-21-the-slow-terrain-is-a-swamp` · Status: current · Amends: `2026
 
 **Reasoning.** Misa asked for it: a wet, boggy slowdown fits the world better than slow sand and keeps the desert as plain open ground. Swamp is rarer than sand was, so fewer paths are slowed and careful parties lose about 3 points fewer seasons; no tuning back was needed.
 
+## 2026-11-21: Misa: the defended creature reads as shields against a threat's strength **[Misa]**
+
+ID: `2026-11-21-misa-the-defended-creature-reads-as` · Status: current
+
+**Decision.** The defended creature shows as shields. The hub's creature card shows one shield per guardian riding who defended today; a threat's card draws shields over the first strength marks (one per point the defence takes off, the marks faded), so the reduction reads against the threat's strength. A tap or hold on a shield mark, and on the defend action, shows a hinting tip. Nothing shows while undefended. The numbers are the core's own (`defence`).
+
+**Reasoning.** Misa did not know how defending worked. Shields set against the threat's marks show the effect with no words, in the cards players already open. The map mark on the creature is the art kit's.
+
+## 2026-11-21: Misa: a greyed action says why when tapped **[Misa]**
+
+ID: `2026-11-21-misa-a-greyed-action-says-why` · Status: current
+
+**Decision.** An action that cannot be taken shows greyed with the emblem of the role that could. A tap on it shows a one-line tip saying why (which role can, not enough actions, pack full, needs an unlock, wrong place, already done today and so on) and never acts; a hold or hover shows the same. It is one rule in the press layer (`greyedProps`: the reason as the button's tip, with `data-tip-tap`), used by the here, inspect, threat and settlement cards and the hub rows. The reason is the core's refusal, mapped to a tip in one place (`game/why.ts`); the texts are `why:*` in `tips.ts`.
+
+**Reasoning.** Misa asked that a greyed action explain itself, but only as a hint. Taking the reason from the same check that greys the action keeps one copy of the rules, and a greyed button that only shows its tip cannot act by accident.
+
 ## 2026-11-21: Fast rounds pace: staging only, all active characters spent, 6 s delay, 4 s day banner
 
 ID: `2026-11-21-fast-rounds-pace-staging-only-all` · Status: current

@@ -39,6 +39,7 @@ describe('lighting a fire where you stand', () => {
       enabled: false,
       uses: 'timber',
       short: true,
+      why: 'why:no-fuel',
     });
     expect(fireAction(view, me, false)).toBeNull();
   });
@@ -56,7 +57,14 @@ describe('caring for the creature in the hub', () => {
     const scout = staged({ role: 'scout', at: 'creature', stores: { forage: 2 } });
     expect(careOptions(scout.view, scout.me)).toEqual([
       { kind: 'feed', cost: 1, enabled: true, uses: 'forage' },
-      { kind: 'linger', cost: 2, enabled: false, uses: null, needs: 'keeper' },
+      {
+        kind: 'linger',
+        cost: 2,
+        enabled: false,
+        uses: null,
+        needs: 'keeper',
+        why: 'why:role-keeper',
+      },
     ]);
     const keeper = staged({ role: 'keeper', at: 'creature', stores: { forage: 2 } });
     expect(careOptions(keeper.view, keeper.me).map((a) => [a.kind, a.enabled])).toEqual([
