@@ -16,7 +16,30 @@ export interface FeatureArt {
   /** A look id (`FEATURE_DRAWERS`); unknown ids draw the neutral cairn. */
   readonly look: string;
   readonly state?: FeatureState;
+  /**
+   * The content says this feature is a trap: it gets the shared danger cue (a coral band, jagged teeth and a
+   * warning pennant on its plinth; muted once `spent`). The look ids in `TRAP_LOOKS` count as traps too.
+   */
+  readonly trap?: boolean;
 }
+
+/** Looks that are traps, for callers that only know the look. */
+export const TRAP_LOOKS: ReadonlySet<string> = new Set(['snare', 'pitfall', 'undertow']);
+
+export const isTrap = (f: FeatureArt): boolean => f.trap === true || TRAP_LOOKS.has(f.look);
+
+/** Half-width of a feature's plinth, in local units at the reference hex size. */
+export const PLINTH_RX = 16;
+
+/**
+ * Looks with a cave door at their base: their plinth sits behind the door (its front edge level with the
+ * door's foot) instead of lying in front of it like a door mat.
+ */
+const DOORED: ReadonlySet<string> = new Set(['tomb', 'deep-tomb']);
+
+/** How far the plinth moves down the screen for a look, in local units (negative: back). */
+export const featurePlinthDy = (look: string, rx: number): number =>
+  DOORED.has(look) ? -0.36 * rx : 0;
 
 export type FeatureDraw = (c: PropContext, state: FeatureState) => Drawn;
 

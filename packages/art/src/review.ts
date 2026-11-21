@@ -20,6 +20,7 @@ import type { PropDraw } from './props.ts';
 import { TERRAIN_LOOKS } from './terrain.ts';
 import type { ArtCell } from './tile.ts';
 import { seasonReviewItems } from './review-season.ts';
+import { round2ReviewItems } from './review-round2.ts';
 import { varietyReviewItems } from './review-variety.ts';
 
 export interface ReviewDraft {
@@ -690,6 +691,7 @@ export function buildReviewItems(): ReviewDraft[] {
     ...feedbackReviewItems(),
     ...seasonReviewItems(),
     ...varietyReviewItems(),
+    ...round2ReviewItems(),
     {
       id: 'creature/underfed',
       group: 'Creature care',

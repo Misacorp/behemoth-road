@@ -16,36 +16,142 @@ const P = (x: number, y: number): Point => ({ x, y });
 const pxOr = (size: number, fallback: number): number =>
   Number.isFinite(size) && size > 0 ? size : fallback;
 
+/** What a plinth says about the feature on it: a find (`calm`) or a trap (`danger`, `harmless` once defused). */
+export type PlinthTone = 'calm' | 'danger' | 'harmless';
+
+export interface PlinthOptions {
+  /** Moves the disc this far down the screen, in local units (negative: back), so a cave door is not covered. */
+  readonly dy?: number;
+  /** Default `calm`. */
+  readonly tone?: PlinthTone;
+}
+
+/** How far a plinth's top stands above the tile, in local units: features stand on it, rising above the tile. */
+export const PLINTH_LIFT = 5;
+
+/** How far the plinth's top stands above the ground at this context, in screen px. */
+export function plinthLift(c: PropContext): number {
+  return PLINTH_LIFT * c.k * (c.squash / 0.6);
+}
+
+const f1 = (n: number): string => String(Math.round(n * 10) / 10);
+
 /**
- * The plinth under a feature (a node, site, trap or settlement): a raised disc of light, trodden ground with
- * a warm inner band, an ink rim and a dark lip at the front, squashed with the plane. Decorative props never get one, so at phone zoom a feature reads
- * as "something here" and a pebble does not. `rx` is in local units at the reference hex size.
+ * The plinth under a feature (a node, site, trap or settlement): a sandstone block that rises from the tile
+ * (a lit top disc with a warm inner band, an ink rim, and a shaded wall and lip below), squashed with the
+ * plane. Decorative props never get one, so at phone zoom a feature reads as "something here" and a pebble
+ * does not. Everything stands on the top, which sits `plinthLift` above the ground: the caller lifts the
+ * feature by the same amount. A trap's plinth carries the shared danger cue: a coral band and a ring of
+ * jagged teeth (with `drawDangerFlag`); defused (`harmless`) the teeth lie flat and grey. `rx` is in local
+ * units at the reference hex size.
  */
-export function featurePlinth(c: PropContext, rx = 20): Drawn {
-  const ry = rx * 0.36 * (c.squash / 0.6);
+export function featurePlinth(c: PropContext, rx = 20, options: PlinthOptions = {}): Drawn {
+  const tone = options.tone ?? 'calm';
+  const sq = c.squash / 0.6;
+  const ry = rx * 0.36 * sq;
+  const lift = plinthLift(c);
   const x = c.origin.x;
-  const y = c.origin.y + 0.5 * c.k;
-  const d = ellipsePath(x, y, rx * c.k, ry * c.k);
-  // A lip of darker ground under the front edge, so the disc reads as raised.
-  const lip = 1.8 * c.k * (c.squash / 0.6);
+  const base = c.origin.y + 0.5 * c.k + (options.dy ?? 0) * c.k * sq;
+  const y = base - lift;
+  const lip = 1.8 * c.k * sq;
+  const wall = lift + lip;
   const pal = c.palette;
+  const w = rx * c.k;
+  const h = ry * c.k;
+  const d = ellipsePath(x, y, w, h);
+  const nodes: SvgNode[] = [];
+  const all: Point[] = [P(x - w, y - h), P(x + w, base + h + lip)];
+  if (tone !== 'calm') {
+    // The danger ring: jagged teeth around the block, on the ground.
+    const n = 14;
+    const teeth: Point[] = [];
+    for (let i = 0; i < n * 2; i += 1) {
+      const a = (Math.PI * i) / n;
+      const f = i % 2 === 0 ? 1.12 : tone === 'danger' ? 1.62 : 1.2;
+      teeth.push(P(x + Math.cos(a) * w * f, base + Math.sin(a) * h * f));
+    }
+    const ring = poly(teeth);
+    all.push(P(x - w * 1.62, base - h * 1.62), P(x + w * 1.62, base + h * 1.62));
+    const danger = tone === 'danger';
+    nodes.push(
+      el('path', {
+        d: ring,
+        fill: danger ? pal.accents.coral.base : pal.ramps.neutral.shade,
+        opacity: danger ? 0.95 : 0.6,
+        'data-plinth': 'teeth',
+      }),
+      el('path', {
+        d: ring,
+        ...stroke(danger ? pal.accents.coral.shade : pal.inkSoft, c.ink * 0.9),
+      }),
+    );
+  }
+  const band =
+    tone === 'danger'
+      ? pal.accents.coral.base
+      : tone === 'harmless'
+        ? pal.inkSoft
+        : pal.accents.ochre.light;
+  nodes.push(
+    el('path', {
+      d: ellipsePath(x, base + lip, w, h),
+      fill: pal.ramps.earth.shade,
+      opacity: 0.8,
+      'data-plinth': 'lip',
+    }),
+    // The wall: the strip between the top disc and the foot, in sandstone shade.
+    el('path', {
+      d: `M${f1(x - w)} ${f1(y)}V${f1(y + wall)}H${f1(x + w)}V${f1(y)}Z`,
+      fill: pal.ramps.sand.shade,
+      'data-plinth': 'wall',
+    }),
+    el('path', {
+      d: `M${f1(x - w)} ${f1(y)}V${f1(y + wall)}M${f1(x + w)} ${f1(y)}V${f1(y + wall)}`,
+      ...stroke(pal.ink, c.ink * 0.9, { opacity: 0.7 }),
+    }),
+    el('path', { d, fill: pal.paper, 'data-plinth': 'disc' }),
+    el('path', {
+      d: ellipsePath(x, y, w * 0.8, h * 0.8),
+      ...stroke(
+        band,
+        c.ink * (tone === 'danger' ? 2.4 : 1.4),
+        tone === 'harmless' ? { 'stroke-dasharray': '2 2.4' } : {},
+      ),
+      'data-plinth': 'band',
+    }),
+    el('path', { d, ...stroke(pal.ink, c.ink * 1.1, { opacity: 0.85 }), 'data-plinth': 'rim' }),
+  );
+  return { nodes, box: boxOf(all) };
+}
+
+/**
+ * The warning pennant every live trap carries: a coral triangle with a bold ink bar and dot on a short
+ * post at the plinth's front right, so danger reads at phone zoom without any text. `c.origin` is the
+ * feature's base; `rx` is the plinth's half-width in local units.
+ */
+export function drawDangerFlag(c: PropContext, rx = 20): Drawn {
+  const pal = c.palette;
+  const T = (u: number, v: number): Point =>
+    P(c.origin.x + (rx * 0.66 + u) * c.k, c.origin.y - plinthLift(c) + (3 + v * c.rise) * c.k);
+  const post = [T(0, 2), T(0, -24)];
+  const tri = [T(-7, -22), T(7, -22), T(0, -34)];
+  const bar = [T(0, -27.6), T(0, -30.6)];
+  const dot = T(0, -24.6);
   return {
     nodes: [
+      el('path', { d: poly(post, false), ...stroke(pal.ramps.bark.shade, c.ink * 1.6) }),
       el('path', {
-        d: ellipsePath(x, y + lip, rx * c.k, ry * c.k),
-        fill: pal.ramps.earth.shade,
-        opacity: 0.55,
-        'data-plinth': 'lip',
+        d: poly(tri),
+        fill: pal.accents.coral.base,
+        stroke: pal.ink,
+        'stroke-width': c.ink * 1.2,
+        'stroke-linejoin': 'round',
+        'data-mark': 'danger',
       }),
-      el('path', { d, fill: pal.paper, opacity: 0.9, 'data-plinth': 'disc' }),
-      el('path', {
-        d: ellipsePath(x, y, rx * 0.8 * c.k, ry * 0.8 * c.k),
-        ...stroke(pal.accents.ochre.light, c.ink * 1.4),
-        'data-plinth': 'band',
-      }),
-      el('path', { d, ...stroke(pal.ink, c.ink * 1.1, { opacity: 0.8 }), 'data-plinth': 'rim' }),
+      el('path', { d: poly(bar, false), ...stroke(pal.ink, c.ink * 1.8) }),
+      el('path', { d: ellipsePath(dot.x, dot.y, 0.9 * c.k, 0.9 * c.k), fill: pal.ink }),
     ],
-    box: boxOf([P(x - rx * c.k, y - ry * c.k), P(x + rx * c.k, y + ry * c.k + lip)]),
+    box: boxOf([...post, ...tri]),
   };
 }
 
