@@ -201,6 +201,20 @@ describe('a new threat', () => {
     expect([...seen].sort()).toEqual(['ambush', 'captors', 'rockslide', 'stampede', 'swarm']);
   });
 
+  it('never loses a threat day to an ambush with no forest to hide in', () => {
+    // All plains, and the new edge hexes are walked into plains too: only open-ground types fit.
+    for (let seed = 1; seed <= 60; seed++) {
+      let state = fieldGame(['a'], { ...ROLL, threatChanceBase: 1, threatChanceMax: 1 }, seed);
+      for (const h of hexesInRange(state.creature.centre, state.config.windowRadius + 3)) {
+        state = withTerrain(state, h, 'plains');
+      }
+      const day = state.day + 1;
+      const rolled = nextDayWithEvents(state).state;
+      expect(rolled.threats.length, `seed ${seed} day ${day}`).toBeGreaterThan(0);
+      expect(rolled.threats[0]!.type).not.toBe('ambush');
+    }
+  });
+
   it('keeps a threat to the terrain its type names: an ambush in the forest, a stampede on open ground', () => {
     const forested = (state: GameState): GameState => {
       let s = state;
