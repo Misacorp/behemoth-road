@@ -117,6 +117,14 @@ export const MATERIAL_MOTIFS: Readonly<Record<string, IconMotif>> = {
       opacity: 0.85,
     }),
   ],
+  // River pearl: a pale round pearl in a half-open shell, a glint on its curve.
+  pearl: (pal) => [
+    solid(pal, 'M11 30c0-8 6-13 13-13s13 5 13 13c-4 4-9 5-13 5s-9-1-13-5z', pal.accents.rose.light),
+    ink(pal, 'M24 17v18M17 20l3 15M31 20l-3 15', 1.2, pal.accents.rose.shade),
+    solid(pal, ellipsePath(24, 26, 5.2, 5.2), pal.paper, 1.7),
+    ink(pal, 'M21.5 24.5c.8-1.2 2-1.7 3.2-1.5', 1.2, pal.ramps.water.light),
+    ink(pal, 'M35 12v4M33 14h4', 1.3, pal.hint),
+  ],
   alloy: (pal) => [
     solid(pal, 'M12 30l5-11h14l5 11-12 5z', pal.accents.teal.light),
     solid(pal, 'M17 19l7 5 7-5M24 24v11', pal.accents.teal.base, 1.6),
@@ -301,6 +309,15 @@ export const ITEM_MOTIFS: Readonly<Record<string, IconMotif>> = {
     solid(pal, 'M19 19h10l-1 12h-8z', pal.accents.ochre.base, 1.8),
     ink(pal, 'M24 19v12M20.5 25h7', 1.1, pal.ramps.bark.shade),
     solid(pal, 'M18 31h12v3H18z', pal.ramps.bark.base, 1.6),
+  ],
+  // Sand sledge: two curled runners under a plank, a tow rope trailing off.
+  sledge: (pal) => [
+    ink(pal, 'M10 34h24c4 0 5-4 2-6', 3.6),
+    ink(pal, 'M10 34h24c4 0 5-4 2-6', 1.6, pal.ramps.bark.light),
+    solid(pal, 'M14 28h18l-1 4H15z', pal.ramps.bark.base, 1.6),
+    ink(pal, 'M19 28v-4M27 28v-4', 1.6, pal.ramps.bark.shade),
+    ink(pal, 'M36 28c3-3 5-3 7-6', 1.3, pal.ramps.bark.base),
+    ink(pal, 'M9 38h8M22 38h6', 1.2, pal.ramps.sand.shade),
   ],
   spikes: (pal) => [
     solid(pal, 'M12 22h24l-2 5H14z', pal.ramps.stone.light),

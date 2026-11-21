@@ -22,6 +22,11 @@ export interface PeopleType {
   readonly gift: readonly { readonly material: string; readonly amount: number }[];
   /** The threat type (`THREAT_TYPES`) an angered settlement sends from its hex. */
   readonly angryThreat: string;
+  /**
+   * Where its settlements stand: on a hex whose terrain, or a neighbour's, has
+   * one of these tags (river folk by the water). Absent: anywhere fit.
+   */
+  readonly near?: readonly string[];
 }
 
 export const PEOPLE_TYPES: readonly PeopleType[] = [
@@ -37,5 +42,20 @@ export const PEOPLE_TYPES: readonly PeopleType[] = [
       { material: 'timber', amount: 1 },
     ],
     angryThreat: 'raiders',
+  },
+  {
+    id: 'river-folk',
+    name: 'River folk',
+    tags: ['people', 'fishers'],
+    icon: 'river-folk',
+    // Quicker to trust, but they keep no refuge: no shelter among their boons.
+    favourNeeded: 2,
+    boons: ['gift', 'mislead'],
+    gift: [
+      { material: 'forage', amount: 1 },
+      { material: 'stone', amount: 2 },
+    ],
+    angryThreat: 'raiders',
+    near: ['water'],
   },
 ];

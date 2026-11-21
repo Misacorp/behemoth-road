@@ -136,9 +136,10 @@ export const approachHexes = (state: GameStateView, type: ThreatType, side: -1 |
 };
 
 /** Whether a rolled threat may appear on a hex: known, not water, not on the creature, a settlement or a threat. */
-export const canAppearOn = (state: GameStateView, h: Hex): boolean => {
+export const canAppearOn = (state: GameStateView, h: Hex, type?: ThreatType): boolean => {
   const terrain = terrainOf(state, h);
   if (!terrain || isCreatureHex(state, h)) return false;
+  if (type?.on && !type.on.some((tag) => terrain.tags.includes(tag))) return false;
   if (terrain.tags.includes(WATER_TAG)) return false;
   if (state.settlements.some((s) => hexEquals(s.hex, h))) return false;
   return !state.threats.some((t) => hexEquals(t.hex, h));

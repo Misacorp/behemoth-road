@@ -41,7 +41,7 @@ describe('features', () => {
     }
     for (const look of ['ore', 'stones', 'logs', 'fieldstones', 'outcrop', 'deadfall'])
       expect(draw(look, 'depleted')).not.toBe(draw(look, 'ready'));
-    for (const look of ['tomb', 'deep-tomb'])
+    for (const look of ['tomb', 'deep-tomb', 'shrine'])
       expect(draw(look, 'spent')).not.toBe(draw(look, 'ready'));
   });
 
@@ -84,6 +84,9 @@ describe('marks', () => {
       toSvgString(drawViaMark('rope', SPRING, 24)),
     );
     expect(drawViaMark('rope', SPRING, 24).children).toHaveLength(1);
+    expect(toSvgString(drawViaMark('sand-sledge', SPRING, 24))).not.toBe(
+      toSvgString(drawViaMark('rope', SPRING, 24)),
+    );
   });
 });
 

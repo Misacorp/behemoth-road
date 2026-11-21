@@ -10,7 +10,7 @@
   },
   "offers": null,
   "game": {
-    "contentVersion": 8,
+    "contentVersion": 9,
     "artSeed": 4242,
     "day": 5,
     "config": {
@@ -693,7 +693,7 @@
       "4,-6": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "4,-5": {
@@ -751,7 +751,7 @@
       "5,-5": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "5,-4": {
@@ -763,7 +763,7 @@
       "5,-3": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "5,-2": {
@@ -797,13 +797,13 @@
       "6,-5": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": 5
       },
       "6,-4": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": 5
       },
       "6,-3": {
@@ -879,19 +879,19 @@
       "2,-7": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "3,-7": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "4,-7": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "5,-7": {
@@ -1166,11 +1166,11 @@
         "at": {
           "kind": "hex",
           "hex": {
-            "q": 2,
-            "r": -7
+            "q": 5,
+            "r": -3
           }
         },
-        "actionsLeft": 0,
+        "actionsLeft": 1,
         "pack": {},
         "status": "active",
         "struckDay": null
@@ -1192,12 +1192,12 @@
     "threats": [
       {
         "id": "t3",
-        "type": "rockslide",
+        "type": "ambush",
         "hex": {
-          "q": 1,
-          "r": -7
+          "q": 5,
+          "r": -4
         },
-        "strength": 2,
+        "strength": 1,
         "appearedDay": 3
       },
       {

@@ -14,8 +14,10 @@
  * 7: stone, iron and timber nodes on open ground (generation changed).
  * 8: threats are telegraphed: a wider window (radius 6), slower raiders, the
  *    rockslide further ahead.
+ * 9: more variety: ambush and stampede threats, river folk, the sunken shrine,
+ *    the undertow, the sand sledge (and slower sand).
  */
-export const CONTENT_VERSION = 8;
+export const CONTENT_VERSION = 9;
 
 /** Content versions this code can load. */
 export const KNOWN_CONTENT_VERSIONS: readonly number[] = [CONTENT_VERSION];

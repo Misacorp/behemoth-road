@@ -98,7 +98,7 @@ export const tips = {
 
   // Materials (in packs and the team stores).
   'material:iron': {
-    text: 'From iron deposits and outcrops. Builds the grappling hook and the spikes.',
+    text: 'From iron deposits and outcrops. Builds the grappling hook, the spikes and the sledge.',
   },
   'material:stone': { text: 'From river stones and fieldstones. Builds the lantern.' },
   'material:timber': {
@@ -108,6 +108,9 @@ export const tips = {
   'material:old-coin': {
     text: 'Found in small tombs. Offer it to a wary settlement for favour, without risk.',
   },
+  'material:river-pearl': {
+    text: 'Found in sunken shrines. Offer it to a wary settlement for favour, without risk.',
+  },
   'material:forage': { text: 'Food from berry bushes. Feed it to the creature from the stores.' },
 
   // Unlocks (built by engineers, for the whole team).
@@ -116,6 +119,7 @@ export const tips = {
   },
   'unlock:lantern': { text: 'Light for deep tombs, so a scholar can work them.' },
   'unlock:climbing-spikes': { text: 'Cliffs cost only {climbCost.climbing-spikes} action a step.' },
+  'unlock:sand-sledge': { text: 'Sand costs only {climbCost.sand-sledge} action a step.' },
 
   // Actions (buttons in the cards and the hub).
   'action:survey': {
@@ -147,11 +151,13 @@ export const tips = {
   'action:parley': {
     text: 'Win a wary settlement’s favour. An envoy gains {parleyFavour.envoy}; others gain {parleyFavour.other} and may anger it.',
   },
-  'action:offer': { text: 'Give an old coin to a wary settlement: {offerFavour} favour, no risk.' },
+  'action:offer': {
+    text: 'Give an old coin or a pearl to a wary settlement: {offerFavour} favour, no risk.',
+  },
   'action:ask-boon': { title: 'Ask a boon', text: 'A friendly settlement grants one boon.' },
 
   // Boons a friendly settlement can grant (one each).
-  'boon:gift': { title: 'Gift', text: 'Food and timber into the team stores.' },
+  'boon:gift': { title: 'Gift', text: 'Food and materials into the team stores.' },
   'boon:mislead': {
     title: 'Mislead',
     text: 'Captor bands lose the trail, and none follow for {misleadDays} days.',
@@ -161,7 +167,7 @@ export const tips = {
   // The ground a hex shows (in the cards' tile pictures).
   'terrain:plains': { title: 'Plains', text: 'Open grassland. Easy going.' },
   'terrain:forest': { title: 'Forest', text: 'Woods. Easy going, with more to find.' },
-  'terrain:desert': { title: 'Desert', text: 'Dry, open sand.' },
+  'terrain:desert': { title: 'Desert', text: 'Dry, open sand. Heavy going.' },
   'terrain:river': { title: 'River', text: 'Running water. No fire will light here.' },
   'terrain:cliff': { title: 'Cliff', text: 'Too steep to climb without gear.' },
 
@@ -178,16 +184,22 @@ export const tips = {
   'feature:snare': { text: 'A snare, found and sprung. Harmless now.' },
   'feature:pitfall': { text: 'A pitfall, found. Harmless now.' },
 
+  'feature:sunken-shrine': { text: 'A shrine in the shallows. Search it for what it keeps.' },
+  'feature:undertow': { text: 'An undertow, found. Harmless now.' },
+
   // Threats on the map.
   'threat:captors': { text: 'On the creature’s trail. Strong, and gains on it every day.' },
   'threat:swarm': { text: 'Flies in from the side. Fast, but weaker.' },
   'threat:rockslide': {
     text: 'Blocks the path ahead. Steer around it with fires, or strike it apart.',
   },
+  'threat:ambush': { text: 'Lies in wait among the trees. Slow, but close.' },
+  'threat:stampede': { text: 'Charges across open ground. Fast and heavy.' },
   'threat:raiders': { text: 'Sent by an angered settlement.' },
 
   // Settlements and the peoples.
   'people:hill-folk': { text: 'Herders of the hills. Win their favour for a boon.' },
+  'people:river-folk': { text: 'Fisher folk of the banks. Quick to trust.' },
   'settlement:wary': { title: 'Wary', text: 'Parley or make an offer to win its favour.' },
   'settlement:friendly': { title: 'Friendly', text: 'Ask it for one boon.' },
   'settlement:angry': { title: 'Angry', text: 'It sent raiders and will not be won back.' },

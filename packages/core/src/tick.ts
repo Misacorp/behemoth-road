@@ -34,7 +34,7 @@ import {
 import { chooseCreatureStep } from './creature.ts';
 import { addFeatures, depositPack, type GameEvent, keyToHex, pruneFeatures } from './features.ts';
 import { THREAT_TYPES } from './content/index.ts';
-import { type Hex, hexDistance } from './hex.ts';
+import { hexDistance } from './hex.ts';
 import { hashString, hashToUnit, pickWeighted } from './random.ts';
 import { ON_CREATURE } from './places.ts';
 import type {
@@ -174,8 +174,8 @@ const seasonEnd = (state: GameState): SeasonOutcome | null => {
 /**
  * The tick's new threat, if any: from `threatsFromDay`, while fewer than
  * `threatsMax` are on the map, a seeded roll (seed, day) against the day's
- * chance; then a weighted seeded pick of the type (no pursuers while a mislead
- * lasts) and the first fitting hex of its approach. Reads the state of the new day.
+ * chance; then a weighted seeded pick among the types (no pursuers while a mislead
+ * lasts) that have a fitting hex on their approach, at its first one. Reads the state of the new day.
  */
 const newThreat = (state: GameState): Threat | null => {
   const { config, day } = state;
@@ -188,14 +188,18 @@ const newThreat = (state: GameState): Threat | null => {
   );
   if (hashToUnit(state.seed, THREAT_STREAM, day) >= chance) return null;
   const misled = state.misleadUntilDay !== null && day <= state.misleadUntilDay;
-  const types = THREAT_TYPES.filter(
-    (t) => t.weight > 0 && !(misled && t.tags.includes(PURSUER_TAG)),
-  );
-  if (types.length === 0) return null;
-  const type = pickWeighted(types, (t) => t.weight, hashToUnit(state.seed, THREAT_STREAM, day, 1));
   const side = hashToUnit(state.seed, THREAT_STREAM, day, 2) < 0.5 ? -1 : 1;
-  const hex: Hex | undefined = approachHexes(state, type, side).find((h) => canAppearOn(state, h));
-  if (!hex) return null;
+  const fitting = THREAT_TYPES.flatMap((t) => {
+    if (t.weight <= 0 || (misled && t.tags.includes(PURSUER_TAG))) return [];
+    const at = approachHexes(state, t, side).find((h) => canAppearOn(state, h, t));
+    return at ? [{ type: t, at }] : [];
+  });
+  if (fitting.length === 0) return null;
+  const { type, at: hex } = pickWeighted(
+    fitting,
+    (f) => f.type.weight,
+    hashToUnit(state.seed, THREAT_STREAM, day, 1),
+  );
   return {
     id: `t${day}`,
     type: type.id,

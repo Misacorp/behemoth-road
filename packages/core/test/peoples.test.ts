@@ -217,9 +217,9 @@ describe('settlements on the route', () => {
       expect(tags).not.toContain('water');
       expect(tags).not.toContain('steep');
       expect(next.state.features[hexKey(s.hex)]).toBeUndefined();
+      expect(['hill-folk', 'river-folk']).toContain(s.type);
       expect(s).toMatchObject({
         id: 's2',
-        type: 'hill-folk',
         attitude: 'wary',
         favour: 0,
         boon: null,

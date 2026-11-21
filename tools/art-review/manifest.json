@@ -13,7 +13,8 @@
     "2026-11-20-3",
     "2026-11-20-4",
     "2026-11-20-5",
-    "2026-11-20-6"
+    "2026-11-20-6",
+    "2026-11-21-1"
   ],
   "items": [
     {
@@ -248,10 +249,10 @@
       "id": "icons/sheet",
       "group": "Icons",
       "title": "Every icon, and the fallback",
-      "version": "8a5cea30",
+      "version": "64ae0225",
       "kind": "glance",
-      "batch": "2026-11-19-7",
-      "file": "art/icons-sheet-8a5cea30.svg"
+      "batch": "2026-11-21-1",
+      "file": "art/icons-sheet-64ae0225.svg"
     },
     {
       "id": "characters/lineup",
@@ -428,10 +429,10 @@
       "id": "season/threats",
       "group": "Season",
       "title": "Captors, swarm, rockslide, raiders: strength marks, next-step arrows, the last of each arriving tomorrow",
-      "version": "b76122fb",
+      "version": "35af9ecd",
       "kind": "glance",
-      "batch": "2026-11-20-4",
-      "file": "art/season-threats-b76122fb.svg"
+      "batch": "2026-11-21-1",
+      "file": "art/season-threats-35af9ecd.svg"
     },
     {
       "id": "season/settlements",
@@ -455,10 +456,10 @@
       "id": "season/icons",
       "group": "Season",
       "title": "Strike, defend, parley, offer; gift, mislead, shelter; parley at risk; card icons and status marks",
-      "version": "c8e4bad8",
+      "version": "1cc50a31",
       "kind": "glance",
-      "batch": "2026-11-20-4",
-      "file": "art/season-icons-c8e4bad8.svg"
+      "batch": "2026-11-21-1",
+      "file": "art/season-icons-1cc50a31.svg"
     },
     {
       "id": "season/hud",
@@ -522,6 +523,24 @@
       "kind": "glance",
       "batch": "2026-11-20-5",
       "file": "art/feedback-marks-000c7c6a.svg"
+    },
+    {
+      "id": "variety/map",
+      "group": "More content",
+      "title": "Sunken shrine (ready, spent), undertow and river stones on rivers; an ambush in the forest, a stampede on the plains; river folk wary, friendly and angry beside hill folk",
+      "version": "4d565ae3",
+      "kind": "glance",
+      "batch": "2026-11-21-1",
+      "file": "art/variety-map-4d565ae3.svg"
+    },
+    {
+      "id": "variety/icons",
+      "group": "More content",
+      "title": "River pearl; sand sledge (and done) with its path mark; ambush and stampede cards; river folk cards in each attitude",
+      "version": "fc840e1d",
+      "kind": "glance",
+      "batch": "2026-11-21-1",
+      "file": "art/variety-icons-fc840e1d.svg"
     }
   ]
 }
