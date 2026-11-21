@@ -25,6 +25,9 @@ import {
   tap,
 } from '../map/flow.ts';
 import { type FocusTarget, type Here, MapView } from '../map/MapView.tsx';
+import { Roster } from '../roster/Roster.tsx';
+import { rosterRows, type RosterRow } from '../roster/model.ts';
+import type { Snap } from '../ui/Drawer.tsx';
 import { HubDrawer } from '../hub/HubDrawer.tsx';
 import { DayBanner, DayCountdown, PaceToggle } from '../hud/Pace.tsx';
 import { setTipConfig, TipLayer } from '../ui/Tip.tsx';
@@ -83,13 +86,24 @@ export function characterNeed(view: PlayerView): 'none' | 'join' | 'replace' {
 export const halfDrawerCover = (width: number, height: number): number =>
   width >= DESKTOP_FROM ? 0 : Math.min(height * 0.56, 520);
 
+/** How much of the screen the roster's peek covers on a phone (see `.drawer[data-snap='peek']`). */
+export const ROSTER_PEEK_PX = 112;
+export const peekCover = (width: number): number => (width >= DESKTOP_FROM ? 0 : ROSTER_PEEK_PX);
+
 /** The "next day" control shows only when the server offers dev tools and you are an admin. */
 export const showsNextDay = (view: PlayerView): boolean => view.devTools && view.you.admin;
 
 export function Game({ api, initial }: GameProps): JSX.Element {
   const [view, setView] = useState(initial);
   const [flow, setFlow] = useState<Flow>(IDLE);
-  const [focus, setFocus] = useState<{ target: FocusTarget; n: number }>({ target: 'me', n: 0 });
+  const [focus, setFocus] = useState<{ target: FocusTarget; n: number; id?: string }>({
+    target: 'me',
+    n: 0,
+  });
+  // The roster drawer: open or not, how often a row asked it to peek, and the height it settled at.
+  const [rosterOpen, setRosterOpen] = useState(false);
+  const [rosterPeek, setRosterPeek] = useState(0);
+  const [rosterSnap, setRosterSnap] = useState<Snap>('half');
   const [busy, setBusy] = useState(false);
   const [drawerClosed, setDrawerClosed] = useState(false);
 
@@ -349,6 +363,30 @@ export function Game({ api, initial }: GameProps): JSX.Element {
       ? { stock: stockOf(me.pack), units: packUnits(me.pack), capacity: state.config.packCapacity }
       : null;
   const anyDrawer = drawerOpen || hubOpen;
+  // One drawer at a time: the join drawer or the hub takes over from the roster. A character found from the
+  // roster stops holding the map's centre once the roster closes.
+  const rosterShown = rosterOpen && !anyDrawer;
+  useEffect(() => {
+    if (!rosterShown) setFocus((f) => (f.id === undefined ? f : { target: f.target, n: f.n }));
+  }, [rosterShown]);
+  useEffect(() => {
+    if (anyDrawer) setRosterOpen(false);
+  }, [anyDrawer]);
+  const rows = useMemo(() => rosterRows(view, state.config.actionsPerDay), [view, state]);
+  /** Finds a player's character: centre on it (on the creature if riding) and open its card. */
+  const onPickRow = (row: RosterRow): void => {
+    if (!row.tappable || row.characterId === null) return;
+    setMoments([]);
+    setFocus((f) => ({ target: 'me', n: f.n + 1, id: row.characterId! }));
+    // A rider's card continues the hub bubble's popup, in its place.
+    setFlow(
+      openCharacter(
+        row.characterId,
+        row.where === 'riding' ? { kind: 'bubble', selecting: false } : undefined,
+      ),
+    );
+    setRosterPeek((n) => n + 1);
+  };
   const ended = seasonEnd(state);
   const care = me
     ? [...careOptions(state, me.id), ...[defendOption(state, me.id)].filter((a) => a !== null)]
@@ -405,7 +443,13 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         onBack={() => setFlow(goBack)}
         onRightClick={() => setFlow((f) => rightClick(f, getSettings()))}
         focus={focus}
-        coverBottom={anyDrawer ? halfDrawerCover(window.innerWidth, window.innerHeight) : 0}
+        coverBottom={
+          rosterShown && rosterSnap === 'peek'
+            ? peekCover(window.innerWidth)
+            : anyDrawer || (rosterShown && rosterSnap !== 'peek')
+              ? halfDrawerCover(window.innerWidth, window.innerHeight)
+              : 0
+        }
         here={here}
         onAct={onAct}
         surveyAt={surveyAt}
@@ -429,6 +473,7 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         }
         me={who.get(id) ?? null}
         onFocus={(target) => setFocus((f) => ({ target, n: f.n + 1 }))}
+        onRoster={() => setRosterOpen((o) => !o)}
         onNextDay={
           showsNextDay(view)
             ? () =>
@@ -477,6 +522,15 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         unlocks={me ? unlockOptions(state, me.id) : []}
         busy={busy}
         onBuild={onBuild}
+      />
+      <Roster
+        open={rosterShown}
+        rows={rows}
+        selected={flow.kind === 'character' ? flow.id : null}
+        peek={rosterPeek}
+        onSnap={setRosterSnap}
+        onPick={onPickRow}
+        onClose={() => setRosterOpen(false)}
       />
       <JoinDrawer
         open={drawerOpen}

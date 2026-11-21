@@ -118,6 +118,7 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-21 Fast rounds pace: staging only, all active characters spent, 6 s delay, 4 s day banner
 - 2026-11-21 Content version 9 balance: stampede strength 1, ambush and stampede weights halved
 - 2026-11-21 More content for playtests: ambush, stampede, river folk, sunken shrine, undertow, sand sledge (amended)
+- 2026-11-21 A player roster drawer finds each player's character on the map
 - 2026-11-20 Icons that are not buttons show their tip on a tap \[Misa\]
 - 2026-11-20 Verb labels under actions are on by default \[Misa\]
 - 2026-11-20 The map is framed between the top HUD and the pips; the first view looks ahead of the creature

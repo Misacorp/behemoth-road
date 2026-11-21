@@ -521,6 +521,94 @@ async function run() {
         problems.push(`${vp.name}: tapping another player's figure did not open their card`);
       await page.keyboard.press('Escape');
 
+      // The roster: the party button opens a drawer listing every player; a row finds the character.
+      {
+        const shotR = (name) =>
+          page.screenshot({ path: join(out, `roster-${vp.name}-${name}.png`) });
+        const rowFor = (user) => `.roster-row[data-character="${idOf(user)}"]`;
+        await press('.hud-roster');
+        await page.waitForSelector('.drawer[aria-label=Players] .roster-row');
+        await page.waitForTimeout(300);
+        const names = await page.locator('.roster-row .roster-name').allTextContents();
+        if (names.length !== 3)
+          problems.push(`${vp.name}: the roster lists ${names.length} players`);
+        if (!(await page.locator('.roster-row').first().getAttribute('data-mine')))
+          problems.push(`${vp.name}: the roster does not list you first`);
+        const rest = names.slice(1);
+        if (rest.join('|') !== [...rest].sort((a, b) => a.localeCompare(b)).join('|'))
+          problems.push(`${vp.name}: the roster's other players are not by name`);
+        if (!(await page.locator('.roster-row [data-role-icon]').count()))
+          problems.push(`${vp.name}: the roster rows have no role emblem`);
+        if (!(await page.locator('.roster-row svg[data-arrows]').count()))
+          problems.push(`${vp.name}: the roster rows have no action arrows`);
+        await shotR('open');
+        // A long press on anything in the roster neither closes it nor taps a row.
+        await holdAll('roster', 'roster', '.drawer[aria-label=Players]');
+        if (!(await page.locator('.drawer[aria-label=Players]').count()))
+          problems.push(`${vp.name}: a long press closed the roster`);
+        if (await has('character'))
+          problems.push(`${vp.name}: a long press in the roster opened a card`);
+        // Another player on the map: the map centres on her, her card opens, the roster stays.
+        await press(rowFor(USERS.OLA));
+        await page.waitForTimeout(900);
+        if (
+          !(await page
+            .locator(`[data-popover=character][data-character="${idOf(USERS.OLA)}"]`)
+            .count())
+        )
+          problems.push(`${vp.name}: tapping her roster row did not open her card`);
+        if (!(await page.locator('.drawer[aria-label=Players]').count()))
+          problems.push(`${vp.name}: tapping a roster row closed the roster`);
+        if (!(await page.locator(`${rowFor(USERS.OLA)}[data-selected]`).count()))
+          problems.push(`${vp.name}: her roster row is not marked`);
+        if (vp.touch) {
+          const snap = await page.locator('.drawer[aria-label=Players]').getAttribute('data-snap');
+          if (snap !== 'peek')
+            problems.push(`${vp.name}: the roster did not lower to a peek (${snap})`);
+          const card = await page.locator('[data-popover=character]').boundingBox();
+          const drawer = await page.locator('.drawer[aria-label=Players]').boundingBox();
+          if (card && drawer && card.y + card.height > drawer.y)
+            problems.push(`${vp.name}: the card is under the lowered roster`);
+        }
+        {
+          // She stands centred in the space the roster leaves (about, after the move animation).
+          const card = await page.locator('[data-popover=character]').boundingBox();
+          const drawer = await page.locator('.drawer[aria-label=Players]').boundingBox();
+          const left = vp.touch ? 0 : (drawer?.x ?? 0) + (drawer?.width ?? 0);
+          const bottom = vp.touch ? (drawer?.y ?? vp.height) : vp.height;
+          if (
+            card &&
+            !(
+              card.x >= left - 2 &&
+              card.x + card.width <= vp.width + 2 &&
+              card.y >= 0 &&
+              card.y + card.height <= bottom + 2
+            )
+          )
+            problems.push(`${vp.name}: her card is outside the space the roster leaves`);
+        }
+        await shotR('found');
+        // A rider: the creature's bubble card in its place, with a back to the bubble.
+        await press(rowFor(USERS.PIP));
+        await page.waitForTimeout(900);
+        if (!(await page.locator('[data-popover=character][data-back]').count()))
+          problems.push(`${vp.name}: a rider's roster row did not open the rider card with a back`);
+        await shotR('rider');
+        await press('[data-popover=character] [data-back]');
+        if (!(await has('bubble')))
+          problems.push(`${vp.name}: back from the rider card did not show the bubble`);
+        // The party button closes the roster.
+        await press('.hud-roster');
+        await page.waitForTimeout(200);
+        if (await page.locator('.drawer[aria-label=Players]').count())
+          problems.push(`${vp.name}: the party button did not close the roster`);
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(100);
+        await page.mouse.move(2, vp.height - 2);
+        await page.waitForTimeout(150);
+        await tipCheck('.hud-roster', 'hud-roster');
+      }
+
       // Step off: try the hexes around the footprint, south side first (Ola stands on one).
       await tapCreature();
       const ring = [
