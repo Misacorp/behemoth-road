@@ -63,9 +63,9 @@ export function artDefs(palette: Palette, prefix: string, k: number, effects = t
         width: 7 * k,
         height: 7 * k,
         fill: palette.paperDeep,
-        opacity: 0.8,
+        opacity: 0.74,
       }),
-      el('rect', { x: 0, y: 0, width: 7 * k, height: 7 * k, fill: palette.shadow, opacity: 0.2 }),
+      el('rect', { x: 0, y: 0, width: 7 * k, height: 7 * k, fill: palette.shadow, opacity: 0.14 }),
       el('path', {
         d: `M${(1.5 * k).toFixed(2)} 0V${(7 * k).toFixed(2)}`,
         stroke: palette.inkSoft,

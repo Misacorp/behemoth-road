@@ -94,19 +94,19 @@
       "id": "sheet/terrain",
       "group": "Sheets",
       "title": "Terrain tiles",
-      "version": "88b34cdd",
+      "version": "44b10718",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/sheet-terrain-88b34cdd.svg"
+      "file": "art/sheet-terrain-44b10718.svg"
     },
     {
       "id": "sheet/props",
       "group": "Sheets",
       "title": "Props",
-      "version": "d34ac286",
+      "version": "abc49ac5",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/sheet-props-d34ac286.svg"
+      "file": "art/sheet-props-abc49ac5.svg"
     },
     {
       "id": "creature/gentle-ambler",
@@ -122,19 +122,19 @@
       "id": "sheet/characters",
       "group": "Sheets",
       "title": "Character standees",
-      "version": "6c93b787",
+      "version": "c30df2c8",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/sheet-characters-6c93b787.svg"
+      "file": "art/sheet-characters-c30df2c8.svg"
     },
     {
       "id": "sheet/fog",
       "group": "Sheets",
       "title": "Unseen, fading, lost, hint",
-      "version": "fa520499",
+      "version": "6d3348c6",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/sheet-fog-fa520499.svg"
+      "file": "art/sheet-fog-6d3348c6.svg"
     },
     {
       "id": "facing/side",
@@ -174,19 +174,19 @@
       "id": "map/patch",
       "group": "Map",
       "title": "The map, Spring at tilt 0.8",
-      "version": "0bbe6b1b",
+      "version": "240054df",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/map-patch-0bbe6b1b.svg"
+      "file": "art/map-patch-240054df.svg"
     },
     {
       "id": "creature/headings",
       "group": "Creature",
       "title": "Walking the six directions",
-      "version": "971200d8",
+      "version": "8482ab71",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/creature-headings-971200d8.svg"
+      "file": "art/creature-headings-8482ab71.svg"
     },
     {
       "id": "creature-shape/broad",
@@ -268,28 +268,28 @@
       "id": "characters/riders",
       "group": "Characters",
       "title": "Fifteen riders on the creature",
-      "version": "4ec53065",
+      "version": "19589117",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/characters-riders-4ec53065.svg"
+      "file": "art/characters-riders-19589117.svg"
     },
     {
       "id": "features/sheet",
       "group": "Features",
       "title": "Nodes, sites and traps, as found and used up",
-      "version": "6dc742c1",
+      "version": "49ee3c89",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/features-sheet-6dc742c1.svg"
+      "file": "art/features-sheet-49ee3c89.svg"
     },
     {
       "id": "features/glint",
       "group": "Features",
       "title": "The glint on sensed tiles",
-      "version": "0898acfe",
+      "version": "82eabfe6",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/features-glint-0898acfe.svg"
+      "file": "art/features-glint-82eabfe6.svg"
     },
     {
       "id": "marks/moments",
@@ -304,46 +304,46 @@
       "id": "creature/underfed",
       "group": "Creature care",
       "title": "Underfed: calm, levels 1 to 3, then faint at 2 and 3",
-      "version": "c491c3c7",
+      "version": "2fe096d1",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/creature-underfed-c491c3c7.svg"
+      "file": "art/creature-underfed-2fe096d1.svg"
     },
     {
       "id": "creature/overfed",
       "group": "Creature care",
       "title": "Overfed: calm, levels 1 to 3, then faint at 2 and 3",
-      "version": "e8b93672",
+      "version": "d7eaa605",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/creature-overfed-e8b93672.svg"
+      "file": "art/creature-overfed-d7eaa605.svg"
     },
     {
       "id": "creature/cues",
       "group": "Creature care",
       "title": "Keeper's cues: drawn to the fire, shying from it, unmoved; two at once",
-      "version": "f6de34d1",
+      "version": "275f5df4",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/creature-cues-f6de34d1.svg"
+      "file": "art/creature-cues-275f5df4.svg"
     },
     {
       "id": "creature/linger",
       "group": "Creature care",
       "title": "Lying down to linger, beside standing",
-      "version": "6e7146ee",
+      "version": "7df98f40",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/creature-linger-6e7146ee.svg"
+      "file": "art/creature-linger-7df98f40.svg"
     },
     {
       "id": "features/care",
       "group": "Creature care",
       "title": "Fires on four tiles and under the veil; berry bushes, picked bare, beside a fire",
-      "version": "958850bc",
+      "version": "606d7f32",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/features-care-958850bc.svg"
+      "file": "art/features-care-606d7f32.svg"
     },
     {
       "id": "marks/care",
@@ -358,28 +358,28 @@
       "id": "map/care",
       "group": "Creature care",
       "title": "On the map: fires, berries, an underfed creature and two cues",
-      "version": "86612f8a",
+      "version": "a9779f87",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/map-care-86612f8a.svg"
+      "file": "art/map-care-a9779f87.svg"
     },
     {
       "id": "map/care-lite",
       "group": "Creature care",
       "title": "The same in lite mode",
-      "version": "3bedaf06",
+      "version": "c69ea432",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/map-care-lite-3bedaf06.svg"
+      "file": "art/map-care-lite-c69ea432.svg"
     },
     {
       "id": "features/veil",
       "group": "Features",
       "title": "Explored, unexplored, blank paper, fading",
-      "version": "422cf0eb",
+      "version": "1c022d5a",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/features-veil-422cf0eb.svg"
+      "file": "art/features-veil-1c022d5a.svg"
     },
     {
       "id": "team/marks",
@@ -394,10 +394,10 @@
       "id": "creature/appetite-phone",
       "group": "Creature care",
       "title": "Appetite at phone zoom: calm, underfed 1-3; calm, overfed 1-3; faint 2 and 3",
-      "version": "f553af46",
+      "version": "6270518d",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/creature-appetite-phone-f553af46.svg"
+      "file": "art/creature-appetite-phone-6270518d.svg"
     },
     {
       "id": "marks/signs",
@@ -412,46 +412,46 @@
       "id": "season/map-phone",
       "group": "Season",
       "title": "The season on a phone: threats, a village, an escort, a defender, peril 4 (full, then lite)",
-      "version": "c432708f",
+      "version": "56f66d4c",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/season-map-phone-c432708f.svg"
+      "file": "art/season-map-phone-56f66d4c.svg"
     },
     {
       "id": "season/map-desktop",
       "group": "Season",
       "title": "The same at desktop scale",
-      "version": "da2718ee",
+      "version": "d0f2f3a7",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/season-map-desktop-da2718ee.svg"
+      "file": "art/season-map-desktop-d0f2f3a7.svg"
     },
     {
       "id": "season/threats",
       "group": "Season",
       "title": "Captors, swarm, rockslide, raiders: strength marks, next-step arrows, the last of each arriving tomorrow",
-      "version": "d4f51d59",
+      "version": "9caff119",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/season-threats-d4f51d59.svg"
+      "file": "art/season-threats-9caff119.svg"
     },
     {
       "id": "season/settlements",
       "group": "Season",
       "title": "Hill folk: wary with favour 0, 1, 2 (under the veil), friendly, angry, angry with its raiders",
-      "version": "65a8152f",
+      "version": "7968061d",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/season-settlements-65a8152f.svg"
+      "file": "art/season-settlements-7968061d.svg"
     },
     {
       "id": "season/escort",
       "group": "Season",
       "title": "A guardian’s escort ring, escorted and struck marks, guardians defending on the creature",
-      "version": "d0dda99d",
+      "version": "7811b4fa",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/season-escort-d0dda99d.svg"
+      "file": "art/season-escort-7811b4fa.svg"
     },
     {
       "id": "season/icons",
@@ -466,10 +466,10 @@
       "id": "season/hud",
       "group": "Season",
       "title": "Peril gauge 0 to 10 and the route strip at phone and desktop widths; the vignette at peril 3, 6, 9",
-      "version": "1e8d062f",
+      "version": "36e69fdc",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/season-hud-1e8d062f.svg"
+      "file": "art/season-hud-36e69fdc.svg"
     },
     {
       "id": "season/moments",
@@ -511,10 +511,10 @@
       "id": "feedback/phone-features",
       "group": "Playtest feedback",
       "title": "At phone zoom: features on plinths (fieldstones, outcrop, deadfall, river stones, iron, picked berries, snare, logs, a village) beside plain props; two explored-empty hexes (full, then lite)",
-      "version": "b40240d1",
+      "version": "365976c5",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/feedback-phone-features-b40240d1.svg"
+      "file": "art/feedback-phone-features-365976c5.svg"
     },
     {
       "id": "feedback/marks",
@@ -529,10 +529,10 @@
       "id": "variety/map",
       "group": "More content",
       "title": "Sunken shrine (ready, spent), undertow and river stones on rivers; an ambush in the forest, a stampede on the plains; river folk wary, friendly and angry beside hill folk",
-      "version": "68987b96",
+      "version": "3e01e520",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/variety-map-68987b96.svg"
+      "file": "art/variety-map-3e01e520.svg"
     },
     {
       "id": "variety/icons",
@@ -547,19 +547,19 @@
       "id": "features/danger",
       "group": "Features",
       "title": "Features on raised plinths: finds and sites calm, live traps with the coral danger cue, defused traps muted",
-      "version": "32e49235",
+      "version": "58d5c6af",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/features-danger-32e49235.svg"
+      "file": "art/features-danger-58d5c6af.svg"
     },
     {
       "id": "map/telegraph",
       "group": "Creature care",
       "title": "Trodden ground that keeps cliffs and river readable, the defended ring and shields, the darker unexplored veil",
-      "version": "3ef74371",
+      "version": "2528399d",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/map-telegraph-3ef74371.svg"
+      "file": "art/map-telegraph-2528399d.svg"
     }
   ]
 }
