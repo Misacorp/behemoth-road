@@ -33,6 +33,8 @@ export const CONFIG: AppConfig = {
   branch: 'm2/web',
   discordClientId: '000000000000000000',
   devTools: true,
+  // The fake game server has no sockets.
+  live: false,
 };
 
 export const SESSION: Session = {

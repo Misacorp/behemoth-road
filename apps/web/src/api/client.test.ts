@@ -155,3 +155,13 @@ describe('live ticket', () => {
     await expect(api.liveTicket()).rejects.toMatchObject({ status: 404 });
   });
 });
+
+describe('live flag from the config', () => {
+  it('is off until the config says the server offers sockets', async () => {
+    const f = fake({ body: { ...CONFIG, live: true } });
+    const api = createApiClient(f.fetch);
+    expect(api.liveEnabled()).toBe(false);
+    await api.config();
+    expect(api.liveEnabled()).toBe(true);
+  });
+});

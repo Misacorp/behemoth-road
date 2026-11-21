@@ -328,6 +328,8 @@ export const ConfigSchema = v.object({
   branch: v.optional(v.nullable(text), null),
   discordClientId: v.optional(text, ''),
   devTools: v.optional(v.boolean(), false),
+  /** The server offers live sockets (the `LIVE` flag): the client opens one only then. */
+  live: v.optional(v.boolean(), false),
 });
 
 export const SessionSchema = v.object({

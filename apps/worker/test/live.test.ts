@@ -109,6 +109,17 @@ describe('the LIVE flag', () => {
   });
 });
 
+describe('the config', () => {
+  it('tells the client whether sockets are offered, so it never asks when they are off', async () => {
+    const get = async (extra: Record<string, string>) =>
+      (await callHandler(handler, new Request(`${ORIGIN}/api/config`), extra)).json<{
+        live: boolean;
+      }>();
+    expect((await get({})).live).toBe(true);
+    expect((await get({ LIVE: 'off' })).live).toBe(false);
+  });
+});
+
 describe('tickets and the upgrade', () => {
   it('needs a session to get a ticket and a strict body', async () => {
     const guildId = freshGuildId();

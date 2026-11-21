@@ -78,6 +78,7 @@ export function createHandler(overrides: Partial<HandlerDeps> = {}): ExportedHan
           ...(BRANCH_RE.test(env.BRANCH) ? { branch: env.BRANCH } : {}),
           discordClientId: env.DISCORD_CLIENT_ID,
           devTools: env.DEV_TOOLS === 'on',
+          live: env.LIVE === 'on',
         }),
     },
     '/api/auth/session': {

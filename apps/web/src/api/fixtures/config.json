@@ -3,5 +3,6 @@
   "version": "dev",
   "branch": "dev",
   "discordClientId": "000000000000000000",
-  "devTools": true
+  "devTools": true,
+  "live": true
 }

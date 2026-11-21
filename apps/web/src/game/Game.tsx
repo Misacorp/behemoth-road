@@ -99,13 +99,17 @@ export function Game({ api, initial }: GameProps): JSX.Element {
     api,
     // The socket only says "something changed"; the view still comes from `api.game`. Without it (an
     // unsupported browser, the flag off, a full guild) the poll stays at 10 s.
-    live: createLiveSocket({
-      getTicket: () => api.liveTicket(),
-      url: (ticket) => liveUrl(window.location, ticket),
-      createSocket: browserSocket,
-      onLive: (up) => sync.current?.setLive(up),
-      onChanged: (version) => sync.current?.changed(version),
-    }),
+    ...(api.liveEnabled()
+      ? {
+          live: createLiveSocket({
+            getTicket: () => api.liveTicket(),
+            url: (ticket) => liveUrl(window.location, ticket),
+            createSocket: browserSocket,
+            onLive: (up) => sync.current?.setLive(up),
+            onChanged: (version) => sync.current?.changed(version),
+          }),
+        }
+      : {}),
     onView: setView,
     onError: (err) => console.warn('refresh failed', err),
     setInterval: (fn, ms) => window.setInterval(fn, ms),
