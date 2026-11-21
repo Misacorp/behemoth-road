@@ -181,6 +181,20 @@ export const GameStateViewSchema = v.object({
       day: count,
     }),
   ]),
+  /** The season's tallies for the recap (core `SeasonStats`): shared, and per character by id. */
+  stats: v.object({
+    shared: v.object({
+      threatsTurned: count,
+      finds: count,
+      unlocks: count,
+      befriended: count,
+      peakPeril: count,
+    }),
+    byCharacter: v.pipe(
+      v.record(id, v.object({ explored: count, strikes: count, gathered: count, fed: count })),
+      v.check((r) => Object.keys(r).length <= 64, 'too many tallies'),
+    ),
+  }),
   misleadUntilDay: v.nullable(count),
 });
 

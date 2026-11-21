@@ -181,6 +181,13 @@ export {
   toPlace,
 } from './places.ts';
 export { nextDay, nextDayWithEvents } from './tick.ts';
+export {
+  emptyStats,
+  recordEvents,
+  type CharacterTally,
+  type SeasonStats,
+  type SharedTally,
+} from './stats.ts';
 export { createGame, type CreateGameOptions } from './game.ts';
 export {
   addCharacter,

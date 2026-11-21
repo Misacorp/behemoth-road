@@ -98,6 +98,34 @@ export function NewSeasonIcon(): JSX.Element {
   );
 }
 
+/** The season's recap: three bars of a small chart. */
+export function RecapIcon(): JSX.Element {
+  return (
+    <svg viewBox="0 0 32 32" aria-hidden="true">
+      <path
+        d="M6 26V17h5v9ZM13.5 26V8h5v18ZM21 26v-6h5v6Z"
+        {...line}
+        fill={PALETTE.accents.ochre.light}
+      />
+      <path d="M4 27h24" {...line} />
+    </svg>
+  );
+}
+
+/** A small star: the mark of whoever led the party in a stat. */
+export function TopMark(): JSX.Element {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+      <path
+        d="m8 1.5 1.9 4.2 4.6.4-3.5 3 1.1 4.5L8 11.2l-4.1 2.4L5 9.1 1.5 6.1l4.6-.4Z"
+        {...line}
+        stroke-width={1.2}
+        fill={PALETTE.accents.ochre.light}
+      />
+    </svg>
+  );
+}
+
 /** Join: a character's standee with a small plus beside it. */
 export function JoinIcon(): JSX.Element {
   return (

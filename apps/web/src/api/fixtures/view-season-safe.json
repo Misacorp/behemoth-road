@@ -1373,6 +1373,35 @@
       "outcome": "safe",
       "day": 13
     },
+    "stats": {
+      "shared": {
+        "threatsTurned": 4,
+        "finds": 0,
+        "unlocks": 0,
+        "befriended": 1,
+        "peakPeril": 3
+      },
+      "byCharacter": {
+        "555555555555555555.0": {
+          "explored": 0,
+          "strikes": 0,
+          "gathered": 0,
+          "fed": 6
+        },
+        "666666666666666666.0": {
+          "explored": 18,
+          "strikes": 7,
+          "gathered": 0,
+          "fed": 0
+        },
+        "222222222222222222.0": {
+          "explored": 5,
+          "strikes": 0,
+          "gathered": 0,
+          "fed": 0
+        }
+      }
+    },
     "misleadUntilDay": null
   },
   "signs": {

@@ -47,6 +47,31 @@ async function playToTheEnd(ctx: GameContext, token: string): Promise<Answer> {
   throw new Error('the season did not end');
 }
 
+describe('the season recap', () => {
+  it('sends the public tallies with the view, and a new season starts them again', async () => {
+    await runGame(async (ctx) => {
+      const { token, version } = await joined(ctx);
+      const first = asView((await ctx.call(token, 'GET', '/api/game')).body);
+      expect(first.game.stats).toEqual({
+        shared: { threatsTurned: 0, finds: 0, unlocks: 0, befriended: 0, peakPeril: 0 },
+        byCharacter: {},
+      });
+      // A refused action counts for nothing.
+      const refused = await ctx.call(token, 'POST', '/api/game/act', {
+        version,
+        action: { kind: 'feed' },
+      });
+      expect(refused.status).toBe(409);
+      const ended = await playToTheEnd(ctx, token);
+      // The ended view carries the tallies the core kept, as the server's own state holds them.
+      expect(ended.game.stats).toEqual(storedState(ctx.sql).stats);
+      const next = asView((await ctx.call(token, 'POST', '/api/dev/new-season', {})).body);
+      expect(next.game.stats.byCharacter).toEqual({});
+      expect(next.game.stats.shared.peakPeril).toBe(0);
+    }, ADMIN);
+  });
+});
+
 describe('the five Milestone 5 actions', () => {
   it('reach the core, which answers their refusals', async () => {
     await runGame(async (ctx) => {

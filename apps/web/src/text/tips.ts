@@ -249,6 +249,7 @@ export const tips = {
     title: 'Appetite',
     text: 'How the creature’s appetite seems: hungry or full. Keepers read it best.',
   },
+  'hud:recap': { title: 'The season', text: 'Show or hide how the season went.' },
   'hud:join': { title: 'Join', text: 'Pick a character and a role.' },
   'hud:roster': { title: 'Players', text: 'Everyone in the game: tap one to find them.' },
   'roster:actions': {
@@ -261,6 +262,20 @@ export const tips = {
   'roster:riding': { title: 'Riding', text: 'On the creature’s back.', group: 'hud' },
   'roster:map': { title: 'Out on the map', text: 'Away from the creature.', group: 'hud' },
   'roster:none': { title: 'No character', text: 'Has not joined yet.', group: 'hud' },
+
+  // The season's recap, on the ending.
+  'stat:turned': {
+    title: 'Threats turned back',
+    text: 'Threats the party struck down.',
+    group: 'hud',
+  },
+  'stat:finds': { title: 'Finds', text: 'Sites opened with something found.', group: 'hud' },
+  'stat:unlocks': { title: 'Unlocks', text: 'Team unlocks built.', group: 'hud' },
+  'stat:friends': { title: 'Friends', text: 'Settlements won over.', group: 'hud' },
+  'stat:explored': { title: 'Explored', text: 'Hexes explored.', group: 'hud' },
+  'stat:strikes': { title: 'Strikes', text: 'Blows struck against threats.', group: 'hud' },
+  'stat:gathered': { title: 'Gathered', text: 'Units gathered from resource nodes.', group: 'hud' },
+  'stat:top': { title: 'Most', text: 'Led the party in this.', group: 'hud' },
 } as const satisfies Record<string, Tip>;
 
 export type TipId = keyof typeof tips;

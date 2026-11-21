@@ -73,6 +73,7 @@ The creature's step (or linger) is chosen as before, then the step count rises. 
 - **Peril** is a gauge on the HUD beside the day: ten marks with the wounded threshold marked. As it rises the map's edges darken a little.
 - **The route** is a thin strip on the HUD: steps walked toward home, with a home mark at the end.
 - **The ending** fills the screen: a title only ("Home safe", "Home, wounded", "Lost"), a scene for each outcome, and the route strip with the days taken. On staging, admins see a new-season button.
+- **The recap** (decision "A quick recap screen when a season ends") is part of the ending: shared stats (threats turned back, finds, unlocks, settlements won over, peak peril as a gauge) and, per player by Discord name with the role emblem, hexes explored, strikes and units gathered, a star on whoever led each. Core state `stats` (`stats.ts`): counters updated from events in `act`, `move` and the tick; public; older saved games load with empty counters. A phone shows it as a sheet over the scene, desktop as a side panel; a round button hides it. Nothing else happens at the end in production.
 - Moments for a threat appearing, a strike on the creature (the peril gauge jolts), a character struck, a threat hit and cleared, a defence holding, a settlement befriended or angered, a boon, and the season's end; no prose.
 
 ## Sessions and branches

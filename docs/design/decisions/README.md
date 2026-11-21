@@ -119,6 +119,7 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-21 A quick recap screen when a season ends \[Misa\]
 - 2026-11-21 Fast rounds pace: staging only, all active characters spent, 6 s delay, 4 s day banner
 - 2026-11-21 Content version 9 balance: stampede strength 1, ambush and stampede weights halved
 - 2026-11-21 More content for playtests: ambush, stampede, river folk, sunken shrine, undertow, sand sledge (amended)

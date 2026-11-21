@@ -76,6 +76,7 @@ describe('the hidden nature', () => {
       'project',
       'season',
       'settlements',
+      'stats',
       'stimuli',
       'stores',
       'threats',
