@@ -7,12 +7,11 @@ import { drawDefended } from './defended.ts';
 import { drawFire } from './fire.ts';
 import {
   drawDangerFlag,
-  featurePlinth,
-  plinthLift,
-  type PlinthOptions,
-  type PlinthTone,
+  featureFooting,
+  type FootingOptions,
+  type FootingTone,
 } from './feedback-marks.ts';
-import { featureDrawer, featurePlinthDy, isTrap, PLINTH_RX } from './features.ts';
+import { featureDrawer, FOOTING_RX, isTrap } from './features.ts';
 import { figureAnchor } from './figure.ts';
 import { artDefs, refUrl } from './filters.ts';
 import { ellipsePath, unionBox, type Box, type Point } from './geom.ts';
@@ -160,24 +159,24 @@ export function paperGrain(
   return el('rect', { ...box, fill: palette.paper, filter: refUrl(idPrefix, 'grain') });
 }
 
-/** A feature or settlement drawn on its plinth (props never get one, so features stand out). */
-function withPlinth(
+/** A feature or settlement drawn over its ground footing (props never get one, so features stand out). */
+function withFooting(
   c: PropContext,
   drawn: Drawn,
   rx?: number,
-  options?: PlinthOptions,
+  options?: FootingOptions,
   after: readonly Drawn[] = [],
 ): Drawn {
-  const plinth = featurePlinth(c, rx, options);
+  const footing = featureFooting(c, rx, options);
   return {
-    nodes: [...plinth.nodes, ...drawn.nodes, ...after.flatMap((a) => a.nodes)],
-    box: unionBox([plinth.box, drawn.box, ...after.map((a) => a.box)]),
+    nodes: [...footing.nodes, ...drawn.nodes, ...after.flatMap((a) => a.nodes)],
+    box: unionBox([footing.box, drawn.box, ...after.map((a) => a.box)]),
   };
 }
 
-/** A context for something standing on a plinth: the same, lifted to the plinth's top. */
-function lifted(c: PropContext): PropContext {
-  return { ...c, origin: { x: c.origin.x, y: c.origin.y - plinthLift(c) } };
+/** A context with its height stretched: used for the trap pennant's post, which stands above the trap. */
+function taller(c: PropContext, by: number): PropContext {
+  return { ...c, rise: c.rise * by };
 }
 
 export function renderSceneFramed(input: SceneInput): FramedScene {
@@ -261,17 +260,11 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
       const fc = ctx(at, rngFor(seed, 'feature', cell.q, cell.r), ART_TUNING.featureScale);
       const fstate = cell.feature.state ?? 'ready';
       const trap = isTrap(cell.feature);
-      const tone: PlinthTone = !trap ? 'calm' : fstate === 'ready' ? 'danger' : 'harmless';
-      const rx = PLINTH_RX;
-      // A trap's warning pennant stands at the front right of its plinth, over the trap itself.
-      const flag = tone === 'danger' ? [drawDangerFlag(fc, rx)] : [];
-      const drawn = withPlinth(
-        fc,
-        draw(lifted(fc), fstate),
-        rx,
-        { tone, dy: featurePlinthDy(cell.feature.look, rx) },
-        flag,
-      );
+      const tone: FootingTone = !trap ? 'calm' : fstate === 'ready' ? 'danger' : 'harmless';
+      const rx = FOOTING_RX;
+      // A trap's warning pennant stands at the front right of its footing, over the trap itself.
+      const flag = tone === 'danger' ? [drawDangerFlag(taller(fc, 1.3), rx)] : [];
+      const drawn = withFooting(fc, draw(fc, fstate), rx, { tone }, flag);
       placed.push({ at, drawn, ...(opacity === undefined ? {} : { opacity }) });
     }
     if (cell.fire && !underCreature) {
@@ -286,7 +279,10 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
       // A village is never hidden: drawn in full under the veil. A threat beside it stands to its front left.
       const at = cell.threat ? onPlane(p, c, 0.14, -0.06) : onPlane(p, c, 0, 0.06);
       const sc = ctx(at, rngFor(seed, 'settlement', cell.q, cell.r), ART_TUNING.settlementScale);
-      placed.push({ at, drawn: withPlinth(sc, drawSettlement(lifted(sc), cell.settlement), 24) });
+      placed.push({
+        at,
+        drawn: withFooting(sc, drawSettlement(sc, cell.settlement), 24),
+      });
     }
     if (cell.threat) {
       // Threats are public: drawn in full, also under the veil and wherever the creature is.

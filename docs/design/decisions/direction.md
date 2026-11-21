@@ -4,9 +4,17 @@ Priorities, how the owner and agents work, naming and tone.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-21: Features rise tall from the ground, no raised plinth **[Misa]**
+
+ID: `2026-11-21-features-rise-tall-from-the-ground` · Status: current · Amends: `2026-11-21-art-review-round-2-features-rise`
+
+**Decision.** Amends the plinth part of round 2 (points 1, 3, 4). There is no raised plinth, wall or platform under a feature. Features, settlements and fires are redrawn with real height instead (no vertical stretch): a cave mouth in a tall cliff face with its rolling stone, a taller carved crag for the deep tomb, ore spires with crystals, a rocky tor, tall trees with a felled log, a toppled trunk with its root plate, a stacked cairn, a dolmen with a standing stone, a spired shrine half sunk in water, a tall bramble, taller flames with a smoke curl, hill folk on a mound with a tall pole and pennant, river folk on tall stilts (`features-tall.ts`, `fire.ts`, `settlements.ts`), at a slightly larger scale (`ART_TUNING`). They rise above the tile's top edge and overlap the tile behind, drawn back to front like everything upright, so a tile in front still covers them. Ground contact is a soft shadow and a darker patch, not a platform. The trap danger cue stays (coral teeth ring and band on the ground, the warning pennant on a taller post; flat grey teeth and no pennant once defused). Characters stand in front of the feature (lower on screen, drawn later), so they stay visible and tappable.
+
+**Reasoning.** Misa did not want a pedestal look. The depth she asked for comes from the drawing itself: tall rock faces and trees that break the tile's border make the tile pop without a platform.
+
 ## 2026-11-21: Art review round 2: features rise from plinths, traps share a danger cue, the shield is the role frame, trodden ground keeps its terrain **[Misa]**
 
-ID: `2026-11-21-art-review-round-2-features-rise` · Status: current
+ID: `2026-11-21-art-review-round-2-features-rise` · Status: current, amended by `2026-11-21-features-rise-tall-from-the-ground`
 
 **Decision.** Misa's second art review. (1, 4) Features (nodes, sites, traps, settlements, fires) are bigger and stand on a raised sandstone plinth (a lit top, a shaded wall), so they rise above the tile's top edge and may overlap the tile behind; they are drawn back to front like everything upright. (2) Every trap shares one danger cue, distinct from finds and sites: a coral band on the plinth, a ring of jagged coral teeth and a warning pennant (a triangle with a bar and dot, no text). The core's `trap` kind sets it (`FeatureArt.trap`), so a new trap gets it with no art change; a defused (`spent`) trap keeps flat grey teeth and no pennant. (3) A cave door's plinth sits behind the door, never in front of it. (5) A veil's side strip is drawn only under edges that show a side face, so tiles further back never paint over tiles in front. (6) The shield is the role emblem frame everywhere (the default). (7) Trodden ground is a half-transparent neutral sandy wash over the tile's own terrain, which stays readable (cliffs, rivers, rocks), and the ring hexes around the creature keep their terrain props, drawn just under it. (8) Unexplored ground inside the window has a dusky base (paperDeep with a shadow tint) under the same hatch. (9) Defending guardians are telegraphed on the creature: a slate ring round its footprint and one big shield per defender (up to six) in front of it, from `CreatureArt.defenders`.
 

@@ -17,7 +17,9 @@
     "2026-11-21-1",
     "2026-11-21-2",
     "2026-11-21-3",
-    "2026-11-21-4"
+    "2026-11-21-4",
+    "2026-11-21-5",
+    "2026-11-21-6"
   ],
   "items": [
     {
@@ -176,10 +178,10 @@
       "id": "map/patch",
       "group": "Map",
       "title": "The map, Spring at tilt 0.8",
-      "version": "240054df",
+      "version": "88c41490",
       "kind": "glance",
-      "batch": "2026-11-21-4",
-      "file": "art/map-patch-240054df.svg"
+      "batch": "2026-11-21-6",
+      "file": "art/map-patch-88c41490.svg"
     },
     {
       "id": "creature/headings",
@@ -279,10 +281,10 @@
       "id": "features/sheet",
       "group": "Features",
       "title": "Nodes, sites and traps, as found and used up",
-      "version": "49ee3c89",
+      "version": "67406756",
       "kind": "glance",
-      "batch": "2026-11-21-4",
-      "file": "art/features-sheet-49ee3c89.svg"
+      "batch": "2026-11-21-6",
+      "file": "art/features-sheet-67406756.svg"
     },
     {
       "id": "features/glint",
@@ -324,10 +326,10 @@
       "id": "creature/cues",
       "group": "Creature care",
       "title": "Keeper's cues: drawn to the fire, shying from it, unmoved; two at once",
-      "version": "275f5df4",
+      "version": "5432c7c2",
       "kind": "glance",
-      "batch": "2026-11-21-4",
-      "file": "art/creature-cues-275f5df4.svg"
+      "batch": "2026-11-21-6",
+      "file": "art/creature-cues-5432c7c2.svg"
     },
     {
       "id": "creature/linger",
@@ -342,10 +344,10 @@
       "id": "features/care",
       "group": "Creature care",
       "title": "Fires on four tiles and under the veil; berry bushes, picked bare, beside a fire",
-      "version": "606d7f32",
+      "version": "ac1bee48",
       "kind": "glance",
-      "batch": "2026-11-21-4",
-      "file": "art/features-care-606d7f32.svg"
+      "batch": "2026-11-21-6",
+      "file": "art/features-care-ac1bee48.svg"
     },
     {
       "id": "marks/care",
@@ -360,19 +362,19 @@
       "id": "map/care",
       "group": "Creature care",
       "title": "On the map: fires, berries, an underfed creature and two cues",
-      "version": "a9779f87",
+      "version": "949c1846",
       "kind": "glance",
-      "batch": "2026-11-21-4",
-      "file": "art/map-care-a9779f87.svg"
+      "batch": "2026-11-21-6",
+      "file": "art/map-care-949c1846.svg"
     },
     {
       "id": "map/care-lite",
       "group": "Creature care",
       "title": "The same in lite mode",
-      "version": "c69ea432",
+      "version": "b416d965",
       "kind": "glance",
-      "batch": "2026-11-21-4",
-      "file": "art/map-care-lite-c69ea432.svg"
+      "batch": "2026-11-21-6",
+      "file": "art/map-care-lite-b416d965.svg"
     },
     {
       "id": "features/veil",
@@ -414,19 +416,19 @@
       "id": "season/map-phone",
       "group": "Season",
       "title": "The season on a phone: threats, a village, an escort, a defender, peril 4 (full, then lite)",
-      "version": "56f66d4c",
+      "version": "e389003f",
       "kind": "glance",
-      "batch": "2026-11-21-4",
-      "file": "art/season-map-phone-56f66d4c.svg"
+      "batch": "2026-11-21-6",
+      "file": "art/season-map-phone-e389003f.svg"
     },
     {
       "id": "season/map-desktop",
       "group": "Season",
       "title": "The same at desktop scale",
-      "version": "d0f2f3a7",
+      "version": "564dd2e1",
       "kind": "glance",
-      "batch": "2026-11-21-4",
-      "file": "art/season-map-desktop-d0f2f3a7.svg"
+      "batch": "2026-11-21-6",
+      "file": "art/season-map-desktop-564dd2e1.svg"
     },
     {
       "id": "season/threats",
@@ -441,10 +443,10 @@
       "id": "season/settlements",
       "group": "Season",
       "title": "Hill folk: wary with favour 0, 1, 2 (under the veil), friendly, angry, angry with its raiders",
-      "version": "7968061d",
+      "version": "18c235a0",
       "kind": "glance",
-      "batch": "2026-11-21-4",
-      "file": "art/season-settlements-7968061d.svg"
+      "batch": "2026-11-21-6",
+      "file": "art/season-settlements-18c235a0.svg"
     },
     {
       "id": "season/escort",
@@ -459,19 +461,19 @@
       "id": "season/icons",
       "group": "Season",
       "title": "Strike, defend, parley, offer; gift, mislead, shelter; parley at risk; card icons and status marks",
-      "version": "1cc50a31",
+      "version": "ce129fa0",
       "kind": "glance",
-      "batch": "2026-11-21-1",
-      "file": "art/season-icons-1cc50a31.svg"
+      "batch": "2026-11-21-6",
+      "file": "art/season-icons-ce129fa0.svg"
     },
     {
       "id": "season/hud",
       "group": "Season",
       "title": "Peril gauge 0 to 10 and the route strip at phone and desktop widths; the vignette at peril 3, 6, 9",
-      "version": "36e69fdc",
+      "version": "cf289f50",
       "kind": "glance",
-      "batch": "2026-11-21-4",
-      "file": "art/season-hud-36e69fdc.svg"
+      "batch": "2026-11-21-6",
+      "file": "art/season-hud-cf289f50.svg"
     },
     {
       "id": "season/moments",
@@ -512,11 +514,11 @@
     {
       "id": "feedback/phone-features",
       "group": "Playtest feedback",
-      "title": "At phone zoom: features on plinths (fieldstones, outcrop, deadfall, river stones, iron, picked berries, snare, logs, a village) beside plain props; two explored-empty hexes (full, then lite)",
-      "version": "365976c5",
+      "title": "At phone zoom: tall features on ground shadows (fieldstones, outcrop, deadfall, river stones, iron, picked berries, snare, logs, a village) beside plain props; two explored-empty hexes (full, then lite)",
+      "version": "eef0fa97",
       "kind": "glance",
-      "batch": "2026-11-21-4",
-      "file": "art/feedback-phone-features-365976c5.svg"
+      "batch": "2026-11-21-6",
+      "file": "art/feedback-phone-features-eef0fa97.svg"
     },
     {
       "id": "feedback/marks",
@@ -531,28 +533,28 @@
       "id": "variety/map",
       "group": "More content",
       "title": "Sunken shrine (ready, spent), undertow and river stones on rivers; an ambush in the forest, a stampede on the plains; river folk wary, friendly and angry beside hill folk; a desert, a swamp and a swamp with a sunken shrine",
-      "version": "f9199969",
+      "version": "e4e6ecac",
       "kind": "glance",
-      "batch": "2026-11-21-4",
-      "file": "art/variety-map-f9199969.svg"
+      "batch": "2026-11-21-6",
+      "file": "art/variety-map-e4e6ecac.svg"
     },
     {
       "id": "variety/icons",
       "group": "More content",
       "title": "River pearl; marsh boards (and done) with their path mark; ambush and stampede cards; river folk cards in each attitude",
-      "version": "d819533f",
+      "version": "d88dfbc2",
       "kind": "glance",
-      "batch": "2026-11-21-2",
-      "file": "art/variety-icons-d819533f.svg"
+      "batch": "2026-11-21-6",
+      "file": "art/variety-icons-d88dfbc2.svg"
     },
     {
       "id": "features/danger",
       "group": "Features",
-      "title": "Features on raised plinths: finds and sites calm, live traps with the coral danger cue, defused traps muted",
-      "version": "b546bc98",
+      "title": "Features drawn tall, rising above the tile with a ground shadow, no platform: finds and sites calm, live traps with the coral danger cue, defused traps muted",
+      "version": "0c4f2dcb",
       "kind": "glance",
-      "batch": "2026-11-21-4",
-      "file": "art/features-danger-b546bc98.svg"
+      "batch": "2026-11-21-6",
+      "file": "art/features-danger-0c4f2dcb.svg"
     },
     {
       "id": "map/telegraph",
@@ -562,6 +564,15 @@
       "kind": "glance",
       "batch": "2026-11-21-4",
       "file": "art/map-telegraph-626a9fa8.svg"
+    },
+    {
+      "id": "features/tall",
+      "group": "Features",
+      "title": "Tall features that rise above their tiles, no platform: iron, timber, tombs, outcrop, shrine, berries, stones, fieldstones, deadfall, villages, a fire and a snare, with characters standing in front",
+      "version": "fc1ad4aa",
+      "kind": "glance",
+      "batch": "2026-11-21-6",
+      "file": "art/features-tall-fc1ad4aa.svg"
     }
   ]
 }

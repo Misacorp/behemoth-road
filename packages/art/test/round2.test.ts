@@ -4,7 +4,8 @@ import { drawIcon } from '../src/icons.ts';
 import { GENTLE_AMBLER } from '../src/creature.ts';
 import { MORNING, paletteColours, SPRING } from '../src/palette.ts';
 import { DIRECTIONS, hexCenter, hexCorners, isometric } from '../src/projection.ts';
-import { renderScene } from '../src/scene.ts';
+import { ART_TUNING } from '../src/config.ts';
+import { renderScene, renderSceneFramed } from '../src/scene.ts';
 import { toSvgString, walk, type SvgNode } from '../src/svg.ts';
 import type { ArtCell } from '../src/tile.ts';
 
@@ -101,45 +102,102 @@ const countNodes = (n: SvgNode): number => {
   return c;
 };
 
-describe('features standing on plinths', () => {
+describe('features rising from the ground', () => {
   const one = (feature: NonNullable<ArtCell['feature']>): SvgNode =>
     scene([{ q: 0, r: 0, terrain: 'plains', feature }], { effects: 'lite' });
 
   it('give every live trap one shared danger cue, and nodes and sites none', () => {
     for (const look of ['snare', 'pitfall', 'undertow']) {
       const svg = one({ look });
-      expect(count(svg, 'data-plinth', 'teeth'), look).toBe(1);
+      expect(count(svg, 'data-footing', 'teeth'), look).toBe(1);
       expect(count(svg, 'data-mark', 'danger'), look).toBe(1);
     }
     // Any trap the content says is one, whatever its look.
     expect(count(one({ look: 'brand-new-trap', trap: true }), 'data-mark', 'danger')).toBe(1);
     for (const look of ['ore', 'berries', 'tomb', 'deep-tomb', 'shrine']) {
       const svg = one({ look });
-      expect(count(svg, 'data-plinth', 'teeth'), look).toBe(0);
+      expect(count(svg, 'data-footing', 'teeth'), look).toBe(0);
       expect(count(svg, 'data-mark', 'danger'), look).toBe(0);
     }
   });
 
   it('mutes the cue once the trap is harmless: teeth flat and grey, no pennant', () => {
     const svg = one({ look: 'snare', state: 'spent' });
-    expect(count(svg, 'data-plinth', 'teeth')).toBe(1);
+    expect(count(svg, 'data-footing', 'teeth')).toBe(1);
     expect(count(svg, 'data-mark', 'danger')).toBe(0);
-    expect(find(svg, 'data-plinth', 'teeth')!.attrs.fill).not.toBe(SPRING.accents.coral.base);
+    expect(find(svg, 'data-footing', 'teeth')!.attrs.fill).not.toBe(SPRING.accents.coral.base);
   });
 
-  it('keeps a tomb plinth behind its door, never in front of it like a mat', () => {
-    // The wall's path starts at the disc's centre line: a tomb's sits further back than a plain plinth's.
-    const centre = (look: string): number =>
-      Number(
-        /^M[-\d.]+ ([-\d.]+)/.exec(String(find(one({ look }), 'data-plinth', 'wall')!.attrs.d))![1],
-      );
-    expect(centre('tomb')).toBeLessThan(centre('ore') - 10);
-    expect(centre('deep-tomb')).toBeLessThan(centre('ore') - 10);
+  const framedOf = (cell: Partial<ArtCell>, extra: Record<string, unknown> = {}) =>
+    renderSceneFramed({
+      cells: [{ q: 0, r: 0, terrain: 'plains', ...cell }],
+      projection: p,
+      palette: SPRING,
+      seed: 'r2',
+      effects: 'lite',
+      ...extra,
+    });
+  const tileTop = Math.min(...hexCorners(p, hexCenter(p, 0, 0)).map((c) => c.y));
+  const pad = ART_TUNING.padding * p.size;
+  // The frame is the drawing's box plus padding: where the drawing's own top is.
+  const drawnTop = (cell: Partial<ArtCell>): number => framedOf(cell).viewBox.y + pad;
+
+  it('has no raised platform: a soft footing only, and every look rises above the tile top', () => {
+    for (const look of [
+      'ore',
+      'tomb',
+      'deep-tomb',
+      'logs',
+      'shrine',
+      'berries',
+      'outcrop',
+      'stones',
+      'fieldstones',
+      'deadfall',
+      'snare',
+    ]) {
+      const svg = one({ look });
+      for (const part of ['wall', 'disc', 'rim', 'lip'])
+        expect(count(svg, 'data-footing', part), look).toBe(0);
+      expect(count(svg, 'data-footing', 'shadow'), look).toBe(1);
+      // Intended overflow: the drawing reaches clear above the tile's top edge.
+      expect(drawnTop({ feature: { look } }), look).toBeLessThan(tileTop - 0.2 * p.size);
+    }
   });
 
-  it('rises: a feature draws taller than the old scale and its plinth has a wall', () => {
-    const svg = one({ look: 'ore' });
-    expect(count(svg, 'data-plinth', 'wall')).toBe(1);
+  it('draws tall looks taller than short ones, and settlements and fires above their tile too', () => {
+    expect(drawnTop({ feature: { look: 'ore' } })).toBeLessThan(
+      drawnTop({ feature: { look: 'stones' } }),
+    );
+    expect(drawnTop({ settlement: { look: 'hill-folk', attitude: 'wary' } })).toBeLessThan(tileTop);
+    expect(drawnTop({ fire: true })).toBeLessThan(tileTop);
+  });
+
+  it('draws the tile behind first and the tile in front later, so a tall feature never covers it', () => {
+    const front = DIRECTIONS[1]!;
+    const svg = scene(
+      [
+        { q: front.q, r: front.r, terrain: 'plains', feature: { look: 'tomb' } },
+        { q: 0, r: 0, terrain: 'plains', feature: { look: 'ore' } },
+      ],
+      { effects: 'lite' },
+    );
+    const ys: number[] = [];
+    walk(svg, (n) => {
+      if (n.attrs['data-footing'] === 'shadow')
+        ys.push(Number(/ ([-\d.]+)/.exec(String(n.attrs.d))![1]));
+    });
+    expect(ys).toHaveLength(2);
+    expect(ys[0]!).toBeLessThan(ys[1]!);
+  });
+
+  it('keeps a character standing on the tile in front of its tall feature', () => {
+    const framed = framedOf(
+      { feature: { look: 'ore' } },
+      { characters: [{ id: 'a', q: 0, r: 0, accent: 'rose' }] },
+    );
+    const feet = framed.figures.get('a')!;
+    expect(feet.y).toBeGreaterThan(hexCenter(p, 0, 0).y);
   });
 });
 

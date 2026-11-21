@@ -37,11 +37,11 @@ const scene = (cells: ArtCell[], effects?: 'lite') =>
     cells,
     projection: isometric(),
     palette: SPRING,
-    seed: 'plinth',
+    seed: 'footing',
     ...(effects ? { effects } : {}),
   });
 
-describe('feature plinths', () => {
+describe('feature footings', () => {
   it('stand under every feature and settlement, never under plain props, in full and lite', () => {
     for (const effects of [undefined, 'lite'] as const) {
       const props = scene(
@@ -51,7 +51,7 @@ describe('feature plinths', () => {
         ],
         effects,
       );
-      expect(count(props, 'data-plinth', 'rim')).toBe(0);
+      expect(count(props, 'data-footing', 'shadow')).toBe(0);
       const features = scene(
         [
           { q: 0, r: 0, terrain: 'plains', feature: { look: 'fieldstones' } },
@@ -61,8 +61,8 @@ describe('feature plinths', () => {
         ],
         effects,
       );
-      expect(count(features, 'data-plinth', 'rim')).toBe(4);
-      expect(count(features, 'data-plinth', 'disc')).toBe(4);
+      expect(count(features, 'data-footing', 'shadow')).toBe(4);
+      expect(count(features, 'data-footing', 'disc')).toBe(0);
       within(features);
     }
   });
@@ -71,7 +71,7 @@ describe('feature plinths', () => {
     const veiled = scene([
       { q: 0, r: 0, terrain: 'plains', state: 'unexplored', feature: { look: 'ore' } },
     ]);
-    expect(count(veiled, 'data-plinth', 'rim')).toBe(0);
+    expect(count(veiled, 'data-footing', 'shadow')).toBe(0);
   });
 });
 
