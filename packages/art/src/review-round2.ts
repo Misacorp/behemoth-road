@@ -41,7 +41,7 @@ function dangerSheet(): string {
     })),
   );
   return toSvgString(
-    renderScene({ cells, projection: isometric(80), palette: SPRING, seed: 'round2-danger' }),
+    renderScene({ cells, projection: isometric(56), palette: SPRING, seed: 'round2-danger' }),
   );
 }
 
@@ -61,7 +61,7 @@ function telegraphSheet(): string {
     renderScene({
       cells,
       creature: { q: 0, r: 0, heading: DIRECTIONS[0]!, look: GENTLE_AMBLER, defenders: 2 },
-      projection: isometric(64),
+      projection: isometric(58),
       palette: SPRING,
       seed: 'round2-telegraph',
     }),

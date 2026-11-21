@@ -547,19 +547,19 @@
       "id": "features/danger",
       "group": "Features",
       "title": "Features on raised plinths: finds and sites calm, live traps with the coral danger cue, defused traps muted",
-      "version": "58d5c6af",
+      "version": "b546bc98",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/features-danger-58d5c6af.svg"
+      "file": "art/features-danger-b546bc98.svg"
     },
     {
       "id": "map/telegraph",
       "group": "Creature care",
       "title": "Trodden ground that keeps cliffs and river readable, the defended ring and shields, the darker unexplored veil",
-      "version": "2528399d",
+      "version": "626a9fa8",
       "kind": "glance",
       "batch": "2026-11-21-2",
-      "file": "art/map-telegraph-2528399d.svg"
+      "file": "art/map-telegraph-626a9fa8.svg"
     }
   ]
 }
