@@ -164,10 +164,11 @@ export class FakeServer {
 
 /** Starts the Vite dev server on a free port and resolves with its URL. */
 export function startVite() {
+  const port = String(process.env.FAKE_GAME_PORT ?? 5199);
   return new Promise((ok, fail) => {
     const vite = spawn(
       join(web, 'node_modules/.bin/vite'),
-      ['--port', '5199', '--strictPort', '--host', '127.0.0.1'],
+      ['--port', port, '--strictPort', '--host', '127.0.0.1'],
       {
         cwd: web,
         stdio: ['ignore', 'pipe', 'pipe'],
@@ -177,7 +178,7 @@ export function startVite() {
     const onData = (d) => {
       text += String(d);
       if (/Local:\s+http/.test(text))
-        ok({ url: 'http://127.0.0.1:5199/', stop: () => vite.kill() });
+        ok({ url: `http://127.0.0.1:${port}/`, stop: () => vite.kill() });
     };
     vite.stdout.on('data', onData);
     vite.stderr.on('data', onData);
