@@ -16,7 +16,7 @@ import {
   THREAT_TYPES,
   toPlayerView,
 } from '../src/index.ts';
-import { fieldGame, lingering, placeCharacter, QUIET, withThreat } from './helpers.ts';
+import { fieldGame, lingering, placeCharacter, QUIET, withTerrain, withThreat } from './helpers.ts';
 
 const type = (id: string) => THREAT_TYPES.find((t) => t.id === id)!;
 const kinds = (events: readonly GameEvent[]) => events.map((e) => e.kind);
@@ -178,7 +178,9 @@ describe('a new threat', () => {
     const seen = new Set<string>();
     for (let seed = 1; seed <= 40; seed++) {
       const next = nextDayWithEvents(fieldGame(['a'], ROLL, seed)).state;
-      const t = next.threats[0]!;
+      // An ambush rolled with no forest on the edge brings nothing.
+      const t = next.threats[0];
+      if (!t) continue;
       seen.add(t.type);
       const { centre } = next.creature;
       const d = hexDistance(t.hex, centre);
@@ -190,13 +192,34 @@ describe('a new threat', () => {
       } else {
         expect(d).toBe(next.config.windowRadius);
         const ahead = 2 * (centre.r - t.hex.r) + (centre.q - t.hex.q);
-        if (t.type === 'captors') expect(ahead).toBeLessThan(0);
+        if (t.type === 'captors' || t.type === 'stampede') expect(ahead).toBeLessThan(0);
         if (t.type === 'swarm') expect(ahead).toBeGreaterThan(0);
       }
       expect(terrain.tags).not.toContain('water');
       expect(t.strength).toBe(threatStrength(next, type(t.type), 2));
     }
-    expect([...seen].sort()).toEqual(['captors', 'rockslide', 'swarm']);
+    expect([...seen].sort()).toEqual(['ambush', 'captors', 'rockslide', 'stampede', 'swarm']);
+  });
+
+  it('keeps a threat to the terrain its type names: an ambush in the forest, a stampede on open ground', () => {
+    const forested = (state: GameState): GameState => {
+      let s = state;
+      for (const h of hexesInRange(s.creature.centre, s.config.windowRadius)) {
+        if (h.q % 2 === 0) s = withTerrain(s, h, 'forest');
+      }
+      return s;
+    };
+    const kinds = new Set<string>();
+    for (let seed = 1; seed <= 60; seed++) {
+      const next = nextDayWithEvents(forested(fieldGame(['a'], ROLL, seed))).state;
+      const t = next.threats[0];
+      if (!t) continue;
+      kinds.add(t.type);
+      const tags = terrainOf(next, t.hex)!.tags;
+      if (t.type === 'ambush') expect(tags).toContain('wooded');
+      if (t.type === 'stampede') expect(tags).toContain('open');
+    }
+    expect(kinds.has('ambush') && kinds.has('stampede')).toBe(true);
   });
 
   it('leaves pursuers out while a mislead lasts', () => {

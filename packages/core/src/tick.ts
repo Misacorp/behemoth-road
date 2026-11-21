@@ -194,7 +194,9 @@ const newThreat = (state: GameState): Threat | null => {
   if (types.length === 0) return null;
   const type = pickWeighted(types, (t) => t.weight, hashToUnit(state.seed, THREAT_STREAM, day, 1));
   const side = hashToUnit(state.seed, THREAT_STREAM, day, 2) < 0.5 ? -1 : 1;
-  const hex: Hex | undefined = approachHexes(state, type, side).find((h) => canAppearOn(state, h));
+  const hex: Hex | undefined = approachHexes(state, type, side).find((h) =>
+    canAppearOn(state, h, type),
+  );
   if (!hex) return null;
   return {
     id: `t${day}`,

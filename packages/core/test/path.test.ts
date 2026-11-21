@@ -24,7 +24,7 @@ import {
 import { findSeed, gameAt, nearP, P, withCharacter } from './helpers.ts';
 
 const allPassable = (hexes: readonly Hex[]) => (s: number) =>
-  hexes.every((h) => terrainAt(s, h).passable);
+  hexes.every((h) => terrainAt(s, h).passable && !terrainAt(s, h).tags.includes('dry'));
 
 const keys = (hexes: readonly Hex[]) => hexes.map((h) => `${h.q},${h.r}`);
 
@@ -51,7 +51,10 @@ describe('planPath', () => {
         const h = hexOf(step.place);
         expect(isAdjacent(from, h)).toBe(true);
         expect(isPassable(state, h)).toBe(true);
-        expect(step).toEqual({ place: onHex(h), cost: 1 }); // nothing sets `via` yet
+        expect(step).toEqual({
+          place: onHex(h),
+          cost: terrainAt(seed, h).tags.includes('dry') ? 2 : 1,
+        }); // nothing sets `via` yet
         from = h;
       }
     }
