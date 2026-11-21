@@ -3,6 +3,8 @@
  * Discord name. Pure, so the ordering and the marks are tested at this layer.
  */
 import type { PlayerView } from '../api/schema.ts';
+import type { Flow } from '../map/flow.ts';
+import { IDLE } from '../map/flow.ts';
 
 /** Where a player's character is: not joined, lost to the fog, on the creature's back, or on the map. */
 export type RosterWhere = 'none' | 'lost' | 'riding' | 'map';
@@ -57,4 +59,18 @@ export function rosterRows(view: PlayerView, actionsPerDay: number): RosterRow[]
     };
   });
   return [...rows.filter((r) => r.mine), ...rows.filter((r) => !r.mine).sort(byName)];
+}
+
+/**
+ * A character found from the roster stays pinned only while the roster can still find it (active, in the
+ * view). When it is lost or gone, a card open on it closes and the pin drops.
+ */
+export function keepFound(
+  rows: readonly RosterRow[],
+  flow: Flow,
+  pinned: string | undefined,
+): { readonly flow: Flow; readonly pinned: string | undefined } {
+  if (pinned === undefined) return { flow, pinned };
+  if (rows.some((r) => r.characterId === pinned && r.tappable)) return { flow, pinned };
+  return { flow: flow.kind === 'character' && flow.id === pinned ? IDLE : flow, pinned: undefined };
 }

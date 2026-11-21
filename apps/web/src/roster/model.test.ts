@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { PlayerView } from '../api/schema.ts';
-import { rosterRows } from './model.ts';
+import { IDLE, openCharacter } from '../map/flow.ts';
+import { keepFound, rosterRows } from './model.ts';
 
 interface C {
   id: string;
@@ -96,5 +97,28 @@ describe('roster rows', () => {
       2,
     );
     expect(same.map((r) => r.userId)).toEqual(['u1', 'a', 'b']);
+  });
+});
+
+describe('keeping a found character', () => {
+  const v = view(
+    [pl('u1', 'Wes', 'c1'), pl('u2', 'Ann', 'c2')],
+    [ch('c1', 'u1'), ch('c2', 'u2', { status: 'lost' })],
+  );
+  const rows = rosterRows(v, 2);
+  it('keeps the pin and the card while the character is findable', () => {
+    const f = openCharacter('c1');
+    expect(keepFound(rows, f, 'c1')).toEqual({ flow: f, pinned: 'c1' });
+  });
+  it('closes the card and drops the pin once the character is lost', () => {
+    expect(keepFound(rows, openCharacter('c2'), 'c2')).toEqual({ flow: IDLE, pinned: undefined });
+  });
+  it('drops the pin but keeps another open card when the character left the view', () => {
+    const f = openCharacter('c1');
+    expect(keepFound(rows, f, 'gone')).toEqual({ flow: f, pinned: undefined });
+  });
+  it('does nothing without a pin', () => {
+    const f = openCharacter('c2');
+    expect(keepFound(rows, f, undefined)).toEqual({ flow: f, pinned: undefined });
   });
 });

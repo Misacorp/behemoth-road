@@ -26,7 +26,7 @@ import {
 } from '../map/flow.ts';
 import { type FocusTarget, type Here, MapView } from '../map/MapView.tsx';
 import { Roster } from '../roster/Roster.tsx';
-import { rosterRows, type RosterRow } from '../roster/model.ts';
+import { keepFound, rosterRows, type RosterRow } from '../roster/model.ts';
 import type { Snap } from '../ui/Drawer.tsx';
 import { HubDrawer } from '../hub/HubDrawer.tsx';
 import { DayBanner, DayCountdown, PaceToggle } from '../hud/Pace.tsx';
@@ -86,9 +86,12 @@ export function characterNeed(view: PlayerView): 'none' | 'join' | 'replace' {
 export const halfDrawerCover = (width: number, height: number): number =>
   width >= DESKTOP_FROM ? 0 : Math.min(height * 0.56, 520);
 
-/** How much of the screen the roster's peek covers on a phone (see `.drawer[data-snap='peek']`). */
-export const ROSTER_PEEK_PX = 112;
-export const peekCover = (width: number): number => (width >= DESKTOP_FROM ? 0 : ROSTER_PEEK_PX);
+/** How much of the screen the roster's peek covers on a phone. `peekPx` is the CSS's `--peek-h`, the one source. */
+export const peekCover = (width: number, peekPx: number): number =>
+  width >= DESKTOP_FROM ? 0 : peekPx;
+/** Reads `--peek-h` from the stylesheet (where `.drawer[data-snap='peek']` uses it). */
+const peekHeight = (): number =>
+  parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--peek-h')) || 0;
 
 /** The "next day" control shows only when the server offers dev tools and you are an admin. */
 export const showsNextDay = (view: PlayerView): boolean => view.devTools && view.you.admin;
@@ -373,6 +376,13 @@ export function Game({ api, initial }: GameProps): JSX.Element {
     if (anyDrawer) setRosterOpen(false);
   }, [anyDrawer]);
   const rows = useMemo(() => rosterRows(view, state.config.actionsPerDay), [view, state]);
+  // A found character that is lost or gone: close its card and let go of the map's centre.
+  useEffect(() => {
+    const kept = keepFound(rows, flow, focus.id);
+    if (kept.pinned === focus.id) return;
+    setFlow(kept.flow);
+    setFocus((f) => ({ target: f.target, n: f.n }));
+  }, [rows, flow, focus.id]);
   /** Finds a player's character: centre on it (on the creature if riding) and open its card. */
   const onPickRow = (row: RosterRow): void => {
     if (!row.tappable || row.characterId === null) return;
@@ -445,7 +455,7 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         focus={focus}
         coverBottom={
           rosterShown && rosterSnap === 'peek'
-            ? peekCover(window.innerWidth)
+            ? peekCover(window.innerWidth, peekHeight())
             : anyDrawer || (rosterShown && rosterSnap !== 'peek')
               ? halfDrawerCover(window.innerWidth, window.innerHeight)
               : 0

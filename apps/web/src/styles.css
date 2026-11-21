@@ -18,6 +18,8 @@
   --gutter: max(var(--space-3), var(--safe-left));
   --gutter-right: max(var(--space-3), var(--safe-right));
   --round: 52px;
+  /* The roster drawer's peek height; the game reads it from here for the map's bottom cover. */
+  --peek-h: 112px;
 }
 
 html,
@@ -464,7 +466,7 @@ button svg,
 }
 
 .drawer[data-snap='peek'] {
-  height: var(--peek-h, 112px);
+  height: var(--peek-h);
 }
 
 .drawer[data-snap='full'] {
