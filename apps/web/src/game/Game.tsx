@@ -18,6 +18,7 @@ import {
   IDLE,
   isSelecting,
   keyDown,
+  goBack,
   openCharacter,
   openHub,
   rightClick,
@@ -391,7 +392,13 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         step={step}
         onConfirm={onConfirm}
         onOpenHub={() => setFlow(openHub())}
-        onCharacter={(other) => setFlow(openCharacter(other))}
+        onCharacter={(other) =>
+          // From the bubble (or the hub it marks), the card continues in that same popup, with a back.
+          setFlow((f) =>
+            openCharacter(other, f.kind === 'bubble' || f.kind === 'creature' ? f : undefined),
+          )
+        }
+        onBack={() => setFlow(goBack)}
         onRightClick={() => setFlow((f) => rightClick(f, getSettings()))}
         focus={focus}
         coverBottom={anyDrawer ? halfDrawerCover(window.innerWidth, window.innerHeight) : 0}

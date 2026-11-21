@@ -113,6 +113,7 @@ export {
 } from './marks.ts';
 export { drawPackIcon, drawStoresIcon, drawUnlockSeal, drawWorkBar } from './team-marks.ts';
 export { drawRiskMark } from './team-marks.ts';
+export { actionArrowNodes, drawActionArrow, type ActionArrowState } from './team-marks.ts';
 export {
   approachArrow,
   drawThreat,

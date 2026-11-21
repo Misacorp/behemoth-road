@@ -9,6 +9,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import {
   chevronFor,
+  trailClear,
   overlaps,
   placeClear,
   placePopover,
@@ -192,5 +193,24 @@ describe('a card on your own hex', () => {
     const hex = around({ x: 100, y: 100 })[0]!;
     expect(overlaps({ x: 90, y: 90, width: 20, height: 20 }, hex)).toBe(true);
     expect(overlaps({ x: 200, y: 200, width: 20, height: 20 }, hex)).toBe(false);
+  });
+});
+
+describe('trailClear', () => {
+  const at = { q: 0, r: 0 };
+  const path = [
+    { q: 0, r: -1 },
+    { q: 0, r: -2 },
+  ];
+  it("keeps a threat's own hex first, then any others, then its trail, each once", () => {
+    expect(trailClear(at, path)).toEqual({ clear: [at, ...path] });
+    const others = [at, { q: 1, r: -1 }, { q: 0, r: -1 }];
+    expect(trailClear(at, path, others)).toEqual({
+      clear: [at, { q: 1, r: -1 }, { q: 0, r: -1 }, { q: 0, r: -2 }],
+    });
+  });
+  it('changes nothing for a threat that does not move', () => {
+    expect(trailClear(at, [])).toEqual({});
+    expect(trailClear(at, [], [at])).toEqual({ clear: [at] });
   });
 });

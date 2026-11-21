@@ -114,6 +114,17 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-20 Icons that are not buttons show their tip on a tap \[Misa\]
+- 2026-11-20 Verb labels under actions are on by default \[Misa\]
+- 2026-11-20 The map is framed between the top HUD and the pips; the first view looks ahead of the creature
+- 2026-11-20 Threats grow stronger every 14 days, not 10
+- 2026-11-20 A seeded balance simulation with scripted careful and careless parties
+- 2026-11-20 Threat pacing numbers: window 6, rockslide 5 ahead, raiders speed 1 (amended)
+- 2026-11-20 A threat's card draws its next-tick path as an ink trail and its distance as action arrows
+- 2026-11-20 Following the popup rule: a rider's card inside the bubble, the hub beside it, the pack as passing help
+- 2026-11-20 Threats are telegraphed: a wider window, slower varied speeds and a shown path \[Misa\] (amended)
+- 2026-11-20 Action costs are drawn as arrows, not coloured dots; verb labels are a switch to try \[Misa\] (amended)
+- 2026-11-20 Only passing help may cover a popup; interactions continue inside it or in a drawer \[Misa\] (amended)
 - 2026-11-20 One tip controller for HTML, the map's cards and the map itself
 - 2026-11-20 Every icon has a short tip on hover or press-and-hold, with text in one file \[Misa\] (amended)
 - 2026-11-20 The ending's scene is drawn above a strip reserved for its summary
@@ -131,7 +142,7 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-20 A tap on a threat opens its card, even while selected
 - 2026-11-20 Milestone 5 art: threats, settlements and the guardian's marks are drawn by the art kit from content keys
 - 2026-11-20 Milestone 5 core: readings of the season contract
-- 2026-11-20 Threats are tagged data that appear at the window's edge and walk in openly
+- 2026-11-20 Threats are tagged data that appear at the window's edge and walk in openly (amended)
 - 2026-11-20 Guardians strike, defend and escort; anyone can strike a threat
 - 2026-11-20 Settlements appear on the route; parley or offer to befriend, or anger them
 - 2026-11-20 Peril is a public track; the season ends at home or at full peril
@@ -207,7 +218,7 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-19 Phone first, desktop too
 - 2026-11-19 Accessibility is not traded away (amended)
 - 2026-11-19 Focus returns to the opener only for keyboard users
-- 2026-11-19 One overlay at a time
+- 2026-11-19 One overlay at a time (amended)
 - 2026-11-19 Don't choose for the user; destructive actions go last
 - 2026-11-19 Every clickable thing looks clickable, without hover
 - 2026-11-19 Hidden overflow gets a hint

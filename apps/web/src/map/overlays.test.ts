@@ -1,4 +1,4 @@
-import { MORNING, paletteColours, walk, type SvgNode } from '@behemoth-road/art';
+import { hexCenter, MORNING, paletteColours, walk, type SvgNode } from '@behemoth-road/art';
 import {
   createGame,
   findCharacter,
@@ -18,8 +18,9 @@ import { type SeasonStage, seasonScenario, USERS } from '../api/fixtures.ts';
 import { PROJECTION } from './art.ts';
 import { characterArts, sceneCells } from './cells.ts';
 import { placePoint } from './figures.ts';
-import type { Flow } from './flow.ts';
-import { buildOverlays } from './overlays.ts';
+import { threatNextPath } from '../game/season.ts';
+import { type Flow, IDLE } from './flow.ts';
+import { buildOverlays, threatTrail } from './overlays.ts';
 import { toPreact } from './svgToPreact.ts';
 
 const ID = 'you';
@@ -78,8 +79,12 @@ describe('overlays', () => {
     expect(overlays(state, { kind: 'idle' }).over).toHaveLength(0);
     const idleUnder = overlays(state, { kind: 'idle' }).under.length;
     expect(overlays(state, { kind: 'selected' }).under.length).toBeGreaterThan(idleUnder);
-    // Arrow line, head, and one pip per action.
-    expect(overlays(state, planned).over).toHaveLength(2 + plan.cost);
+    // The arrow (two strokes), then each stretch's cost: a paper strip and one action arrow per action.
+    const over = overlays(state, planned).over;
+    const strips = over.filter((n) => n.attrs['data-mark'] === 'cost').length;
+    expect(strips).toBeGreaterThan(0);
+    expect(over.filter((n) => n.attrs['data-arrow'] === 'ready')).toHaveLength(plan.cost);
+    expect(over).toHaveLength(2 + strips + plan.cost);
   });
 
   it('hint one paw print per likely creature step', () => {
@@ -133,7 +138,7 @@ describe('overlays', () => {
     const steps = plan.steps.map((st, n) => (n === 0 ? { ...st, via: 'grappling-hook' } : st));
     const o = overlays(state, { kind: 'planned', to: onHex(to), steps, cost: plan.cost });
     const marks = o.over.flatMap((n) => (n.attrs['data-mark'] ? [n.attrs['data-mark']] : []));
-    expect(marks).toEqual(['via:grappling-hook']);
+    expect(marks.filter((m) => m !== 'cost')).toEqual(['via:grappling-hook']);
     for (const n of o.over) expect(() => toPreact(n)).not.toThrow();
   });
 });
@@ -216,6 +221,49 @@ describe('Milestone 5 on the map', () => {
       struck: true,
     });
     expect(characterArts(struck(view.day - 1)).find((f) => f.id === id)?.marks).toBeUndefined();
+  });
+
+  it("draws an open threat card's next-tick trail with its end ringed, and nothing once it closes", () => {
+    const { view, id } = season({ threats: [{ type: 'captors', at: { q: 0, r: 5 } }] });
+    const threat = view.threats[0]!;
+    const path = threatNextPath(view, threat.id);
+    expect(path.length).toBeGreaterThan(0);
+    const draw = (flow: Flow) =>
+      buildOverlays({
+        state: view,
+        flow,
+        characterId: id,
+        reachable: [],
+        predicted: predictCreature(view),
+        projection: PROJECTION,
+        palette: MORNING,
+      }).over.map((m) => m.attrs['data-mark']);
+    const open = draw({ kind: 'threat', id: threat.id });
+    expect(open.filter((m) => m === 'threat-trail')).toHaveLength(2);
+    expect(open.filter((m) => m === 'threat-end')).toHaveLength(1);
+    const end = path.at(-1)!;
+    const ring = threatTrail(
+      {
+        state: view,
+        flow: IDLE,
+        characterId: id,
+        reachable: [],
+        predicted: [],
+        projection: PROJECTION,
+        palette: MORNING,
+      },
+      threat.id,
+    )[0]!;
+    const c = hexCenter(PROJECTION, end.q, end.r);
+    const xs = String(ring.attrs.d)
+      .match(/-?[\d.]+/g)!
+      .map(Number);
+    const cx = xs.filter((_, j) => j % 2 === 0).reduce((a, b) => a + b, 0) / (xs.length / 2);
+    expect(cx).toBeCloseTo(c.x, 0);
+    for (const flow of [IDLE, { kind: 'threat', id: 'gone' } as Flow]) {
+      const closed = draw(flow);
+      expect(closed.some((m) => m === 'threat-trail' || m === 'threat-end')).toBe(false);
+    }
   });
 
   it('badges a threat you could strike and a settlement beside you with what it offers', () => {

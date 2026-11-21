@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { delays, holdMs } from '../text/tips.ts';
+import { delays, holdMs, stayMs } from '../text/tips.ts';
 import { delayOf, HOLD_SLOP, type OpenTip, TipController, tipFor } from './tip.ts';
 
 /** A controller on fake timers: `advance(ms)` runs what is due. */
@@ -77,7 +77,7 @@ describe('tips', () => {
     expect(c.open?.id).toBe('role:keeper');
   });
 
-  it('open on a touch hold, close on lifting, and swallow the click that follows', () => {
+  it("open on a touch hold, stay after lifting, and swallow only that button's next click", () => {
     const { c, advance } = setup();
     const button = thing();
     c.press('action:survey', button.target, 0, 0);
@@ -86,11 +86,16 @@ describe('tips', () => {
     advance(1);
     expect(c.open?.id).toBe('action:survey');
     expect(c.release()).toBe(true);
-    expect(c.open).toBeNull();
     // Only that button's own click is swallowed, once.
     expect(c.takeClick({})).toBe(false);
     expect(c.takeClick(button.self)).toBe(true);
     expect(c.takeClick(button.self)).toBe(false);
+    // It stays to be read after the finger lifts, then goes by itself.
+    expect(c.open?.id).toBe('action:survey');
+    advance(stayMs - 1);
+    expect(c.open?.id).toBe('action:survey');
+    advance(1);
+    expect(c.open).toBeNull();
   });
 
   it('a short tap is a tap: no tip, and its click goes through', () => {
@@ -124,6 +129,15 @@ describe('tips', () => {
     expect(c.open).toBeNull();
   });
 
+  it('a tapped tip stays for stayMs, then goes by itself', () => {
+    const { c, advance } = setup();
+    c.tap('hud:day', at);
+    advance(stayMs - 1);
+    expect(c.open?.id).toBe('hud:day');
+    advance(2);
+    expect(c.open).toBeNull();
+  });
+
   it('name content by kind and id, and nothing for an id the text file lacks', () => {
     expect(tipFor('role', 'scout')).toBe('role:scout');
     expect(tipFor('role', 'pirate')).toBeNull();
@@ -150,6 +164,7 @@ describe('tips', () => {
     advance(holdMs);
     c.close();
     expect(c.release()).toBe(true);
+    expect(c.open).toBeNull();
     expect(c.takeClick(button.self)).toBe(true);
   });
 
@@ -166,5 +181,26 @@ describe('tips', () => {
     expect(c.open?.alive()).toBe(true);
     other.state.gone = true;
     expect(c.open?.alive()).toBe(false);
+  });
+
+  it("a tap elsewhere closes a stay-open tip and still acts (only the held thing's click is swallowed)", () => {
+    const { c, advance } = setup();
+    const held = thing();
+    const elsewhere = thing();
+    c.press('action:survey', held.target, 0, 0);
+    advance(holdMs);
+    expect(c.release()).toBe(true);
+    expect(c.open?.id).toBe('action:survey');
+    // The tap elsewhere: its press closes the tip (the tip layer does this)...
+    c.close();
+    expect(c.open).toBeNull();
+    // ...and its click is not swallowed, so it acts.
+    expect(c.takeClick(elsewhere.self)).toBe(false);
+    // Only the held thing's own click, once, is still swallowed.
+    expect(c.takeClick(held.self)).toBe(true);
+    expect(c.takeClick(held.self)).toBe(false);
+    // The stay timer died with the tip: nothing closes or reopens later.
+    advance(stayMs);
+    expect(c.open).toBeNull();
   });
 });

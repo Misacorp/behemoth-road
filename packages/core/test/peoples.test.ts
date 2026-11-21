@@ -238,7 +238,7 @@ describe('settlements on the route', () => {
       state = nextDay(state);
       kept.push(state.settlements.length);
     }
-    // Walking north from the origin, (0, 3) leaves the window at the third step and is lost a day later.
-    expect(kept.slice(0, 5)).toEqual([1, 1, 1, 0, 0]);
+    // Walking north from the origin, (0, 3) leaves the window at the fourth step and is lost a day later.
+    expect(kept.slice(0, 5)).toEqual([1, 1, 1, 1, 0]);
   });
 });

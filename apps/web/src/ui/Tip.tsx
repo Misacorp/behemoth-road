@@ -1,11 +1,14 @@
 /**
- * Tips on icons: `useTip(id)` gives the props to spread on any icon or control (HTML or SVG), and
- * `<TipLayer />` (rendered once, at the root) draws the one open tip: its title (the content name unless the
- * text file gives one) and a line or two of text, placed like the map's popovers, beside the thing and never
- * over it, with the same chevron. The texts live in `text/tips.ts`.
+ * Tips on icons: `tipProps(id)` (in `press.ts`, with every press, hold, tap and hover rule) marks any icon or
+ * control (HTML or SVG) with `data-tip`, and `<TipLayer />` (rendered once, at the root) starts the
+ * document listeners and draws the one open tip: its title (the content name unless the text file gives
+ * one) and a line or two of text, placed like the map's popovers, beside the thing and never over it, with
+ * the same chevron. The texts live in `text/tips.ts`.
  */
+import { TIPS, watchPress } from './press.ts';
 import {
   DEFAULT_CONFIG,
+  FEATURE_TYPES,
   MATERIALS,
   PEOPLE_TYPES,
   THREAT_TYPES,
@@ -19,13 +22,7 @@ import { fillTip, tipValues } from '../text/tipValues.ts';
 import { chevronFor, placePopover } from '../map/compose.ts';
 import { setCssTransform } from '../map/cssTransform.ts';
 import { contentName } from './emblems.tsx';
-import { type OpenTip, TipController, type TipTarget } from './tip.ts';
-
-/** The app's one tip controller. */
-export const TIPS = new TipController({
-  setTimeout: (fn, ms) => window.setTimeout(fn, ms),
-  clearTimeout: (h) => window.clearTimeout(h),
-});
+import type { OpenTip } from './tip.ts';
 
 /** The numbers tips show, from the game's tuning (the defaults until a game is loaded). */
 let values = tipValues(DEFAULT_CONFIG);
@@ -36,19 +33,6 @@ export function setTipConfig(config: TuningConfig): void {
   if (config === valuesFor) return;
   valuesFor = config;
   values = tipValues(config);
-}
-
-/** A tip's target for an element: its rectangle while it is in the page, and its own clicks. */
-export function elementTarget(el: Element): TipTarget {
-  return {
-    rect: () => {
-      if (!el.isConnected) return null;
-      const r = el.getBoundingClientRect();
-      return { x: r.left, y: r.top, width: r.width, height: r.height };
-    },
-    alive: () => el.isConnected,
-    owns: (t) => t instanceof Node && el.contains(t),
-  };
 }
 
 /** A tip's title: the one in the text file, else the content's own name, else the id. */
@@ -66,47 +50,10 @@ export function titleOf(id: TipId): string {
           ? THREAT_TYPES
           : kind === 'people'
             ? PEOPLE_TYPES
-            : [];
+            : kind === 'feature'
+              ? FEATURE_TYPES
+              : [];
   return named.find((x) => x.id === key)?.name ?? key;
-}
-
-export interface TipProps {
-  readonly 'data-tip'?: string;
-  readonly onPointerEnter?: (e: PointerEvent) => void;
-  readonly onPointerLeave?: (e: PointerEvent) => void;
-  readonly onPointerDown?: (e: PointerEvent) => void;
-  readonly onPointerMove?: (e: PointerEvent) => void;
-  readonly onPointerUp?: (e: PointerEvent) => void;
-  readonly onPointerCancel?: (e: PointerEvent) => void;
-}
-
-/** The props that give an icon or control its tip (nothing for a null id). */
-export function tipProps(id: TipId | null): TipProps {
-  if (id === null) return {};
-  return {
-    'data-tip': id,
-    onPointerEnter: (e) => {
-      if (e.pointerType !== 'mouse') return;
-      // The element now: by the time the delay ends, the event no longer has its current target.
-      TIPS.hover(id, elementTarget(e.currentTarget as Element));
-    },
-    onPointerLeave: (e) => {
-      if (e.pointerType === 'mouse') TIPS.unhover(id);
-    },
-    onPointerDown: (e) => {
-      if (e.pointerType === 'mouse') return;
-      TIPS.press(id, elementTarget(e.currentTarget as Element), e.clientX, e.clientY);
-    },
-    onPointerMove: (e) => {
-      if (e.pointerType !== 'mouse') TIPS.move(e.clientX, e.clientY);
-    },
-    onPointerUp: (e) => {
-      if (e.pointerType !== 'mouse') TIPS.release();
-    },
-    onPointerCancel: () => {
-      TIPS.release();
-    },
-  };
 }
 
 /** The open tip, drawn once for the whole app. */
@@ -118,40 +65,8 @@ export function TipLayer(): JSX.Element | null {
   const [chevron, setChevron] = useState<{ width: number; height: number } | null>(null);
 
   useEffect(() => {
-    const off = TIPS.subscribe(setOpen);
-    // A click that ends a hold must not act (only that thing's own click).
-    const onClick = (e: MouseEvent): void => {
-      if (TIPS.takeClick(e.target)) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
-    };
-    // Escape closes the tip and goes no further (an open drawer stays open).
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape' && TIPS.open) {
-        TIPS.close();
-        e.stopImmediatePropagation();
-        e.preventDefault();
-      }
-    };
-    // A press anywhere but on a thing with a tip closes it (a tip's own thing manages its press itself).
-    const onDown = (e: PointerEvent): void => {
-      if (!TIPS.open) return;
-      if (e.target instanceof Element && e.target.closest('[data-tip]')) return;
-      TIPS.close();
-    };
-    const onScroll = (): void => TIPS.close();
-    document.addEventListener('click', onClick, true);
-    window.addEventListener('keydown', onKey, true);
-    document.addEventListener('pointerdown', onDown, true);
-    window.addEventListener('wheel', onScroll, { passive: true });
-    return () => {
-      off();
-      document.removeEventListener('click', onClick, true);
-      window.removeEventListener('keydown', onKey, true);
-      document.removeEventListener('pointerdown', onDown, true);
-      window.removeEventListener('wheel', onScroll);
-    };
+    watchPress();
+    return TIPS.subscribe(setOpen);
   }, []);
 
   // Its thing gone (a drawer closed under it): the tip goes too. Checked each frame only while one is open.
@@ -197,6 +112,7 @@ export function TipLayer(): JSX.Element | null {
     <div ref={box} class="tip" role="tooltip" data-tip-open={open.id}>
       <strong class="tip-title">{titleOf(open.id)}</strong>
       <span class="tip-text">{fillTip(tip.text, values)}</span>
+      {typeof open.extra === 'function' && (open.extra as () => JSX.Element)()}
       <svg
         class="tip-chevron"
         aria-hidden="true"

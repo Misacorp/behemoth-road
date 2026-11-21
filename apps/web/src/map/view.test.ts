@@ -114,3 +114,16 @@ describe('layerRaster', () => {
     expect(layerRaster(1, { width: 1000, height: 1000 }, Number.NaN, limits)).toBe(1);
   });
 });
+
+describe('the frame the map is seen in', () => {
+  it('centres a point in a frame below the HUD, not in the whole screen', async () => {
+    const { centreOn, toScreen } = await import('./view.ts');
+    const frame = { x: 0, y: 120, width: 390, height: 600 };
+    const v = centreOn({ x: 50, y: -30 }, 0.8, frame);
+    expect(toScreen(v, { x: 50, y: -30 })).toEqual({ x: 195, y: 420 });
+    // A bare size is a frame at the top left (as before).
+    expect(
+      toScreen(centreOn({ x: 0, y: 0 }, 1, { width: 100, height: 80 }), { x: 0, y: 0 }),
+    ).toEqual({ x: 50, y: 40 });
+  });
+});

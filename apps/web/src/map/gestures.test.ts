@@ -5,6 +5,14 @@ import { toScreen, toWorld, zoomAt, panBy, type View } from './view.ts';
 const at = (x: number, y: number) => ({ x, y });
 
 describe('gesture classification', () => {
+  it('a press held past the hold time is never a tap', () => {
+    const t = new GestureTracker(8, 450);
+    t.down(1, at(100, 100), 1000);
+    expect(t.up(1, at(100, 100), 1451)).toEqual([]);
+    t.down(1, at(100, 100), 2000);
+    expect(t.up(1, at(100, 100), 2300)).toEqual([{ type: 'tap', at: at(100, 100) }]);
+  });
+
   it('a press that does not move is a tap', () => {
     const t = new GestureTracker(8);
     expect(t.down(1, at(100, 100))).toEqual([]);

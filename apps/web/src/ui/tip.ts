@@ -1,10 +1,21 @@
 /**
  * The tip controller: one tip open at a time, for the whole app (HTML controls, the map's SVG cards and the
  * map itself). With a mouse a tip opens after its group's delay and closes on leaving; on a touch screen it
- * opens on press-and-hold and closes on lifting or moving, and the hold never becomes a tap (the click that
- * follows is swallowed). Escape closes it. Timers are injected, so it is tested with fake ones.
+ * opens on press-and-hold and stays after the finger lifts until the next tap anywhere (or `stayMs`); moving
+ * the finger first makes it a drag and closes it, and the hold never becomes a tap (the click that
+ * follows is swallowed, and only the held thing's own click). A tap elsewhere both closes a stay-open tip
+ * and still acts: closing never swallows it. Escape closes it. An icon that is not a button shows its tip on
+ * a single tap (`tap`), and it stays like a held one (`stayMs`). Timers are injected, so it is tested with fake ones.
  */
-import { delays, holdMs, TIP_TABLE, type TipGroup, type TipId, tips } from '../text/tips.ts';
+import {
+  delays,
+  holdMs,
+  stayMs,
+  TIP_TABLE,
+  type TipGroup,
+  type TipId,
+  tips,
+} from '../text/tips.ts';
 
 /** A screen rectangle (CSS px) of the thing a tip is about. */
 export interface TipAnchor {
@@ -19,6 +30,10 @@ export interface OpenTip {
   readonly anchor: TipAnchor;
   /** Whether the thing is still on screen (a drawer closing removes it): the tip closes when it is not. */
   readonly alive: () => boolean;
+  /** Opened by a tap (not a hover or hold): leaving the thing with the mouse does not close it. */
+  readonly tapped: boolean;
+  /** More to show under the text (the pack's contents), drawn by the tip layer. */
+  readonly extra?: unknown;
 }
 
 /**
@@ -52,6 +67,8 @@ const GROUP_BY_PREFIX: Readonly<Record<string, TipGroup>> = {
   unlock: 'content',
   boon: 'content',
   people: 'content',
+  terrain: 'content',
+  feature: 'content',
   threat: 'map',
   settlement: 'map',
   map: 'map',
@@ -81,6 +98,8 @@ export class TipController {
   /** After a hold: the thing whose next click is swallowed, until the timer clears it. */
   private swallowFor: TipTarget | null = null;
   private swallowTimer: number | null = null;
+  /** A held tip stays after the finger lifts, until this closes it (or a tap does sooner). */
+  private stayTimer: number | null = null;
   private readonly listeners = new Set<(open: OpenTip | null) => void>();
 
   constructor(private readonly clock: TipClock) {}
@@ -104,7 +123,7 @@ export class TipController {
   /** The mouse left `id`. */
   unhover(id: TipId): void {
     this.cancel();
-    if (this.current?.id === id && this.hold === null) this.close();
+    if (this.current?.id === id && !this.current.tapped && this.hold === null) this.close();
   }
 
   /** A finger (or pen) went down on `id` at (x, y): its tip opens if it is held. */
@@ -142,7 +161,13 @@ export class TipController {
     this.cancel();
     const held = this.wasHold;
     this.wasHold = false;
-    if (held) this.close();
+    // A held tip stays to be read once the finger is off it; the next tap anywhere, or the time, closes it.
+    if (held && this.current !== null) {
+      this.stayTimer = this.clock.setTimeout(() => {
+        this.stayTimer = null;
+        this.close();
+      }, stayMs);
+    }
     this.endSwallowSoon();
     return held;
   }
@@ -155,29 +180,46 @@ export class TipController {
     return true;
   }
 
-  /** A tap on an icon that has no action of its own: its tip opens at once (or closes, if it is open). */
-  tap(id: TipId, target: TipTarget): void {
+  /**
+   * A tap on an icon that has no action of its own: its tip opens at once, with `extra` under its text (or,
+   * when a tap had opened it, closes).
+   */
+  tap(id: TipId, target: TipTarget, extra?: unknown): void {
     this.cancel();
-    if (this.current?.id === id) this.close();
-    else this.show(id, target);
+    if (this.current?.id === id && this.current.tapped) this.close();
+    else if (this.show(id, target, true, extra)) {
+      // Like a held tip it stays to be read, then goes by itself.
+      this.stayTimer = this.clock.setTimeout(() => {
+        this.stayTimer = null;
+        this.close();
+      }, stayMs);
+    }
   }
 
   /** Closes the tip and drops anything pending (Escape, a press elsewhere, its thing gone). */
   close(): void {
     this.cancel();
+    this.clearStay();
     if (this.current === null) return;
     this.current = null;
     for (const fn of this.listeners) fn(null);
   }
 
   /** Opens `id` at its target, unless the target is gone. */
-  private show(id: TipId, target: TipTarget): boolean {
+  private show(id: TipId, target: TipTarget, tapped = false, extra?: unknown): boolean {
     const rect = target.alive() ? target.rect() : null;
     if (rect === null) {
       this.close();
       return false;
     }
-    this.current = { id, anchor: rect, alive: target.alive };
+    this.clearStay();
+    this.current = {
+      id,
+      anchor: rect,
+      alive: target.alive,
+      tapped,
+      ...(extra === undefined ? {} : { extra }),
+    };
     for (const fn of this.listeners) fn(this.current);
     return true;
   }
@@ -198,6 +240,11 @@ export class TipController {
     if (this.swallowTimer !== null) this.clock.clearTimeout(this.swallowTimer);
     this.swallowTimer = null;
     this.swallowFor = null;
+  }
+
+  private clearStay(): void {
+    if (this.stayTimer !== null) this.clock.clearTimeout(this.stayTimer);
+    this.stayTimer = null;
   }
 
   private cancel(): void {

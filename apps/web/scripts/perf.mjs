@@ -1,37 +1,31 @@
 #!/usr/bin/env node
-/* global URL, console, process, window, document, performance, requestAnimationFrame, PerformanceObserver,
-   XMLSerializer, Image, MutationObserver */
+/* global console, process, window, document, performance, requestAnimationFrame, PerformanceObserver */
 /**
- * Phone performance measurements for the map (measure first, no fixes). Loads the built app (apps/web/dist)
- * in Chromium as a Pixel 7 with the CPU slowed down, and measures:
- *   - tap latency: a tap on the creature until the bubble popover is painted (Event Timing `pointerup`);
+ * Performance measurements for the map (measure first, no fixes). Loads the app on the Vite dev server (its
+ * fake session and a fake game server on the real core, see fake-game.mjs; an unminified dev build, so absolute
+ * numbers run a little high) in Chromium, as a phone (390x844, Pixel 7 touch) at 4x and 6x CPU slowdown and as a
+ * desktop (1440x900) at 4x, and measures:
+ *   - tap latency: a tap on the creature until the bubble popover is painted, and a tap on a hex until its
+ *     card is painted (Event Timing `pointerup`);
  *   - frame times and move-to-frame lag during a synthesised touch drag and a pinch (the `lite` phase), and
  *     the frame after release (filters back on, scene redrawn at the new zoom step);
  *   - redraw cost: the `pointerup` that ends a pinch at a new zoom step, and the "Next day" click;
  *   - where main-thread time goes during a drag and release (a trace, self time by kind), and raster time.
  * Experiments change the page after load, never the app: see EXPERIMENTS below.
  *
- * Usage: pnpm --filter @behemoth-road/web build && node apps/web/scripts/perf.mjs
- *   [--rates 4,6] [--only baseline,filters-off]   (PERF_TRACE_OUT=<path prefix> keeps the raw traces)
+ * Usage: node apps/web/scripts/perf.mjs
+ *   [--rates 4,6] [--profiles phone,desktop] [--only baseline,filters-off] (default: baseline)   (PERF_TRACE_OUT=<path prefix> keeps the raw traces)
  * Writes a Markdown table to stdout and the raw numbers to screenshots/perf.json (gitignored).
  * Not part of the unit test run. Needs the pre-installed Playwright (require('playwright')).
  */
-import {
-  createReadStream,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  statSync,
-  writeFileSync,
-} from 'node:fs';
-import { createServer } from 'node:http';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { dirname, extname, join, normalize, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { FakeServer, joinedScenario, startVite } from './fake-game.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const web = resolve(here, '..');
-const dist = join(web, 'dist');
 const out = resolve(web, '../../screenshots');
 const require = createRequire(import.meta.url);
 const { chromium, devices } = require('playwright');
@@ -42,41 +36,9 @@ const arg = (name) => {
   return i === -1 ? undefined : args[i + 1];
 };
 const RATES = (arg('--rates') ?? '4,6').split(',').map(Number);
-const ONLY = arg('--only')?.split(',');
-
-const TYPES = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript',
-  '.css': 'text/css',
-  '.svg': 'image/svg+xml',
-  '.json': 'application/json',
-};
-
-function readHeaders() {
-  const headers = {};
-  for (const line of readFileSync(join(web, 'public/_headers'), 'utf8').split('\n')) {
-    const m = /^\s+([A-Za-z-]+):\s*(.+)$/.exec(line);
-    if (m) headers[m[1]] = m[2].trim();
-  }
-  return headers;
-}
-
-function serve() {
-  const headers = readHeaders();
-  const server = createServer((req, res) => {
-    const path = normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname));
-    let file = join(dist, path);
-    if (!file.startsWith(dist) || !existsSync(file) || statSync(file).isDirectory()) {
-      file = join(dist, 'index.html');
-    }
-    res.writeHead(200, {
-      ...headers,
-      'Content-Type': TYPES[extname(file)] ?? 'application/octet-stream',
-    });
-    createReadStream(file).pipe(res);
-  });
-  return new Promise((ok) => server.listen(0, '127.0.0.1', () => ok(server)));
-}
+// Only the baseline runs by default; name others with --only.
+const ONLY = (arg('--only') ?? 'baseline').split(',');
+const PROFILE_NAMES = (arg('--profiles') ?? 'phone,desktop').split(',');
 
 /**
  * Page-side experiments. Each runs once after load, in the page. They hide or add elements through the
@@ -128,13 +90,9 @@ const EXPERIMENTS = {
       svg.style.transform = `translate(${x - k * x0}px, ${y - k * y0}px) scale(${k})`;
     };
   },
-  // The static ground (defs, the washed tiles and the dotted outlines) drawn once into an <image> holding the
-  // same SVG as a data URL (`img`), or rasterised once to a PNG on a canvas at the current zoom (`bitmap`).
-  'ground-img': () => window.__groundToImage('svg'),
-  'ground-bitmap': () => window.__groundToImage('png'),
 };
 
-/** Installed before the app loads: frame timing, input lag, Event Timing, and the ground-to-image helper. */
+/** Installed before the app loads: frame timing, input lag and Event Timing. */
 function harness() {
   const perf = { frames: [], lags: [], events: [], lastMove: 0, recording: false };
   window.__perf = perf;
@@ -170,57 +128,6 @@ function harness() {
     requestAnimationFrame(tick);
   };
   requestAnimationFrame(tick);
-
-  window.__groundToImage = async (kind) => {
-    const svg = document.querySelector('svg.map');
-    const world = svg.querySelector(':scope > g');
-    const defs = world.querySelector(':scope > defs');
-    const wash = [...world.children].find((c) => /wash\)$/.test(c.getAttribute('filter') ?? ''));
-    const parts = [defs, wash];
-    let next = wash.nextElementSibling;
-    while (next && next.tagName === 'path' && next.getAttribute('stroke-dasharray')) {
-      parts.push(next);
-      next = next.nextElementSibling;
-    }
-    const box = wash.getBBox();
-    const pad = 40;
-    const x = box.x - pad;
-    const y = box.y - pad;
-    const w = box.width + pad * 2;
-    const h = box.height + pad * 2;
-    const ser = new XMLSerializer();
-    const text =
-      `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${x} ${y} ${w} ${h}" width="${w}" height="${h}">` +
-      parts.map((p) => ser.serializeToString(p)).join('') +
-      '</svg>';
-    let href = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(text)}`;
-    if (kind === 'png') {
-      const scale = Number(svg.getAttribute('data-view').split(' ')[2]) * window.devicePixelRatio;
-      const img = new Image();
-      img.src = href;
-      await img.decode();
-      const canvas = document.createElement('canvas');
-      canvas.width = Math.ceil(w * scale);
-      canvas.height = Math.ceil(h * scale);
-      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-      href = canvas.toDataURL('image/png');
-    }
-    const ns = 'http://www.w3.org/2000/svg';
-    const layer = document.createElementNS(ns, 'g');
-    const image = document.createElementNS(ns, 'image');
-    for (const [k, v] of Object.entries({ href, x, y, width: w, height: h }))
-      image.setAttribute(k, v);
-    layer.append(image);
-    // Outside the app's world group (Preact owns it), following its transform.
-    world.before(layer);
-    const follow = () => layer.setAttribute('transform', world.getAttribute('transform') ?? '');
-    follow();
-    new MutationObserver(follow).observe(world, {
-      attributes: true,
-      attributeFilter: ['transform'],
-    });
-    for (const p of parts.slice(1)) p.style.display = 'none';
-  };
 }
 
 const pct = (values, q) => {
@@ -300,12 +207,25 @@ function summariseTrace(json) {
   return { ...totals, latency, frames };
 }
 
-async function measure(browser, url, experiment, rate) {
-  const context = await browser.newContext({ ...devices['Pixel 7'], bypassCSP: true });
+const PROFILES = {
+  phone: { ...devices['Pixel 7'], viewport: { width: 390, height: 844 }, bypassCSP: true },
+  desktop: { viewport: { width: 1440, height: 900 }, hasTouch: false, bypassCSP: true },
+};
+
+async function measure(browser, url, experiment, rate, profile) {
+  const touch = profile === 'phone';
+  const context = await browser.newContext(PROFILES[profile]);
   const page = await context.newPage();
+  // The radius-6 window (the config default) in the hand-written joined scenario, on the real core.
+  const fake = new FakeServer();
+  fake.reset(joinedScenario());
+  await page.route(
+    (u) => u.pathname.startsWith('/api/'),
+    (r) => fake.route(r),
+  );
   await page.addInitScript(harness);
   await page.goto(url);
-  await page.waitForSelector('.map-world svg g, svg.map > g');
+  await page.waitForSelector('.map-world svg g');
   await page.waitForTimeout(400);
   const fn = EXPERIMENTS[experiment];
   if (fn) {
@@ -350,11 +270,13 @@ async function measure(browser, url, experiment, rate) {
     const raw = JSON.parse((await browser.stopTracing()).toString('utf8'));
     if (process.env.PERF_TRACE_OUT)
       writeFileSync(
-        `${process.env.PERF_TRACE_OUT}-${experiment}-${rate}.json`,
+        `${process.env.PERF_TRACE_OUT}-${profile}-${experiment}-${rate}.json`,
         JSON.stringify(raw),
       );
     return { result, trace: summariseTrace(raw) };
   };
+
+  const tapAt = (x, y) => (touch ? page.touchscreen.tap(x, y) : page.mouse.click(x, y));
 
   // (a) Tap latency: open and close the bubble on the creature, several times.
   const [cq, cr] = await nums('data-creature');
@@ -363,7 +285,7 @@ async function measure(browser, url, experiment, rate) {
   const tapTraced = await traced(async () => {
     for (let i = 0; i < 6; i += 1) {
       const [x, y] = await hexOnScreen(cq, cr);
-      await page.touchscreen.tap(x, y);
+      await tapAt(x, y);
       await page.waitForTimeout(350);
       const ups = (await events()).filter((e) => e.name === 'pointerup');
       const opened = (await page.locator('[data-popover]').count()) > 0;
@@ -373,8 +295,23 @@ async function measure(browser, url, experiment, rate) {
   });
   if ((await page.locator('[data-popover]').count()) > 0) {
     const [x, y] = await hexOnScreen(cq, cr);
-    await page.touchscreen.tap(x, y);
+    await tapAt(x, y);
     await page.waitForTimeout(300);
+  }
+
+  // (a2) Tap on a hex: its card (the inspect popover) painted. Two empty hexes beside the creature, in turn.
+  const hexTaps = [];
+  await events();
+  {
+    for (let i = 0; i < 6; i += 1) {
+      const [x, y] = await hexOnScreen(cq + (i % 2 ? -2 : 2), cr + (i % 2 ? 0 : -1));
+      await tapAt(x, y);
+      await page.waitForTimeout(350);
+      const ups = (await events()).filter((e) => e.name === 'pointerup' || e.name === 'click');
+      const shown = (await page.locator('[data-popover=inspect]').count()) > 0;
+      if (shown && ups.length) hexTaps.push(Math.max(...ups.map((e) => e.duration)));
+      else if (shown) hexTaps.push(16); // under the Event Timing threshold
+    }
   }
 
   // (b) A touch drag: frames and move-to-frame lag while it runs, then the frames after release.
@@ -388,7 +325,7 @@ async function measure(browser, url, experiment, rate) {
       xDistance: -160,
       yDistance: -220,
       speed: 600,
-      gestureSourceType: 'touch',
+      gestureSourceType: touch ? 'touch' : 'mouse',
       repeatCount: 1,
     });
     const dragEnd = await page.evaluate(() => performance.now());
@@ -408,13 +345,22 @@ async function measure(browser, url, experiment, rate) {
   // A pinch out (zooms in by a step, so the scene redraws on release).
   const pinchTraced = await traced(async () => {
     await record(true);
-    await cdp.send('Input.synthesizePinchGesture', {
-      x: Math.round(vp.width / 2),
-      y: Math.round(vp.height / 2),
-      scaleFactor: 1.6,
-      relativeSpeed: 400,
-      gestureSourceType: 'touch',
-    });
+    if (touch) {
+      await cdp.send('Input.synthesizePinchGesture', {
+        x: Math.round(vp.width / 2),
+        y: Math.round(vp.height / 2),
+        scaleFactor: 1.6,
+        relativeSpeed: 400,
+        gestureSourceType: 'touch',
+      });
+    } else {
+      // Desktop zooms with the wheel (a pinch is a touch gesture).
+      await page.mouse.move(Math.round(vp.width / 2), Math.round(vp.height / 2));
+      for (let i = 0; i < 6; i += 1) {
+        await page.mouse.wheel(0, -60);
+        await page.waitForTimeout(16);
+      }
+    }
     const pinchEnd = await page.evaluate(() => performance.now());
     await settle();
     await record(false);
@@ -444,9 +390,14 @@ async function measure(browser, url, experiment, rate) {
   await context.close();
   return {
     experiment,
+    profile,
     rate,
     nodes,
     tap: med(taps),
+    tapP95: pct(taps, 0.95),
+    hexTap: med(hexTaps),
+    hexTapP95: pct(hexTaps, 0.95),
+    hexTapCount: hexTaps.length,
     dragP50: med(dragFrames),
     dragP95: pct(dragFrames, 0.95),
     dragLag: med(drag.lags),
@@ -465,64 +416,78 @@ async function measure(browser, url, experiment, rate) {
 }
 
 async function run() {
-  if (!existsSync(join(dist, 'index.html')))
-    throw new Error('Build first: pnpm --filter @behemoth-road/web build');
   mkdirSync(out, { recursive: true });
-  const server = await serve();
-  const url = `http://127.0.0.1:${server.address().port}/`;
+  const vite = await startVite();
   const browser = await chromium.launch();
   const results = [];
   try {
     for (const experiment of Object.keys(EXPERIMENTS)) {
       if (ONLY && !ONLY.includes(experiment)) continue;
-      for (const rate of RATES) {
-        const r = await measure(browser, url, experiment, rate);
-        results.push(r);
-        console.error(`done: ${experiment} at ${rate}x`);
+      for (const profile of PROFILE_NAMES) {
+        // Desktop is measured at 4x only (a desktop is not throttled harder than that).
+        for (const rate of profile === 'desktop' ? RATES.slice(0, 1) : RATES) {
+          const r = await measure(browser, vite.url, experiment, rate, profile);
+          results.push(r);
+          console.error(`done: ${profile} ${experiment} at ${rate}x`);
+        }
       }
     }
   } finally {
     await browser.close();
-    server.close();
+    vite.stop();
   }
   const f = (n) => (Number.isFinite(n) ? n.toFixed(0) : '–');
   const lat = (t, type, q) => pct(t.latency[type], q);
   console.log(
-    'Input to presentation (EventLatency, ms) and frames, from traces of a touch drag and a pinch:\n',
+    'Summary (ms; frame times are main-thread rAF during a drag; tap = pointerup to paint):\n',
   );
   console.log(
-    '| experiment | CPU | tap ms | drag move→screen p50/p95 | drag release | drag frames shown/dropped | pinch move→screen p50/p95 | pinch release (zoom redraw) | next day ms | nodes |',
+    '| device | experiment | CPU | drag frame p95 | tap creature p50/p95 | tap hex p50/p95 (n) | SVG elements |',
   );
-  console.log('|---|---|---|---|---|---|---|---|---|---|');
+  console.log('|---|---|---|---|---|---|---|');
+  for (const r of results) {
+    console.log(
+      `| ${r.profile} | ${r.experiment} | ${r.rate}× | ${f(r.dragP95)} | ${f(r.tap)}/${f(r.tapP95)} | ${f(r.hexTap)}/${f(r.hexTapP95)} (${r.hexTapCount}) | ${r.nodes} |`,
+    );
+  }
+  console.log(
+    '\nInput to presentation (EventLatency, ms) and frames, from traces of a touch drag and a pinch:\n',
+  );
+  console.log(
+    '| device | experiment | CPU | tap ms | drag move→screen p50/p95 | drag release | drag frames shown/dropped | pinch move→screen p50/p95 | pinch release (zoom redraw) | next day ms | nodes |',
+  );
+  console.log('|---|---|---|---|---|---|---|---|---|---|---|');
   for (const r of results) {
     const d = r.drag;
     const p = r.pinch;
     console.log(
-      `| ${r.experiment} | ${r.rate}× | ${f(r.tap)} | ${f(lat(d, 'TOUCH_MOVED', 0.5))}/${f(lat(d, 'TOUCH_MOVED', 0.95))} | ${f(lat(d, 'TOUCH_RELEASED', 0.5))} | ${d.frames.presented}/${d.frames.dropped} | ${f(lat(p, 'TOUCH_MOVED', 0.5))}/${f(lat(p, 'TOUCH_MOVED', 0.95))} | ${f(Math.max(lat(p, 'TOUCH_RELEASED', 0.5), r.zoomRedraw))} | ${f(r.nextDay)} | ${r.nodes} |`,
+      `| ${r.profile} | ${r.experiment} | ${r.rate}× | ${f(r.tap)} | ${f(lat(d, 'TOUCH_MOVED', 0.5))}/${f(lat(d, 'TOUCH_MOVED', 0.95))} | ${f(lat(d, 'TOUCH_RELEASED', 0.5))} | ${d.frames.presented}/${d.frames.dropped} | ${f(lat(p, 'TOUCH_MOVED', 0.5))}/${f(lat(p, 'TOUCH_MOVED', 0.95))} | ${f(Math.max(lat(p, 'TOUCH_RELEASED', 0.5), r.zoomRedraw))} | ${f(r.nextDay)} | ${r.nodes} |`,
     );
   }
   console.log(
     '\nWhere time goes during six taps (ms; main-thread self time, raster on all threads):\n',
   );
-  console.log('| experiment | CPU | script | style | layout | paint | layerize+commit | raster |');
-  console.log('|---|---|---|---|---|---|---|---|');
+  console.log(
+    '| device | experiment | CPU | script | style | layout | paint | layerize+commit | raster |',
+  );
+  console.log('|---|---|---|---|---|---|---|---|---|');
   for (const r of results) {
     const t = r.taps;
     console.log(
-      `| ${r.experiment} | ${r.rate}× | ${f(t.script)} | ${f(t.style)} | ${f(t.layout)} | ${f(t.paint)} | ${f(t.composite)} | ${f(t.raster)} |`,
+      `| ${r.profile} | ${r.experiment} | ${r.rate}× | ${f(t.script)} | ${f(t.style)} | ${f(t.layout)} | ${f(t.paint)} | ${f(t.composite)} | ${f(t.raster)} |`,
     );
   }
   console.log(
     '\nWhere time goes during the drag and its release (ms; main-thread self time, raster on all threads):\n',
   );
   console.log(
-    '| experiment | CPU | script | style | layout | paint | layerize+commit | raster | main-thread rAF p50/p95 |',
+    '| device | experiment | CPU | script | style | layout | paint | layerize+commit | raster | main-thread rAF p50/p95 |',
   );
-  console.log('|---|---|---|---|---|---|---|---|---|');
+  console.log('|---|---|---|---|---|---|---|---|---|---|');
   for (const r of results) {
     const t = r.drag;
     console.log(
-      `| ${r.experiment} | ${r.rate}× | ${f(t.script)} | ${f(t.style)} | ${f(t.layout)} | ${f(t.paint)} | ${f(t.composite)} | ${f(t.raster)} | ${f(r.dragP50)}/${f(r.dragP95)} |`,
+      `| ${r.profile} | ${r.experiment} | ${r.rate}× | ${f(t.script)} | ${f(t.style)} | ${f(t.layout)} | ${f(t.paint)} | ${f(t.composite)} | ${f(t.raster)} | ${f(r.dragP50)}/${f(r.dragP95)} |`,
     );
   }
   writeFileSync(join(out, 'perf.json'), `${JSON.stringify(results, null, 2)}\n`);

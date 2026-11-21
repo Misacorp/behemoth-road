@@ -12,7 +12,7 @@ import { Drawer } from '../ui/Drawer.tsx';
 import { contentName, QuirkIcon, RoleEmblem, ROLE_IDS, TraitIcon } from '../ui/emblems.tsx';
 import { IconTip } from '../ui/IconTip.tsx';
 import { tipFor } from '../ui/tip.ts';
-import { tipProps } from '../ui/Tip.tsx';
+import { tipProps } from '../ui/press.ts';
 import { ready, START, wizard, type Wizard } from './wizard.ts';
 
 export interface JoinDrawerProps {

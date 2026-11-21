@@ -4,10 +4,10 @@
  */
 import { type CharacterLook, drawPackIcon } from '@behemoth-road/art';
 import type { JSX } from 'preact';
-import { useEffect, useRef, useState } from 'preact/hooks';
+import { useEffect } from 'preact/hooks';
 import type { Stock } from '../game/chain.ts';
 import { Stack } from '../hub/Stack.tsx';
-import { tipProps } from '../ui/Tip.tsx';
+import { setTipExtra, tipProps } from '../ui/press.ts';
 import { PALETTE } from '../map/art.ts';
 import type { FocusTarget } from '../map/MapView.tsx';
 import { toPreact } from '../map/svgToPreact.ts';
@@ -19,6 +19,7 @@ import {
   JoinIcon,
   NextDayIcon,
   Pips,
+  Slots,
   SunIcon,
 } from './icons.tsx';
 
@@ -65,70 +66,33 @@ function PackButton({
   units: number;
   capacity: number;
 }): JSX.Element {
-  const [open, setOpen] = useState(false);
-  const button = useRef<HTMLButtonElement>(null);
-  const panel = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!open) return;
-    panel.current?.focus({ preventScroll: true });
-    // Closes like the map's popovers: Escape, a tap or click anywhere else, or a right-click.
-    const close = (): void => {
-      setOpen(false);
-      if (panel.current?.contains(document.activeElement))
-        button.current?.focus({ preventScroll: true });
-    };
-    const onKey = (e: KeyboardEvent): void => {
-      if (e.key === 'Escape') close();
-    };
-    const onDown = (e: PointerEvent): void => {
-      const t = e.target as Node | null;
-      if (t && (panel.current?.contains(t) || button.current?.contains(t))) return;
-      close();
-    };
-    window.addEventListener('keydown', onKey);
-    // Capture, so a press on the map (which keeps its pointer events to itself) still closes it.
-    document.addEventListener('pointerdown', onDown, true);
-    document.addEventListener('contextmenu', close, true);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      document.removeEventListener('pointerdown', onDown, true);
-      document.removeEventListener('contextmenu', close, true);
-    };
-  }, [open]);
-  return (
-    <>
-      <button
-        ref={button}
-        type="button"
-        class="round hud-pack"
-        aria-label="Pack"
-        {...tipProps('hud:pack')}
-        aria-expanded={open}
-        data-units={units}
-        onClick={() => setOpen((o) => !o)}
-      >
-        {toPreact(drawPackIcon(PALETTE, 44, units, capacity))}
-      </button>
-      {open && (
-        <div
-          ref={panel}
-          class="hud-pack-contents"
-          tabindex={-1}
-          data-empty={stock.length === 0 ? true : undefined}
-          onClick={() => setOpen(false)}
-        >
-          {stock.length > 0 && (
-            <div class="hud-pack-stock">
-              {stock.map(([id, n]) => (
-                <Stack key={id} id={id} count={n} />
-              ))}
-            </div>
-          )}
-          {/* One slot per unit the pack holds, filled as it fills: an empty pack reads as empty. */}
-          <Pips total={capacity} left={units} size={10} />
+  // What is in the pack shows as the pack's tip (passing help, never an interaction over a popup): a tap
+  // opens it, and a tap anywhere, Escape or a right-click closes it.
+  const contents = (): JSX.Element => (
+    <div class="hud-pack-contents" data-empty={stock.length === 0 ? true : undefined}>
+      {stock.length > 0 && (
+        <div class="hud-pack-stock">
+          {stock.map(([id, n]) => (
+            <Stack key={id} id={id} count={n} />
+          ))}
         </div>
       )}
-    </>
+      {/* One slot per unit the pack holds, filled as it fills: an empty pack reads as empty. */}
+      <Slots total={capacity} left={units} size={10} />
+    </div>
+  );
+  useEffect(() => setTipExtra('hud:pack', contents));
+  return (
+    <button
+      type="button"
+      class="round hud-pack"
+      aria-label="Pack"
+      data-units={units}
+      data-tip-tap
+      {...tipProps('hud:pack')}
+    >
+      {toPreact(drawPackIcon(PALETTE, 44, units, capacity))}
+    </button>
   );
 }
 

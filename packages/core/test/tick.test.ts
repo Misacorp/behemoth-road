@@ -60,7 +60,7 @@ describe('the day tick’s events', () => {
       characters: state.characters.map((c) =>
         c.id === 'picked'
           ? { ...c, at: onHex({ q: 1, r: -2 }), pack: { iron: 2 } }
-          : { ...c, at: onHex({ q: 0, r: 5 }), pack: { stone: 1 } },
+          : { ...c, at: onHex({ q: 0, r: 6 }), pack: { stone: 1 } },
       ),
     };
     const day2 = nextDayWithEvents(state);
@@ -72,7 +72,7 @@ describe('the day tick’s events', () => {
     const day3 = nextDayWithEvents(day2.state);
     expect(day3.events).toEqual([
       { kind: 'creature-step', from: { q: 0, r: -1 }, to: { q: 0, r: -2 } },
-      { kind: 'lost', characterId: 'left', hex: { q: 0, r: 5 } },
+      { kind: 'lost', characterId: 'left', hex: { q: 0, r: 6 } },
       { kind: 'day', day: 3 },
     ]);
     // Lost once: not reported again.

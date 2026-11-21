@@ -15,6 +15,7 @@ import {
 } from '@behemoth-road/art';
 import {
   type CreatureSigns,
+  directionOffset,
   type GameStateView,
   type Hex,
   terrainOf,
@@ -28,6 +29,7 @@ import {
 import { Component, type ComponentChildren, type JSX } from 'preact';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { armedAfter } from './arm.ts';
+import { type Box, FrameCache, frameFrom } from './frame.ts';
 import { drawOutOfReach, PALETTE, PROJECTION } from './art.ts';
 import {
   cellStateAt,
@@ -37,17 +39,18 @@ import {
   sceneCells,
   terrainKnown,
 } from './cells.ts';
-import { chevronFor, placeClear, placePopover, splitScene } from './compose.ts';
+import { chevronFor, placeClear, placePopover, splitScene, trailClear } from './compose.ts';
 import { fireHintAt } from '../game/chain.ts';
 import { accentOf, type Identity, lookOf } from '../game/identity.ts';
 import { type Moment, STEP_MS } from '../game/moments.ts';
 import { MomentMark } from './MomentMark.tsx';
-import { mapTipAt } from './mapTips.ts';
+import { mapTipAt, placeNoun, tileTipAt } from './mapTips.ts';
 import type { TipId } from '../text/tips.ts';
 import type { TipTarget } from '../ui/tip.ts';
-import { TIPS } from '../ui/Tip.tsx';
+import { holdEnded, onRightClick, TIPS } from '../ui/press.ts';
 import { MAP_TUNING } from './config.ts';
 import { type Flow, isSelecting } from './flow.ts';
+import { holdMs } from '../text/tips.ts';
 import { GestureTracker, type Gesture } from './gestures.ts';
 import { buildOverlays } from './overlays.ts';
 import { figureFeet, pickableFeet, placePoint } from './figures.ts';
@@ -58,6 +61,7 @@ import {
   hereSize,
   inspectSize,
   Bubble,
+  characterSize,
   CHARACTER_SIZE,
   CharacterCard,
   bubbleSize,
@@ -71,7 +75,7 @@ import {
   ThreatCard,
   threatSize,
 } from './Popover.tsx';
-import { type SettlementInfo, settlementInfo, threatCard } from '../game/season.ts';
+import { type SettlementInfo, settlementInfo, threatCard, threatNextPath } from '../game/season.ts';
 import { setCssTransform } from './cssTransform.ts';
 import { toPreact } from './svgToPreact.ts';
 import {
@@ -82,6 +86,7 @@ import {
   layerTransform,
   lerpView,
   panBy,
+  type Frame,
   type Size,
   toScreen,
   toWorld,
@@ -129,6 +134,8 @@ export interface MapViewProps {
   readonly step?: { readonly from: Hex; readonly to: Hex } | null;
   /** Another player's character in the bubble was tapped. */
   readonly onCharacter: (id: string) => void;
+  /** The back button of a card opened inside another popup (a character from the bubble). */
+  readonly onBack?: () => void;
   /** Who each character is (names, roles, traits, quirks), from the player view. */
   readonly identities?: ReadonlyMap<string, Identity>;
   /** The map was right-clicked (the browser's menu is never shown over the map). */
@@ -159,6 +166,21 @@ export function fitScale(screen: Size, windowRadius: number): number {
   const h = (r * 2 + 1) * Math.sqrt(3) * p.size * p.squash;
   const fit = Math.min(screen.width / w, screen.height / h);
   return clampScale(wide ? Math.min(fit, MAP_TUNING.wideMaxZoom) : fit, LIMITS);
+}
+
+/**
+ * Where the first view looks: your character on a hex; otherwise (riding, or not joined yet) the creature
+ * and the way ahead, `openAhead` hexes along its heading.
+ */
+function openingPoint(state: GameStateView, characterId: string): Point {
+  const me = state.characters.find((c) => c.id === characterId);
+  if (me?.status === 'active' && me.at.kind === 'hex') return targetPoint(state, characterId, 'me');
+  const { centre, heading } = state.creature;
+  const d = directionOffset(heading);
+  const a = hexCenter(p, centre.q, centre.r);
+  const b = hexCenter(p, centre.q + d.q, centre.r + d.r);
+  const t = MAP_TUNING.openAhead;
+  return { x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t };
 }
 
 function targetPoint(state: GameStateView, characterId: string, target: FocusTarget): Point {
@@ -200,6 +222,16 @@ function popoverAnchor(
     h && mine && hexEquals(h, mine)
       ? { clear: [mine, ...hexesInRange(mine, 1).filter((n) => !hexEquals(n, mine))] }
       : {};
+  const bubbleAnchor = (size: { width: number; height: number }): Anchor => {
+    // Above the creature's back, clear of its footprint.
+    const c = hexCenter(p, state.creature.centre.q, state.creature.centre.r);
+    const lift = tile * 1.5 + 0.5 * p.size;
+    return { key: 'bubble', top: { x: c.x, y: c.y - lift }, below: lift + tile, size };
+  };
+  if (flow.kind === 'character' && flow.back) {
+    // Opened from the bubble: in the bubble's place, as the next step of the same popup.
+    return { ...bubbleAnchor(characterSize(true)), key: `bubble:character:${flow.id}` };
+  }
   if (flow.kind === 'character') {
     // Above the character's head, wherever it stands (on a hex or on the creature's back).
     const feet = figureFeet(state, flow.id, p);
@@ -227,6 +259,10 @@ function popoverAnchor(
       below: lift + tile / 2,
       size: flow.kind === 'threat' ? threatSize(Boolean(strike)) : SETTLEMENT_SIZE,
       ...clearOf(thing.hex),
+      // A threat's card stays off its trail: its hex first, then the hexes it crosses at the next tick.
+      ...(flow.kind === 'threat'
+        ? trailClear(thing.hex, threatNextPath(state, flow.id), clearOf(thing.hex).clear)
+        : {}),
     };
   }
   if (flow.kind === 'inspect') {
@@ -239,16 +275,9 @@ function popoverAnchor(
       ...clearOf(flow.hex),
     };
   }
-  if (flow.kind === 'bubble') {
-    // Above the creature's back, clear of its footprint.
-    const c = hexCenter(p, state.creature.centre.q, state.creature.centre.r);
-    const lift = tile * 1.5 + 0.5 * p.size;
-    return {
-      key: flow.kind,
-      top: { x: c.x, y: c.y - lift },
-      below: lift + tile,
-      size: bubbleSize(ridersOf(state).length),
-    };
+  if (flow.kind === 'bubble' || flow.kind === 'creature') {
+    // The hub's drawer opens with the bubble still open, marking the creature it is about.
+    return bubbleAnchor(bubbleSize(ridersOf(state).length));
   }
   if (flow.kind === 'selected' && here) {
     // Your own hex's feature and actions, above your figure.
@@ -314,7 +343,7 @@ export function MapView(props: MapViewProps): JSX.Element {
   const popoverFocusRef = useRef<SVGGElement | null>(null);
   const view = useRef<View>({ x: 0, y: 0, scale: 1 });
   const size = useRef<Size>({ width: 0, height: 0 });
-  const tracker = useRef(new GestureTracker(MAP_TUNING.tapSlop));
+  const tracker = useRef(new GestureTracker(MAP_TUNING.tapSlop, holdMs));
   const frame = useRef(0);
   const animation = useRef(0);
   const popover = useRef<Anchor | null>(null);
@@ -326,11 +355,23 @@ export function MapView(props: MapViewProps): JSX.Element {
   const settleZoom = (): void => setInkZoom(inkZoomFor(view.current.scale));
   const latest = useRef(props);
   latest.current = props;
-  /** The part of the screen the map is seen in: all of it, less what a drawer covers. */
-  const seen = (): Size => ({
-    width: size.current.width,
-    height: Math.max(1, size.current.height - (latest.current.coverBottom ?? 0)),
-  });
+  /** Measures the frame the map is seen in (the only place that reads layout for it). */
+  const readFrame = (): Frame => {
+    const rect = (el: Element | null | undefined): Box | null =>
+      el?.getBoundingClientRect() ?? null;
+    return frameFrom({
+      size: size.current,
+      map: rect(svgRef.current),
+      hudTop: rect(document.querySelector('.hud-top')),
+      pips: rect(document.querySelector('.hud-actions')),
+      coverBottom: latest.current.coverBottom ?? 0,
+      pad: MAP_TUNING.framePad,
+    });
+  };
+  // Held between refreshes, so `apply` (every animation frame) reads no layout.
+  const frameCache = useRef(new FrameCache(readFrame));
+  /** The part of the screen the map is seen in: below the top HUD, above the pips and any drawer. */
+  const seen = (): Frame => frameCache.current.get();
 
   // The scene depends on the game state only; overlays also on the flow.
   const walking = props.step != null;
@@ -405,23 +446,30 @@ export function MapView(props: MapViewProps): JSX.Element {
     );
     const pop = popover.current;
     if (pop && popRef.current) {
-      const rect = pop.clear
+      // Placed inside the frame (clear of the HUD above and the pips below): placed in the frame's own
+      // coordinates, then moved back to the screen's.
+      const f = seen();
+      const inFrame = (pt: Point): Point => ({ x: pt.x - f.x, y: pt.y - f.y });
+      const placed = pop.clear
         ? placeClear(
-            toScreen(v, pop.top),
+            inFrame(toScreen(v, pop.top)),
             pop.below * v.scale,
             pop.size,
-            size.current,
+            f,
             MAP_TUNING.popoverMargin,
-            pop.clear.map((h) => hexCorners(p, hexCenter(p, h.q, h.r)).map((c) => toScreen(v, c))),
+            pop.clear.map((h) =>
+              hexCorners(p, hexCenter(p, h.q, h.r)).map((c) => inFrame(toScreen(v, c))),
+            ),
           )
         : placePopover(
-            toScreen(v, pop.top),
+            inFrame(toScreen(v, pop.top)),
             pop.below * v.scale,
             pop.size,
-            size.current,
+            f,
             MAP_TUNING.popoverMargin,
             pop.prefer,
           );
+      const rect = { ...placed, x: placed.x + f.x, y: placed.y + f.y };
       popRef.current.setAttribute('transform', `translate(${rect.x} ${rect.y})`);
       const chevron = chevronFor(rect, toScreen(v, pop.top), pop.below * v.scale);
       chevronFillRef.current?.setAttribute('d', chevron.fill);
@@ -492,10 +540,11 @@ export function MapView(props: MapViewProps): JSX.Element {
     };
     size.current = measure();
     const s = latest.current.state;
+    const frameNow = seen();
     view.current = centreOn(
-      targetPoint(s, latest.current.characterId, 'me'),
-      fitScale(size.current, s.config.windowRadius),
-      seen(),
+      openingPoint(s, latest.current.characterId),
+      fitScale(frameNow, s.config.windowRadius),
+      frameNow,
     );
     apply();
     settleZoom();
@@ -507,15 +556,32 @@ export function MapView(props: MapViewProps): JSX.Element {
         (next.height - size.current.height) / 2,
       );
       size.current = next;
+      frameCache.current.refresh();
       requestApply();
     });
     observer.observe(svg);
+    // The HUD's own size moves the frame without the map resizing.
+    for (const el of document.querySelectorAll('.hud-top, .hud-actions')) observer.observe(el);
+    // A rotation or window resize moves the HUD and the map's position.
+    const onResize = (): void => {
+      frameCache.current.refresh();
+      requestApply();
+    };
+    window.addEventListener('resize', onResize);
+    window.addEventListener('orientationchange', onResize);
     return () => {
+      window.removeEventListener('resize', onResize);
+      window.removeEventListener('orientationchange', onResize);
       observer.disconnect();
       stopAnimation();
       if (frame.current) cancelAnimationFrame(frame.current);
     };
   }, []);
+
+  // The frame moves with the drawer cover and when a flow (a drawer, a card) opens or closes.
+  useLayoutEffect(() => {
+    frameCache.current.refresh();
+  }, [props.coverBottom, flow]);
 
   // A gesture must not outlive the window losing focus or being hidden (pointer-ups never arrive).
   useEffect(() => {
@@ -597,6 +663,17 @@ export function MapView(props: MapViewProps): JSX.Element {
   }, [state, characterId]);
   useEffect(() => () => window.clearTimeout(followTimer.current), []);
 
+  // A mouse right-click on the map dismisses (the press module has already closed any tip).
+  useEffect(
+    () =>
+      onRightClick((e) => {
+        if (!(e.target instanceof Node && svgRef.current?.contains(e.target))) return;
+        e.preventDefault();
+        latest.current.onRightClick();
+      }),
+    [],
+  );
+
   // Recentre buttons.
   const focusN = props.focus.n;
   useEffect(() => {
@@ -650,6 +727,7 @@ export function MapView(props: MapViewProps): JSX.Element {
       const target =
         flow.kind === 'planned' ||
         flow.kind === 'bubble' ||
+        (flow.kind === 'character' && flow.back !== undefined) ||
         flow.kind === 'selected' ||
         (flow.kind === 'inspect' && survey) ||
         (flow.kind === 'threat' && popKey.endsWith(':true'))
@@ -716,7 +794,7 @@ export function MapView(props: MapViewProps): JSX.Element {
       if (tip) TIPS.press(tip.id, tip.target, e.clientX, e.clientY);
       else TIPS.release();
     }
-    handle(tracker.current.down(e.pointerId, local(e)));
+    handle(tracker.current.down(e.pointerId, local(e), e.timeStamp));
   };
   const onPointerMove = (e: PointerEvent): void => {
     if (e.pointerType === 'mouse' && e.buttons === 0) {
@@ -728,31 +806,33 @@ export function MapView(props: MapViewProps): JSX.Element {
           TIPS.hover(tip.id, tip.target);
         }
       }
-    } else if (e.pointerType !== 'mouse') {
-      TIPS.move(e.clientX, e.clientY);
     }
     handle(tracker.current.move(e.pointerId, local(e)));
   };
   const onPointerUp = (e: PointerEvent): void => {
     // A hold that opened a tip is not a tap.
-    if (e.pointerType !== 'mouse' && TIPS.release()) {
+    // (The press module released the tip on this lift, before this ran, and says whether it was a hold.)
+    if (e.pointerType !== 'mouse' && holdEnded()) {
       handle(tracker.current.cancel(e.pointerId));
       return;
     }
-    handle(tracker.current.up(e.pointerId, local(e)));
+    handle(tracker.current.up(e.pointerId, local(e), e.timeStamp));
   };
   const onPointerCancel = (e: PointerEvent): void => {
-    TIPS.release();
     handle(tracker.current.cancel(e.pointerId));
   };
 
   let card: JSX.Element | null = null;
+  const mineAt = state.characters.find((c) => c.id === characterId)?.at;
+  const mineHex = mineAt?.kind === 'hex' ? mineAt.hex : null;
   if (flow.kind === 'inspect') {
     const cellState = cellStateAt(state, `${flow.hex.q},${flow.hex.r}`);
     const known = terrainKnown(cellState);
     const at = flow.hex;
     card = (
       <InspectCard
+        title={known ? placeNoun(state, flow.hex) : null}
+        tileTip={known ? tileTipAt(state, flow.hex) : null}
         terrain={known ? (terrainOf(state, flow.hex)?.id ?? 'unknown') : 'unknown'}
         state={cellState}
         feature={known ? featureArtAt(state, hexKey(flow.hex)) : null}
@@ -768,6 +848,8 @@ export function MapView(props: MapViewProps): JSX.Element {
   } else if (flow.kind === 'selected' && props.here) {
     card = (
       <HereCard
+        title={props.here.settlement?.name ?? (mineHex ? placeNoun(state, mineHex) : null)}
+        tileTip={mineHex ? tileTipAt(state, mineHex) : null}
         terrain={props.here.terrain}
         feature={props.here.feature}
         actions={props.here.actions}
@@ -799,8 +881,20 @@ export function MapView(props: MapViewProps): JSX.Element {
     if (settlement) card = <SettlementCard settlement={settlement} />;
   } else if (flow.kind === 'character') {
     const who = props.identities?.get(flow.id);
-    if (who) card = <CharacterCard who={who} />;
-  } else if (flow.kind === 'bubble') {
+    if (who) {
+      card = flow.back ? (
+        <CharacterCard
+          who={who}
+          onBack={() => props.onBack?.()}
+          backRef={(el) => {
+            popoverFocusRef.current = el;
+          }}
+        />
+      ) : (
+        <CharacterCard who={who} />
+      );
+    }
+  } else if (flow.kind === 'bubble' || flow.kind === 'creature') {
     card = (
       <Bubble
         characters={ridersOf(state).map((c) => ({
@@ -808,7 +902,7 @@ export function MapView(props: MapViewProps): JSX.Element {
           accent: accentOf(c.id, MAP_TUNING.accent),
           look: lookOf(c.id),
           other: c.id !== characterId,
-          selected: c.id === characterId && flow.selecting,
+          selected: c.id === characterId && flow.kind === 'bubble' && flow.selecting,
         }))}
         onCharacter={(id) => props.onCharacter(id)}
         place="creature"
@@ -895,10 +989,6 @@ export function MapView(props: MapViewProps): JSX.Element {
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerCancel}
         onPointerLeave={unhoverTip}
-        onContextMenu={(e) => {
-          e.preventDefault();
-          props.onRightClick();
-        }}
         onLostPointerCapture={onPointerCancel}
       >
         <g

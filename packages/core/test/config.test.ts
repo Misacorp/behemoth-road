@@ -7,7 +7,7 @@ describe('tuning config', () => {
       actionsPerDay: 3,
       moveCost: 1,
       creatureRadius: 1,
-      windowRadius: 5,
+      windowRadius: 6,
       graceDays: 1,
       lostTileRings: 4,
       playerCap: 15,
@@ -36,8 +36,8 @@ describe('tuning config', () => {
       threatChanceMax: 0.9,
       threatsMax: 3,
       threatStrengthPlayers: 3,
-      threatStrengthDays: 10,
-      threatPathDistance: 4,
+      threatStrengthDays: 14,
+      threatPathDistance: 5,
       struckActions: 1,
       strikeCost: 1,
       clearPowerGuardian: 2,
@@ -116,7 +116,7 @@ describe('tuning config', () => {
     expect(() => resolveConfig({ perilMax: 4 })).toThrow(/perilWoundedAt/);
     expect(() => resolveConfig({ perilHungryLevel: 4 })).toThrow(/perilHungryLevel/);
     expect(() => resolveConfig({ threatPathDistance: 2 })).toThrow(/threatPathDistance/);
-    expect(() => resolveConfig({ threatPathDistance: 6 })).toThrow(/threatPathDistance/);
+    expect(() => resolveConfig({ threatPathDistance: 7 })).toThrow(/threatPathDistance/);
     expect(resolveConfig({ routeLength: 12, perilWoundedAt: 9 }).routeLength).toBe(12);
   });
 

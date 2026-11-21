@@ -46,8 +46,23 @@ describe('content', () => {
 
   it('keeps later upgrades as inactive perks', () => {
     const perks = ROLES.flatMap((r) => r.perks.map((p) => `${r.id}:${p.id}`));
-    expect(perks).toEqual(['scout:trap-sense', 'scout:glints', 'engineer:double-yield']);
+    expect(perks).toEqual([
+      'scout:trap-sense',
+      'scout:glints',
+      'scout:far-sight',
+      'engineer:double-yield',
+    ]);
     for (const r of ROLES) for (const p of r.perks) expect(p.requiresUpgrade).toBe(true);
+  });
+
+  it('keeps seeing threats beyond the window as a later scout upgrade', () => {
+    const scout = ROLES.find((r) => r.id === 'scout')!;
+    const farSight = scout.perks.find((p) => p.id === 'far-sight');
+    expect(farSight).toMatchObject({ tags: ['sense', 'threats'], requiresUpgrade: true });
+  });
+
+  it('gives each threat type a speed a guardian can meet: at most 2 hexes a tick', () => {
+    for (const t of THREAT_TYPES) expect(t.speed >= 0 && t.speed <= 2).toBe(true);
   });
 
   it('gives creatures a sound hunger and reactions to known stimulus tags', () => {

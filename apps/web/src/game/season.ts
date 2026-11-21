@@ -18,6 +18,7 @@ import {
   roleHas,
   THREAT_TYPES,
   threatOutlook,
+  threatNextPath,
   TRADE_TAG,
 } from '@behemoth-road/core';
 import type { CostedAction } from './chain.ts';
@@ -56,6 +57,9 @@ export function threatMarks(game: GameStateView): ThreatMark[] {
   });
 }
 
+/** The hexes a threat crosses at the next tick, its end last (the core's guess: public view only). */
+export { threatNextPath };
+
 /** The threat on a hex, if any. */
 export const threatAt = (game: GameStateView, h: Hex): string | null =>
   game.threats.find((t) => hexEquals(t.hex, h))?.id ?? null;
@@ -89,6 +93,8 @@ export interface ThreatCardInfo {
   readonly icon: string;
   readonly name: string;
   readonly strength: number;
+  /** How many hexes it moves at the next tick (`threatNextPath`). */
+  readonly steps: number;
   readonly strike: Offered | null;
 }
 
@@ -105,6 +111,7 @@ export function threatCard(
     icon: mark.icon,
     name: mark.name,
     strength: mark.strength,
+    steps: threatNextPath(game, threatId).length,
     strike: offered(checkAction(game, characterId, { kind: 'strike', threat: threatId })),
   };
 }

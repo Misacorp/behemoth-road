@@ -4,6 +4,7 @@
  * own `<svg>` wrapper is dropped, because the map draws it inside one pan-and-zoom group.
  */
 import type { SvgNode } from '@behemoth-road/art';
+import { type Hex, hexEquals } from '@behemoth-road/core';
 
 export interface SceneLayers {
   /** Filter defs, the ground wash and crisp ground lines. */
@@ -93,6 +94,18 @@ export function overlaps(rect: Rect, poly: Polygon): boolean {
     if (a1 <= b0 + eps || b1 <= a0 + eps) return false;
   }
   return true;
+}
+
+/** The hexes a threat's card keeps clear: its own hex first, then its trail, then any others given. */
+export function trailClear(
+  at: Hex,
+  path: readonly Hex[],
+  others: readonly Hex[] = [],
+): { clear?: readonly Hex[] } {
+  if (path.length === 0) return others.length ? { clear: others } : {};
+  const out: Hex[] = [];
+  for (const h of [at, ...others, ...path]) if (!out.some((o) => hexEquals(o, h))) out.push(h);
+  return { clear: out };
 }
 
 /**

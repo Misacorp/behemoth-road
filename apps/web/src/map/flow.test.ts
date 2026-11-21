@@ -221,3 +221,15 @@ describe('the creature as the hub', () => {
     expect(me(confirmMove(plan, s, ID).state).at).toEqual(onHex(far));
   });
 });
+
+describe('cards inside the bubble', () => {
+  it('a rider opened from the bubble continues in it, and back returns to the bubble', async () => {
+    const { openCharacter, goBack, IDLE } = await import('./flow.ts');
+    const bubble = { kind: 'bubble', selecting: false } as const;
+    const card = openCharacter('pip', bubble);
+    expect(card).toEqual({ kind: 'character', id: 'pip', back: bubble });
+    expect(goBack(card)).toBe(bubble);
+    // A card opened from the map has nothing to go back to.
+    expect(goBack(openCharacter('pip'))).toBe(IDLE);
+  });
+});

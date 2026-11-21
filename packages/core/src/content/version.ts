@@ -12,8 +12,10 @@
  * 6: threats and an ending: threats, peoples and settlements, peril and the
  *    season's route.
  * 7: stone, iron and timber nodes on open ground (generation changed).
+ * 8: threats are telegraphed: a wider window (radius 6), slower raiders, the
+ *    rockslide further ahead.
  */
-export const CONTENT_VERSION = 7;
+export const CONTENT_VERSION = 8;
 
 /** Content versions this code can load. */
 export const KNOWN_CONTENT_VERSIONS: readonly number[] = [CONTENT_VERSION];

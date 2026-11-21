@@ -9,6 +9,7 @@ import {
   accentRamp,
   ART_TUNING,
   DIRECTIONS,
+  actionArrowNodes,
   drawCharacter,
   drawEscortRing,
   drawStayMark,
@@ -40,7 +41,7 @@ import {
 } from '@behemoth-road/core';
 import { drawExploredEmpty, drawMisledMark } from './art.ts';
 import { accentOf } from '../game/identity.ts';
-import { escortCentres } from '../game/season.ts';
+import { escortCentres, threatNextPath } from '../game/season.ts';
 import { cellStateAt } from './cells.ts';
 import { MAP_TUNING } from './config.ts';
 import { figureFeet, placePoint } from './figures.ts';
@@ -241,12 +242,16 @@ function stepHint(
   );
 }
 
-/** The planned path: a dashed ink line with an arrowhead, a pip per action, and a mark where a step has `via`. */
-function pathArrow(i: OverlayInput, from: Point, steps: readonly PathStep[]): SvgNode[] {
-  const p = i.projection;
-  const k = p.k;
-  // On the creature, the arrow runs to (or from) the seat the character has or would take.
-  const pts = [from, ...steps.map((s) => placePoint(i.state, i.characterId, s.place, p))];
+/**
+ * A dashed ink line through `pts` with an arrowhead whose tip lands on the last point: the planned path's
+ * arrow, also the threat trail. `inset` pulls the line's start off the first point (off a drawn mark).
+ */
+function inkArrow(
+  i: OverlayInput,
+  pts: readonly Point[],
+  opts: { inset?: number; width?: number; mark?: string } = {},
+): SvgNode[] {
+  const k = i.projection.k;
   const last = pts[pts.length - 1]!;
   const prev = pts[pts.length - 2]!;
   // Stop the line short of the destination so the arrowhead tip lands on it.
@@ -254,16 +259,23 @@ function pathArrow(i: OverlayInput, from: Point, steps: readonly PathStep[]): Sv
   const head = 11 * k;
   const tip = last;
   const base = { x: tip.x - Math.cos(angle) * head, y: tip.y - Math.sin(angle) * head };
-  const line = [...pts.slice(0, -1), base];
-  const out: SvgNode[] = [
+  const first = pts[0]!;
+  const second = pts[1]!;
+  const inset = opts.inset ?? 0;
+  const lead = Math.atan2(second.y - first.y, second.x - first.x);
+  const start = { x: first.x + Math.cos(lead) * inset, y: first.y + Math.sin(lead) * inset };
+  const line = [start, ...pts.slice(1, -1), base];
+  const tag = opts.mark ? { 'data-mark': opts.mark } : {};
+  return [
     el('path', {
       d: `M${line.map((q) => `${n(q.x)} ${n(q.y)}`).join('L')}`,
       fill: 'none',
       stroke: i.palette.ink,
-      'stroke-width': 2.6 * k,
+      'stroke-width': (opts.width ?? 2.6) * k,
       'stroke-linecap': 'round',
       'stroke-linejoin': 'round',
       'stroke-dasharray': `${n(8 * k)} ${n(6 * k)}`,
+      ...tag,
     }),
     el('path', {
       d: `M${n(base.x - Math.sin(angle) * head * 0.6)} ${n(base.y + Math.cos(angle) * head * 0.6)}L${n(tip.x)} ${n(tip.y)}L${n(base.x + Math.sin(angle) * head * 0.6)} ${n(base.y - Math.cos(angle) * head * 0.6)}Z`,
@@ -271,8 +283,18 @@ function pathArrow(i: OverlayInput, from: Point, steps: readonly PathStep[]): Sv
       stroke: i.palette.ink,
       'stroke-width': 1.5 * k,
       'stroke-linejoin': 'round',
+      ...tag,
     }),
   ];
+}
+
+/** The planned path: a dashed ink line with an arrowhead, a pip per action, and a mark where a step has `via`. */
+function pathArrow(i: OverlayInput, from: Point, steps: readonly PathStep[]): SvgNode[] {
+  const p = i.projection;
+  const k = p.k;
+  // On the creature, the arrow runs to (or from) the seat the character has or would take.
+  const pts = [from, ...steps.map((s) => placePoint(i.state, i.characterId, s.place, p))];
+  const out = inkArrow(i, pts);
   steps.forEach((step, index) => {
     const a = pts[index]!;
     const b = pts[index + 1]!;
@@ -308,23 +330,55 @@ function viaMark(i: OverlayInput, at: Point, via: string): SvgNode[] {
 
 /** Action pips in a row centred on `at`, drawn in the character's accent with an ink rim. */
 export function pips(i: OverlayInput, at: Point, count: number): SvgNode[] {
+  // The cost of a stretch as action arrows in ink (the art kit's glyph), on a small paper strip so they read
+  // over any ground.
   const k = i.projection.k;
-  const r = 4.6 * k;
-  const gap = 11 * k;
-  const ramp = accentRamp(i.palette, accentOf(i.characterId, MAP_TUNING.accent));
-  const out: SvgNode[] = [];
-  for (let j = 0; j < count; j += 1) {
-    const x = at.x + (j - (count - 1) / 2) * gap;
-    out.push(
-      el('path', {
-        d: ellipse({ x, y: at.y }, r, r),
-        fill: ramp.base,
-        stroke: i.palette.ink,
-        'stroke-width': 1.4 * k,
-      }),
-    );
-  }
-  return out;
+  const w = 8 * k;
+  const gap = 2.5 * k;
+  const width = count * w + (count - 1) * gap;
+  const x0 = at.x - width / 2;
+  const y0 = at.y - w * 0.6;
+  const pad = 2.5 * k;
+  return [
+    el('rect', {
+      x: x0 - pad,
+      y: y0 - pad,
+      width: width + 2 * pad,
+      height: w * 1.2 + 2 * pad,
+      rx: 3 * k,
+      fill: i.palette.paper,
+      opacity: 0.85,
+      'data-mark': 'cost',
+    }),
+    ...Array.from({ length: count }, (_, j) =>
+      actionArrowNodes(i.palette, x0 + j * (w + gap), y0, w, 'ready'),
+    ).flat(),
+  ];
+}
+
+/**
+ * An open threat card's trail: where the threat walks at the next tick (`threatNextPath`), as the ink arrow
+ * from its hex, and its end hex ringed. Nothing when it does not move.
+ */
+export function threatTrail(i: OverlayInput, threatId: string): SvgNode[] {
+  const threat = i.state.threats.find((t) => t.id === threatId);
+  const path = threatNextPath(i.state, threatId);
+  const end = path.at(-1);
+  if (!threat || !end) return [];
+  const p = i.projection;
+  const pts = [threat.hex, ...path].map((h) => hexCenter(p, h.q, h.r));
+  return [
+    el('path', {
+      d: hexPath(p, end, 0.8),
+      fill: 'none',
+      stroke: i.palette.ink,
+      'stroke-width': 1.8 * p.k,
+      'stroke-dasharray': `${n(3 * p.k)} ${n(3 * p.k)}`,
+      'stroke-linejoin': 'round',
+      'data-mark': 'threat-end',
+    }),
+    ...inkArrow(i, pts, { inset: 16 * p.k, width: 2.2, mark: 'threat-trail' }),
+  ];
 }
 
 /** A lost character: its standee faded into the fog. */
@@ -617,6 +671,7 @@ export function buildOverlays(i: OverlayInput): Overlays {
     );
     over.push(...pathArrow(i, feet, i.flow.steps));
   }
+  if (i.flow.kind === 'threat') over.push(...threatTrail(i, i.flow.id));
   over.push(...lostCharacters(i));
   if (staysPut(i.predicted)) over.push(stayHint(i));
   over.push(...actionHints(i));

@@ -5,9 +5,19 @@
 export interface Settings {
   /** Right-clicking the map closes the open popover, bubble or card (desktop). */
   readonly closeOnRightClick: boolean;
+  /** Each action's verb ("Gather", "Strike") under its icon. On by default (Misa); `?labels=0` hides them. */
+  readonly actionLabels: boolean;
 }
 
-export const DEFAULT_SETTINGS: Settings = { closeOnRightClick: true };
+export const DEFAULT_SETTINGS: Settings = { closeOnRightClick: true, actionLabels: true };
+
+/** Settings a URL may switch for a comparison on staging: `?labels=0` (or `1`) for the action labels. */
+export function settingsFromUrl(search: string): Partial<Settings> {
+  const labels = new URLSearchParams(search).get('labels');
+  if (labels === '1') return { actionLabels: true };
+  if (labels === '0') return { actionLabels: false };
+  return {};
+}
 
 let current: Settings = DEFAULT_SETTINGS;
 

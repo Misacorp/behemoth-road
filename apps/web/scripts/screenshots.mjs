@@ -15,20 +15,12 @@
  * Usage: pnpm --filter @behemoth-road/web build && node apps/web/scripts/screenshots.mjs
  * Not part of the unit test run. Needs the pre-installed Playwright (require('playwright')).
  */
-import {
-  createReadStream,
-  existsSync,
-  mkdirSync,
-  readFileSync,
-  statSync,
-  writeFileSync,
-} from 'node:fs';
-import { createServer } from 'node:http';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
-import { dirname, extname, join, normalize, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { spawn, spawnSync } from 'node:child_process';
-import { readdirSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { FakeServer, serve, startVite } from './fake-game.mjs';
 
 // The core, the art kit and the fixtures are TypeScript; Node runs them with its type transform (the core
 // uses syntax plain type stripping does not cover). Re-run this script with the flag when it is missing.
@@ -47,14 +39,9 @@ const {
   CHAIN_SPOTS,
   chainScenario,
   characterIdOf,
-  CONFIG,
-  joinScenario,
   joinedScenario,
   lostScenario,
-  newSeasonScenario,
-  notJoinedScenario,
   seasonScenario,
-  SESSION,
   toView,
   USERS,
 } = await import('../src/api/fixtures.ts');
@@ -66,148 +53,6 @@ const dist = join(web, 'dist');
 const out = resolve(web, '../../screenshots');
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
-
-const TYPES = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript',
-  '.css': 'text/css',
-  '.svg': 'image/svg+xml',
-  '.json': 'application/json',
-};
-
-/** Headers for every path from public/_headers (only the `/*` block is used). */
-function readHeaders() {
-  const headers = {};
-  for (const line of readFileSync(join(web, 'public/_headers'), 'utf8').split('\n')) {
-    const m = /^\s+([A-Za-z-]+):\s*(.+)$/.exec(line);
-    if (m) headers[m[1]] = m[2].trim();
-  }
-  return headers;
-}
-
-function serve() {
-  const headers = readHeaders();
-  const server = createServer((req, res) => {
-    const path = normalize(decodeURIComponent(new URL(req.url, 'http://x').pathname));
-    let file = join(dist, path);
-    if (!file.startsWith(dist) || !existsSync(file) || statSync(file).isDirectory()) {
-      file = join(dist, 'index.html');
-    }
-    res.writeHead(200, {
-      ...headers,
-      'Content-Type': TYPES[extname(file)] ?? 'application/octet-stream',
-    });
-    createReadStream(file).pipe(res);
-  });
-  return new Promise((ok) => server.listen(0, '127.0.0.1', () => ok(server)));
-}
-
-/** A fake game server on the real core: it holds a scenario and answers the API like the Worker. */
-class FakeServer {
-  constructor() {
-    this.scenario = notJoinedScenario();
-    this.log = [];
-    this.reads = [];
-  }
-
-  reset(scenario) {
-    this.scenario = scenario;
-    this.log = [];
-    this.reads = [];
-  }
-
-  /** Answers one request: [status, body]. */
-  answer(method, path, body) {
-    const s = this.scenario;
-    // Like the Worker: each change's events are logged with its version; a move or an action answers its
-    // own, and a read with `since` answers every logged one after it.
-    const ok = (next, events = []) => {
-      if (next) this.scenario = { ...next, version: next.version ?? s.version + 1 };
-      const stamped = events.map((e) => ({ ...e, version: this.scenario.version }));
-      this.log.push(...stamped);
-      return [200, { ...toView(this.scenario), events: stamped }];
-    };
-    if (path === '/api/config') return [200, CONFIG];
-    if (path === '/api/dev/login') return [200, SESSION];
-    if (method === 'GET' && path === '/api/game') {
-      const since = Number(new URL(`http://x${this.lastUrl}`).searchParams.get('since') ?? NaN);
-      if (since === s.version) return [200, { unchanged: true }];
-      const events = Number.isNaN(since) ? [] : this.log.filter((e) => e.version > since);
-      return [200, { ...toView(s), events }];
-    }
-    if (path === '/api/game/join' || path === '/api/game/replace') {
-      const base =
-        path === '/api/game/replace'
-          ? {
-              ...s,
-              state: { ...s.state, characters: s.state.characters.filter((c) => c.id !== s.you) },
-            }
-          : s;
-      return ok(joinScenario(base, body.role, body.offer));
-    }
-    if (path === '/api/game/move') {
-      if (body.version !== s.version) return [409, { error: 'stale' }];
-      const result = moveAlong(s.state, characterOf(s.state, s.you)?.id ?? '', body.path);
-      if (!result.ok) return [409, { error: result.reason }];
-      return ok({ ...s, state: result.state, version: s.version + 1 }, result.events);
-    }
-    if (path === '/api/game/act') {
-      if (body.version !== s.version) return [409, { error: 'stale' }];
-      const result = act(s.state, characterOf(s.state, s.you)?.id ?? '', body.action);
-      if (!result.ok) return [409, { error: result.reason }];
-      return ok({ ...s, state: result.state, version: s.version + 1 }, result.events);
-    }
-    if (path === '/api/dev/new-season') {
-      if (this.failNewSeason) {
-        this.failNewSeason = false;
-        return [500, { error: 'internal' }];
-      }
-      // Like the Worker: a new game with a new seed; the client reads its view afterwards.
-      this.reset(newSeasonScenario());
-      return [200, { ok: true }];
-    }
-    if (path === '/api/dev/next-day') {
-      // Like the Worker, the tick answers the view alone; its events wait in the log.
-      const ticked = nextDayWithEvents(s.state);
-      ok({ ...s, state: ticked.state, version: s.version + 1 }, ticked.events);
-      return [200, toView(this.scenario)];
-    }
-    return [404, { error: 'not_found' }];
-  }
-
-  async route(route) {
-    const req = route.request();
-    const url = new URL(req.url());
-    this.lastUrl = `${url.pathname}${url.search}`;
-    if (req.method() === 'GET' && url.pathname === '/api/game') this.reads.push(url.search);
-    const body = req.postData() ? JSON.parse(req.postData()) : null;
-    const [status, payload] = this.answer(req.method(), url.pathname, body);
-    await route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(payload) });
-  }
-}
-
-/** Starts the Vite dev server on a free port and resolves with its URL. */
-function startVite() {
-  return new Promise((ok, fail) => {
-    const vite = spawn(
-      join(web, 'node_modules/.bin/vite'),
-      ['--port', '5199', '--strictPort', '--host', '127.0.0.1'],
-      {
-        cwd: web,
-        stdio: ['ignore', 'pipe', 'pipe'],
-      },
-    );
-    let text = '';
-    const onData = (d) => {
-      text += String(d);
-      if (/Local:\s+http/.test(text))
-        ok({ url: 'http://127.0.0.1:5199/', stop: () => vite.kill() });
-    };
-    vite.stdout.on('data', onData);
-    vite.stderr.on('data', onData);
-    vite.on('exit', (code) => fail(new Error(`vite exited (${code}): ${text}`)));
-  });
-}
 
 /** Your character's cloak colour in the joined scenario (the art kit assigns looks in join order). */
 const CLOAK = (() => {
@@ -381,6 +226,140 @@ async function run() {
         await press(selector);
       };
 
+      /**
+       * Phone only: long-press every visible element inside the open `kind` popover, firing the `contextmenu`
+       * Android sends at about 500 ms, then lifting. The same popover must still be open; an element with a
+       * tip must show it. Nothing inside a popover may be closed (or acted on) by a long press.
+       */
+      const holdAll = async (kind, label = kind, rootSel = `[data-popover=${kind}]`) => {
+        if (!cdp0) return;
+        const sel = rootSel;
+        const ident = () =>
+          page.evaluate((q) => {
+            const el = document.querySelector(q);
+            return el
+              ? `${el.getAttribute('data-popover')}:${el.getAttribute('data-character') ?? ''}`
+              : null;
+          }, sel);
+        const before = await ident();
+        if (!before) {
+          problems.push(`${vp.name}: holdAll(${label}): no ${kind} popover open`);
+          return;
+        }
+        const targets = await page.evaluate((q) => {
+          const root = document.querySelector(q);
+          const out = [];
+          const seen = new Set();
+          const list = root.querySelectorAll(
+            '[data-tip],[data-tile-tip],button,a,[role=button],[data-action],[data-character],[aria-label],[data-mark],svg g,svg use,svg image,svg path',
+          );
+          for (const el of list) {
+            const b = el.getBoundingClientRect();
+            if (b.width < 3 || b.height < 3) continue;
+            const x = b.x + b.width / 2;
+            const y = b.y + b.height / 2;
+            if (x < 0 || y < 0 || x > window.innerWidth || y > window.innerHeight) continue;
+            const top = document.elementFromPoint(x, y);
+            if (!top || !el.contains(top)) continue;
+            const key = `${Math.round(x)},${Math.round(y)},${el.tagName}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            const name =
+              el.getAttribute('data-tip') ??
+              el.getAttribute('data-action') ??
+              el.getAttribute('aria-label') ??
+              el.getAttribute('class') ??
+              el.tagName;
+            out.push({
+              plain:
+                el.hasAttribute('data-tip') &&
+                (el.hasAttribute('data-tip-tap') ||
+                  !el.closest(
+                    'button, a, [role=button], [role=option], [data-action], [data-acts]',
+                  )),
+              x,
+              y,
+              name: `${el.tagName.toLowerCase()}[${name}]`,
+              tip: el.hasAttribute('data-tip'),
+            });
+          }
+          return out;
+        }, sel);
+        let n = 0;
+        let plainTaps = 0;
+        for (const t of targets) {
+          await cdp0.send('Input.dispatchTouchEvent', {
+            type: 'touchStart',
+            touchPoints: [{ x: t.x, y: t.y }],
+          });
+          await page.waitForTimeout(500);
+          await page.evaluate(
+            ([x, y]) => {
+              const el = document.elementFromPoint(x, y);
+              el?.dispatchEvent(
+                new MouseEvent('contextmenu', {
+                  bubbles: true,
+                  cancelable: true,
+                  clientX: x,
+                  clientY: y,
+                }),
+              );
+            },
+            [t.x, t.y],
+          );
+          await page.waitForTimeout(60);
+          const tipShown = await page.locator('.tip').count();
+          await cdp0.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+          await page.waitForTimeout(150);
+          n += 1;
+          // A held tip stays after the finger lifts (about a second later it is still there).
+          await page.waitForTimeout(1000);
+          const tipStays = await page.locator('.tip').count();
+          if (t.tip && tipShown && !tipStays)
+            problems.push(
+              `${vp.name}: the tip on ${t.name} in ${label} did not stay after release`,
+            );
+          if ((await ident()) !== before) {
+            problems.push(
+              `${vp.name}: long press on ${t.name} closed or changed the ${label} popover`,
+            );
+            return;
+          }
+          if (t.tip && !tipShown)
+            problems.push(`${vp.name}: long press on ${t.name} in ${label} showed no tip`);
+          // A plain icon (not a button) shows its tip on a single tap and the container stays open.
+          if (t.plain) {
+            if (await page.locator('.tip').count()) {
+              await page.keyboard.press('Escape');
+              await page.waitForTimeout(150);
+            }
+            await page.touchscreen.tap(t.x, t.y);
+            await page.waitForTimeout(250);
+            if (!(await page.locator('.tip').count()))
+              problems.push(`${vp.name}: a tap on ${t.name} in ${label} showed no tip`);
+            if ((await ident()) !== before) {
+              problems.push(`${vp.name}: a tap on ${t.name} closed or changed the ${label}`);
+              return;
+            }
+            plainTaps += 1;
+          }
+          // Clear any tip left to be read (a tap on a HUD button closes it).
+          if (await page.locator('.tip').count()) {
+            await page.keyboard.press('Escape');
+            await page.waitForTimeout(150);
+            if ((await ident()) !== before) {
+              problems.push(
+                `${vp.name}: closing the tip after ${t.name} closed the ${label} popover`,
+              );
+              return;
+            }
+          }
+        }
+        console.log(
+          `holdAll ${vp.name} ${label}: ${n} elements long-pressed, ${plainTaps} plain icons tapped`,
+        );
+      };
+
       // Join: the drawer opens by itself. Phones step through the wizard; desktop shows it all.
       await page.goto(vite.url);
       await page.waitForSelector('.drawer .offer');
@@ -418,6 +397,14 @@ async function run() {
         if (!(await openTip(selector))) problems.push(`${vp.name}: no tip on ${selector}`);
         await shotT(name);
         await endTip();
+        if (cdp0) {
+          // On touch a held tip stays to be read after the finger lifts; the next tap anywhere closes it.
+          if (!(await page.locator('.tip').count()))
+            problems.push(`${vp.name}: the tip on ${selector} closed when the finger lifted`);
+          // Escape closes a tip left to be read (a tap on the day would open its own tip).
+          await page.keyboard.press('Escape');
+          await page.waitForTimeout(150);
+        }
         if (await page.locator('.tip').count())
           problems.push(`${vp.name}: the tip on ${selector} stayed open`);
       };
@@ -451,6 +438,26 @@ async function run() {
       const idOf = (user) => characterIdOf(toView(fake.scenario), user);
       if (!charOf(USERS.MISA)) problems.push(`${vp.name}: join did not reach the server`);
       await shot('two-players-riding');
+      // The opening view frames the creature and the way ahead between the top HUD and the pips.
+      {
+        const box = async (sel) => page.locator(sel).first().boundingBox();
+        const top = await box('.hud-top');
+        const pips = await box('.hud-actions');
+        const [cq, cr] = (await page.locator('svg.map').getAttribute('data-creature'))
+          .split(' ')
+          .map(Number);
+        const [vx, vy, scale] = (await page.locator('svg.map').getAttribute('data-view'))
+          .split(' ')
+          .map(Number);
+        const [size, squash] = (await page.locator('svg.map').getAttribute('data-projection'))
+          .split(' ')
+          .map(Number);
+        const y = vy + size * Math.sqrt(3) * (cr + cq / 2) * squash * scale;
+        if (top && !(y > top.y + top.height))
+          problems.push(`${vp.name}: the creature opens under the HUD`);
+        if (pips && !(y < pips.y)) problems.push(`${vp.name}: the creature opens under the pips`);
+        void vx;
+      }
 
       const svg = page.locator('svg.map');
       const nums = async (name) => (await svg.getAttribute(name)).split(' ').map(Number);
@@ -471,6 +478,7 @@ async function run() {
       const tapCreature = async () => tap(...(await hexOnScreen(q0, r0)));
       await tapCreature();
       if (!(await has('bubble'))) problems.push(`${vp.name}: no bubble while riding`);
+      await holdAll('bubble');
       if ((await page.locator('[data-popover=bubble] [data-character]').count()) !== 2)
         problems.push(`${vp.name}: the bubble does not list both riders`);
       await shot('bubble');
@@ -486,6 +494,14 @@ async function run() {
       if (!(await has('character'))) problems.push(`${vp.name}: no card for the other rider`);
       await shot('other-player-card');
       // The card's role emblem has its tip, and the HUD's controls theirs.
+      // Opened from the bubble, the card continues in the same popup, with a back button to the bubble.
+      if (!(await page.locator('[data-popover=character][data-back]').count()))
+        problems.push(`${vp.name}: the rider's card has no back to the bubble`);
+      await holdAll('character', 'character');
+      await press('[data-popover=character] [data-back]');
+      if (!(await has('bubble'))) problems.push(`${vp.name}: back did not return to the bubble`);
+      await page.screenshot({ path: join(out, `feedback-${vp.name}-bubble-back.png`) });
+      await press(`[data-popover=bubble] [data-character="${idOf(USERS.PIP)}"]`);
       await tipCheck('[data-popover=character] [data-tip^="role:"]', 'card-role');
       if (!(await has('character'))) problems.push(`${vp.name}: the tip closed the card`);
       await tipCheck('.hud-actions', 'hud-actions');
@@ -545,6 +561,7 @@ async function run() {
       await tap(...(await hexOnScreen(q1, r1)));
       await press('[data-popover=bubble] [aria-label=Behemoth]');
       if (!(await has('creature'))) problems.push(`${vp.name}: no creature card`);
+      await holdAll('creature');
       await page.keyboard.press('Escape');
       await page.waitForTimeout(100);
       if (await has('creature'))
@@ -639,6 +656,7 @@ async function run() {
         await tap(...(await spot('iron')));
         if (!(await page.locator('[data-popover=inspect] [data-action=survey]').count()))
           problems.push(`${vp.name}: no survey on an unexplored neighbour`);
+        await holdAll('inspect');
         await shot3('01-survey-offer');
         await spend('[data-popover=inspect] [data-action=survey]');
         await page.waitForTimeout(450);
@@ -652,7 +670,27 @@ async function run() {
         await openHere();
         if (!(await page.locator('[data-popover=here] [data-action=gather]').count()))
           problems.push(`${vp.name}: no gather on the deposit`);
+        await holdAll('here');
         await shot3('03-here-gather');
+        // The card names what it is about, and its tile picture has a tip.
+        if (!(await page.locator('[data-popover=here] [data-title]').count()))
+          problems.push(`${vp.name}: the here card has no noun title`);
+        await tipCheck('[data-popover=here] [data-tile-tip]', 'here-tile');
+        await openHere();
+        // Action labels are on by default: each action's verb sits under it; `?labels=0` hides them.
+        if (!(await page.locator('[data-popover=here] [data-verb=Gather]').count()))
+          problems.push(`${vp.name}: the actions have no verb labels by default`);
+        await page.goto(`${vite.url}?labels=0`);
+        await page.waitForSelector('.map-world svg g');
+        await page.waitForTimeout(500);
+        await openHere();
+        if (await page.locator('[data-popover=here] [data-verb]').count())
+          problems.push(`${vp.name}: ?labels=0 still labels the actions`);
+        await shot3('03b-here-gather-no-labels');
+        await page.goto(vite.url);
+        await page.waitForSelector('.map-world svg g');
+        await page.waitForTimeout(500);
+        await openHere();
         await spend('[data-popover=here] [data-action=gather]');
         await page.waitForTimeout(300);
         if (!(charOf(USERS.MISA)?.pack.iron > 0))
@@ -663,7 +701,9 @@ async function run() {
         if (!(await page.locator('.hud-pack-contents [data-item=iron]').count()))
           problems.push(`${vp.name}: the pack does not show the iron`);
         await shot3('04-pack');
-        await press('.hud-pack-contents');
+        // The contents are the pack's tip: Escape (or a tap anywhere) closes it.
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(100);
 
         // A fresh day (staged without the creature's step): carry it home; boarding empties the pack.
         await freshDay();
@@ -682,6 +722,7 @@ async function run() {
         await stage({ role: 'engineer', at: 'creature', stores: { iron: 2, timber: 1 } });
         await openHub();
         await shot3('06-hub');
+        await holdAll('hub', 'hub drawer', '.drawer');
         await press('[data-unlock=grappling-hook] [aria-label=Build]');
         await page.waitForTimeout(400);
         if (fake.scenario.state.project?.unlock !== 'grappling-hook')
@@ -784,6 +825,7 @@ async function run() {
         )
           problems.push(`${vp.name}: the hub does not offer feed and linger to a keeper`);
         await shot4('06-hub-care');
+        await holdAll('hub', 'hub drawer (care)', '.drawer');
         await press('[data-care=feed] [aria-label=feed]');
         await page.waitForTimeout(300);
         if ((fake.scenario.state.stores.forage ?? 0) !== 1)
@@ -902,6 +944,37 @@ async function run() {
         if (!(await has('threat')) || (await count('[data-popover=threat] [data-action=strike]')))
           problems.push(`${vp.name}: a far threat's card offers a strike`);
         await shot5('05-threat-card-far');
+        // Its card open, the threat's next-tick path is on the map as an ink trail to a ringed end hex, and the
+        // card shows how far it goes; the trail clears when the card closes.
+        await stage5({ role: 'scout', threats: [{ type: 'captors', at: { q: 0, r: 5 } }] });
+        if ((await count('.map-world [data-threat=figure]')) !== 1)
+          problems.push(`${vp.name}: the threat with a trail is not drawn`);
+        await tap(...(await offset({ q: 0, r: 5 })));
+        if (!(await has('threat'))) problems.push(`${vp.name}: no card on a far threat`);
+        await holdAll('threat');
+        if ((await count('.map-world [data-mark=threat-trail]')) !== 2)
+          problems.push(`${vp.name}: no threat trail with its card open`);
+        if ((await count('.map-world [data-mark=threat-end]')) !== 1)
+          problems.push(`${vp.name}: the threat trail's end is not marked`);
+        const distance = Number(
+          await page
+            .locator('[data-popover=threat] [data-mark=distance]')
+            .getAttribute('data-distance'),
+        );
+        if (!(distance > 0)) problems.push(`${vp.name}: the threat card shows no distance`);
+        const cardBox = await page.locator('[data-popover=threat]').boundingBox();
+        const endBox = await page.locator('.map-world [data-mark=threat-end]').boundingBox();
+        const inset = (b) => ({ x: b.x + 4, y: b.y + 4, w: b.width - 8, h: b.height - 8 });
+        if (cardBox && endBox) {
+          const [a, b] = [inset(cardBox), inset(endBox)];
+          if (a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h)
+            problems.push(`${vp.name}: the threat card covers its trail's end`);
+        }
+        await shot5('05b-threat-path');
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(300);
+        if (await count('.map-world [data-mark=threat-trail], .map-world [data-mark=threat-end]'))
+          problems.push(`${vp.name}: the threat trail stays after its card closes`);
 
         // A wary settlement where you stand: parley with the risk mark (a scout), and an offer of old coin.
         await stage5({
@@ -979,6 +1052,7 @@ async function run() {
         await stage5({ role: 'scout', settlements: [{ at: { q: 3, r: 4 }, favour: 2 }] });
         await tap(...(await offset({ q: 3, r: 4 })));
         if (!(await has('settlement'))) problems.push(`${vp.name}: no settlement card from afar`);
+        await holdAll('settlement');
         await shot5('10-settlement-card');
 
         // The HUD at high peril, far along the route: the gauge past its wounded notch, the edges darker.
