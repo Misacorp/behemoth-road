@@ -230,6 +230,17 @@ export const tips = {
     text: 'How the creature’s appetite seems: hungry or full. Keepers read it best.',
   },
   'hud:join': { title: 'Join', text: 'Pick a character and a role.' },
+  'hud:roster': { title: 'Players', text: 'Everyone in the game: tap one to find them.' },
+  'roster:actions': {
+    title: 'Actions',
+    text: 'What they can still do today. They refill when the day turns.',
+    group: 'hud',
+  },
+  'roster:done': { title: 'Done', text: 'Out of actions for today.', group: 'hud' },
+  'roster:lost': { title: 'Lost', text: 'Lost to the fog. Waiting to join again.', group: 'hud' },
+  'roster:riding': { title: 'Riding', text: 'On the creature’s back.', group: 'hud' },
+  'roster:map': { title: 'Out on the map', text: 'Away from the creature.', group: 'hud' },
+  'roster:none': { title: 'No character', text: 'Has not joined yet.', group: 'hud' },
 } as const satisfies Record<string, Tip>;
 
 export type TipId = keyof typeof tips;

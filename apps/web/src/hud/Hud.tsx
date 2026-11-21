@@ -11,6 +11,7 @@ import { setTipExtra, tipProps } from '../ui/press.ts';
 import { PALETTE } from '../map/art.ts';
 import type { FocusTarget } from '../map/MapView.tsx';
 import { toPreact } from '../map/svgToPreact.ts';
+import { PartyIcon } from '../roster/marks.tsx';
 import { PerilGauge, type PerilProps, RouteStrip, type RouteProps } from './Season.tsx';
 import {
   CharacterFigure,
@@ -50,6 +51,8 @@ export interface HudProps {
   /** Milestone 5: the creature's peril (the gauge beside the day) and the route toward home. */
   readonly peril?: PerilProps;
   readonly route?: RouteProps;
+  /** Opens or closes the player roster (the party button above the recentre buttons). */
+  readonly onRoster?: () => void;
   /** A threat just struck the creature: the gauge jolts. */
   readonly jolt?: boolean;
   /** Peril just dropped (a shelter): the gauge swells softly. */
@@ -129,6 +132,17 @@ export function Hud(props: HudProps): JSX.Element {
         />
       </div>
       <div class="hud-focus">
+        {props.onRoster && (
+          <button
+            type="button"
+            class="round hud-roster"
+            aria-label="Players"
+            {...tipProps('hud:roster')}
+            onClick={props.onRoster}
+          >
+            <PartyIcon />
+          </button>
+        )}
         <button
           type="button"
           class="round"

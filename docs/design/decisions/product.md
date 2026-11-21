@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-21: A player roster drawer finds each player's character on the map
+
+ID: `2026-11-21-a-player-roster-drawer-finds-each` · Status: current
+
+**Decision.** A party button above the recentre buttons opens a roster drawer (phone: the one bottom drawer; desktop: a left side drawer) listing every player: you first, then the rest by Discord name (text only), each with a role emblem, the day's actions as the ink action arrows (solid left, faint spent, count from the config) and marks for done for the day, lost, riding the creature, out on the map and no character yet. The character's own name is not shown. Tapping a row with an active character recentres the map on it (on the creature if riding), opens its card (a rider's card continues the hub bubble's popup, with a back) and, on a phone, lowers the drawer to a peek so the map and card show; on desktop the drawer stays open while the card marks the target. Lost and character-less rows are not tappable. The join drawer and the hub take over from the roster (one drawer at a time).
+
+**Reasoning.** Playtesters need to see who has acted and find each other without hunting the map. Showing only Discord names keeps the roster about players; the card already shows the character. Reusing the drawer, arrows, emblems and character card follows the popup and press rules without new patterns.
+
 ## 2026-11-20: Icons that are not buttons show their tip on a tap **[Misa]**
 
 ID: `2026-11-20-icons-that-are-not-buttons-show` · Status: current

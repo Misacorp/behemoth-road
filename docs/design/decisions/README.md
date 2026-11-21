@@ -114,6 +114,7 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-21 A player roster drawer finds each player's character on the map
 - 2026-11-20 Icons that are not buttons show their tip on a tap \[Misa\]
 - 2026-11-20 Verb labels under actions are on by default \[Misa\]
 - 2026-11-20 The map is framed between the top HUD and the pips; the first view looks ahead of the creature

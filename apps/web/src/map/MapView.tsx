@@ -141,7 +141,7 @@ export interface MapViewProps {
   /** The map was right-clicked (the browser's menu is never shown over the map). */
   readonly onRightClick: () => void;
   /** Recentre requests: a new `n` animates the view to the target. */
-  readonly focus: { readonly target: FocusTarget; readonly n: number };
+  readonly focus: { readonly target: FocusTarget; readonly n: number; readonly id?: string };
   /**
    * Screen px covered at the bottom (a phone's half drawer). Centring then uses the space above it, and
    * a change recentres on your character (or the creature before you have one).
@@ -680,7 +680,7 @@ export function MapView(props: MapViewProps): JSX.Element {
     if (focusN === 0) return;
     const { state: s, characterId: id, focus } = latest.current;
     animateTo(
-      centreOn(targetPoint(s, id, focus.target), view.current.scale, seen()),
+      centreOn(targetPoint(s, focus.id ?? id, focus.target), view.current.scale, seen()),
       MAP_TUNING.followMs,
     );
   }, [focusN]);
@@ -693,8 +693,12 @@ export function MapView(props: MapViewProps): JSX.Element {
       firstCover.current = false;
       return;
     }
-    const { state: s, characterId: id } = latest.current;
-    animateTo(centreOn(targetPoint(s, id, 'me'), view.current.scale, seen()), MAP_TUNING.followMs);
+    // A character found from the roster stays centred in the space still seen.
+    const { state: s, characterId: id, focus } = latest.current;
+    animateTo(
+      centreOn(targetPoint(s, focus.id ?? id, 'me'), view.current.scale, seen()),
+      MAP_TUNING.followMs,
+    );
   }, [cover]);
 
   // A redrawn world layer (new zoom step or a new day) needs its transform in the same frame.
