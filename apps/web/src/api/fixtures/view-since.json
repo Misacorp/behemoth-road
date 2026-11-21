@@ -11,7 +11,7 @@
   },
   "offers": null,
   "game": {
-    "contentVersion": 11,
+    "contentVersion": 12,
     "artSeed": 4242,
     "day": 1,
     "config": {

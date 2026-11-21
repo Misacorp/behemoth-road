@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { type GameState, hexKey, isExplored, leadingEdge, nextDay } from '../src/index.ts';
-import { settlementSpots } from '../src/settlements.ts';
+import { placeSettlement, settlementSpots } from '../src/settlements.ts';
 import { fieldGame, QUIET } from './helpers.ts';
 
 /** Marks the given hex keys (default: all) explored, as scouts sweeping the window would. */
@@ -42,5 +42,14 @@ describe('explored hexes keep their content', () => {
         state = after;
       }
     }
+  });
+});
+
+describe('a swept window places no settlement', () => {
+  it('places none, without throwing and the same every time, when the edge and inner rings are explored', () => {
+    const state = exploreKeys(fieldGame(['a'], ROUTE, 7));
+    expect(settlementSpots(state)).toEqual([]);
+    expect(placeSettlement(state)).toBeNull();
+    expect(placeSettlement(state)).toBeNull();
   });
 });

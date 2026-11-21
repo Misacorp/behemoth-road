@@ -790,6 +790,7 @@ export function MapView(props: MapViewProps): JSX.Element {
       const target =
         flow.kind === 'planned' ||
         flow.kind === 'bubble' ||
+        flow.kind === 'pick' ||
         (flow.kind === 'character' && flow.back !== undefined) ||
         flow.kind === 'selected' ||
         (flow.kind === 'inspect' && survey) ||
