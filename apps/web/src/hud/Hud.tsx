@@ -70,6 +70,8 @@ export interface HudProps {
   readonly onRoster?: () => void;
   /** A threat just struck the creature: the gauge jolts. */
   readonly jolt?: boolean;
+  /** Peril just rose from hunger at the tick: the feeding icon shows beside the gauge for a moment. */
+  readonly hungry?: boolean;
   /** Peril just dropped (a shelter): the gauge swells softly. */
   readonly relieved?: boolean;
 }
@@ -146,6 +148,7 @@ export function Hud(props: HudProps): JSX.Element {
             <PerilGauge
               {...props.peril}
               jolt={props.jolt ?? false}
+              hungry={props.hungry ?? false}
               relieved={props.relieved ?? false}
             />
           )}

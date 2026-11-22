@@ -1521,6 +1521,41 @@ async function run() {
         await shot5('p5-settlement-angry');
         await idle();
 
+        // Where peril came from: a tap on the HUD gauge opens the breakdown as a popover (hunger beside the
+        // threats that struck, and what eased it); a hungry tick shows its cause at the gauge and on the creature.
+        const PERIL_LOG = {
+          added: { hunger: 4, 'threat:captors': 5, 'threat:swarm': 2 },
+          eased: { calm: 1, shelter: 3 },
+          held: 2,
+        };
+        await stage5({ role: 'scout', at: 'creature', peril: 7, stats: { peril: PERIL_LOG } });
+        await tapEl('.hud-peril');
+        await page.waitForTimeout(300);
+        if ((await count('.tip .peril-breakdown .peril-row[data-kind=added]')) !== 3)
+          problems.push(`${vp.name}: the gauge's popover does not list the three sources`);
+        if (!(await count('.tip .peril-breakdown .peril-row[data-source=hunger]')))
+          problems.push(`${vp.name}: the gauge's popover does not show hunger`);
+        if (!(await count('.tip .peril-eased .peril-row')))
+          problems.push(`${vp.name}: the gauge's popover shows nothing that eased peril`);
+        const popBox = await page.locator('.tip').boundingBox();
+        if (!popBox || popBox.x < 0 || popBox.x + popBox.width > vp.width)
+          problems.push(`${vp.name}: the gauge's popover leaves the screen`);
+        await shot5('16-peril-popover');
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(150);
+        if (await count('.tip'))
+          problems.push(`${vp.name}: Escape did not close the gauge's popover`);
+        // A tick that ends with the creature underfed: hunger raises peril, and says so.
+        await stage5({ role: 'scout', at: 'creature', satiety: 6 });
+        await press('[aria-label="Next day"]');
+        await page.waitForTimeout(500);
+        if (!(await count('.hud-peril-cause[data-cause=hunger]')))
+          problems.push(`${vp.name}: no hunger mark at the gauge when hunger raised peril`);
+        if (!(await count('[data-moment=hungry]')))
+          problems.push(`${vp.name}: no hunger mark on the creature when hunger raised peril`);
+        await shot5('16b-peril-hunger');
+        await page.waitForTimeout(1500);
+
         // The season's end, each outcome reached by a tick of the real core: home safe on the last step,
         // home wounded at high peril, lost when a strike fills the gauge.
         const routeLength = fake.scenario.state.config.routeLength;
@@ -1532,15 +1567,32 @@ async function run() {
             '100000000000000003': { explored: 6, strikes: 0, gathered: 0 },
           },
         };
+        const WOUNDED_LOG = {
+          added: { hunger: 4, 'threat:captors': 5, 'threat:swarm': 2 },
+          eased: { calm: 1, shelter: 3 },
+          held: 2,
+        };
+        const LOST_LOG = {
+          added: { hunger: 5, 'threat:swarm': 6, 'threat:rockslide': 3 },
+          eased: { calm: 2, shelter: 3 },
+          held: 0,
+        };
         const endings = [
           ['safe', { steps: routeLength - 1, peril: 0, stats: RECAP_STATS }],
-          ['wounded', { steps: routeLength - 1, peril: 7, stats: RECAP_STATS }],
+          [
+            'wounded',
+            {
+              steps: routeLength - 1,
+              peril: 7,
+              stats: { ...RECAP_STATS, peril: WOUNDED_LOG },
+            },
+          ],
           [
             'lost',
             {
               steps: 2,
               peril: 9,
-              stats: RECAP_STATS,
+              stats: { ...RECAP_STATS, peril: LOST_LOG },
               threats: [
                 { type: 'swarm', at: { q: 0, r: -3 }, strength: 4 },
                 { type: 'swarm', at: { q: 3, r: -3 }, strength: 4 },
@@ -1580,6 +1632,21 @@ async function run() {
           const recapBox = await page.locator('.ending .recap').boundingBox();
           if (!recapBox || recapBox.y + recapBox.height > footBox.y + 0.5)
             problems.push(`${vp.name}: the recap runs into the ending's foot`);
+          // Where peril came from, on the endings that had some: icons with numbers, the biggest first.
+          if (outcome !== 'safe') {
+            const rows = await page.locator('.ending .peril-row[data-kind=added]').count();
+            if (rows < 3)
+              problems.push(`${vp.name}: the ${outcome} ending lists ${rows} peril sources`);
+            const nums = await page
+              .locator('.ending .peril-row[data-kind=added]')
+              .evaluateAll((els) => els.map((e) => Number(e.getAttribute('data-amount'))));
+            if (nums.some((n, i) => i > 0 && n > nums[i - 1]))
+              problems.push(
+                `${vp.name}: the ${outcome} ending's peril sources are not biggest first`,
+              );
+            if (!(await count('.ending .peril-row[data-source=hunger]')))
+              problems.push(`${vp.name}: the ${outcome} ending does not show hunger`);
+          }
           await shot5(`15-ending-${outcome}`);
         }
         // A new season that fails: the button shakes and fades back, the ending stays.
@@ -1716,14 +1783,14 @@ async function run() {
       // Skill trees: a scout with a pick ready in two trees (her own, and the guardian's tier 1), Pip with a
       // node taken. The HUD emblem glows; the tree drawer arms a node on one tap and takes it on the second.
       {
-        const per = chainScenario().state.config.notchesPerPick;
+        const per = chainScenario().state.config.xpPerPick;
         const shotS = (name) =>
           page.screenshot({ path: join(out, `skills-${vp.name}-${name}.png`) });
         fake.reset(
           chainScenario({
             role: 'scout',
             at: 'creature',
-            notches: { scout: per, guardian: per },
+            xp: per * 2,
             pipTaken: ['keeper-a1'],
           }),
         );
@@ -1787,20 +1854,20 @@ async function run() {
           await page.waitForTimeout(150);
         }
 
-        // Another role's tab: its first nodes only, open to you with notches in that role.
+        // Another role's tab: its first nodes only, open to you with the one pool of XP.
         await press('[data-tab=guardian]');
         await page.waitForTimeout(250);
         if ((await page.locator('.skills-tree [data-skill]').count()) !== 2)
           problems.push(`${vp.name}: another role's tree is not its first nodes only`);
         if ((await page.locator('.skills-tree [data-skill][data-state=available]').count()) !== 2)
           problems.push(
-            `${vp.name}: the guardian's first nodes are not open to a scout with notches`,
+            `${vp.name}: the guardian's first nodes are not open to a scout with XP to spend`,
           );
         await shotS('7-other-tab');
         await press('[data-tab=keeper]');
         await page.waitForTimeout(250);
-        if (await page.locator('.skills-tree [data-skill][data-state=available]').count())
-          problems.push(`${vp.name}: a role with no notches offers a pick`);
+        if ((await page.locator('.skills-tree [data-skill][data-state=available]').count()) !== 2)
+          problems.push(`${vp.name}: the keeper's first nodes are not open with XP to spend`);
         await press('[data-tab=scout]');
 
         // Closing the drawer: the emblem no longer glows (the guardian pick still waits, so it does).

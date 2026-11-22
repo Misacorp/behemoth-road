@@ -52,12 +52,9 @@ const character = v.object({
   /** What the character carries. */
   pack: counts,
   status: v.picklist(['active', 'lost']),
-  /** Notches earned (by role id) and skill nodes taken: public. */
+  /** XP earned (one pool) and skill nodes taken: public. */
   skills: v.object({
-    notches: v.pipe(
-      v.record(id, count),
-      v.check((r) => Object.keys(r).length <= 16, 'too many entries'),
-    ),
+    xp: count,
     taken: v.pipe(v.array(id), v.maxLength(64)),
   }),
 });
@@ -123,8 +120,9 @@ const config = v.object({
   perilHungryLevel: count,
   perilCalm: count,
   routeLength: count,
-  notchesPerPick: count,
+  xpPerPick: count,
   catchUpEverySteps: count,
+  catchUpXp: count,
 });
 
 /** The core state without the seed (the core's `GameStateView`): known tiles carry their terrain. */
@@ -200,6 +198,12 @@ export const GameStateViewSchema = v.object({
       unlocks: count,
       befriended: count,
       peakPeril: count,
+    }),
+    /** Where peril came from: totals by source id (`hunger`, `threat:<type>`, `calm`, `shelter`). */
+    peril: v.object({
+      added: counts,
+      eased: counts,
+      held: count,
     }),
     byCharacter: v.pipe(
       v.record(id, v.object({ explored: count, strikes: count, gathered: count, fed: count })),
@@ -279,14 +283,19 @@ const KNOWN_EVENTS = [
   event('threat-appears', { id, type: id, hex }),
   event('threat-moves', { id, from: hex, to: hex }),
   /** `damage`: the peril it added, after defence. */
-  event('threat-strikes', { id, damage: count }),
+  event('threat-strikes', { id, type: id, damage: count, held: count }),
   event('struck', { characterId: id, threat: id }),
   /** `strength`: what is left of it. */
   event('threat-hit', { id, characterId: id, strength: count }),
   event('threat-cleared', { id, characterId: id }),
   event('threat-gone', { id }),
   event('defend', { characterId: id }),
-  event('peril', { from: count, to: count }),
+  /** `sources`: why it changed, signed and summing to `to - from`. */
+  event('peril', {
+    from: count,
+    to: count,
+    sources: v.pipe(v.array(v.object({ source: id, amount: int })), v.maxLength(16)),
+  }),
   event('settlement-appears', { id, hex }),
   /** `favour`: the settlement's favour now. */
   event('parley', { id, characterId: id, favour: count }),

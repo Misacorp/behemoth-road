@@ -6,6 +6,7 @@
 import { type CharacterTally, type SharedTally } from '@behemoth-road/core';
 import type { PlayerView } from '../api/schema.ts';
 import type { TipId } from '../text/tips.ts';
+import { type PerilBreakdown, perilBreakdown } from './perilBreakdown.ts';
 
 export type SharedStatId = 'turned' | 'finds' | 'unlocks' | 'friends';
 export type PlayerStatId = 'explored' | 'strikes' | 'gathered';
@@ -59,6 +60,8 @@ export interface Recap {
   readonly shared: readonly RecapStat<SharedStatId>[];
   /** The highest peril reached, for the gauge. */
   readonly peakPeril: number;
+  /** Where peril came from, for the breakdown under it. */
+  readonly perilSources: PerilBreakdown;
   readonly players: readonly RecapPlayer[];
 }
 
@@ -77,6 +80,7 @@ export function recapOf(
   return {
     shared: SHARED.map(([id, key]) => ({ id, value: stats.shared[key] })),
     peakPeril: stats.shared.peakPeril,
+    perilSources: perilBreakdown(stats.peril),
     players: characters.map((c) => {
       const t = tally(c.id);
       const w = who.get(c.id);

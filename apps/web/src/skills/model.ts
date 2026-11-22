@@ -1,6 +1,6 @@
 /**
  * The skill tree's model, from the core's own helpers (`pickRefusal`, `picksAvailable`) run on the view: the
- * state of each node, the paths between them, the tabs for the other roles and the HUD emblem's ring. Pure,
+ * state of each node, the paths between them, the tabs for the other roles and the HUD emblem's ring (XP). Pure,
  * so every state is tested here; the drawer only draws it. There is no second copy of the rules.
  */
 import type { BranchPathState, SkillState } from '@behemoth-road/art';
@@ -115,18 +115,16 @@ export const pickReady = (state: GameStateView, me: Character): boolean =>
   tabsOf(state, me).some((t) => t.ready);
 
 /**
- * The ring on your emblem: notches toward the next pick in your own role (0 to `perPick`). A full ring means a
- * pick is ready; a pick that cannot be spent (every open node of your tree taken) leaves it one short.
+ * The ring on your emblem: XP toward the next pick (0 to `perPick`, which is `xpPerPick`; the field is
+ * still `notches`, the marks of the ring). A full ring means a pick is ready; a pick that cannot be spent
+ * (every open node taken) leaves it one short.
  */
 export function ringOf(
   state: GameStateView,
   me: Character,
-  role: string,
 ): { readonly notches: number; readonly perPick: number } {
-  const per = state.config.notchesPerPick;
-  const taken = SKILL_NODES.filter((n) => n.role === role && me.skills.taken.includes(n.id)).length;
-  const toward = (me.skills.notches[role] ?? 0) - taken * per;
-  const ready = tabsOf(state, me).find((t) => t.role === role)?.ready ?? false;
-  const spare = picksAvailable(state, me, role) > 0 && !ready;
+  const per = state.config.xpPerPick;
+  const toward = me.skills.xp - me.skills.taken.length * per;
+  const spare = picksAvailable(state, me) > 0 && !pickReady(state, me);
   return { notches: Math.max(0, Math.min(spare ? per - 1 : per, toward)), perPick: per };
 }

@@ -187,8 +187,8 @@ export interface ChainStage {
   readonly cues?: readonly { readonly at: Hex; readonly reaction: Reaction }[];
   readonly lingering?: boolean;
   readonly lingeredDay?: number | null;
-  /** Skills: notches earned by role id, and the nodes already taken (set up, not played). */
-  readonly notches?: Readonly<Record<string, number>>;
+  /** Skills: XP earned, and the nodes already taken (set up, not played). */
+  readonly xp?: number;
   readonly taken?: readonly string[];
   /** Skills of another character (Pip, the keeper) on the same terms. */
   readonly pipTaken?: readonly string[];
@@ -269,7 +269,7 @@ export function chainScenario(stage: ChainStage = {}): Scenario {
         ? {
             ...ch,
             pack: stage.pack ?? {},
-            skills: { notches: { ...stage.notches }, taken: [...(stage.taken ?? [])] },
+            skills: { xp: stage.xp ?? 0, taken: [...(stage.taken ?? [])] },
           }
         : ch.userId === PIP && stage.pipTaken
           ? { ...ch, skills: { ...ch.skills, taken: [...stage.pipTaken] } }
@@ -304,6 +304,8 @@ export interface SeasonStage extends ChainStage {
   /** The season's tallies so far (the recap's numbers), the players' by user id; default none. */
   readonly stats?: {
     readonly shared?: Partial<SeasonStats['shared']>;
+    /** Where peril came from (the breakdown's numbers); default none. */
+    readonly peril?: Partial<SeasonStats['peril']>;
     readonly byUser?: Readonly<Record<string, Partial<CharacterTally>>>;
   };
 }
@@ -339,6 +341,7 @@ export function seasonScenario(stage: SeasonStage = {}): Scenario {
     season: stage.season ?? { status: 'on' },
     stats: {
       shared: { ...s.state.stats.shared, ...stage.stats?.shared },
+      peril: { ...s.state.stats.peril, ...stage.stats?.peril },
       byCharacter: Object.fromEntries(
         s.state.characters.flatMap((ch) => {
           const t = stage.stats?.byUser?.[ch.userId];

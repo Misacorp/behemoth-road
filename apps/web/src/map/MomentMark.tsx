@@ -260,6 +260,14 @@ export function MomentMark({
         <Marked kind="bloom">{at(drawM5Moment(moment.kind, PALETTE, size), c.x, c.y, size)}</Marked>
       );
       break;
+    case 'hungry':
+      // Peril rose from hunger: the feeding icon rises off the creature (what would have answered it).
+      body = (
+        <Marked kind="rise">
+          {at(drawIcon('feed', PALETTE, icon), c.x, c.y - 0.6 * p.size, icon)}
+        </Marked>
+      );
+      break;
     case 'misled':
       body = (
         <g>

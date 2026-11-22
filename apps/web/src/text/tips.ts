@@ -320,6 +320,17 @@ export const tips = {
     title: 'Peril',
     text: 'Danger to the creature. Strikes and deep hunger raise it; quiet days lower it. Full, and all is lost.',
   },
+  // Where peril came from (the ending and the gauge's popover): hints at what to do, nothing more.
+  'peril:hunger': { title: 'Hunger', text: 'A hungry creature is in danger. Feed it.' },
+  'peril:calm': { title: 'Quiet', text: 'Quiet days ease the danger.' },
+  'peril:shelter': { title: 'Shelter', text: 'A friendly settlement eased it.' },
+  'peril:held': { title: 'Held off', text: 'Guardians defending kept this off the creature.' },
+  'peril:threat:captors': { text: 'They reached the creature. Strike them down, or defend.' },
+  'peril:threat:swarm': { text: 'They reached the creature. Strike them down, or defend.' },
+  'peril:threat:rockslide': { text: 'It fell on the creature. Clear it, or steer around.' },
+  'peril:threat:ambush': { text: 'It reached the creature. Strike it down, or defend.' },
+  'peril:threat:stampede': { text: 'It reached the creature. Strike it down, or defend.' },
+  'peril:threat:raiders': { text: 'They reached the creature. Keep their people friendly.' },
   'hud:route': { title: 'The way home', text: 'Steps walked toward home.' },
   'hud:appetite': {
     title: 'Appetite',
