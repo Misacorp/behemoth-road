@@ -4,7 +4,7 @@
  * core's own and there is no second copy of the rules here. The texts are in `text/tips.ts` (`why:*`).
  * A refusal about who you are is answered by the role that can: that role's own tip.
  */
-import type { ActCheck, ActRefusal } from '@behemoth-road/core';
+import type { ActCheck, ActRefusal, PickRefusal } from '@behemoth-road/core';
 import { TIP_TABLE, type TipId } from '../text/tips.ts';
 
 /** The tip for each refusal. A record over every refusal: a new one in the core is a type error here. */
@@ -46,14 +46,21 @@ export const WHY_BY_REFUSAL: Readonly<Record<ActRefusal, TipId>> = {
   'boon-taken': 'why:done',
   'unknown-boon': 'why:other',
   'no-trade-good': 'why:other',
-  // Skills: the tree drawer's own tips come with the web slice.
+  // Skills (the tree drawer): each refusal has its own reason.
   'unknown-skill': 'why:other',
-  'skill-veiled': 'why:other',
-  'no-pick': 'why:other',
-  'branch-closed': 'why:other',
-  'skill-tier-order': 'why:other',
-  'skill-tier-limit': 'why:other',
+  'skill-veiled': 'why:veiled',
+  'no-pick': 'why:no-pick',
+  'branch-closed': 'why:branch-closed',
+  'skill-tier-order': 'why:tier-order',
+  'skill-tier-limit': 'why:tier-limit',
 };
+
+/**
+ * The tip for a refused pick. Like `whyTip`, except that a node already taken says so (the shared
+ * `already-have` refusal reads "done today" on the cards, which is not what a skill means).
+ */
+export const whyOfPick = (reason: ActRefusal | PickRefusal): TipId =>
+  reason === 'already-have' ? 'why:taken' : WHY_BY_REFUSAL[reason];
 
 /** The tip for a refusal: the role that can (when the refusal is about who you are), else the refusal's own. */
 export function whyTip(reason: ActRefusal, needs?: string | null): TipId {

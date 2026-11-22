@@ -152,8 +152,26 @@ export const tips = {
     text: 'Give an old coin or a pearl to a wary settlement: {offerFavour} favour, no risk.',
   },
   'action:ask-boon': { title: 'Ask a boon', text: 'A friendly settlement grants one boon.' },
-  // Skills: the web slice writes the tree drawer's tips; this one names the action.
+  // Skills: the tree drawer's tips are below; this one names the action.
   'action:pick-skill': { title: 'Pick', text: 'Take a skill.' },
+
+  // Skills: the first node of each branch (later tiers stay veiled). Names and one line, never numbers.
+  'skill:scout-a1': {
+    title: 'Trap sense',
+    text: 'Hidden traps show themselves, and never spring on you.',
+  },
+  'skill:scout-b1': { title: 'Glints', text: 'Hexes close by that hold something catch your eye.' },
+  'skill:scholar-a1': { title: 'Field kit', text: 'Working a tomb takes less of your day.' },
+  'skill:scholar-b1': { title: 'Lamplight', text: 'Better odds in tombs that lie in the dark.' },
+  'skill:keeper-a1': { title: 'Good forage', text: 'Gathering food gives more.' },
+  'skill:keeper-b1': { title: 'Quiet linger', text: 'Asking the creature to stay costs less.' },
+  'skill:guardian-a1': { title: 'Skywatch', text: 'Strikes bite harder against flying threats.' },
+  'skill:guardian-b1': { title: 'Bulwark', text: 'Standing guard turns more of each blow.' },
+  'skill:engineer-a1': { title: 'Double yield', text: 'Each gather brings more home.' },
+  'skill:engineer-b1': { title: 'Quick hands', text: 'Each build action does more work.' },
+  'skill:envoy-a1': { title: 'Silver tongue', text: 'A parley wins more favour.' },
+  'skill:envoy-b1': { title: 'Ravens', text: 'A parley reaches a settlement further away.' },
+  'skill:veiled': { title: 'Veiled', text: 'Not yet known.' },
 
   // Boons a friendly settlement can grant (one each).
   'boon:gift': { title: 'Gift', text: 'Food and materials into the team stores.' },
@@ -194,6 +212,15 @@ export const tips = {
   'why:settlement': { title: 'Not now', text: 'This settlement is not in that mood.' },
   'why:nothing': { title: 'Not now', text: 'Nothing left to take here.' },
   'why:season-over': { title: 'Over', text: 'The season is over.' },
+  'why:no-pick': { title: 'Not yet', text: 'Needs more work in this role first.' },
+  'why:branch-closed': { title: 'Closed', text: 'You chose the other path.' },
+  'why:tier-order': { title: 'Not yet', text: 'The one before it comes first.' },
+  'why:tier-limit': {
+    title: 'Not yours',
+    text: 'Another role’s tree opens only at its first step.',
+  },
+  'why:taken': { title: 'Taken', text: 'You already have it.' },
+  'why:veiled': { title: 'Veiled', text: 'Not yet known.' },
   'why:other': { title: 'Not now', text: 'Not possible just now.' },
 
   // The ground a hex shows (in the cards' tile pictures).
@@ -282,6 +309,10 @@ export const tips = {
   'hud:stores': {
     title: 'Stores',
     text: 'The team’s stores, on the creature. Unlocks and feeding use them.',
+  },
+  'hud:skills': {
+    title: 'Skills',
+    text: 'Your skills. The ring fills as you work; when it glows, take one.',
   },
   'hud:recentre-me': { title: 'Your character', text: 'Back to your character.' },
   'hud:recentre-creature': { title: 'Behemoth', text: 'Back to the creature, and its hub.' },

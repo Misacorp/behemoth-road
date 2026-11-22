@@ -62,7 +62,6 @@ import {
   inspectSize,
   Bubble,
   characterSize,
-  CHARACTER_SIZE,
   CharacterCard,
   bubbleSize,
   actionKey,
@@ -120,6 +119,8 @@ export interface MapViewProps {
   readonly state: GameStateView;
   /** What you read off the creature (your appetite sign, a keeper's cues); none by default. */
   readonly signs?: CreatureSigns | null;
+  /** Hexes that glint for you (the scout's skill): drawn with the glint mark. Yours alone. */
+  readonly glints?: readonly Hex[];
   readonly flow: Flow;
   readonly characterId: string;
   readonly onTap: (target: Target) => void;
@@ -289,7 +290,10 @@ function popoverAnchor(
   }
   if (flow.kind === 'character' && flow.back && flow.back.kind !== 'pick') {
     // Opened from the bubble: in the bubble's place, as the next step of the same popup.
-    return { ...bubbleAnchor(characterSize(true)), key: `bubble:character:${flow.id}` };
+    return {
+      ...bubbleAnchor(characterSize(true, skillsOf(state, flow.id))),
+      key: `bubble:character:${flow.id}`,
+    };
   }
   if (flow.kind === 'character') {
     // Above the character's head, wherever it stands (on a hex or on the creature's back).
@@ -300,7 +304,9 @@ function popoverAnchor(
       key: `character:${flow.id}:${flow.back ? 'back' : ''}`,
       top: { x: feet.x, y: feet.y - head },
       below: head,
-      size: flow.back ? characterSize(true) : CHARACTER_SIZE,
+      size: flow.back
+        ? characterSize(true, skillsOf(state, flow.id))
+        : characterSize(false, skillsOf(state, flow.id)),
     };
   }
   if (flow.kind === 'threat' || flow.kind === 'settlement') {
@@ -389,9 +395,14 @@ class Static extends Component<{ nodes: ComponentChildren }> {
 /** Room around the scene's own frame for overlays that reach past it (world px, in hex sizes). */
 const LAYER_MARGIN = 2;
 
+/** How many skill nodes a character has taken (its card grows a row for them). */
+const skillsOf = (state: GameStateView, id: string): number =>
+  state.characters.find((c) => c.id === id)?.skills.taken.length ?? 0;
+
 export function MapView(props: MapViewProps): JSX.Element {
   const { state, flow, characterId } = props;
   const signs = props.signs ?? null;
+  const glints = props.glints;
   const svgRef = useRef<SVGSVGElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
   const popRef = useRef<SVGGElement>(null);
@@ -436,7 +447,7 @@ export function MapView(props: MapViewProps): JSX.Element {
   const walking = props.step != null;
   const layers = useMemo(() => {
     const { svg: scene, viewBox } = renderSceneFramed({
-      cells: sceneCells(state),
+      cells: sceneCells(state, glints),
       ...(walking ? {} : { creature: creatureArt(state, signs) }),
       characters: characterArts(state, walking ? 'walkers' : 'all'),
       projection: p,
@@ -462,7 +473,7 @@ export function MapView(props: MapViewProps): JSX.Element {
       box,
       raster: layerRaster(inkZoom, box, window.devicePixelRatio, MAP_TUNING.layer),
     };
-  }, [state, signs, inkZoom, walking]);
+  }, [state, signs, glints, inkZoom, walking]);
   const layerRef = useRef(layers);
   layerRef.current = layers;
 

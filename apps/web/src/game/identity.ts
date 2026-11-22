@@ -12,6 +12,8 @@ export interface Identity {
   readonly role: string | null;
   readonly trait: string | null;
   readonly quirk: string | null;
+  /** The skill nodes it has taken (public). */
+  readonly skills: readonly string[];
   /** The Discord display name of the player (text only). */
   readonly player: string | null;
   readonly accent: string;
@@ -48,6 +50,7 @@ export function identities(view: PlayerView): Map<string, Identity> {
       role: c.role,
       trait: c.trait,
       quirk: c.quirk,
+      skills: c.skills.taken,
       player: owner?.name ?? null,
       accent: looks[i]?.accent ?? ACCENTS[0],
       look: looks[i]?.look,

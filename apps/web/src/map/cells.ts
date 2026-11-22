@@ -38,7 +38,10 @@ export const terrainKnown = (s: CellState): boolean =>
  * The hexes to draw: the window and its fading edge, blank paper a few rings beyond, and lost tiles near
  * the creature or under a character (so a lost character still stands somewhere).
  */
-export function sceneCells(state: GameStateView): ArtCell[] {
+export function sceneCells(
+  state: GameStateView,
+  glints: readonly { readonly q: number; readonly r: number }[] = [],
+): ArtCell[] {
   const { centre } = state.creature;
   const outer = state.config.windowRadius + MAP_TUNING.paperRings;
   const lostLimit = state.config.windowRadius + MAP_TUNING.lostRings;
@@ -60,6 +63,9 @@ export function sceneCells(state: GameStateView): ArtCell[] {
   for (const t of state.threats) keys.set(hexKey(t.hex), t.hex);
   for (const s of state.settlements) keys.set(hexKey(s.hex), s.hex);
 
+  // The viewer's own glints (the scout's skill): a hint mark on hexes that hold something, never what.
+  const glinting = new Set(glints.map(hexKey));
+  for (const g of glints) keys.set(hexKey(g), g);
   const cells: ArtCell[] = [];
   for (const [key, h] of keys) {
     const cellState = cellStateAt(state, key);
@@ -74,6 +80,7 @@ export function sceneCells(state: GameStateView): ArtCell[] {
       state: cellState,
       terrain: known ? (terrainOf(state, h)?.id ?? 'unknown') : 'unknown',
       ...(feature ? { feature } : {}),
+      ...(glinting.has(key) ? { hint: true } : {}),
       // A lit fire shows to everyone, also under the veil and on paper never seen.
       ...(fires.has(key) ? { fire: true } : {}),
       ...(threat

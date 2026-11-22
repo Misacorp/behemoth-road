@@ -1713,6 +1713,119 @@ async function run() {
         await shotP('03-lost-drawer');
       }
 
+      // Skill trees: a scout with a pick ready in two trees (her own, and the guardian's tier 1), Pip with a
+      // node taken. The HUD emblem glows; the tree drawer arms a node on one tap and takes it on the second.
+      {
+        const per = chainScenario().state.config.notchesPerPick;
+        const shotS = (name) =>
+          page.screenshot({ path: join(out, `skills-${vp.name}-${name}.png`) });
+        fake.reset(
+          chainScenario({
+            role: 'scout',
+            at: 'creature',
+            notches: { scout: per, guardian: per },
+            pipTaken: ['keeper-a1'],
+          }),
+        );
+        await page.reload();
+        await page.waitForSelector('.hud-skills');
+        await page.waitForTimeout(500);
+        if (!(await page.locator('.hud-skills[data-ready] [data-glow=ready]').count()))
+          problems.push(`${vp.name}: the skills emblem does not glow with a pick ready`);
+        await shotS('1-hud-ready');
+        // A hold (or hover) on the emblem shows its tip and opens nothing.
+        await tipCheck('.hud-skills', 'skills-hud');
+        if (await page.locator('[data-skills]').count())
+          problems.push(`${vp.name}: a hold on the skills emblem opened the tree`);
+        await press('.hud-skills');
+        await page.waitForSelector('[data-skills]');
+        await page.waitForTimeout(400);
+        const takenNow = () => characterOf(fake.scenario.state, USERS.MISA).skills.taken;
+        if ((await page.locator('[data-skill][data-state=available]').count()) !== 2)
+          problems.push(`${vp.name}: the tree does not offer both first nodes`);
+        if ((await page.locator('[data-tab]').count()) !== 6)
+          problems.push(`${vp.name}: the tree does not have six role tabs`);
+        await shotS('2-tree-ready');
+        await holdAll('skills', 'skills drawer', '.drawer');
+
+        // One tap arms (the node lifts, the tick shows) and sends nothing; the second tap takes it.
+        await press('[data-skill=scout-b1]');
+        if (!(await page.locator('[data-skill=scout-b1][data-armed]').count()))
+          problems.push(`${vp.name}: a tap on an available node did not arm it`);
+        if (takenNow().length !== 0) problems.push(`${vp.name}: a single tap sent the pick`);
+        await shotS('3-armed');
+        await press('[data-skill=scout-b1]');
+        await page.waitForTimeout(120);
+        if (!(await page.locator('[data-skill=scout-b1].is-inked').count()))
+          problems.push(`${vp.name}: the taken node did not ink`);
+        await shotS('4-inked');
+        await page.waitForTimeout(1000);
+        if (takenNow().join() !== 'scout-b1')
+          problems.push(`${vp.name}: the pick did not reach the server`);
+        if ((await page.locator('[data-skill=scout-a1][data-state=closed]').count()) !== 1)
+          problems.push(`${vp.name}: the other branch did not close`);
+        if ((await page.locator('[data-skill=scout-b1][data-state=taken]').count()) !== 1)
+          problems.push(`${vp.name}: the node is not drawn taken`);
+        await shotS('5-closed-branch');
+
+        // A tap on a closed, a veiled or a taken node shows a tip and never acts.
+        for (const id of ['scout-a1', 'scout-a2', 'scout-b1']) {
+          await press(`[data-skill=${id}]`);
+          if (!(await page.locator('.tip').count()))
+            problems.push(`${vp.name}: a tap on ${id} showed no tip`);
+          if (id === 'scout-a1') await shotS('6-closed-tip');
+          await page.keyboard.press('Escape');
+          await page.waitForTimeout(150);
+        }
+        if (takenNow().length !== 1) problems.push(`${vp.name}: a tap on a closed node acted`);
+        // Held on a closed and a taken node, the tip shows too.
+        for (const id of ['scout-a1', 'scout-b1']) {
+          if (!(await openTip(`[data-skill=${id}]`)))
+            problems.push(`${vp.name}: no hold tip on ${id}`);
+          await endTip();
+          if (cdp0) await page.keyboard.press('Escape');
+          await page.waitForTimeout(150);
+        }
+
+        // Another role's tab: its first nodes only, open to you with notches in that role.
+        await press('[data-tab=guardian]');
+        await page.waitForTimeout(250);
+        if ((await page.locator('.skills-tree [data-skill]').count()) !== 2)
+          problems.push(`${vp.name}: another role's tree is not its first nodes only`);
+        if ((await page.locator('.skills-tree [data-skill][data-state=available]').count()) !== 2)
+          problems.push(
+            `${vp.name}: the guardian's first nodes are not open to a scout with notches`,
+          );
+        await shotS('7-other-tab');
+        await press('[data-tab=keeper]');
+        await page.waitForTimeout(250);
+        if (await page.locator('.skills-tree [data-skill][data-state=available]').count())
+          problems.push(`${vp.name}: a role with no notches offers a pick`);
+        await press('[data-tab=scout]');
+
+        // Closing the drawer: the emblem no longer glows (the guardian pick still waits, so it does).
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(300);
+        if (await page.locator('[data-skills]').count())
+          problems.push(`${vp.name}: the tree did not close`);
+        if (!(await page.locator('.hud-skills[data-ready]').count()))
+          problems.push(`${vp.name}: the emblem lost its glow with a pick still waiting`);
+        await shotS('8-hud-after');
+
+        // The card of another character (Pip, riding) shows what they have taken, with a tip.
+        await press('.hud-roster');
+        await page.waitForSelector('.roster-row');
+        await press('.roster-row:has-text("Pip")');
+        await page.waitForSelector('[data-popover=character]');
+        await page.waitForTimeout(400);
+        if (!(await page.locator('[data-popover=character] [data-skill-taken=keeper-a1]').count()))
+          problems.push(`${vp.name}: the character card does not show the taken node`);
+        await shotS('9-card');
+        await holdAll('character', 'character card (skills)');
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(200);
+      }
+
       // Lost and replace: the drawer opens by itself; replacing starts a new character on the creature.
       fake.reset(lostScenario());
       await page.reload();

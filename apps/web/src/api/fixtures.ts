@@ -187,6 +187,11 @@ export interface ChainStage {
   readonly cues?: readonly { readonly at: Hex; readonly reaction: Reaction }[];
   readonly lingering?: boolean;
   readonly lingeredDay?: number | null;
+  /** Skills: notches earned by role id, and the nodes already taken (set up, not played). */
+  readonly notches?: Readonly<Record<string, number>>;
+  readonly taken?: readonly string[];
+  /** Skills of another character (Pip, the keeper) on the same terms. */
+  readonly pipTaken?: readonly string[];
 }
 
 /**
@@ -260,7 +265,15 @@ export function chainScenario(stage: ChainStage = {}): Scenario {
   state = {
     ...state,
     characters: state.characters.map((ch) =>
-      ch.userId === MISA ? { ...ch, pack: stage.pack ?? {} } : ch,
+      ch.userId === MISA
+        ? {
+            ...ch,
+            pack: stage.pack ?? {},
+            skills: { notches: { ...stage.notches }, taken: [...(stage.taken ?? [])] },
+          }
+        : ch.userId === PIP && stage.pipTaken
+          ? { ...ch, skills: { ...ch.skills, taken: [...stage.pipTaken] } }
+          : ch,
     ),
   };
   return { ...s, state, version: s.version + 1 };

@@ -2,7 +2,13 @@
  * The heads-up layer: day counter, action pips, recentre buttons, a way to join (or replace a lost
  * character) when you have none, and the staging-only "next day" for admins.
  */
-import { type CharacterLook, drawPackIcon } from '@behemoth-road/art';
+import {
+  type CharacterLook,
+  drawNotchRing,
+  drawPackIcon,
+  drawPickGlow,
+  type RoleId,
+} from '@behemoth-road/art';
 import type { JSX } from 'preact';
 import { useEffect } from 'preact/hooks';
 import type { Stock } from '../game/chain.ts';
@@ -51,6 +57,15 @@ export interface HudProps {
   /** Milestone 5: the creature's peril (the gauge beside the day) and the route toward home. */
   readonly peril?: PerilProps;
   readonly route?: RouteProps;
+  /** Your role's emblem with the notch ring toward the next pick; a tap opens the skill tree. */
+  readonly skills?: {
+    readonly role: string;
+    readonly notches: number;
+    readonly perPick: number;
+    /** A pick can be taken now: the ready glow pulses. */
+    readonly ready: boolean;
+    readonly onOpen: () => void;
+  } | null;
   /** Opens or closes the player roster (the party button above the recentre buttons). */
   readonly onRoster?: () => void;
   /** A threat just struck the creature: the gauge jolts. */
@@ -99,6 +114,27 @@ function PackButton({
   );
 }
 
+/** Your role emblem ringed by the notches toward your next pick; it pulses when a pick is ready. */
+function SkillsButton({ skills }: { skills: NonNullable<HudProps['skills']> }): JSX.Element {
+  return (
+    <button
+      type="button"
+      class="round hud-skills"
+      aria-label="Skills"
+      data-ready={skills.ready ? true : undefined}
+      data-notches={skills.notches}
+      {...tipProps('hud:skills')}
+      onClick={skills.onOpen}
+    >
+      {/* A pick waiting in another role's tree glows behind the ring (a full ring brings its own glow). */}
+      {skills.ready && skills.notches < skills.perPick && (
+        <span class="hud-skills-glow">{toPreact(drawPickGlow(PALETTE, 64))}</span>
+      )}
+      {toPreact(drawNotchRing(PALETTE, skills.role as RoleId, skills.notches, skills.perPick, 64))}
+    </button>
+  );
+}
+
 export function Hud(props: HudProps): JSX.Element {
   return (
     <>
@@ -143,6 +179,7 @@ export function Hud(props: HudProps): JSX.Element {
             <PartyIcon />
           </button>
         )}
+        {props.skills && <SkillsButton skills={props.skills} />}
         <button
           type="button"
           class="round"

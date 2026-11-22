@@ -4,7 +4,7 @@
  * applies each move. The view is refreshed after your own actions, when the page becomes visible and every
  * 10 seconds while it is visible.
  */
-import { findCharacter, type Hex, hexKey, terrainOf } from '@behemoth-road/core';
+import { findCharacter, type Hex, hexKey, type SkillNode, terrainOf } from '@behemoth-road/core';
 import type { HereAction } from '../map/Popover.tsx';
 import type { JSX } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
@@ -13,6 +13,9 @@ import type { ActionAnswer, PlayerView } from '../api/schema.ts';
 import { browserSocket, createLiveSocket, liveUrl } from '../api/live-socket.ts';
 import { Sync } from '../api/sync.ts';
 import { Hud } from '../hud/Hud.tsx';
+import { SkillDrawer } from '../skills/SkillDrawer.tsx';
+import { pickReady, ringOf } from '../skills/model.ts';
+import { WHY_BY_REFUSAL } from './why.ts';
 import { JoinDrawer } from '../join/JoinDrawer.tsx';
 import {
   type Flow,
@@ -113,6 +116,8 @@ export function Game({ api, initial }: GameProps): JSX.Element {
   const [rosterPeek, setRosterPeek] = useState(0);
   const [rosterSnap, setRosterSnap] = useState<Snap>('half');
   const [busy, setBusy] = useState(false);
+  // The skill tree drawer, opened from the HUD's role emblem.
+  const [skillsOpen, setSkillsOpen] = useState(false);
   const [drawerClosed, setDrawerClosed] = useState(false);
 
   const sync = useRef<Sync | null>(null);
@@ -243,28 +248,33 @@ export function Game({ api, initial }: GameProps): JSX.Element {
     }
   }, [view.version]);
 
-  /** Runs an action: its answer is the new view; a refusal refreshes and clears the plan. */
+  /**
+   * Runs an action: its answer is the new view; a refusal refreshes and clears the plan. Answers the
+   * server's refusal code (null when it went through or failed some other way).
+   */
   async function act(
     run: () => Promise<PlayerView | ActionAnswer>,
     after: (v: PlayerView) => Flow,
-  ): Promise<void> {
-    if (busy) return;
+  ): Promise<string | null> {
+    if (busy) return null;
     setBusy(true);
     try {
       const before = view.version;
       const generation = sync.current!.generation;
       const next = await run();
       // An answer from before a new season belongs to the old game.
-      if (generation !== sync.current!.generation) return;
+      if (generation !== sync.current!.generation) return null;
       planVersion.current = next.version;
       sync.current!.accept(next, generation);
       setFlow(after(next));
       // What others (and the tick) did since the view this action started from.
       void sync.current!.catchUp(before);
+      return null;
     } catch (err) {
       if (!(err instanceof ApiError)) console.warn('action failed', err);
       setFlow(IDLE);
       await sync.current!.refresh();
+      return err instanceof ApiError ? err.code : null;
     } finally {
       setBusy(false);
     }
@@ -384,7 +394,20 @@ export function Game({ api, initial }: GameProps): JSX.Element {
     me?.status === 'active'
       ? { stock: stockOf(me.pack), units: packUnits(me.pack), capacity: state.config.packCapacity }
       : null;
-  const anyDrawer = drawerOpen || hubOpen;
+  // The skill tree: only for an active character, and never over the join drawer or the hub.
+  const skillsShown = skillsOpen && me?.status === 'active' && !drawerOpen && !hubOpen;
+  useEffect(() => {
+    if (hubOpen || drawerOpen) setSkillsOpen(false);
+  }, [hubOpen, drawerOpen]);
+  const onPickSkill = async (node: SkillNode): Promise<string | null> => {
+    const code = await act(
+      () => api.act(view.version, { kind: 'pick-skill', node: node.id }),
+      () => IDLE,
+    );
+    // Only a refusal the web knows a reason for becomes a tip (a stale view just refreshes).
+    return code !== null && Object.hasOwn(WHY_BY_REFUSAL, code) ? code : null;
+  };
+  const anyDrawer = drawerOpen || hubOpen || skillsShown;
   // One drawer at a time: the join drawer or the hub takes over from the roster. A character found from the
   // roster stops holding the map's centre once the roster closes.
   const rosterShown = rosterOpen && !anyDrawer;
@@ -451,6 +474,7 @@ export function Game({ api, initial }: GameProps): JSX.Element {
       <MapView
         state={state}
         signs={signs}
+        glints={view.glints}
         flow={flow}
         characterId={id}
         identities={who}
@@ -514,6 +538,19 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         me={who.get(id) ?? null}
         onFocus={(target) => setFocus((f) => ({ target, n: f.n + 1 }))}
         onRoster={() => setRosterOpen((o) => !o)}
+        skills={
+          me?.status === 'active'
+            ? {
+                role: me.role,
+                ...ringOf(state, me, me.role),
+                ready: pickReady(state, me),
+                onOpen: () => {
+                  setFlow(IDLE);
+                  setSkillsOpen(true);
+                },
+              }
+            : null
+        }
         onNextDay={
           showsNextDay(view)
             ? () =>
@@ -563,6 +600,16 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         busy={busy}
         onBuild={onBuild}
       />
+      {me?.status === 'active' && (
+        <SkillDrawer
+          open={skillsShown}
+          onClose={() => setSkillsOpen(false)}
+          state={state}
+          me={me}
+          busy={busy}
+          onPick={onPickSkill}
+        />
+      )}
       <Roster
         open={rosterShown}
         rows={rows}

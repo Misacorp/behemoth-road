@@ -11,6 +11,7 @@ import {
   drawAppetiteBadge,
   drawIcon,
   drawSettlementIcon,
+  drawSkillNode,
   drawThreatIcon,
   type CharacterLook,
   type Drawn,
@@ -638,9 +639,14 @@ export const CHARACTER_SIZE = { width: 236, height: 78 } as const;
 /** The back button at a card's top left, when the card continues another popup (the bubble). */
 const BACK_W = 30;
 
-export const characterSize = (back: boolean): { width: number; height: number } => ({
+/** The row of taken skill nodes under the card's top part: the icon size, and how many fit in a row. */
+const SKILL_ICON = 24;
+const SKILL_ROW_H = 30;
+const SKILL_MAX = 9;
+
+export const characterSize = (back: boolean, skills = 0): { width: number; height: number } => ({
   width: CHARACTER_SIZE.width + (back ? BACK_W : 0),
-  height: CHARACTER_SIZE.height,
+  height: CHARACTER_SIZE.height + (skills > 0 ? SKILL_ROW_H : 0),
 });
 
 export function BackButton({
@@ -699,7 +705,7 @@ export function CharacterCard({
   );
   return (
     <g data-popover="character" data-character={who.id} data-back={onBack ? true : undefined}>
-      <Card {...characterSize(Boolean(onBack))} />
+      <Card {...characterSize(Boolean(onBack), who.skills.length)} />
       {onBack && <BackButton onBack={onBack} {...(backRef ? { buttonRef: backRef } : {})} />}
       <g transform={`translate(${shift} 0)`}>
         <Fitted drawn={bubbleFigure(who.accent, who.look)} x={8} y={8} width={40} height={60} />
@@ -719,6 +725,22 @@ export function CharacterCard({
           tipped(tipFor('trait', who.trait), 92, 43, <TraitIcon id={who.trait} size={22} />)}
         {who.quirk &&
           tipped(tipFor('quirk', who.quirk), 120, 43, <QuirkIcon id={who.quirk} size={22} />)}
+        {/* The skill nodes they have taken, visible to everyone: small icons, each with its tip. */}
+        {who.skills.slice(0, SKILL_MAX).map((id, i) => (
+          <g
+            key={id}
+            data-skill-taken={id}
+            transform={`translate(${8 + i * (SKILL_ICON + 2)} ${CHARACTER_SIZE.height - 4})`}
+            {...tipProps(tipFor('skill', id))}
+          >
+            <Placed
+              node={drawSkillNode(PALETTE, `skill:${id}`, SKILL_ICON, 'plain')}
+              x={0}
+              y={0}
+              size={SKILL_ICON}
+            />
+          </g>
+        ))}
       </g>
     </g>
   );

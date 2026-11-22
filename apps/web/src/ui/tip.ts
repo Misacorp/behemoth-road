@@ -59,6 +59,7 @@ const GROUP_BY_PREFIX: Readonly<Record<string, TipGroup>> = {
   quirk: 'content',
   material: 'content',
   unlock: 'content',
+  skill: 'content',
   boon: 'content',
   people: 'content',
   terrain: 'content',

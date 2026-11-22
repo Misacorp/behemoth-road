@@ -1346,3 +1346,236 @@ button.roster-row:active {
     max-height: 70%;
   }
 }
+
+/* The skill button on the HUD: your role emblem in its notch ring; the ready glow pulses. */
+.hud-skills {
+  position: relative;
+  padding: 1px;
+}
+
+.hud-skills svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hud-skills-glow {
+  position: absolute;
+  inset: 0;
+}
+
+[data-glow='ready'] {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: skill-glow 1.6s ease-in-out infinite;
+}
+
+@keyframes skill-glow {
+  0%,
+  100% {
+    opacity: 0.55;
+    transform: scale(0.96);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.04);
+  }
+}
+
+/* The skill tree drawer: tabs, the emblem as the root, two branches of nodes. */
+.skills {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: center;
+}
+
+.skills-tabs {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.skills-tab {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  padding: 4px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  background: none;
+  opacity: 0.55;
+}
+
+.skills-tab svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.skills-tab[aria-pressed='true'] {
+  opacity: 1;
+  border-color: #9a9776;
+  background: #f3f1e2;
+  box-shadow: 1px 2px 0 #e1ddc3;
+}
+
+.skills-tab-dot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #5c5a43;
+  border: 1.5px solid #f3f1e2;
+}
+
+.skills-tree {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-1);
+}
+
+.skills-root {
+  width: 72px;
+  height: 72px;
+  display: grid;
+  place-items: center;
+}
+
+.skills-root svg {
+  display: block;
+}
+
+.skills-branches {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+}
+
+.skills-branch {
+  display: grid;
+  justify-items: center;
+}
+
+.skills-step {
+  display: grid;
+  justify-items: center;
+}
+
+.skills-path {
+  display: block;
+  line-height: 0;
+}
+
+.skills-path svg {
+  display: block;
+}
+
+.skill-node {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: none;
+  transition:
+    transform 140ms ease-out,
+    filter 140ms ease-out;
+}
+
+.skill-node svg {
+  display: block;
+}
+
+.skill-node:active {
+  transform: translateY(1px);
+}
+
+/* Armed: lifted off the page, a second tap (or the tick) takes it. */
+.skill-node.is-armed {
+  transform: translateY(-4px) scale(1.1);
+  filter: drop-shadow(0 4px 0 #9a9776);
+}
+
+.skill-node[data-state='plain'] {
+  opacity: 0.7;
+}
+
+/* A moment inks the node when it is taken. */
+.skill-node.is-inked {
+  animation: skill-ink 900ms ease-out;
+}
+
+@keyframes skill-ink {
+  0% {
+    transform: scale(1.3);
+    opacity: 0.4;
+    filter: drop-shadow(0 0 6px #5c5a43);
+  }
+  45% {
+    transform: scale(0.94);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    filter: none;
+  }
+}
+
+.skills-confirm {
+  display: grid;
+  place-items: center;
+  height: 56px;
+}
+
+.skills-go {
+  width: 52px;
+  height: 52px;
+}
+
+.skills-go[hidden] {
+  display: grid;
+  visibility: hidden;
+}
+
+/* Desktop: the tree runs sideways, the emblem at the left and each branch a row. */
+@media (min-width: 900px) {
+  .drawer:has(.skills) {
+    width: 440px;
+  }
+
+  .skills-tree {
+    grid-auto-flow: column;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .skills-branches {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .skills-branch {
+    grid-auto-flow: column;
+    align-items: center;
+  }
+
+  .skills-step {
+    grid-auto-flow: column;
+    align-items: center;
+  }
+
+  .skills-path {
+    position: relative;
+    width: 27px;
+    height: 40px;
+  }
+
+  .skills-path svg {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-90deg);
+  }
+}

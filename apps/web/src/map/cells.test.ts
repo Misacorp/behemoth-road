@@ -62,3 +62,18 @@ describe('feature art and the creature art', () => {
     expect(creatureArt(defended).defenders).toBe(2);
   });
 });
+
+describe('glints', () => {
+  const s = createGame(1, { characterIds: ['you'] });
+  const c = s.creature.centre;
+
+  it("mark only the viewer's glinting hexes with the hint, and nothing without them", () => {
+    expect(sceneCells(s).some((x) => x.hint)).toBe(false);
+    const glinting = [
+      { q: c.q + 1, r: c.r },
+      { q: c.q, r: c.r + 2 },
+    ];
+    const hinted = sceneCells(s, glinting).filter((x) => x.hint);
+    expect(hinted.map((x) => `${x.q},${x.r}`).sort()).toEqual(glinting.map(hexKey).sort());
+  });
+});
