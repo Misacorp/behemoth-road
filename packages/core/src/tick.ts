@@ -48,6 +48,7 @@ import type {
   Threat,
 } from './state.ts';
 import { keepSettlements, placeSettlement, settlementDue } from './settlements.ts';
+import { withNotch } from './skills.ts';
 import { recordEvents } from './stats.ts';
 import {
   activeCount,
@@ -300,6 +301,8 @@ export const nextDayWithEvents = (
       moved.misleadUntilDay !== null && day >= moved.misleadUntilDay ? null : moved.misleadUntilDay,
   };
 
+  const catchUp =
+    !step.stay && creature.steps > 0 && creature.steps % config.catchUpEverySteps === 0;
   const lost: GameEvent[] = [];
   const characters = state.characters.map((c): Character => {
     if (c.status !== 'active') return { ...c, actionsLeft: 0 };
@@ -307,7 +310,10 @@ export const nextDayWithEvents = (
     const actionsLeft = struck
       ? Math.min(config.actionsPerDay, config.struckActions)
       : config.actionsPerDay;
-    const fresh = { ...c, actionsLeft, struckDay: struck ? day : c.struckDay };
+    // Catch-up: whenever the route's steps reach a multiple, everyone still in the game earns a notch
+    // in their own role (a stay does not add a step, so it cannot repeat the notch).
+    const notched = catchUp ? withNotch(c, c.role) : c;
+    const fresh = { ...notched, actionsLeft, struckDay: struck ? day : c.struckDay };
     if (c.at.kind === 'creature') return fresh;
     if (isCreatureHex(moved, c.at.hex)) return { ...fresh, at: ON_CREATURE };
     if (isReachable(moved, c.at.hex)) return fresh;

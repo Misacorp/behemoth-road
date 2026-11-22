@@ -46,12 +46,8 @@ describe('content', () => {
 
   it('keeps later upgrades as inactive perks', () => {
     const perks = ROLES.flatMap((r) => r.perks.map((p) => `${r.id}:${p.id}`));
-    expect(perks).toEqual([
-      'scout:trap-sense',
-      'scout:glints',
-      'scout:far-sight',
-      'engineer:double-yield',
-    ]);
+    // Trap sense, glints and double yield became skill nodes (`skills.test.ts`).
+    expect(perks).toEqual(['scout:far-sight']);
     for (const r of ROLES) for (const p of r.perks) expect(p.requiresUpgrade).toBe(true);
   });
 

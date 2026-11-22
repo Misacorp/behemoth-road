@@ -7,7 +7,7 @@
 import { BY_NAMES, NAME_ENDS, NAME_STARTS, QUIRKS, ROLES, TRAITS } from './content/index.ts';
 import { ON_CREATURE } from './places.ts';
 import { createRng, hashInts, hashString, type Seed, toSeed } from './random.ts';
-import type { Character, GameState } from './state.ts';
+import { type Character, emptySkills, type GameState } from './state.ts';
 
 /** One character a player can pick. The plain one has no trait and no quirk. */
 export interface CharacterOffer {
@@ -122,6 +122,7 @@ const create = (state: GameState, request: CharacterRequest): CharacterResult =>
     pack: {},
     status: 'active',
     struckDay: null,
+    skills: emptySkills(),
   };
   return {
     ok: true,

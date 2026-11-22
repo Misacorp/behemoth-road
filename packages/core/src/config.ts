@@ -37,8 +37,10 @@ export interface TuningConfig {
   readonly surveyCostOther: number;
   readonly gatherCost: number;
   readonly workSiteCost: number;
-  /** Actions one build step costs; each step adds one work to the unlock in progress. */
+  /** Actions one build step costs. */
   readonly buildCost: number;
+  /** Work one build step adds to the unlock in progress (a skill can raise it). */
+  readonly buildWork: number;
   /** Chance to work a site, by tier, for a role tagged `sites` and for anyone else. */
   readonly siteChanceSpecialistTier1: number;
   readonly siteChanceSpecialistTier2: number;
@@ -117,6 +119,12 @@ export interface TuningConfig {
   readonly perilCalm: number;
   /** The season's length in creature steps. */
   readonly routeLength: number;
+
+  // Skills (docs/design/skill-trees.md).
+  /** Notches in one role that make one pick in its tree. */
+  readonly notchesPerPick: number;
+  /** Each time the creature's steps reach a multiple of this, every active character gets a notch in its own role. */
+  readonly catchUpEverySteps: number;
 }
 
 export const DEFAULT_CONFIG: TuningConfig = {
@@ -135,6 +143,7 @@ export const DEFAULT_CONFIG: TuningConfig = {
   gatherCost: 1,
   workSiteCost: 2,
   buildCost: 1,
+  buildWork: 1,
   siteChanceSpecialistTier1: 0.7,
   siteChanceSpecialistTier2: 0.8,
   siteChanceOtherTier1: 0.35,
@@ -177,6 +186,8 @@ export const DEFAULT_CONFIG: TuningConfig = {
   perilHungryLevel: 2,
   perilCalm: 1,
   routeLength: 40,
+  notchesPerPick: 10,
+  catchUpEverySteps: 10,
 };
 
 export type ConfigOverrides = Partial<Omit<TuningConfig, 'veerWeights' | 'hungryVeerWeights'>> & {
@@ -231,6 +242,9 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     'gatherCost',
     'workSiteCost',
     'buildCost',
+    'buildWork',
+    'notchesPerPick',
+    'catchUpEverySteps',
     'lightFireCost',
     'feedCost',
     'lingerCost',

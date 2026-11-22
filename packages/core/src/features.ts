@@ -15,6 +15,7 @@ import {
 import { type Hex, hexKey, neighbours } from './hex.ts';
 import { terrainAt, terrainById } from './map.ts';
 import { hashString, hashToUnit, type Seed } from './random.ts';
+import { effectsOf } from './skills.ts';
 import type {
   Character,
   FeatureState,
@@ -123,6 +124,8 @@ export type GameEvent =
       readonly characterId: string;
       readonly boon: string;
     }
+  /** A character took a skill node (public: it shows on their card). */
+  | { readonly kind: 'skill-picked'; readonly characterId: string; readonly node: string }
   | { readonly kind: 'season-over'; readonly outcome: SeasonOutcome };
 
 export const featureType = (id: string): FeatureType => {
@@ -271,7 +274,10 @@ export const enterHex = <S extends GameStateView>(
 ): EnterResult<S> => {
   const explored = exploreHex(state, h);
   const events = explored.events;
-  if (!explored.hiddenTrap) return { state: explored.state, events, trapped: false };
+  // Trap sense: the trap is revealed as by a survey, and never springs.
+  const walker = state.characters.find((c) => c.id === characterId);
+  const senses = walker !== undefined && effectsOf(walker, 'trap-sense').length > 0;
+  if (!explored.hiddenTrap || senses) return { state: explored.state, events, trapped: false };
   events.push({ kind: 'trap', hex: h, characterId });
   return {
     state: {

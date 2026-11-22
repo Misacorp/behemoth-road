@@ -19,6 +19,7 @@ describe('tuning config', () => {
       gatherCost: 1,
       workSiteCost: 2,
       buildCost: 1,
+      buildWork: 1,
       siteChanceSpecialistTier1: 0.7,
       siteChanceSpecialistTier2: 0.8,
       siteChanceOtherTier1: 0.35,
@@ -61,6 +62,8 @@ describe('tuning config', () => {
       perilHungryLevel: 2,
       perilCalm: 1,
       routeLength: 40,
+      notchesPerPick: 10,
+      catchUpEverySteps: 10,
     });
   });
 

@@ -8,6 +8,7 @@
 
 import { THREAT_TYPES, type ThreatType } from './content/index.ts';
 import { roleHas } from './features.ts';
+import { bestOf } from './skills.ts';
 import {
   type Direction,
   type Hex,
@@ -188,10 +189,13 @@ export const hazardAt = (state: GameStateView, characterId: string, h: Hex): Thr
 
 /** How much the creature's defenders take off each strike: per defender still riding. */
 export const defence = (state: GameStateView): number =>
-  state.creature.defenders.filter((id) => {
+  state.creature.defenders.reduce((sum, id) => {
     const c = state.characters.find((x) => x.id === id);
-    return c?.status === 'active' && c.at.kind === 'creature';
-  }).length * state.config.defendReduction;
+    if (c?.status !== 'active' || c.at.kind !== 'creature') return sum;
+    // A defend skill (bulwark) takes more off than the base.
+    const best = bestOf(c, 'defend-reduction', (e) => e.amount);
+    return sum + Math.max(state.config.defendReduction, best ?? 0);
+  }, 0);
 
 /**
  * Where the creature's centre will be after the next tick if it walks straight

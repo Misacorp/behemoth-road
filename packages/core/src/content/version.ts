@@ -23,8 +23,9 @@
  *    and the sand sledge; shrine, undertow and river folk also fit swamp.
  * 12: settlements only appear on unexplored hexes (settlement placement changed).
  * 13: threats have a reach: a rockslide strikes only on its own hex, never its neighbours.
+ * 14: skill trees: notches and picks on every character, the pick-skill action.
  */
-export const CONTENT_VERSION = 13;
+export const CONTENT_VERSION = 14;
 
 /** Content versions this code can load. */
 export const KNOWN_CONTENT_VERSIONS: readonly number[] = [CONTENT_VERSION];

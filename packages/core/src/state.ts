@@ -116,6 +116,18 @@ export type CharacterStatus = 'active' | 'lost';
  */
 export type Place = { readonly kind: 'hex'; readonly hex: Hex } | { readonly kind: 'creature' };
 
+/**
+ * A character's skill progress. `notches` counts work by the role that owns it (any role id
+ * may be absent: 0). `taken` lists node ids in the order picked; the branch of each tree is
+ * implied by them (the first pick closes the other branch).
+ */
+export interface Skills {
+  readonly notches: Readonly<Record<string, number>>;
+  readonly taken: readonly string[];
+}
+
+export const emptySkills = (): Skills => ({ notches: {}, taken: [] });
+
 export interface Character {
   readonly id: string;
   /** The player who runs this character (a Discord user id from Milestone 2). */
@@ -136,6 +148,8 @@ export interface Character {
   readonly status: CharacterStatus;
   /** The day a threat struck them (they start it with fewer actions), or null. Public. */
   readonly struckDay: number | null;
+  /** Notches earned and skill nodes taken this season. Public. */
+  readonly skills: Skills;
 }
 
 /**

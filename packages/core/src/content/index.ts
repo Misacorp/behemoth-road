@@ -30,3 +30,13 @@ export {
 export { STIMULUS_TYPES, type StimulusType } from './stimuli.ts';
 export { THREAT_TYPES, type ThreatApproach, type ThreatType } from './threats.ts';
 export { BOONS, PEOPLE_TYPES, type Boon, type PeopleType } from './peoples.ts';
+export {
+  FOOD_WORK,
+  SKILL_NODES,
+  WORK_TAGS,
+  type SkillBranch,
+  type SkillCostAction,
+  type SkillEffect,
+  type SkillNode,
+  type SkillTier,
+} from './skills.ts';

@@ -239,3 +239,25 @@ export {
   type ActRefusal,
   type ActResult,
 } from './act.ts';
+export {
+  FOOD_WORK,
+  SKILL_NODES,
+  WORK_TAGS,
+  type SkillBranch,
+  type SkillCostAction,
+  type SkillEffect,
+  type SkillNode,
+  type SkillTier,
+} from './content/index.ts';
+export {
+  distanceFrom,
+  effectsOf,
+  glintsFor,
+  picksAvailable,
+  pickRefusal,
+  skillNode,
+  takenNodes,
+  workRole,
+  type PickRefusal,
+} from './skills.ts';
+export { emptySkills, type Skills } from './state.ts';

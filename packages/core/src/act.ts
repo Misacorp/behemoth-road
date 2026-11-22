@@ -10,10 +10,12 @@
 
 import {
   BOONS,
+  FOOD_WORK,
   MATERIALS,
   PEOPLE_TYPES,
   STIMULUS_TYPES,
   UNLOCKS,
+  type NodeType,
   type SiteType,
   type Unlock,
 } from './content/index.ts';
@@ -55,6 +57,16 @@ import {
 } from './settlements.ts';
 
 import { recordEvents } from './stats.ts';
+import {
+  bestOf,
+  distanceFrom,
+  effectsOf,
+  pickRefusal,
+  type PickRefusal,
+  withNotch,
+  withSkill,
+  workRole,
+} from './skills.ts';
 
 export type Action =
   | { readonly kind: 'survey'; readonly hex: Hex }
@@ -68,7 +80,9 @@ export type Action =
   | { readonly kind: 'defend' }
   | { readonly kind: 'parley' }
   | { readonly kind: 'offer'; readonly material: string }
-  | { readonly kind: 'ask-boon'; readonly boon: string };
+  | { readonly kind: 'ask-boon'; readonly boon: string }
+  /** Takes a skill node with a pick the character has earned (`docs/design/skill-trees.md`). Free. */
+  | { readonly kind: 'pick-skill'; readonly node: string };
 
 export type ActRefusal =
   | 'invalid-action'
@@ -107,7 +121,9 @@ export type ActRefusal =
   | 'not-friendly'
   | 'boon-taken'
   | 'unknown-boon'
-  | 'no-trade-good';
+  | 'no-trade-good'
+  /** Picks: see `PickRefusal` in `skills.ts` (`already-have` is shared). */
+  | PickRefusal;
 
 type Uses = readonly { readonly material: string; readonly amount: number }[];
 
@@ -146,7 +162,7 @@ const FIRE = STIMULUS_TYPES.find((t) => t.tags.includes('fire'));
 
 const hexOf = (c: Character): Hex | null => (c.at.kind === 'hex' ? c.at.hex : null);
 
-const siteChance = (state: GameStateView, c: Character, site: SiteType): number => {
+const baseSiteChance = (state: GameStateView, c: Character, site: SiteType): number => {
   const { config } = state;
   const specialist = roleHas(c, 'sites');
   if (site.tier === 1) {
@@ -154,6 +170,25 @@ const siteChance = (state: GameStateView, c: Character, site: SiteType): number 
   }
   return specialist ? config.siteChanceSpecialistTier2 : config.siteChanceOtherTier2;
 };
+
+/** The chance to work a site: skills add to it only where the character could work it at all. */
+const siteChance = (state: GameStateView, c: Character, site: SiteType): number => {
+  const base = baseSiteChance(state, c, site);
+  if (base <= 0) return base;
+  const bonus = effectsOf(c, 'site-chance')
+    .filter((e) => site.tags.includes(e.tag))
+    .reduce((sum, e) => sum + e.bonus, 0);
+  return Math.min(1, base + bonus);
+};
+
+/** An action's cost: its base, or lower where a skill sets it. */
+const skillCost = (c: Character, action: 'work-site' | 'linger', base: number): number =>
+  Math.min(
+    base,
+    ...effectsOf(c, 'action-cost')
+      .filter((e) => e.action === action)
+      .map((e) => e.cost),
+  );
 
 /** The revealed feature where the character stands, if any. */
 const featureHere = (state: GameStateView, c: Character): FeatureState | null => {
@@ -169,12 +204,54 @@ const settlementHere = (state: GameStateView, c: Character): Settlement | undefi
   return h ? settlementAt(state, h) : undefined;
 };
 
+/**
+ * The settlement a parley reaches: the one on the character's hex, or with a ravens-style skill the
+ * nearest within its range (ties by id). Offers and boons still need the character's own hex.
+ */
+const parleyTarget = (state: GameStateView, c: Character): Settlement | undefined => {
+  const here = settlementHere(state, c);
+  if (here) return here;
+  const range = bestOf(c, 'parley-range', (e) => e.range) ?? 0;
+  if (range <= 0) return undefined;
+  return state.settlements
+    .map((s) => ({ s, d: distanceFrom(state, c, s.hex) }))
+    .filter((x) => x.d <= range)
+    .sort((a, b) => a.d - b.d || (a.s.id < b.s.id ? -1 : 1))[0]?.s;
+};
+
 /** A parley's chance of gaining favour rather than angering the settlement. */
 const parleyChance = (state: GameStateView, c: Character): number =>
   roleHas(c, PEOPLES_TAG) ? 1 : 1 - state.config.parleyAngerChanceOther;
 
+/** Whether the node where the character stands yields food: gathering it is the keeper's work. */
+const isFoodNode = (state: GameStateView, c: Character): boolean => {
+  const f = featureHere(state, c);
+  const type = f ? featureType(f.type) : null;
+  if (type?.kind !== 'node') return false;
+  return (
+    MATERIALS.find((m) => m.id === type.yields.material)?.tags.includes(FOOD_WORK.materialTag) ??
+    false
+  );
+};
+
 const free = (state: GameStateView, c: Character): number =>
   state.config.packCapacity - packSize(c.pack);
+
+/**
+ * Units a gather yields: the node's own, or more where a skill says so, but never more than the
+ * pack has room for (the node's own amount is checked first, so the action is refused when even that
+ * does not fit).
+ */
+const gatherYield = (state: GameStateView, c: Character, type: NodeType): number => {
+  const tags = MATERIALS.find((m) => m.id === type.yields.material)?.tags ?? [];
+  const boosted = bestOf(c, 'gather-yield', (e) =>
+    e.tag === undefined || tags.includes(e.tag) ? e.amount : 0,
+  );
+  return Math.min(
+    Math.max(type.yields.amount, boosted ?? 0),
+    Math.max(type.yields.amount, free(state, c)),
+  );
+};
 
 const done = (cost: number, uses: Uses = []): ActCheck => ({
   ok: true,
@@ -222,7 +299,7 @@ export const checkAction = (
       return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
     }
     case 'work-site': {
-      const cost = config.workSiteCost;
+      const cost = skillCost(c, 'work-site', config.workSiteCost);
       const no = (reason: ActRefusal): ActCheck => ({ ok: false, reason, cost });
       if (!hexOf(c)) return no('not-on-hex');
       const f = featureHere(state, c);
@@ -294,7 +371,7 @@ export const checkAction = (
         : no('not-enough-actions');
     }
     case 'linger': {
-      const cost = config.lingerCost;
+      const cost = skillCost(c, 'linger', config.lingerCost);
       const no = (reason: ActRefusal): ActCheck => ({ ok: false, reason, cost });
       if (!isKeeper(state, c.id)) return no('needs-keeper');
       if (c.at.kind !== 'creature') return no('not-riding');
@@ -323,11 +400,15 @@ export const checkAction = (
     case 'parley': {
       const cost = config.parleyCost;
       const no = (reason: ActRefusal): ActCheck => ({ ok: false, reason, cost });
-      const here = settlementHere(state, c);
+      const here = parleyTarget(state, c);
       if (!here) return no('no-settlement');
       if (here.attitude !== 'wary') return no('not-wary');
       if (c.actionsLeft < cost) return no('not-enough-actions');
       return { ok: true, cost, uses: [], chance: parleyChance(state, c) };
+    }
+    case 'pick-skill': {
+      const reason = pickRefusal(state, c, action.node);
+      return reason ? { ok: false, reason, cost: 0 } : done(0);
     }
     case 'offer': {
       const cost = config.offerCost;
@@ -384,6 +465,19 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
       x.id === characterId ? { ...x, actionsLeft: x.actionsLeft - check.cost, ...change } : x,
     ),
   });
+
+  if (action.kind === 'pick-skill') {
+    return {
+      ok: true,
+      state: {
+        ...state,
+        characters: state.characters.map((x) =>
+          x.id === characterId ? withSkill(x, action.node) : x,
+        ),
+      },
+      events: [{ kind: 'skill-picked', characterId, node: action.node }],
+    };
+  }
 
   if (action.kind === 'survey') {
     // Surveying explores from outside: a trap there is revealed and harmless.
@@ -445,7 +539,11 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
     const power = roleHas(c, DEFEND_TAG)
       ? state.config.clearPowerGuardian
       : state.config.clearPowerOther;
-    const strength = Math.max(0, threat.strength - power);
+    const tags = threatType(threat.type).tags;
+    const bonus = effectsOf(c, 'strike-bonus')
+      .filter((e) => tags.includes(e.tag))
+      .reduce((sum, e) => sum + e.bonus, 0);
+    const strength = Math.max(0, threat.strength - power - bonus);
     const events: GameEvent[] = [{ kind: 'threat-hit', id: threat.id, characterId, strength }];
     const threats =
       strength > 0
@@ -465,7 +563,9 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
   }
 
   if (action.kind === 'parley' || action.kind === 'offer') {
-    const here = settlementHere(state, c) as Settlement;
+    const here = (
+      action.kind === 'parley' ? parleyTarget(state, c) : settlementHere(state, c)
+    ) as Settlement;
     const spent = withCharacter(
       state,
       action.kind === 'offer' ? { pack: subtract(c.pack, check.uses) } : {},
@@ -483,12 +583,13 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
         return { ok: true, state: angered.state, events: angered.events };
       }
     }
+    const parleyBonus = effectsOf(c, 'parley-favour').reduce((sum, e) => sum + e.bonus, 0);
     const gain =
       action.kind === 'offer'
         ? state.config.offerFavour
-        : roleHas(c, PEOPLES_TAG)
-          ? state.config.parleyFavourEnvoy
-          : state.config.parleyFavourOther;
+        : (roleHas(c, PEOPLES_TAG)
+            ? state.config.parleyFavourEnvoy
+            : state.config.parleyFavourOther) + parleyBonus;
     const added = addFavour(spent, here, gain);
     const events: GameEvent[] = [
       action.kind === 'offer'
@@ -536,7 +637,11 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
     const unlock = UNLOCKS.find((u) => u.id === action.unlock) as Unlock;
     const subtracted: Record<string, number> = { ...state.stores };
     for (const u of check.uses) subtracted[u.material] = (subtracted[u.material] ?? 0) - u.amount;
-    const work = (state.project?.work ?? 0) + 1;
+    const perBuild = Math.max(
+      state.config.buildWork,
+      bestOf(c, 'build-work', (e) => e.amount) ?? 0,
+    );
+    const work = (state.project?.work ?? 0) + perBuild;
     const finished = work >= unlock.work;
     const next: GameState = {
       ...state,
@@ -557,7 +662,8 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
   const type = featureType(f.type);
 
   if (action.kind === 'gather' && type.kind === 'node') {
-    const { material, amount } = type.yields;
+    const { material } = type.yields;
+    const amount = gatherYield(state, c, type);
     return {
       ok: true,
       state: withCharacter(
@@ -590,13 +696,27 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
   return { ok: false, reason: 'invalid-action' };
 };
 
-/** Boons any people offers, in content order. */
-/** Does the action; the season's tallies follow its events. */
+/**
+ * Does the action: the actor earns a notch in the role that owns the work (a pick earns none), and
+ * the season's tallies follow its events.
+ */
 export const act = (state: GameState, characterId: string, action: Action): ActResult => {
   const result = actCore(state, characterId, action);
   if (!result.ok) return result;
-  return { ...result, state: recordEvents(result.state, result.events, characterId) };
+  const actor = state.characters.find((c) => c.id === characterId) as Character;
+  const role = workRole(action.kind, action.kind === 'gather' && isFoodNode(state, actor));
+  const noted: GameState = role
+    ? {
+        ...result.state,
+        characters: result.state.characters.map((x) =>
+          x.id === characterId ? withNotch(x, role) : x,
+        ),
+      }
+    : result.state;
+  return { ...result, state: recordEvents(noted, result.events, characterId) };
 };
+
+/** Boons any people offers, in content order. */
 
 const ALL_BOONS = BOONS.filter((b) => PEOPLE_TYPES.some((p) => p.boons.includes(b)));
 /** Materials a settlement takes as an offering. */

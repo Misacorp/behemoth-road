@@ -10,7 +10,7 @@ import { addFeatures, keyToHex } from './features.ts';
 import { ON_CREATURE } from './places.ts';
 import { hashInts, hashString, newArtSeed, type Seed, toSeed } from './random.ts';
 import { emptyStats } from './stats.ts';
-import type { GameState } from './state.ts';
+import { emptySkills, type GameState } from './state.ts';
 import { updateTiles } from './window.ts';
 
 export interface CreateGameOptions {
@@ -97,6 +97,7 @@ export const createGame = (
       pack: {},
       status: 'active',
       struckDay: null,
+      skills: emptySkills(),
     })),
   };
 };
