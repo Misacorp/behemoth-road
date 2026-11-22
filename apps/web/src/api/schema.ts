@@ -52,6 +52,14 @@ const character = v.object({
   /** What the character carries. */
   pack: counts,
   status: v.picklist(['active', 'lost']),
+  /** Notches earned (by role id) and skill nodes taken: public. */
+  skills: v.object({
+    notches: v.pipe(
+      v.record(id, count),
+      v.check((r) => Object.keys(r).length <= 16, 'too many entries'),
+    ),
+    taken: v.pipe(v.array(id), v.maxLength(64)),
+  }),
 });
 
 const weights = v.object({ left: v.number(), straight: v.number(), right: v.number() });
@@ -72,6 +80,7 @@ const config = v.object({
   gatherCost: count,
   workSiteCost: count,
   buildCost: count,
+  buildWork: count,
   siteChanceSpecialistTier1: v.number(),
   siteChanceSpecialistTier2: v.number(),
   siteChanceOtherTier1: v.number(),
@@ -114,6 +123,8 @@ const config = v.object({
   perilHungryLevel: count,
   perilCalm: count,
   routeLength: count,
+  notchesPerPick: count,
+  catchUpEverySteps: count,
 });
 
 /** The core state without the seed (the core's `GameStateView`): known tiles carry their terrain. */
@@ -283,6 +294,7 @@ const KNOWN_EVENTS = [
   event('angered', { id }),
   event('offer', { id, characterId: id, material: id }),
   event('boon', { id, characterId: id, boon: id }),
+  event('skill-picked', { characterId: id, node: id }),
   event('season-over', { outcome: v.picklist(['safe', 'wounded', 'lost']) }),
 ] as const;
 
@@ -322,6 +334,8 @@ export const PlayerViewSchema = v.object({
   offers: v.nullable(v.pipe(v.array(OfferSchema), v.maxLength(8))),
   /** What you read off the creature (for your active character; no keeper detail without one). */
   signs: SignsSchema,
+  /** Hexes that glint for you (the glints skill): unexplored, holding something, never what. */
+  glints: v.optional(v.pipe(v.array(hex), v.maxLength(200)), []),
   /**
    * What happened since the version the client asked from (`since`), or in its own move or action,
    * oldest first. Empty on a first load.
@@ -399,4 +413,5 @@ export type GameAction =
   | { readonly kind: 'defend' }
   | { readonly kind: 'parley' }
   | { readonly kind: 'offer'; readonly material: string }
-  | { readonly kind: 'ask-boon'; readonly boon: string };
+  | { readonly kind: 'ask-boon'; readonly boon: string }
+  | { readonly kind: 'pick-skill'; readonly node: string };

@@ -89,6 +89,7 @@ describe('POST /api/game/join', () => {
           pack: {},
           status: 'active',
           struckDay: null,
+          skills: { notches: {}, taken: [] },
         },
       ]);
       // A second join changes nothing and answers the same view.

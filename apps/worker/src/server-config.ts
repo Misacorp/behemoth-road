@@ -65,6 +65,8 @@ export const SERVER_CONFIG = {
     settlementEvery: 6,
     threatsFromDay: 1,
     threatChanceBase: 0.6,
+    /** A pick per 4 notches (10 on a full season), so a short season gives two or three choices. */
+    notchesPerPick: 4,
   },
   limits: {
     /** Bound on hex coordinates in a request; the creature walks one hex a day. */

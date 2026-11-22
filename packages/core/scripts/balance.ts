@@ -10,6 +10,8 @@
  *   boon (shelter when peril is 3 or more, mislead when pursuers are out, else the
  *   gift); whoever rides feeds the creature when it is underfed; everyone else
  *   gathers forage within reach and brings it back.
+ *   A careful player also spends every pick it earns, at once, on the first node it can take from
+ *   its role's list in `SKILL_PREFERENCE` (the guardian prefers bulwark, the rest their A1).
  * - `careless`: everyone rides; every third day one of them gathers forage within
  *   reach, and the creature is fed only when it is underfed at level 2 or more.
  *
@@ -52,6 +54,7 @@ export const DEV_SEASON: ConfigOverrides = {
   settlementEvery: 6,
   threatsFromDay: 1,
   threatChanceBase: 0.6,
+  notchesPerPick: 4,
 };
 
 /** Roles of a party, by size: the first three are the core of any party. */
@@ -225,9 +228,29 @@ const envoy = (state: GameState, id: string): GameState => {
   return state;
 };
 
+/** The nodes a careful player of each role takes first. */
+const SKILL_PREFERENCE: Readonly<Record<string, readonly string[]>> = {
+  guardian: ['guardian-b1', 'guardian-a1'],
+  keeper: ['keeper-a1'],
+  envoy: ['envoy-a1'],
+  scout: ['scout-a1'],
+  engineer: ['engineer-a1'],
+  scholar: ['scholar-a1'],
+};
+
+/** Spends every pick the character has earned in its own role. */
+const pickSkills = (state: GameState, id: string): GameState => {
+  let s = state;
+  for (const node of SKILL_PREFERENCE[character(s, id)?.role ?? ''] ?? []) {
+    s = tryAct(s, id, { kind: 'pick-skill', node });
+  }
+  return s;
+};
+
 const carefulDay = (state: GameState, ids: readonly string[]): GameState => {
   let s = state;
   for (const id of ids) {
+    s = pickSkills(s, id);
     const role = character(s, id)?.role;
     if (actionsLeft(s, id) === 0) continue;
     // Anyone carrying something comes home first, to put it in the stores.

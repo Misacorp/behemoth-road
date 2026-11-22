@@ -16,6 +16,7 @@ import {
   characterOffers,
   createGame,
   creatureSigns,
+  glintsFor,
   loadGame,
   actWithEvents,
   OutdatedGameError,
@@ -29,6 +30,7 @@ import {
   type CharacterOffer,
   type ConfigOverrides,
   type CreatureSigns,
+  type Hex,
   type GameState,
   type GameStateView,
   type Seed,
@@ -83,6 +85,12 @@ export interface PlayerView {
    * cues). Per viewer, a pure function of the stored state, so it changes only with the version.
    */
   signs: CreatureSigns;
+  /**
+   * Hexes that glint for this viewer (the scout's glints skill): unexplored hexes near their character
+   * that hold something, never what. Per viewer, a pure function of the stored state; empty without the
+   * skill. Never part of the shared `game` view.
+   */
+  glints: Hex[];
   players: PlayerEntry[];
   devTools: boolean;
 }
@@ -979,6 +987,7 @@ export class GuildGame {
       offers: mine?.status === 'active' ? null : characterOffers(game.state, user.id),
       game: toPlayerView(game.state),
       signs: creatureSigns(game.state, mine?.status === 'active' ? mine.id : null),
+      glints: glintsFor(game.state, mine?.status === 'active' ? mine.id : null),
       players,
       devTools: this.options.devTools,
     };

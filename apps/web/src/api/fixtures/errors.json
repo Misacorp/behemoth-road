@@ -73,6 +73,20 @@
     "route": "POST /api/game/act",
     "status": 409,
     "body": {
+      "error": "skill-veiled"
+    }
+  },
+  {
+    "route": "POST /api/game/act",
+    "status": 409,
+    "body": {
+      "error": "branch-closed"
+    }
+  },
+  {
+    "route": "POST /api/game/act",
+    "status": 409,
+    "body": {
       "error": "season-over"
     }
   }

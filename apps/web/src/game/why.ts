@@ -46,6 +46,13 @@ export const WHY_BY_REFUSAL: Readonly<Record<ActRefusal, TipId>> = {
   'boon-taken': 'why:done',
   'unknown-boon': 'why:other',
   'no-trade-good': 'why:other',
+  // Skills: the tree drawer's own tips come with the web slice.
+  'unknown-skill': 'why:other',
+  'skill-veiled': 'why:other',
+  'no-pick': 'why:other',
+  'branch-closed': 'why:other',
+  'skill-tier-order': 'why:other',
+  'skill-tier-limit': 'why:other',
 };
 
 /** The tip for a refusal: the role that can (when the refusal is about who you are), else the refusal's own. */

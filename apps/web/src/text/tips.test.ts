@@ -35,6 +35,7 @@ const ACTION_KINDS: Readonly<Record<Action['kind'], true>> = {
   parley: true,
   offer: true,
   'ask-boon': true,
+  'pick-skill': true,
 };
 
 describe('tip texts', () => {

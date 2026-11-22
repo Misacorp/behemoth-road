@@ -1,5 +1,5 @@
 import * as v from 'valibot';
-import { ROLE_IDS, UNLOCK_IDS } from './game-core.ts';
+import { ROLE_IDS, SKILL_IDS, UNLOCK_IDS } from './game-core.ts';
 import { SERVER_CONFIG } from './server-config.ts';
 
 export const SNOWFLAKE_RE = /^\d{17,20}$/;
@@ -87,6 +87,15 @@ export const ActionSchema = v.variant('kind', [
   v.strictObject({ kind: v.literal('parley') }),
   v.strictObject({ kind: v.literal('offer'), material: contentId }),
   v.strictObject({ kind: v.literal('ask-boon'), boon: contentId }),
+  // Skills: a node id from the content list (veiled and unknown nodes are the core's to refuse by name).
+  v.strictObject({
+    kind: v.literal('pick-skill'),
+    node: v.pipe(
+      v.string(),
+      v.maxLength(64),
+      v.check((id) => SKILL_IDS.includes(id)),
+    ),
+  }),
 ]);
 
 /** POST /api/game/act. */

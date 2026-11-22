@@ -13,6 +13,7 @@ import {
   characterOffers,
   createGame,
   creatureSigns,
+  glintsFor,
   type GameState,
   type Hex,
   nextDay,
@@ -99,6 +100,7 @@ export function toView(s: Scenario): PlayerView {
       s.state,
       mine?.status === 'active' ? mine.id : null,
     ) as PlayerView['signs'],
+    glints: glintsFor(s.state, mine?.status === 'active' ? mine.id : null),
   };
 }
 

@@ -152,6 +152,8 @@ export const tips = {
     text: 'Give an old coin or a pearl to a wary settlement: {offerFavour} favour, no risk.',
   },
   'action:ask-boon': { title: 'Ask a boon', text: 'A friendly settlement grants one boon.' },
+  // Skills: the web slice writes the tree drawer's tips; this one names the action.
+  'action:pick-skill': { title: 'Pick', text: 'Take a skill.' },
 
   // Boons a friendly settlement can grant (one each).
   'boon:gift': { title: 'Gift', text: 'Food and materials into the team stores.' },

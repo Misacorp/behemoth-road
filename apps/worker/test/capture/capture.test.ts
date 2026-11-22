@@ -2,6 +2,7 @@ import {
   checkAction,
   hexDistance,
   hexKey,
+  hexRing,
   legalMoves,
   neighbours,
   planPath,
@@ -322,6 +323,64 @@ describe('capture', () => {
         expect(
           (ate as unknown as { events: { kind: string }[] }).events.map((e) => e.kind),
         ).toContain('creature-ate');
+      },
+      { everyoneIsAdmin: true },
+    );
+    // Skills: a scout with notches picks glints (the view then carries a glint and the taken node), and is
+    // refused a veiled node and the closed branch.
+    await runGame(
+      async (ctx) => {
+        const misa = await ctx.signIn(MISA);
+        const read = () =>
+          JSON.parse(
+            ctx.sql.exec<{ state: string }>('SELECT state FROM game').one().state,
+          ) as GameState;
+        const write = (state: GameState) =>
+          ctx.sql.exec('UPDATE game SET state = ?, version = version + 1', JSON.stringify(state));
+        const versionNow = async () =>
+          ((await ctx.call(misa, 'GET', '/api/game')).body as PlayerView).version;
+        const me = `${USER_ID}.0`;
+        expect(
+          (await ctx.call(misa, 'POST', '/api/game/join', { role: 'scout', offer: 0 })).status,
+        ).toBe(200);
+        const start = read();
+        // A hex two from the creature's centre, with a hidden tomb on it, and notches for two picks.
+        const spot = hexRing(start.creature.centre, 2).find(
+          (h) => start.tiles[hexKey(h)]?.explored === false,
+        );
+        if (spot === undefined) throw new Error('the scenario has no hex to hide a tomb on');
+        write({
+          ...start,
+          features: { [hexKey(spot)]: { type: 'tomb', revealed: false, left: 1 } },
+          characters: start.characters.map((c) =>
+            c.id === me
+              ? { ...c, skills: { notches: { scout: 2 * start.config.notchesPerPick }, taken: [] } }
+              : c,
+          ),
+        });
+        const refuse = async (action: Action) => {
+          const res = await ctx.call(misa, 'POST', '/api/game/act', {
+            version: await versionNow(),
+            action,
+          });
+          expect(res.status).toBe(409);
+          errors.push({ route: 'POST /api/game/act', status: res.status, body: res.body });
+        };
+        await refuse({ kind: 'pick-skill', node: 'scout-a2' });
+        const picked = { kind: 'pick-skill', node: 'scout-b1' } as const;
+        requests['view-skill-picked'] = {
+          method: 'POST',
+          path: '/api/game/act',
+          body: { version: await versionNow(), action: picked },
+        };
+        const res = await ctx.call(misa, 'POST', '/api/game/act', {
+          version: await versionNow(),
+          action: picked,
+        });
+        expect(res.status).toBe(200);
+        responses['view-skill-picked'] = res.body;
+        expect((res.body as PlayerView).glints).toEqual([spot]);
+        await refuse({ kind: 'pick-skill', node: 'scout-a1' });
       },
       { everyoneIsAdmin: true },
     );

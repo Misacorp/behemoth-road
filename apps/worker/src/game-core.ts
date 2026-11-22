@@ -9,6 +9,7 @@ import {
   nextDayWithEvents,
   UNLOCKS,
   ROLES,
+  SKILL_NODES,
   type Action,
   type GameEvent,
   type GameState,
@@ -23,6 +24,7 @@ export {
   characterOffers,
   createGame,
   creatureSigns,
+  glintsFor,
   isSeasonOver,
   loadGame,
   newArtSeed,
@@ -36,6 +38,7 @@ export {
   type GameEvent,
   type CharacterResult,
   type CreatureSigns,
+  type Hex,
   type GameState,
   type GameStateView,
   type Place,
@@ -49,6 +52,9 @@ export const ROLE_IDS: readonly string[] = ROLES.map((r) => r.id);
 
 /** The unlock ids from content, for the request schema. */
 export const UNLOCK_IDS: readonly string[] = UNLOCKS.map((u) => u.id);
+
+/** The skill node ids from content, for the request schema. */
+export const SKILL_IDS: readonly string[] = SKILL_NODES.map((n) => n.id);
 
 /** A rule's result as the Worker answers it: the new state, what happened, and whether a trap stopped a walk. */
 export type EventResult =

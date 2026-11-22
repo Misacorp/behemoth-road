@@ -4,6 +4,54 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-22: Skill slice: notch per action performed, tier 1 live, effects as data hooks
+
+ID: `2026-11-22-skill-slice-notch-per-action-performed` · Status: current
+
+**Decision.** First slice: a notch is earned per action performed, not per action point spent (a cheaper action must not earn less). Only tier 1 is active; tiers 2 and 3 are data with `active: false` and a `veiled` effect, refused as `skill-veiled`. A node's effect is a data hook (`action-cost`, `gather-yield`, `site-chance`, `strike-bonus`, `defend-reduction`, `build-work`, `parley-favour`, `parley-range`, `trap-sense`, `glints`) that rules read, never the node id. A pick costs no actions. Glints are a per-viewer field of the player view (`glints`), never in the shared view. The scout's trap sense, glints and engineer's double yield perks left `roles.ts` for these nodes. Lamplight only adds chance for a character who could work the site at all (a non-scholar still cannot work a tier-2 site). A yield above the node's own is cut to the pack's room, and a gather that cannot hold even the node's own amount is still refused. A parley with ravens takes the nearest settlement within range; offers and boons still need your own hex. Content version 14.
+
+**Reasoning.** Each rule stays proven once at the core, the UI reads costs and chances from `checkAction`, and nothing the interface shows reveals what an undiscovered hex or tier does. The gates keep the earlier role rules (`cannot-work`, pack capacity) intact.
+
+## 2026-11-22: Nothing carries over between seasons **[Misa]**
+
+ID: `2026-11-22-nothing-carries-over-between-seasons` · Status: current
+
+**Decision.** Skills, notches and picks belong to the season: a new season, and a replacement character, start with none.
+
+**Reasoning.** Misa's pick until a real season has been played. Later options (a veteran trait for a master who came home, a seal in the archive) are listed in `docs/design/skill-trees.md`.
+
+## 2026-11-22: Everyone earns a catch-up notch every 10 steps **[Misa]**
+
+ID: `2026-11-22-everyone-earns-a-catch-up-notch` · Status: current
+
+**Decision.** Each day tick where the creature's step count reaches a multiple of `catchUpEverySteps` (10), every active character gets one notch in its own role.
+
+**Reasoning.** Misa's pick: a player who cannot act for a few days still gets a trickle of progress. A linger adds no step, so it never repeats the notch.
+
+## 2026-11-22: Another role's skill tree is open to tier 1 only **[Misa]**
+
+ID: `2026-11-22-another-role-s-skill-tree-is` · Status: current
+
+**Decision.** A character may take nodes in another role's tree, paid with notches earned in that role, but only tier 1. Tiers 2 and 3 are for the character's own role.
+
+**Reasoning.** Misa's pick: a scout who keeps striking can take Skywatch but never Rout, so no one masters every role (`GAME_DESIGN.md`: basics for all, mastery for specialists).
+
+## 2026-11-22: The first skill pick in a role's tree closes the other branch **[Misa]**
+
+ID: `2026-11-22-the-first-skill-pick-in-a` · Status: current
+
+**Decision.** Each role's tree has two branches, `a` and `b`. The first node a character takes in a role's tree chooses its branch and closes the other for good (also for another role's tree).
+
+**Reasoning.** Misa chose the hard fork (the softer option was to close it at tier 2): a choice a player and others can read from their card.
+
+## 2026-11-22: Skill picks are earned by working **[Misa]**
+
+ID: `2026-11-22-skill-picks-are-earned-by-working` · Status: current
+
+**Decision.** A character earns notches by working: one for each action performed on work a role owns (survey is the Scout's, gather and build the Engineer's, working a site the Scholar's, feeding, lingering, lighting a fire and gathering food the Keeper's, strike and defend the Guardian's, parley, offer and boon the Envoy's). Moving earns nothing. Every `notchesPerPick` notches in a role (10; 4 on the dev season) give one pick in that role's tree. Proposal in `docs/design/skill-trees.md`.
+
+**Reasoning.** Misa chose work over a pick per route step: it rewards investment. The catch-up notch (own entry) keeps absent players from falling far behind.
+
 ## 2026-11-21: Tips have no timer: they stay until the next tap **[Misa]**
 
 ID: `2026-11-21-tips-have-no-timer-they-stay` · Status: current · Amends: `2026-11-20-icons-that-are-not-buttons-show`
