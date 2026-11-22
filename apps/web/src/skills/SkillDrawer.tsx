@@ -1,9 +1,9 @@
 /**
  * The skill tree drawer (the one bottom drawer on phones, a side drawer on desktop): your role's tree with
  * the emblem as its root and two branches of three nodes, the paths between them drawn by the art kit. Small
- * tabs open the other roles' trees, which show their first node only. A tap on an available node arms it (it
- * lifts); a second tap, or the tick below, takes it, and a moment inks the node. A tap on any other node
- * shows why (a tip) and never acts. No prose: names and hints are tips.
+ * tabs open the other roles' trees, which show their first node only. A tap on any node shows its tip at once
+ * (through the press layer); on an available node the same tap also arms it (it lifts), and the tick below
+ * takes it, and a moment inks the node. A tap on any other node shows why and never acts. No prose.
  */
 import { drawBranchPath, drawNotchRing, drawSkillNode, type RoleId } from '@behemoth-road/art';
 import type { Character, GameStateView, SkillNode } from '@behemoth-road/core';
@@ -15,7 +15,7 @@ import { PALETTE } from '../map/art.ts';
 import { toPreact } from '../map/svgToPreact.ts';
 import { Drawer } from '../ui/Drawer.tsx';
 import { RoleEmblem } from '../ui/emblems.tsx';
-import { elementTarget, TIPS, tipProps } from '../ui/press.ts';
+import { elementTarget, TIP_TAP_EVENT, TIPS, tipProps } from '../ui/press.ts';
 import { tipFor } from '../ui/tip.ts';
 import {
   type BranchView,
@@ -56,10 +56,22 @@ function Node({
 }): JSX.Element {
   const id = n.node.id;
   const tip = nodeTip(n);
-  // A node that cannot be taken shows its tip on a tap; an available one arms on a tap (the tip is its hold).
-  const tapShows = n.state !== 'available';
+  // Every node shows its tip on a tap; the press layer then tells the node (an available one arms).
+  const ref = useRef<HTMLButtonElement>(null);
+  const tapped = useRef(onTap);
+  tapped.current = onTap;
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fn = (): void => tapped.current(nodeRef.current);
+    el.addEventListener(TIP_TAP_EVENT, fn);
+    return () => el.removeEventListener(TIP_TAP_EVENT, fn);
+  }, []);
+  const nodeRef = useRef(n);
+  nodeRef.current = n;
   return (
     <button
+      ref={ref}
       type="button"
       class={`skill-node${armed ? ' is-armed' : ''}${inked ? ' is-inked' : ''}`}
       data-skill={id}
@@ -68,8 +80,7 @@ function Node({
       aria-label={n.state === 'veiled' ? 'Veiled' : n.node.name}
       aria-pressed={n.state === 'available' ? armed : undefined}
       {...tipProps(tip)}
-      {...(tapShows ? { 'data-tip-tap': '' } : {})}
-      onClick={() => onTap(n)}
+      data-tip-tap=""
     >
       {toPreact(drawSkillNode(PALETTE, n.node.icon, NODE_SIZE, n.state))}
     </button>
@@ -115,6 +126,10 @@ export function SkillDrawer(props: SkillDrawerProps): JSX.Element | null {
       setArmed(null);
     }
   }, [props.open, me.role]);
+  const close = (): void => {
+    setArmed(null);
+    props.onClose();
+  };
 
   const tabs = orderedTabs(state, me);
   const own = role === me.role;
@@ -141,6 +156,7 @@ export function SkillDrawer(props: SkillDrawerProps): JSX.Element | null {
   useEffect(() => () => window.clearTimeout(inkTimer.current), []);
 
   const send = async (n: SkillNode): Promise<void> => {
+    // While busy the arm stays: the tap is not lost, the check answers again when it is free.
     if (sending.current || props.busy) return;
     sending.current = true;
     setArmed(null);
@@ -158,16 +174,14 @@ export function SkillDrawer(props: SkillDrawerProps): JSX.Element | null {
   };
 
   const onTap = (n: NodeView): void => {
-    // Only an available node does anything; every other tap is its tip's (the press layer shows it).
-    const next = tapNode(armed, n);
-    setArmed(next.armed);
-    if (next.send !== null) void send(n.node);
+    // The press layer has shown the tip; an available node also arms. Sending is the check's.
+    setArmed(tapNode(armed, n).armed);
   };
   const armedNode = tree.flatMap((b) => b.nodes).find((n) => n.node.id === armed) ?? null;
 
   const ring = ringOf(state, me);
   return (
-    <Drawer open={props.open} onClose={props.onClose} side="right" label="Skills">
+    <Drawer open={props.open} onClose={close} side="right" label="Skills">
       <div class="skills" data-skills data-role={role} data-own={own ? true : undefined}>
         <div class="skills-tabs">
           {tabs.map((t) => (

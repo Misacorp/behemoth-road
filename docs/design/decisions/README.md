@@ -124,7 +124,8 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-22 The ending and the peril gauge show where peril came from \[Misa\]
 - 2026-11-22 The catch-up is 1 XP every 10 steps \[Misa\]
 - 2026-11-22 Skill XP comes from any contribution, one pool per character \[Misa\]
-- 2026-11-22 Skill tree UI: emblem ring on the HUD, arm then take, tips for reasons
+- 2026-11-22 One tap on a skill node shows its tip and arms it; the glint is bigger \[Misa\]
+- 2026-11-22 Skill tree UI: emblem ring on the HUD, arm then take, tips for reasons (amended)
 - 2026-11-22 Skill slice: notch per action performed, tier 1 live, effects as data hooks
 - 2026-11-22 Nothing carries over between seasons \[Misa\]
 - 2026-11-22 Everyone earns a catch-up notch every 10 steps \[Misa\] (amended)

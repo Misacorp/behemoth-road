@@ -1815,13 +1815,25 @@ async function run() {
         await shotS('2-tree-ready');
         await holdAll('skills', 'skills drawer', '.drawer');
 
-        // One tap arms (the node lifts, the tick shows) and sends nothing; the second tap takes it.
+        // One tap shows the node's tip and arms it (the node lifts, the tick shows) and sends nothing; the tick
+        // takes it. A tap on the armed node again keeps it armed; another available node moves the arm.
         await press('[data-skill=scout-b1]');
         if (!(await page.locator('[data-skill=scout-b1][data-armed]').count()))
           problems.push(`${vp.name}: a tap on an available node did not arm it`);
+        if (!(await page.locator('.tip').count()))
+          problems.push(`${vp.name}: a tap on an available node showed no tip`);
         if (takenNow().length !== 0) problems.push(`${vp.name}: a single tap sent the pick`);
         await shotS('3-armed');
         await press('[data-skill=scout-b1]');
+        await page.waitForTimeout(200);
+        if (!(await page.locator('[data-skill=scout-b1][data-armed]').count()))
+          problems.push(`${vp.name}: a second tap on the armed node dropped the arm`);
+        if (takenNow().length !== 0) problems.push(`${vp.name}: a second tap sent the pick`);
+        await press('[data-skill=scout-a1]');
+        if (!(await page.locator('[data-skill=scout-a1][data-armed]').count()))
+          problems.push(`${vp.name}: the arm did not move to the other node`);
+        await press('[data-skill=scout-b1]');
+        await press('[data-go]');
         await page.waitForTimeout(120);
         if (!(await page.locator('[data-skill=scout-b1].is-inked').count()))
           problems.push(`${vp.name}: the taken node did not ink`);
@@ -1878,6 +1890,10 @@ async function run() {
         if (!(await page.locator('.hud-skills[data-ready]').count()))
           problems.push(`${vp.name}: the emblem lost its glow with a pick still waiting`);
         await shotS('8-hud-after');
+        // The scout-b1 glints: a hex on the map shows the glint (ring, glow, star), at the game's own zoom.
+        if (!(await page.locator('[data-glint=star]').count()))
+          problems.push(`${vp.name}: no glint on the map after taking the glints node`);
+        await shotS('8b-glint');
 
         // The card of another character (Pip, riding) shows what they have taken, with a tip.
         await press('.hud-roster');

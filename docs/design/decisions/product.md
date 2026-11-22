@@ -28,9 +28,17 @@ ID: `2026-11-22-skill-xp-comes-from-any-contribution` · Status: current · Supe
 
 **Reasoning.** Misa's playtest: work by role made picks feel gated by what you happened to be doing. Any contribution counts, so a busy player earns about as many picks as before and nobody is locked out of a tree by their role's workload. The scout's exploring bonus keeps the role's work rewarded, since surveying alone was its main source of notches.
 
+## 2026-11-22: One tap on a skill node shows its tip and arms it; the glint is bigger **[Misa]**
+
+ID: `2026-11-22-one-tap-on-a-skill-node` · Status: current · Amends: `2026-11-22-skill-tree-ui-emblem-ring-on`
+
+**Decision.** A single tap on any skill node (available, taken, veiled, closed, or a node on another role's tab) shows its tip at once; the nodes are `data-tip-tap` buttons, so the press layer shows the tip, then tells the node (a `tip-tap` event on the element), and an available node also arms. The tick sends the pick; a second tap on the armed node keeps it armed and sends nothing, and a tap on another available node moves the arm. Closing the drawer clears the arm, and a tick tap while a pick is in flight keeps the arm. The glint (scout-b1) is bigger: a large four-point star with a soft glow, two sparkles, and a dashed ring on the ground around the hex that pulses (CSS keyframes on `data-glint`, no style attributes). It stays a hint of "something here", warm and light, unlike the red threat marks.
+
+**Reasoning.** The hold was too hidden for a node whose tip is the point of looking at it; one tap through the existing press layer avoids a second tip system. The old glint was a few pixels at phone zoom.
+
 ## 2026-11-22: Skill tree UI: emblem ring on the HUD, arm then take, tips for reasons
 
-ID: `2026-11-22-skill-tree-ui-emblem-ring-on` · Status: current
+ID: `2026-11-22-skill-tree-ui-emblem-ring-on` · Status: current, amended by `2026-11-22-one-tap-on-a-skill-node`
 
 **Decision.** Your role emblem sits on the HUD (top of the right-hand button column) wearing the notch ring toward your next pick; it pulses with the ready glow while any node in any tree can be taken, and a tap opens the tree drawer (bottom on phones, a wider right drawer on desktop, where the tree runs sideways). A tap on an available node arms it (it lifts and a tick appears); a second tap on it, or the tick, sends `pick-skill`, then the node inks. A tap on any other node (closed, veiled, locked, taken) shows a tip and never acts: the reason comes from the core's `pickRefusal` through `why:` tips, and a refusal the server gives after the tap shows the same tip on the node. Taken nodes show as a small icon row on every character card, with tips. `PlayerView.glints` draws as the map's hint mark, for you only. The roster gets no pick dot.
 
