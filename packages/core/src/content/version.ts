@@ -24,8 +24,10 @@
  * 12: settlements only appear on unexplored hexes (settlement placement changed).
  * 13: threats have a reach: a rockslide strikes only on its own hex, never its neighbours.
  * 14: skill trees: notches and picks on every character, the pick-skill action.
+ * 15: one XP pool replaces role notches (any contributing act earns XP; scouts earn for exploring);
+ *    stats gain the peril breakdown (where peril came from).
  */
-export const CONTENT_VERSION = 14;
+export const CONTENT_VERSION = 15;
 
 /** Content versions this code can load. */
 export const KNOWN_CONTENT_VERSIONS: readonly number[] = [CONTENT_VERSION];

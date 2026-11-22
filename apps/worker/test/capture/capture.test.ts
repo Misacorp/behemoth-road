@@ -353,9 +353,7 @@ describe('capture', () => {
           ...start,
           features: { [hexKey(spot)]: { type: 'tomb', revealed: false, left: 1 } },
           characters: start.characters.map((c) =>
-            c.id === me
-              ? { ...c, skills: { notches: { scout: 2 * start.config.notchesPerPick }, taken: [] } }
-              : c,
+            c.id === me ? { ...c, skills: { xp: 2 * start.config.xpPerPick, taken: [] } } : c,
           ),
         });
         const refuse = async (action: Action) => {

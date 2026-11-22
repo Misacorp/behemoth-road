@@ -186,8 +186,16 @@ export {
 } from './places.ts';
 export { nextDay, nextDayWithEvents } from './tick.ts';
 export {
+  emptyPerilLog,
   emptyStats,
+  PERIL_CALM,
+  PERIL_HUNGER,
+  PERIL_SHELTER,
+  perilThreat,
   recordEvents,
+  threatOfSource,
+  type PerilLog,
+  type PerilPart,
   type CharacterTally,
   type SeasonStats,
   type SharedTally,
@@ -240,9 +248,8 @@ export {
   type ActResult,
 } from './act.ts';
 export {
-  FOOD_WORK,
+  ACTION_XP,
   SKILL_NODES,
-  WORK_TAGS,
   type SkillBranch,
   type SkillCostAction,
   type SkillEffect,
@@ -257,7 +264,7 @@ export {
   pickRefusal,
   skillNode,
   takenNodes,
-  workRole,
+  withXp,
   type PickRefusal,
 } from './skills.ts';
 export { emptySkills, type Skills } from './state.ts';

@@ -121,10 +121,11 @@ export interface TuningConfig {
   readonly routeLength: number;
 
   // Skills (docs/design/skill-trees.md).
-  /** Notches in one role that make one pick in its tree. */
-  readonly notchesPerPick: number;
-  /** Each time the creature's steps reach a multiple of this, every active character gets a notch in its own role. */
+  /** XP that makes one pick (own tree, or another role's tier 1). */
+  readonly xpPerPick: number;
+  /** Each time the creature's steps reach a multiple of this, every active character gets `catchUpXp` XP. */
   readonly catchUpEverySteps: number;
+  readonly catchUpXp: number;
 }
 
 export const DEFAULT_CONFIG: TuningConfig = {
@@ -186,8 +187,9 @@ export const DEFAULT_CONFIG: TuningConfig = {
   perilHungryLevel: 2,
   perilCalm: 1,
   routeLength: 40,
-  notchesPerPick: 10,
+  xpPerPick: 14,
   catchUpEverySteps: 10,
+  catchUpXp: 1,
 };
 
 export type ConfigOverrides = Partial<Omit<TuningConfig, 'veerWeights' | 'hungryVeerWeights'>> & {
@@ -243,8 +245,9 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     'workSiteCost',
     'buildCost',
     'buildWork',
-    'notchesPerPick',
+    'xpPerPick',
     'catchUpEverySteps',
+    'catchUpXp',
     'lightFireCost',
     'feedCost',
     'lingerCost',

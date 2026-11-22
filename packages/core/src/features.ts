@@ -5,6 +5,7 @@
  * by their tags, never by id.
  */
 
+import type { PerilPart } from './stats.ts';
 import {
   FEATURE_TYPES,
   FEATURE_WEIGHT_SCALE,
@@ -86,8 +87,17 @@ export type GameEvent =
       readonly hex: Hex;
     }
   | { readonly kind: 'threat-moves'; readonly id: string; readonly from: Hex; readonly to: Hex }
-  /** A threat struck the creature: `damage` is the peril it adds, after defence. The threat is spent. */
-  | { readonly kind: 'threat-strikes'; readonly id: string; readonly damage: number }
+  /**
+   * A threat struck the creature: `damage` is the peril it adds, after defence; `held` is what the
+   * defence took off (strength less damage). The threat is spent.
+   */
+  | {
+      readonly kind: 'threat-strikes';
+      readonly id: string;
+      readonly type: string;
+      readonly damage: number;
+      readonly held: number;
+    }
   /** A threat struck a character (who starts the next day with fewer actions). */
   | { readonly kind: 'struck'; readonly characterId: string; readonly threat: string }
   | {
@@ -101,7 +111,13 @@ export type GameEvent =
   /** A threat left the map without striking (out of the window, or led away). */
   | { readonly kind: 'threat-gone'; readonly id: string }
   | { readonly kind: 'defend'; readonly characterId: string }
-  | { readonly kind: 'peril'; readonly from: number; readonly to: number }
+  /** Peril changed; `sources` say why, signed and summing to `to - from` (see `PerilPart`). */
+  | {
+      readonly kind: 'peril';
+      readonly from: number;
+      readonly to: number;
+      readonly sources: readonly PerilPart[];
+    }
   | { readonly kind: 'settlement-appears'; readonly id: string; readonly hex: Hex }
   /** A parley gained favour: `favour` is the settlement's favour now. */
   | {

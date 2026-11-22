@@ -1,7 +1,7 @@
 /**
  * Skill trees, as data (docs/design/skill-trees.md). Each role has two branches (`a`
- * and `b`) of three tiers. A character earns notches by working (`WORK_TAGS`) and
- * turns every `notchesPerPick` notches of one role into a pick in that role's tree.
+ * and `b`) of three tiers. A character earns XP by contributing (`ACTION_XP`) and
+ * turns every `xpPerPick` XP into a pick, in their own tree or another role's tier 1.
  * Rules read a node's `effect` (a data hook with numbers and tags), never its id.
  * Only tier 1 is active in the first slice: tiers 2 and 3 are data, drawn veiled
  * and refused (`skill-veiled`). `icon` is `skill:<id>` for the art kit.
@@ -116,27 +116,21 @@ export const SKILL_NODES: readonly SkillNode[] = [
 ];
 
 /**
- * Which role tag owns the work of each action kind: a notch goes to the role
- * carrying the tag, whoever did the work (a scout who strikes earns guardian
- * notches). Moving is not listed: it earns nothing. A `pick-skill` earns nothing.
+ * The XP an action earns its actor, whoever does it and whatever the role: any act that contributes
+ * counts. Moving is not listed (it earns nothing) and neither is `pick-skill`. A refused action earns
+ * none. Scouts also earn for newly explored hexes (`Role.exploreXp`).
  */
-export const WORK_TAGS: Readonly<Record<string, string>> = {
-  survey: 'survey',
-  gather: 'gather',
-  build: 'build',
-  'work-site': 'sites',
-  feed: 'tend',
-  linger: 'tend',
-  'light-fire': 'tend',
-  strike: 'defend',
-  defend: 'defend',
-  parley: 'peoples',
-  offer: 'peoples',
-  'ask-boon': 'peoples',
-};
-
-/** Gathering from a node whose material carries `materialTag` is the work of the role with `roleTag` instead. */
-export const FOOD_WORK: { readonly materialTag: string; readonly roleTag: string } = {
-  materialTag: 'food',
-  roleTag: 'tend',
+export const ACTION_XP: Readonly<Record<string, number>> = {
+  survey: 1,
+  gather: 1,
+  build: 1,
+  'work-site': 1,
+  feed: 1,
+  linger: 1,
+  'light-fire': 1,
+  strike: 1,
+  defend: 1,
+  parley: 1,
+  offer: 1,
+  'ask-boon': 1,
 };

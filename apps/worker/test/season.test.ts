@@ -54,6 +54,7 @@ describe('the season recap', () => {
       const first = asView((await ctx.call(token, 'GET', '/api/game')).body);
       expect(first.game.stats).toEqual({
         shared: { threatsTurned: 0, finds: 0, unlocks: 0, befriended: 0, peakPeril: 0 },
+        peril: { added: {}, eased: {}, held: 0 },
         byCharacter: {},
       });
       // A refused action counts for nothing.

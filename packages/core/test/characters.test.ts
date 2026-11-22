@@ -119,7 +119,7 @@ describe('addCharacter', () => {
       pack: {},
       status: 'active',
       struckDay: null,
-      skills: { notches: {}, taken: [] },
+      skills: { xp: 0, taken: [] },
     });
     expect(state.characters).toHaveLength(0);
     const plainIndex = offers.length - 1;
