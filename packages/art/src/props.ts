@@ -538,47 +538,83 @@ const ruin: PropDraw = (outer) => {
 };
 
 /**
- * The glint (the hint mark): something here is undiscovered, never what. A small, light four-point twinkle
- * over the tile with two specks, quieter than the props; its parts carry `data-glint` so the map can make it
- * twinkle.
+ * The glint (the hint mark): something here is undiscovered, never what. Made to read at phone zoom: a large
+ * four-point twinkle with a soft glow, two small sparkles, and a ring on the ground around the hex's heart
+ * that pulses. Its parts carry `data-glint` (`ring`, `halo`, `star`, `specks`) so the map can pulse the
+ * ring and the glow and twinkle the star. Warm and light, never the red of a threat.
  */
 export const hintMark: PropDraw = (c) => {
   const { palette } = c;
   const T = mapper(c.origin, c.k, 1, c.k * c.rise);
-  const cy = -20;
+  const cy = -32;
   const star: Point[] = [];
   for (let i = 0; i < 8; i += 1) {
     const a = (Math.PI / 4) * i - Math.PI / 2;
-    const rr = i % 2 === 0 ? (i % 4 === 0 ? 7.5 : 5.5) : 1.4;
+    const rr = i % 2 === 0 ? (i % 4 === 0 ? 26 : 17) : 3.6;
     star.push(T(Math.cos(a) * rr, cy + Math.sin(a) * rr));
   }
-  const d1 = T(8.5, cy - 6.5);
-  const d2 = T(-7.5, cy + 5);
+  const d1 = T(24, cy - 20);
+  const d2 = T(-23, cy + 14);
+  const ringRx = 38 * c.k;
+  const ringRy = ringRx * c.squash;
+  const small = (p: Point, r: number): string => {
+    const w = r * c.k;
+    const h = r * c.k * c.rise;
+    return poly([
+      { x: p.x, y: p.y - h },
+      { x: p.x + 0.3 * w, y: p.y - 0.3 * h },
+      { x: p.x + w, y: p.y },
+      { x: p.x + 0.3 * w, y: p.y + 0.3 * h },
+      { x: p.x, y: p.y + h },
+      { x: p.x - 0.3 * w, y: p.y + 0.3 * h },
+      { x: p.x - w, y: p.y },
+      { x: p.x - 0.3 * w, y: p.y - 0.3 * h },
+    ]);
+  };
   return {
     nodes: [
       el('path', {
-        d: ellipsePath(c.origin.x, c.origin.y + cy * c.k * c.rise, 9 * c.k, 9 * c.k),
+        d: ellipsePath(c.origin.x, c.origin.y, ringRx, ringRy),
         fill: palette.hint,
-        opacity: 0.12,
+        'fill-opacity': 0.14,
+        stroke: palette.hint,
+        'stroke-width': c.ink * 1.6,
+        'stroke-opacity': 0.75,
+        'stroke-dasharray': `${6 * c.k} ${4 * c.k}`,
+        'data-glint': 'ring',
+      }),
+      el('path', {
+        d: ellipsePath(c.origin.x, c.origin.y + cy * c.k * c.rise, 26 * c.k, 26 * c.k),
+        fill: palette.hint,
+        opacity: 0.16,
         'data-glint': 'halo',
       }),
       el('path', {
         d: poly(star),
         fill: palette.paper,
         stroke: palette.hint,
-        'stroke-width': c.ink * 0.9,
+        'stroke-width': c.ink * 1.3,
         'stroke-linejoin': 'round',
         'data-glint': 'star',
       }),
       el('path', {
-        d:
-          ellipsePath(d1.x, d1.y, 1 * c.k, 1 * c.k) + ellipsePath(d2.x, d2.y, 0.8 * c.k, 0.8 * c.k),
-        fill: palette.hint,
-        opacity: 0.8,
+        d: small(d1, 7) + small(d2, 5.5),
+        fill: palette.paper,
+        stroke: palette.hint,
+        'stroke-width': c.ink * 0.9,
+        'stroke-linejoin': 'round',
         'data-glint': 'specks',
       }),
     ],
-    box: boxOf([...star, d1, d2, T(-9, cy - 9), T(9, cy + 9)]),
+    box: boxOf([
+      ...star,
+      d1,
+      d2,
+      { x: c.origin.x - ringRx, y: c.origin.y - ringRy },
+      { x: c.origin.x + ringRx, y: c.origin.y + ringRy },
+      T(-30, cy - 30),
+      T(30, cy + 30),
+    ]),
   };
 };
 

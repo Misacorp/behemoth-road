@@ -208,7 +208,11 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
     if (state === 'unseen' || state === 'lost') {
       if (cell.hint && state === 'unseen') {
         const c = hexCenter(p, cell.q, cell.r);
-        placed.push({ at: c, drawn: hintMark(ctx(c, rngFor(seed, 'hint', cell.q, cell.r))) });
+        placed.push({
+          at: c,
+          after: c.y + p.size * 0.5,
+          drawn: hintMark(ctx(c, rngFor(seed, 'hint', cell.q, cell.r))),
+        });
       }
       continue;
     }
@@ -298,7 +302,11 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
     }
     if (cell.hint) {
       const at = onPlane(p, c, 0.05, 0.05);
-      placed.push({ at, drawn: hintMark(ctx(at, rngFor(seed, 'hint', cell.q, cell.r))) });
+      placed.push({
+        at,
+        after: at.y + p.size * 0.5,
+        drawn: hintMark(ctx(at, rngFor(seed, 'hint', cell.q, cell.r))),
+      });
     }
   }
 

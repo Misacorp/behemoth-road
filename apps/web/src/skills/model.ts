@@ -15,7 +15,6 @@ import {
   type SkillNode,
 } from '@behemoth-road/core';
 import { whyOfPick } from '../game/why.ts';
-import { press } from '../map/arm.ts';
 import type { TipId } from '../text/tips.ts';
 import { tipFor } from '../ui/tip.ts';
 
@@ -80,15 +79,12 @@ export function nodeTip(n: NodeView): TipId | null {
 }
 
 /**
- * What a tap on a node does, given the node armed before it: an available node arms on the first tap and is
- * sent on the second; any other node never arms and never sends (its tap shows its tip, in the press layer).
+ * What a tap on a node does, given the node armed before it: an available node arms (the tap also shows its
+ * tip, in the press layer); a tap on the armed node keeps it armed. A tap never sends: the check does.
+ * Any other node never arms and leaves the arming as it was.
  */
-export function tapNode(
-  armed: string | null,
-  n: NodeView,
-): { readonly armed: string | null; readonly send: string | null } {
-  const next = press(armed, n.node.id, n.state === 'available');
-  return { armed: next.armed, send: next.run ? n.node.id : null };
+export function tapNode(armed: string | null, n: NodeView): { readonly armed: string | null } {
+  return { armed: n.state === 'available' ? n.node.id : armed };
 }
 
 /** A tab: one role's tree, and whether a node of it can be taken now. */

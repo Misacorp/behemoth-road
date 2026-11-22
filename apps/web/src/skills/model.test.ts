@@ -120,25 +120,25 @@ describe('arming a node', () => {
     };
   };
 
-  it('never sends on a single tap: the first arms, the second sends', () => {
+  it('arms on a tap, keeps the arming on a second tap and never sends', () => {
     const { a1 } = ready();
     const first = tapNode(null, a1);
-    expect(first).toEqual({ armed: 'scout-a1', send: null });
-    expect(tapNode(first.armed, a1)).toEqual({ armed: null, send: 'scout-a1' });
+    expect(first).toEqual({ armed: 'scout-a1' });
+    expect(tapNode(first.armed, a1)).toEqual({ armed: 'scout-a1' });
   });
 
   it('moves the arming to another available node instead of sending', () => {
     const { b1 } = ready();
-    expect(tapNode('scout-a1', b1)).toEqual({ armed: 'scout-b1', send: null });
+    expect(tapNode('scout-a1', b1)).toEqual({ armed: 'scout-b1' });
   });
 
-  it('never arms or sends a node that is not available', () => {
+  it('never arms a node that is not available', () => {
     const { a2 } = ready();
-    expect(tapNode(null, a2)).toEqual({ armed: null, send: null });
+    expect(tapNode(null, a2)).toEqual({ armed: null });
     const { view, me } = staged({ role: 'scout' });
     const locked = nodeOf(treeOf(view, me, 'scout'), 'scout-a1');
-    expect(tapNode(null, locked)).toEqual({ armed: null, send: null });
-    expect(tapNode('scout-b1', locked)).toEqual({ armed: 'scout-b1', send: null });
+    expect(tapNode(null, locked)).toEqual({ armed: null });
+    expect(tapNode('scout-b1', locked)).toEqual({ armed: 'scout-b1' });
   });
 });
 

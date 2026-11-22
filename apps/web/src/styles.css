@@ -1579,3 +1579,38 @@ button.roster-row:active {
     transform: translate(-50%, -50%) rotate(-90deg);
   }
 }
+
+/* The glint (the scout's hint on a hex): the ground ring and the glow breathe, the star twinkles. */
+[data-glint='ring'],
+[data-glint='halo'] {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: glint-pulse 2.4s ease-in-out infinite;
+}
+
+[data-glint='star'],
+[data-glint='specks'] {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: glint-twinkle 2.4s ease-in-out infinite;
+}
+
+@keyframes glint-pulse {
+  0%,
+  100% {
+    transform: scale(0.92);
+  }
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+@keyframes glint-twinkle {
+  0%,
+  100% {
+    transform: scale(0.88);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}

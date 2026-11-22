@@ -141,6 +141,9 @@ export function onRightClick(fn: (e: MouseEvent) => void): () => void {
   return () => rightClicks.delete(fn);
 }
 
+/** The event a tip element hears after its tap showed the tip (so a tap can also do its own small thing). */
+export const TIP_TAP_EVENT = 'tip-tap';
+
 /** The tip id an element names, only if the tips table has it. */
 export const idOf = (host: Element | null): TipId | null => {
   const id = host?.getAttribute('data-tip') ?? null;
@@ -239,6 +242,7 @@ export function watchPress(): void {
         e.preventDefault();
         e.stopPropagation();
         TIPS.tap(id, elementTarget(host), extras.get(id));
+        host.dispatchEvent(new CustomEvent(TIP_TAP_EVENT));
       }
     },
     true,
