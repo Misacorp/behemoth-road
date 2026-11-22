@@ -121,13 +121,15 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-22 The ending and the peril gauge show where peril came from \[Misa\]
+- 2026-11-22 The catch-up is 1 XP every 10 steps \[Misa\]
+- 2026-11-22 Skill XP comes from any contribution, one pool per character \[Misa\]
 - 2026-11-22 Skill tree UI: emblem ring on the HUD, arm then take, tips for reasons
 - 2026-11-22 Skill slice: notch per action performed, tier 1 live, effects as data hooks
 - 2026-11-22 Nothing carries over between seasons \[Misa\]
-- 2026-11-22 Everyone earns a catch-up notch every 10 steps \[Misa\]
+- 2026-11-22 Everyone earns a catch-up notch every 10 steps \[Misa\] (amended)
 - 2026-11-22 Another role's skill tree is open to tier 1 only \[Misa\]
 - 2026-11-22 The first skill pick in a role's tree closes the other branch \[Misa\]
-- 2026-11-22 Skill picks are earned by working \[Misa\]
 - 2026-11-21 Tips have no timer: they stay until the next tap \[Misa\]
 - 2026-11-21 A tap elsewhere only closes an open popover \[Misa\]
 - 2026-11-21 A rockslide strikes only its own hex (threat reach) \[Misa\]
@@ -260,4 +262,4 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-19 Drag and drop always has a tap and keyboard alternative
 - 2026-11-19 Counts read "1 / 3", and terms explain themselves without "?" icons
 
-Superseded: 8 entries (see the topic file).
+Superseded: 9 entries (see the topic file).

@@ -4,6 +4,30 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-22: The ending and the peril gauge show where peril came from **[Misa]**
+
+ID: `2026-11-22-the-ending-and-the-peril-gauge` · Status: current
+
+**Decision.** The core keeps a public peril log in `stats.peril`: peril added by source (`hunger`, `threat:<type>`), peril eased by source (`calm`, `shelter`) and `held`, what defence kept off the creature. It is built from the `peril` event, which now carries signed `sources` that sum to the change (the rise is capped at the room left below `perilMax`), and from `threat-strikes` (now with `type` and `held`). The ending shows it for every outcome as a stacked bar and rows of icon and number, biggest first, then what eased it and what defence held; tapping the HUD peril gauge opens the same view as a popover (the gauge's tip with the breakdown inside, as the pack does). Each row's tip hints at what to do (hunger: feed; a threat: strike or defend). When a tick's peril rises from hunger, the feeding icon pops beside the gauge and rises from the creature, and the gauge jolts. Only public facts: the cause of a peril change is shown, never the creature's hunger level or nature.
+
+**Reasoning.** Misa's playtest: players did not know why they lost. Today peril rises from strikes on the creature (strength less defence) and by 1 at each tick that ends with the creature underfed at level 2 or more; it falls by 1 at a tick with no rise and by 3 from a shelter. The breakdown makes the hunger share visible without revealing anything the viewers could not already see in the peril numbers.
+
+## 2026-11-22: The catch-up is 1 XP every 10 steps **[Misa]**
+
+ID: `2026-11-22-the-catch-up-is-1-xp` · Status: current · Amends: `2026-11-22-everyone-earns-a-catch-up-notch`
+
+**Decision.** At each tick where the creature's step count reaches a multiple of `catchUpEverySteps` (10), every active character gets `catchUpXp` (1) XP.
+
+**Reasoning.** The same catch-up as before, now paid into the one pool instead of a notch in the character's own role.
+
+## 2026-11-22: Skill XP comes from any contribution, one pool per character **[Misa]**
+
+ID: `2026-11-22-skill-xp-comes-from-any-contribution` · Status: current · Supersedes: `2026-11-22-skill-picks-are-earned-by-working`
+
+**Decision.** Each character has one XP pool (`skills.xp`, replacing role notches). Every action that contributes earns 1 XP: survey, gather, work a site, build, feed, linger, light a fire, strike, defend, parley, offer, ask a boon (data: `ACTION_XP`). Moving and picking earn nothing; a refused action earns none. A scout also earns 1 XP for each newly explored hex, whether walked into or surveyed (data on the role: `exploreXp`). A pick costs `xpPerPick` (14 on a full season, 5 on the dev season) and buys a node of your own role's tree (tier order; the first pick closes the other branch) or another role's tier 1, whatever role you earned the XP in. `picksAvailable(state, character)` is floor(xp / xpPerPick) less the nodes taken. Balance sim, careful parties, 40 seeds: 1.4 picks each per full season at 3 players and 1.0 at 6 (before: 1.6 and 1.0); dev season 1.2 and 0.9 (before 1.3 and 0.7). Content version 15.
+
+**Reasoning.** Misa's playtest: work by role made picks feel gated by what you happened to be doing. Any contribution counts, so a busy player earns about as many picks as before and nobody is locked out of a tree by their role's workload. The scout's exploring bonus keeps the role's work rewarded, since surveying alone was its main source of notches.
+
 ## 2026-11-22: Skill tree UI: emblem ring on the HUD, arm then take, tips for reasons
 
 ID: `2026-11-22-skill-tree-ui-emblem-ring-on` · Status: current
@@ -30,7 +54,7 @@ ID: `2026-11-22-nothing-carries-over-between-seasons` · Status: current
 
 ## 2026-11-22: Everyone earns a catch-up notch every 10 steps **[Misa]**
 
-ID: `2026-11-22-everyone-earns-a-catch-up-notch` · Status: current
+ID: `2026-11-22-everyone-earns-a-catch-up-notch` · Status: current, amended by `2026-11-22-the-catch-up-is-1-xp`
 
 **Decision.** Each day tick where the creature's step count reaches a multiple of `catchUpEverySteps` (10), every active character gets one notch in its own role.
 
@@ -51,14 +75,6 @@ ID: `2026-11-22-the-first-skill-pick-in-a` · Status: current
 **Decision.** Each role's tree has two branches, `a` and `b`. The first node a character takes in a role's tree chooses its branch and closes the other for good (also for another role's tree).
 
 **Reasoning.** Misa chose the hard fork (the softer option was to close it at tier 2): a choice a player and others can read from their card.
-
-## 2026-11-22: Skill picks are earned by working **[Misa]**
-
-ID: `2026-11-22-skill-picks-are-earned-by-working` · Status: current
-
-**Decision.** A character earns notches by working: one for each action performed on work a role owns (survey is the Scout's, gather and build the Engineer's, working a site the Scholar's, feeding, lingering, lighting a fire and gathering food the Keeper's, strike and defend the Guardian's, parley, offer and boon the Envoy's). Moving earns nothing. Every `notchesPerPick` notches in a role (10; 4 on the dev season) give one pick in that role's tree. Proposal in `docs/design/skill-trees.md`.
-
-**Reasoning.** Misa chose work over a pick per route step: it rewards investment. The catch-up notch (own entry) keeps absent players from falling far behind.
 
 ## 2026-11-21: Tips have no timer: they stay until the next tap **[Misa]**
 
@@ -1246,6 +1262,14 @@ ID: `2026-11-19-counts-read-1-3-and-terms` · Status: current
 <!-- Superseded entries below: kept for history, no longer in force. -->
 
 # Superseded
+
+## 2026-11-22: Skill picks are earned by working **[Misa]**
+
+ID: `2026-11-22-skill-picks-are-earned-by-working` · Status: superseded by `2026-11-22-skill-xp-comes-from-any-contribution`
+
+**Decision.** A character earns notches by working: one for each action performed on work a role owns (survey is the Scout's, gather and build the Engineer's, working a site the Scholar's, feeding, lingering, lighting a fire and gathering food the Keeper's, strike and defend the Guardian's, parley, offer and boon the Envoy's). Moving earns nothing. Every `notchesPerPick` notches in a role (10; 4 on the dev season) give one pick in that role's tree. Proposal in `docs/design/skill-trees.md`.
+
+**Reasoning.** Misa chose work over a pick per route step: it rewards investment. The catch-up notch (own entry) keeps absent players from falling far behind.
 
 ## 2026-11-20: The step ghost walks for one second, then the creature itself returns
 
