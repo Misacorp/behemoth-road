@@ -105,7 +105,9 @@ describe('peril', () => {
     // Satiety 7 drains to 6: level 1, no rise, so it calms.
     const calm = nextDayWithEvents({ ...withSatiety(fieldGame(['a'], HUNGRY), 7), peril: 4 });
     expect(calm.state.peril).toBe(3);
-    expect(ofKind(calm.events, 'peril')).toEqual([{ kind: 'peril', from: 4, to: 3 }]);
+    expect(ofKind(calm.events, 'peril')).toEqual([
+      { kind: 'peril', from: 4, to: 3, sources: [{ source: 'calm', amount: -1 }] },
+    ]);
     expect(nextDay(fieldGame(['a'], HUNGRY)).peril).toBe(0);
   });
 

@@ -1,20 +1,19 @@
 /**
- * Skills: notches earned by working, picks, and what the taken nodes do. Rules
+ * Skills: XP earned by contributing, picks, and what the taken nodes do. Rules
  * read a node's `effect` (`content/skills.ts`), never its id. A pick is free (no
  * actions), takes effect at once and lasts for the season.
  *
- * Picks available in a role = floor(notches / `notchesPerPick`) - nodes taken in
- * that role. The first node taken in a role's tree chooses its branch and closes
- * the other for good. Another role's tree is open to tier 1 only.
+ * Picks available = floor(xp / `xpPerPick`) - nodes taken. The first node taken in a
+ * role's tree chooses its branch and closes the other for good. Another role's tree
+ * is open to tier 1 only.
  */
 
 import {
-  FOOD_WORK,
+  ACTION_XP,
   ROLES,
   SKILL_NODES,
   type SkillEffect,
   type SkillNode,
-  WORK_TAGS,
 } from './content/index.ts';
 import { type Hex, hexDistance, hexesInRange, hexKey } from './hex.ts';
 import type { Character, GameState, GameStateView } from './state.ts';
@@ -58,33 +57,41 @@ export const bestOf = <K extends SkillEffect['kind']>(
   return values.length > 0 ? Math.max(...values) : null;
 };
 
-/** The role (id) whose work carries this role tag, if any. */
-export const roleWithTag = (tag: string): string | undefined =>
-  ROLES.find((r) => r.tags.includes(tag))?.id;
+/** XP an action earns its actor (0 for moving, picking and anything not listed). */
+export const actionXp = (kind: string): number => ACTION_XP[kind] ?? 0;
+
+/** XP for the hexes an actor newly explored: their role's `exploreXp` each. */
+export const exploreXpFor = (role: string, explored: number): number =>
+  (ROLES.find((r) => r.id === role)?.exploreXp ?? 0) * explored;
+
+/** More XP for a character (none when `amount` is 0). */
+export const withXp = <C extends Character>(c: C, amount: number): C =>
+  amount === 0 ? c : { ...c, skills: { ...c.skills, xp: c.skills.xp + amount } };
 
 /**
- * The role that owns the work of an action: the notch goes to it. `foodNode`: a gather at a
- * node whose material is food. Null for moving, picking and anything not listed.
+ * The state with the actor's XP for an action (`kind` null for a move) and for the hexes the events
+ * show newly explored (scouts only). Callers have checked the action was allowed.
  */
-export const workRole = (kind: string, foodNode: boolean): string | null => {
-  const tag = kind === 'gather' && foodNode ? FOOD_WORK.roleTag : WORK_TAGS[kind];
-  return tag ? (roleWithTag(tag) ?? null) : null;
+export const earnXp = <S extends GameStateView>(
+  state: S,
+  characterId: string,
+  kind: string | null,
+  events: readonly { readonly kind: string }[],
+): S => {
+  const actor = state.characters.find((c) => c.id === characterId);
+  if (!actor) return state;
+  const explored = events.filter((e) => e.kind === 'explore').length;
+  const amount = (kind === null ? 0 : actionXp(kind)) + exploreXpFor(actor.role, explored);
+  if (amount === 0) return state;
+  return {
+    ...state,
+    characters: state.characters.map((c) => (c.id === characterId ? withXp(c, amount) : c)),
+  };
 };
 
-/** One more notch in a role. */
-export const withNotch = <C extends Character>(c: C, role: string): C => ({
-  ...c,
-  skills: {
-    ...c.skills,
-    notches: { ...c.skills.notches, [role]: (c.skills.notches[role] ?? 0) + 1 },
-  },
-});
-
-/** Picks a character could still make in a role's tree. */
-export const picksAvailable = (state: GameStateView, c: Character, role: string): number => {
-  const earned = Math.floor((c.skills.notches[role] ?? 0) / state.config.notchesPerPick);
-  return earned - takenNodes(c).filter((n) => n.role === role).length;
-};
+/** Picks a character has earned and not yet spent (XP / `xpPerPick`, less the nodes taken). */
+export const picksAvailable = (state: GameStateView, c: Character): number =>
+  Math.floor(c.skills.xp / state.config.xpPerPick) - c.skills.taken.length;
 
 /** Why a character cannot take a node now, or null if it can. */
 export const pickRefusal = (
@@ -103,7 +110,7 @@ export const pickRefusal = (
   if (node.tier > 1 && !own.some((n) => n.branch === node.branch && n.tier === node.tier - 1)) {
     return 'skill-tier-order';
   }
-  if (picksAvailable(state, c, node.role) < 1) return 'no-pick';
+  if (picksAvailable(state, c) < 1) return 'no-pick';
   return null;
 };
 

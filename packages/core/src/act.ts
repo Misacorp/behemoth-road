@@ -10,7 +10,6 @@
 
 import {
   BOONS,
-  FOOD_WORK,
   MATERIALS,
   PEOPLE_TYPES,
   STIMULUS_TYPES,
@@ -56,16 +55,15 @@ import {
   TRADE_TAG,
 } from './settlements.ts';
 
-import { recordEvents } from './stats.ts';
+import { PERIL_SHELTER, recordEvents } from './stats.ts';
 import {
   bestOf,
   distanceFrom,
   effectsOf,
   pickRefusal,
   type PickRefusal,
-  withNotch,
+  earnXp,
   withSkill,
-  workRole,
 } from './skills.ts';
 
 export type Action =
@@ -222,17 +220,6 @@ const parleyTarget = (state: GameStateView, c: Character): Settlement | undefine
 /** A parley's chance of gaining favour rather than angering the settlement. */
 const parleyChance = (state: GameStateView, c: Character): number =>
   roleHas(c, PEOPLES_TAG) ? 1 : 1 - state.config.parleyAngerChanceOther;
-
-/** Whether the node where the character stands yields food: gathering it is the keeper's work. */
-const isFoodNode = (state: GameStateView, c: Character): boolean => {
-  const f = featureHere(state, c);
-  const type = f ? featureType(f.type) : null;
-  if (type?.kind !== 'node') return false;
-  return (
-    MATERIALS.find((m) => m.id === type.yields.material)?.tags.includes(FOOD_WORK.materialTag) ??
-    false
-  );
-};
 
 const free = (state: GameStateView, c: Character): number =>
   state.config.packCapacity - packSize(c.pack);
@@ -627,7 +614,14 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
       for (const t of led) events.push({ kind: 'threat-gone', id: t.id });
     } else if (action.boon === 'shelter') {
       const peril = Math.max(0, state.peril - state.config.shelterPeril);
-      if (peril !== state.peril) events.push({ kind: 'peril', from: state.peril, to: peril });
+      if (peril !== state.peril) {
+        events.push({
+          kind: 'peril',
+          from: state.peril,
+          to: peril,
+          sources: [{ source: PERIL_SHELTER, amount: peril - state.peril }],
+        });
+      }
       next = { ...next, peril };
     }
     return { ok: true, state: next, events };
@@ -697,23 +691,14 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
 };
 
 /**
- * Does the action: the actor earns a notch in the role that owns the work (a pick earns none), and
- * the season's tallies follow its events.
+ * Does the action: the actor earns XP for it (a pick earns none; a scout also for newly explored
+ * hexes), and the season's tallies follow its events.
  */
 export const act = (state: GameState, characterId: string, action: Action): ActResult => {
   const result = actCore(state, characterId, action);
   if (!result.ok) return result;
-  const actor = state.characters.find((c) => c.id === characterId) as Character;
-  const role = workRole(action.kind, action.kind === 'gather' && isFoodNode(state, actor));
-  const noted: GameState = role
-    ? {
-        ...result.state,
-        characters: result.state.characters.map((x) =>
-          x.id === characterId ? withNotch(x, role) : x,
-        ),
-      }
-    : result.state;
-  return { ...result, state: recordEvents(noted, result.events, characterId) };
+  const earned = earnXp(result.state, characterId, action.kind, result.events);
+  return { ...result, state: recordEvents(earned, result.events, characterId) };
 };
 
 /** Boons any people offers, in content order. */

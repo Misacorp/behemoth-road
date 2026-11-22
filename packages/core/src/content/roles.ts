@@ -21,6 +21,8 @@ export interface Role {
   readonly tags: readonly string[];
   readonly icon: string;
   readonly perks: readonly Perk[];
+  /** XP earned for each hex this character newly explores (walking into it or surveying it). */
+  readonly exploreXp: number;
 }
 
 export const ROLES: readonly Role[] = [
@@ -29,20 +31,50 @@ export const ROLES: readonly Role[] = [
     name: 'Scout',
     tags: ['explore', 'survey'],
     icon: 'spyglass',
+    exploreXp: 1,
     perks: [
       // Sees threats beyond the window's edge, before they appear in it.
       { id: 'far-sight', name: 'Far sight', tags: ['sense', 'threats'], requiresUpgrade: true },
     ],
   },
-  { id: 'scholar', name: 'Scholar', tags: ['sites', 'lore'], icon: 'book', perks: [] },
-  { id: 'keeper', name: 'Keeper', tags: ['creature', 'tend'], icon: 'crook', perks: [] },
-  { id: 'guardian', name: 'Guardian', tags: ['defend', 'escort'], icon: 'shield', perks: [] },
+  {
+    id: 'scholar',
+    name: 'Scholar',
+    tags: ['sites', 'lore'],
+    icon: 'book',
+    perks: [],
+    exploreXp: 0,
+  },
+  {
+    id: 'keeper',
+    name: 'Keeper',
+    tags: ['creature', 'tend'],
+    icon: 'crook',
+    perks: [],
+    exploreXp: 0,
+  },
+  {
+    id: 'guardian',
+    name: 'Guardian',
+    tags: ['defend', 'escort'],
+    icon: 'shield',
+    perks: [],
+    exploreXp: 0,
+  },
   {
     id: 'engineer',
     name: 'Engineer',
     tags: ['build', 'gather'],
     icon: 'hammer',
     perks: [],
+    exploreXp: 0,
   },
-  { id: 'envoy', name: 'Envoy', tags: ['peoples', 'trade'], icon: 'banner', perks: [] },
+  {
+    id: 'envoy',
+    name: 'Envoy',
+    tags: ['peoples', 'trade'],
+    icon: 'banner',
+    perks: [],
+    exploreXp: 0,
+  },
 ];

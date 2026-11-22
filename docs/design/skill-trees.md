@@ -4,11 +4,11 @@ For Misa to react to. Numbers are guesses for the tuning config.
 
 ## How progression works in a season
 
-- **You earn notches by working.** Each action spent on work earns a notch for the role that owns it: survey (Scout), gather or build (Engineer), dig a site (Scholar), feed, linger, fire, gather food (Keeper), strike or defend (Guardian), parley, offer, boon (Envoy). Moving earns nothing.
-- **A pick per 10 notches of one role** (4 on the dev season): about 6 picks in a 40-step season for a busy player, 3–4 for a light one (estimated).
+- **You earn XP by contributing** (revised after the first playtest; the first draft paid notches to the role that owned the work). Every act that helps earns 1 XP into one pool, whatever your role: survey, gather, work a site, build, feed, linger, light a fire, strike, defend, parley, offer, ask a boon. Moving earns nothing. A scout also earns 1 XP for each newly explored hex, walked into or surveyed.
+- **A pick per `xpPerPick` XP** (14 on a full season, 5 on the dev season), tuned so a busy player gets about the same picks as under the notch rule (simulated: 1.4 each at 3 players, 1.0 at 6, per 40 steps; a human who acts all three actions a day earns far more).
 - **Pick any time**, free, effective at once, kept for the season.
 - **Each tree forks:** two branches of three tiers. Your first pick in a tree chooses the branch; the other closes. Mastery is three picks.
-- **Multi-classing comes from your work.** Notches in another role buy its tier 1 only: a scout who keeps striking can take Skywatch, never Rout.
+- **Multi-classing is open.** Any pick can buy another role's tier 1 (never deeper): a scout can take Skywatch, never Rout.
 - **No combos.** No node reads who else is near or their role.
 
 **Between seasons:** nothing for now. Later, optional: a master who came home joins the roster as a veteran with a matching trait, for one run (a sidegrade), and the archive keeps a seal per mastered branch.
@@ -73,26 +73,26 @@ Trap sense, glints and double yield were inactive perks in `roles.ts`; they are 
 
 ## What it needs from the UI
 
-- Your role emblem on the HUD fills a ring of notches and glows when a pick is ready.
+- Your role emblem on the HUD fills a ring of XP toward the next pick and glows when a pick is ready.
 - Tap it: the tree drawer (bottom on phones, left on desktop): the emblem as root, two branches of three icons. A closed branch fades, its path cut. Other roles are small tabs showing tier 1.
 - Effects are drawn: a tag icon with a strike mark, a ring for range, a crossed action arrow for cheaper. Tips give names only.
 - Arm, then confirm; a moment inks the node. Taken nodes show on your character's card for everyone.
 
 ## First slice
 
-Notches, picks, the fork, the tree drawer and the twelve tier-1 nodes (each one number or an existing perk). Tiers 2 and 3 show veiled. On the dev season (a pick per 4 notches) everyone makes two or three choices. Tiers 2 and 3 follow once you have felt the fork.
+XP, picks, the fork, the tree drawer and the twelve tier-1 nodes (each one number or an existing perk). Tiers 2 and 3 show veiled. On the dev season (a pick per 5 XP) everyone makes two or three choices. Tiers 2 and 3 follow once you have felt the fork.
 
 ## Open questions
 
 1. **Picks from work or from the route?** Work rewards investment; a pick per 10 steps for all is simpler. My pick: work, plus question 4.
 2. **How hard is the fork?** My pick: the first pick closes the other branch (softer: close it at tier 2).
 3. **How deep into another role?** My pick: tier 1 only.
-4. **Catch-up for absent players?** My pick: everyone gets a notch in their own role every 10 steps.
+4. **Catch-up for absent players?** My pick: everyone gets 1 XP every 10 steps.
 5. **Anything across seasons now?** My pick: nothing until a real season is played.
 
 ### First slice contract
 
-Misa approved the proposal with these picks: picks are earned by working; the first pick in a role's tree closes the other branch for good; another role's tree only to tier 1; everyone gets a catch-up notch in their own role every 10 steps; nothing carries over between seasons. (Open questions 1 to 5 above are settled this way.)
+Misa approved the proposal with these picks (the first, picks earned by working, was revised by the XP pool below): the first pick in a role's tree closes the other branch for good; another role's tree only to tier 1; everyone gets a catch-up 1 XP every 10 steps; nothing carries over between seasons. (Open questions 1 to 5 above are settled this way.)
 
 **Content** (`packages/core/src/content/skills.ts`, exported from `@behemoth-road/core`): `SKILL_NODES`, 36 nodes `{ id, name, role, branch: 'a' | 'b', tier: 1 | 2 | 3, icon, active, effect }`.
 
@@ -106,15 +106,15 @@ Misa approved the proposal with these picks: picks are earned by working; the fi
   - `engineer-a1` Double yield `{ kind: 'gather-yield', amount: 2 }`; `engineer-b1` Quick hands `{ kind: 'build-work', amount: 2 }`.
   - `envoy-a1` Silver tongue `{ kind: 'parley-favour', bonus: 1 }`; `envoy-b1` Ravens `{ kind: 'parley-range', range: 3 }`.
 
-**State and view.** Every character has `skills: { notches: Record<roleId, number>, taken: nodeId[] }`. A missing role in `notches` is 0. The branch of a tree is implied by `taken`. It is part of the public view (`game.characters[].skills`): everyone sees everyone's notches and taken nodes. Nothing carries over to the next season (a new character starts empty).
+**State and view.** Every character has `skills: { xp: number, taken: nodeId[] }` (revised: one XP pool replaces the per-role `notches` record). The branch of a tree is implied by `taken`. It is part of the public view (`game.characters[].skills`): everyone sees everyone's XP and taken nodes. Nothing carries over to the next season (a new character starts at 0).
 
 The player view response (`PlayerView`) gains a per-viewer field `glints: { q, r }[]`: the unexplored known hexes within the viewer's glints range of their own character that hold a feature (a node, site or trap, never which). It is empty without `scout-b1`. It is not in the shared `game` view and is the same kind of thing as `signs`.
 
-**Notches.** One notch per action performed (not per action point; a refused action earns none), to the role that owns the work, whoever does it: survey to Scout; gather (not food) and build to Engineer; gathering a node whose material is tagged `food` and feed, linger, light-fire to Keeper; work-site to Scholar (a failed attempt counts); strike and defend to Guardian; parley, offer and ask-boon to Envoy. The mapping is data (`WORK_TAGS`, `FOOD_WORK`) read through role tags. Moving and picking earn nothing. Catch-up: at each day tick where the creature's step count reaches a multiple of `catchUpEverySteps` (10; a linger adds no step), every active character gets one notch in its own role.
+**XP.** One XP per action performed (not per action point; a refused action earns none), to the actor, whatever their role: survey, gather, build, work-site (a failed attempt counts), feed, linger, light-fire, strike, defend, parley, offer and ask-boon. The amounts are data (`ACTION_XP`, 1 each). Moving and picking earn nothing. A role may earn for exploring: `Role.exploreXp` (scout 1, others 0) times the hexes the action newly explored (a survey's target, or the hex a move enters; a survey earns its act XP as well). Catch-up: at each day tick where the creature's step count reaches a multiple of `catchUpEverySteps` (10; a linger adds no step), every active character gets `catchUpXp` (1).
 
-**Picks.** Picks available in a role = `floor(notches[role] / notchesPerPick) - nodes taken in that role`. `notchesPerPick` is 10 (the dev season on staging and local sets 4). Both numbers are in the core tuning config (`config` on the state, so the client reads them from the view).
+**Picks.** Picks available = `floor(xp / xpPerPick) - nodes taken` (`picksAvailable(state, character)`, no role argument). `xpPerPick` is 14 (the dev season on staging and local sets 5). Both numbers are in the core tuning config (`config` on the state, so the client reads them from the view).
 
-**Action.** `{ kind: 'pick-skill', node: <nodeId> }` through `POST /api/game/act`. It costs no actions (`check.cost` 0) and works with none left. It is valid when: the node exists and is active; it is not taken; the character has a pick in the node's role; the role's other branch is not taken (the first pick chooses the branch); tier order holds (tier n needs tier n-1 of the same branch); and, for a role other than the character's own, the tier is 1. The result event is `{ kind: 'skill-picked', characterId, node }`. The helpers `picksAvailable(state, character, role)` and `pickRefusal(state, character, nodeId)` run on a view, so the UI can grey nodes without asking the server.
+**Action.** `{ kind: 'pick-skill', node: <nodeId> }` through `POST /api/game/act`. It costs no actions (`check.cost` 0) and works with none left. It is valid when: the node exists and is active; it is not taken; the character has a pick (XP not yet spent); the role's other branch is not taken (the first pick chooses the branch); tier order holds (tier n needs tier n-1 of the same branch); and, for a role other than the character's own, the tier is 1. A node of any role can be bought with the one pool. The result event is `{ kind: 'skill-picked', characterId, node }`. The helpers `picksAvailable(state, character, role)` and `pickRefusal(state, character, nodeId)` run on a view, so the UI can grey nodes without asking the server.
 
 **Refusal codes** (added to `ActRefusal`; the web maps them to tips): `unknown-skill`, `skill-veiled`, `already-have` (taken), `no-pick`, `branch-closed`, `skill-tier-order`, `skill-tier-limit` (another role's tier above 1). The usual `season-over` and `character-lost` also apply.
 

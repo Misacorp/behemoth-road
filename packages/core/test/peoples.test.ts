@@ -174,7 +174,12 @@ describe('ask a boon', () => {
   it('shelter: peril falls by shelterPeril', () => {
     const r = doing(friendly(5), 'scout', { kind: 'ask-boon', boon: 'shelter' });
     expect(r.state.peril).toBe(2);
-    expect(r.events).toContainEqual({ kind: 'peril', from: 5, to: 2 });
+    expect(r.events).toContainEqual({
+      kind: 'peril',
+      from: 5,
+      to: 2,
+      sources: [{ source: 'shelter', amount: -3 }],
+    });
     expect(doing(friendly(1), 'scout', { kind: 'ask-boon', boon: 'shelter' }).state.peril).toBe(0);
   });
 

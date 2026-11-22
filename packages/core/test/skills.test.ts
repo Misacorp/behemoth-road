@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ACTION_XP,
   act,
   type Action,
   checkAction,
   createGame,
+  DEFAULT_CONFIG,
   defence,
   type GameState,
   glintsFor,
@@ -19,8 +21,6 @@ import {
   skillNode,
   type Skills,
   toPlayerView,
-  WORK_TAGS,
-  workRole,
 } from '../src/index.ts';
 import { exploreHex } from '../src/features.ts';
 import {
@@ -33,12 +33,13 @@ import {
   withThreat,
 } from './helpers.ts';
 
+const PER = DEFAULT_CONFIG.xpPerPick;
 const P = hex(3, -1);
 const N = hex(3, -2);
 
 const skilled = (state: GameState, id: string, skills: Partial<Skills>): GameState => {
   const c = state.characters.find((x) => x.id === id)!;
-  return withCharacter(state, { ...c, skills: { notches: {}, taken: [], ...skills } });
+  return withCharacter(state, { ...c, skills: { xp: 0, taken: [], ...skills } });
 };
 
 const take = (state: GameState, id: string, ...taken: string[]): GameState =>
@@ -51,7 +52,7 @@ const ok = (state: GameState, id: string, action: Action) => {
 };
 
 const me = (state: GameState, id: string) => state.characters.find((c) => c.id === id)!;
-const notches = (state: GameState, id: string) => me(state, id).skills.notches;
+const xp = (state: GameState, id: string) => me(state, id).skills.xp;
 
 describe('skill content', () => {
   it('has two branches of three tiers for each of the six roles, with unique ids', () => {
@@ -84,101 +85,111 @@ describe('skill content', () => {
     }
   });
 
-  it('maps every kind of work to a role through role tags', () => {
-    expect(workRole('survey', false)).toBe('scout');
-    expect(workRole('gather', false)).toBe('engineer');
-    expect(workRole('gather', true)).toBe('keeper');
-    expect(workRole('build', false)).toBe('engineer');
-    expect(workRole('work-site', false)).toBe('scholar');
-    for (const k of ['feed', 'linger', 'light-fire']) expect(workRole(k, false)).toBe('keeper');
-    for (const k of ['strike', 'defend']) expect(workRole(k, false)).toBe('guardian');
-    for (const k of ['parley', 'offer', 'ask-boon']) expect(workRole(k, false)).toBe('envoy');
-    expect(workRole('pick-skill', false)).toBeNull();
-    expect(workRole('move', false)).toBeNull();
-    for (const tag of Object.values(WORK_TAGS)) {
-      expect(ROLES.some((r) => r.tags.includes(tag))).toBe(true);
+  it('lists the contributing actions in ACTION_XP and never moving or picking', () => {
+    for (const k of [
+      'survey',
+      'gather',
+      'build',
+      'work-site',
+      'feed',
+      'linger',
+      'light-fire',
+      'strike',
+      'defend',
+      'parley',
+      'offer',
+      'ask-boon',
+    ]) {
+      expect(ACTION_XP[k]).toBeGreaterThan(0);
     }
+    expect(ACTION_XP['move']).toBeUndefined();
+    expect(ACTION_XP['pick-skill']).toBeUndefined();
+  });
+
+  it('gives only the scout XP for exploring, as data on the role', () => {
+    expect(ROLES.filter((r) => r.exploreXp > 0).map((r) => r.id)).toEqual(['scout']);
   });
 });
 
-describe('notches', () => {
-  it('goes to the role that owns the work, whoever does it', () => {
-    // A scout surveys (scout), gathers timber (engineer), works a tomb (scholar badly), strikes (guardian).
-    let state = placeCharacter(chainGame(['scout']), 'scout', P);
-    state = withFeature(state, P, 'timber-stand', true);
-    state = ok(state, 'scout', { kind: 'survey', hex: N }).state;
-    expect(notches(state, 'scout')).toEqual({ scout: 1 });
-    state = ok(state, 'scout', { kind: 'gather' }).state;
-    expect(notches(state, 'scout')).toEqual({ scout: 1, engineer: 1 });
-  });
-
-  it('counts food gathering for the keeper, a site for the scholar, a build for the engineer', () => {
+describe('xp', () => {
+  it('goes to the actor for any contributing act, whatever the role', () => {
+    // Food gathering, a tomb and a build: one XP each, for engineer, keeper and scholar alike.
     let state = placeCharacter(chainGame(['engineer']), 'engineer', P);
     state = withFeature(state, P, 'berry-bushes', true);
     state = ok(state, 'engineer', { kind: 'gather' }).state;
-    expect(notches(state, 'engineer')).toEqual({ keeper: 1 });
+    expect(xp(state, 'engineer')).toBe(1);
 
-    let site = placeCharacter(chainGame(['scout']), 'scout', P);
+    let site = placeCharacter(chainGame(['keeper']), 'keeper', P);
     site = withFeature(site, P, 'tomb', true);
-    site = ok(site, 'scout', { kind: 'work-site' }).state;
-    expect(notches(site, 'scout')).toEqual({ scholar: 1 });
+    site = ok(site, 'keeper', { kind: 'work-site' }).state;
+    expect(xp(site, 'keeper')).toBe(1);
 
     let build = chainGame(['engineer']);
     build = { ...build, stores: { stone: 1, timber: 1 } };
     build = ok(build, 'engineer', { kind: 'build', unlock: 'lantern' }).state;
-    expect(notches(build, 'engineer')).toEqual({ engineer: 1 });
+    expect(xp(build, 'engineer')).toBe(1);
   });
 
-  it('counts a failed site, feeding, lingering, striking, defending and parleying', () => {
+  it('counts feeding, lingering, defending and parleying', () => {
     let state = chainGame(['keeper', 'guardian', 'envoy']);
     state = { ...state, stores: { forage: 2 } };
     state = ok(state, 'keeper', { kind: 'feed' }).state;
     state = ok(state, 'keeper', { kind: 'linger' }).state;
-    expect(notches(state, 'keeper')).toEqual({ keeper: 2 });
+    expect(xp(state, 'keeper')).toBe(2);
     state = ok(state, 'guardian', { kind: 'defend' }).state;
-    expect(notches(state, 'guardian')).toEqual({ guardian: 1 });
+    expect(xp(state, 'guardian')).toBe(1);
     state = placeCharacter(state, 'envoy', P);
     state = withSettlement(state, P);
     state = ok(state, 'envoy', { kind: 'parley' }).state;
-    expect(notches(state, 'envoy')).toEqual({ envoy: 1 });
+    expect(xp(state, 'envoy')).toBe(1);
   });
 
-  it('earns nothing for moving, a refused action, or picking a skill', () => {
+  it('gives a scout XP for each newly explored hex, by surveying or by walking, and others none for walking', () => {
     let state = placeCharacter(chainGame(['scout']), 'scout', P);
-    state = move(state, 'scout', N).ok
-      ? (move(state, 'scout', N) as { state: GameState }).state
-      : state;
-    expect(notches(state, 'scout')).toEqual({});
-    expect(act(state, 'scout', { kind: 'gather' }).ok).toBe(false);
-    expect(notches(state, 'scout')).toEqual({});
-    state = skilled(state, 'scout', { notches: { scout: 10 } });
-    state = ok(state, 'scout', { kind: 'pick-skill', node: 'scout-a1' }).state;
-    expect(notches(state, 'scout')).toEqual({ scout: 10 });
+    // A survey: 1 for the act, 1 for the new hex.
+    state = ok(state, 'scout', { kind: 'survey', hex: N }).state;
+    expect(xp(state, 'scout')).toBe(2);
+    // Walking into an unexplored hex: 1 for the hex, none for the move.
+    const walked = move(state, 'scout', hex(4, -2));
+    expect(walked.ok).toBe(true);
+    if (walked.ok) expect(xp(walked.state, 'scout')).toBe(3);
+    // An engineer walking the same way earns nothing.
+    const eng = move(placeCharacter(chainGame(['engineer']), 'engineer', P), 'engineer', N);
+    expect(eng.ok).toBe(true);
+    if (eng.ok) expect(xp(eng.state, 'engineer')).toBe(0);
   });
 
-  it('gives everyone active a notch in their own role when the route steps reach a multiple of 10', () => {
+  it('earns nothing for moving onto explored ground, a refused action, or picking a skill', () => {
+    let state = placeCharacter(chainGame(['scout']), 'scout', P);
+    expect(act(state, 'scout', { kind: 'gather' }).ok).toBe(false);
+    expect(xp(state, 'scout')).toBe(0);
+    state = skilled(state, 'scout', { xp: PER });
+    state = ok(state, 'scout', { kind: 'pick-skill', node: 'scout-a1' }).state;
+    expect(xp(state, 'scout')).toBe(PER);
+  });
+
+  it('gives everyone active catchUpXp when the route steps reach a multiple of 10', () => {
     let state = chainGame(['scout', 'keeper', 'guardian']);
     state = { ...state, creature: { ...state.creature, steps: 9 } };
     state = withCharacter(state, { ...me(state, 'guardian'), status: 'lost' });
     const next = nextDay(state);
     expect(next.creature.steps).toBe(10);
-    expect(notches(next, 'scout')).toEqual({ scout: 1 });
-    expect(notches(next, 'keeper')).toEqual({ keeper: 1 });
-    expect(notches(next, 'guardian')).toEqual({});
-    // Not on other steps...
-    expect(notches(nextDay(next), 'scout')).toEqual({ scout: 1 });
-    // ...and a stay at step 10 adds no step, so no second notch.
+    expect(xp(next, 'scout')).toBe(1);
+    expect(xp(next, 'keeper')).toBe(1);
+    expect(xp(next, 'guardian')).toBe(0);
+    expect(xp(nextDay(next), 'scout')).toBe(1);
+    // A stay at step 10 adds no step, so no second catch-up.
     const staying = { ...next, creature: { ...next.creature, lingering: true } };
     expect(nextDay(staying).creature.steps).toBe(10);
-    expect(notches(nextDay(staying), 'scout')).toEqual({ scout: 1 });
+    expect(xp(nextDay(staying), 'scout')).toBe(1);
   });
 
   it('follows catchUpEverySteps from the config', () => {
     let state = createGame(1, { characterIds: ['a'], config: { ...CALM, catchUpEverySteps: 2 } });
     state = nextDay(state);
-    expect(notches(state, 'a')).toEqual({});
+    expect(xp(state, 'a')).toBe(0);
     state = nextDay(state);
-    expect(notches(state, 'a')).toEqual({ scout: 1 });
+    expect(xp(state, 'a')).toBe(1);
   });
 });
 
@@ -187,23 +198,20 @@ describe('picking a skill', () => {
   const scout = (skills: Partial<Skills>) =>
     skilled(chainGame(['scout', 'guardian']), 'scout', skills);
 
-  it('has a pick per notchesPerPick notches of the role, less the nodes taken in it', () => {
-    const state = scout({ notches: { scout: 19, guardian: 10 } });
-    const c = me(state, 'scout');
-    expect(picksAvailable(state, c, 'scout')).toBe(1);
-    expect(picksAvailable(state, c, 'guardian')).toBe(1);
-    expect(picksAvailable(state, c, 'keeper')).toBe(0);
+  it('has a pick per xpPerPick XP, less the nodes taken', () => {
+    const state = scout({ xp: PER * 2 - 1 });
+    expect(picksAvailable(state, me(state, 'scout'))).toBe(1);
     const taken = ok(state, 'scout', pick('scout-a1')).state;
-    expect(picksAvailable(taken, me(taken, 'scout'), 'scout')).toBe(0);
-    expect(picksAvailable(taken, me(taken, 'scout'), 'guardian')).toBe(1);
-    const dev = createGame(1, { characterIds: ['a'], config: { notchesPerPick: 4 } });
-    expect(
-      picksAvailable(dev, me(skilled(dev, 'a', { notches: { scout: 8 } }), 'a'), 'scout'),
-    ).toBe(2);
+    expect(picksAvailable(taken, me(taken, 'scout'))).toBe(0);
+    // The XP is one pool: it buys another role's tier 1 as well.
+    const other = ok(scout({ xp: PER }), 'scout', pick('guardian-a1')).state;
+    expect(me(other, 'scout').skills.taken).toEqual(['guardian-a1']);
+    const dev = createGame(1, { characterIds: ['a'], config: { xpPerPick: 4 } });
+    expect(picksAvailable(dev, me(skilled(dev, 'a', { xp: 8 }), 'a'))).toBe(2);
   });
 
   it('costs no actions, and works with none left', () => {
-    let state = scout({ notches: { scout: 10 } });
+    let state = scout({ xp: PER });
     state = withCharacter(state, { ...me(state, 'scout'), actionsLeft: 0 });
     expect(checkAction(state, 'scout', pick('scout-a1'))).toMatchObject({ ok: true, cost: 0 });
     const done = ok(state, 'scout', pick('scout-a1'));
@@ -216,26 +224,21 @@ describe('picking a skill', () => {
       const r = act(state, 'scout', pick(node));
       return r.ok ? 'ok' : r.reason;
     };
-    expect(reason(scout({ notches: { scout: 10 } }), 'nope')).toBe('unknown-skill');
-    expect(reason(scout({ notches: { scout: 30 } }), 'scout-a2')).toBe('skill-veiled');
-    expect(reason(scout({ notches: { scout: 9 } }), 'scout-a1')).toBe('no-pick');
-    expect(reason(scout({ notches: { guardian: 10 } }), 'scout-a1')).toBe('no-pick');
-    expect(reason(scout({ notches: { scout: 20 }, taken: ['scout-a1'] }), 'scout-a1')).toBe(
-      'already-have',
-    );
-    expect(reason(scout({ notches: { scout: 20 }, taken: ['scout-a1'] }), 'scout-b1')).toBe(
+    expect(reason(scout({ xp: PER }), 'nope')).toBe('unknown-skill');
+    expect(reason(scout({ xp: PER * 3 }), 'scout-a2')).toBe('skill-veiled');
+    expect(reason(scout({ xp: PER - 1 }), 'scout-a1')).toBe('no-pick');
+    expect(reason(scout({ xp: PER * 2, taken: ['scout-a1'] }), 'scout-a1')).toBe('already-have');
+    expect(reason(scout({ xp: PER * 2, taken: ['scout-a1'] }), 'scout-b1')).toBe('branch-closed');
+    expect(reason(scout({ xp: PER }), 'guardian-a1')).toBe('ok');
+    expect(reason(scout({ xp: PER * 2, taken: ['guardian-b1'] }), 'guardian-a1')).toBe(
       'branch-closed',
     );
-    expect(reason(scout({ notches: { guardian: 10 } }), 'guardian-a1')).toBe('ok');
-    expect(
-      reason(scout({ notches: { guardian: 20 }, taken: ['guardian-b1'] }), 'guardian-a1'),
-    ).toBe('branch-closed');
     const over = {
-      ...scout({ notches: { scout: 10 } }),
+      ...scout({ xp: PER }),
       season: { status: 'over', outcome: 'safe', day: 3 },
     } as GameState;
     expect(reason(over, 'scout-a1')).toBe('season-over');
-    const lost = withCharacter(scout({ notches: { scout: 10 } }), {
+    const lost = withCharacter(scout({ xp: PER }), {
       ...me(scout({}), 'scout'),
       status: 'lost',
     });
@@ -248,9 +251,8 @@ describe('picking a skill', () => {
     a2.active = true;
     g2.active = true;
     try {
-      const rich = (skills: Partial<Skills>) =>
-        me(scout({ notches: { scout: 40, guardian: 40 }, ...skills }), 'scout');
-      const state = scout({ notches: { scout: 40, guardian: 40 } });
+      const rich = (skills: Partial<Skills>) => me(scout({ xp: PER * 4, ...skills }), 'scout');
+      const state = scout({ xp: PER * 4 });
       expect(pickRefusal(state, rich({}), 'scout-a2')).toBe('skill-tier-order');
       expect(pickRefusal(state, rich({ taken: ['scout-a1'] }), 'scout-a2')).toBeNull();
       expect(pickRefusal(state, rich({ taken: ['scout-b1'] }), 'scout-a2')).toBe('branch-closed');
@@ -263,11 +265,11 @@ describe('picking a skill', () => {
     }
   });
 
-  it('is public on the view: notches and taken nodes', () => {
-    const state = scout({ notches: { scout: 3 }, taken: ['scout-b1'] });
+  it('is public on the view: xp and taken nodes', () => {
+    const state = scout({ xp: 3, taken: ['scout-b1'] });
     const view = toPlayerView(state);
     expect(view.characters.find((c) => c.id === 'scout')?.skills).toEqual({
-      notches: { scout: 3 },
+      xp: 3,
       taken: ['scout-b1'],
     });
   });
@@ -481,12 +483,12 @@ describe('tier 1 effects', () => {
 });
 
 describe('the tick keeps skills', () => {
-  it('leaves picks and notches alone', () => {
+  it('leaves picks and xp alone', () => {
     const state = skilled(chainGame(['scout']), 'scout', {
-      notches: { scout: 4 },
+      xp: 4,
       taken: ['scout-a1'],
     });
     const { state: next } = nextDayWithEvents(state);
-    expect(me(next, 'scout').skills).toEqual({ notches: { scout: 4 }, taken: ['scout-a1'] });
+    expect(me(next, 'scout').skills).toEqual({ xp: 4, taken: ['scout-a1'] });
   });
 });

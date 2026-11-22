@@ -33,8 +33,41 @@ export interface SharedTally {
   readonly peakPeril: number;
 }
 
+/** One cause of a peril change: `source` is a `PERIL_*` id, `amount` signed (up is peril added). */
+export interface PerilPart {
+  readonly source: string;
+  readonly amount: number;
+}
+
+/** Hunger: the creature ended a tick underfed (public: it shows only as peril and its cause). */
+export const PERIL_HUNGER = 'hunger';
+/** Peril falling at a calm tick. */
+export const PERIL_CALM = 'calm';
+/** A shelter boon. */
+export const PERIL_SHELTER = 'shelter';
+/** A strike on the creature by a threat of this type (a content id). */
+export const perilThreat = (type: string): string => `threat:${type}`;
+/** The threat type a source id names, or null for the other sources. */
+export const threatOfSource = (source: string): string | null =>
+  source.startsWith('threat:') ? source.slice('threat:'.length) : null;
+
+/**
+ * Where the season's peril came from, so far, as the events showed it: `added` and `eased` are
+ * totals by source (positive numbers; added minus eased equals the peril now), `held` is what
+ * defence kept off the creature (never in peril, shown beside it).
+ */
+export interface PerilLog {
+  readonly added: Readonly<Record<string, number>>;
+  readonly eased: Readonly<Record<string, number>>;
+  readonly held: number;
+}
+
+export const emptyPerilLog = (): PerilLog => ({ added: {}, eased: {}, held: 0 });
+
 export interface SeasonStats {
   readonly shared: SharedTally;
+  /** Where peril came from. */
+  readonly peril: PerilLog;
   /** By character id; a character who did nothing has no entry. */
   readonly byCharacter: Readonly<Record<string, CharacterTally>>;
 }
@@ -48,6 +81,7 @@ export const EMPTY_CHARACTER_TALLY: CharacterTally = {
 
 export const emptyStats = (): SeasonStats => ({
   shared: { threatsTurned: 0, finds: 0, unlocks: 0, befriended: 0, peakPeril: 0 },
+  peril: emptyPerilLog(),
   byCharacter: {},
 });
 
@@ -62,6 +96,10 @@ export const recordEvents = <S extends GameStateView>(
 ): S => {
   let shared = (state.stats as SeasonStats | undefined)?.shared ?? emptyStats().shared;
   const byCharacter: Record<string, CharacterTally> = { ...state.stats?.byCharacter };
+  const was = (state.stats as SeasonStats | undefined)?.peril ?? emptyPerilLog();
+  const added: Record<string, number> = { ...was.added };
+  const eased: Record<string, number> = { ...was.eased };
+  let held = was.held;
   const bump = (id: string | undefined, key: keyof CharacterTally, by = 1): void => {
     if (id === undefined || by <= 0) return;
     const was = byCharacter[id] ?? EMPTY_CHARACTER_TALLY;
@@ -95,10 +133,17 @@ export const recordEvents = <S extends GameStateView>(
         break;
       case 'peril':
         shared = { ...shared, peakPeril: Math.max(shared.peakPeril, e.to) };
+        for (const p of e.sources) {
+          const into = p.amount > 0 ? added : eased;
+          into[p.source] = (into[p.source] ?? 0) + Math.abs(p.amount);
+        }
+        break;
+      case 'threat-strikes':
+        held += e.held;
         break;
       default:
         break;
     }
   }
-  return { ...state, stats: { shared, byCharacter } };
+  return { ...state, stats: { shared, peril: { added, eased, held }, byCharacter } };
 };

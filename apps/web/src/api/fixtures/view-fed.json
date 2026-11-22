@@ -11,7 +11,7 @@
   },
   "offers": null,
   "game": {
-    "contentVersion": 14,
+    "contentVersion": 15,
     "artSeed": 4242,
     "day": 1,
     "config": {
@@ -81,8 +81,9 @@
       "perilHungryLevel": 2,
       "perilCalm": 1,
       "routeLength": 12,
-      "notchesPerPick": 4,
-      "catchUpEverySteps": 10
+      "xpPerPick": 5,
+      "catchUpEverySteps": 10,
+      "catchUpXp": 1
     },
     "creature": {
       "centre": {
@@ -877,9 +878,7 @@
         "status": "active",
         "struckDay": null,
         "skills": {
-          "notches": {
-            "keeper": 3
-          },
+          "xp": 3,
           "taken": []
         }
       },
@@ -900,7 +899,7 @@
         "status": "active",
         "struckDay": null,
         "skills": {
-          "notches": {},
+          "xp": 0,
           "taken": []
         }
       }
@@ -938,6 +937,11 @@
         "unlocks": 0,
         "befriended": 0,
         "peakPeril": 0
+      },
+      "peril": {
+        "added": {},
+        "eased": {},
+        "held": 0
       },
       "byCharacter": {
         "111111111111111111.0": {

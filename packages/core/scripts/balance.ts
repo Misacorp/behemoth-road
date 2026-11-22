@@ -54,7 +54,7 @@ export const DEV_SEASON: ConfigOverrides = {
   settlementEvery: 6,
   threatsFromDay: 1,
   threatChanceBase: 0.6,
-  notchesPerPick: 4,
+  xpPerPick: 5,
 };
 
 /** Roles of a party, by size: the first three are the core of any party. */
@@ -66,6 +66,8 @@ export interface SeasonResult {
   readonly days: number;
   /** Strikes on the creature over the season. */
   readonly strikes: number;
+  /** Picks earned per character over the season (XP / `xpPerPick`, spent or not). */
+  readonly picks: number;
 }
 
 const character = (state: GameState, id: string) => state.characters.find((c) => c.id === id);
@@ -334,6 +336,9 @@ export const playSeason = (
     peril: state.peril,
     days: state.day,
     strikes,
+    picks:
+      state.characters.reduce((n, c) => n + Math.floor(c.skills.xp / state.config.xpPerPick), 0) /
+      players,
   };
 };
 
@@ -343,6 +348,7 @@ export interface Summary {
   readonly lost: number;
   readonly peril: number;
   readonly strikes: number;
+  readonly picks: number;
 }
 
 /** Outcome rates (0..1) and average final peril and strikes over seeds 1..n. */
@@ -361,6 +367,7 @@ export const summarise = (
     lost: rate('lost'),
     peril: mean((r) => r.peril),
     strikes: mean((r) => r.strikes),
+    picks: mean((r) => r.picks),
   };
 };
 
@@ -372,8 +379,10 @@ export const report = (
 ): void => {
   const pct = (x: number) => `${Math.round(x * 100)} %`;
   log(`Seeds 1-${n}.`);
-  log('| season | policy | players | safe | wounded | lost | avg peril | avg strikes |');
-  log('| --- | --- | --- | --- | --- | --- | --- | --- |');
+  log(
+    '| season | policy | players | safe | wounded | lost | avg peril | avg strikes | picks each |',
+  );
+  log('| --- | --- | --- | --- | --- | --- | --- | --- | --- |');
   for (const [label, season] of [
     ['dev (12)', { ...DEV_SEASON, ...extra }],
     ['full (40)', extra],
@@ -382,7 +391,7 @@ export const report = (
       for (const players of [3, 6]) {
         const s = summarise(n, policy, players, season);
         log(
-          `| ${label} | ${policy} | ${players} | ${pct(s.safe)} | ${pct(s.wounded)} | ${pct(s.lost)} | ${s.peril.toFixed(1)} | ${s.strikes.toFixed(1)} |`,
+          `| ${label} | ${policy} | ${players} | ${pct(s.safe)} | ${pct(s.wounded)} | ${pct(s.lost)} | ${s.peril.toFixed(1)} | ${s.strikes.toFixed(1)} | ${s.picks.toFixed(2)} |`,
         );
       }
     }

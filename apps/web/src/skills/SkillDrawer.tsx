@@ -165,7 +165,7 @@ export function SkillDrawer(props: SkillDrawerProps): JSX.Element | null {
   };
   const armedNode = tree.flatMap((b) => b.nodes).find((n) => n.node.id === armed) ?? null;
 
-  const ring = ringOf(state, me, role);
+  const ring = ringOf(state, me);
   return (
     <Drawer open={props.open} onClose={props.onClose} side="right" label="Skills">
       <div class="skills" data-skills data-role={role} data-own={own ? true : undefined}>

@@ -9,16 +9,21 @@ import type { JSX } from 'preact';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { ENDING_TITLES } from '../game/season.ts';
 import {
+  type Accent,
   type CharacterLook,
   drawIcon,
   drawEnding,
   drawPerilGauge,
   drawPerilVignette,
   drawRouteStrip,
+  drawThreatIcon,
 } from '@behemoth-road/art';
+import type { PerilLog } from '@behemoth-road/core';
 import { PALETTE } from '../map/art.ts';
 import { toPreact } from '../map/svgToPreact.ts';
+import { type PerilBreakdown, perilBreakdown, type PerilRow } from '../game/perilBreakdown.ts';
 import { type Recap, STAT_ICONS, STAT_TIPS } from '../game/recap.ts';
+import { setTipExtra } from '../ui/press.ts';
 import { RoleEmblem } from '../ui/emblems.tsx';
 import { NewSeasonIcon, RecapIcon, SunIcon, TopMark } from './icons.tsx';
 
@@ -26,6 +31,8 @@ export interface PerilProps {
   readonly peril: number;
   readonly max: number;
   readonly woundedAt: number;
+  /** Where peril came from so far: a tap on the gauge opens it as a popover (the same view as the ending's). */
+  readonly log?: PerilLog;
 }
 
 export interface RouteProps {
@@ -38,19 +45,135 @@ export function PerilGauge({
   peril,
   max,
   woundedAt,
+  log,
   jolt = false,
   relieved = false,
-}: PerilProps & { jolt?: boolean; relieved?: boolean }) {
+  hungry = false,
+}: PerilProps & { jolt?: boolean; relieved?: boolean; hungry?: boolean }) {
+  // A tap opens the gauge's tip with the breakdown inside (like the pack: passing help, no interaction in it),
+  // and a tap anywhere, Escape or a right-click closes it.
+  useEffect(() => {
+    if (!log) return undefined;
+    return setTipExtra('hud:peril', () => <PerilBreakdownView breakdown={perilBreakdown(log)} />);
+  });
   return (
     <span
       class={`hud-peril${jolt ? ' is-jolted' : relieved ? ' is-relieved' : ''}`}
       aria-label="Peril"
       {...tipProps('hud:peril')}
+      {...(log ? { 'data-tip-tap': true } : {})}
       data-peril={peril}
       data-max={max}
     >
       {toPreact(drawPerilGauge(PALETTE, 120, peril, { max, woundedAt }))}
+      {/* The cause of a rise at the tick, for a moment: hunger shows as the feeding icon beside the gauge. */}
+      {hungry && (
+        <span class="hud-peril-cause" data-cause="hunger" aria-hidden="true">
+          {toPreact(drawIcon('feed', PALETTE, 22))}
+        </span>
+      )}
     </span>
+  );
+}
+
+/** The colours of a breakdown's slots, one per source in order (the bar's segments and the rows' dots). */
+const SLOTS: readonly Accent[] = ['coral', 'ochre', 'plum', 'sky', 'sage', 'rose'];
+const slotFill = (i: number): string => PALETTE.accents[SLOTS[i % SLOTS.length] as Accent].base;
+const BAR = { width: 150, height: 12 } as const;
+
+/** A row's picture: the icon of the answer (feed, rest, shelter, defend) or the threat's own figure. */
+function RowArt({ row }: { row: PerilRow }) {
+  return toPreact(
+    row.art.kind === 'threat'
+      ? drawThreatIcon(row.art.look, PALETTE, 30)
+      : drawIcon(row.art.id, PALETTE, 28),
+  );
+}
+
+/** One source: a colour dot (added rows), its picture and its number; the tip hints at what to do. */
+function PerilRowView({ row, slot }: { row: PerilRow; slot: number | null }) {
+  const kind = slot !== null ? 'added' : row.source === 'held' ? 'held' : 'eased';
+  const sign = kind === 'added' ? '+' : kind === 'eased' ? '\u2212' : '';
+  return (
+    <span
+      class="peril-row"
+      data-source={row.source}
+      data-amount={row.amount}
+      data-kind={kind}
+      {...tipProps(row.tip)}
+    >
+      {slot !== null && (
+        <svg class="peril-dot" width="8" height="8" viewBox="0 0 8 8" aria-hidden="true">
+          <circle cx="4" cy="4" r="4" fill={slotFill(slot)} />
+        </svg>
+      )}
+      <RowArt row={row} />
+      <span class="peril-n">
+        {sign}
+        {row.amount}
+      </span>
+    </span>
+  );
+}
+
+/**
+ * Where peril came from: a stacked bar (each source's share of what was added) over rows of icon and number,
+ * biggest first, then what took it off (quiet days, shelters) and what defence held off. Visual only; the
+ * rows' tips hint at what to do.
+ */
+export function PerilBreakdownView({ breakdown }: { breakdown: PerilBreakdown }) {
+  if (breakdown.empty && breakdown.held === null) return null;
+  let at = 0;
+  return (
+    <div class="peril-breakdown" data-total={breakdown.total}>
+      {breakdown.total > 0 && (
+        <svg
+          class="peril-bar"
+          width={BAR.width}
+          height={BAR.height}
+          viewBox={`0 0 ${String(BAR.width)} ${String(BAR.height)}`}
+          aria-hidden="true"
+        >
+          <rect
+            width={BAR.width}
+            height={BAR.height}
+            rx={BAR.height / 2}
+            fill={PALETTE.paperDeep}
+            stroke={PALETTE.inkSoft}
+          />
+          {breakdown.added.map((r, i) => {
+            const w = (r.amount / breakdown.total) * (BAR.width - 2);
+            const x = 1 + at;
+            at += w;
+            return (
+              <rect
+                key={r.source}
+                data-seg={r.source}
+                x={x}
+                y={1}
+                width={Math.max(2, w - 1)}
+                height={BAR.height - 2}
+                rx={3}
+                fill={slotFill(i)}
+              />
+            );
+          })}
+        </svg>
+      )}
+      <div class="peril-rows">
+        {breakdown.added.map((r, i) => (
+          <PerilRowView key={r.source} row={r} slot={i} />
+        ))}
+      </div>
+      {(breakdown.eased.length > 0 || breakdown.held) && (
+        <div class="peril-rows peril-eased">
+          {breakdown.eased.map((r) => (
+            <PerilRowView key={r.source} row={r} slot={null} />
+          ))}
+          {breakdown.held && <PerilRowView row={breakdown.held} slot={null} />}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -122,6 +245,7 @@ export function RecapPanel(props: {
         ))}
         <PerilGauge peril={recap.peakPeril} max={props.perilMax} woundedAt={props.perilWoundedAt} />
       </div>
+      <PerilBreakdownView breakdown={recap.perilSources} />
       <ul class="recap-players">
         {recap.players.map((p) => (
           <li key={p.characterId} class="recap-player" data-character={p.characterId}>

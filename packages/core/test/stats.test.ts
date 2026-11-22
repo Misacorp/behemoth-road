@@ -32,8 +32,8 @@ describe('season stats', () => {
       { kind: 'find', hex: h, characterId: 'b', material: 'coin', amount: 1 },
       { kind: 'unlock-done', unlock: 'grappling-hook' },
       { kind: 'befriended', id: 's' },
-      { kind: 'peril', from: 0, to: 4 },
-      { kind: 'peril', from: 4, to: 2 },
+      { kind: 'peril', from: 0, to: 4, sources: [{ source: 'hunger', amount: 4 }] },
+      { kind: 'peril', from: 4, to: 2, sources: [{ source: 'calm', amount: -2 }] },
     ]);
     expect(stats.shared).toEqual({
       threatsTurned: 1,

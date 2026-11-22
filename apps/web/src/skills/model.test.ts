@@ -6,7 +6,7 @@ import { WHY_BY_REFUSAL, whyOfPick } from '../game/why.ts';
 import { TIP_TABLE, type TipId } from '../text/tips.ts';
 import { nodeState, nodeTip, orderedTabs, pickReady, ringOf, tapNode, treeOf } from './model.ts';
 
-const PER = DEFAULT_CONFIG.notchesPerPick;
+const PER = DEFAULT_CONFIG.xpPerPick;
 
 type Stage = NonNullable<Parameters<typeof chainScenario>[0]>;
 
@@ -22,7 +22,7 @@ const nodeOf = (tree: ReturnType<typeof treeOf>, id: string) =>
 
 describe('the tree model', () => {
   it('has two branches of three nodes, tiers 2 and 3 veiled', () => {
-    const { view, me } = staged({ role: 'scout', notches: { scout: PER } });
+    const { view, me } = staged({ role: 'scout', xp: PER });
     const tree = treeOf(view, me, 'scout');
     expect(tree.map((b) => b.nodes.map((n) => n.node.id))).toEqual([
       ['scout-a1', 'scout-a2', 'scout-a3'],
@@ -46,7 +46,7 @@ describe('the tree model', () => {
   it('shows a taken node with its path inked, and closes the other branch with a cut path', () => {
     const { view, me } = staged({
       role: 'scout',
-      notches: { scout: PER * 2 },
+      xp: PER * 2,
       taken: ['scout-b1'],
     });
     const [a, b] = treeOf(view, me, 'scout');
@@ -68,50 +68,52 @@ describe('the tree model', () => {
     expect(nodeState('skill-veiled')).toBe('veiled');
     for (const r of ['no-pick', 'skill-tier-order', 'skill-tier-limit', 'unknown-skill'] as const)
       expect(nodeState(r)).toBe('plain');
-    const { view, me } = staged({ role: 'scout', notches: { scout: PER } });
+    const { view, me } = staged({ role: 'scout', xp: PER });
     expect(nodeTip(nodeOf(treeOf(view, me, 'scout'), 'scout-a2'))).toBe('why:veiled');
   });
 
-  it('shows another role as tier 1 only, available only with notches in that role', () => {
+  it('shows another role as tier 1 only, open to any pick (XP is one pool)', () => {
     const none = staged({ role: 'scout' });
     const locked = treeOf(none.view, none.me, 'guardian', true);
     expect(locked.map((b) => b.nodes.length)).toEqual([1, 1]);
     expect(locked[0]!.nodes[0]!.state).toBe('plain');
-    const earned = staged({ role: 'scout', notches: { guardian: PER } });
+    const earned = staged({ role: 'scout', xp: PER });
     const tree = treeOf(earned.view, earned.me, 'guardian', true);
     expect(tree.map((b) => b.nodes[0]!.state)).toEqual(['available', 'available']);
   });
 
-  it('has a tab per role, your own first, ready when a node of it can be taken', () => {
-    const { view, me } = staged({ role: 'keeper', notches: { guardian: PER, keeper: 1 } });
+  it('has a tab per role, your own first, ready when a node of it can be bought', () => {
+    const { view, me } = staged({ role: 'keeper', xp: PER });
     const tabs = orderedTabs(view, me);
     expect(tabs).toHaveLength(6);
-    expect(tabs[0]).toMatchObject({ role: 'keeper', mine: true, ready: false });
-    expect(tabs.filter((t) => t.ready).map((t) => t.role)).toEqual(['guardian']);
+    expect(tabs[0]).toMatchObject({ role: 'keeper', mine: true });
+    // One pool: every tree has a tier 1 you can buy.
+    expect(tabs.every((t) => t.ready)).toBe(true);
     expect(pickReady(view, me)).toBe(true);
     const idle = staged({ role: 'keeper' });
     expect(pickReady(idle.view, idle.me)).toBe(false);
   });
 
   it('fills the ring toward the next pick, and fully only when a pick can be spent', () => {
-    const per = staged({ role: 'scout' }).view.config.notchesPerPick;
-    const some = staged({ role: 'scout', notches: { scout: 2 } });
-    expect(ringOf(some.view, some.me, 'scout')).toEqual({ notches: 2, perPick: per });
-    const full = staged({ role: 'scout', notches: { scout: per } });
-    expect(ringOf(full.view, full.me, 'scout').notches).toBe(per);
+    const per = staged({ role: 'scout' }).view.config.xpPerPick;
+    const some = staged({ role: 'scout', xp: 2 });
+    expect(ringOf(some.view, some.me)).toEqual({ notches: 2, perPick: per });
+    const full = staged({ role: 'scout', xp: per });
+    expect(ringOf(full.view, full.me).notches).toBe(per);
     // One pick taken: the ring counts on from there.
-    const after = staged({ role: 'scout', notches: { scout: per + 1 }, taken: ['scout-a1'] });
-    expect(ringOf(after.view, after.me, 'scout').notches).toBe(1);
+    const after = staged({ role: 'scout', xp: per + 1, taken: ['scout-a1'] });
+    expect(ringOf(after.view, after.me).notches).toBe(1);
     // A pick earned with nothing open to spend it on leaves the ring one short (no false glow).
-    const stuck = staged({ role: 'scout', notches: { scout: per * 2 }, taken: ['scout-a1'] });
-    expect(ringOf(stuck.view, stuck.me, 'scout').notches).toBe(per - 1);
+    const all = ['scout-a1', 'scholar-a1', 'keeper-a1', 'guardian-a1', 'engineer-a1', 'envoy-a1'];
+    const stuck = staged({ role: 'scout', xp: per * 7, taken: all });
+    expect(ringOf(stuck.view, stuck.me).notches).toBe(per - 1);
     expect(pickReady(stuck.view, stuck.me)).toBe(false);
   });
 });
 
 describe('arming a node', () => {
   const ready = () => {
-    const { view, me } = staged({ role: 'scout', notches: { scout: PER } });
+    const { view, me } = staged({ role: 'scout', xp: PER });
     const tree = treeOf(view, me, 'scout');
     return {
       a1: nodeOf(tree, 'scout-a1'),

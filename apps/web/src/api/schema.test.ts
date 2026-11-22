@@ -39,13 +39,13 @@ describe('Milestone 5 view and events', () => {
     const events = [
       { kind: 'threat-appears', id: 't1', type: 'swarm', hex },
       { kind: 'threat-moves', id: 't1', from: hex, to: { q: 1, r: -1 } },
-      { kind: 'threat-strikes', id: 't1', damage: 2 },
+      { kind: 'threat-strikes', id: 't1', type: 'swarm', damage: 2, held: 1 },
       { kind: 'struck', characterId: 'c1', threat: 't1' },
       { kind: 'threat-hit', id: 't1', characterId: 'c1', strength: 1 },
       { kind: 'threat-cleared', id: 't1', characterId: 'c1' },
       { kind: 'threat-gone', id: 't1' },
       { kind: 'defend', characterId: 'c1' },
-      { kind: 'peril', from: 2, to: 4 },
+      { kind: 'peril', from: 2, to: 4, sources: [{ source: 'threat:swarm', amount: 2 }] },
       { kind: 'settlement-appears', id: 's1', hex },
       { kind: 'parley', id: 's1', characterId: 'c1', favour: 2 },
       { kind: 'befriended', id: 's1' },
@@ -67,8 +67,10 @@ describe('Milestone 5 view and events', () => {
   it('checks each kind by its own fields; a kind from a newer server still parses', () => {
     const ok = (e: object) => v.safeParse(GameEventSchema, { ...e, version: 3 }).success;
     const hex = { q: 0, r: 1 };
-    expect(ok({ kind: 'peril', from: 1, to: 3 })).toBe(true);
-    expect(ok({ kind: 'peril', from: hex, to: hex })).toBe(false);
+    const sources = [{ source: 'hunger', amount: 2 }];
+    expect(ok({ kind: 'peril', from: 1, to: 3, sources })).toBe(true);
+    expect(ok({ kind: 'peril', from: 1, to: 3 })).toBe(false);
+    expect(ok({ kind: 'peril', from: hex, to: hex, sources })).toBe(false);
     expect(ok({ kind: 'creature-step', from: hex, to: hex })).toBe(true);
     expect(ok({ kind: 'creature-step', from: 1, to: 2 })).toBe(false);
     expect(ok({ kind: 'threat-strikes', id: 't1' })).toBe(false);

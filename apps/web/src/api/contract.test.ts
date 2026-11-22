@@ -120,7 +120,8 @@ describe('captured contract fixtures', () => {
     // The dev season brings threats from the first tick: both since-logs also carry a threat appearing.
     // With the wider window none has reached the creature by the second tick yet.
     expect(kinds).toEqual([
-      ['stayed', 'fire-out', 'threat'],
+      // The starved creature (the scenario lets it go hungry) raises peril: hunger is the cause shown.
+      ['stayed', 'fire-out', 'hungry', 'threat'],
       ['step', 'ate', 'relieved', 'threat'],
     ]);
   });

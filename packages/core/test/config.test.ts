@@ -62,8 +62,9 @@ describe('tuning config', () => {
       perilHungryLevel: 2,
       perilCalm: 1,
       routeLength: 40,
-      notchesPerPick: 10,
+      xpPerPick: 14,
       catchUpEverySteps: 10,
+      catchUpXp: 1,
     });
   });
 

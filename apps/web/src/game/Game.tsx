@@ -542,7 +542,7 @@ export function Game({ api, initial }: GameProps): JSX.Element {
           me?.status === 'active'
             ? {
                 role: me.role,
-                ...ringOf(state, me, me.role),
+                ...ringOf(state, me),
                 ready: pickReady(state, me),
                 onOpen: () => {
                   setFlow(IDLE);
@@ -572,9 +572,11 @@ export function Game({ api, initial }: GameProps): JSX.Element {
           peril: state.peril,
           max: state.config.perilMax,
           woundedAt: state.config.perilWoundedAt,
+          log: state.stats.peril,
         }}
         route={{ steps: state.creature.steps, length: state.config.routeLength }}
-        jolt={moments.some((m) => m.kind === 'strike')}
+        jolt={moments.some((m) => m.kind === 'strike' || m.kind === 'hungry')}
+        hungry={moments.some((m) => m.kind === 'hungry')}
         relieved={moments.some((m) => m.kind === 'relieved')}
       />
       {showsNextDay(view) && (

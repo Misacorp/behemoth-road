@@ -8,7 +8,7 @@
  * view), so they show for anything that happened, whoever did it. They are CSS animations (no per-frame
  * renders) and end by themselves.
  */
-import type { Hex } from '@behemoth-road/core';
+import { type Hex, PERIL_HUNGER } from '@behemoth-road/core';
 
 export type Moment =
   | { readonly kind: 'explore'; readonly hex: Hex }
@@ -39,6 +39,8 @@ export type Moment =
   | { readonly kind: 'season-over'; readonly hex: Hex }
   /** A pursuer led away by a mislead: it turns and goes where it stood. */
   | { readonly kind: 'misled'; readonly hex: Hex }
+  /** Peril rose from hunger at the tick: the feeding icon rises from the creature, the gauge jolts. */
+  | { readonly kind: 'hungry'; readonly hex: Hex }
   /** Peril dropped (a shelter): a soft bloom on the creature, and the gauge swells. */
   | { readonly kind: 'relieved'; readonly hex: Hex }
   /** A character left out of reach: its figure fades into the fog where it stood. */
@@ -81,7 +83,12 @@ export interface EventLike {
   /** A creature step's start and end; peril before and after. */
   readonly from?: Hex | number | undefined;
   readonly to?: Hex | number | undefined;
+  /** Why peril changed (signed amounts by source id). */
+  readonly sources?: readonly { readonly source: string; readonly amount: number }[] | undefined;
 }
+
+/** The peril source id for hunger (core `PERIL_HUNGER`). */
+const HUNGER_SOURCE = PERIL_HUNGER;
 
 /** The core's event for a survey that found nothing (after the survey and explore events). */
 const SURVEY_EMPTY = 'survey-empty';
@@ -154,6 +161,10 @@ export function momentsFromEvents(
     if (e.kind === 'peril') {
       if (typeof e.from === 'number' && typeof e.to === 'number' && e.to < e.from) {
         out.push({ kind: 'relieved', hex: centre });
+      }
+      // Hunger raised it at the tick: its cause is public (the peril and why), nothing of the creature's nature.
+      if (e.sources?.some((s) => s.source === HUNGER_SOURCE && s.amount > 0)) {
+        out.push({ kind: 'hungry', hex: centre });
       }
       continue;
     }

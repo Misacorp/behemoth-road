@@ -53,10 +53,12 @@ describe('threat movement', () => {
       { kind: 'threat-moves', id: 'xcaptors', from: hex(0, 1), to: hex(0, -1) },
     ]);
     expect(ofKind(third.events, 'threat-strikes')).toEqual([
-      { kind: 'threat-strikes', id: 'xcaptors', damage: 3 },
+      { kind: 'threat-strikes', id: 'xcaptors', type: 'captors', damage: 3, held: 0 },
     ]);
     expect(third.state.peril).toBe(3);
-    expect(ofKind(third.events, 'peril')).toEqual([{ kind: 'peril', from: 0, to: 3 }]);
+    expect(ofKind(third.events, 'peril')).toEqual([
+      { kind: 'peril', from: 0, to: 3, sources: [{ source: 'threat:captors', amount: 3 }] },
+    ]);
   });
 
   it('never moves a threat with no speed; it goes once out of the window', () => {
@@ -74,7 +76,7 @@ describe('threat movement', () => {
     const state = withThreat(fieldGame(['rider'], STRAIGHT), 'rockslide', hex(0, -2), 3);
     const next = nextDayWithEvents(state);
     expect(ofKind(next.events, 'threat-strikes')).toEqual([
-      { kind: 'threat-strikes', id: 'xrockslide', damage: 3 },
+      { kind: 'threat-strikes', id: 'xrockslide', type: 'rockslide', damage: 3, held: 0 },
     ]);
   });
 });

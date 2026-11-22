@@ -48,8 +48,8 @@ import type {
   Threat,
 } from './state.ts';
 import { keepSettlements, placeSettlement, settlementDue } from './settlements.ts';
-import { withNotch } from './skills.ts';
-import { recordEvents } from './stats.ts';
+import { withXp } from './skills.ts';
+import { PERIL_CALM, PERIL_HUNGER, type PerilPart, perilThreat, recordEvents } from './stats.ts';
 import {
   activeCount,
   approachHexes,
@@ -125,6 +125,8 @@ const threatsAct = (
 ): {
   readonly threats: Threat[];
   readonly damage: number;
+  /** Peril from each strike on the creature, by threat type, in order. */
+  readonly hits: PerilPart[];
   readonly struck: Set<string>;
   readonly events: GameEvent[];
 } => {
@@ -139,12 +141,20 @@ const threatsAct = (
   });
   const guard = defence(state);
   let damage = 0;
+  const hits: PerilPart[] = [];
   const left: Threat[] = [];
   for (const t of moved) {
     if (hexDistance(t.hex, centre) <= contactDistance(state, threatType(t.type))) {
       const hit = Math.max(0, t.strength - guard);
       damage += hit;
-      events.push({ kind: 'threat-strikes', id: t.id, damage: hit });
+      if (hit > 0) hits.push({ source: perilThreat(t.type), amount: hit });
+      events.push({
+        kind: 'threat-strikes',
+        id: t.id,
+        type: t.type,
+        damage: hit,
+        held: t.strength - hit,
+      });
     } else left.push(t);
   }
   const struck = new Set<string>();
@@ -160,7 +170,7 @@ const threatsAct = (
       events.push({ kind: 'threat-gone', id: t.id });
     } else threats.push(t);
   }
-  return { threats, damage, struck, events };
+  return { threats, damage, hits, struck, events };
 };
 
 /** How the season ends at a tick with this peril and these steps, or null if it goes on. */
@@ -274,7 +284,21 @@ export const nextDayWithEvents = (
     rise > 0
       ? Math.min(config.perilMax, state.peril + rise)
       : Math.max(0, state.peril - config.perilCalm);
-  if (peril !== state.peril) events.push({ kind: 'peril', from: state.peril, to: peril });
+  if (peril !== state.peril) {
+    // Why it changed: each cause in order, the rise capped by the room left below the maximum.
+    const parts =
+      hungry > 0 ? [...fight.hits, { source: PERIL_HUNGER, amount: hungry }] : fight.hits;
+    let room = config.perilMax - state.peril;
+    const sources: PerilPart[] =
+      rise > 0
+        ? parts.flatMap((p) => {
+            const amount = Math.min(p.amount, room);
+            room -= amount;
+            return amount > 0 ? [{ source: p.source, amount }] : [];
+          })
+        : [{ source: PERIL_CALM, amount: peril - state.peril }];
+    events.push({ kind: 'peril', from: state.peril, to: peril, sources });
+  }
   let moved: GameState = { ...stepped, threats: fight.threats, peril };
   const outcome = seasonEnd(moved);
   if (outcome) {
@@ -310,10 +334,10 @@ export const nextDayWithEvents = (
     const actionsLeft = struck
       ? Math.min(config.actionsPerDay, config.struckActions)
       : config.actionsPerDay;
-    // Catch-up: whenever the route's steps reach a multiple, everyone still in the game earns a notch
-    // in their own role (a stay does not add a step, so it cannot repeat the notch).
-    const notched = catchUp ? withNotch(c, c.role) : c;
-    const fresh = { ...notched, actionsLeft, struckDay: struck ? day : c.struckDay };
+    // Catch-up: whenever the route's steps reach a multiple, everyone still in the game earns XP
+    // (a stay does not add a step, so it cannot repeat it).
+    const boosted = catchUp ? withXp(c, config.catchUpXp) : c;
+    const fresh = { ...boosted, actionsLeft, struckDay: struck ? day : c.struckDay };
     if (c.at.kind === 'creature') return fresh;
     if (isCreatureHex(moved, c.at.hex)) return { ...fresh, at: ON_CREATURE };
     if (isReachable(moved, c.at.hex)) return fresh;

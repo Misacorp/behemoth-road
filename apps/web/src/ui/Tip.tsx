@@ -40,6 +40,11 @@ export function titleOf(id: TipId): string {
   const tip = TIP_TABLE[id];
   if (tip.title) return tip.title;
   const [kind = '', key = ''] = id.split(':');
+  // A threat's row in the peril breakdown is titled with the threat's own name.
+  if (kind === 'peril' && key === 'threat') {
+    const type = id.split(':')[2];
+    return THREAT_TYPES.find((t) => t.id === type)?.name ?? type ?? key;
+  }
   if (kind === 'role' || kind === 'trait' || kind === 'quirk') return contentName(kind, key);
   const named: readonly { readonly id: string; readonly name: string }[] =
     kind === 'material'

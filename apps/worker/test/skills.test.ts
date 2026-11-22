@@ -61,11 +61,11 @@ describe('skills over the API', () => {
     await runGame(async (ctx) => {
       const { token } = await joined(ctx);
       const robin = await ctx.signIn(ROBIN);
-      const need = storedState(ctx.sql).config.notchesPerPick;
+      const need = storedState(ctx.sql).config.xpPerPick;
       edit(ctx.sql, (s) => ({
         ...s,
         characters: s.characters.map((c) =>
-          c.id === ME ? { ...c, skills: { notches: { engineer: need }, taken: [] } } : c,
+          c.id === ME ? { ...c, skills: { xp: need, taken: [] } } : c,
         ),
       }));
       const version = asView((await ctx.call(token, 'GET', '/api/game')).body).version;
@@ -78,7 +78,7 @@ describe('skills over the API', () => {
       expect(view.events).toEqual([
         { kind: 'skill-picked', characterId: ME, node: 'engineer-b1', version: version + 1 },
       ]);
-      const skills = { notches: { engineer: need }, taken: ['engineer-b1'] };
+      const skills = { xp: need, taken: ['engineer-b1'] };
       expect(view.game.characters.find((c) => c.id === ME)?.skills).toEqual(skills);
       // Public: another player sees the same.
       const seen = asView((await ctx.call(robin, 'GET', '/api/game')).body);
@@ -108,7 +108,7 @@ describe('skills over the API', () => {
         ...s,
         features: { [spot]: { type: 'tomb', revealed: false, left: 1 } },
         characters: s.characters.map((c) =>
-          c.id === ME ? { ...c, skills: { notches: {}, taken: ['scout-b1'] } } : c,
+          c.id === ME ? { ...c, skills: { xp: 0, taken: ['scout-b1'] } } : c,
         ),
       }));
       const [q, r] = spot.split(',').map(Number) as [number, number];

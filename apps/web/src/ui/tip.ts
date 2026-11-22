@@ -65,6 +65,7 @@ const GROUP_BY_PREFIX: Readonly<Record<string, TipGroup>> = {
   terrain: 'content',
   feature: 'content',
   threat: 'map',
+  peril: 'hud',
   settlement: 'map',
   map: 'map',
 };

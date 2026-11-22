@@ -5,6 +5,7 @@
 import { UNLOCKS } from './content/index.ts';
 import { depositPack, enterHex, type GameEvent } from './features.ts';
 import type { Hex } from './hex.ts';
+import { earnXp } from './skills.ts';
 import { recordEvents } from './stats.ts';
 import { terrainOf } from './map.ts';
 import { hazardAt } from './threats.ts';
@@ -151,7 +152,11 @@ export const move = <S extends GameStateView>(
     : entered.state;
   return {
     ok: true,
-    state: recordEvents(settled, entered.events, characterId),
+    state: recordEvents(
+      earnXp(settled, characterId, null, entered.events),
+      entered.events,
+      characterId,
+    ),
     events: entered.events,
     trapped: entered.trapped || hazard,
   };
