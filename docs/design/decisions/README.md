@@ -121,6 +121,7 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-22 Skill tree UI: emblem ring on the HUD, arm then take, tips for reasons
 - 2026-11-22 Skill slice: notch per action performed, tier 1 live, effects as data hooks
 - 2026-11-22 Nothing carries over between seasons \[Misa\]
 - 2026-11-22 Everyone earns a catch-up notch every 10 steps \[Misa\]

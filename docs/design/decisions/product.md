@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-22: Skill tree UI: emblem ring on the HUD, arm then take, tips for reasons
+
+ID: `2026-11-22-skill-tree-ui-emblem-ring-on` · Status: current
+
+**Decision.** Your role emblem sits on the HUD (top of the right-hand button column) wearing the notch ring toward your next pick; it pulses with the ready glow while any node in any tree can be taken, and a tap opens the tree drawer (bottom on phones, a wider right drawer on desktop, where the tree runs sideways). A tap on an available node arms it (it lifts and a tick appears); a second tap on it, or the tick, sends `pick-skill`, then the node inks. A tap on any other node (closed, veiled, locked, taken) shows a tip and never acts: the reason comes from the core's `pickRefusal` through `why:` tips, and a refusal the server gives after the tap shows the same tip on the node. Taken nodes show as a small icon row on every character card, with tips. `PlayerView.glints` draws as the map's hint mark, for you only. The roster gets no pick dot.
+
+**Reasoning.** The two-tap rule matches the move confirm and the cards' actions, so a stray tap never spends a pick that closes a branch for good. The ring only fills fully when a pick can be spent, so the glow never promises a pick that has nowhere to go. Reasons are tips, not prose, as everywhere else. The roster dot was skipped: the HUD already says it, and the roster rows are crowded.
+
 ## 2026-11-22: Skill slice: notch per action performed, tier 1 live, effects as data hooks
 
 ID: `2026-11-22-skill-slice-notch-per-action-performed` · Status: current
