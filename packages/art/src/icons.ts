@@ -16,6 +16,8 @@ import {
   type IconMotif,
 } from './icon-motifs.ts';
 import { accentRamp, type Palette } from './palette.ts';
+import { ROLE_TINT } from './role-tint.ts';
+import { drawSkillNode, SKILL_MOTIFS, type SkillState } from './skills.ts';
 import { riskParts, sealParts } from './team-marks.ts';
 import { el, type SvgNode } from './svg.ts';
 
@@ -38,6 +40,8 @@ export interface IconOptions {
   readonly done?: boolean;
   /** Marks an action as risky (parley by a non-envoy): a cracked coral triangle at the icon's upper right. */
   readonly risk?: boolean;
+  /** The look of a `skill:<role>-<branch><tier>` node (default `plain`). */
+  readonly skill?: SkillState;
 }
 
 const P = (x: number, y: number): Point => ({ x, y });
@@ -120,16 +124,6 @@ const envoy: IconMotif = (pal) => [
   ink(pal, 'M20 16.5h6', 1.4, pal.accents.rose.shade),
   solid(pal, ellipsePath(16, 9.5, 1.8, 1.8), pal.accents.ochre.base, 1.4),
 ];
-
-/** The wash colour behind each role's motif, so the set tells apart by colour too. */
-const ROLE_TINT: Readonly<Record<RoleId, string>> = {
-  scout: 'sky',
-  scholar: 'plum',
-  keeper: 'sage',
-  guardian: 'slate',
-  engineer: 'ochre',
-  envoy: 'rose',
-};
 
 const ROLE_MOTIFS: Readonly<Record<RoleId, IconMotif>> = {
   scout,
@@ -228,7 +222,8 @@ export function hasIcon(id: string): boolean {
     Object.hasOwn(ICON_MOTIFS, id) ||
     Object.hasOwn(MATERIAL_MOTIFS, id) ||
     Object.hasOwn(ITEM_MOTIFS, id) ||
-    Object.hasOwn(ACTION_MOTIFS, id)
+    Object.hasOwn(ACTION_MOTIFS, id) ||
+    Object.hasOwn(SKILL_MOTIFS, id)
   );
 }
 
@@ -240,6 +235,7 @@ export function drawIcon(
   options: IconOptions = {},
 ): SvgNode {
   const px = Number.isFinite(size) && size > 0 ? size : 48;
+  if (Object.hasOwn(SKILL_MOTIFS, id)) return drawSkillNode(palette, id, px, options.skill);
   const role = roleOf(id);
   let children: SvgNode[];
   if (role) {

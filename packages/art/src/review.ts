@@ -22,6 +22,7 @@ import type { ArtCell } from './tile.ts';
 import { seasonReviewItems } from './review-season.ts';
 import { round2ReviewItems } from './review-round2.ts';
 import { varietyReviewItems } from './review-variety.ts';
+import { skillReviewItems } from './review-skills.ts';
 
 export interface ReviewDraft {
   readonly id: string;
@@ -692,6 +693,7 @@ export function buildReviewItems(): ReviewDraft[] {
     ...seasonReviewItems(),
     ...varietyReviewItems(),
     ...round2ReviewItems(),
+    ...skillReviewItems(),
     {
       id: 'creature/underfed',
       group: 'Creature care',
