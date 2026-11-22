@@ -160,3 +160,16 @@ export {
   type FootingTone,
   type FeedbackMomentKind,
 } from './feedback-marks.ts';
+export {
+  drawBranchPath,
+  drawSkillNode,
+  SKILL_IDS,
+  SKILL_MOTIFS,
+  SKILL_ROLES,
+  SKILL_STATES,
+  skillRoleOf,
+  type BranchPathState,
+  type SkillRole,
+  type SkillState,
+} from './skills.ts';
+export { drawNotchRing, drawPickGlow } from './notch-ring.ts';

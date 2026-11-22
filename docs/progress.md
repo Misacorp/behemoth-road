@@ -11,6 +11,8 @@ What has landed and what is next. Newest first. Update it when a step lands or t
 
 ## Done
 
+- 2026-11-22: Skill tree art (`r4/skills-art`, packages/art only): 36 node icons `skill:<role>-<branch><tier>` drawn so each effect reads (tag with plus or minus, ring for range, crossed action arrow, doubled material), node looks (plain, veiled, available, taken, closed) via `drawSkillNode`, `drawBranchPath` (open, taken, closed), `drawNotchRing` with the pick-ready glow, review items `skills/trees` and `skills/states` (batch 2026-11-22-1, manifest committed, not published).
+
 - 2026-11-21: Threat fixes from the staging playtest (`r2/threat-fixes`): settlements no longer appear on explored hexes; a tile with several things (characters, a threat, a settlement or feature) opens a picker of round bubbles with a back from each card; a selected threat marks its end hex and the creature when it will strike at the next tick.
 
 - 2026-11-21: Creature rules and chain pacing (`r2/creature`, content version 10): fires steer sideways only, with several fires adding up by side (decisions in `product.md`); hunger drains every day with forage nourishing 4, on a doubled satiety scale (0 to 20) so the feeding workload is unchanged; a seeded pacing measure (`packages/core/scripts/pacing.ts`) and a chain retune that brings the climbing spikes from a median of day 43 to day 24; careful full seasons 76 / 9 / 16 % (3 players) and 71 / 12 / 18 % (6) safe / wounded / lost over 200 seeds (before: 73 / 10 / 17 and 71 / 12 / 18); fixtures recaptured.

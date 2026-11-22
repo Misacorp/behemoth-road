@@ -19,7 +19,8 @@
     "2026-11-21-3",
     "2026-11-21-4",
     "2026-11-21-5",
-    "2026-11-21-6"
+    "2026-11-21-6",
+    "2026-11-22-1"
   ],
   "items": [
     {
@@ -573,6 +574,24 @@
       "kind": "glance",
       "batch": "2026-11-21-6",
       "file": "art/features-tall-fc1ad4aa.svg"
+    },
+    {
+      "id": "skills/trees",
+      "group": "Skills",
+      "title": "The six skill trees: emblem root, two branches of three nodes (scout shown mid-pick: branch a taken, next available, last veiled, branch b closed and cut), then all 36 nodes finished",
+      "version": "6c0d38dd",
+      "kind": "glance",
+      "batch": "2026-11-22-1",
+      "file": "art/skills-trees-6c0d38dd.svg"
+    },
+    {
+      "id": "skills/states",
+      "group": "Skills",
+      "title": "Node looks (plain, veiled, available, taken, closed), branch paths (open, taken, closed) and the notch ring filling toward a pick, glowing when ready",
+      "version": "bf9f8325",
+      "kind": "glance",
+      "batch": "2026-11-22-1",
+      "file": "art/skills-states-bf9f8325.svg"
     }
   ]
 }
