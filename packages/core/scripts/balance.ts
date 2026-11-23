@@ -13,8 +13,7 @@
  *   A careful player also spends every pick it earns, at once, on the first node it can take from
  *   its role's list in `SKILL_PREFERENCE` (the guardian prefers bulwark, the rest their A1).
  * - `careless`: everyone rides; every third day one of them gathers forage within
- *   reach, and the creature is fed only when it is underfed at level 2 or more. Everyone rests,
- *   except in the `careless-watch` and `careless-aid` variants (see `Policy`).
+ *   reach, and the creature is fed only when it is underfed at level 2 or more.
  *
  * Run: `node --experimental-transform-types packages/core/scripts/balance.ts [seeds]`.
  * `test/balance.test.ts` checks the script itself (it ends every season, deterministically).
@@ -46,19 +45,7 @@ import {
 } from '../src/index.ts';
 import { FOOD_TAG } from '../src/care.ts';
 
-/**
- * `careless-watch` and `careless-aid` are the careless party with an idle stance set (the absent-player
- * case): its riders Watch (explore beside the creature) or Help aboard (defence). Plain `careless` rests.
- */
-export type Policy = 'careful' | 'careless' | 'careless-watch' | 'careless-aid';
-
-/** The stance a policy's characters keep (`careful` players act, so theirs does not matter). */
-const STANCE_OF: Readonly<Record<Policy, string>> = {
-  careful: 'rest',
-  careless: 'rest',
-  'careless-watch': 'watch',
-  'careless-aid': 'help-aboard',
-};
+export type Policy = 'careful' | 'careless';
 
 /** The staging and local season: mirrors `SERVER_CONFIG.devSeason` in apps/worker/src/server-config.ts. */
 export const DEV_SEASON: ConfigOverrides = {
@@ -321,7 +308,6 @@ export const playSeason = (
     characters: state.characters.map((c, i) => ({
       ...c,
       role: ROLE_ORDER[i % ROLE_ORDER.length] as string,
-      stance: STANCE_OF[policy],
     })),
   };
   let strikes = 0;
@@ -401,7 +387,7 @@ export const report = (
     ['dev (12)', { ...DEV_SEASON, ...extra }],
     ['full (40)', extra],
   ] as const) {
-    for (const policy of ['careful', 'careless', 'careless-watch', 'careless-aid'] as const) {
+    for (const policy of ['careful', 'careless'] as const) {
       for (const players of [3, 6]) {
         const s = summarise(n, policy, players, season);
         log(

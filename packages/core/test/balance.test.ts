@@ -15,12 +15,4 @@ describe('the balance simulation', () => {
     expect(careful.safe).toBeGreaterThan(careless.safe);
     expect(careful.peril).toBeLessThan(careless.peril);
   });
-
-  it('ends seasons for the careless party with an idle stance set, deterministically', () => {
-    for (const policy of ['careless-watch', 'careless-aid'] as const) {
-      const a = playSeason(2, policy, 3, DEV_SEASON);
-      expect(a).toEqual(playSeason(2, policy, 3, DEV_SEASON));
-      expect(['safe', 'wounded', 'lost']).toContain(a.outcome);
-    }
-  });
 });

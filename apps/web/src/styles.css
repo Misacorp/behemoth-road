@@ -424,11 +424,18 @@ button svg,
   height: 28px;
 }
 
-.hud-actions {
+.hud-turn {
   position: absolute;
   left: 50%;
   bottom: calc(var(--space-4) + var(--safe-bottom));
   transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  pointer-events: none;
+}
+
+.hud-actions {
   pointer-events: none;
 }
 
@@ -1097,6 +1104,94 @@ button svg,
 
 .icon-tip {
   display: inline-flex;
+}
+
+/* Stances (docs/design/stances.md): the control by your character button, its popover of bubbles, and the
+   wait button beside the action arrows. */
+.hud-stance-root {
+  position: relative;
+}
+
+.hud-stance,
+.stance-bubble {
+  position: relative;
+  padding: var(--space-2);
+  display: grid;
+  place-items: center;
+}
+
+.hud-stance svg,
+.stance-bubble svg {
+  display: block;
+}
+
+.hud-stance[data-fallback] > svg {
+  opacity: 0.4;
+}
+
+.stance-fallback {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #f3f1e2;
+  border: 1.5px solid #9a9776;
+}
+
+.stance-pop {
+  position: absolute;
+  right: calc(100% + var(--space-2));
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  border-radius: 999px;
+  background: #f3f1e2;
+  border: 1.5px solid #9a9776;
+  box-shadow: 1px 2px 0 #e1ddc3;
+  animation: stance-pop-in 0.14s ease-out;
+}
+
+.stance-bubble[data-chosen] {
+  background: #e1ddc3;
+  border-color: #5c5a43;
+}
+
+.stance-bubble[data-unfit] svg {
+  opacity: 0.4;
+}
+
+@keyframes stance-pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) scale(0.92);
+  }
+}
+
+.hud-wait {
+  --round: 40px;
+  pointer-events: auto;
+  padding: var(--space-1);
+  display: grid;
+  place-items: center;
+}
+
+.hud-wait[data-armed] {
+  border-color: #5c5a43;
+  border-width: 2.5px;
+}
+
+.hud-wait[data-disabled] {
+  opacity: 0.4;
+}
+
+.hud-wait[data-waiting] {
+  background: #e1ddc3;
 }
 
 /* The HUD's readouts (day, peril, route, actions) let the map through, except where they carry a tip. */

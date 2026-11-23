@@ -1,7 +1,6 @@
 /**
- * Small ink glyphs for idle stances and waiting (docs/design/stances.md): a crescent for rest, an eye for
- * watch, grass for lying in wait, a basket for gather, a grab handle for helping aboard, an hourglass for
- * waiting. Each is drawn in a 24-unit box centred on (0, 0) from straight and curved strokes only, then
+ * Small ink glyphs for idle stances and waiting (docs/design/stances.md): a crescent for rest, grass for
+ * lying in wait, a basket for gather, an hourglass for waiting. Each is drawn in a 24-unit box centred on (0, 0) from straight and curved strokes only, then
  * mapped to wherever it is wanted: `drawGlyph` on its own (the HUD, the roster, the picker) and
  * `glyphBadge` on a paper disc (the mark on a map figure). Names come from content (`Stance.icon`); an
  * unknown name draws nothing.
@@ -11,7 +10,7 @@ import type { Palette } from './palette.ts';
 import { inkAttrs } from './props.ts';
 import { el, type SvgNode } from './svg.ts';
 
-export const GLYPH_NAMES = ['moon', 'eye', 'grass', 'basket', 'rope', 'hourglass'] as const;
+export const GLYPH_NAMES = ['moon', 'grass', 'basket', 'hourglass'] as const;
 export type GlyphName = (typeof GLYPH_NAMES)[number];
 
 /** A stroke or fill: path commands over points in the glyph's own 24-unit box. */
@@ -34,12 +33,6 @@ const GLYPHS: Readonly<Record<GlyphName, readonly Part[]>> = {
       ],
       fill: 'wash',
     },
-  ],
-  eye: [
-    {
-      cmds: [['M', -10, 0], ['Q', 0, -9, 10, 0], ['Q', 0, 9, -10, 0], ['Z']],
-    },
-    { cmds: [['M', -3, 0], ['Q', 0, -3.4, 3, 0], ['Q', 0, 3.4, -3, 0], ['Z']], fill: 'ink' },
   ],
   grass: [
     {
@@ -85,32 +78,6 @@ const GLYPHS: Readonly<Record<GlyphName, readonly Part[]>> = {
       cmds: [
         ['M', -7.6, 3],
         ['L', 7.6, 3],
-      ],
-    },
-  ],
-  rope: [
-    {
-      cmds: [
-        ['M', -7, 9],
-        ['C', -9, -11, 9, -11, 7, 9],
-      ],
-    },
-    {
-      cmds: [
-        ['M', -10, 9],
-        ['L', -4, 9],
-      ],
-    },
-    {
-      cmds: [
-        ['M', 4, 9],
-        ['L', 10, 9],
-      ],
-    },
-    {
-      cmds: [
-        ['M', -3.4, -5],
-        ['L', 3.4, -5],
       ],
     },
   ],

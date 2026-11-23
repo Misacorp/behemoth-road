@@ -33,7 +33,7 @@ Every decision is tested against these.
 
 1. **New day.** The creature has moved. New tiles are in view.
 2. **Act.** Each player has about three actions to spend whenever they like.
-3. **Idle stance.** Unspent actions go to a default the player has set, so an absent player still contributes something. (Details undecided.)
+3. **Idle stance.** Unspent actions go to a stance the player has set (rest, lie in wait or gather), so an absent player still contributes something; a player can also end their day early (wait) to let the stance take the rest. See `docs/design/stances.md`.
 4. **Tick.** Threats resolve, the creature's needs are checked, and it walks on.
 
 ### Actions
@@ -82,6 +82,7 @@ A large challenge has several ways through. The path taken depends on the team's
 
 - **Roles over combos.** There are no built-in combination bonuses between characters. The journey needs several roles at once. A specialist can join another role's work and open new options there, as an envoy does when a scout meets strangers.
 - **Basics for all, mastery for specialists.** Any character can attempt the basics of any role. A specialist gets clearly better outcomes.
+- **A passive option never beats an active one.** A stance is an activity a player could do on any hex with their actions (in a real-time mode they would spend each of the day's actions on it), so its use of an action is never stronger than a specialist's active action. See `docs/design/stances.md`.
 - **More players do more, not just survive.** Two keepers specialise faster; more scouts find better-hidden places. Challenges scale to the team, so success never depends on headcount.
 
 ## 5. Roles
@@ -171,5 +172,5 @@ Undecided how much suits the game. Candidates:
 - How much randomness suits the game?
 - Should guardian and envoy merge into one role?
 - Do artifacts carry over between runs, and what do they unlock?
-- How do idle stances work?
+- Idle stances: the first slice is built (`docs/design/stances.md`); what more stances should exist is open.
 - When do balancing simulations start?

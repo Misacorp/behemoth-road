@@ -49,7 +49,7 @@ import type {
 } from './state.ts';
 import { keepSettlements, placeSettlement, settlementDue } from './settlements.ts';
 import { withXp } from './skills.ts';
-import { ambush, applyStances, effectiveStance, helpGuard, REST_TAG } from './stances.ts';
+import { ambush, applyStances } from './stances.ts';
 import { PERIL_CALM, PERIL_HUNGER, type PerilPart, perilThreat, recordEvents } from './stats.ts';
 import {
   activeCount,
@@ -148,7 +148,7 @@ const threatsAct = (
   const ambushed = ambush(state, walked, paths);
   events.push(...ambushed.events);
   const moved = ambushed.threats;
-  const guard = defence(state) + helpGuard(state);
+  const guard = defence(state);
   let damage = 0;
   const hits: PerilPart[] = [];
   const left: Threat[] = [];
@@ -343,19 +343,19 @@ export const nextDayWithEvents = (
   const lost: GameEvent[] = [];
   const characters = state.characters.map((c): Character => {
     if (c.status !== 'active') return { ...c, actionsLeft: 0, waiting: false };
-    // A struck character who rests shakes it off (judged by where they stood before the tick).
-    const struck =
-      fight.struck.has(c.id) &&
-      !effectiveStance(before, before.characters.find((x) => x.id === c.id) ?? c).tags.includes(
-        REST_TAG,
-      );
+    const struck = fight.struck.has(c.id);
     const actionsLeft = struck
       ? Math.min(config.actionsPerDay, config.struckActions)
       : config.actionsPerDay;
     // Catch-up: whenever the route's steps reach a multiple, everyone still in the game earns XP
     // (a stay does not add a step, so it cannot repeat it).
     const boosted = withXp(catchUp ? withXp(c, config.catchUpXp) : c, fight.xp.get(c.id) ?? 0);
-    const fresh = { ...boosted, waiting: false, actionsLeft, struckDay: struck ? day : c.struckDay };
+    const fresh = {
+      ...boosted,
+      waiting: false,
+      actionsLeft,
+      struckDay: struck ? day : c.struckDay,
+    };
     if (c.at.kind === 'creature') return fresh;
     if (isCreatureHex(moved, c.at.hex)) return { ...fresh, at: ON_CREATURE };
     if (isReachable(moved, c.at.hex)) return fresh;

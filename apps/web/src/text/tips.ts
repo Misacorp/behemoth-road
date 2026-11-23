@@ -154,6 +154,11 @@ export const tips = {
   'action:ask-boon': { title: 'Ask a boon', text: 'A friendly settlement grants one boon.' },
   // Skills: the tree drawer's tips are below; this one names the action.
   'action:pick-skill': { title: 'Pick', text: 'Take a skill.' },
+  'action:set-stance': { title: 'Stance', text: 'Choose where your spare actions go.' },
+  'action:wait': {
+    title: 'Wait',
+    text: 'End your day here. What is left goes to your stance.',
+  },
 
   // Skills: the first node of each branch (later tiers stay veiled). Names and one line, never numbers.
   'skill:scout-a1': {
@@ -284,6 +289,28 @@ export const tips = {
   },
   'map:struck': { title: 'Struck', text: 'Hit by a threat: only {struckActions} action tomorrow.' },
 
+  // Idle stances: where spare actions go at the tick.
+  'stance:rest': {
+    title: 'Rest',
+    text: 'Do nothing with your spare actions.',
+    group: 'hud',
+  },
+  'stance:lie-in-wait': {
+    title: 'Lie in wait',
+    text: 'Hold your hex. Strike first at what reaches it.',
+    group: 'hud',
+  },
+  'stance:gather': {
+    title: 'Gather',
+    text: 'Spare actions gather from the node you stand on.',
+    group: 'hud',
+  },
+  'stance:fallback': {
+    title: 'Resting instead',
+    text: 'This stance has nothing to do where you are.',
+    group: 'hud',
+  },
+
   // The heads-up display.
   'hud:day': {
     title: 'Day',
@@ -313,6 +340,10 @@ export const tips = {
   'hud:skills': {
     title: 'Skills',
     text: 'Your skills. The ring fills as you work; when it glows, take one.',
+  },
+  'hud:stance': {
+    title: 'Stance',
+    text: 'Where your spare actions go when the day turns. Tap to choose.',
   },
   'hud:recentre-me': { title: 'Your character', text: 'Back to your character.' },
   'hud:recentre-creature': { title: 'Behemoth', text: 'Back to the creature, and its hub.' },
@@ -348,6 +379,11 @@ export const tips = {
   'roster:lost': { title: 'Lost', text: 'Lost to the fog. Waiting to join again.', group: 'hud' },
   'roster:riding': { title: 'Riding', text: 'On the creature’s back.', group: 'hud' },
   'roster:map': { title: 'Out on the map', text: 'Away from the creature.', group: 'hud' },
+  'roster:waiting': {
+    title: 'Waiting',
+    text: 'Ended their day. Their stance takes the rest.',
+    group: 'hud',
+  },
   'roster:none': { title: 'No character', text: 'Has not joined yet.', group: 'hud' },
 
   // The season's recap, on the ending.

@@ -196,7 +196,7 @@ describe('capture', () => {
         // Stances: choose one (free), then end the day (the rest goes to the stance at the tick).
         await ok('view-stance', 'POST', '/api/game/act', {
           version: await versionNow(),
-          action: { kind: 'set-stance', stance: 'help-aboard' },
+          action: { kind: 'set-stance', stance: 'lie-in-wait' },
         });
         await ok('view-waited', 'POST', '/api/game/act', {
           version: await versionNow(),

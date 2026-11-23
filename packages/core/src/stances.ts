@@ -3,49 +3,28 @@
  * stance, so a player who is away, or who chose to wait, still contributes something. Stances
  * are content (`content/stances.ts`) read by tag and by what they need where the character is;
  * a stance that does not fit falls back to the default (rest). Every number is in the config.
- * Resting is nothing, and shakes off being struck. Server only where it needs the seed.
+ * Resting is nothing. The guiding rule: a stance is an activity a player could do with their actions
+ * anywhere, so it is never stronger than a specialist's active action. Server only where it needs the seed.
  */
 
 import { type Stance, DEFAULT_STANCE, STANCES } from './content/index.ts';
 import { act, checkAction } from './act.ts';
-import { isPlaceReachable } from './actions.ts';
-import { exploreHex, type GameEvent, isExplored, roleHas } from './features.ts';
+import { type GameEvent, roleHas } from './features.ts';
 import { type Hex, hexKey } from './hex.ts';
-import { placeNeighbours } from './places.ts';
-import { hashString, hashToUnit } from './random.ts';
-import { earnXp, effectsOf } from './skills.ts';
-import { recordEvents } from './stats.ts';
+import { effectsOf } from './skills.ts';
 import type { Character, GameState, GameStateView, Threat } from './state.ts';
 import { DEFEND_TAG, threatType } from './threats.ts';
 
-const WATCH_STREAM = hashString('watch');
-
 /** Stance tags rules read. */
 export const REST_TAG = 'rest';
-export const EXPLORE_TAG = 'explore';
 export const AMBUSH_TAG = 'ambush';
 export const GATHER_TAG = 'gather';
-export const AID_TAG = 'aid';
-
-/** The role tag of working on an unlock. */
-const BUILD_TAG = 'build';
 
 export const stanceType = (id: string): Stance =>
   STANCES.find((s) => s.id === id) ?? (STANCES.find((s) => s.id === DEFAULT_STANCE) as Stance);
 
 /** Whether an id names a stance. */
 export const isStance = (id: string): boolean => STANCES.some((s) => s.id === id);
-
-/** The unexplored, known hexes next to a character that a watch could explore, in a fixed order. */
-export const watchTargets = (state: GameStateView, c: Character): Hex[] =>
-  placeNeighbours(state, c.at).flatMap((p) =>
-    p.kind === 'hex' &&
-    state.tiles[hexKey(p.hex)] &&
-    !isExplored(state, p.hex) &&
-    isPlaceReachable(state, p)
-      ? [p.hex]
-      : [],
-  );
 
 /** Whether a stance fits where a character is now (what it needs holds). */
 export const stanceFits = (state: GameStateView, c: Character, stance: Stance): boolean => {
@@ -54,14 +33,10 @@ export const stanceFits = (state: GameStateView, c: Character, stance: Stance): 
       return true;
     case 'hex':
       return c.at.kind === 'hex';
-    case 'riding':
-      return c.at.kind === 'creature';
-    case 'unexplored':
-      return watchTargets(state, c).length > 0;
     case 'node': {
-      // Whether there is something to gather here, whatever the actions left.
+      // Whether there is something to gather here, whatever the actions left or whether the day is ended.
       const check = checkAction(state, c.id, { kind: 'gather' });
-      return check.ok || check.reason === 'not-enough-actions';
+      return check.ok || check.reason === 'not-enough-actions' || check.reason === 'waiting';
     }
   }
 };
@@ -73,8 +48,8 @@ export const effectiveStance = (state: GameStateView, c: Character): Stance => {
 };
 
 /**
- * Before the creature steps: unspent actions go to gathering, watching or working on the
- * unlock in progress (spent through the same rules as acting).
+ * Before the creature steps: unspent actions go to gathering from the node on the hex, through the
+ * same rules as the gather action (so never more per action than gathering by hand).
  */
 export const applyStances = (
   state: GameState,
@@ -84,74 +59,25 @@ export const applyStances = (
   for (const { id } of state.characters) {
     const c = next.characters.find((x) => x.id === id) as Character;
     if (c.status !== 'active' || c.actionsLeft <= 0) continue;
-    const stance = effectiveStance(next, c);
-    if (stance.tags.includes(EXPLORE_TAG)) {
-      const cost = next.config.stanceWatchCost;
-      let left = c.actionsLeft;
-      let targets = watchTargets(next, c);
-      while (left >= cost && targets.length > 0) {
-        const pick = [...targets].sort(
-          (a, b) =>
-            hashToUnit(next.seed, WATCH_STREAM, next.day, hashString(id), a.q, a.r) -
-            hashToUnit(next.seed, WATCH_STREAM, next.day, hashString(id), b.q, b.r),
-        )[0] as Hex;
-        const explored = exploreHex(next, pick);
-        const empty = !explored.state.features[hexKey(pick)];
-        const made: GameEvent[] = [
-          { kind: 'survey', hex: pick, characterId: id },
-          ...explored.events,
-          ...(empty ? [{ kind: 'survey-empty' as const, hex: pick, characterId: id }] : []),
-        ];
-        left -= cost;
-        next = {
-          ...explored.state,
-          characters: explored.state.characters.map((x) =>
-            x.id === id ? { ...x, actionsLeft: left } : x,
-          ),
-        };
-        next = recordEvents(earnXp(next, id, 'survey', made), made, id);
-        events.push(...made);
-        targets = watchTargets(next, next.characters.find((x) => x.id === id) as Character);
-      }
-    } else if (stance.tags.includes(GATHER_TAG)) {
-      for (;;) {
-        const done = act(next, id, { kind: 'gather' });
-        if (!done.ok) break;
-        next = done.state;
-        events.push(...done.events);
-      }
-    } else if (stance.tags.includes(AID_TAG) && roleHas(c, BUILD_TAG) && next.project) {
-      for (;;) {
-        const project = next.project;
-        if (!project) break;
-        const done = act(next, id, { kind: 'build', unlock: project.unlock });
-        if (!done.ok) break;
-        next = done.state;
-        events.push(...done.events);
-      }
+    if (!effectiveStance(next, c).tags.includes(GATHER_TAG)) continue;
+    // The stance acts for a waiting character too (waiting only stops them acting by hand).
+    next = {
+      ...next,
+      characters: next.characters.map((x) => (x.id === id ? { ...x, waiting: false } : x)),
+    };
+    for (;;) {
+      const done = act(next, id, { kind: 'gather' });
+      if (!done.ok) break;
+      next = done.state;
+      events.push(...done.events);
     }
   }
   return { state: next, events };
 };
 
 /**
- * What the riders helping aboard take off each strike on the creature: one point per
- * `stanceHelpActionsPerGuard` unspent actions (an engineer's go to the unlock first), together at
- * most `stanceHelpGuardMax`.
- */
-export const helpGuard = (state: GameStateView): number =>
-  Math.min(
-    state.config.stanceHelpGuardMax,
-    state.characters.reduce((sum, c) => {
-      if (c.status !== 'active' || c.at.kind !== 'creature') return sum;
-      if (!effectiveStance(state, c).tags.includes(AID_TAG)) return sum;
-      return sum + Math.floor(c.actionsLeft / state.config.stanceHelpActionsPerGuard);
-    }, 0),
-  );
-
-/**
  * Characters lying in wait strike first at threats that end their move on, or cross, their hex:
- * their strike power once, plus `stanceAmbushPerAction` for each unspent action. Returns the
+ * their strike power once, plus `stanceAmbushPerAction` for each unspent action after the first. Returns the
  * threats left (weakened ones keep going) and each striker's XP for it. `paths` are the hexes
  * each threat walked through this tick, by id.
  */
@@ -169,14 +95,17 @@ export const ambush = (
   const xp = new Map<string, number>();
   let left = threats.slice();
   for (const c of state.characters) {
-    if (c.status !== 'active' || c.at.kind !== 'hex') continue;
+    if (c.status !== 'active' || c.at.kind !== 'hex' || c.actionsLeft <= 0) continue;
     if (!effectiveStance(state, c).tags.includes(AMBUSH_TAG)) continue;
     const here = hexKey(c.at.hex);
     const power = roleHas(c, DEFEND_TAG)
       ? state.config.clearPowerGuardian
       : state.config.clearPowerOther;
     const bonuses = effectsOf(c, 'strike-bonus');
-    const extra = state.config.stanceAmbushPerAction * c.actionsLeft;
+    // The first action strikes as an active strike would; each further one adds at most as much as the
+    // weakest active strike (`stanceAmbushPerAction` is validated against it), so lying in wait never
+    // beats striking by hand.
+    const extra = state.config.stanceAmbushPerAction * (c.actionsLeft - 1);
     left = left.flatMap((t) => {
       const way = paths.get(t.id) ?? [];
       const crossed = (way.length > 0 ? way : [t.hex]).some((h) => hexKey(h) === here);

@@ -11,7 +11,7 @@
   },
   "offers": null,
   "game": {
-    "contentVersion": 15,
+    "contentVersion": 16,
     "artSeed": 4242,
     "day": 2,
     "config": {
@@ -59,6 +59,7 @@
       "threatStrengthDays": 14,
       "threatPathDistance": 5,
       "struckActions": 1,
+      "stanceAmbushPerAction": 1,
       "strikeCost": 1,
       "clearPowerGuardian": 2,
       "clearPowerOther": 1,
@@ -955,6 +956,8 @@
         "pack": {},
         "status": "active",
         "struckDay": null,
+        "stance": "rest",
+        "waiting": false,
         "skills": {
           "xp": 2,
           "taken": []
@@ -976,6 +979,8 @@
         "pack": {},
         "status": "active",
         "struckDay": null,
+        "stance": "rest",
+        "waiting": false,
         "skills": {
           "xp": 0,
           "taken": []
@@ -997,6 +1002,8 @@
         "pack": {},
         "status": "active",
         "struckDay": null,
+        "stance": "rest",
+        "waiting": false,
         "skills": {
           "xp": 1,
           "taken": []
@@ -1022,6 +1029,8 @@
         "pack": {},
         "status": "active",
         "struckDay": null,
+        "stance": "rest",
+        "waiting": false,
         "skills": {
           "xp": 0,
           "taken": []

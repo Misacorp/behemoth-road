@@ -186,17 +186,13 @@ export {
 } from './places.ts';
 export { nextDay, nextDayWithEvents } from './tick.ts';
 export {
-  AID_TAG,
   AMBUSH_TAG,
   effectiveStance,
-  EXPLORE_TAG,
   GATHER_TAG,
-  helpGuard,
   isStance,
   REST_TAG,
   stanceFits,
   stanceType,
-  watchTargets,
 } from './stances.ts';
 export { DEFAULT_STANCE, STANCES, type Stance, type StanceNeeds } from './content/index.ts';
 export {

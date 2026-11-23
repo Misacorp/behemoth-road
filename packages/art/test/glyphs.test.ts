@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { drawCharacterMarks } from '../src/escort.ts';
+import { GENTLE_AMBLER } from '../src/creature.ts';
+import { isometric } from '../src/projection.ts';
+import { renderScene } from '../src/scene.ts';
 import { drawGlyph, GLYPH_NAMES, glyphNodes, isGlyph } from '../src/glyphs.ts';
 import { paletteColours, SPRING } from '../src/palette.ts';
 import { el, toSvgString, walk, type SvgNode } from '../src/svg.ts';
@@ -42,7 +45,7 @@ describe('stance glyphs', () => {
 
   it('puts a stance mark and a waiting mark on a figure only when asked', () => {
     const on = drawCharacterMarks(SPRING, { x: 0, y: 0 }, 64, 0.8, 1.4, {
-      stance: 'eye',
+      stance: 'grass',
       waiting: true,
     });
     const g = el('g', {}, on.nodes);
@@ -51,5 +54,25 @@ describe('stance glyphs', () => {
     expect(marks(g, 'waiting')).toBe(1);
     const none = drawCharacterMarks(SPRING, { x: 0, y: 0 }, 64, 0.8, 1.4, { stance: 'nap' });
     expect(none.nodes).toHaveLength(0);
+  });
+
+  it('shows in a scene on a walker and on a rider, with no other mark', () => {
+    const cells = [-1, 0, 1].flatMap((q) =>
+      [-1, 0, 1].map((r) => ({ q, r, terrain: 'plains', props: [] })),
+    );
+    const scene = renderScene({
+      cells,
+      creature: { q: 0, r: 0, heading: { q: 0, r: -1 }, look: GENTLE_AMBLER },
+      characters: [
+        { id: 'rider', q: 0, r: 0, accent: 'slate', marks: { waiting: true } },
+        { id: 'walker', q: 1, r: 0, accent: 'rose', marks: { stance: 'grass' } },
+      ],
+      projection: isometric(),
+      palette: SPRING,
+      seed: 'stances',
+    });
+    expect(marks(scene, 'stance')).toBe(1);
+    expect(marks(scene, 'waiting')).toBe(1);
+    expect(marks(scene, 'struck')).toBe(0);
   });
 });

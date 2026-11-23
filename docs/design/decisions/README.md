@@ -121,6 +121,10 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-23 A passive option never beats an active one \[Misa\]
+- 2026-11-23 Wait ends the character's day but still resolves at the tick; it counts as spent for fast rounds
+- 2026-11-23 Stances: rest is the default and shakes off a strike; unfit stances fall back to rest
+- 2026-11-23 Idle stances are a player doing nothing, with good reasons \[Misa\]
 - 2026-11-22 The ending and the peril gauge show where peril came from \[Misa\]
 - 2026-11-22 The catch-up is 1 XP every 10 steps \[Misa\]
 - 2026-11-22 Skill XP comes from any contribution, one pool per character \[Misa\]

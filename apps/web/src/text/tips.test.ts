@@ -10,6 +10,7 @@ import {
   TERRAIN_TYPES,
   QUIRKS,
   ROLES,
+  STANCES,
   THREAT_TYPES,
   TRAITS,
   UNLOCKS,
@@ -36,6 +37,8 @@ const ACTION_KINDS: Readonly<Record<Action['kind'], true>> = {
   offer: true,
   'ask-boon': true,
   'pick-skill': true,
+  'set-stance': true,
+  wait: true,
 };
 
 describe('tip texts', () => {
@@ -52,6 +55,7 @@ describe('tip texts', () => {
       ...PEOPLE_TYPES.map((x) => `people:${x.id}`),
       ...PEOPLE_TYPES.flatMap((x) => x.boons.map((b) => `boon:${b}`)),
       ...Object.keys(ACTION_KINDS).map((k) => `action:${k}`),
+      ...STANCES.map((x) => `stance:${x.id}`),
       ...['wary', 'friendly', 'angry'].map((a) => `settlement:${a}`),
     ].filter((id) => !has(id));
     expect(missing).toEqual([]);

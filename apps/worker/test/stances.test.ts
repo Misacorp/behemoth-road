@@ -30,9 +30,9 @@ describe('stances over the API', () => {
         { kind: 'set-stance', stance: 'nap' },
         { kind: 'set-stance', stance: 7 },
         { kind: 'set-stance', stance: 'x'.repeat(65) },
-        { kind: 'set-stance', stance: 'watch', extra: true },
+        { kind: 'set-stance', stance: 'rest', extra: true },
         { kind: 'wait', extra: true },
-        { kind: 'wait', stance: 'watch' },
+        { kind: 'wait', stance: 'rest' },
       ]) {
         const res = await ctx.call(token, 'POST', '/api/game/act', { version, action });
         expect(res, JSON.stringify(action)).toEqual({
@@ -49,15 +49,15 @@ describe('stances over the API', () => {
       const robin = await join(ctx, ROBIN, 'keeper');
       const res = await ctx.call(token, 'POST', '/api/game/act', {
         version: await versionOf(ctx, token),
-        action: { kind: 'set-stance', stance: 'help-aboard' },
+        action: { kind: 'set-stance', stance: 'lie-in-wait' },
       });
       expect(res.status).toBe(200);
       expect(asView(res.body).events).toMatchObject([
-        { kind: 'stance', characterId: ME, stance: 'help-aboard' },
+        { kind: 'stance', characterId: ME, stance: 'lie-in-wait' },
       ]);
       const seen = asView((await ctx.call(robin, 'GET', '/api/game')).body);
       const mine = seen.game.characters.find((c) => c.id === ME);
-      expect(mine).toMatchObject({ stance: 'help-aboard', waiting: false });
+      expect(mine).toMatchObject({ stance: 'lie-in-wait', waiting: false });
     });
   });
 

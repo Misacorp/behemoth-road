@@ -16,15 +16,7 @@ import {
   THREAT_TYPES,
   toPlayerView,
 } from '../src/index.ts';
-import {
-  fieldGame,
-  lingering,
-  placeCharacter,
-  QUIET,
-  withStance,
-  withTerrain,
-  withThreat,
-} from './helpers.ts';
+import { fieldGame, lingering, placeCharacter, QUIET, withTerrain, withThreat } from './helpers.ts';
 
 const type = (id: string) => THREAT_TYPES.find((t) => t.id === id)!;
 const kinds = (events: readonly GameEvent[]) => events.map((e) => e.kind);
@@ -118,8 +110,6 @@ describe('striking characters', () => {
   const near = (roles: string[], places: Record<string, ReturnType<typeof hex>>) => {
     let state = withThreat(lingering(fieldGame(roles)), 'ambush', AMBUSH, 3);
     for (const [id, h] of Object.entries(places)) state = placeCharacter(state, id, h);
-    // Resting shakes off a strike (stances.test.ts), so these stand watching.
-    for (const id of Object.keys(places)) state = withStance(state, id, 'watch');
     return nextDayWithEvents(state);
   };
 
@@ -421,7 +411,7 @@ describe('walking into a hazard', () => {
   const setup = (roles: string[]) => {
     let state = withThreat(lingering(fieldGame(roles)), 'rockslide', SLIDE, 3);
     state = placeCharacter(state, roles[0]!, hex(3, -2));
-    return withStance(state, roles[0]!, 'watch');
+    return state;
   };
 
   it('ends the day at once, then the tick strikes whoever stands there', () => {

@@ -18,6 +18,12 @@ import { PALETTE } from '../map/art.ts';
 import type { FocusTarget } from '../map/MapView.tsx';
 import { toPreact } from '../map/svgToPreact.ts';
 import { PartyIcon } from '../roster/marks.tsx';
+import {
+  StanceControl,
+  type StanceControlProps,
+  WaitButton,
+  type WaitButtonProps,
+} from './Stance.tsx';
 import { PerilGauge, type PerilProps, RouteStrip, type RouteProps } from './Season.tsx';
 import {
   CharacterFigure,
@@ -66,6 +72,9 @@ export interface HudProps {
     readonly ready: boolean;
     readonly onOpen: () => void;
   } | null;
+  /** Your stance (a control by your character button) and the wait button beside the action arrows. */
+  readonly stance?: StanceControlProps | null;
+  readonly wait?: WaitButtonProps | null;
   /** Opens or closes the player roster (the party button above the recentre buttons). */
   readonly onRoster?: () => void;
   /** A threat just struck the creature: the gauge jolts. */
@@ -155,20 +164,23 @@ export function Hud(props: HudProps): JSX.Element {
         </div>
         {props.route && <RouteStrip {...props.route} />}
       </div>
-      <div
-        class={`hud-actions${props.lost ? ' is-lost' : ''}${props.snapped ? ' is-snapped' : ''}${
-          props.warned ? ' is-warned' : ''
-        }`}
-        aria-label="Actions"
-        {...tipProps('hud:actions')}
-      >
-        <Pips
-          total={props.actionsPerDay}
-          left={props.lost ? 0 : props.actionsLeft}
-          planned={props.planned}
-          size={16}
-          {...(props.warned ? { tint: PALETTE.hint } : {})}
-        />
+      <div class="hud-turn">
+        <div
+          class={`hud-actions${props.lost ? ' is-lost' : ''}${props.snapped ? ' is-snapped' : ''}${
+            props.warned ? ' is-warned' : ''
+          }`}
+          aria-label="Actions"
+          {...tipProps('hud:actions')}
+        >
+          <Pips
+            total={props.actionsPerDay}
+            left={props.lost ? 0 : props.actionsLeft}
+            planned={props.planned}
+            size={16}
+            {...(props.warned ? { tint: PALETTE.hint } : {})}
+          />
+        </div>
+        {props.wait && <WaitButton {...props.wait} />}
       </div>
       <div class="hud-focus">
         {props.onRoster && (
@@ -183,6 +195,7 @@ export function Hud(props: HudProps): JSX.Element {
           </button>
         )}
         {props.skills && <SkillsButton skills={props.skills} />}
+        {props.stance && <StanceControl {...props.stance} />}
         <button
           type="button"
           class="round"

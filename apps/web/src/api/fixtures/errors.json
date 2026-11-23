@@ -52,6 +52,13 @@
     "route": "POST /api/game/act",
     "status": 409,
     "body": {
+      "error": "waiting"
+    }
+  },
+  {
+    "route": "POST /api/game/act",
+    "status": 409,
+    "body": {
       "error": "needs-keeper"
     }
   },

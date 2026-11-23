@@ -79,14 +79,12 @@ export interface TuningConfig {
   readonly threatPathDistance: number;
   /** Actions a character struck by a threat starts the next day with. */
   readonly struckActions: number;
-  /** Stances (docs/design/stances.md): actions one hex explored by a watcher costs. */
-  readonly stanceWatchCost: number;
-  /** Extra strike power a character lying in wait adds per unspent action (on top of the base power). */
+  /** Stances (docs/design/stances.md): see `stanceAmbushPerAction`. */
+  /**
+   * Extra strike power a character lying in wait adds for each unspent action after the first (on top of
+   * the base power). At most `clearPowerOther`: a stance never beats an active strike per action.
+   */
   readonly stanceAmbushPerAction: number;
-  /** Unspent actions that make one point of defence for a rider helping aboard. */
-  readonly stanceHelpActionsPerGuard: number;
-  /** The most defence all riders helping aboard add together (it is a help, not a wall). */
-  readonly stanceHelpGuardMax: number;
 
   // Guardian.
   readonly strikeCost: number;
@@ -173,10 +171,7 @@ export const DEFAULT_CONFIG: TuningConfig = {
   threatStrengthDays: 14,
   threatPathDistance: 5,
   struckActions: 1,
-  stanceWatchCost: 1,
   stanceAmbushPerAction: 1,
-  stanceHelpActionsPerGuard: 3,
-  stanceHelpGuardMax: 2,
   strikeCost: 1,
   clearPowerGuardian: 2,
   clearPowerOther: 1,
@@ -265,8 +260,6 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     'lingerCost',
     'strikeCost',
     'defendCost',
-    'stanceWatchCost',
-    'stanceHelpActionsPerGuard',
     'parleyCost',
     'offerCost',
     'askBoonCost',
@@ -283,7 +276,6 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     'threatsMax',
     'struckActions',
     'stanceAmbushPerAction',
-    'stanceHelpGuardMax',
     'clearPowerGuardian',
     'clearPowerOther',
     'defendReduction',
@@ -307,6 +299,8 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
   if (!(isCount(config.perilHungryLevel, 1) && config.perilHungryLevel <= 3)) {
     problems.push('perilHungryLevel');
   }
+  // Lying in wait never beats an active strike: each extra action adds no more than the weakest strike.
+  if (config.stanceAmbushPerAction > config.clearPowerOther) problems.push('stanceAmbushPerAction');
   if (!validWeights(config.veerWeights)) problems.push('veerWeights');
   if (!validWeights(config.hungryVeerWeights)) problems.push('hungryVeerWeights');
   if (!isCount(config.stimulusRange, 0)) problems.push('stimulusRange');
