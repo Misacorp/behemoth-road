@@ -1,8 +1,7 @@
 /**
  * The wiki: every role's skill tree, drawn with the art kit from the core's content, a build planner, and an
  * icon glossary (`#glossary`). Tap nodes to plan; the cost (picks, XP, days of play) follows and the plan
- * lives in the URL hash. Public and out of game: it shows the planned tiers too and nothing of any game in
- * progress. Text is rendered as text through Preact, the drawings through the allowlisted SvgNode mapper.
+ * lives in the URL hash. Public and out of game: it shows nothing of any game in progress. Text is rendered as text through Preact, the drawings through the allowlisted SvgNode mapper.
  */
 import { drawBranchPath, drawSkillNode, type SkillState } from '@behemoth-road/art';
 import type { JSX } from 'preact';
@@ -31,7 +30,7 @@ import { effectLine, roleLine, roleName } from './text.ts';
 const NODE_SIZE = 56;
 const PATH_SIZE = 32;
 
-/** A planned node that is picked is not taken (it is not in the game): it keeps the glow, and the page ringed it. */
+/** A node that is not in the game (inactive) and is picked is not taken: it keeps the glow, and the page ringed it. */
 const drawnState = (n: WikiNode): SkillState =>
   !n.node.active && n.state === 'taken' ? 'available' : n.state;
 
@@ -153,8 +152,7 @@ function Planner({ plan, setPlan }: { plan: Plan; setPlan: (plan: Plan) => void 
       </div>
       <p class="wiki-note">
         One pick per {XP_PER_PICK} XP, at about {WIKI_XP_PER_DAY} XP a day for an active player.
-        Your first pick in a tree closes its other branch; other roles open at tier 1 only. Tiers
-        marked planned are not in the game yet.
+        Your first pick in a tree closes its other branch; other roles open at tier 1 only.
       </p>
     </>
   );

@@ -9,8 +9,8 @@
  *   boon (shelter when peril is 3 or more, mislead when pursuers are out, else the
  *   gift); anyone else strikes a threat arriving tomorrow when in reach; whoever rides feeds the creature when it is underfed; everyone else
  *   gathers forage within reach and brings it back.
- *   A careful player also spends every pick it earns, at once, on the first node it can take from
- *   its role's list in `SKILL_PREFERENCE` (the warden prefers bulwark; the rest their A1).
+ *   A careful player also spends every pick it earns, at once, on the next node it can take from
+ *   its list in `SKILL_PREFERENCE` (its own branch of three tiers, then other roles' tier 1).
  * - `careless`: everyone rides; every third day one of them gathers forage within
  *   reach, and the creature is fed only when it is underfed at level 2 or more.
  *
@@ -229,16 +229,31 @@ const parleyDay = (state: GameState, id: string): GameState => {
   return state;
 };
 
-/** The nodes a careful player of each role takes first. */
-const SKILL_PREFERENCE: Readonly<Record<string, readonly string[]>> = {
-  warden: ['warden-a1'],
-  keeper: ['keeper-a1'],
-  scout: ['scout-a1'],
-  engineer: ['engineer-a1'],
-  scholar: ['scholar-a1'],
+/**
+ * The nodes a careful player of each role takes, in order: down one branch of its own tree, then the
+ * tier 1 of other roles. With `BALANCE_SKILLS=tier1` the party takes only its own tier 1 (how the
+ * sim ran before tiers 2 and 3 were active), for before and after runs.
+ */
+const OWN_TREE: Readonly<Record<string, readonly string[]>> = {
+  warden: ['warden-a1', 'warden-a2', 'warden-a3'],
+  keeper: ['keeper-a1', 'keeper-a2', 'keeper-a3'],
+  scout: ['scout-a1', 'scout-a2', 'scout-a3'],
+  engineer: ['engineer-a1', 'engineer-a2', 'engineer-a3'],
+  scholar: ['scholar-a1', 'scholar-a2', 'scholar-a3'],
 };
+const OTHERS = ['warden-a1', 'keeper-a1', 'engineer-a1', 'scholar-a1', 'scout-a1'];
+const TIER1_ONLY =
+  (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env[
+    'BALANCE_SKILLS'
+  ] === 'tier1';
+const SKILL_PREFERENCE: Readonly<Record<string, readonly string[]>> = Object.fromEntries(
+  Object.entries(OWN_TREE).map(([role, own]) => [
+    role,
+    TIER1_ONLY ? own.slice(0, 1) : [...own, ...OTHERS],
+  ]),
+);
 
-/** Spends every pick the character has earned in its own role. */
+/** Spends every pick the character has earned, in the order above. */
 const pickSkills = (state: GameState, id: string): GameState => {
   let s = state;
   for (const node of SKILL_PREFERENCE[character(s, id)?.role ?? ''] ?? []) {

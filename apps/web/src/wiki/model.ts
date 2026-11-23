@@ -1,6 +1,6 @@
 /**
  * The wiki's build planner, as pure functions. Every rule comes from the core's own `pickRefusal` run on a
- * mock character (in planning mode, which also lets the planned tiers 2 and 3 be picked); there is no second
+ * mock character (in planning mode, which also lets a node that is not active be picked); there is no second
  * copy of the rules. The plan is a list of picks in order, your own role, and a URL hash that carries both.
  */
 import type { BranchPathState, SkillState } from '@behemoth-road/art';

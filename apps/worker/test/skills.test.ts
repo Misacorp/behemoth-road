@@ -47,12 +47,12 @@ describe('skills over the API', () => {
     });
   });
 
-  it("answers the core's refusals by name: veiled, no pick yet", async () => {
+  it("answers the core's refusals by name: tier order, no pick yet", async () => {
     await runGame(async (ctx) => {
       const { token, version } = await joined(ctx);
       const refused = async (node: string) =>
         (await ctx.call(token, 'POST', '/api/game/act', { version, action: pick(node) })).body;
-      expect(await refused('engineer-a2')).toEqual({ error: 'skill-veiled' });
+      expect(await refused('engineer-a2')).toEqual({ error: 'skill-tier-order' });
       expect(await refused('engineer-a1')).toEqual({ error: 'no-pick' });
     });
   });

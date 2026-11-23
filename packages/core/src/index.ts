@@ -103,6 +103,7 @@ export {
   ESCORT_TAG,
   GROUND_TAG,
   isEscorted,
+  escortReach,
   leadingEdge,
   PURSUER_TAG,
   stepToward,

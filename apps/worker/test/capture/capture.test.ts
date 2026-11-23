@@ -340,7 +340,7 @@ describe('capture', () => {
       { everyoneIsAdmin: true },
     );
     // Skills: a scout with notches picks glints (the view then carries a glint and the taken node), and is
-    // refused a veiled node and the closed branch.
+    // refused a tier 2 node (tier order) and the closed branch.
     await runGame(
       async (ctx) => {
         const misa = await ctx.signIn(MISA);

@@ -13,6 +13,7 @@ import {
   type GameStateView,
   type Hex,
   hexEquals,
+  escortReach,
   isEscorted,
   MATERIALS,
   PEOPLE_TYPES,
@@ -246,9 +247,14 @@ export function escortedIds(game: GameStateView): Set<string> {
 }
 
 /** Wardens standing on a hex: each shows the soft ring of its escort. */
-export const escortCentres = (game: GameStateView): Hex[] =>
+export const escortCentres = (game: GameStateView): Hex[] => escorts(game).map((e) => e.hex);
+
+/** The same wardens with how far each one's escort reaches (more with a wide-guard skill). */
+export const escorts = (game: GameStateView): { hex: Hex; reach: number }[] =>
   game.characters.flatMap((g) =>
-    g.status === 'active' && g.at.kind === 'hex' && roleHas(g, ESCORT_TAG) ? [g.at.hex] : [],
+    g.status === 'active' && g.at.kind === 'hex' && roleHas(g, ESCORT_TAG)
+      ? [{ hex: g.at.hex, reach: escortReach(g) }]
+      : [],
   );
 
 /** Whether a threat struck this character today (it shows a bandage for the day). */

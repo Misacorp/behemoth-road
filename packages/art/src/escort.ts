@@ -37,16 +37,17 @@ const HEIGHT_UNITS = 50;
  * and a dashed line through their centres, on the ground plane. Drawing coordinates, like `drawVeilLift`;
  * the part carries `data-escort="q,r"`.
  */
-export function drawEscortRing(p: Projection, hex: Hex, palette: Palette): SvgNode {
+export function drawEscortRing(p: Projection, hex: Hex, palette: Palette, reach = 1): SvgNode {
   const c = hexCenter(p, hex.q, hex.r);
-  const r = Math.sqrt(3) * p.size;
+  // One ring over the neighbours; a wider guard (reach 2 or more) widens the band over the hexes beyond.
+  const r = Math.sqrt(3) * p.size * ((reach + 1) / 2);
   const ring = ellipsePath(c.x, c.y, r, r * p.squash);
   return el('g', { 'data-escort': `${hex.q},${hex.r}` }, [
     el('path', {
       d: ring,
       fill: 'none',
       stroke: palette.accents.slate.light,
-      'stroke-width': p.size * 1.15,
+      'stroke-width': p.size * 1.15 + (reach - 1) * Math.sqrt(3) * p.size,
       opacity: 0.35,
     }),
     el('path', {

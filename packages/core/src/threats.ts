@@ -152,7 +152,7 @@ export const canAppearOn = (state: GameStateView, h: Hex, type?: ThreatType): bo
 };
 
 /** How far a warden's escort reaches: 1, or more with a skill (wide guard). */
-const escortReach = (g: Character): number =>
+export const escortReach = (g: Character): number =>
   Math.max(1, bestOf(g, 'escort-range', (e) => e.range) ?? 0);
 
 /** An active warden standing on a hex escorts everyone within 1 of it. */

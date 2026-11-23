@@ -20,6 +20,7 @@ import {
   type Hex,
   terrainOf,
   predictCreature,
+  forecastDays,
   hexEquals,
   hexesInRange,
   hexKey,
@@ -330,7 +331,11 @@ function popoverAnchor(
       ...clearOf(thing.hex),
       // A threat's card stays off its trail: its hex first, then the hexes it crosses at the next tick.
       ...(flow.kind === 'threat'
-        ? trailClear(thing.hex, threatNextPath(state, flow.id), clearOf(thing.hex).clear)
+        ? trailClear(
+            thing.hex,
+            threatNextPath(state, flow.id, forecastDays(state)),
+            clearOf(thing.hex).clear,
+          )
         : {}),
     };
   }

@@ -1905,6 +1905,8 @@ async function run() {
           problems.push(`${vp.name}: the tree does not offer both first nodes`);
         if ((await page.locator('[data-tab]').count()) !== 5)
           problems.push(`${vp.name}: the tree does not have five role tabs`);
+        if (await page.locator('[data-skill][data-state=veiled]').count())
+          problems.push(`${vp.name}: tiers 2 and 3 are still veiled`);
         await shotS('2-tree-ready');
         await holdAll('skills', 'skills drawer', '.drawer');
 
@@ -1940,7 +1942,7 @@ async function run() {
           problems.push(`${vp.name}: the node is not drawn taken`);
         await shotS('5-closed-branch');
 
-        // A tap on a closed, a veiled or a taken node shows a tip and never acts.
+        // A tap on a closed, a locked (tier order) or a taken node shows a tip and never acts.
         for (const id of ['scout-a1', 'scout-a2', 'scout-b1']) {
           await press(`[data-skill=${id}]`);
           if (!(await page.locator('.tip').count()))

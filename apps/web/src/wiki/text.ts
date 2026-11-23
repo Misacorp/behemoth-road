@@ -1,6 +1,6 @@
 /**
  * The wiki's text, from the game's own: a role's line and a node's effect line are the tips' strings with the
- * numbers filled from the default tuning. Nodes with no tip yet (the planned tiers) have no effect line.
+ * numbers filled from the default tuning. A node with no tip has no effect line.
  */
 import { DEFAULT_CONFIG, ROLES, type SkillNode } from '@behemoth-road/core';
 import { fillTip, tipValues } from '../text/tipValues.ts';

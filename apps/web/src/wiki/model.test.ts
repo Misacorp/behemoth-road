@@ -20,7 +20,7 @@ const [first = '', second = ''] = roleIds();
 const pick = (plan: Plan, ...ids: string[]): Plan => ids.reduce(togglePick, plan);
 
 describe('the build planner (rules come from the core)', () => {
-  it('lets the planned tiers 2 and 3 be planned, in tier order', () => {
+  it('lets tiers 2 and 3 be planned, in tier order', () => {
     const plan = emptyPlan(first);
     expect(refusalOf(first, [], `${first}-a2`)).toBe('skill-tier-order');
     expect(pick(plan, `${first}-a2`).picks).toEqual([]);

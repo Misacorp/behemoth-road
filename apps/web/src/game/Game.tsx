@@ -4,7 +4,14 @@
  * applies each move. The view is refreshed after your own actions, when the page becomes visible and every
  * 10 seconds while it is visible.
  */
-import { findCharacter, type Hex, hexKey, type SkillNode, terrainOf } from '@behemoth-road/core';
+import {
+  findCharacter,
+  type Hex,
+  hexKey,
+  packCapacityOf,
+  type SkillNode,
+  terrainOf,
+} from '@behemoth-road/core';
 import type { HereAction } from '../map/Popover.tsx';
 import type { JSX } from 'preact';
 import { useEffect, useMemo, useRef, useState } from 'preact/hooks';
@@ -428,7 +435,7 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
   };
   const pack =
     me?.status === 'active'
-      ? { stock: stockOf(me.pack), units: packUnits(me.pack), capacity: state.config.packCapacity }
+      ? { stock: stockOf(me.pack), units: packUnits(me.pack), capacity: packCapacityOf(state, me) }
       : null;
   // The skill tree: only for an active character, and never over the join drawer or the hub.
   const skillsShown = skillsOpen && me?.status === 'active' && !drawerOpen && !hubOpen;

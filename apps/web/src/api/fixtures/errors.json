@@ -80,7 +80,7 @@
     "route": "POST /api/game/act",
     "status": 409,
     "body": {
-      "error": "skill-veiled"
+      "error": "skill-tier-order"
     }
   },
   {

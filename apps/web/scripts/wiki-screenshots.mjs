@@ -97,12 +97,12 @@ for (const vp of [
   );
   const bad = await page.evaluate(() => document.querySelectorAll('[style]').length);
   check(bad === 0, `${vp.name}: no style attributes`);
-  // A planned node picked in the planner is ringed as planned, not drawn as taken.
+  // Every tier is in the game: none is marked planned, and a tier 3 pick plans like any other.
+  const planned = await page.locator('[data-planned]').count();
+  check(planned === 0, `${vp.name}: no node is marked planned (${planned})`);
   await page.click(`[data-skill="${first}-a3"]`);
-  const planned = await page.locator(`[data-skill="${first}-a3"]`).getAttribute('data-planned');
-  check(planned !== null, `${vp.name}: tier 3 is marked planned`);
   const art = await page.locator(`[data-skill="${first}-a3"] svg`).getAttribute('data-skill-state');
-  check(art === 'available', `${vp.name}: a planned pick is not drawn as taken (${art})`);
+  check(art === 'taken', `${vp.name}: a tier 3 pick is drawn as taken (${art})`);
   await page.click(`[data-skill="${first}-a3"]`);
   await page.screenshot({ path: join(out, `wiki-${vp.name}.png`), fullPage: vp.name === 'phone' });
 

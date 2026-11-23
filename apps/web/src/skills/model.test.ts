@@ -21,7 +21,7 @@ const nodeOf = (tree: ReturnType<typeof treeOf>, id: string) =>
   tree.flatMap((b) => b.nodes).find((n) => n.node.id === id)!;
 
 describe('the tree model', () => {
-  it('has two branches of three nodes, tiers 2 and 3 veiled', () => {
+  it('has two branches of three nodes; tiers 2 and 3 wait for the tier below', () => {
     const { view, me } = staged({ role: 'scout', xp: PER });
     const tree = treeOf(view, me, 'scout');
     expect(tree.map((b) => b.nodes.map((n) => n.node.id))).toEqual([
@@ -29,7 +29,8 @@ describe('the tree model', () => {
       ['scout-b1', 'scout-b2', 'scout-b3'],
     ]);
     for (const b of tree) {
-      expect(b.nodes.map((n) => n.state)).toEqual(['available', 'veiled', 'veiled']);
+      expect(b.nodes.map((n) => n.state)).toEqual(['available', 'plain', 'plain']);
+      expect(b.nodes.map((n) => n.refusal)).toEqual([null, 'skill-tier-order', 'skill-tier-order']);
       expect(b.closed).toBe(false);
       expect(b.paths).toEqual(['open', 'open', 'open']);
     }
@@ -69,7 +70,9 @@ describe('the tree model', () => {
     for (const r of ['no-pick', 'skill-tier-order', 'skill-tier-limit', 'unknown-skill'] as const)
       expect(nodeState(r)).toBe('plain');
     const { view, me } = staged({ role: 'scout', xp: PER });
-    expect(nodeTip(nodeOf(treeOf(view, me, 'scout'), 'scout-a2'))).toBe('why:veiled');
+    expect(nodeTip(nodeOf(treeOf(view, me, 'scout'), 'scout-a2'))).toBe(
+      whyOfPick('skill-tier-order'),
+    );
   });
 
   it('shows another role as tier 1 only, open to any pick (XP is one pool)', () => {
@@ -104,8 +107,16 @@ describe('the tree model', () => {
     const after = staged({ role: 'scout', xp: per + 1, taken: ['scout-a1'] });
     expect(ringOf(after.view, after.me).notches).toBe(1);
     // A pick earned with nothing open to spend it on leaves the ring one short (no false glow).
-    const all = ['scout-a1', 'scholar-a1', 'keeper-a1', 'warden-a1', 'engineer-a1'];
-    const stuck = staged({ role: 'scout', xp: per * 7, taken: all });
+    const all = [
+      'scout-a1',
+      'scout-a2',
+      'scout-a3',
+      'scholar-a1',
+      'keeper-a1',
+      'warden-a1',
+      'engineer-a1',
+    ];
+    const stuck = staged({ role: 'scout', xp: per * 8, taken: all });
     expect(ringOf(stuck.view, stuck.me).notches).toBe(per - 1);
     expect(pickReady(stuck.view, stuck.me)).toBe(false);
   });
@@ -153,23 +164,24 @@ describe('skill tips', () => {
     }
   });
 
-  it('has a one-line tip for every Warden node, tiers 2 and 3 included (the skills wiki lists them)', () => {
-    for (const n of SKILL_NODES.filter((x) => x.role === 'warden')) {
+  it('has a one-line tip for every node, tiers 2 and 3 included (the skills wiki lists them)', () => {
+    for (const n of SKILL_NODES) {
       const tip = TIP_TABLE[`skill:${n.id}` as TipId];
       expect(tip, n.id).toBeDefined();
       expect(tip.title).toBe(n.name);
     }
   });
 
-  it('never shows a veiled node its own tip in the drawer', () => {
-    const { view, me } = staged({ role: 'warden', xp: PER });
-    const tree = treeOf(view, me, 'warden');
-    const veiled = SKILL_NODES.filter((x) => !x.active && x.role === 'warden');
-    expect(veiled).toHaveLength(4);
-    for (const n of veiled) {
-      const shown = nodeOf(tree, n.id);
-      expect(shown.state, n.id).toBe('veiled');
-      expect(nodeTip(shown), n.id).not.toBe(`skill:${n.id}`);
+  it('never shows a veiled node its own tip in the drawer (a node that is not active)', () => {
+    const node = SKILL_NODES.find((x) => x.id === 'warden-a2') as { active: boolean };
+    node.active = false;
+    try {
+      const { view, me } = staged({ role: 'warden', xp: PER * 2, taken: ['warden-a1'] });
+      const shown = nodeOf(treeOf(view, me, 'warden'), 'warden-a2');
+      expect(shown.state).toBe('veiled');
+      expect(nodeTip(shown)).not.toBe('skill:warden-a2');
+    } finally {
+      node.active = true;
     }
   });
 

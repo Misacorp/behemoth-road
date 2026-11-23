@@ -157,7 +157,7 @@ export const tips = {
     text: 'End your day here. What is left goes to your stance.',
   },
 
-  // Skills: the first node of each branch (later tiers stay veiled). Names and one line, never numbers.
+  // Skills: every node of the five trees. Names and one line, never numbers.
   'skill:scout-a1': {
     title: 'Trap sense',
     text: 'Hidden traps show themselves, and never spring on you.',
@@ -168,17 +168,13 @@ export const tips = {
   'skill:keeper-a1': { title: 'Good forage', text: 'Gathering food gives more.' },
   'skill:keeper-b1': { title: 'Quiet linger', text: 'Asking the creature to stay costs less.' },
   'skill:warden-a1': { title: 'Bulwark', text: 'Standing guard turns more of each blow.' },
-  'skill:warden-a2': {
-    title: 'Silver tongue',
-    text: 'Words carry further with those who stand beside you.',
-  },
+  'skill:warden-a2': { title: 'Silver tongue', text: 'Your parleys win more favour.' },
   'skill:warden-a3': { title: 'Standing guard', text: 'A guard who never rests.' },
   'skill:warden-b1': { title: 'Ravens', text: 'A parley reaches a settlement further away.' },
-  'skill:warden-b2': { title: 'Long reach', text: 'Blows and care travel further from your hand.' },
+  'skill:warden-b2': { title: 'Long reach', text: 'Your blows reach threats a hex further off.' },
   'skill:warden-b3': { title: 'Wide guard', text: 'Your shelter spreads wider.' },
   'skill:engineer-a1': { title: 'Double yield', text: 'Each gather brings more home.' },
   'skill:engineer-b1': { title: 'Quick hands', text: 'Each build action does more work.' },
-  // Planned skills (tiers two and three): hints only, shown in the public wiki; the game keeps them veiled.
   'skill:scout-a2': { title: 'Long survey', text: 'A survey reaches hexes further out.' },
   'skill:scout-a3': {
     title: 'Sweep',
@@ -186,7 +182,7 @@ export const tips = {
   },
   'skill:scout-b2': {
     title: 'Far sight',
-    text: 'Threats show a day before they enter the window.',
+    text: 'Things worth finding catch your eye from much further off.',
   },
   'skill:scout-b3': { title: 'Forecast', text: 'Threat paths show further ahead, for everyone.' },
   'skill:scholar-a2': { title: 'Steady hands', text: 'Every tomb gives better odds.' },
@@ -201,7 +197,7 @@ export const tips = {
     text: 'Feeding also eases the danger, once a day.',
   },
   'skill:keeper-a3': { title: 'Contented', text: 'The creature goes hungry more slowly.' },
-  'skill:keeper-b2': { title: 'Hurry', text: 'The creature walks faster when you ask.' },
+  'skill:keeper-b2': { title: 'Long rest', text: 'The creature will stay for you, day after day.' },
   'skill:keeper-b3': {
     title: 'Beacon',
     text: 'Your fires reach further and sway the creature harder.',

@@ -122,6 +122,7 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-23 Skill tiers 2 and 3 are active, with adjusted effects
 - 2026-11-23 Reference: day readout hold menu and wiki link \[Misa\]
 - 2026-11-23 Returning recap after a day change \[Misa\]
 - 2026-11-23 First-encounter hints once per user \[Misa\]
@@ -140,7 +141,7 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-22 Skill XP comes from any contribution, one pool per character \[Misa\]
 - 2026-11-22 One tap on a skill node shows its tip and arms it; the glint is bigger \[Misa\]
 - 2026-11-22 Skill tree UI: emblem ring on the HUD, arm then take, tips for reasons (amended)
-- 2026-11-22 Skill slice: notch per action performed, tier 1 live, effects as data hooks
+- 2026-11-22 Skill slice: notch per action performed, tier 1 live, effects as data hooks (amended)
 - 2026-11-22 Nothing carries over between seasons \[Misa\]
 - 2026-11-22 Everyone earns a catch-up notch every 10 steps \[Misa\] (amended)
 - 2026-11-22 Another role's skill tree is open to tier 1 only \[Misa\]

@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-23: Skill tiers 2 and 3 are active, with adjusted effects
+
+ID: `2026-11-23-skill-tiers-2-and-3-are` · Status: current · Amends: `2026-11-22-skill-slice-notch-per-action-performed`
+
+**Decision.** Misa approved building tiers 2 and 3: all 30 skill nodes are active (content version 19) and each wires an effect through a data hook (new kinds: `survey-range`, `sweep`, `site-finds`, `find-bonus`, `reveal-site`, `feed-calm`, `hunger-slow`, `linger-chain`, `fire-boost`, `forecast`, `pack-size`, `drone`, `build-discount`, `build-tick`, `defend-tick`, `strike-range`, `escort-range`; `site-chance` no longer needs a tag). Tier order, the closed branch and the tier-1 limit for other roles are unchanged. Changes from the plan: Sweep explores 2 hexes a tick (not all six) and earns no XP; Far sight widens glints to 4 hexes (it does not show threats before the window); Old maps reveals only the nearest unrevealed site within 4; Hurry became Long rest (no linger cooldown), because a second creature step is out of scope. Skills that act at the tick (sweep, drone, self-winding, standing guard) run before the creature steps (`skilltick.ts`). Fires may carry a `range` and `push` (beacon) and care a `soothedDay` (once-a-day herbs), both optional fields. The balance sim's careful party now takes its own branch of three tiers, then other roles' tier 1. Fixtures recaptured; the wiki shows no node as planned.
+
+**Reasoning.** The first slice let players feel the fork; tiers 2 and 3 give it somewhere to go. Each passive effect is held at or below what the same character could do by hand with an action (the stance principle), and the strength table in `docs/design/skill-trees.md` gives the reason per node. Effects that needed a new hidden-state view or a different creature step were moved to the nearest in-scope effect rather than built half.
+
 ## 2026-11-23: Reference: day readout hold menu and wiki link **[Misa]**
 
 ID: `2026-11-23-reference-day-readout-hold-menu-and` · Status: current
@@ -150,7 +158,7 @@ ID: `2026-11-22-skill-tree-ui-emblem-ring-on` · Status: current, amended by `20
 
 ## 2026-11-22: Skill slice: notch per action performed, tier 1 live, effects as data hooks
 
-ID: `2026-11-22-skill-slice-notch-per-action-performed` · Status: current
+ID: `2026-11-22-skill-slice-notch-per-action-performed` · Status: current, amended by `2026-11-23-skill-tiers-2-and-3-are`
 
 **Decision.** First slice: a notch is earned per action performed, not per action point spent (a cheaper action must not earn less). Only tier 1 is active; tiers 2 and 3 are data with `active: false` and a `veiled` effect, refused as `skill-veiled`. A node's effect is a data hook (`action-cost`, `gather-yield`, `site-chance`, `strike-bonus`, `defend-reduction`, `build-work`, `parley-favour`, `parley-range`, `trap-sense`, `glints`) that rules read, never the node id. A pick costs no actions. Glints are a per-viewer field of the player view (`glints`), never in the shared view. The scout's trap sense, glints and engineer's double yield perks left `roles.ts` for these nodes. Lamplight only adds chance for a character who could work the site at all (a non-scholar still cannot work a tier-2 site). A yield above the node's own is cut to the pack's room, and a gather that cannot hold even the node's own amount is still refused. A parley with ravens takes the nearest settlement within range; offers and boons still need your own hex. Content version 14.
 
