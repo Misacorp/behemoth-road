@@ -1,5 +1,5 @@
 {
-  "version": 33,
+  "version": 30,
   "day": 6,
   "pace": "daily",
   "fastTickAt": null,
@@ -11,7 +11,7 @@
   },
   "offers": null,
   "game": {
-    "contentVersion": 15,
+    "contentVersion": 16,
     "artSeed": 4242,
     "day": 6,
     "config": {
@@ -60,14 +60,14 @@
       "threatPathDistance": 5,
       "struckActions": 1,
       "strikeCost": 1,
-      "clearPowerGuardian": 2,
+      "clearPowerWarden": 2,
       "clearPowerOther": 1,
       "defendCost": 1,
       "defendReduction": 2,
       "parleyCost": 1,
       "offerCost": 1,
       "askBoonCost": 1,
-      "parleyFavourEnvoy": 2,
+      "parleyFavourWarden": 2,
       "parleyFavourOther": 1,
       "parleyAngerChanceOther": 0.25,
       "offerFavour": 2,
@@ -655,7 +655,7 @@
       "3,-3": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "3,-2": {
@@ -667,7 +667,7 @@
       "3,-1": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "3,0": {
@@ -706,7 +706,7 @@
       "4,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "4,-3": {
@@ -718,7 +718,7 @@
       "4,-2": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "4,-1": {
@@ -763,7 +763,7 @@
       "5,-3": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "5,-2": {
@@ -796,13 +796,13 @@
       "6,-5": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "6,-4": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "6,-3": {
@@ -1146,7 +1146,7 @@
         "trait": "night-sighted",
         "quirk": "hoarder",
         "lookSeed": 3009266036,
-        "role": "guardian",
+        "role": "warden",
         "joinedDay": 1,
         "at": {
           "kind": "creature"
@@ -1167,7 +1167,7 @@
         "trait": "sure-footed",
         "quirk": "night-owl",
         "lookSeed": 2653216526,
-        "role": "envoy",
+        "role": "warden",
         "joinedDay": 1,
         "at": {
           "kind": "hex",
@@ -1213,21 +1213,21 @@
         "trait": "deft-handed",
         "quirk": "curious",
         "lookSeed": 1113663473,
-        "role": "guardian",
+        "role": "scout",
         "joinedDay": 1,
         "at": {
           "kind": "hex",
           "hex": {
             "q": 3,
-            "r": -1
+            "r": -3
           }
         },
         "actionsLeft": 1,
         "pack": {},
         "status": "active",
-        "struckDay": null,
+        "struckDay": 5,
         "skills": {
-          "xp": 3,
+          "xp": 8,
           "taken": []
         }
       }
@@ -1253,7 +1253,7 @@
           "q": 4,
           "r": -3
         },
-        "strength": 1,
+        "strength": 2,
         "appearedDay": 3
       },
       {
@@ -1296,7 +1296,7 @@
     },
     "stats": {
       "shared": {
-        "threatsTurned": 1,
+        "threatsTurned": 0,
         "finds": 0,
         "unlocks": 0,
         "befriended": 1,
@@ -1305,7 +1305,7 @@
       "peril": {
         "added": {},
         "eased": {},
-        "held": 0
+        "held": 2
       },
       "byCharacter": {
         "555555555555555555.0": {
@@ -1315,8 +1315,8 @@
           "fed": 3
         },
         "666666666666666666.0": {
-          "explored": 9,
-          "strikes": 3,
+          "explored": 6,
+          "strikes": 2,
           "gathered": 0,
           "fed": 0
         },
@@ -1344,14 +1344,14 @@
       "userId": "111111111111111111",
       "name": "Misa",
       "characterId": "111111111111111111.0",
-      "role": "guardian",
+      "role": "warden",
       "joinedDay": 1
     },
     {
       "userId": "222222222222222222",
       "name": "Robin",
       "characterId": "222222222222222222.0",
-      "role": "envoy",
+      "role": "warden",
       "joinedDay": 1
     },
     {
@@ -1365,7 +1365,7 @@
       "userId": "666666666666666666",
       "name": "Ash",
       "characterId": "666666666666666666.0",
-      "role": "guardian",
+      "role": "scout",
       "joinedDay": 1
     }
   ],
@@ -1376,12 +1376,12 @@
       "id": "s4",
       "characterId": "222222222222222222.0",
       "favour": 4,
-      "version": 33
+      "version": 30
     },
     {
       "kind": "befriended",
       "id": "s4",
-      "version": 33
+      "version": 30
     }
   ],
   "stopped": null

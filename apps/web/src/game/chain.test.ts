@@ -29,7 +29,7 @@ describe('the chain as the client reads it', () => {
   it('offers a survey next to you at the scout price, faded when out of actions', () => {
     const scout = staged({ role: 'scout' });
     expect(surveyOf(scout.view, scout.me, scout.spot('iron'))).toEqual({ cost: 1, enabled: true });
-    const other = staged({ role: 'guardian' });
+    const other = staged({ role: 'warden' });
     expect(surveyOf(other.view, other.me, other.spot('iron'))).toEqual({ cost: 2, enabled: true });
     // Not next to you, or already explored: no survey.
     expect(surveyOf(scout.view, scout.me, scout.spot('cliff'))).toBeNull();

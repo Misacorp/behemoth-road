@@ -53,14 +53,11 @@ export const tips = {
   'role:keeper': {
     text: 'Reads the creature’s signs and tends it. Riding, can make it stay put for a day.',
   },
-  'role:guardian': {
-    text: 'Strikes threats harder ({strike.guardian} against {strike.other}) and is never struck. Standing on a hex, keeps those next to them safe.',
-  },
   'role:engineer': {
     text: 'Builds the team’s unlocks from the stores, while riding the creature.',
   },
-  'role:envoy': {
-    text: 'Speaks for the team. A parley wins {parleyFavour.envoy} favour (others {parleyFavour.other}), with no risk of anger.',
+  'role:warden': {
+    text: 'Guards and speaks for the team. Strikes harder, parleys without risk, is never struck, and keeps those beside them safe.',
   },
 
   // Traits: a character's knack. Not in play yet.
@@ -140,13 +137,13 @@ export const tips = {
     text: 'Keepers, riding: the creature stays put when the day turns. Not two days running.',
   },
   'action:strike': {
-    text: 'Weaken a threat next to you by {strike.other}, or by {strike.guardian} as a guardian. At 0 it is gone.',
+    text: 'Weaken a threat next to you by {strike.other}, or by {strike.warden} as a warden. At 0 it is gone.',
   },
   'action:defend': {
-    text: 'Guardians, riding: stand guard over the creature. Every strike on it today lands {defendReduction} weaker, for each guardian.',
+    text: 'Wardens, riding: stand guard over the creature. Every strike on it today lands {defendReduction} weaker, for each warden.',
   },
   'action:parley': {
-    text: 'Win a wary settlement’s favour. An envoy gains {parleyFavour.envoy}; others gain {parleyFavour.other} and may anger it.',
+    text: 'Win a wary settlement’s favour. A warden gains {parleyFavour.warden}; others gain {parleyFavour.other} and may anger it.',
   },
   'action:offer': {
     text: 'Give an old coin or a pearl to a wary settlement: {offerFavour} favour, no risk.',
@@ -165,12 +162,10 @@ export const tips = {
   'skill:scholar-b1': { title: 'Lamplight', text: 'Better odds in tombs that lie in the dark.' },
   'skill:keeper-a1': { title: 'Good forage', text: 'Gathering food gives more.' },
   'skill:keeper-b1': { title: 'Quiet linger', text: 'Asking the creature to stay costs less.' },
-  'skill:guardian-a1': { title: 'Skywatch', text: 'Strikes bite harder against flying threats.' },
-  'skill:guardian-b1': { title: 'Bulwark', text: 'Standing guard turns more of each blow.' },
+  'skill:warden-a1': { title: 'Bulwark', text: 'Standing guard turns more of each blow.' },
+  'skill:warden-b1': { title: 'Silver tongue', text: 'A parley wins more favour.' },
   'skill:engineer-a1': { title: 'Double yield', text: 'Each gather brings more home.' },
   'skill:engineer-b1': { title: 'Quick hands', text: 'Each build action does more work.' },
-  'skill:envoy-a1': { title: 'Silver tongue', text: 'A parley wins more favour.' },
-  'skill:envoy-b1': { title: 'Ravens', text: 'A parley reaches a settlement further away.' },
   'skill:veiled': { title: 'Veiled', text: 'Not yet known.' },
 
   // Boons a friendly settlement can grant (one each).
@@ -185,9 +180,8 @@ export const tips = {
   'why:role-scout': { title: 'Not your role', text: 'A scout can do this.' },
   'why:role-scholar': { title: 'Not your role', text: 'A scholar can do this.' },
   'why:role-keeper': { title: 'Not your role', text: 'A keeper can do this.' },
-  'why:role-guardian': { title: 'Not your role', text: 'A guardian can do this.' },
   'why:role-engineer': { title: 'Not your role', text: 'An engineer can do this.' },
-  'why:role-envoy': { title: 'Not your role', text: 'An envoy can do this.' },
+  'why:role-warden': { title: 'Not your role', text: 'A warden can do this.' },
   'why:not-enough-actions': {
     title: 'Not now',
     text: 'Not enough actions left today. They refill when the day turns.',
@@ -277,10 +271,10 @@ export const tips = {
     title: 'Fire',
     text: 'Burns until the day turns. The creature may take notice.',
   },
-  'map:escort': { title: 'Escorted', text: 'Next to a guardian: threats will not strike here.' },
+  'map:escort': { title: 'Escorted', text: 'Next to a warden: threats will not strike here.' },
   'map:defended': {
     title: 'Defended',
-    text: 'Each guardian on its back takes {defendReduction} off every strike today.',
+    text: 'Each warden on its back takes {defendReduction} off every strike today.',
   },
   'map:struck': { title: 'Struck', text: 'Hit by a threat: only {struckActions} action tomorrow.' },
 
@@ -324,7 +318,7 @@ export const tips = {
   'peril:hunger': { title: 'Hunger', text: 'A hungry creature is in danger. Feed it.' },
   'peril:calm': { title: 'Quiet', text: 'Quiet days ease the danger.' },
   'peril:shelter': { title: 'Shelter', text: 'A friendly settlement eased it.' },
-  'peril:held': { title: 'Held off', text: 'Guardians defending kept this off the creature.' },
+  'peril:held': { title: 'Held off', text: 'Wardens defending kept this off the creature.' },
   'peril:threat:captors': { text: 'They reached the creature. Strike them down, or defend.' },
   'peril:threat:swarm': { text: 'They reached the creature. Strike them down, or defend.' },
   'peril:threat:rockslide': { text: 'It fell on the creature. Clear it, or steer around.' },

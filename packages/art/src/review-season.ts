@@ -1,5 +1,5 @@
 /**
- * The Milestone 5 review sheets: threats, settlements, the escort and the guardian's marks, the season's
+ * The Milestone 5 review sheets: threats, settlements, the escort and the warden's marks, the season's
  * icons, HUD and moments, the three endings, and the map with all of it at phone and desktop scale.
  */
 import { assignLooks, type CharacterArt } from './character.ts';
@@ -99,16 +99,16 @@ function settlementsSheet(): string {
 
 const PARTY = assignLooks([1000, 8919, 16838, 24757, 32676, 40595]);
 
-/** A guardian's escort ring with an escorted and a struck character, and two guardians defending on the creature. */
+/** A warden's escort ring with an escorted and a struck character, and two wardens defending on the creature. */
 function escortSheet(): string {
   const cells: ArtCell[] = [];
   for (let q = -4; q <= 4; q += 1)
     for (let r = -4; r <= 4; r += 1)
       if (Math.abs(q) + Math.abs(r) + Math.abs(q + r) <= 6 && q + r >= -2 && q + r <= 3)
         cells.push({ q, r, terrain: (q + r) % 3 ? 'plains' : 'hills', props: [] });
-  const guardian: Hex = { q: 2, r: -1 };
+  const warden: Hex = { q: 2, r: -1 };
   const characters = [
-    { id: 'g', ...guardian, ...PARTY[0]!, marks: {} },
+    { id: 'g', ...warden, ...PARTY[0]!, marks: {} },
     { id: 'e', q: 2, r: 0, ...PARTY[1]!, marks: { escorted: true } },
     { id: 'f', q: 3, r: -2, ...PARTY[2]!, marks: { escorted: true, struck: true } },
     { id: 's', q: -3, r: 2, ...PARTY[3]!, marks: { struck: true } },
@@ -123,7 +123,7 @@ function escortSheet(): string {
     palette: PALETTE,
     seed: 'escort-sheet',
   });
-  return toSvgString(withUnder(scene.svg, [drawEscortRing(isometric(), guardian, PALETTE)]));
+  return toSvgString(withUnder(scene.svg, [drawEscortRing(isometric(), warden, PALETTE)]));
 }
 
 /** Inserts overlay nodes under a scene's objects layer (as the map's under-overlays sit). */
@@ -148,7 +148,7 @@ function iconsSheet(): string {
       }
     }),
   );
-  // Parley with the risk mark (a non-envoy), and the risk mark alone.
+  // Parley with the risk mark (a non-warden), and the risk mark alone.
   let x = 650;
   for (const size of [72, 48, 32]) {
     nodes.push(placed(drawIcon('parley', PALETTE, size, { risk: true }), x, 116 + (72 - size) / 2));
@@ -378,8 +378,7 @@ export function seasonReviewItems(): ReviewDraft[] {
     {
       id: 'season/escort',
       group,
-      title:
-        'A guardian’s escort ring, escorted and struck marks, guardians defending on the creature',
+      title: 'A warden’s escort ring, escorted and struck marks, wardens defending on the creature',
       file: 'season-escort.svg',
       ...glance,
       svg: escortSheet(),

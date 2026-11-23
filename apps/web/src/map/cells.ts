@@ -149,7 +149,7 @@ export function creatureArt(state: GameStateView, signs: CreatureSigns | null = 
     look: GENTLE_AMBLER,
     // The team stores, as crates on its back.
     stores: Object.values(state.stores).reduce((a, n) => a + n, 0),
-    // Guardians defending it: a ring and shields on the map, for every player.
+    // Wardens defending it: a ring and shields on the map, for every player.
     defenders: state.creature.defenders.length,
   };
 }
@@ -167,7 +167,7 @@ export function characterArts(
     .map((c) => {
       const at = placeHex(state, c.at);
       const look = lookOf(c.id);
-      // The day's signs: a shield beside a guardian, a bandage once struck, a shield raised in defence.
+      // The day's signs: a shield beside a warden, a bandage once struck, a shield raised in defence.
       const marks = {
         ...(escorted.has(c.id) ? { escorted: true } : {}),
         ...(struckToday(c, state.day) ? { struck: true } : {}),

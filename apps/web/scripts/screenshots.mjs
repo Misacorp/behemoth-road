@@ -886,7 +886,7 @@ async function run() {
         await settle();
 
         // Anyone entering a hidden trap springs it: the snap, and your pips go dark.
-        await stage({ role: 'guardian' });
+        await stage({ role: 'warden' });
         await walkTo('snare');
         await page.waitForTimeout(200);
         await expectMoment('trap');
@@ -935,11 +935,11 @@ async function run() {
         // A keeper riding: the hub offers feeding (the forage it takes) and lingering, each with pips.
         await stage({ role: 'keeper', at: 'creature', stores: { forage: 2, timber: 1 } });
         await openHub();
-        // (Defend shows too, greyed with the guardian's emblem.)
+        // (Defend shows too, greyed with the warden's emblem.)
         if (
           !(await page.locator('.drawer [data-care=feed]').count()) ||
           !(await page.locator('.drawer [data-care=linger]').count()) ||
-          !(await page.locator('.drawer [data-care=defend] [data-needs=guardian]').count())
+          !(await page.locator('.drawer [data-care=defend] [data-needs=warden]').count())
         )
           problems.push(`${vp.name}: the hub does not offer feed and linger to a keeper`);
         await shot4('06-hub-care');
@@ -1050,7 +1050,7 @@ async function run() {
 
         // A swarm next to you: its card shows its name and strength and the strike; striking it is a hit.
         await stage5({
-          role: 'guardian',
+          role: 'warden',
           threats: [{ type: 'swarm', at: { q: 1, r: 3 }, strength: 3 }],
         });
         await tap(...(await offset({ q: 1, r: 3 })));
@@ -1102,11 +1102,11 @@ async function run() {
         if (await count('.map-world [data-mark=threat-trail], .map-world [data-mark=threat-end]'))
           problems.push(`${vp.name}: the threat trail stays after its card closes`);
 
-        // The tile picker: you, Ola (a guardian) and a swarm on one tile. A tap shows one round bubble each,
+        // The tile picker: you, Ola (a warden) and a swarm on one tile. A tap shows one round bubble each,
         // above the tile; a bubble opens its card with a back to the picker.
         await stage5({
           role: 'scout',
-          guardianAt: { q: 1, r: 2 },
+          wardenAt: { q: 1, r: 2 },
           threats: [{ type: 'swarm', at: { q: 1, r: 2 }, strength: 3 }],
         });
         {
@@ -1138,7 +1138,7 @@ async function run() {
         // Near the top of the screen there is no room above: the bubbles open below the tile.
         await stage5({
           role: 'scout',
-          guardianAt: { q: 0, r: -5 },
+          wardenAt: { q: 0, r: -5 },
           threats: [{ type: 'swarm', at: { q: 0, r: -5 }, strength: 3 }],
         });
         {
@@ -1175,7 +1175,7 @@ async function run() {
         await settle();
         // Friendly: the three boons; shelter lowers peril.
         await stage5({
-          role: 'envoy',
+          role: 'warden',
           settlements: [{ at: { q: 1, r: 2 }, attitude: 'friendly', favour: 3 }],
           peril: 5,
         });
@@ -1210,7 +1210,7 @@ async function run() {
 
         // A mislead: the captors turn away with a moment, and the misled mark shows while it lasts.
         await stage5({
-          role: 'envoy',
+          role: 'warden',
           settlements: [{ at: { q: 1, r: 2 }, attitude: 'friendly', favour: 3 }],
           threats: [{ type: 'captors', at: { q: 0, r: 4 } }],
         });
@@ -1240,11 +1240,11 @@ async function run() {
         if (!(await count('.peril-edge'))) problems.push(`${vp.name}: no edge shade at peril 7`);
         await shot5('11-hud-peril-route');
 
-        // A guardian riding: the hub's defend card; defending raises its shield on the creature.
-        await stage5({ role: 'guardian', at: 'creature' });
+        // A warden riding: the hub's defend card; defending raises its shield on the creature.
+        await stage5({ role: 'warden', at: 'creature' });
         await openHub();
         if (!(await count('.drawer [data-care=defend]')))
-          problems.push(`${vp.name}: no defend card for a riding guardian`);
+          problems.push(`${vp.name}: no defend card for a riding warden`);
         await shot5('12-defend-card');
         await press('[data-care=defend] [aria-label=defend]');
         await page.waitForTimeout(450);
@@ -1254,12 +1254,12 @@ async function run() {
         await settle();
         await idle();
         if (!(await count('[data-mark=defending]')))
-          problems.push(`${vp.name}: no shield on the defending guardian`);
+          problems.push(`${vp.name}: no shield on the defending warden`);
         await shot5('13-defending');
         // A defended creature: the hub's creature card and a threat's card show the shields, and a tap on the
-        // mark gives a hint. Defending is staged (the guardian has defended today).
+        // mark gives a hint. Defending is staged (the warden has defended today).
         await stage5({
-          role: 'guardian',
+          role: 'warden',
           at: 'creature',
           defending: true,
           threats: [{ type: 'captors', at: { q: 0, r: 4 }, strength: 4 }],
@@ -1309,7 +1309,7 @@ async function run() {
         await page.keyboard.press('Escape');
         await page.keyboard.press('Escape');
         await stage5({
-          role: 'guardian',
+          role: 'warden',
           threats: [{ type: 'swarm', at: { q: 1, r: 3 }, strength: 3 }],
         });
         {
@@ -1328,8 +1328,8 @@ async function run() {
         await shot5('16b-greyed-strike-tip');
         await idle();
 
-        // A guardian on a hex beside you: its escort ring and your shield.
-        await stage5({ role: 'scout', guardianAt: { q: 2, r: 2 } });
+        // A warden on a hex beside you: its escort ring and your shield.
+        await stage5({ role: 'scout', wardenAt: { q: 2, r: 2 } });
         if (
           !(await count('.map-world [data-escort]')) ||
           !(await count('.map-world [data-mark=escorted]'))
@@ -1396,7 +1396,7 @@ async function run() {
         // 1. Your own tile on a settlement with three boons: the card sits clear of the six neighbours, and
         // one tap on the tile opens and closes it, every time. An action's first tap only arms it.
         await stage5({
-          role: 'envoy',
+          role: 'warden',
           settlements: [{ at: { q: 1, r: 2 }, attitude: 'friendly', favour: 3 }],
           pack: { forage: 1 },
         });
@@ -1480,7 +1480,7 @@ async function run() {
         }
 
         // 4. Greyed actions show the role that can: a scout at a deep tomb (the scholar), and riding, the
-        // keeper's linger, the guardian's defence and the engineer's unlocks in the hub.
+        // keeper's linger, the warden's defence and the engineer's unlocks in the hub.
         await stage5({ role: 'scout', at: 'iron', explored: ['iron'], deposit: 'deep-tomb' });
         await openHere();
         if (!(await count('[data-popover=here] [data-action=work-site][data-needs=scholar]')))
@@ -1491,7 +1491,7 @@ async function run() {
         await openHub();
         for (const [care, role] of [
           ['linger', 'keeper'],
-          ['defend', 'guardian'],
+          ['defend', 'warden'],
         ]) {
           if (!(await count(`.drawer [data-care=${care}] [data-needs=${role}]`)))
             problems.push(`${vp.name}: no ${role} badge on ${care} in the hub`);
@@ -1780,7 +1780,7 @@ async function run() {
         await shotP('03-lost-drawer');
       }
 
-      // Skill trees: a scout with a pick ready in two trees (her own, and the guardian's tier 1), Pip with a
+      // Skill trees: a scout with a pick ready in two trees (her own, and the warden's tier 1), Pip with a
       // node taken. The HUD emblem glows; the tree drawer arms a node on one tap and takes it on the second.
       {
         const per = chainScenario().state.config.xpPerPick;
@@ -1867,13 +1867,13 @@ async function run() {
         }
 
         // Another role's tab: its first nodes only, open to you with the one pool of XP.
-        await press('[data-tab=guardian]');
+        await press('[data-tab=warden]');
         await page.waitForTimeout(250);
         if ((await page.locator('.skills-tree [data-skill]').count()) !== 2)
           problems.push(`${vp.name}: another role's tree is not its first nodes only`);
         if ((await page.locator('.skills-tree [data-skill][data-state=available]').count()) !== 2)
           problems.push(
-            `${vp.name}: the guardian's first nodes are not open to a scout with XP to spend`,
+            `${vp.name}: the warden's first nodes are not open to a scout with XP to spend`,
           );
         await shotS('7-other-tab');
         await press('[data-tab=keeper]');
@@ -1882,7 +1882,7 @@ async function run() {
           problems.push(`${vp.name}: the keeper's first nodes are not open with XP to spend`);
         await press('[data-tab=scout]');
 
-        // Closing the drawer: the emblem no longer glows (the guardian pick still waits, so it does).
+        // Closing the drawer: the emblem no longer glows (the warden pick still waits, so it does).
         await page.keyboard.press('Escape');
         await page.waitForTimeout(300);
         if (await page.locator('[data-skills]').count())

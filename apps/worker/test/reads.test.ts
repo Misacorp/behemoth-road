@@ -8,7 +8,7 @@ const asView = (body: unknown) => body as PlayerView;
 
 async function joined(ctx: GameContext) {
   const token = await ctx.signIn(MISA);
-  const res = await ctx.call(token, 'POST', '/api/game/join', { role: 'guardian', offer: 0 });
+  const res = await ctx.call(token, 'POST', '/api/game/join', { role: 'warden', offer: 0 });
   return { token, version: asView(res.body).version };
 }
 

@@ -57,7 +57,7 @@ export function samplePatch(heading: { q: number; r: number } = { q: 0, r: -1 })
       { id: 'sample-scout', q: 1, r: 1, accent: 'rose' },
       // Two riders on the creature's back.
       { id: 'sample-keeper', q: 0, r: 0, accent: 'teal' },
-      { id: 'sample-envoy', q: 0, r: 1, accent: 'ochre' },
+      { id: 'sample-warden', q: 0, r: 1, accent: 'ochre' },
     ],
   };
 }

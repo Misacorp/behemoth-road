@@ -17,10 +17,10 @@ const colours = (node: SvgNode): string[] => {
 };
 
 describe('icons', () => {
-  it('draws the six role emblems, each different, in both frames, within the allowlist and palette', () => {
+  it('draws the five role emblems, each different, in both frames, within the allowlist and palette', () => {
     for (const frame of ['roundel', 'shield'] as const) {
       const svgs = ROLE_IDS.map((r) => toSvgString(drawIcon(`role:${r}`, SPRING, 48, { frame })));
-      expect(new Set(svgs).size).toBe(6);
+      expect(new Set(svgs).size).toBe(5);
       for (const svg of svgs) expect(svg).not.toMatch(/NaN|undefined/);
     }
     for (const palette of PALETTES) {

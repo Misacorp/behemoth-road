@@ -195,14 +195,14 @@ describe('Milestone 5 on the map', () => {
     ]);
   });
 
-  it('rings a guardian on a hex; marks the escorted and the defending riders', () => {
-    const escorted = season({ guardianAt: { q: 2, r: 2 } });
+  it('rings a warden on a hex; marks the escorted and the defending riders', () => {
+    const escorted = season({ wardenAt: { q: 2, r: 2 } });
     const rings = escorted.o.under.filter((n) => n.attrs['data-escort'] !== undefined);
     expect(rings).toHaveLength(1);
     expect(escorted.figures.find((f) => f.id === escorted.id)?.marks).toEqual({ escorted: true });
-    // The guardian itself carries no shield mark: its ring is its sign.
+    // The warden itself carries no shield mark: its ring is its sign.
     expect(escorted.figures.filter((f) => f.marks).map((f) => f.id)).toEqual([escorted.id]);
-    const defending = season({ role: 'guardian', at: 'creature', defending: true });
+    const defending = season({ role: 'warden', at: 'creature', defending: true });
     expect(defending.figures.find((f) => f.id === defending.id)?.marks).toEqual({
       defending: true,
     });

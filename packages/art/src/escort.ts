@@ -1,7 +1,7 @@
 /**
- * The guardian's care, drawn on the map: a soft ring over the six hexes around a guardian (the escort), a
+ * The warden's care, drawn on the map: a soft ring over the six hexes around a warden (the escort), a
  * small shield mark on an escorted character, a bandage on a character struck today, and a shield raised
- * over the head of a guardian defending from the creature's back. The marks on a figure follow the
+ * over the head of a warden defending from the creature's back. The marks on a figure follow the
  * character standee's proportions (`drawCharacter`), so they sit on any look.
  */
 import { ART_TUNING } from './config.ts';
@@ -13,7 +13,7 @@ import { el, type SvgNode } from './svg.ts';
 
 /** Signs on a character for the day; all optional. */
 export interface CharacterMarks {
-  /** Next to a guardian: a small shield mark at its shoulder. */
+  /** Next to a warden: a small shield mark at its shoulder. */
   readonly escorted?: boolean;
   /** Struck by a threat today: a bandage round its head. */
   readonly struck?: boolean;
@@ -25,7 +25,7 @@ export interface CharacterMarks {
 const HEIGHT_UNITS = 50;
 
 /**
- * The soft escort ring around a guardian on `hex`: a wide, faint slate band over the six neighbouring hexes
+ * The soft escort ring around a warden on `hex`: a wide, faint slate band over the six neighbouring hexes
  * and a dashed line through their centres, on the ground plane. Drawing coordinates, like `drawVeilLift`;
  * the part carries `data-escort="q,r"`.
  */
@@ -118,7 +118,7 @@ export function drawCharacterMarks(
     el('path', { d, ...inkAttrs(colour, width) });
   if (marks.defending) {
     // An arm up from the shoulder and a round shield held over the head, seen a little from below: a slate
-    // rim, a cross band and a boss, like the guardian's emblem.
+    // rim, a cross band and a boss, like the warden's emblem.
     const arm = [T(5, -28), T(9.5, -40), T(8, -47)];
     const c = T(4, -55);
     const rx = 12.5 * k;

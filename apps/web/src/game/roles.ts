@@ -15,7 +15,7 @@ import {
 export const ROLE_REFUSALS: ReadonlySet<string> = new Set([
   'needs-specialist',
   'needs-keeper',
-  'needs-guardian',
+  'needs-warden',
   'cannot-work',
 ]);
 

@@ -33,7 +33,7 @@ export interface PerilBreakdown {
   readonly added: readonly PerilRow[];
   /** What took peril off: quiet days and shelters, biggest first. */
   readonly eased: readonly PerilRow[];
-  /** What the guardians' defence kept off the creature (null for none). */
+  /** What the wardens' defence kept off the creature (null for none). */
   readonly held: PerilRow | null;
   /** All the peril added, the sum of `added`. */
   readonly total: number;

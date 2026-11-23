@@ -674,7 +674,7 @@ export function misledMark(i: OverlayInput): SvgNode[] {
   ];
 }
 
-/** The art kit's soft ring over the hexes each guardian on a hex escorts. */
+/** The art kit's soft ring over the hexes each warden on a hex escorts. */
 function escortRings(i: OverlayInput): SvgNode[] {
   return escortCentres(i.state).map((g) => drawEscortRing(i.projection, g, i.palette));
 }

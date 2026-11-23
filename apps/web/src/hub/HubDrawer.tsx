@@ -1,6 +1,6 @@
 /**
  * The creature's hub, from the bubble's creature entry: the creature and its heading (with your signs), the
- * team stores, caring for it (feed; linger and defend greyed with the keeper's or guardian's emblem for
+ * team stores, caring for it (feed; linger and defend greyed with the keeper's or warden's emblem for
  * anyone else), and the unlocks (greyed with the engineer's emblem for anyone else): done ones sealed, the one in
  * progress with its work bar, the others with their material cost (faded where the stores fall short). An
  * engineer riding the creature starts or works on an unlock with the card's button (the second tap). Icons,

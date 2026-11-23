@@ -39,7 +39,7 @@ export const WHY_BY_REFUSAL: Readonly<Record<ActRefusal, TipId>> = {
   'season-over': 'why:season-over',
   'no-threat': 'why:other',
   'not-near': 'why:not-near',
-  'needs-guardian': 'why:role-guardian',
+  'needs-warden': 'why:role-warden',
   'no-settlement': 'why:wrong-place',
   'not-wary': 'why:settlement',
   'not-friendly': 'why:settlement',

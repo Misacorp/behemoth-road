@@ -44,15 +44,15 @@ describe('roster rows', () => {
     [
       pl('u3', 'zed', 'c3', 'keeper'),
       pl('u2', 'Ann', 'c2', 'scout'),
-      pl('u1', 'Wes', 'c1', 'guardian'),
+      pl('u1', 'Wes', 'c1', 'warden'),
       pl('u4', 'bea', null),
-      pl('u5', 'Cy', 'c5', 'envoy'),
+      pl('u5', 'Cy', 'c5', 'warden'),
     ],
     [
-      ch('c1', 'u1', { role: 'guardian', actionsLeft: 0 }),
+      ch('c1', 'u1', { role: 'warden', actionsLeft: 0 }),
       ch('c2', 'u2', { at: { kind: 'creature' } }),
       ch('c3', 'u3', { role: 'keeper', status: 'lost', actionsLeft: 1 }),
-      ch('c5', 'u5', { role: 'envoy', actionsLeft: 1 }),
+      ch('c5', 'u5', { role: 'warden', actionsLeft: 1 }),
     ],
   );
   const rows = rosterRows(v, 2);
