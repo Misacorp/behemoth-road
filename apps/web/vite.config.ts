@@ -13,8 +13,8 @@ export default defineConfig({
     assetsInlineLimit: 0,
   },
   test: {
-    // The stylesheet guard (src/styles.test.ts) reads styles.css as text.
-    css: { include: [/styles\.css/] },
+    // The stylesheet guards (src/styles.test.ts, onboarding/css.test.ts) read the stylesheets as text.
+    css: { include: [/(styles|onboarding)\.css/] },
   },
   server: {
     // `pnpm dev` in apps/worker serves the API on 8787.

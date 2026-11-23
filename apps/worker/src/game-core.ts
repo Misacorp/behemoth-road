@@ -19,6 +19,11 @@ import {
 
 export {
   addCharacter,
+  addSeen,
+  readSeen,
+  SEEN_IDS,
+  SEEN_MAX,
+  type SeenId,
   CONTENT_VERSION,
   OutdatedGameError,
   characterOf,

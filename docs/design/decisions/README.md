@@ -122,6 +122,12 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-23 Reference: day readout hold menu and wiki link \[Misa\]
+- 2026-11-23 Returning recap after a day change \[Misa\]
+- 2026-11-23 First-encounter hints once per user \[Misa\]
+- 2026-11-23 First-time practice map runs only in the browser \[Misa\]
+- 2026-11-23 Role cards before the pick, in the join drawer \[Misa\]
+- 2026-11-23 Intro cards once per new Discord user, kept server-side \[Misa\]
 - 2026-11-23 The Warden tree forks by style: stand fast or range out \[Misa\]
 - 2026-11-23 Guardian and Envoy merge into one role, the Warden \[Misa\] (amended)
 - 2026-11-23 A passive option never beats an active one \[Misa\]

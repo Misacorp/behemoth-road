@@ -44,6 +44,8 @@ import { fireHintAt } from '../game/chain.ts';
 import { accentOf, type Identity, lookOf } from '../game/identity.ts';
 import { type Moment, STEP_MS } from '../game/moments.ts';
 import { MomentMark } from './MomentMark.tsx';
+import { CoachLayer } from '../onboarding/CoachLayer.tsx';
+import type { CoachMap } from '../onboarding/coach.ts';
 import { mapTipAt, placeNoun, tileTipAt } from './mapTips.ts';
 import type { TipId } from '../text/tips.ts';
 import type { TipTarget } from '../ui/tip.ts';
@@ -161,6 +163,8 @@ export interface MapViewProps {
    * a change recentres on your character (or the creature before you have one).
    */
   readonly coverBottom?: number;
+  /** The practice map's guided day: what to light (glowing hexes, a ring, a ghost hand), and which part of the card to pulse. */
+  readonly coach?: CoachMap | null;
 }
 
 /** Paper grain over the whole screen; it uses the filter defs in the scene (default id prefix). */
@@ -1051,7 +1055,7 @@ export function MapView(props: MapViewProps): JSX.Element {
 
   const { box, raster } = layers;
   return (
-    <div class="map-root">
+    <div class="map-root" data-coach={props.coach?.mark ?? undefined}>
       <div ref={worldRef} class="map-world">
         <svg
           viewBox={`${box.x} ${box.y} ${box.width} ${box.height}`}
@@ -1064,6 +1068,14 @@ export function MapView(props: MapViewProps): JSX.Element {
           <Static nodes={layers.figures} />
           {overlays.over}
           {outOfReach}
+          {props.coach && (
+            <CoachLayer
+              coach={props.coach}
+              state={state}
+              characterId={characterId}
+              ink={Math.max(p.k, p.k / inkZoom)}
+            />
+          )}
         </svg>
         {props.moments && props.moments.length > 0 && (
           <svg

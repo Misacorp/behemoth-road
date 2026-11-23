@@ -278,3 +278,4 @@ export {
   type PickRefusal,
 } from './skills.ts';
 export { emptySkills, type Skills } from './state.ts';
+export { addSeen, isSeenId, readSeen, SEEN_IDS, SEEN_MAX, type SeenId } from './seen.ts';

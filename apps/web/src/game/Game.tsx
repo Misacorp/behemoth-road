@@ -54,6 +54,8 @@ import type { Target } from '../map/pick.ts';
 import { getSettings } from '../settings.ts';
 import { recapOf } from './recap.ts';
 import { Ending, PerilEdge } from '../hud/Season.tsx';
+import type { CoachMap } from '../onboarding/coach.ts';
+import { Guides } from '../onboarding/Guides.tsx';
 import {
   defendOption,
   seasonEnd,
@@ -78,6 +80,23 @@ import { toGameState, toSigns } from './viewState.ts';
 export interface GameProps {
   readonly api: ApiClient;
   readonly initial: PlayerView;
+  /**
+   * The practice map (its `api` answers from the core in the browser): the guided day's lights for the map
+   * and a way to tell the guide what the map is showing. No guides, hints or recap run in it.
+   */
+  readonly practice?: {
+    readonly coach: CoachMap | null;
+    readonly onSnapshot: (s: { readonly flow: Flow; readonly view: PlayerView }) => void;
+  };
+  /** The real game's guides (hints, the recap, the day menu): what was seen, and the ways out to the intro and the practice. */
+  readonly guides?: {
+    readonly seen: ReadonlySet<string>;
+    readonly onSeen: (ids: readonly string[]) => void;
+    readonly recapDue: boolean;
+    readonly onRecapDone: () => void;
+    readonly onReplayIntro: () => void;
+    readonly onPractice: () => void;
+  };
 }
 
 /** What the player needs before they can play: nothing, a first character, or a new one (lost). */
@@ -105,7 +124,7 @@ const peekHeight = (): number =>
 /** The "next day" control shows only when the server offers dev tools and you are an admin. */
 export const showsNextDay = (view: PlayerView): boolean => view.devTools && view.you.admin;
 
-export function Game({ api, initial }: GameProps): JSX.Element {
+export function Game({ api, initial, practice, guides }: GameProps): JSX.Element {
   const [view, setView] = useState(initial);
   const [flow, setFlow] = useState<Flow>(IDLE);
   const [focus, setFocus] = useState<{ target: FocusTarget; n: number; id?: string }>({
@@ -185,6 +204,9 @@ export function Game({ api, initial }: GameProps): JSX.Element {
   const me = findCharacter(state, id);
   const need = characterNeed(view);
   const offers = view.offers ?? [];
+  // The practice guide reads what the map shows (the flow and the view) to know its step.
+  const snapshot = practice?.onSnapshot;
+  useEffect(() => snapshot?.({ flow, view }), [snapshot, flow, view]);
   // The drawer opens by itself whenever a character is needed (first join, or after being lost).
   useEffect(() => setDrawerClosed(false), [need]);
 
@@ -484,7 +506,11 @@ export function Game({ api, initial }: GameProps): JSX.Element {
   };
 
   return (
-    <main class="game">
+    <main
+      class="game"
+      data-coach={practice?.coach?.mark ?? undefined}
+      data-coach-do={practice?.coach?.mark === 'act' ? practice.coach.action : undefined}
+    >
       <MapView
         state={state}
         signs={signs}
@@ -518,6 +544,7 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         }
         onRightClick={() => setFlow((f) => rightClick(f, getSettings()))}
         focus={focus}
+        coach={practice?.coach ?? null}
         coverBottom={
           rosterShown && rosterSnap === 'peek'
             ? peekCover(window.innerWidth, peekHeight())
@@ -565,6 +592,7 @@ export function Game({ api, initial }: GameProps): JSX.Element {
               }
             : null
         }
+        menu={guides !== undefined}
         onNextDay={
           showsNextDay(view)
             ? () =>
@@ -668,6 +696,22 @@ export function Game({ api, initial }: GameProps): JSX.Element {
               return { accent: w?.accent ?? '', ...(w?.look ? { look: w.look } : {}) };
             })}
           busy={busy}
+        />
+      )}
+      {guides && (
+        <Guides
+          api={api}
+          initial={initial}
+          view={view}
+          seen={guides.seen}
+          onSeen={guides.onSeen}
+          hungry={moments.some((m) => m.kind === 'hungry')}
+          covered={anyDrawer}
+          recapDue={guides.recapDue}
+          onRecapDone={guides.onRecapDone}
+          onFocusCreature={() => setFocus((f) => ({ target: 'creature', n: f.n + 1 }))}
+          onReplayIntro={guides.onReplayIntro}
+          onPractice={guides.onPractice}
         />
       )}
       <TipLayer />

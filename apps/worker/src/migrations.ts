@@ -60,6 +60,13 @@ export const MIGRATIONS: readonly Migration[] = [
     sql.exec("ALTER TABLE game ADD COLUMN pace TEXT NOT NULL DEFAULT 'daily'");
     sql.exec('ALTER TABLE game ADD COLUMN fast_tick_at INTEGER');
   },
+  (sql) => {
+    // Onboarding, per player: the ids of what they were shown once (`seen`, a JSON array of the core's
+    // `SEEN_IDS`), and the game day and version of their last view, for the "while you were away" recap.
+    sql.exec("ALTER TABLE players ADD COLUMN seen TEXT NOT NULL DEFAULT '[]'");
+    sql.exec('ALTER TABLE players ADD COLUMN last_day INTEGER');
+    sql.exec('ALTER TABLE players ADD COLUMN last_version INTEGER');
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

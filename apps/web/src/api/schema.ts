@@ -342,6 +342,11 @@ export const PlayerViewSchema = v.object({
     userId: id,
     characterId: v.nullable(id),
     admin: v.boolean(),
+    /** What you were shown once (the core's `SEEN_IDS`), kept by the server per Discord user. */
+    seen: v.optional(v.pipe(v.array(v.pipe(v.string(), v.maxLength(40))), v.maxLength(32)), []),
+    /** The game day and version of your previous visit, for the recap; null on your first. */
+    lastDay: v.optional(v.nullable(count), null),
+    lastVersion: v.optional(v.nullable(count), null),
   }),
   game: GameStateViewSchema,
   players: v.pipe(v.array(player), v.maxLength(64)),
@@ -379,6 +384,11 @@ export const SessionSchema = v.object({
   token: v.pipe(v.string(), v.minLength(1), v.maxLength(4096)),
   accessToken: v.optional(v.pipe(v.string(), v.maxLength(4096)), ''),
   user: v.object({ id, name: text }),
+});
+
+/** The answer to `POST /api/me/seen`: the player's whole record. */
+export const SeenAnswerSchema = v.strictObject({
+  seen: v.pipe(v.array(v.pipe(v.string(), v.maxLength(40))), v.maxLength(32)),
 });
 
 export const LiveTicketSchema = v.strictObject({ ticket: v.pipe(v.string(), v.maxLength(160)) });

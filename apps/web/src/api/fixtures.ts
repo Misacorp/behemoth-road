@@ -23,6 +23,7 @@ import {
   type CharacterTally,
   type SeasonStats,
   replaceCharacter,
+  SEEN_IDS,
   toPlayerView,
 } from '@behemoth-road/core';
 import type { AppConfig, PlayerView, Session } from './schema.ts';
@@ -65,6 +66,10 @@ export interface Scenario {
   readonly fastTickAt?: number | null;
   /** The server's clock (epoch ms); default: this machine's, so no skew. */
   readonly now?: number;
+  /** Onboarding: what you have been shown once, and your previous visit (default: nothing, a first visit). */
+  readonly seen?: readonly string[];
+  readonly lastDay?: number | null;
+  readonly lastVersion?: number | null;
 }
 
 /** The view the server would send `scenario.you`. */
@@ -78,7 +83,14 @@ export function toView(s: Scenario): PlayerView {
     pace: s.pace ?? 'daily',
     fastTickAt: s.fastTickAt ?? null,
     now: s.now ?? Date.now(),
-    you: { userId: s.you, characterId: mine?.id ?? null, admin: s.admin },
+    you: {
+      userId: s.you,
+      characterId: mine?.id ?? null,
+      admin: s.admin,
+      seen: [...(s.seen ?? [])],
+      lastDay: s.lastDay ?? null,
+      lastVersion: s.lastVersion ?? null,
+    },
     offers: needsCharacter ? characterOffers(s.state, s.you) : null,
     // The core's view type is read-only; the parsed type is the same shape.
     game: toPlayerView(s.state) as PlayerView['game'],
@@ -132,7 +144,9 @@ export function notJoinedScenario(): Scenario {
   state = must(addCharacter(state, { userId: OLA, role: 'engineer', offer: 1 }));
   const c = state.creature.centre;
   state = place(state, OLA, { q: c.q, r: c.r + 2 });
-  return { state, you: MISA, version: 3, admin: true };
+  // A player who has been here before: the intro, the practice and every hint are behind them (the
+  // onboarding scenarios start from `{ ...scenario, seen: [] }`).
+  return { state, you: MISA, version: 3, admin: true, seen: [...SEEN_IDS] };
 }
 
 /** Joined: you and Pip ride the creature, Ola stands on a hex beside it. */
