@@ -1,0 +1,173 @@
+import { characterOf, type Hex, hexKey } from '@behemoth-road/core';
+import { describe, expect, it } from 'vitest';
+import { type Flow, IDLE, tap } from '../map/flow.ts';
+import { type Target } from '../map/pick.ts';
+import {
+  captionFor,
+  coachMap,
+  coachStep,
+  hasArrived,
+  planFor,
+  type PracticeAction,
+  type Step,
+} from './coach.ts';
+import { createSandbox } from './sandboxApi.ts';
+import { SANDBOX_USERS, sandboxState, sandboxView, SPOTS } from './sandbox.ts';
+
+const ROLES = ['scout', 'scholar', 'keeper', 'engineer', 'warden'] as const;
+
+describe('the practice map', () => {
+  it('is the same map for the same role, and has no secrets of a real game', () => {
+    for (const role of ROLES) {
+      expect(sandboxState(role)).toEqual(sandboxState(role));
+    }
+    const view = sandboxView(sandboxState('scout'), 1);
+    expect(view.devTools).toBe(false);
+    expect(view.you.admin).toBe(false);
+    expect(view.offers).toBeNull();
+    expect(JSON.stringify(view)).not.toContain('"seed"');
+  });
+
+  it('puts you on your start hex with the day full, beside a party', () => {
+    for (const role of ROLES) {
+      const state = sandboxState(role);
+      const me = characterOf(state, SANDBOX_USERS.you);
+      expect(me?.role).toBe(role);
+      expect(me?.status).toBe('active');
+      expect(me?.actionsLeft).toBe(state.config.actionsPerDay);
+      expect(me?.at).toEqual({
+        kind: 'hex',
+        hex: {
+          q: state.creature.centre.q + SPOTS.start.q,
+          r: state.creature.centre.r + SPOTS.start.r,
+        },
+      });
+      expect(state.characters).toHaveLength(3);
+      expect(state.threats).toHaveLength(0);
+    }
+  });
+
+  it('veils the iron for a scout to look at, and shows it to everyone else', () => {
+    const scout = sandboxView(sandboxState('scout'), 1);
+    const engineer = sandboxView(sandboxState('engineer'), 1);
+    expect(Object.keys(scout.game.features)).toHaveLength(1);
+    expect(Object.keys(engineer.game.features)).toHaveLength(2);
+  });
+});
+
+/** Plays the guided day through the practice API the way a finger would: tap, tap, confirm, act. */
+async function playGuidedDay(role: (typeof ROLES)[number]): Promise<Step[]> {
+  const sandbox = createSandbox(role);
+  const steps: Step[] = [];
+  let flow: Flow = IDLE;
+  let arrivalActions: number | null = null;
+  const read = async () => {
+    const got = await sandbox.api.game();
+    if ('unchanged' in got) throw new Error('unchanged');
+    return got;
+  };
+  let view = await read();
+  const id = view.you.characterId ?? '';
+  const plan = planFor(view.game, role);
+  const step = (): Step => {
+    if (arrivalActions === null && hasArrived(plan, view.game, id)) {
+      arrivalActions = characterOf(sandbox.state(), SANDBOX_USERS.you)?.actionsLeft ?? null;
+    }
+    const s = coachStep(plan, { flow, state: view.game, characterId: id, arrivalActions });
+    if (steps[steps.length - 1] !== s) steps.push(s);
+    return s;
+  };
+  const tapOn = (target: Target): void => {
+    flow = tap(flow, view.game, id, target);
+    step();
+  };
+  step();
+  tapOn({ kind: 'me' });
+  const targetHex: Hex =
+    plan.target.kind === 'hex' ? plan.target.hex : view.game.creature.centre;
+  tapOn({ kind: 'hex', hex: targetHex });
+  // The arrow is planned: confirm it.
+  expect(flow.kind).toBe('planned');
+  if (flow.kind !== 'planned') throw new Error('no plan');
+  view = await sandbox.api.move(
+    view.version,
+    flow.steps.map((s) => s.place),
+  );
+  flow = { kind: 'selected' };
+  step();
+  const act: Record<PracticeAction, () => Promise<void>> = {
+    survey: async () => {
+      view = await sandbox.api.act(view.version, { kind: 'survey', hex: plan.look as Hex });
+    },
+    gather: async () => {
+      view = await sandbox.api.act(view.version, { kind: 'gather' });
+    },
+    'work-site': async () => {
+      view = await sandbox.api.act(view.version, { kind: 'work-site' });
+    },
+    feed: async () => {
+      view = await sandbox.api.act(view.version, { kind: 'feed' });
+    },
+    defend: async () => {
+      view = await sandbox.api.act(view.version, { kind: 'defend' });
+    },
+  };
+  await act[plan.action]();
+  flow = IDLE;
+  step();
+  return steps;
+}
+
+describe('the guided first day', () => {
+  for (const role of ROLES) {
+    it(`walks a ${role} through select, tile, confirm, one action, done`, async () => {
+      expect(await playGuidedDay(role)).toEqual(['select', 'tile', 'confirm', 'act', 'done']);
+    });
+  }
+
+  it('lights what the step is about, and nothing else', () => {
+    const state = sandboxView(sandboxState('scout'), 1).game;
+    const id = characterOf(state, SANDBOX_USERS.you)?.id ?? '';
+    const plan = planFor(state, 'scout');
+    const input = { flow: IDLE, state, characterId: id, arrivalActions: null };
+    expect(coachMap(plan, input)).toMatchObject({ step: 'select', ringMe: true, glow: [] });
+    const selected = coachMap(plan, { ...input, flow: { kind: 'selected' } });
+    expect(selected).toMatchObject({ step: 'tile', ringMe: false });
+    expect(selected.glow.map(hexKey)).toEqual([hexKey((plan.target as { hex: Hex }).hex)]);
+  });
+
+  it('has a short line for each step, and none when done', () => {
+    const state = sandboxView(sandboxState('keeper'), 1).game;
+    const plan = planFor(state, 'keeper');
+    expect(captionFor('select', plan)).toBe('Tap yourself');
+    expect(captionFor('act', plan)).toBe('Feed it');
+    expect(captionFor('done', plan)).toBeNull();
+    expect(captionFor('stuck', plan)).toBeNull();
+  });
+
+  it('never blocks: wandering off the path puts you back on the first steps, and no actions left is stuck', async () => {
+    const sandbox = createSandbox('scholar');
+    const first = await sandbox.api.game();
+    if ('unchanged' in first) throw new Error('unchanged');
+    const id = first.you.characterId ?? '';
+    const plan = planFor(first.game, 'scholar');
+    // Walk three steps somewhere else: out of actions without the guided move.
+    let view = first;
+    const c = view.game.creature.centre;
+    for (const h of [
+      { q: c.q + 1, r: c.r + 1 },
+      { q: c.q + 1, r: c.r },
+      { q: c.q + 1, r: c.r - 1 },
+    ]) {
+      const next = await sandbox.api.move(view.version, [{ kind: 'hex', hex: h }]).catch(() => null);
+      if (next) view = next;
+    }
+    const step = coachStep(plan, {
+      flow: IDLE,
+      state: view.game,
+      characterId: id,
+      arrivalActions: null,
+    });
+    expect(['stuck', 'select']).toContain(step);
+  });
+});

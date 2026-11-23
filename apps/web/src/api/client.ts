@@ -13,6 +13,7 @@ import {
   GameResponseSchema,
   LiveTicketSchema,
   PlayerViewSchema,
+  SeenAnswerSchema,
   SessionSchema,
   type ActionAnswer,
   type AppConfig,
@@ -62,6 +63,10 @@ export interface ApiClient {
   move(version: number, path: readonly Place[]): Promise<ActionAnswer>;
   /** Gather, craft or work a site, for your own character where it stands. */
   act(version: number, action: GameAction): Promise<ActionAnswer>;
+  /** Adds ids to your seen record (things shown once); answers the whole record. */
+  markSeen(ids: readonly string[]): Promise<readonly string[]>;
+  /** Tells the server you are looking at the game now (your next visit's recap starts from here). */
+  visit(): Promise<void>;
   nextDay(): Promise<PlayerView>;
   /** Staging only: sets how days advance. */
   setPace(pace: 'daily' | 'fast'): Promise<PlayerView>;
@@ -152,6 +157,14 @@ export function createApiClient(fetchImpl: Fetch = (i, init) => fetch(i, init)):
     replace: (role, offer) => view('/api/game/replace', { role, offer }),
     move: (version, path) => answer('/api/game/move', { version, path }),
     act: (version, action) => answer('/api/game/act', { version, action }),
+    async markSeen(ids) {
+      const path = '/api/me/seen';
+      return parse(SeenAnswerSchema, path, await authed(path, post({ ids }))).seen;
+    },
+    async visit() {
+      // The answer is not read.
+      await authed('/api/me/visit', post({}));
+    },
     nextDay: () => view('/api/dev/next-day', {}),
     setPace: (pace) => view('/api/dev/pace', { pace }),
     async newSeason() {

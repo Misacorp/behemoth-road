@@ -65,6 +65,10 @@ export interface Scenario {
   readonly fastTickAt?: number | null;
   /** The server's clock (epoch ms); default: this machine's, so no skew. */
   readonly now?: number;
+  /** Onboarding: what you have been shown once, and your previous visit (default: nothing, a first visit). */
+  readonly seen?: readonly string[];
+  readonly lastDay?: number | null;
+  readonly lastVersion?: number | null;
 }
 
 /** The view the server would send `scenario.you`. */
@@ -78,7 +82,14 @@ export function toView(s: Scenario): PlayerView {
     pace: s.pace ?? 'daily',
     fastTickAt: s.fastTickAt ?? null,
     now: s.now ?? Date.now(),
-    you: { userId: s.you, characterId: mine?.id ?? null, admin: s.admin },
+    you: {
+      userId: s.you,
+      characterId: mine?.id ?? null,
+      admin: s.admin,
+      seen: [...(s.seen ?? [])],
+      lastDay: s.lastDay ?? null,
+      lastVersion: s.lastVersion ?? null,
+    },
     offers: needsCharacter ? characterOffers(s.state, s.you) : null,
     // The core's view type is read-only; the parsed type is the same shape.
     game: toPlayerView(s.state) as PlayerView['game'],
