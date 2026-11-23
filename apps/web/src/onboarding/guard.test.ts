@@ -3,16 +3,18 @@
  * practice modules may not import or call anything that talks to a server (read from their source), and
  * a whole practice day run with every browser channel out trapped makes no call.
  */
-import { readFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createSandbox } from './sandboxApi.ts';
 import { sandboxState, SANDBOX_USERS } from './sandbox.ts';
 import { characterOf } from '@behemoth-road/core';
 
-const here = dirname(fileURLToPath(import.meta.url));
-const PRACTICE_MODULES = ['sandbox.ts', 'sandboxApi.ts', 'coach.ts'];
+/** The practice modules' source, as text. */
+const sources = import.meta.glob<string>(['./sandbox.ts', './sandboxApi.ts', './coach.ts'], {
+  query: '?raw',
+  import: 'default',
+  eager: true,
+});
+const PRACTICE_MODULES = Object.keys(sources);
 
 /** What a module may not mention: ways to reach a server, and the modules that do. */
 const FORBIDDEN = [
@@ -32,7 +34,8 @@ const FORBIDDEN = [
 describe('the practice map stays in the browser', () => {
   for (const file of PRACTICE_MODULES) {
     it(`${file} imports and calls nothing that reaches a server or a store`, () => {
-      const source = readFileSync(join(here, file), 'utf8');
+      const source = sources[file] ?? '';
+      expect(source.length).toBeGreaterThan(100);
       // Comments may name what they forbid.
       const code = source.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
       for (const pattern of FORBIDDEN) expect(code, String(pattern)).not.toMatch(pattern);
@@ -40,7 +43,8 @@ describe('the practice map stays in the browser', () => {
   }
 
   it('imports from the API layer only its error and its types', () => {
-    const source = readFileSync(join(here, 'sandboxApi.ts'), 'utf8');
+    expect(PRACTICE_MODULES).toHaveLength(3);
+    const source = sources['./sandboxApi.ts'] ?? '';
     const imports = [...source.matchAll(/import\s+([^;]+?)\s+from\s+'(\.\.\/api\/[^']+)'/g)];
     for (const [, what, from] of imports) {
       if (from === '../api/client.ts') expect(what).toBe('{ ApiError, type ApiClient }');

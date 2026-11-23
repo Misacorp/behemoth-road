@@ -83,8 +83,7 @@ async function playGuidedDay(role: (typeof ROLES)[number]): Promise<Step[]> {
   };
   step();
   tapOn({ kind: 'me' });
-  const targetHex: Hex =
-    plan.target.kind === 'hex' ? plan.target.hex : view.game.creature.centre;
+  const targetHex: Hex = plan.target.kind === 'hex' ? plan.target.hex : view.game.creature.centre;
   tapOn({ kind: 'hex', hex: targetHex });
   // The arrow is planned: confirm it.
   expect(flow.kind).toBe('planned');
@@ -127,13 +126,32 @@ describe('the guided first day', () => {
 
   it('lights what the step is about, and nothing else', () => {
     const state = sandboxView(sandboxState('scout'), 1).game;
-    const id = characterOf(state, SANDBOX_USERS.you)?.id ?? '';
+    const id = state.characters.find((c) => c.userId === SANDBOX_USERS.you)?.id ?? '';
     const plan = planFor(state, 'scout');
     const input = { flow: IDLE, state, characterId: id, arrivalActions: null };
     expect(coachMap(plan, input)).toMatchObject({ step: 'select', ringMe: true, glow: [] });
     const selected = coachMap(plan, { ...input, flow: { kind: 'selected' } });
     expect(selected).toMatchObject({ step: 'tile', ringMe: false });
     expect(selected.glow.map(hexKey)).toEqual([hexKey((plan.target as { hex: Hex }).hex)]);
+  });
+
+  it('sends a keeper through the creature, its bubble and its hub for the action', () => {
+    const state = sandboxView(sandboxState('keeper'), 1).game;
+    const id = state.characters.find((c) => c.userId === SANDBOX_USERS.you)?.id ?? '';
+    const plan = planFor(state, 'keeper');
+    // Standing on the creature already, with the day's first action spent getting there.
+    const riding = {
+      ...state,
+      characters: state.characters.map((c) =>
+        c.id === id ? { ...c, at: { kind: 'creature' as const }, actionsLeft: 2 } : c,
+      ),
+    };
+    const at = (flow: Flow) =>
+      coachMap(plan, { flow, state: riding, characterId: id, arrivalActions: 2 });
+    expect(at({ kind: 'selected' })).toMatchObject({ step: 'act', mark: null });
+    expect(at({ kind: 'selected' }).hand).not.toBeNull();
+    expect(at({ kind: 'bubble', selecting: true })).toMatchObject({ mark: 'hub' });
+    expect(at({ kind: 'creature' })).toMatchObject({ mark: 'act', glow: [] });
   });
 
   it('has a short line for each step, and none when done', () => {
@@ -159,7 +177,9 @@ describe('the guided first day', () => {
       { q: c.q + 1, r: c.r },
       { q: c.q + 1, r: c.r - 1 },
     ]) {
-      const next = await sandbox.api.move(view.version, [{ kind: 'hex', hex: h }]).catch(() => null);
+      const next = await sandbox.api
+        .move(view.version, [{ kind: 'hex', hex: h }])
+        .catch(() => null);
       if (next) view = next;
     }
     const step = coachStep(plan, {

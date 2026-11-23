@@ -6,7 +6,7 @@ import type { JSX } from 'preact';
 import { useEffect, useMemo, useState } from 'preact/hooks';
 import { createApiClient } from './api/client.ts';
 import { boot, type Boot, BootError, type DiscordLike } from './boot/boot.ts';
-import { Game } from './game/Game.tsx';
+import { Root } from './onboarding/Root.tsx';
 import { OpenFromDiscord, StartFailed } from './ui/states.tsx';
 
 type Status =
@@ -92,5 +92,5 @@ export function App(): JSX.Element {
   // A server that may not play sees the same state as outside Discord: the game opens elsewhere.
   if (status.boot.kind === 'outside' || status.boot.kind === 'not-allowed')
     return <OpenFromDiscord />;
-  return <Game api={api} initial={status.boot.view} />;
+  return <Root api={api} initial={status.boot.view} />;
 }

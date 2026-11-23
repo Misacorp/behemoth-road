@@ -98,14 +98,16 @@ export function coachStep(plan: PracticePlan, i: CoachInput): Step {
 /** What the map lights for a step. */
 export interface CoachMap {
   readonly step: Step;
+  /** The role's action (the one to pulse in the hub's care list). */
+  readonly action: PracticeAction;
   /** Hexes that glow (the glowing tile, the veiled hex to look at, or the creature's footprint). */
   readonly glow: readonly Hex[];
   /** A ring around your own character. */
   readonly ringMe: boolean;
   /** Where the ghost hand taps, if anywhere. */
   readonly hand: Hex | null;
-  /** The part of the interface to pulse: the arrow's confirm tick, or your action's button. */
-  readonly mark: 'confirm' | 'act' | null;
+  /** The part of the interface to pulse: the arrow's confirm tick, the creature's button in its bubble (the way into the hub), or your action's button. */
+  readonly mark: 'confirm' | 'act' | 'hub' | null;
 }
 
 const centreOf = (hexes: readonly Hex[]): Hex => {
@@ -120,7 +122,14 @@ export function coachMap(plan: PracticePlan, i: CoachInput): CoachMap {
   const myHex = me?.status === 'active' && me.at.kind === 'hex' ? me.at.hex : null;
   const targetHexes: readonly Hex[] =
     plan.target.kind === 'hex' ? [plan.target.hex] : creatureHexes(i.state);
-  const none: CoachMap = { step, glow: [], ringMe: false, hand: null, mark: null };
+  const none: CoachMap = {
+    step,
+    action: plan.action,
+    glow: [],
+    ringMe: false,
+    hand: null,
+    mark: null,
+  };
   switch (step) {
     case 'select':
       return { ...none, ringMe: true, hand: myHex ?? centreOf(creatureHexes(i.state)) };
@@ -133,13 +142,16 @@ export function coachMap(plan: PracticePlan, i: CoachInput): CoachMap {
         const looked = i.state.tiles[`${String(plan.look.q)},${String(plan.look.r)}`]?.explored;
         if (looked !== true) return { ...none, glow: [plan.look], hand: plan.look, mark: 'act' };
       }
-      // Once the card or the hub is open the action's own button pulses; before it, your own character
-      // (or the creature) is the thing to tap.
-      const open = i.flow.kind === 'selected' || i.flow.kind === 'creature';
-      if (open) return { ...none, mark: 'act' };
-      return plan.target.kind === 'creature'
-        ? { ...none, glow: targetHexes, hand: centreOf(targetHexes), mark: 'act' }
-        : { ...none, ringMe: true, hand: myHex, mark: 'act' };
+      // On the creature the action is in its hub: tap the creature, then its button in the bubble, and
+      // the action's own button pulses there.
+      if (plan.target.kind === 'creature') {
+        if (i.flow.kind === 'creature') return { ...none, mark: 'act' };
+        if (i.flow.kind === 'bubble') return { ...none, glow: targetHexes, mark: 'hub' };
+        return { ...none, glow: targetHexes, hand: centreOf(targetHexes) };
+      }
+      // Once your card is open its action's button pulses; before it, your own character is the thing to tap.
+      if (i.flow.kind === 'selected') return { ...none, mark: 'act' };
+      return { ...none, ringMe: true, hand: myHex, mark: 'act' };
     }
     default:
       return none;

@@ -1,0 +1,663 @@
+/*
+  Onboarding: the intro cards, the role cards in the join drawer, the practice map's guide, the first-
+  encounter hints, the "while you were away" recap and the day readout's menu. Layout and motion only;
+  every colour is a palette colour (a test checks it), every animation stops for reduced motion.
+*/
+
+/* --- Full-screen cards (the intro) --- */
+.onb {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  justify-items: center;
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+  background: #f3f1e2;
+  color: #5c5a43;
+  touch-action: pan-y;
+}
+
+.onb-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  max-width: 640px;
+  box-sizing: border-box;
+  padding: var(--space-3) var(--space-4);
+}
+
+.onb-back {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 0;
+  background: none;
+}
+
+.onb-back svg {
+  width: 24px;
+  height: 24px;
+}
+
+.onb-skip {
+  padding: 6px 14px;
+  border-radius: 14px;
+  border: 1.5px solid #5c5a43;
+  background: #f3f1e2;
+  color: #5c5a43;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.onb-card {
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  max-width: 560px;
+  box-sizing: border-box;
+  padding: 0 var(--space-4);
+  animation: onb-in 0.3s ease-out;
+}
+
+@keyframes onb-in {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+}
+
+.onb-art {
+  display: grid;
+  justify-items: center;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 270px;
+}
+
+.onb-art svg {
+  display: block;
+}
+
+.onb-line {
+  margin: 0;
+  max-width: 22em;
+  text-align: center;
+  font-size: 1.4rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.onb-party,
+.onb-roles,
+.onb-dusk-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.onb-figure {
+  width: 44px;
+  height: 56px;
+}
+
+.onb-figure-big {
+  width: 84px;
+  height: 104px;
+}
+
+.onb-figure svg {
+  width: 100%;
+  height: 100%;
+}
+
+.onb-art-journey > svg,
+.onb-art-home > svg {
+  animation: onb-bob 3.2s ease-in-out infinite;
+}
+
+.onb-art-actions .onb-pips svg {
+  animation: onb-pop 2.4s ease-in-out infinite;
+}
+
+.onb-threat {
+  animation: onb-sway 2.2s ease-in-out infinite;
+}
+
+.onb-arrow {
+  width: 60px;
+  height: 16px;
+  animation: onb-march 1.4s ease-in-out infinite;
+}
+
+.onb-moon {
+  animation: onb-bob 4s ease-in-out infinite;
+}
+
+.onb-route {
+  display: grid;
+  justify-items: center;
+}
+
+@keyframes onb-bob {
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes onb-sway {
+  50% {
+    transform: rotate(-5deg);
+  }
+}
+
+@keyframes onb-march {
+  50% {
+    transform: translateX(8px);
+  }
+}
+
+@keyframes onb-pop {
+  50% {
+    transform: scale(1.06);
+  }
+}
+
+.onb-foot {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
+  padding-bottom: var(--space-4);
+}
+
+.onb-dots,
+.coach-dots {
+  display: flex;
+  gap: 7px;
+}
+
+.onb-dots i,
+.coach-dots i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1.5px solid #5c5a43;
+}
+
+.onb-dots i.on,
+.coach-dots i.on {
+  background: #5c5a43;
+}
+
+.onb-next {
+  width: 64px;
+  height: 64px;
+}
+
+/* The call to action, as a pill. */
+.cta {
+  padding: 10px 20px;
+  border-radius: 26px;
+  border: 0;
+  background: #5c5a43;
+  color: #f3f1e2;
+  font-size: 15px;
+  font-weight: 700;
+}
+
+/* --- Role cards in the join drawer --- */
+.role-strip {
+  display: flex;
+  gap: var(--space-3);
+  min-width: 0;
+  overflow-x: auto;
+  padding: var(--space-2) 2px var(--space-3);
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.role-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.join-roles {
+  gap: var(--space-2);
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.role-strip .role {
+  flex: 0 0 min(72%, 250px);
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  height: auto;
+  padding: var(--space-4) var(--space-3);
+  border-radius: 18px;
+  scroll-snap-align: center;
+  color: #5c5a43;
+}
+
+.role-strip .role svg {
+  width: auto;
+  height: auto;
+}
+
+.role-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.role-chain {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-radius: 14px;
+  border: 1.5px solid #e1ddc3;
+  background: #f3f1e2;
+}
+
+.role-does,
+.role-gets {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+.role-strip .role .role-chev {
+  width: 20px;
+  height: 20px;
+  color: #9a9776;
+}
+
+.role-line {
+  font-size: 0.9rem;
+  font-style: italic;
+  color: #9a9776;
+}
+
+.join-wiki {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  margin-top: var(--space-3);
+  opacity: 0.85;
+}
+
+.join-wiki svg:last-child {
+  width: 16px;
+  height: 16px;
+}
+
+/* --- The practice map's guide --- */
+.coach-bar {
+  position: fixed;
+  top: calc(var(--space-3) + var(--safe-top));
+  right: var(--gutter-right);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.coach-join {
+  padding: 8px 14px;
+  font-size: 13px;
+  box-shadow: 1px 2px 0 #e1ddc3;
+}
+
+.coach-join[data-ready] {
+  animation: coach-ping 1.4s ease-in-out infinite;
+}
+
+.coach-restart {
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+}
+
+.coach-restart[data-hint='stuck'] {
+  animation: coach-ping 1.4s ease-in-out infinite;
+}
+
+.coach-foot {
+  position: fixed;
+  left: 50%;
+  bottom: calc(76px + var(--safe-bottom));
+  z-index: 20;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.coach-dots {
+  padding: 7px 10px;
+  border-radius: 12px;
+  border: 1.5px solid #5c5a43;
+  background: #f3f1e2;
+}
+
+.coach-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 8px 18px;
+  border-radius: 18px;
+  background: #5c5a43;
+  color: #f3f1e2;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  animation: coach-rise 0.3s ease-out;
+}
+
+.coach-line svg {
+  padding: 2px;
+  border-radius: 50%;
+  background: #f3f1e2;
+}
+
+@keyframes coach-rise {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+@keyframes coach-ping {
+  50% {
+    box-shadow: 0 0 0 5px #d6a26f;
+  }
+}
+
+/* What the guide lights on the map. */
+.coach-glow {
+  fill: #d6a26f;
+  fill-opacity: 0.22;
+  stroke: #d6a26f;
+  stroke-linejoin: round;
+  animation: coach-pulse 1.6s ease-in-out infinite;
+}
+
+.coach-ring {
+  fill: none;
+  stroke: #d6a26f;
+  animation: coach-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes coach-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+.coach-hand-shape {
+  fill: #f3f1e2;
+  stroke: #5c5a43;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+}
+
+.coach-hand-tap {
+  animation: coach-tap 1.4s ease-in-out infinite;
+}
+
+.coach-hand-ripple {
+  fill: #d6a26f;
+  fill-opacity: 0.35;
+  stroke: #d6a26f;
+  stroke-width: 1.5;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: coach-ripple 1.4s ease-out infinite;
+}
+
+@keyframes coach-tap {
+  45% {
+    transform: translateY(5px) scale(0.96);
+  }
+}
+
+@keyframes coach-ripple {
+  from {
+    transform: scale(0.4);
+    opacity: 1;
+  }
+  to {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+/* The arrow's tick and the role's action button pulse when they are the thing to tap. */
+.map-root[data-coach='confirm'] [data-popover='confirm'] .svg-button,
+.map-root[data-coach='act'] [data-action]:not(.is-off),
+.map-root[data-coach='hub'] [data-popover='bubble'] [aria-label='Behemoth'],
+.game[data-coach='act'][data-coach-do='feed'] [data-care='feed']:not(.is-off),
+.game[data-coach='act'][data-coach-do='defend'] [data-care='defend']:not(.is-off) {
+  animation: coach-glow 1.4s ease-in-out infinite;
+}
+
+@keyframes coach-glow {
+  50% {
+    filter: drop-shadow(0 0 5px #d6a26f);
+  }
+}
+
+/* --- First-encounter hints --- */
+.onb-hint {
+  position: fixed;
+  top: calc(96px + var(--safe-top));
+  left: 50%;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 8px 16px 8px 10px;
+  border-radius: 18px;
+  border: 1.5px solid #5c5a43;
+  background: #f3f1e2;
+  box-shadow: 1px 2px 0 #e1ddc3;
+  color: #5c5a43;
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: onb-hint 4.2s ease-in-out both;
+}
+
+.onb-hint-art {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  animation: onb-bob 2s ease-in-out infinite;
+}
+
+@keyframes onb-hint {
+  0%,
+  100% {
+    opacity: 0;
+  }
+  8%,
+  88% {
+    opacity: 1;
+  }
+}
+
+/* --- The recap --- */
+.onb-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+}
+
+.onb-sheet {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  z-index: 36;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-4);
+  width: min(440px, 100%);
+  box-sizing: border-box;
+  padding: var(--space-4) var(--space-4) calc(var(--space-4) + var(--safe-bottom));
+  border-radius: 28px 28px 0 0;
+  border: 1.5px solid #9a9776;
+  border-bottom: 0;
+  background: #f3f1e2;
+  box-shadow: 0 -2px 0 #e1ddc3;
+  color: #5c5a43;
+  transform: translateX(-50%);
+  animation: onb-sheet 0.3s ease-out;
+}
+
+@keyframes onb-sheet {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 24px);
+  }
+}
+
+.onb-sheet-title {
+  margin: 0;
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.onb-days {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.onb-day {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  font-weight: 700;
+  opacity: 0.8;
+}
+
+.onb-day.is-now {
+  opacity: 1;
+}
+
+.onb-day svg {
+  padding: 4px;
+  border-radius: 50%;
+  border: 1.5px solid #9a9776;
+  background: #f3f1e2;
+}
+
+.onb-dash {
+  width: 14px;
+  border-top: 2px dotted #9a9776;
+}
+
+.onb-sheet-route,
+.onb-now {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+}
+
+.onb-marks {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-3);
+  min-height: 76px;
+}
+
+.onb-mark {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-3);
+  border-radius: 16px;
+  border: 1.5px solid #e1ddc3;
+  animation: onb-pop-in 0.35s ease-out both;
+}
+
+.onb-mark:nth-child(2) {
+  animation-delay: 0.08s;
+}
+
+.onb-mark:nth-child(3) {
+  animation-delay: 0.16s;
+}
+
+.onb-mark:nth-child(n + 4) {
+  animation-delay: 0.24s;
+}
+
+@keyframes onb-pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.7);
+  }
+}
+
+.onb-sheet-go {
+  min-width: 140px;
+}
+
+/* --- The day readout's menu --- */
+.hud-top [data-hold-menu] {
+  pointer-events: auto;
+}
+
+.day-menu {
+  z-index: 55;
+  gap: var(--space-1);
+  pointer-events: auto;
+}
+
+.day-menu-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  color: #5c5a43;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.day-menu-item:active {
+  background: #e1ddc3;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .onb *,
+  .onb-hint,
+  .onb-hint *,
+  .onb-sheet,
+  .onb-sheet *,
+  .coach-line,
+  .coach-glow,
+  .coach-ring,
+  .coach-hand-tap,
+  .coach-hand-ripple,
+  .coach-join,
+  .coach-restart,
+  .map-root[data-coach] *,
+  .game[data-coach] * {
+    animation: none !important;
+  }
+}

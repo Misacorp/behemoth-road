@@ -23,6 +23,7 @@ import {
   type CharacterTally,
   type SeasonStats,
   replaceCharacter,
+  SEEN_IDS,
   toPlayerView,
 } from '@behemoth-road/core';
 import type { AppConfig, PlayerView, Session } from './schema.ts';
@@ -143,7 +144,9 @@ export function notJoinedScenario(): Scenario {
   state = must(addCharacter(state, { userId: OLA, role: 'engineer', offer: 1 }));
   const c = state.creature.centre;
   state = place(state, OLA, { q: c.q, r: c.r + 2 });
-  return { state, you: MISA, version: 3, admin: true };
+  // A player who has been here before: the intro, the practice and every hint are behind them (the
+  // onboarding scenarios start from `{ ...scenario, seen: [] }`).
+  return { state, you: MISA, version: 3, admin: true, seen: [...SEEN_IDS] };
 }
 
 /** Joined: you and Pip ride the creature, Ola stands on a hex beside it. */

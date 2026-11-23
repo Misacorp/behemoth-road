@@ -14,6 +14,9 @@ import { IconTip } from '../ui/IconTip.tsx';
 import { tipFor } from '../ui/tip.ts';
 import { tipProps } from '../ui/press.ts';
 import { ready, START, wizard, type Wizard } from './wizard.ts';
+import { ArtIcon } from '../onboarding/art.tsx';
+import { RoleCardView } from '../onboarding/RoleCardView.tsx';
+import { ROLE_CARDS } from '../onboarding/roleCards.ts';
 
 export interface JoinDrawerProps {
   readonly open: boolean;
@@ -26,7 +29,7 @@ export interface JoinDrawerProps {
   readonly onClose?: () => void;
 }
 
-function BackIcon(): JSX.Element {
+export function BackIcon(): JSX.Element {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <path
@@ -110,21 +113,24 @@ export function JoinDrawer(props: JoinDrawerProps): JSX.Element | null {
           >
             <BackIcon />
           </button>
-          {ROLE_IDS.map((r) => (
-            <button
-              key={r}
-              type="button"
-              class="role"
-              role="option"
-              aria-label={contentName('role', r)}
-              aria-selected={w.role === r}
-              data-role={r}
-              onClick={() => setW((s) => wizard(s, { kind: 'role', role: r }))}
-              {...tipProps(tipFor('role', r))}
-            >
-              <RoleEmblem role={r} size={40} />
-            </button>
-          ))}
+          {/* One card a role, swiped through; a tap on a card picks it. */}
+          <div class="role-strip">
+            {ROLE_CARDS.filter((c) => ROLE_IDS.includes(c.role)).map((c) => (
+              <button
+                key={c.role}
+                type="button"
+                class="role"
+                role="option"
+                aria-label={contentName('role', c.role)}
+                aria-selected={w.role === c.role}
+                data-role={c.role}
+                onClick={() => setW((s) => wizard(s, { kind: 'role', role: c.role }))}
+                {...tipProps(tipFor('role', c.role))}
+              >
+                <RoleCardView card={c} />
+              </button>
+            ))}
+          </div>
         </div>
         <div class="join-step join-confirm">
           <button
@@ -157,6 +163,26 @@ export function JoinDrawer(props: JoinDrawerProps): JSX.Element | null {
             </svg>
           </button>
         </div>
+        {/* The public wiki opens in the browser: the icon guide, for those who want it before choosing. */}
+        <a
+          class="join-wiki"
+          href="/wiki"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Wiki"
+        >
+          <ArtIcon id="book" size={28} />
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path
+              d="M5 11l6-6M6 5h5v5"
+              fill="none"
+              stroke={PALETTE.ink}
+              stroke-width={1.8}
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+        </a>
       </div>
     </Drawer>
   );

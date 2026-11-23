@@ -66,6 +66,8 @@ export interface HudProps {
     readonly ready: boolean;
     readonly onOpen: () => void;
   } | null;
+  /** The day readout opens the replay menu when held (the real game's guides). */
+  readonly menu?: boolean;
   /** Opens or closes the player roster (the party button above the recentre buttons). */
   readonly onRoster?: () => void;
   /** A threat just struck the creature: the gauge jolts. */
@@ -141,7 +143,12 @@ export function Hud(props: HudProps): JSX.Element {
   return (
     <>
       <div class="hud-top">
-        <div class="hud-day" aria-label="Day" {...tipProps('hud:day')}>
+        <div
+          class="hud-day"
+          aria-label="Day"
+          {...tipProps('hud:day')}
+          {...(props.menu ? { 'data-hold-menu': true } : {})}
+        >
           <SunIcon />
           <span>{props.day}</span>
           {props.peril && (
