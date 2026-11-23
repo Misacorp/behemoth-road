@@ -30,15 +30,24 @@ export const applySkillTicks = (
   let state = before;
   const events: GameEvent[] = [];
 
-  // Standing guard: a rider defends the creature without spending an action.
+  // Standing guard: a rider with an unspent action defends the creature, spending it (as a hand defend
+  // would: never more than the action).
   const guards = active(state)
-    .filter((c) => c.at.kind === 'creature' && effectsOf(c, 'defend-tick').length > 0)
+    .filter(
+      (c) =>
+        c.at.kind === 'creature' &&
+        c.actionsLeft >= state.config.defendCost &&
+        effectsOf(c, 'defend-tick').length > 0,
+    )
     .map((c) => c.id)
     .filter((id) => !state.creature.defenders.includes(id));
   if (guards.length > 0) {
     state = {
       ...state,
       creature: { ...state.creature, defenders: [...state.creature.defenders, ...guards] },
+      characters: state.characters.map((c) =>
+        guards.includes(c.id) ? { ...c, actionsLeft: c.actionsLeft - state.config.defendCost } : c,
+      ),
     };
     for (const characterId of guards) events.push({ kind: 'defend', characterId });
   }
@@ -77,12 +86,13 @@ export const applySkillTicks = (
       .sort((a, b) => (a.key < b.key ? -1 : 1))[0];
     if (!spot) continue;
     const { material } = spot.type.yields;
+    const taken = Math.min(amount, spot.f.left);
     state = {
       ...state,
-      features: { ...state.features, [spot.key]: { ...spot.f, left: spot.f.left - 1 } },
-      stores: addMaterials(state.stores, { [material]: amount }),
+      features: { ...state.features, [spot.key]: { ...spot.f, left: spot.f.left - taken } },
+      stores: addMaterials(state.stores, { [material]: taken }),
     };
-    events.push({ kind: 'gather', hex: spot.at, characterId: c.id, material, amount });
+    events.push({ kind: 'gather', hex: spot.at, characterId: c.id, material, amount: taken });
   }
 
   // Self-winding: the unlock in progress gains work by itself (the best such skill, once).

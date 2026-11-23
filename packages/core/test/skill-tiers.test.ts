@@ -13,6 +13,7 @@ import {
   nextDay,
   nextDayWithEvents,
   packCapacityOf,
+  MATERIALS,
   SKILL_NODES,
   stimulusPush,
   threatNextPath,
@@ -161,10 +162,12 @@ describe('scholar', () => {
       const r = opens(seed, ...picks);
       if (r) {
         const finds = ofKind(r.events, 'find');
-        expect(finds.length).toBeLessThanOrEqual(2);
-        if (finds.length === 2) {
+        // One find event, the bonus folded into it.
+        expect(finds).toHaveLength(1);
+        if (finds[0]?.extra) {
           extra++;
-          expect(finds[1]).toMatchObject({ amount: 1 });
+          expect(finds[0].extra).toMatchObject({ amount: 1 });
+          expect(MATERIALS.find((m) => m.id === finds[0]?.extra?.material)?.tags).toContain('rare');
         } else plain++;
       }
       // The same seed without the node never has an extra.
@@ -179,6 +182,8 @@ describe('scholar', () => {
     const seed = findSeed((s) => opens(s, 'scholar-b1', 'scholar-b2', 'scholar-b3') !== null);
     let s = site(seed, 'scholar-b1', 'scholar-b2', 'scholar-b3');
     s = withFeature(s, hex(5, -1), 'iron-deposit'); // a node, 2 away: not a site
+    s = withFeature(s, hex(4, -2), 'pitfall'); // a trap, 1 away: never shown
+    s = withFeature(s, hex(4, -1), 'timber-stand'); // a node, 1 away: never shown
     s = withFeature(s, hex(4, -5), 'deep-tomb'); // 4 away
     s = withFeature(s, hex(5, -3), 'tomb'); // 2 away: nearer
     s = withFeature(s, hex(3, -6), 'tomb'); // too far
@@ -187,6 +192,8 @@ describe('scholar', () => {
     expect(r.state.features['5,-3']?.revealed).toBe(true);
     expect(r.state.features['4,-5']?.revealed).toBe(false);
     expect(r.state.features['5,-1']?.revealed).toBe(false);
+    expect(r.state.features['4,-2']?.revealed).toBe(false);
+    expect(r.state.features['4,-1']?.revealed).toBe(false);
     expect(r.state.tiles['5,-3']?.explored).toBe(true);
   });
 });
@@ -245,6 +252,31 @@ describe('keeper', () => {
     expect(
       checkAction(take(base, 'keeper', 'keeper-b1', 'keeper-b2'), 'keeper', linger),
     ).toMatchObject({ ok: true });
+  });
+
+  it('B2 long rest is capped at lingerChainMax days in a row', () => {
+    const base = chainGame(['keeper']);
+    const at = (streak: number) =>
+      take(
+        { ...base, creature: { ...base.creature, lingeredDay: 0, lingerStreak: streak } },
+        'keeper',
+        'keeper-b1',
+        'keeper-b2',
+      );
+    const linger: Action = { kind: 'linger' };
+    expect(checkAction(at(1), 'keeper', linger)).toMatchObject({ ok: true });
+    expect(checkAction(at(base.config.lingerChainMax), 'keeper', linger)).toMatchObject({
+      ok: false,
+      reason: 'lingered-yesterday',
+    });
+    // The tick counts the streak: two lingers in a row reach the cap.
+    const t = nextDay(ok({ ...base }, 'keeper', linger).state);
+    expect(t.creature.lingerStreak).toBe(1);
+    const second = nextDay(ok(take(t, 'keeper', 'keeper-b1', 'keeper-b2'), 'keeper', linger).state);
+    expect(second.creature.lingerStreak).toBe(2);
+    expect(
+      checkAction(take(second, 'keeper', 'keeper-b1', 'keeper-b2'), 'keeper', linger),
+    ).toMatchObject({ ok: false, reason: 'lingered-yesterday' });
   });
 
   it('B3 beacon: fires you light reach 5 hexes and push twice as hard', () => {
@@ -372,6 +404,15 @@ describe('warden', () => {
     // Bulwark takes 3 off: held in full.
     expect(ofKind(guard.events, 'threat-strikes')[0]?.damage).toBe(0);
     expect(ofKind(guard.events, 'defend')).toHaveLength(1);
+    // It spends an action as a hand defend does: with none left there is no guard.
+    const spent = struck(['warden-a1', 'warden-a2', 'warden-a3']);
+    expect(ofKind(spent.events, 'defend')).toHaveLength(1);
+    const tired = withThreat(lingering(fieldGame(['warden'])), 'captors', hex(0, 3), 3);
+    const none = take(tired, 'warden', 'warden-a1', 'warden-a2', 'warden-a3');
+    const empty = withCharacter(none, { ...me(none, 'warden'), actionsLeft: 0 });
+    const rested = nextDayWithEvents(empty);
+    expect(ofKind(rested.events, 'defend')).toHaveLength(0);
+    expect(ofKind(rested.events, 'threat-strikes')[0]?.damage).toBe(3);
     // Only riders; one who stands on a hex does not defend.
     const off = placeCharacter(
       take(
@@ -436,6 +477,26 @@ describe('warden', () => {
     expect(isEscorted(at([]), two)).toBe(false);
     expect(isEscorted(at(['warden-b1', 'warden-b2', 'warden-b3']), two)).toBe(true);
     expect(isEscorted(at(['warden-b1', 'warden-b2', 'warden-b3']), hex(6, -1))).toBe(false);
+  });
+});
+
+describe('tick effects are deterministic', () => {
+  it('gives the same result for the same seed and state', () => {
+    let s = withFeature(chainGame(['scout', 'engineer']), hex(2, 0), 'timber-stand', true);
+    s = placeCharacter(s, 'scout', P);
+    s = take(s, 'scout', 'scout-a1', 'scout-a2', 'scout-a3');
+    s = take(s, 'engineer', 'engineer-a1', 'engineer-a2', 'engineer-a3');
+    expect(nextDayWithEvents(s)).toEqual(nextDayWithEvents(s));
+  });
+});
+
+describe('monkey drone takes what it gives', () => {
+  it('a node with one charge left gives one and is spent', () => {
+    let s = withFeature(chainGame(['engineer']), hex(2, 0), 'timber-stand', true, 1);
+    s = take(s, 'engineer', 'engineer-a1', 'engineer-a2', 'engineer-a3');
+    const next = nextDay(s);
+    expect(next.stores).toEqual({ timber: 1 });
+    expect(next.features['2,0']?.left).toBe(0);
   });
 });
 

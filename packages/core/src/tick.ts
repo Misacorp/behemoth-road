@@ -256,6 +256,11 @@ export const nextDayWithEvents = (
     centre: step.centre,
     lingering: false,
     lingeredDay: state.creature.lingering ? state.day : state.creature.lingeredDay,
+    lingerStreak: state.creature.lingering
+      ? state.creature.lingeredDay === state.day - 1
+        ? (state.creature.lingerStreak ?? 1) + 1
+        : 1
+      : 0,
     steps: state.creature.steps + (step.stay ? 0 : 1),
   };
   const { care, stores, ate } = careAfter(state, day);

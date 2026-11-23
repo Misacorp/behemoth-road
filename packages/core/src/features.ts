@@ -50,6 +50,8 @@ export type GameEvent =
       readonly characterId: string;
       readonly material: string;
       readonly amount: number;
+      /** A relic-sense bonus found with it (a different material). */
+      readonly extra?: { readonly material: string; readonly amount: number };
     }
   | { readonly kind: 'site-failed'; readonly hex: Hex; readonly characterId: string }
   | { readonly kind: 'deposit'; readonly characterId: string; readonly materials: Materials }

@@ -63,6 +63,7 @@
       "threatPathDistance": 5,
       "struckActions": 1,
       "stanceAmbushPerAction": 1,
+      "lingerChainMax": 2,
       "strikeCost": 1,
       "clearPowerWarden": 2,
       "clearPowerOther": 1,
@@ -98,7 +99,8 @@
       "lingering": false,
       "lingeredDay": null,
       "steps": 4,
-      "defenders": []
+      "defenders": [],
+      "lingerStreak": 0
     },
     "tiles": {
       "-6,0": {

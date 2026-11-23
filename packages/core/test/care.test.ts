@@ -87,6 +87,7 @@ describe('the hidden nature', () => {
       'centre',
       'defenders',
       'heading',
+      'lingerStreak',
       'lingeredDay',
       'lingering',
       'steps',

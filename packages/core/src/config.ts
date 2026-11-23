@@ -85,6 +85,8 @@ export interface TuningConfig {
    * the base power). At most `clearPowerOther`: a stance never beats an active strike per action.
    */
   readonly stanceAmbushPerAction: number;
+  /** Most days in a row a keeper with a linger-chain skill can keep the creature still. */
+  readonly lingerChainMax: number;
 
   // Warden: defence.
   readonly strikeCost: number;
@@ -172,6 +174,7 @@ export const DEFAULT_CONFIG: TuningConfig = {
   threatPathDistance: 5,
   struckActions: 1,
   stanceAmbushPerAction: 1,
+  lingerChainMax: 2,
   strikeCost: 1,
   clearPowerWarden: 2,
   clearPowerOther: 1,
@@ -269,6 +272,7 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     'settlementEvery',
     'routeLength',
     'perilMax',
+    'lingerChainMax',
   ] as const;
   for (const key of costs) if (!isCount(config[key], 1)) problems.push(key);
   const counts = [

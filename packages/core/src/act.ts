@@ -426,7 +426,10 @@ export const checkAction = (
       if (state.creature.lingering) return no('already-have');
       if (
         state.creature.lingeredDay === state.day - 1 &&
-        effectsOf(c, 'linger-chain').length === 0
+        !(
+          effectsOf(c, 'linger-chain').length > 0 &&
+          (state.creature.lingerStreak ?? 1) < config.lingerChainMax
+        )
       ) {
         return no('lingered-yesterday');
       }
@@ -777,7 +780,7 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
     const more = bestOf(c, 'site-finds', (e) => e.amount) ?? 0;
     const amount = Math.min(type.finds.amount + more, Math.max(type.finds.amount, free(state, c)));
     let gained: Materials = { [material]: amount };
-    const events: GameEvent[] = [{ kind: 'find', hex: h, characterId, material, amount }];
+    let extra: { material: string; amount: number } | undefined;
     // Relic sense: now and then one extra unit of a rare material, if the pack has room.
     const relic = effectsOf(c, 'find-bonus')[0];
     if (relic && free(state, c) - amount >= 1) {
@@ -791,9 +794,13 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
           )
         ] as (typeof kinds)[number];
         gained = addMaterials(gained, { [pick.id]: 1 });
-        events.push({ kind: 'find', hex: h, characterId, material: pick.id, amount: 1 });
+        extra = { material: pick.id, amount: 1 };
       }
     }
+    // One find event, the bonus folded into it (one toast, one tally).
+    const events: GameEvent[] = [
+      { kind: 'find', hex: h, characterId, material, amount, ...(extra ? { extra } : {}) },
+    ];
     let next: GameState = withCharacter(
       { ...state, features: { ...state.features, [key]: { ...f, left: 0 } } },
       { pack: addMaterials(c.pack, gained) },

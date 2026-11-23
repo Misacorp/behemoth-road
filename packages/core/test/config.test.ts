@@ -41,6 +41,7 @@ describe('tuning config', () => {
       threatPathDistance: 5,
       struckActions: 1,
       stanceAmbushPerAction: 1,
+      lingerChainMax: 2,
       strikeCost: 1,
       clearPowerWarden: 2,
       clearPowerOther: 1,

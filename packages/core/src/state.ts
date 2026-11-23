@@ -37,6 +37,8 @@ export interface Creature {
   readonly lingering: boolean;
   /** The last day it lingered (it cannot linger the day after), or null. */
   readonly lingeredDay: number | null;
+  /** Days in a row it has lingered, up to the last one (a linger-chain skill is capped by it). */
+  readonly lingerStreak?: number;
   /** Steps walked this season (lingering adds none). Public: the route strip. */
   readonly steps: number;
   /** Wardens defending it until the next tick (character ids). Public. */

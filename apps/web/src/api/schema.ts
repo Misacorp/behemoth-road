@@ -102,6 +102,7 @@ const config = v.object({
   threatPathDistance: count,
   struckActions: count,
   stanceAmbushPerAction: count,
+  lingerChainMax: count,
   strikeCost: count,
   clearPowerWarden: count,
   clearPowerOther: count,
@@ -143,6 +144,7 @@ export const GameStateViewSchema = v.object({
     lingering: v.boolean(),
     /** The last day it lingered, or null. */
     lingeredDay: v.nullable(count),
+    lingerStreak: v.exactOptional(count),
     /** Steps walked this season. */
     steps: count,
     /** Wardens defending it until the next tick. */
@@ -165,7 +167,18 @@ export const GameStateViewSchema = v.object({
   /** The one unlock in progress. */
   project: v.nullable(v.object({ unlock: id, work: count })),
   /** Lit fires (public): each burns through the tick that ends the day it was lit. */
-  stimuli: v.pipe(v.array(v.object({ type: id, hex, litDay: count })), v.maxLength(200)),
+  stimuli: v.pipe(
+    v.array(
+      v.object({
+        type: id,
+        hex,
+        litDay: count,
+        range: v.exactOptional(count),
+        push: v.exactOptional(count),
+      }),
+    ),
+    v.maxLength(200),
+  ),
   /** Threats on the map (public). */
   threats: v.pipe(
     v.array(v.object({ id, type: id, hex, strength: count, appearedDay: count })),
@@ -269,7 +282,13 @@ const KNOWN_EVENTS = [
   event('reveal', { hex, feature: id }),
   event('trap', { hex, characterId: id }),
   event('gather', { hex, characterId: id, material: id, amount: count }),
-  event('find', { hex, characterId: id, material: id, amount: count }),
+  event('find', {
+    hex,
+    characterId: id,
+    material: id,
+    amount: count,
+    extra: v.exactOptional(v.object({ material: id, amount: count })),
+  }),
   event('site-failed', { hex, characterId: id }),
   event('deposit', { characterId: id, materials: counts }),
   event('unlock-progress', { unlock: id, work: count, needed: count }),
