@@ -4,6 +4,14 @@ Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-23: Live updates are on in production **[Misa]**
+
+ID: `2026-11-23-live-updates-are-on-in-production` · Status: current · Amends: `2026-11-21-live-sockets-ticket-auth-caps-hibernation`
+
+**Decision.** `LIVE` is `on` in the production environment of `apps/worker/wrangler.jsonc` (it already was in staging and local). `test/live.test.ts` pins all three. The flag stays, so it can be turned off again by one edit.
+
+**Reasoning.** Misa's call: the sockets are built, capped and tested, and staging has run them; production should use them too. A deploy closes every socket and clients reconnect.
+
 ## 2026-11-21: The view carries the server clock
 
 ID: `2026-11-21-the-view-carries-the-server-clock` · Status: current
@@ -22,7 +30,7 @@ ID: `2026-11-21-rows-read-are-metered-per-source` · Status: current
 
 ## 2026-11-21: Live sockets: ticket auth, caps, Hibernation, flag off in production
 
-ID: `2026-11-21-live-sockets-ticket-auth-caps-hibernation` · Status: current
+ID: `2026-11-21-live-sockets-ticket-auth-caps-hibernation` · Status: current, amended by `2026-11-23-live-updates-are-on-in-production`
 
 **Decision.** Sockets live in `GuildWorld` with the WebSocket Hibernation API (user tag, `serializeAttachment`, `setWebSocketAutoResponse` ping/pong, no timers, stale sockets pruned on connect, push and alarm). Server to client only: any message but `ping` closes the socket with 4002. Auth is a one-time ticket from `POST /api/live/ticket` (bearer session): 30 s, single use, HMAC under its own HKDF label, at most 200 held in memory; `GET /api/live?t=` is checked by the Worker (flag, Upgrade header, one query parameter, constant-time MAC) before the guild's object redeems it. The session token never goes in a URL. Caps: 3 sockets per player (oldest closed with 4000), 64 per guild (503 `live_full`). The `LIVE` var is `on` in staging and local, `off` in production, pinned by a test; off means both routes answer 404 before any object is woken.
 

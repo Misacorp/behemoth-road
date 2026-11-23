@@ -83,10 +83,10 @@ const until = async (cond: () => boolean): Promise<void> => {
 };
 
 describe('the LIVE flag', () => {
-  it('is on in staging and local, off in production (pinned)', () => {
+  it('is on in staging, local and production (pinned)', () => {
     expect(wrangler.vars['LIVE']).toBe('on');
     expect(wrangler.env['staging']?.vars['LIVE']).toBe('on');
-    expect(wrangler.env['production']?.vars['LIVE']).toBe('off');
+    expect(wrangler.env['production']?.vars['LIVE']).toBe('on');
   });
 
   it('makes the ticket route and the upgrade 404 when off', async () => {

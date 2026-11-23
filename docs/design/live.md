@@ -1,6 +1,6 @@
 # Live: near real-time updates
 
-Status: built on `next/live`; on in staging and local, **off in production** (`LIVE` var) until Misa has tried it on staging. Adapted from the creatures app's live socket (`docs/design/lounge-live.md` there) and its rows-read retro.
+Status: built on `next/live`; on in staging, local and **production** (`LIVE` var; Misa turned it on in production on 2026-11-23). Adapted from the creatures app's live socket (`docs/design/lounge-live.md` there) and its rows-read retro.
 
 ## What it does
 
@@ -57,7 +57,7 @@ Two hot queries scanned the whole 100-event log (about 100 rows) on every write 
 
 ## Flag
 
-`LIVE` in `apps/worker/wrangler.jsonc`: `on` at the top level (local) and in staging, `off` in production; `test/live.test.ts` pins it. To turn it on in production: change the var, update the pin, merge; a deploy closes every socket and clients reconnect.
+`LIVE` in `apps/worker/wrangler.jsonc`: `on` at the top level (local), in staging and in production; `test/live.test.ts` pins it. To turn it off again: change the var, update the pin, merge; a deploy closes every socket and clients reconnect.
 
 ## Unknowns for Misa to try on staging
 
