@@ -41,7 +41,14 @@ describe('the game on first sign-in', () => {
       const view = asView(body);
       expect(view.version).toBe(1);
       expect(view.day).toBe(1);
-      expect(view.you).toEqual({ userId: USER_ID, characterId: null, admin: false });
+      expect(view.you).toEqual({
+        userId: USER_ID,
+        characterId: null,
+        admin: false,
+        seen: [],
+        lastDay: null,
+        lastVersion: null,
+      });
       expect(view.players).toEqual([]);
       // Two or three rolled characters, then the plain one.
       expect(view.offers?.length).toBeGreaterThanOrEqual(3);
