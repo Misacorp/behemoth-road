@@ -85,7 +85,7 @@ Goal: prove that roles depend on each other. Three roles: Scout, Engineer, Schol
 
 Done when: a scout finds a site and a node, an engineer gathers and crafts something that changes how everyone moves, and a scholar opens the site with help from that chain. The owner should be able to feel that each role mattered.
 
-Out of scope: skill trees (use one or two fixed role perks instead), keeper, guardian, envoy, threats.
+Out of scope: skill trees (use one or two fixed role perks instead), keeper, warden (then two roles, guardian and envoy), threats.
 
 ## Milestone 4: the living creature
 
@@ -105,8 +105,7 @@ Done when: a keeper can work out by experiment how the creature reacts to fire, 
 Goal: a complete, short season that can be won or lost.
 
 - The attack system with two or three flavours, defined as data with tags.
-- **Guardian.** Clears a threat before it reaches the creature, defends when it arrives, escorts another character.
-- **Envoy.** At least one people on the route to deal with, with more than one outcome.
+- **Warden** (originally two roles, Guardian and Envoy, merged on 2026-11-23). Clears a threat before it reaches the creature, defends when it arrives, escorts another character; deals with at least one people on the route, with more than one outcome.
 - Peril that builds through neglect and enemy pressure; graded outcomes at the end.
 - Scaling by player count and days elapsed.
 - A destination: reaching it ends the season.

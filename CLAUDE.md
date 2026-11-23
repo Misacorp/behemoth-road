@@ -46,7 +46,7 @@ Do not add features, roles or systems that are not in the current milestone. Whe
 
 ### Language
 
-British English, as in the design docs ("behaviour", "defence", "flavour"). Role names are: Scout, Scholar, Keeper, Guardian, Engineer, Envoy. Earlier drafts used "Seeker" (now Scholar), "Crafter" (now Engineer) and "Pathfinder" (removed).
+British English, as in the design docs ("behaviour", "defence", "flavour"). Role names are: Scout, Scholar, Keeper, Engineer, Warden (Guardian and Envoy merged into Warden, 2026-11-23). Earlier drafts used "Seeker" (now Scholar), "Crafter" (now Engineer) and "Pathfinder" (removed).
 
 ## The owner and how we work
 

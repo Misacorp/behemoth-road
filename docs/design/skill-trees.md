@@ -8,7 +8,7 @@ For Misa to react to. Numbers are guesses for the tuning config.
 - **A pick per `xpPerPick` XP** (14 on a full season, 5 on the dev season), tuned so a busy player gets about the same picks as under the notch rule (simulated: 1.4 each at 3 players, 1.0 at 6, per 40 steps; a human who acts all three actions a day earns far more).
 - **Pick any time**, free, effective at once, kept for the season.
 - **Each tree forks:** two branches of three tiers. Your first pick in a tree chooses the branch; the other closes. Mastery is three picks.
-- **Multi-classing is open.** Any pick can buy another role's tier 1 (never deeper): a scout can take Skywatch, never Rout.
+- **Multi-classing is open.** Any pick can buy another role's tier 1 (never deeper): a scout can take Bulwark, never Wide guard.
 - **No combos.** No node reads who else is near or their role.
 
 **Between seasons:** nothing for now. Later, optional: a master who came home joins the roster as a veteran with a matching trait, for one run (a sidegrade), and the archive keeps a seal per mastered branch.
@@ -42,15 +42,6 @@ For Misa to react to. Numbers are guesses for the tuning config.
 - B2 Hurry: 2 actions; the creature takes two steps at the next tick.
 - B3 Beacon: fires you light reach 5 hexes and sway the creature twice as hard (whichever way it reacts).
 
-**Guardian:** hunter or warden.
-
-- A1 Skywatch: +1 strike power against `flying` threats.
-- A2 Long reach: strike a threat from two hexes away.
-- A3 Rout: clearing a `pursuer` threat keeps pursuers away for 3 days.
-- B1 Bulwark: defend reduces each strike by 3, not 2.
-- B2 Wide guard: your escort covers two hexes, not one.
-- B3 Standing guard: you defend at every tick you ride, with no action.
-
 **Engineer:** prospector or artificer.
 
 - A1 Double yield: gathering gives 2 units.
@@ -60,14 +51,16 @@ For Misa to react to. Numbers are guesses for the tuning config.
 - B2 Thrift: unlocks cost one fewer of their largest material.
 - B3 Self-winding: the unlock in progress gains 1 work at each tick by itself.
 
-**Envoy:** diplomat or schemer.
+**Warden:** shield or word (the Guardian and Envoy trees merged on 2026-11-23: one role that protects and deals with the peoples).
 
-- A1 Silver tongue: parley gives 3 favour.
-- A2 Second boon: a settlement you befriended grants one more boon.
-- A3 Allies: friendly settlements strike a threat within 3 each tick.
-- B1 Ravens: parley from up to three hexes away.
-- B2 Calm words: parley with an angry settlement turns it wary again.
-- B3 Turncoats: parley with a threat tagged `people`: it loses 2 strength.
+- A1 Bulwark: defend reduces each strike by 3, not 2.
+- A2 Wide guard: your escort covers two hexes, not one.
+- A3 Standing guard: you defend at every tick you ride, with no action.
+- B1 Silver tongue: parley gives 3 favour.
+- B2 Ravens: parley from up to three hexes away.
+- B3 Allies: friendly settlements strike a threat within 3 each tick.
+
+Dropped in the merge (the effect kinds `strike-bonus` and `parley-range` stay in the rules, so they can return as nodes): Skywatch (+1 strike against `flying`), Long reach, Rout, Second boon, Calm words, Turncoats. Ravens moved from tier 1 to tier 2, so it is veiled until tier 2 opens.
 
 Trap sense, glints and double yield were inactive perks in `roles.ts`; they are now these nodes (far sight stays a perk until scout B2). Most tier 3s help the whole team.
 
@@ -80,7 +73,7 @@ Trap sense, glints and double yield were inactive perks in `roles.ts`; they are 
 
 ## First slice
 
-XP, picks, the fork, the tree drawer and the twelve tier-1 nodes (each one number or an existing perk). Tiers 2 and 3 show veiled. On the dev season (a pick per 5 XP) everyone makes two or three choices. Tiers 2 and 3 follow once you have felt the fork.
+XP, picks, the fork, the tree drawer and the ten tier-1 nodes (each one number or an existing perk). Tiers 2 and 3 show veiled. On the dev season (a pick per 5 XP) everyone makes two or three choices. Tiers 2 and 3 follow once you have felt the fork.
 
 ## Open questions
 
@@ -94,17 +87,16 @@ XP, picks, the fork, the tree drawer and the twelve tier-1 nodes (each one numbe
 
 Misa approved the proposal with these picks (the first, picks earned by working, was revised by the XP pool below): the first pick in a role's tree closes the other branch for good; another role's tree only to tier 1; everyone gets a catch-up 1 XP every 10 steps; nothing carries over between seasons. (Open questions 1 to 5 above are settled this way.)
 
-**Content** (`packages/core/src/content/skills.ts`, exported from `@behemoth-road/core`): `SKILL_NODES`, 36 nodes `{ id, name, role, branch: 'a' | 'b', tier: 1 | 2 | 3, icon, active, effect }`.
+**Content** (`packages/core/src/content/skills.ts`, exported from `@behemoth-road/core`): `SKILL_NODES`, 30 nodes `{ id, name, role, branch: 'a' | 'b', tier: 1 | 2 | 3, icon, active, effect }`.
 
-- `id` is `<role>-<branch><tier>`: `scout-a1` to `scout-b3`, likewise `scholar-`, `keeper-`, `guardian-`, `engineer-`, `envoy-`. `icon` is `skill:<id>`, so the art agent draws `skill:scout-a1` and so on (36 ids; the 12 active ones first).
+- `id` is `<role>-<branch><tier>`: `scout-a1` to `scout-b3`, likewise `scholar-`, `keeper-`, `engineer-`, `warden-`. `icon` is `skill:<id>`, so the art agent draws `skill:scout-a1` and so on (30 ids; the 10 active ones first).
 - Only tier 1 is `active`. Tiers 2 and 3 are data with `active: false` and `effect: { kind: 'veiled' }`: draw them veiled, never name or describe them. The server refuses them (`skill-veiled`).
-- The 12 active nodes and their `effect` (a data hook; the UI draws the kind, not prose):
+- The 10 active nodes and their `effect` (a data hook; the UI draws the kind, not prose):
   - `scout-a1` Trap sense `{ kind: 'trap-sense' }`; `scout-b1` Glints `{ kind: 'glints', range: 2 }`.
   - `scholar-a1` Field kit `{ kind: 'action-cost', action: 'work-site', cost: 1 }`; `scholar-b1` Lamplight `{ kind: 'site-chance', tag: 'dark', bonus: 0.2 }`.
   - `keeper-a1` Good forage `{ kind: 'gather-yield', amount: 2, tag: 'food' }`; `keeper-b1` Quiet linger `{ kind: 'action-cost', action: 'linger', cost: 1 }`.
-  - `guardian-a1` Skywatch `{ kind: 'strike-bonus', tag: 'flying', bonus: 1 }`; `guardian-b1` Bulwark `{ kind: 'defend-reduction', amount: 3 }`.
   - `engineer-a1` Double yield `{ kind: 'gather-yield', amount: 2 }`; `engineer-b1` Quick hands `{ kind: 'build-work', amount: 2 }`.
-  - `envoy-a1` Silver tongue `{ kind: 'parley-favour', bonus: 1 }`; `envoy-b1` Ravens `{ kind: 'parley-range', range: 3 }`.
+  - `warden-a1` Bulwark `{ kind: 'defend-reduction', amount: 3 }`; `warden-b1` Silver tongue `{ kind: 'parley-favour', bonus: 1 }`.
 
 **State and view.** Every character has `skills: { xp: number, taken: nodeId[] }` (revised: one XP pool replaces the per-role `notches` record). The branch of a tree is implied by `taken`. It is part of the public view (`game.characters[].skills`): everyone sees everyone's XP and taken nodes. Nothing carries over to the next season (a new character starts at 0).
 
@@ -125,6 +117,6 @@ The player view response (`PlayerView`) gains a per-viewer field `glints: { q, r
 - Field kit and quiet linger set the action's cost to 1 (never raise it).
 - Lamplight adds 0.2 (capped at 1) on sites tagged `dark` (the deep tomb), but only for a character who could work that site at all: a non-scholar still cannot work a tier-2 site (`cannot-work`).
 - Good forage and double yield: a gather yields `max(node's own, effect amount)` for materials the effect covers, never more than the pack has room for; a gather that cannot fit even the node's own amount is still `pack-full`.
-- Skywatch: a strike on a threat tagged `flying` takes 1 more off. Bulwark: each defending guardian riding takes 3 off each strike on the creature, not `defendReduction` (2).
+- Strike bonus (no node carries it since the merge): a strike on a threat tagged `flying` takes 1 more off. Bulwark: each defending warden riding takes 3 off each strike on the creature, not `defendReduction` (2).
 - Quick hands: a build action adds 2 work (`buildWork` in the config is the base, 1).
-- Silver tongue: a parley gains 1 more favour. Ravens: a parley reaches the nearest settlement within 3 hexes (a rider measures from the footprint); offer and ask-boon still need your own hex.
+- Silver tongue: a parley gains 1 more favour. Parley range (Ravens, now tier 2 and veiled): a parley reaches the nearest settlement within 3 hexes (a rider measures from the footprint); offer and ask-boon still need your own hex.

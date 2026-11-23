@@ -4,7 +4,7 @@ The plan and contract for Milestone 5 (`docs/PROTOTYPE_PLAN.md`): a complete, sh
 
 Done when the group can play a full short season to a win or a loss. On staging and locally the season is short (12 steps) and the admin "next day" plays it through in minutes.
 
-This is a prototype slice. Three threat flavours, one people, three boons. They are placeholders to prove the loop; threats, peoples and boons are meant to grow varied, and guardian and envoy abilities beyond the base ones come later as upgrades.
+This is a prototype slice. Three threat flavours, one people, three boons. They are placeholders to prove the loop; threats, peoples and boons are meant to grow varied, and warden abilities beyond the base ones come later as upgrades.
 
 ## Threats (the attack system)
 
@@ -18,25 +18,27 @@ This is a prototype slice. Three threat flavours, one people, three boons. They 
 - **Scaling.** Strength is the type's base `+ floor((active players − 1) / threatStrengthPlayers)` (3) `+ floor((day − 1) / threatStrengthDays)` (14). More players and later days: more and stronger threats.
 - **Approach.** At each tick, after the creature's step, every threat moves up to `speed` hexes toward the creature's centre (each step to the neighbour closest to it, ties broken by a fixed direction order), and stops at **contact**: `creatureRadius + reach` from the centre (next to the footprint for reach 1). Terrain does not slow threats for now.
 - **Striking the creature.** A threat at contact after moving strikes: peril rises by `max(0, strength − defence)` and the threat is spent (gone).
-- **Striking a character.** After moving, a threat strikes every active character standing on a hex within its `reach` of it, unless that character is a guardian or is escorted (within 1 of an active guardian on a hex). A struck character starts the next day with `struckActions` (1) actions. Riders are never struck. The threat goes on.
+- **Striking a character.** After moving, a threat strikes every active character standing on a hex within its `reach` of it, unless that character is a warden or is escorted (within 1 of an active warden on a hex). A struck character starts the next day with `struckActions` (1) actions. Riders are never struck. The threat goes on.
 - **Gone.** A threat whose hex leaves the window (a rockslide left behind) is gone.
 - `threatOutlook(view)` (public core function, for the interface): for each threat, whether it reaches contact at the next tick if the creature walks straight on (`arrives: 'tomorrow' | 'later' | 'never'`), and the neighbour it would step to first. Blind to the creature's real step, like `predictCreature`.
 - `threatNextPath(view, threatId)` (public core function, for the interface): the hexes the threat will cross at the next tick, end hex last, under the same straight-walk guess (a lingering creature stays put); empty when it does not move. The interface draws it as the threat's path for the next day.
 - **Telegraphed** (decision "Threats are telegraphed"): the window is radius 6 (`windowRadius`), speeds are 0 to 2, and a threat's next path is shown. A scout perk `far-sight` (seeing threats beyond the window's edge) is data only, for a later upgrade.
 - **Balance**: `packages/core/scripts/balance.ts` plays seeded seasons with scripted careful and careless parties. With these numbers (200 seeds), careful parties of 3 or 6 lose 12–14 % of full seasons and about 1 % of dev seasons; careless ones never win safe. See the decision "A seeded balance simulation".
 
-## Guardian (base abilities)
+## Warden (base abilities)
 
-- **Strike a threat** (anyone): standing on or next to a threat's hex, 1 action, its strength drops by `clearPowerWarden` (2) for a role tagged `defend`, `clearPowerOther` (1) for anyone else. At 0 it is cleared (gone). Basics for all; standing next to a threat at the tick is a risk for anyone who is not a guardian or escorted.
-- **Defend** (guardians, riding): 1 action. Until the next tick, each strike on the creature is reduced by `defendReduction` (2) per defending guardian still riding at the tick. Public: `creature.defenders` (character ids), cleared at the tick. Once per guardian per day.
-- **Escort** (guardians, passive): a character within 1 of an active guardian standing on a hex is not struck. The guardian is not struck either. No action: it is where the guardian stands.
+The Warden is the Guardian and the Envoy merged (2026-11-23): one role, tagged `defend`, `escort`, `peoples` and `trade`. Everything below that read "warden" or "envoy" reads the warden role; non-wardens keep the basics.
 
-## Envoy and the peoples
+- **Strike a threat** (anyone): standing on or next to a threat's hex, 1 action, its strength drops by `clearPowerWarden` (2) for a role tagged `defend`, `clearPowerOther` (1) for anyone else. At 0 it is cleared (gone). Basics for all; standing next to a threat at the tick is a risk for anyone who is not a warden or escorted.
+- **Defend** (wardens, riding): 1 action. Until the next tick, each strike on the creature is reduced by `defendReduction` (2) per defending warden still riding at the tick. Public: `creature.defenders` (character ids), cleared at the tick. Once per warden per day.
+- **Escort** (wardens, passive): a character within 1 of an active warden standing on a hex is not struck. The warden is not struck either. No action: it is where the warden stands.
+
+## The peoples (a warden's other half)
 
 - Peoples are content: `PEOPLE_TYPES` in `content/peoples.ts`. The first, the **Hill folk** (tags `people`, `herders`): `favourNeeded` 3, boons `gift`, `mislead` and `shelter`, gift `[2 forage, 1 timber]`, angered they send `raiders`.
 - **Settlements** are placed by the route, not by chance, so every season meets them: at the tick on which the creature's step count reaches `settlementFirst` (4) and then every `settlementEvery` (10) steps, one settlement appears on a seeded hex at the window's leading edge (within a sixth of a turn of the heading, not water, not steep, no feature). A settlement is visible from the start (a village is not hidden). Public: `GameStateView.settlements = [{ id, type, hex, attitude: 'wary' | 'friendly' | 'angry', favour, boon }]`. It stays until its hex is lost to the fog.
 - **Parley** (anyone, on the settlement's hex, wary only): 1 action. A role tagged `peoples` gains `parleyFavourWarden` (2) favour. Anyone else gains `parleyFavourOther` (1), with a `parleyAngerChanceOther` (0.25) seeded chance (seed, day, character, settlement) of angering it instead. The published chance is in the action check, so the interface can show the risk.
-- **Offer** (anyone, on the hex, wary only): 1 action and 1 unit of a material tagged `trade` (old coin from a tomb) from the pack: `offerFavour` (2) favour, no risk. The scholar's find becomes the envoy's lever.
+- **Offer** (anyone, on the hex, wary only): 1 action and 1 unit of a material tagged `trade` (old coin from a tomb) from the pack: `offerFavour` (2) favour, no risk. The scholar's find becomes the warden's lever.
 - **Befriended.** At `favourNeeded` favour it turns friendly.
 - **Ask a boon** (anyone, on the hex, friendly, no boon taken yet): 1 action, picking one of the type's boons. One boon per settlement.
   - `gift`: the type's gift goes into the team stores.
@@ -72,9 +74,9 @@ The creature's step (or linger) is chosen as before, then the step count rises. 
 ## Interface
 
 - **Threats** are drawn on their hex (a captor band, a swarm in the air, a teetering rockslide, raiders), with strength as small marks, and a short arrow toward the creature showing their next step. A threat that arrives tomorrow pulses. Tap a threat: its card with its name, strength and, when you are on or next to it, the strike action with its pip cost.
-- **Escort**: a guardian on a hex shows a soft ring over its neighbours; an escorted character carries a small shield mark. A struck character shows a bandage for the day.
-- **Defend**: a card in the hub drawer for guardians (like linger); defending guardians stand on the creature with shields raised.
-- **Settlements** are drawn on their hex, their attitude readable at a glance (wary: plain huts and smoke; friendly: a raised banner; angry: torches and red). Favour as marks. Tap: parley (with a risk mark for non-envoys), offer (a coin icon, when you carry one), and once friendly the three boon icons to pick from.
+- **Escort**: a warden on a hex shows a soft ring over its neighbours; an escorted character carries a small shield mark. A struck character shows a bandage for the day.
+- **Defend**: a card in the hub drawer for wardens (like linger); defending wardens stand on the creature with shields raised.
+- **Settlements** are drawn on their hex, their attitude readable at a glance (wary: plain huts and smoke; friendly: a raised banner; angry: torches and red). Favour as marks. Tap: parley (with a risk mark for non-wardens), offer (a coin icon, when you carry one), and once friendly the three boon icons to pick from.
 - **Peril** is a gauge on the HUD beside the day: ten marks with the wounded threshold marked. As it rises the map's edges darken a little.
 - **The route** is a thin strip on the HUD: steps walked toward home, with a home mark at the end.
 - **Where peril came from** shows on the ending (every outcome) as a stacked bar of what was added and rows of icon and number, biggest first, then what eased peril and what defence held; tapping the HUD peril gauge opens the same view for the season so far. Tips hint at what to do, no prose. A tick whose peril rose from hunger pops the feeding icon beside the gauge and lifts it off the creature.

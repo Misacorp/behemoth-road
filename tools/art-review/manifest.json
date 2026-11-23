@@ -20,7 +20,8 @@
     "2026-11-21-4",
     "2026-11-21-5",
     "2026-11-21-6",
-    "2026-11-22-1"
+    "2026-11-22-1",
+    "2026-11-23-1"
   ],
   "items": [
     {
@@ -136,10 +137,10 @@
       "id": "sheet/fog",
       "group": "Sheets",
       "title": "Unseen, fading, lost, hint",
-      "version": "6d3348c6",
+      "version": "86e1f463",
       "kind": "glance",
-      "batch": "2026-11-21-4",
-      "file": "art/sheet-fog-6d3348c6.svg"
+      "batch": "2026-11-23-1",
+      "file": "art/sheet-fog-86e1f463.svg"
     },
     {
       "id": "facing/side",
@@ -179,10 +180,10 @@
       "id": "map/patch",
       "group": "Map",
       "title": "The map, Spring at tilt 0.8",
-      "version": "88c41490",
+      "version": "ce9dcdd9",
       "kind": "glance",
-      "batch": "2026-11-21-6",
-      "file": "art/map-patch-88c41490.svg"
+      "batch": "2026-11-23-1",
+      "file": "art/map-patch-ce9dcdd9.svg"
     },
     {
       "id": "creature/headings",
@@ -233,32 +234,32 @@
       "id": "emblems/roundel",
       "group": "Role emblems",
       "title": "Round frame",
-      "version": "8a938674",
+      "version": "57bcc0f0",
       "kind": "pick",
       "pick": "emblem-frame",
       "question": "Which frame should the role emblems share?",
-      "batch": "2026-11-19-5",
-      "file": "art/emblems-roundel-8a938674.svg"
+      "batch": "2026-11-23-1",
+      "file": "art/emblems-roundel-57bcc0f0.svg"
     },
     {
       "id": "emblems/shield",
       "group": "Role emblems",
       "title": "Shield frame",
-      "version": "dbc8bdd4",
+      "version": "ef7da1c3",
       "kind": "pick",
       "pick": "emblem-frame",
       "question": "Which frame should the role emblems share?",
-      "batch": "2026-11-19-5",
-      "file": "art/emblems-shield-dbc8bdd4.svg"
+      "batch": "2026-11-23-1",
+      "file": "art/emblems-shield-ef7da1c3.svg"
     },
     {
       "id": "icons/sheet",
       "group": "Icons",
       "title": "Every icon, and the fallback",
-      "version": "89bc12f9",
+      "version": "78b1fcd8",
       "kind": "glance",
-      "batch": "2026-11-21-4",
-      "file": "art/icons-sheet-89bc12f9.svg"
+      "batch": "2026-11-23-1",
+      "file": "art/icons-sheet-78b1fcd8.svg"
     },
     {
       "id": "characters/lineup",
@@ -291,10 +292,10 @@
       "id": "features/glint",
       "group": "Features",
       "title": "The glint on sensed tiles",
-      "version": "82eabfe6",
+      "version": "3c36632f",
       "kind": "glance",
-      "batch": "2026-11-21-4",
-      "file": "art/features-glint-82eabfe6.svg"
+      "batch": "2026-11-23-1",
+      "file": "art/features-glint-3c36632f.svg"
     },
     {
       "id": "marks/moments",
@@ -363,19 +364,19 @@
       "id": "map/care",
       "group": "Creature care",
       "title": "On the map: fires, berries, an underfed creature and two cues",
-      "version": "949c1846",
+      "version": "79256dd0",
       "kind": "glance",
-      "batch": "2026-11-21-6",
-      "file": "art/map-care-949c1846.svg"
+      "batch": "2026-11-23-1",
+      "file": "art/map-care-79256dd0.svg"
     },
     {
       "id": "map/care-lite",
       "group": "Creature care",
       "title": "The same in lite mode",
-      "version": "b416d965",
+      "version": "7df23314",
       "kind": "glance",
-      "batch": "2026-11-21-6",
-      "file": "art/map-care-lite-b416d965.svg"
+      "batch": "2026-11-23-1",
+      "file": "art/map-care-lite-7df23314.svg"
     },
     {
       "id": "features/veil",
@@ -417,19 +418,19 @@
       "id": "season/map-phone",
       "group": "Season",
       "title": "The season on a phone: threats, a village, an escort, a defender, peril 4 (full, then lite)",
-      "version": "e389003f",
+      "version": "da8abedb",
       "kind": "glance",
-      "batch": "2026-11-21-6",
-      "file": "art/season-map-phone-e389003f.svg"
+      "batch": "2026-11-23-1",
+      "file": "art/season-map-phone-da8abedb.svg"
     },
     {
       "id": "season/map-desktop",
       "group": "Season",
       "title": "The same at desktop scale",
-      "version": "564dd2e1",
+      "version": "4aa12f94",
       "kind": "glance",
-      "batch": "2026-11-21-6",
-      "file": "art/season-map-desktop-564dd2e1.svg"
+      "batch": "2026-11-23-1",
+      "file": "art/season-map-desktop-4aa12f94.svg"
     },
     {
       "id": "season/threats",
@@ -452,7 +453,7 @@
     {
       "id": "season/escort",
       "group": "Season",
-      "title": "A guardian’s escort ring, escorted and struck marks, guardians defending on the creature",
+      "title": "A warden’s escort ring, escorted and struck marks, wardens defending on the creature",
       "version": "7811b4fa",
       "kind": "glance",
       "batch": "2026-11-21-4",
@@ -471,10 +472,10 @@
       "id": "season/hud",
       "group": "Season",
       "title": "Peril gauge 0 to 10 and the route strip at phone and desktop widths; the vignette at peril 3, 6, 9",
-      "version": "cf289f50",
+      "version": "723335f8",
       "kind": "glance",
-      "batch": "2026-11-21-6",
-      "file": "art/season-hud-cf289f50.svg"
+      "batch": "2026-11-23-1",
+      "file": "art/season-hud-723335f8.svg"
     },
     {
       "id": "season/moments",
@@ -525,10 +526,10 @@
       "id": "feedback/marks",
       "group": "Playtest feedback",
       "title": "Explored-empty fading; out of reach; misled; greyed actions with the role they need; nothing here, misled and peril relieved moments",
-      "version": "8b38e8b5",
+      "version": "0234eb9f",
       "kind": "glance",
-      "batch": "2026-11-21-4",
-      "file": "art/feedback-marks-8b38e8b5.svg"
+      "batch": "2026-11-23-1",
+      "file": "art/feedback-marks-0234eb9f.svg"
     },
     {
       "id": "variety/map",
@@ -578,20 +579,20 @@
     {
       "id": "skills/trees",
       "group": "Skills",
-      "title": "The six skill trees: emblem root, two branches of three nodes (scout shown mid-pick: branch a taken, next available, last veiled, branch b closed and cut), then all 36 nodes finished",
-      "version": "6c0d38dd",
+      "title": "The five skill trees: emblem root, two branches of three nodes (scout shown mid-pick: branch a taken, next available, last veiled, branch b closed and cut), then all 36 nodes finished",
+      "version": "de38b4a5",
       "kind": "glance",
-      "batch": "2026-11-22-1",
-      "file": "art/skills-trees-6c0d38dd.svg"
+      "batch": "2026-11-23-1",
+      "file": "art/skills-trees-de38b4a5.svg"
     },
     {
       "id": "skills/states",
       "group": "Skills",
       "title": "Node looks (plain, veiled, available, taken, closed), branch paths (open, taken, closed) and the notch ring filling toward a pick, glowing when ready",
-      "version": "bf9f8325",
+      "version": "af4ab432",
       "kind": "glance",
-      "batch": "2026-11-22-1",
-      "file": "art/skills-states-bf9f8325.svg"
+      "batch": "2026-11-23-1",
+      "file": "art/skills-states-af4ab432.svg"
     }
   ]
 }

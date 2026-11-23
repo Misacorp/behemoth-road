@@ -121,6 +121,7 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-23 Guardian and Envoy merge into one role, the Warden \[Misa\]
 - 2026-11-22 The ending and the peril gauge show where peril came from \[Misa\]
 - 2026-11-22 The catch-up is 1 XP every 10 steps \[Misa\]
 - 2026-11-22 Skill XP comes from any contribution, one pool per character \[Misa\]
@@ -176,8 +177,8 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-20 Milestone 5 art: threats, settlements and the guardian's marks are drawn by the art kit from content keys
 - 2026-11-20 Milestone 5 core: readings of the season contract
 - 2026-11-20 Threats are tagged data that appear at the window's edge and walk in openly (amended)
-- 2026-11-20 Guardians strike, defend and escort; anyone can strike a threat
-- 2026-11-20 Settlements appear on the route; parley or offer to befriend, or anger them
+- 2026-11-20 Guardians strike, defend and escort; anyone can strike a threat (amended)
+- 2026-11-20 Settlements appear on the route; parley or offer to befriend, or anger them (amended)
 - 2026-11-20 Peril is a public track; the season ends at home or at full peril
 - 2026-11-20 The day's step uses Milestone 3's creature walk; a linger plays the stayed mark
 - 2026-11-20 The step hints, appetite badge and stayed mark use the art kit's drawings

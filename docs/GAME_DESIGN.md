@@ -67,41 +67,40 @@ The game is built from a few systems. Each appears in many mechanics and flavour
 
 A challenge is one or more systems plus tags and a flavour.
 
-| Challenge                              | Systems                                   | How roles contribute                                                                                                                         |
-| -------------------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
-| Pterodactyl swarm, seen two days ahead | Information + attack                      | Forecast gives time to prepare; guardians skilled against flying attackers carry the defence                                                 |
-| Sirens calling the creature off course | Creature care + information               | A keeper who knows the creature holds it back; scouts find the source                                                                        |
-| Buried temple in a desert              | Information + discovery + crafting        | A scout finds it, crafted gear gets the party there, a scholar opens it                                                                      |
-| Toxic brambles on the path             | Creature care + anything players discover | Scare, lure or coax the creature around them; if it falls ill, a keeper treats it with tools from trade, a site or an engineer               |
-| Captors closing in                     | Attack + diplomacy                        | Guardians delay them, or an envoy persuades locals to mislead them                                                                           |
-| Fortified city on the route            | All                                       | Keepers set the pace, scouts learn what awaits, envoys win over factions, guardians deal with resistance, engineers trade for rare materials |
+| Challenge                              | Systems                                   | How roles contribute                                                                                                                   |
+| -------------------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| Pterodactyl swarm, seen two days ahead | Information + attack                      | Forecast gives time to prepare; wardens skilled against flying attackers carry the defence                                             |
+| Sirens calling the creature off course | Creature care + information               | A keeper who knows the creature holds it back; scouts find the source                                                                  |
+| Buried temple in a desert              | Information + discovery + crafting        | A scout finds it, crafted gear gets the party there, a scholar opens it                                                                |
+| Toxic brambles on the path             | Creature care + anything players discover | Scare, lure or coax the creature around them; if it falls ill, a keeper treats it with tools from trade, a site or an engineer         |
+| Captors closing in                     | Attack + diplomacy                        | Wardens delay them, or persuade locals to mislead them                                                                                 |
+| Fortified city on the route            | All                                       | Keepers set the pace, scouts learn what awaits, wardens win over factions and deal with resistance, engineers trade for rare materials |
 
 A large challenge has several ways through. The path taken depends on the team's composition. Head-on combat is rarely the only answer.
 
 ### Rules for cooperation
 
-- **Roles over combos.** There are no built-in combination bonuses between characters. The journey needs several roles at once. A specialist can join another role's work and open new options there, as an envoy does when a scout meets strangers.
+- **Roles over combos.** There are no built-in combination bonuses between characters. The journey needs several roles at once. A specialist can join another role's work and open new options there, as a warden does when a scout meets strangers.
 - **Basics for all, mastery for specialists.** Any character can attempt the basics of any role. A specialist gets clearly better outcomes.
 - **More players do more, not just survive.** Two keepers specialise faster; more scouts find better-hidden places. Challenges scale to the team, so success never depends on headcount.
 
 ## 5. Roles
 
-Six working roles. Each has its own domain, its own challenge, a reason to leave the creature, and something to bring back for the team. Each profession does the main gathering for its own work.
+Five working roles (Guardian and Envoy merged into the Warden on 2026-11-23). Each has its own domain, its own challenge, a reason to leave the creature, and something to bring back for the team. Each profession does the main gathering for its own work.
 
-| Role     | Domain                                            | Out in the world                                                                                       | What the team gets                                                        | Upgrade directions                                                                                              |
-| -------- | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| Scout    | The map: finding and identifying everything on it | Enters hexes to learn what they hide, at the risk of traps                                             | Sites, resource nodes, encounters and dangers revealed                    | Hints about interesting hexes, safe discovery of neighbouring hexes, longer forecasts                           |
-| Scholar  | Sites: an archaeologist, researcher or scientist  | Travels to sites a scout found, spends time there, brings the right tools                              | New and rare finds, including rare crafting materials                     | Toolkit, success on harder tiers, site specialities                                                             |
-| Keeper   | The creature: health, mood and pace               | Gathers herbs and food, entertains it, treats illness, learns its nature                               | A healthy, calm creature improves everyone's play; it can linger or hurry | Clearer feedback from the creature, more effective care                                                         |
-| Guardian | Protection of the creature and the team           | Clears ambushes ahead, defends against attacks, fights when an encounter turns violent, escorts others | A safer path and safer sites                                              | Specialities against attacker types, stronger defence                                                           |
-| Engineer | Equipment and tools                               | Gathers abundant materials at nodes; chooses what to make with limited crafts per day                  | Items given to everyone (a grappling hook lets all climb cliffs)          | Item quality and special effects, lower cost, material tiers, a gathering helper such as a robotic monkey drone |
-| Envoy    | The peoples along the route                       | Unites tribes, earns favour through quests, turns enemies on each other, appeals to cities             | Safe passage, allies, better outcomes in encounters                       | Wider circle of influence, such as message ravens                                                               |
+| Role     | Domain                                                                   | Out in the world                                                                                                                                                                    | What the team gets                                                                | Upgrade directions                                                                                              |
+| -------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Scout    | The map: finding and identifying everything on it                        | Enters hexes to learn what they hide, at the risk of traps                                                                                                                          | Sites, resource nodes, encounters and dangers revealed                            | Hints about interesting hexes, safe discovery of neighbouring hexes, longer forecasts                           |
+| Scholar  | Sites: an archaeologist, researcher or scientist                         | Travels to sites a scout found, spends time there, brings the right tools                                                                                                           | New and rare finds, including rare crafting materials                             | Toolkit, success on harder tiers, site specialities                                                             |
+| Keeper   | The creature: health, mood and pace                                      | Gathers herbs and food, entertains it, treats illness, learns its nature                                                                                                            | A healthy, calm creature improves everyone's play; it can linger or hurry         | Clearer feedback from the creature, more effective care                                                         |
+| Engineer | Equipment and tools                                                      | Gathers abundant materials at nodes; chooses what to make with limited crafts per day                                                                                               | Items given to everyone (a grappling hook lets all climb cliffs)                  | Item quality and special effects, lower cost, material tiers, a gathering helper such as a robotic monkey drone |
+| Warden   | Protection of the creature and the team, and the peoples along the route | Clears ambushes ahead, defends against attacks, fights when an encounter turns violent, escorts others; unites tribes, earns favour, turns enemies on each other, appeals to cities | A safer path and safer sites; safe passage, allies, better outcomes in encounters | Specialities against attacker types, stronger defence; wider circle of influence, such as message ravens        |
 
 Notes:
 
 - **Keeper.** Reading the creature is a puzzle of symptoms and causes. It starts as intuition. The keeper hypothesises and experiments: lighting a fire next to the creature shows whether it lingers, flees or ignores it. An underfed creature shows one symptom, an overfed one another. The team must trust the keeper's reading until a finding is confirmed. For now the team discusses this on Discord. A later option is a keeper's log of hypotheses with blanks to fill through experiments.
 - **Engineer.** Crafting should be fun in itself. Hypothesis: its own gathering loop, risk and reward in crafting, and a technology tree where one path leads away from another. The creature can change the tree, so runs differ. Keeper and engineer may share the work of outfitting the creature with defences, weapons or modules.
-- **Guardian and envoy.** Both need work when nothing threatens the creature. They can accompany others and help significantly, and the map should hold targets of their own, such as a hostile settlement at the far edge that rewards the team when dealt with. Merging the two roles is an option if this does not work.
+- **Warden.** The Guardian and the Envoy are one role since 2026-11-23: both struggled to find things to do when nothing was scouted, and one role that protects and deals with peoples makes better choices. A warden can accompany others and help significantly, and the map should hold targets of its own, such as a hostile settlement at the far edge that rewards the team when dealt with. Its skill tree forks into shield (guard and strike) and word (parley and favour).
 - **Scout.** If scouting becomes trivial, add variety: fog of war that shifts, plateaus, valleys, gorges, caves.
 
 ## 6. Characters
@@ -169,7 +168,6 @@ Undecided how much suits the game. Candidates:
 - Do resource nodes crowd the map? If so, switch to resources by terrain type.
 - How do scouts stay challenged?
 - How much randomness suits the game?
-- Should guardian and envoy merge into one role?
 - Do artifacts carry over between runs, and what do they unlock?
 - How do idle stances work?
 - When do balancing simulations start?
