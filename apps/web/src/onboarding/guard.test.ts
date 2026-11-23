@@ -43,7 +43,13 @@ describe('the practice map stays in the browser', () => {
   }
 
   it('imports from the API layer only its error and its types', () => {
-    for (const f of ['./Practice.tsx', './CoachLayer.tsx', './sandbox.ts', './sandboxApi.ts', './coach.ts'])
+    for (const f of [
+      './Practice.tsx',
+      './CoachLayer.tsx',
+      './sandbox.ts',
+      './sandboxApi.ts',
+      './coach.ts',
+    ])
       expect(PRACTICE_MODULES).toContain(f);
     const source = sources['./sandboxApi.ts'] ?? '';
     const imports = [...source.matchAll(/import\s+([^;]+?)\s+from\s+'(\.\.\/api\/[^']+)'/g)];

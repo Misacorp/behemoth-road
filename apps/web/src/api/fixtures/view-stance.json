@@ -7,11 +7,14 @@
   "you": {
     "userId": "111111111111111111",
     "characterId": "111111111111111111.1",
-    "admin": true
+    "admin": true,
+    "seen": [],
+    "lastDay": null,
+    "lastVersion": null
   },
   "offers": null,
   "game": {
-    "contentVersion": 17,
+    "contentVersion": 18,
     "artSeed": 4242,
     "day": 2,
     "config": {

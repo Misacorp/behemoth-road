@@ -22,9 +22,9 @@ describe('openExternal', () => {
   it('survives a rejected SDK call and builds the URL from the origin only', async () => {
     const event = { preventDefault: vi.fn() };
     const openExternalLink = vi.fn(() => Promise.reject(new Error('no')));
-    expect(
-      openExternal(event, '/wiki', 'https://x.test', { commands: { openExternalLink } }),
-    ).toBe(true);
+    expect(openExternal(event, '/wiki', 'https://x.test', { commands: { openExternalLink } })).toBe(
+      true,
+    );
     await Promise.resolve();
     expect(siteUrl('/wiki', 'https://x.test/a/b')).toBe('https://x.test/wiki');
   });
