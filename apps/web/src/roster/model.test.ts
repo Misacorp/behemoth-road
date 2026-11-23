@@ -10,6 +10,8 @@ interface C {
   actionsLeft: number;
   status: string;
   at: unknown;
+  stance: string;
+  waiting: boolean;
 }
 const ch = (id: string, userId: string, o: Partial<C> = {}): C => ({
   id,
@@ -18,6 +20,8 @@ const ch = (id: string, userId: string, o: Partial<C> = {}): C => ({
   actionsLeft: 2,
   status: 'active',
   at: { kind: 'hex', hex: { q: 0, r: 0 } },
+  stance: 'rest',
+  waiting: false,
   ...o,
 });
 const pl = (
@@ -89,6 +93,22 @@ describe('roster rows', () => {
       Cy: true,
       zed: false,
     });
+  });
+
+  it('shows each active player’s stance and whether they ended their day', () => {
+    expect(Object.fromEntries(rows.map((r) => [r.name, [r.stance, r.waiting]]))).toEqual({
+      Wes: ['rest', false],
+      Ann: ['rest', false],
+      bea: [null, false],
+      Cy: ['rest', false],
+      zed: [null, false],
+    });
+    const waiting = rosterRows(
+      view([pl('u1', 'Me', 'c1')], [ch('c1', 'u1', { waiting: true, stance: 'lie-in-wait' })]),
+      2,
+    );
+    // The view has no tiles or config to fit a stance against: only rest never needs them.
+    expect(waiting[0]).toMatchObject({ waiting: true });
   });
 
   it('keeps the order stable for equal names', () => {

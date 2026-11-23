@@ -20,6 +20,38 @@ ID: `2026-11-23-guardian-and-envoy-merge-into-one` · Status: current, amended b
 
 **Reasoning.** Both roles struggled to find things to do when nothing was scouted. One role that protects and deals with the peoples has more to do on any day, and the choice between guarding and parleying is the interesting one. Rules read tags, so the merge is data: no rule names a role. Balance numbers are in `docs/progress.md`.
 
+## 2026-11-23: A passive option never beats an active one **[Misa]**
+
+ID: `2026-11-23-a-passive-option-never-beats-an` · Status: current
+
+**Decision.** A passive option (a stance) is an activity a player could do on any hex with their actions (in a real-time mode they would spend each of the day's actions on it), so a stance's use of an action is never stronger than a specialist's active action. Recorded in `GAME_DESIGN.md` (Rules for cooperation) and `docs/design/stances.md`; the config refuses a lie-in-wait bonus above the weakest active strike.
+
+**Reasoning.** Misa's guiding principle for stances. It keeps resting from out-doing the specialists (a resting player scouting better than the Scout, or defending better than a Warden).
+
+## 2026-11-23: Wait ends the character's day but still resolves at the tick; it counts as spent for fast rounds
+
+ID: `2026-11-23-wait-ends-the-character-s-day` · Status: current
+
+**Decision.** `wait` is a free action that sets `waiting` on the character: no more moves or acts that day (only the stance and skill picks can change), and the unspent actions go to the stance at the tick, which clears it. A waiting character counts as spent for fast rounds, so the countdown can start once everyone has spent their actions or is waiting.
+
+**Reasoning.** Misa wants a player to be able to skip the rest of their turn, for example to hold a hex for arriving threats. Keeping the actions (instead of zeroing them) lets lie in wait and gather use them at the tick, and lets the fast round start without waiting for someone who has nothing left to do.
+
+## 2026-11-23: Stances: rest is the default and shakes off a strike; unfit stances fall back to rest
+
+ID: `2026-11-23-stances-rest-is-the-default-and` · Status: current
+
+**Decision.** Every character has one stance (content `STANCES`: rest, lie in wait, gather; default rest), chosen any time for free and kept until changed; an absent player's stance applies like anyone's. A stance whose need does not hold where the character is (a hex to lie in wait on, a node to gather from) falls back to rest and does nothing, with no chance to find anything, and the UI shows that. Resting gives nothing, not even shaking off a strike. Lie in wait strikes a threat that ends on or crosses the hex with the character's strike power for the first unspent action plus `stanceAmbushPerAction` (1, at most `clearPowerOther`) for each further one; gather uses the gather action itself.
+
+**Reasoning.** Misa's feedback: less is better for now. Watch was dropped because anyone resting would out-scout the Scout, help aboard to keep the slice small, and gathering in empty fields is not allowed so nobody skips walking to scouted woodland. Rules read stance tags and needs, never ids.
+
+## 2026-11-23: Idle stances are a player doing nothing, with good reasons **[Misa]**
+
+ID: `2026-11-23-idle-stances-are-a-player-doing` · Status: current
+
+**Decision.** An idle stance is a player doing nothing; sometimes there are good gameplay reasons to sit on a hex and do nothing. A player can skip the rest of their turn entirely (for example to wait on a hex for threats to arrive and strike them), and somewhat passive but beneficial options are welcome. Built as `docs/design/stances.md`: five stances (rest, watch, lie in wait, gather, help aboard) and a free "wait" that ends the character's day.
+
+**Reasoning.** Misa's direction for the open question "How do idle stances work?". It keeps an absent player contributing a little and gives an engaged player a real reason to hold still, without a new system to learn beyond one choice and one button.
+
 ## 2026-11-22: The ending and the peril gauge show where peril came from **[Misa]**
 
 ID: `2026-11-22-the-ending-and-the-peril-gauge` · Status: current

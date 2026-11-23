@@ -17,6 +17,7 @@ import {
   placeHex,
 } from '@behemoth-road/core';
 import { accentOf, lookOf } from '../game/identity.ts';
+import { actingStance, stanceIcon } from '../game/stances.ts';
 import { escortedIds, settlementInfo, struckToday, threatMarks } from '../game/season.ts';
 import { MAP_TUNING } from './config.ts';
 
@@ -167,11 +168,15 @@ export function characterArts(
     .map((c) => {
       const at = placeHex(state, c.at);
       const look = lookOf(c.id);
+      const acting = actingStance(state, c);
       // The day's signs: a shield beside a warden, a bandage once struck, a shield raised in defence.
       const marks = {
         ...(escorted.has(c.id) ? { escorted: true } : {}),
         ...(struckToday(c, state.day) ? { struck: true } : {}),
         ...(c.at.kind === 'creature' && defenders.has(c.id) ? { defending: true } : {}),
+        // The stance doing something with the spare actions (never rest), and an ended day.
+        ...(acting ? { stance: stanceIcon(acting) } : {}),
+        ...(c.waiting ? { waiting: true } : {}),
       };
       return {
         id: c.id,

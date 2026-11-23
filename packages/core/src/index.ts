@@ -186,6 +186,16 @@ export {
 } from './places.ts';
 export { nextDay, nextDayWithEvents } from './tick.ts';
 export {
+  AMBUSH_TAG,
+  effectiveStance,
+  GATHER_TAG,
+  isStance,
+  REST_TAG,
+  stanceFits,
+  stanceType,
+} from './stances.ts';
+export { DEFAULT_STANCE, STANCES, type Stance, type StanceNeeds } from './content/index.ts';
+export {
   emptyPerilLog,
   emptyStats,
   PERIL_CALM,

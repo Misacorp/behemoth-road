@@ -72,6 +72,7 @@ import {
   momentsMs,
   type Whereabouts,
 } from './moments.ts';
+import { canWait, stanceView } from './stances.ts';
 import { toGameState, toSigns } from './viewState.ts';
 
 export interface GameProps {
@@ -382,6 +383,19 @@ export function Game({ api, initial }: GameProps): JSX.Element {
       () => IDLE,
     );
   };
+  // Stances: choosing one is free and keeps whatever is open; waiting ends your day.
+  const onStance = (stance: string): void => {
+    void act(
+      () => api.act(view.version, { kind: 'set-stance', stance }),
+      () => flow,
+    );
+  };
+  const onWait = (): void => {
+    void act(
+      () => api.act(view.version, { kind: 'wait' }),
+      () => IDLE,
+    );
+  };
   const hubOpen = flow.kind === 'creature' && need === 'none';
   const onBuild = (unlock: string): void => {
     void act(
@@ -568,6 +582,14 @@ export function Game({ api, initial }: GameProps): JSX.Element {
         }
         onJoin={need !== 'none' && offers.length > 0 ? () => setDrawerClosed(false) : null}
         pack={pack}
+        stance={
+          me?.status === 'active' ? { stance: stanceView(state, me), onChoose: onStance } : null
+        }
+        wait={
+          me?.status === 'active'
+            ? { enabled: canWait(me) && !busy, waiting: me.waiting, onWait }
+            : null
+        }
         peril={{
           peril: state.peril,
           max: state.config.perilMax,

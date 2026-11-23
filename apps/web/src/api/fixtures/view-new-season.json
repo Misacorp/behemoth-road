@@ -78,6 +78,7 @@
       "threatStrengthDays": 14,
       "threatPathDistance": 5,
       "struckActions": 1,
+      "stanceAmbushPerAction": 1,
       "strikeCost": 1,
       "clearPowerWarden": 2,
       "clearPowerOther": 1,

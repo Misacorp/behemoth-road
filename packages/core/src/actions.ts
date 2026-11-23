@@ -21,7 +21,8 @@ export type MoveRefusal =
   | 'not-adjacent'
   | 'unreachable'
   | 'impassable'
-  | 'not-enough-actions';
+  | 'not-enough-actions'
+  | 'waiting';
 
 export type ActionResult<S extends GameStateView = GameStateView> =
   | {
@@ -114,6 +115,7 @@ export const stepOnly = <S extends GameStateView>(
   if (!isPlaceReachable(state, target)) return { ok: false, reason: 'unreachable' };
   const entry = entryToPlace(state, target);
   if (!entry) return { ok: false, reason: 'impassable' };
+  if (character.waiting) return { ok: false, reason: 'waiting' };
   if (character.actionsLeft < entry.cost) return { ok: false, reason: 'not-enough-actions' };
 
   const characters = state.characters.slice();

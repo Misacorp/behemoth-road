@@ -39,3 +39,4 @@ export {
   type SkillNode,
   type SkillTier,
 } from './skills.ts';
+export { DEFAULT_STANCE, STANCES, type Stance, type StanceNeeds } from './stances.ts';

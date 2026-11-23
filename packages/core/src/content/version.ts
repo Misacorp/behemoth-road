@@ -27,8 +27,10 @@
  * 15: one XP pool replaces role notches (any contributing act earns XP; scouts earn for exploring);
  *    stats gain the peril breakdown (where peril came from).
  * 16: Guardian and Envoy merge into the Warden (five roles; one Warden skill tree: shield and word).
+ * 16: stances and waiting: every character has a stance and a waiting flag (docs/design/stances.md).
+ * 17: merged Warden and stances.
  */
-export const CONTENT_VERSION = 16;
+export const CONTENT_VERSION = 17;
 
 /** Content versions this code can load. */
 export const KNOWN_CONTENT_VERSIONS: readonly number[] = [CONTENT_VERSION];

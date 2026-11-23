@@ -46,6 +46,8 @@ export const WHY_BY_REFUSAL: Readonly<Record<ActRefusal, TipId>> = {
   'boon-taken': 'why:done',
   'unknown-boon': 'why:other',
   'no-trade-good': 'why:other',
+  'unknown-stance': 'why:other',
+  waiting: 'why:other',
   // Skills (the tree drawer): each refusal has its own reason.
   'unknown-skill': 'why:other',
   'skill-veiled': 'why:veiled',

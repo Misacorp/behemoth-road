@@ -173,11 +173,14 @@ const { eventLogSize, tick, sessions, rateLimits, adminCacheMs, maxCatchUpTicks,
 
 export type Pace = 'daily' | 'fast';
 
-/** Fast pace waits for this: the season runs and every active character has spent all their actions. */
+/**
+ * Fast pace waits for this: the season runs and every active character has spent all their actions or
+ * ended their day (waiting: the rest goes to their stance at the tick).
+ */
 function everyoneSpent(state: GameState): boolean {
   if (isSeasonOver(state)) return false;
   const active = state.characters.filter((c) => c.status === 'active');
-  return active.length > 0 && active.every((c) => c.actionsLeft === 0);
+  return active.length > 0 && active.every((c) => c.actionsLeft === 0 || c.waiting);
 }
 
 export class GuildGame {

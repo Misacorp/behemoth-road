@@ -40,6 +40,7 @@ describe('tuning config', () => {
       threatStrengthDays: 14,
       threatPathDistance: 5,
       struckActions: 1,
+      stanceAmbushPerAction: 1,
       strikeCost: 1,
       clearPowerWarden: 2,
       clearPowerOther: 1,
@@ -116,6 +117,8 @@ describe('tuning config', () => {
     }
     expect(() => resolveConfig({ threatsMax: -1 })).toThrow(/threatsMax/);
     expect(() => resolveConfig({ struckActions: 0.5 })).toThrow(/struckActions/);
+    // Lying in wait never beats an active strike.
+    expect(() => resolveConfig({ stanceAmbushPerAction: 2 })).toThrow(/stanceAmbushPerAction/);
     expect(() => resolveConfig({ perilWoundedAt: 10 })).toThrow(/perilWoundedAt/);
     expect(() => resolveConfig({ perilMax: 4 })).toThrow(/perilWoundedAt/);
     expect(() => resolveConfig({ perilHungryLevel: 4 })).toThrow(/perilHungryLevel/);

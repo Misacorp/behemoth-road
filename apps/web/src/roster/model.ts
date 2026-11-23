@@ -5,6 +5,8 @@
 import type { PlayerView } from '../api/schema.ts';
 import type { Flow } from '../map/flow.ts';
 import { IDLE } from '../map/flow.ts';
+import { effectiveStance } from '@behemoth-road/core';
+import { toGameState } from '../game/viewState.ts';
 
 /** Where a player's character is: not joined, lost to the fog, on the creature's back, or on the map. */
 export type RosterWhere = 'none' | 'lost' | 'riding' | 'map';
@@ -23,6 +25,10 @@ export interface RosterRow {
   readonly actionsPerDay: number;
   /** An active character with no actions left: done for the day. */
   readonly done: boolean;
+  /** The stance that acts at the tick (the chosen one, or rest where it does not fit); null with no active character. */
+  readonly stance: string | null;
+  /** Ended their day: what is left goes to their stance. */
+  readonly waiting: boolean;
   /** The row can be tapped to find the character on the map. */
   readonly tappable: boolean;
 }
@@ -55,6 +61,8 @@ export function rosterRows(view: PlayerView, actionsPerDay: number): RosterRow[]
       actionsLeft: left,
       actionsPerDay,
       done: active && left === 0,
+      stance: active && c ? effectiveStance(toGameState(view.game), c).id : null,
+      waiting: active && c ? c.waiting : false,
       tappable: active,
     };
   });

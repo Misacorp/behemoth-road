@@ -59,6 +59,7 @@
       "threatStrengthDays": 14,
       "threatPathDistance": 5,
       "struckActions": 1,
+      "stanceAmbushPerAction": 1,
       "strikeCost": 1,
       "clearPowerWarden": 2,
       "clearPowerOther": 1,
@@ -959,6 +960,8 @@
         "pack": {},
         "status": "active",
         "struckDay": null,
+        "stance": "rest",
+        "waiting": false,
         "skills": {
           "xp": 1,
           "taken": []
@@ -980,6 +983,8 @@
         "pack": {},
         "status": "active",
         "struckDay": null,
+        "stance": "rest",
+        "waiting": false,
         "skills": {
           "xp": 0,
           "taken": []

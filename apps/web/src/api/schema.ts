@@ -57,6 +57,9 @@ const character = v.object({
     xp: count,
     taken: v.pipe(v.array(id), v.maxLength(64)),
   }),
+  /** The stance the spare actions go to at the tick (a content id), and whether the day is ended. */
+  stance: id,
+  waiting: v.boolean(),
 });
 
 const weights = v.object({ left: v.number(), straight: v.number(), right: v.number() });
@@ -98,6 +101,7 @@ const config = v.object({
   threatStrengthDays: count,
   threatPathDistance: count,
   struckActions: count,
+  stanceAmbushPerAction: count,
   strikeCost: count,
   clearPowerWarden: count,
   clearPowerOther: count,
@@ -304,6 +308,8 @@ const KNOWN_EVENTS = [
   event('offer', { id, characterId: id, material: id }),
   event('boon', { id, characterId: id, boon: id }),
   event('skill-picked', { characterId: id, node: id }),
+  event('stance', { characterId: id, stance: id }),
+  event('wait', { characterId: id }),
   event('season-over', { outcome: v.picklist(['safe', 'wounded', 'lost']) }),
 ] as const;
 
@@ -423,4 +429,6 @@ export type GameAction =
   | { readonly kind: 'parley' }
   | { readonly kind: 'offer'; readonly material: string }
   | { readonly kind: 'ask-boon'; readonly boon: string }
-  | { readonly kind: 'pick-skill'; readonly node: string };
+  | { readonly kind: 'pick-skill'; readonly node: string }
+  | { readonly kind: 'set-stance'; readonly stance: string }
+  | { readonly kind: 'wait' };

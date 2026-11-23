@@ -83,6 +83,27 @@
       "offer": 2
     }
   },
+  "view-stance": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 12,
+      "action": {
+        "kind": "set-stance",
+        "stance": "lie-in-wait"
+      }
+    }
+  },
+  "view-waited": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 13,
+      "action": {
+        "kind": "wait"
+      }
+    }
+  },
   "view-foraged": {
     "method": "POST",
     "path": "/api/game/act",

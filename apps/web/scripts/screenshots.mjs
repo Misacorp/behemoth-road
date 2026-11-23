@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* global URL, console, process, window, document, getComputedStyle, performance, requestAnimationFrame, MouseEvent, setTimeout */
+/* global URL, console, process, window, document, PointerEvent, getComputedStyle, performance, requestAnimationFrame, MouseEvent, setTimeout */
 /**
  * Screenshots and browser checks for the web client, written to screenshots/ at the repo root (gitignored).
  *
@@ -637,6 +637,96 @@ async function run() {
       if (off && mine?.at.kind !== 'hex')
         problems.push(`${vp.name}: the move did not reach the server`);
       await shot('stepped-off');
+
+      // Stances: the control by your character button opens a popover of three bubbles; a pick sticks (free)
+      // and shows on your figure on the map and in the roster; the wait button ends your day in two taps.
+      {
+        const shotS = (name) =>
+          page.screenshot({ path: join(out, `stances-${vp.name}-${name}.png`) });
+        const mineNow = () => charOf(USERS.MISA);
+        if (mineNow()?.stance !== 'rest')
+          problems.push(`${vp.name}: the default stance is not rest`);
+        const actionsBefore = mineNow()?.actionsLeft;
+        await press('.hud-stance');
+        await page.waitForSelector('[data-stance-pop] .stance-bubble');
+        await page.waitForTimeout(250);
+        if ((await page.locator('.stance-bubble').count()) !== 3)
+          problems.push(`${vp.name}: the stance picker does not show three bubbles`);
+        if ((await focused()) === 'map')
+          problems.push(`${vp.name}: focus did not move into the picker`);
+        // Standing on a hex with no node: gather has nothing to work on, so it is faded; lie in wait is not.
+        if (!(await page.locator('.stance-bubble[data-stance=gather][data-unfit]').count()))
+          problems.push(`${vp.name}: gather is not faded where there is no node`);
+        if (await page.locator('.stance-bubble[data-stance=lie-in-wait][data-unfit]').count())
+          problems.push(`${vp.name}: lie in wait is faded on a hex`);
+        await shotS('picker');
+        // Long-press every bubble: nothing closes or picks, and each shows its tip.
+        await holdAll('stance', 'stance picker', '[data-stance-pop]');
+        if (!(await page.locator('[data-stance-pop]').count()))
+          problems.push(`${vp.name}: a long press closed the stance picker`);
+        if (mineNow()?.stance !== 'rest') problems.push(`${vp.name}: a long press picked a stance`);
+        // Escape closes it; reopen and choose lie in wait.
+        await page.mouse.move(2, vp.height - 2);
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(200);
+        if (await page.locator('[data-stance-pop]').count())
+          problems.push(`${vp.name}: Escape did not close the stance picker`);
+        await press('.hud-stance');
+        await page.waitForSelector('[data-stance-pop]');
+        await press('.stance-bubble[data-stance=lie-in-wait]');
+        await page.waitForTimeout(400);
+        if (mineNow()?.stance !== 'lie-in-wait')
+          problems.push(`${vp.name}: choosing a stance did not reach the server`);
+        if (mineNow()?.actionsLeft !== actionsBefore)
+          problems.push(`${vp.name}: choosing a stance cost actions`);
+        if (await page.locator('[data-stance-pop]').count())
+          problems.push(`${vp.name}: the picker stays open after a choice`);
+        if ((await page.locator('.hud-stance').getAttribute('data-stance')) !== 'lie-in-wait')
+          problems.push(`${vp.name}: the control does not show the chosen stance`);
+        await page.waitForSelector('g[data-mark=stance]', { timeout: 3000 }).catch(() => {});
+        if (!(await page.locator('g[data-mark=stance]').count()))
+          problems.push(`${vp.name}: no stance mark on your figure`);
+        await shotS('map-mark');
+        // Wait: the first tap arms, a tap elsewhere disarms, then two taps end the day.
+        await press('.hud-wait');
+        if (!(await page.locator('.hud-wait[data-armed]').count()))
+          problems.push(`${vp.name}: the wait button did not arm on its first tap`);
+        await shotS('wait-armed');
+        // A press elsewhere (not a map tap, which would open a popover): the button disarms.
+        await page.evaluate(() =>
+          document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })),
+        );
+        await page.waitForTimeout(200);
+        if (await page.locator('.hud-wait[data-armed]').count())
+          problems.push(`${vp.name}: a tap elsewhere did not disarm the wait button`);
+        if (mineNow()?.waiting) problems.push(`${vp.name}: a tap elsewhere ended the day`);
+        await press('.hud-wait');
+        await press('.hud-wait');
+        await page.waitForTimeout(400);
+        if (!mineNow()?.waiting) problems.push(`${vp.name}: wait did not reach the server`);
+        if (!(await page.locator('.hud-wait[data-waiting]').count()))
+          problems.push(`${vp.name}: the wait button does not rest after waiting`);
+        await page.waitForSelector('g[data-mark=waiting]', { timeout: 3000 }).catch(() => {});
+        if (!(await page.locator('g[data-mark=waiting]').count()))
+          problems.push(`${vp.name}: no waiting mark on your figure`);
+        await page.locator('.hud-wait').click({ force: true });
+        await page.waitForTimeout(150);
+        if (await page.locator('.hud-wait[data-armed]').count())
+          problems.push(`${vp.name}: the wait button arms again after waiting`);
+        // The roster shows each player's stance and the waiting mark.
+        await press('.hud-roster');
+        await page.waitForSelector('.drawer[aria-label=Players] .roster-row');
+        await page.waitForTimeout(300);
+        const mineRow = '.roster-row[data-mine]';
+        if (!(await page.locator(`${mineRow} [data-mark=stance]`).count()))
+          problems.push(`${vp.name}: the roster shows no stance`);
+        if (!(await page.locator(`${mineRow} [data-mark=waiting]`).count()))
+          problems.push(`${vp.name}: the roster shows no waiting mark`);
+        await shotS('roster');
+        await page.keyboard.press('Escape');
+        await page.waitForTimeout(250);
+        await page.mouse.move(2, vp.height - 2);
+      }
 
       // Next day (dev tools and admin): the server ticks and the map follows the creature.
       await press('[aria-label="Next day"]');
