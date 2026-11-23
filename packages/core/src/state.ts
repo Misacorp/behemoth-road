@@ -148,6 +148,13 @@ export interface Character {
   readonly status: CharacterStatus;
   /** The day a threat struck them (they start it with fewer actions), or null. Public. */
   readonly struckDay: number | null;
+  /**
+   * The stance (content `STANCES`) the character's unspent actions go to at the tick: chosen any time,
+   * free, kept until changed. Public: it shows on the map and the roster.
+   */
+  readonly stance: string;
+  /** The character ended their day (wait): no more acts today; the stance gets the rest at the tick. Public. */
+  readonly waiting: boolean;
   /** XP earned and skill nodes taken this season. Public. */
   readonly skills: Skills;
 }

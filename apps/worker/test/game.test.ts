@@ -89,6 +89,8 @@ describe('POST /api/game/join', () => {
           pack: {},
           status: 'active',
           struckDay: null,
+          stance: 'rest',
+          waiting: false,
           skills: { xp: 0, taken: [] },
         },
       ]);

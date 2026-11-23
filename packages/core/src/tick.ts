@@ -34,7 +34,7 @@ import {
 import { chooseCreatureStep } from './creature.ts';
 import { addFeatures, depositPack, type GameEvent, keyToHex, pruneFeatures } from './features.ts';
 import { THREAT_TYPES } from './content/index.ts';
-import { hexDistance } from './hex.ts';
+import { type Hex, hexDistance } from './hex.ts';
 import { hashString, hashToUnit, pickWeighted } from './random.ts';
 import { ON_CREATURE } from './places.ts';
 import type {
@@ -49,6 +49,7 @@ import type {
 } from './state.ts';
 import { keepSettlements, placeSettlement, settlementDue } from './settlements.ts';
 import { withXp } from './skills.ts';
+import { ambush, applyStances, effectiveStance, helpGuard, REST_TAG } from './stances.ts';
 import { PERIL_CALM, PERIL_HUNGER, type PerilPart, perilThreat, recordEvents } from './stats.ts';
 import {
   activeCount,
@@ -129,17 +130,25 @@ const threatsAct = (
   readonly hits: PerilPart[];
   readonly struck: Set<string>;
   readonly events: GameEvent[];
+  /** XP earned by characters lying in wait for their strikes. */
+  readonly xp: ReadonlyMap<string, number>;
 } => {
   const { centre } = state.creature;
   const events: GameEvent[] = [];
-  const moved = state.threats.map((t) => {
+  const paths = new Map<string, Hex[]>();
+  const walked = state.threats.map((t) => {
     const path = threatPath(state, t, centre);
+    paths.set(t.id, path);
     const to = path.at(-1);
     if (!to) return t;
     events.push({ kind: 'threat-moves', id: t.id, from: t.hex, to });
     return { ...t, hex: to };
   });
-  const guard = defence(state);
+  // Anyone lying in wait strikes first, on the hexes the threats cross.
+  const ambushed = ambush(state, walked, paths);
+  events.push(...ambushed.events);
+  const moved = ambushed.threats;
+  const guard = defence(state) + helpGuard(state);
   let damage = 0;
   const hits: PerilPart[] = [];
   const left: Threat[] = [];
@@ -170,7 +179,7 @@ const threatsAct = (
       events.push({ kind: 'threat-gone', id: t.id });
     } else threats.push(t);
   }
-  return { threats, damage, hits, struck, events };
+  return { threats, damage, hits, struck, events, xp: ambushed.xp };
 };
 
 /** How the season ends at a tick with this peril and these steps, or null if it goes on. */
@@ -228,9 +237,12 @@ const newThreat = (state: GameState): Threat | null => {
  * creature's reactions, hunger or cues.
  */
 export const nextDayWithEvents = (
-  state: GameState,
+  before: GameState,
 ): { readonly state: GameState; readonly events: readonly GameEvent[] } => {
-  if (state.season.status === 'over') return { state, events: [] };
+  if (before.season.status === 'over') return { state: before, events: [] };
+  // Unspent actions go to stances first (a watcher's reveals count for today's step and window).
+  const staged = applyStances(before);
+  const state = staged.state;
   const day = state.day + 1;
   const step = chooseCreatureStep(state);
   const creature: Creature = {
@@ -263,6 +275,7 @@ export const nextDayWithEvents = (
     stimuli: state.stimuli.filter((s) => burnsOn(s, day)),
   };
   const events: GameEvent[] = [
+    ...staged.events,
     { kind: 'creature-step', from: state.creature.centre, to: creature.centre },
   ];
   if (ate) events.push({ kind: 'creature-ate', material: ate });
@@ -329,21 +342,26 @@ export const nextDayWithEvents = (
     !step.stay && creature.steps > 0 && creature.steps % config.catchUpEverySteps === 0;
   const lost: GameEvent[] = [];
   const characters = state.characters.map((c): Character => {
-    if (c.status !== 'active') return { ...c, actionsLeft: 0 };
-    const struck = fight.struck.has(c.id);
+    if (c.status !== 'active') return { ...c, actionsLeft: 0, waiting: false };
+    // A struck character who rests shakes it off (judged by where they stood before the tick).
+    const struck =
+      fight.struck.has(c.id) &&
+      !effectiveStance(before, before.characters.find((x) => x.id === c.id) ?? c).tags.includes(
+        REST_TAG,
+      );
     const actionsLeft = struck
       ? Math.min(config.actionsPerDay, config.struckActions)
       : config.actionsPerDay;
     // Catch-up: whenever the route's steps reach a multiple, everyone still in the game earns XP
     // (a stay does not add a step, so it cannot repeat it).
-    const boosted = catchUp ? withXp(c, config.catchUpXp) : c;
-    const fresh = { ...boosted, actionsLeft, struckDay: struck ? day : c.struckDay };
+    const boosted = withXp(catchUp ? withXp(c, config.catchUpXp) : c, fight.xp.get(c.id) ?? 0);
+    const fresh = { ...boosted, waiting: false, actionsLeft, struckDay: struck ? day : c.struckDay };
     if (c.at.kind === 'creature') return fresh;
     if (isCreatureHex(moved, c.at.hex)) return { ...fresh, at: ON_CREATURE };
     if (isReachable(moved, c.at.hex)) return fresh;
     // Lost for good, and the pack with them.
     lost.push({ kind: 'lost', characterId: c.id, hex: c.at.hex });
-    return { ...c, status: 'lost', actionsLeft: 0, pack: {} };
+    return { ...c, status: 'lost', actionsLeft: 0, waiting: false, pack: {} };
   });
   // Anyone now on the creature (picked up by it today) empties their pack into the stores.
   let settled: GameState = { ...moved, characters };

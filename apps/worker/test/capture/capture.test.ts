@@ -193,6 +193,19 @@ describe('capture', () => {
         ctx.sql.exec('UPDATE game SET state = ?, version = version + 1', JSON.stringify(lost));
         await ok('view-lost', 'GET', '/api/game');
         await ok('view-replaced', 'POST', '/api/game/replace', { role: 'envoy', offer: 2 });
+        // Stances: choose one (free), then end the day (the rest goes to the stance at the tick).
+        await ok('view-stance', 'POST', '/api/game/act', {
+          version: await versionNow(),
+          action: { kind: 'set-stance', stance: 'help-aboard' },
+        });
+        await ok('view-waited', 'POST', '/api/game/act', {
+          version: await versionNow(),
+          action: { kind: 'wait' },
+        });
+        await refused(misa, 'POST', '/api/game/act', {
+          version: await versionNow(),
+          action: { kind: 'wait' },
+        });
       },
       { everyoneIsAdmin: true },
     );

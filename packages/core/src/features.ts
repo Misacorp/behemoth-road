@@ -141,6 +141,9 @@ export type GameEvent =
       readonly boon: string;
     }
   /** A character took a skill node (public: it shows on their card). */
+  | { readonly kind: 'stance'; readonly characterId: string; readonly stance: string }
+  /** A character ended their day. */
+  | { readonly kind: 'wait'; readonly characterId: string }
   | { readonly kind: 'skill-picked'; readonly characterId: string; readonly node: string }
   | { readonly kind: 'season-over'; readonly outcome: SeasonOutcome };
 

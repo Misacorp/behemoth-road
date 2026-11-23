@@ -79,6 +79,14 @@ export interface TuningConfig {
   readonly threatPathDistance: number;
   /** Actions a character struck by a threat starts the next day with. */
   readonly struckActions: number;
+  /** Stances (docs/design/stances.md): actions one hex explored by a watcher costs. */
+  readonly stanceWatchCost: number;
+  /** Extra strike power a character lying in wait adds per unspent action (on top of the base power). */
+  readonly stanceAmbushPerAction: number;
+  /** Unspent actions that make one point of defence for a rider helping aboard. */
+  readonly stanceHelpActionsPerGuard: number;
+  /** The most defence all riders helping aboard add together (it is a help, not a wall). */
+  readonly stanceHelpGuardMax: number;
 
   // Guardian.
   readonly strikeCost: number;
@@ -165,6 +173,10 @@ export const DEFAULT_CONFIG: TuningConfig = {
   threatStrengthDays: 14,
   threatPathDistance: 5,
   struckActions: 1,
+  stanceWatchCost: 1,
+  stanceAmbushPerAction: 1,
+  stanceHelpActionsPerGuard: 3,
+  stanceHelpGuardMax: 2,
   strikeCost: 1,
   clearPowerGuardian: 2,
   clearPowerOther: 1,
@@ -253,6 +265,8 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     'lingerCost',
     'strikeCost',
     'defendCost',
+    'stanceWatchCost',
+    'stanceHelpActionsPerGuard',
     'parleyCost',
     'offerCost',
     'askBoonCost',
@@ -268,6 +282,8 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     'threatsFromDay',
     'threatsMax',
     'struckActions',
+    'stanceAmbushPerAction',
+    'stanceHelpGuardMax',
     'clearPowerGuardian',
     'clearPowerOther',
     'defendReduction',

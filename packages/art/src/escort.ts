@@ -9,6 +9,7 @@ import { boxOf, ellipsePath, mapper, poly, smoothOpen, type Point } from './geom
 import type { Palette } from './palette.ts';
 import { hexCenter, type Hex, type Projection } from './projection.ts';
 import { inkAttrs, riseFor, type Drawn } from './props.ts';
+import { glyphBadge, isGlyph } from './glyphs.ts';
 import { el, type SvgNode } from './svg.ts';
 
 /** Signs on a character for the day; all optional. */
@@ -19,6 +20,13 @@ export interface CharacterMarks {
   readonly struck?: boolean;
   /** Defending the creature today: a round shield raised over its head. */
   readonly defending?: boolean;
+  /**
+   * A stance's glyph name (content `Stance.icon`) to show beside the head, for a stance that is doing
+   * something (never rest). Unknown names draw nothing.
+   */
+  readonly stance?: string;
+  /** Ended the day (waiting): a small hourglass at the other side of the head. */
+  readonly waiting?: boolean;
 }
 
 /** The character standee's height in its own units (`drawCharacter`). */
@@ -99,7 +107,7 @@ function skewRect(c: Point, w: number, h: number, a: number): Point[] {
 
 /**
  * A character's marks for the day, drawn over its standee at `origin` (its feet). Same arguments as
- * `drawCharacter`. Parts carry `data-mark="escorted" | "struck" | "defending"`.
+ * `drawCharacter`. Parts carry `data-mark="escorted" | "struck" | "defending" | "stance" | "waiting"`.
  */
 export function drawCharacterMarks(
   palette: Palette,
@@ -210,6 +218,21 @@ export function drawCharacterMarks(
         ),
       ]),
     );
+  }
+  if (marks.stance !== undefined && isGlyph(marks.stance)) {
+    // The stance the character's spare actions go to: a glyph on a paper disc up at the right of the head.
+    const c = T(15, -49);
+    const r = 8 * k;
+    all.push({ x: c.x - r, y: c.y - r }, { x: c.x + r, y: c.y + r });
+    nodes.push(
+      glyphBadge(palette, 'stance', marks.stance, c.x, c.y, r, palette.accents.slate.shade, w),
+    );
+  }
+  if (marks.waiting) {
+    const c = T(-15, -49);
+    const r = 8 * k;
+    all.push({ x: c.x - r, y: c.y - r }, { x: c.x + r, y: c.y + r });
+    nodes.push(glyphBadge(palette, 'waiting', 'hourglass', c.x, c.y, r, palette.inkSoft, w));
   }
   return { nodes, box: all.length ? boxOf(all) : boxOf([origin]) };
 }

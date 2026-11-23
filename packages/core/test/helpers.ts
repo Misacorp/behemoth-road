@@ -153,3 +153,9 @@ export const lingering = (state: GameState): GameState => ({
   ...state,
   creature: { ...state.creature, lingering: true },
 });
+
+/** Sets a character's stance. */
+export const withStance = (state: GameState, id: string, stance: string): GameState => ({
+  ...state,
+  characters: state.characters.map((c) => (c.id === id ? { ...c, stance } : c)),
+});

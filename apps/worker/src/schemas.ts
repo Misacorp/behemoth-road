@@ -1,5 +1,5 @@
 import * as v from 'valibot';
-import { ROLE_IDS, SKILL_IDS, UNLOCK_IDS } from './game-core.ts';
+import { ROLE_IDS, SKILL_IDS, STANCE_IDS, UNLOCK_IDS } from './game-core.ts';
 import { SERVER_CONFIG } from './server-config.ts';
 
 export const SNOWFLAKE_RE = /^\d{17,20}$/;
@@ -96,6 +96,16 @@ export const ActionSchema = v.variant('kind', [
       v.check((id) => SKILL_IDS.includes(id)),
     ),
   }),
+  // Stances (docs/design/stances.md): both are free. `wait` ends the character's day.
+  v.strictObject({
+    kind: v.literal('set-stance'),
+    stance: v.pipe(
+      v.string(),
+      v.maxLength(64),
+      v.check((id) => STANCE_IDS.includes(id)),
+    ),
+  }),
+  v.strictObject({ kind: v.literal('wait') }),
 ]);
 
 /** POST /api/game/act. */

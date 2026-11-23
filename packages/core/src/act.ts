@@ -55,6 +55,7 @@ import {
   TRADE_TAG,
 } from './settlements.ts';
 
+import { isStance } from './stances.ts';
 import { PERIL_SHELTER, recordEvents } from './stats.ts';
 import {
   bestOf,
@@ -80,7 +81,11 @@ export type Action =
   | { readonly kind: 'offer'; readonly material: string }
   | { readonly kind: 'ask-boon'; readonly boon: string }
   /** Takes a skill node with a pick the character has earned (`docs/design/skill-trees.md`). Free. */
-  | { readonly kind: 'pick-skill'; readonly node: string };
+  | { readonly kind: 'pick-skill'; readonly node: string }
+  /** Sets the stance the unspent actions go to at the tick (`docs/design/stances.md`). Free, any time. */
+  | { readonly kind: 'set-stance'; readonly stance: string }
+  /** Ends the character's day: what is left goes to the stance at the tick. Free; no acting or moving after. */
+  | { readonly kind: 'wait' };
 
 export type ActRefusal =
   | 'invalid-action'
@@ -120,6 +125,9 @@ export type ActRefusal =
   | 'boon-taken'
   | 'unknown-boon'
   | 'no-trade-good'
+  | 'unknown-stance'
+  /** The character ended their day (wait): only the stance and picks can change. */
+  | 'waiting'
   /** Picks: see `PickRefusal` in `skills.ts` (`already-have` is shared). */
   | PickRefusal;
 
@@ -261,8 +269,15 @@ export const checkAction = (
   if (!found.ok) return found;
   const c = found.character;
   const { config } = state;
+  if (c.waiting && action?.kind !== 'set-stance' && action?.kind !== 'pick-skill') {
+    return { ok: false, reason: 'waiting' };
+  }
 
   switch (action?.kind) {
+    case 'set-stance':
+      return isStance(action.stance) ? done(0) : { ok: false, reason: 'unknown-stance', cost: 0 };
+    case 'wait':
+      return c.actionsLeft > 0 ? done(0) : { ok: false, reason: 'not-enough-actions', cost: 0 };
     case 'survey': {
       const cost = roleHas(c, 'survey') ? config.surveyCostSpecialist : config.surveyCostOther;
       const no = (reason: ActRefusal): ActCheck => ({ ok: false, reason, cost });
@@ -452,6 +467,27 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
       x.id === characterId ? { ...x, actionsLeft: x.actionsLeft - check.cost, ...change } : x,
     ),
   });
+
+  if (action.kind === 'set-stance') {
+    return {
+      ok: true,
+      state: {
+        ...state,
+        characters: state.characters.map((x) =>
+          x.id === characterId ? { ...x, stance: action.stance } : x,
+        ),
+      },
+      events: [{ kind: 'stance', characterId, stance: action.stance }],
+    };
+  }
+
+  if (action.kind === 'wait') {
+    return {
+      ok: true,
+      state: withCharacter(state, { waiting: true }),
+      events: [{ kind: 'wait', characterId }],
+    };
+  }
 
   if (action.kind === 'pick-skill') {
     return {

@@ -134,6 +134,7 @@ export {
   type Attitude,
   type SettlementArt,
 } from './settlements.ts';
+export { drawGlyph, GLYPH_NAMES, glyphNodes, isGlyph, type GlyphName } from './glyphs.ts';
 export {
   drawCharacterMarks,
   drawEscortRing,

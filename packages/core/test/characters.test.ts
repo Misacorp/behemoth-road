@@ -119,6 +119,8 @@ describe('addCharacter', () => {
       pack: {},
       status: 'active',
       struckDay: null,
+      stance: 'rest',
+      waiting: false,
       skills: { xp: 0, taken: [] },
     });
     expect(state.characters).toHaveLength(0);
