@@ -97,6 +97,13 @@ for (const vp of [
   );
   const bad = await page.evaluate(() => document.querySelectorAll('[style]').length);
   check(bad === 0, `${vp.name}: no style attributes`);
+  // A planned node picked in the planner is ringed as planned, not drawn as taken.
+  await page.click(`[data-skill="${first}-a3"]`);
+  const planned = await page.locator(`[data-skill="${first}-a3"]`).getAttribute('data-planned');
+  check(planned !== null, `${vp.name}: tier 3 is marked planned`);
+  const art = await page.locator(`[data-skill="${first}-a3"] svg`).getAttribute('data-skill-state');
+  check(art === 'available', `${vp.name}: a planned pick is not drawn as taken (${art})`);
+  await page.click(`[data-skill="${first}-a3"]`);
   await page.screenshot({ path: join(out, `wiki-${vp.name}.png`), fullPage: vp.name === 'phone' });
 
   // A shared link opens the same plan; a mangled one an empty plan.
@@ -106,6 +113,17 @@ for (const vp of [
   await page.goto(`${base}/wiki#nobody:a9`);
   await page.reload();
   check((await text('[data-picks]')) === '0', `${vp.name}: a mangled link gives an empty plan`);
+  // The icon glossary: its own tab and hash, with every group drawn.
+  await page.goto(`${base}/wiki#glossary`);
+  await page.reload();
+  await page.waitForSelector('[data-glossary]');
+  const entries = await page.locator('[data-entry]').count();
+  check(entries > 100, `${vp.name}: glossary lists the icons (${entries})`);
+  check(
+    (await page.locator('.gl-icon svg').count()) >= entries - 1,
+    `${vp.name}: every entry draws`,
+  );
+  await page.screenshot({ path: join(out, `glossary-${vp.name}.png`), fullPage: true });
   await ctx.close();
 }
 

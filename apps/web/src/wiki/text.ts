@@ -20,6 +20,5 @@ export const roleLine = (role: string): string => textOf('role', role) ?? '';
 /** The role's name (content). */
 export const roleName = (role: string): string => ROLES.find((r) => r.id === role)?.name ?? role;
 
-/** One line about what a node does, or null while it is only planned. */
-export const effectLine = (node: SkillNode): string | null =>
-  node.active ? textOf('skill', node.id) : null;
+/** One line about what a node does, or null when the game has no tip for it. */
+export const effectLine = (node: SkillNode): string | null => textOf('skill', node.id);

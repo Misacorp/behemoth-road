@@ -153,9 +153,12 @@ describe('skill tips', () => {
     }
   });
 
-  it('names no veiled node', () => {
-    for (const n of SKILL_NODES.filter((x) => !x.active))
-      expect(Object.hasOwn(TIP_TABLE, `skill:${n.id}`), n.id).toBe(false);
+  it('never shows a veiled node its own tip in the game (the public wiki has hint tips for them)', () => {
+    for (const n of SKILL_NODES.filter((x) => !x.active)) {
+      const tip = nodeTip({ node: n, state: 'veiled', refusal: 'skill-veiled' });
+      expect(tip, n.id).not.toBe(`skill:${n.id}`);
+      expect(tip, n.id).toBe('why:veiled');
+    }
   });
 
   it('maps each skill refusal to a written reason', () => {
