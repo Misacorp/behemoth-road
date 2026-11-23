@@ -1,0 +1,270 @@
+/* The wiki page: the game's paper and ink, system font, no focus outlines. Phone first, then desktop. */
+:root {
+  font-family: system-ui, sans-serif;
+  line-height: 1.45;
+  color: #5c5a43;
+  background: #f3f1e2;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+*:focus,
+*:focus-visible {
+  outline: none;
+}
+
+body {
+  margin: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.wiki {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 16px 12px 48px;
+}
+
+.wiki h1 {
+  margin: 0 0 12px;
+  font-size: 1.4rem;
+}
+
+.wiki h2 {
+  margin: 0;
+  font-size: 1.15rem;
+}
+
+.wiki-top {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.wiki-me {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.wiki-me-btn {
+  width: 48px;
+  height: 48px;
+  padding: 5px;
+  border-radius: 50%;
+  border: 1.5px solid transparent;
+  background: none;
+  opacity: 0.55;
+}
+
+.wiki-me-btn svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.wiki-me-btn[aria-pressed='true'] {
+  opacity: 1;
+  border-color: #9a9776;
+  background: #f3f1e2;
+  box-shadow: 1px 2px 0 #e1ddc3;
+}
+
+.wiki-cost {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  font-size: 1.1rem;
+}
+
+.wiki-cost b {
+  font-size: 1.4rem;
+}
+
+.wiki-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.wiki-btn {
+  padding: 8px 16px;
+  border: 1.5px solid #9a9776;
+  border-radius: 8px;
+  background: #f3f1e2;
+  box-shadow: 1px 2px 0 #e1ddc3;
+}
+
+.wiki-btn:active {
+  transform: translateY(1px);
+  box-shadow: none;
+}
+
+.wiki-note {
+  margin: 0;
+  font-size: 0.9rem;
+  max-width: 70ch;
+}
+
+.wiki-grid {
+  display: grid;
+  gap: 16px;
+}
+
+.wiki-card {
+  padding: 14px;
+  border: 1.5px solid #cfcba9;
+  border-radius: 12px;
+  background: #f8f6ea;
+}
+
+.wiki-card[data-mine] {
+  border-color: #9a9776;
+  box-shadow: 2px 3px 0 #e1ddc3;
+}
+
+.wiki-card-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.wiki-card-head svg {
+  display: block;
+  flex: none;
+}
+
+.wiki-card-head p {
+  margin: 2px 0 0;
+  font-size: 0.85rem;
+}
+
+.wiki-branches {
+  display: grid;
+  gap: 12px;
+}
+
+.wiki-branch {
+  display: grid;
+  justify-items: stretch;
+}
+
+.wiki-step {
+  display: grid;
+  justify-items: start;
+}
+
+.wiki-path {
+  display: block;
+  width: 56px;
+  line-height: 0;
+  text-align: center;
+}
+
+.wiki-path svg {
+  display: inline-block;
+}
+
+.wiki-node {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 2px 8px 2px 0;
+  border: none;
+  border-radius: 28px;
+  background: none;
+  text-align: left;
+}
+
+.wiki-node:active {
+  transform: translateY(1px);
+}
+
+.wiki-icon {
+  flex: none;
+  line-height: 0;
+}
+
+.wiki-icon svg {
+  display: block;
+}
+
+.wiki-node-text {
+  display: grid;
+  min-width: 0;
+}
+
+.wiki-node-name {
+  font-weight: 600;
+}
+
+.wiki-node-effect {
+  font-size: 0.85rem;
+}
+
+.wiki-node[data-state='plain'],
+.wiki-node[data-state='closed'] {
+  opacity: 0.65;
+}
+
+.wiki-node[data-state='closed'] {
+  opacity: 0.4;
+}
+
+.wiki-node[data-state='taken'] .wiki-node-name {
+  text-decoration: underline;
+  text-decoration-color: #9a9776;
+  text-underline-offset: 3px;
+}
+
+/* A planned tier reads as a plan: its line is set in italics. */
+.wiki-node[data-tier='2'] .wiki-node-effect,
+.wiki-node[data-tier='3'] .wiki-node-effect {
+  font-style: italic;
+}
+
+@media (min-width: 560px) {
+  .wiki-branches {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+}
+
+@media (min-width: 900px) {
+  .wiki {
+    padding: 28px 32px 64px;
+  }
+
+  .wiki-top {
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 12px 32px;
+  }
+
+  .wiki-top h1 {
+    grid-column: 1 / -1;
+  }
+
+  .wiki-note {
+    grid-column: 1 / -1;
+  }
+
+  .wiki-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+}
+
+@media (min-width: 1240px) {
+  .wiki-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}

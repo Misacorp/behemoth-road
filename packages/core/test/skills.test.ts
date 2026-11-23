@@ -265,6 +265,17 @@ describe('picking a skill', () => {
     }
   });
 
+  it('planning mode applies the same rules to nodes that are not active yet', () => {
+    const rich = (skills: Partial<Skills>) => me(scout({ xp: PER * 4, ...skills }), 'scout');
+    const state = scout({ xp: PER * 4 });
+    expect(pickRefusal(state, rich({}), 'scout-a2')).toBe('skill-veiled');
+    expect(pickRefusal(state, rich({}), 'scout-a2', true)).toBe('skill-tier-order');
+    expect(pickRefusal(state, rich({ taken: ['scout-a1'] }), 'scout-a2', true)).toBeNull();
+    expect(pickRefusal(state, rich({ taken: ['scout-b1'] }), 'scout-a2', true)).toBe(
+      'branch-closed',
+    );
+  });
+
   it('is public on the view: xp and taken nodes', () => {
     const state = scout({ xp: 3, taken: ['scout-b1'] });
     const view = toPlayerView(state);

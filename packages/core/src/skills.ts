@@ -93,15 +93,19 @@ export const earnXp = <S extends GameStateView>(
 export const picksAvailable = (state: GameStateView, c: Character): number =>
   Math.floor(c.skills.xp / state.config.xpPerPick) - c.skills.taken.length;
 
-/** Why a character cannot take a node now, or null if it can. */
+/**
+ * Why a character cannot take a node now, or null if it can. `planning` (the out-of-game wiki's build
+ * planner, never the game) treats a node that is not active yet as pickable by the same rules.
+ */
 export const pickRefusal = (
   state: GameStateView,
   c: Character,
   nodeId: string,
+  planning = false,
 ): PickRefusal | null => {
   const node = skillNode(nodeId);
   if (!node) return 'unknown-skill';
-  if (!node.active) return 'skill-veiled';
+  if (!node.active && !planning) return 'skill-veiled';
   if (c.skills.taken.includes(node.id)) return 'already-have';
   const own = takenNodes(c).filter((n) => n.role === node.role);
   if (own.some((n) => n.branch !== node.branch)) return 'branch-closed';

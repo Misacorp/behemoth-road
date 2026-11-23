@@ -121,6 +121,7 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-23 A public skills wiki at /wiki with a build planner
 - 2026-11-22 The ending and the peril gauge show where peril came from \[Misa\]
 - 2026-11-22 The catch-up is 1 XP every 10 steps \[Misa\]
 - 2026-11-22 Skill XP comes from any contribution, one pool per character \[Misa\]
