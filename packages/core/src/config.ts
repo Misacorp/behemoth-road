@@ -80,23 +80,23 @@ export interface TuningConfig {
   /** Actions a character struck by a threat starts the next day with. */
   readonly struckActions: number;
 
-  // Guardian.
+  // Warden: defence.
   readonly strikeCost: number;
   /** Strength a strike takes off a threat, for a role tagged `defend` and for anyone else. */
-  readonly clearPowerGuardian: number;
+  readonly clearPowerWarden: number;
   readonly clearPowerOther: number;
   readonly defendCost: number;
-  /** Each strike on the creature is reduced by this per defending guardian still riding. */
+  /** Each strike on the creature is reduced by this per defending warden still riding. */
   readonly defendReduction: number;
 
-  // Envoy and the peoples.
+  // Warden: the peoples.
   readonly parleyCost: number;
   readonly offerCost: number;
   readonly askBoonCost: number;
   /** Favour a parley gains, for a role tagged `peoples` and for anyone else. */
-  readonly parleyFavourEnvoy: number;
+  readonly parleyFavourWarden: number;
   readonly parleyFavourOther: number;
-  /** Chance a parley by anyone but an envoy angers the settlement instead. */
+  /** Chance a parley by anyone but a warden angers the settlement instead. */
   readonly parleyAngerChanceOther: number;
   readonly offerFavour: number;
   /** Ticks after a mislead during which no pursuer appears. */
@@ -166,14 +166,14 @@ export const DEFAULT_CONFIG: TuningConfig = {
   threatPathDistance: 5,
   struckActions: 1,
   strikeCost: 1,
-  clearPowerGuardian: 2,
+  clearPowerWarden: 2,
   clearPowerOther: 1,
   defendCost: 1,
   defendReduction: 2,
   parleyCost: 1,
   offerCost: 1,
   askBoonCost: 1,
-  parleyFavourEnvoy: 2,
+  parleyFavourWarden: 2,
   parleyFavourOther: 1,
   parleyAngerChanceOther: 0.25,
   offerFavour: 2,
@@ -268,10 +268,10 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     'threatsFromDay',
     'threatsMax',
     'struckActions',
-    'clearPowerGuardian',
+    'clearPowerWarden',
     'clearPowerOther',
     'defendReduction',
-    'parleyFavourEnvoy',
+    'parleyFavourWarden',
     'parleyFavourOther',
     'offerFavour',
     'misleadDays',

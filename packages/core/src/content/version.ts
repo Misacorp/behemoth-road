@@ -26,8 +26,9 @@
  * 14: skill trees: notches and picks on every character, the pick-skill action.
  * 15: one XP pool replaces role notches (any contributing act earns XP; scouts earn for exploring);
  *    stats gain the peril breakdown (where peril came from).
+ * 16: Guardian and Envoy merge into the Warden (five roles; one Warden skill tree: shield and word).
  */
-export const CONTENT_VERSION = 15;
+export const CONTENT_VERSION = 16;
 
 /** Content versions this code can load. */
 export const KNOWN_CONTENT_VERSIONS: readonly number[] = [CONTENT_VERSION];

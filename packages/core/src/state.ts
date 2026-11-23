@@ -39,7 +39,7 @@ export interface Creature {
   readonly lingeredDay: number | null;
   /** Steps walked this season (lingering adds none). Public: the route strip. */
   readonly steps: number;
-  /** Guardians defending it until the next tick (character ids). Public. */
+  /** Wardens defending it until the next tick (character ids). Public. */
   readonly defenders: readonly string[];
 }
 

@@ -93,13 +93,6 @@ export const SKILL_NODES: readonly SkillNode[] = [
   node('keeper', 'b', 2, 'Hurry'),
   node('keeper', 'b', 3, 'Beacon'),
 
-  node('guardian', 'a', 1, 'Skywatch', { kind: 'strike-bonus', tag: 'flying', bonus: 1 }),
-  node('guardian', 'a', 2, 'Long reach'),
-  node('guardian', 'a', 3, 'Rout'),
-  node('guardian', 'b', 1, 'Bulwark', { kind: 'defend-reduction', amount: 3 }),
-  node('guardian', 'b', 2, 'Wide guard'),
-  node('guardian', 'b', 3, 'Standing guard'),
-
   node('engineer', 'a', 1, 'Double yield', { kind: 'gather-yield', amount: 2 }),
   node('engineer', 'a', 2, 'Pack mule'),
   node('engineer', 'a', 3, 'Monkey drone'),
@@ -107,12 +100,13 @@ export const SKILL_NODES: readonly SkillNode[] = [
   node('engineer', 'b', 2, 'Thrift'),
   node('engineer', 'b', 3, 'Self-winding'),
 
-  node('envoy', 'a', 1, 'Silver tongue', { kind: 'parley-favour', bonus: 1 }),
-  node('envoy', 'a', 2, 'Second boon'),
-  node('envoy', 'a', 3, 'Allies'),
-  node('envoy', 'b', 1, 'Ravens', { kind: 'parley-range', range: 3 }),
-  node('envoy', 'b', 2, 'Calm words'),
-  node('envoy', 'b', 3, 'Turncoats'),
+  // Warden: shield (a, from the old guardian) or word (b, from the old envoy).
+  node('warden', 'a', 1, 'Bulwark', { kind: 'defend-reduction', amount: 3 }),
+  node('warden', 'a', 2, 'Wide guard'),
+  node('warden', 'a', 3, 'Standing guard'),
+  node('warden', 'b', 1, 'Silver tongue', { kind: 'parley-favour', bonus: 1 }),
+  node('warden', 'b', 2, 'Ravens'),
+  node('warden', 'b', 3, 'Allies'),
 ];
 
 /**
