@@ -683,8 +683,8 @@ async function run() {
           problems.push(`${vp.name}: the picker stays open after a choice`);
         if ((await page.locator('.hud-stance').getAttribute('data-stance')) !== 'lie-in-wait')
           problems.push(`${vp.name}: the control does not show the chosen stance`);
-        await page.waitForSelector('svg.map [data-mark=stance]', { timeout: 3000 }).catch(() => {});
-        if (!(await page.locator('svg.map [data-mark=stance]').count()))
+        await page.waitForSelector('g[data-mark=stance]', { timeout: 3000 }).catch(() => {});
+        if (!(await page.locator('g[data-mark=stance]').count()))
           problems.push(`${vp.name}: no stance mark on your figure`);
         await shotS('map-mark');
         // Wait: the first tap arms, a tap elsewhere disarms, then two taps end the day.
@@ -706,12 +706,11 @@ async function run() {
         if (!mineNow()?.waiting) problems.push(`${vp.name}: wait did not reach the server`);
         if (!(await page.locator('.hud-wait[data-waiting]').count()))
           problems.push(`${vp.name}: the wait button does not rest after waiting`);
-        await page
-          .waitForSelector('svg.map [data-mark=waiting]', { timeout: 3000 })
-          .catch(() => {});
-        if (!(await page.locator('svg.map [data-mark=waiting]').count()))
+        await page.waitForSelector('g[data-mark=waiting]', { timeout: 3000 }).catch(() => {});
+        if (!(await page.locator('g[data-mark=waiting]').count()))
           problems.push(`${vp.name}: no waiting mark on your figure`);
-        await press('.hud-wait');
+        await page.locator('.hud-wait').click({ force: true });
+        await page.waitForTimeout(150);
         if (await page.locator('.hud-wait[data-armed]').count())
           problems.push(`${vp.name}: the wait button arms again after waiting`);
         // The roster shows each player's stance and the waiting mark.
