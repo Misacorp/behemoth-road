@@ -5,7 +5,7 @@
  * the view and the log, so it reveals nothing new. These are the pure rules; `WelcomeBack.tsx` draws it.
  */
 import type { GameEvent, PlayerView } from '../api/schema.ts';
-import { type EventLike, type Moment, momentsFromEvents } from '../game/moments.ts';
+import { type Moment, momentsFromEvents } from '../game/moments.ts';
 
 /** The most day cells shown (the last ones; a longer absence starts with a gap). */
 export const MAX_DAYS = 5;
@@ -85,7 +85,7 @@ export function welcomeOf(
   const moments = truncated
     ? []
     : momentsFromEvents(
-        events as readonly EventLike[],
+        events,
         game.creature.centre,
         view.you.characterId ?? '',
         // Things that are gone by now (a cleared threat) have no place to show: they are left out.

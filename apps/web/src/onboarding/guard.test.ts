@@ -70,7 +70,7 @@ describe('the practice map stays in the browser', () => {
       calls.push(name);
       throw new Error(`${name} used by the practice map`);
     };
-    globalThis.fetch = trap('fetch') as never;
+    globalThis.fetch = trap('fetch');
     globalThis.WebSocket = trap('WebSocket') as never;
     globalThis.XMLHttpRequest = trap('XMLHttpRequest') as never;
     const sandbox = createSandbox('scout');

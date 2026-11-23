@@ -31,7 +31,7 @@ export function createSandbox(role: string): Sandbox {
   const apply = (next: GameState, events: readonly GameEvent[]): ActionAnswer => {
     state = next;
     version += 1;
-    const stamped = events.map((e) => ({ ...e, version }) as Logged);
+    const stamped = events.map((e) => ({ ...e, version }));
     log = [...log, ...stamped].slice(-200);
     return { ...view(), events: stamped, stopped: null };
   };

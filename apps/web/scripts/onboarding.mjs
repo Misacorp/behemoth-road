@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* global console, process, document, window, MouseEvent, getComputedStyle */
+/* global console, process, document, window, MouseEvent, getComputedStyle, URL */
 /**
  * Screenshots and browser checks for the onboarding: the intro cards, the practice map's guided day (every
  * role), the role cards in the join drawer, the first-encounter hints, the "while you were away" recap and
