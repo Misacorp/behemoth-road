@@ -93,7 +93,7 @@ describe('POST /api/game/join', () => {
         },
       ]);
       // A second join changes nothing and answers the same view.
-      const again = await ctx.call(token, 'POST', '/api/game/join', { role: 'envoy', offer: 1 });
+      const again = await ctx.call(token, 'POST', '/api/game/join', { role: 'warden', offer: 1 });
       expect(again.status).toBe(200);
       expect(asView(again.body).version).toBe(2);
       expect(asView(again.body).players[0]?.role).toBe('scout');

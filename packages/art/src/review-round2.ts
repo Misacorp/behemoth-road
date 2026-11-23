@@ -87,7 +87,7 @@ function tallSheet(): string {
   );
 }
 
-/** The creature on cliffs and a river, two guardians defending, with explored, unexplored and fading ground. */
+/** The creature on cliffs and a river, two wardens defending, with explored, unexplored and fading ground. */
 function telegraphSheet(): string {
   const cells: ArtCell[] = [];
   for (let q = -4; q <= 4; q += 1) {

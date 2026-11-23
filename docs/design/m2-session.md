@@ -48,7 +48,7 @@ Contract fixtures for the web tests are captured from the real Worker code by on
 ## Characters (content as data)
 
 - Each character has a generated name, one trait and one quirk from small starter lists in `packages/core` content (tagged data with an `icon` id each; a quirk helps and hinders the character only). Roles carry an `icon` id too; the art kit draws all icons (`drawIcon`). A plain character (no trait, no quirk) is always offered.
-- Joining shows two or three rolled characters plus the plain one (the view's `offers`, rolled on the server); the player picks one and a starting role (Scout, Scholar, Keeper, Guardian, Engineer, Envoy). Rolls are seeded by the game seed, the user id and the attempt number, so a reload shows the same choices.
+- Joining shows two or three rolled characters plus the plain one (the view's `offers`, rolled on the server); the player picks one and a starting role (Scout, Scholar, Keeper, Engineer, Warden; Guardian and Envoy merged into Warden later). Rolls are seeded by the game seed, the user id and the attempt number, so a reload shows the same choices.
 - The role is stored and shown; it has no mechanics yet.
 - Cap of 15 active characters per server (config).
 

@@ -199,7 +199,7 @@ describe('pushes', () => {
     const b = await connect(robin);
     const c = await connect(other);
     await until(() => a.messages.length > 0 && b.messages.length > 0 && c.messages.length > 0);
-    const joined = await authed(misa, '/api/game/join', 'POST', { role: 'guardian', offer: 0 });
+    const joined = await authed(misa, '/api/game/join', 'POST', { role: 'warden', offer: 0 });
     const { version } = await joined.json<{ version: number }>();
     await until(() => a.messages.length > 1 && b.messages.length > 1);
     expect(a.messages[1]).toEqual({ v: 1, type: 'changed', version });

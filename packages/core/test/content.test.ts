@@ -57,7 +57,7 @@ describe('content', () => {
     expect(farSight).toMatchObject({ tags: ['sense', 'threats'], requiresUpgrade: true });
   });
 
-  it('gives each threat type a speed a guardian can meet: at most 2 hexes a tick', () => {
+  it('gives each threat type a speed a warden can meet: at most 2 hexes a tick', () => {
     for (const t of THREAT_TYPES) expect(t.speed >= 0 && t.speed <= 2).toBe(true);
   });
 
@@ -118,7 +118,7 @@ describe('content', () => {
       for (const g of p.gift) expect(materials.has(g.material) && g.amount > 0).toBe(true);
       expect(THREAT_TYPES.some((t) => t.id === p.angryThreat)).toBe(true);
     }
-    // The envoy's lever: something to offer exists, from a site.
+    // The warden's lever: something to offer exists, from a site.
     const trade = MATERIALS.filter((m) => m.tags.includes('trade')).map((m) => m.id);
     expect(FEATURE_TYPES.some((f) => f.kind === 'site' && trade.includes(f.finds.material))).toBe(
       true,

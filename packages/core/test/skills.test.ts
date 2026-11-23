@@ -55,7 +55,7 @@ const me = (state: GameState, id: string) => state.characters.find((c) => c.id =
 const xp = (state: GameState, id: string) => me(state, id).skills.xp;
 
 describe('skill content', () => {
-  it('has two branches of three tiers for each of the six roles, with unique ids', () => {
+  it('has two branches of three tiers for each of the five roles, with unique ids', () => {
     expect(new Set(SKILL_NODES.map((n) => n.id)).size).toBe(SKILL_NODES.length);
     for (const role of ROLES) {
       const nodes = SKILL_NODES.filter((n) => n.role === role.id);
@@ -68,7 +68,7 @@ describe('skill content', () => {
         'b3',
       ]);
     }
-    expect(SKILL_NODES).toHaveLength(36);
+    expect(SKILL_NODES).toHaveLength(30);
   });
 
   it('names nodes <role>-<branch><tier> with the icon skill:<id>', () => {
@@ -131,17 +131,17 @@ describe('xp', () => {
   });
 
   it('counts feeding, lingering, defending and parleying', () => {
-    let state = chainGame(['keeper', 'guardian', 'envoy']);
+    let state = chainGame(['keeper', 'warden']);
     state = { ...state, stores: { forage: 2 } };
     state = ok(state, 'keeper', { kind: 'feed' }).state;
     state = ok(state, 'keeper', { kind: 'linger' }).state;
     expect(xp(state, 'keeper')).toBe(2);
-    state = ok(state, 'guardian', { kind: 'defend' }).state;
-    expect(xp(state, 'guardian')).toBe(1);
-    state = placeCharacter(state, 'envoy', P);
+    state = ok(state, 'warden', { kind: 'defend' }).state;
+    expect(xp(state, 'warden')).toBe(1);
+    state = placeCharacter(state, 'warden', P);
     state = withSettlement(state, P);
-    state = ok(state, 'envoy', { kind: 'parley' }).state;
-    expect(xp(state, 'envoy')).toBe(1);
+    state = ok(state, 'warden', { kind: 'parley' }).state;
+    expect(xp(state, 'warden')).toBe(2);
   });
 
   it('gives a scout XP for each newly explored hex, by surveying or by walking, and others none for walking', () => {
@@ -169,14 +169,14 @@ describe('xp', () => {
   });
 
   it('gives everyone active catchUpXp when the route steps reach a multiple of 10', () => {
-    let state = chainGame(['scout', 'keeper', 'guardian']);
+    let state = chainGame(['scout', 'keeper', 'warden']);
     state = { ...state, creature: { ...state.creature, steps: 9 } };
-    state = withCharacter(state, { ...me(state, 'guardian'), status: 'lost' });
+    state = withCharacter(state, { ...me(state, 'warden'), status: 'lost' });
     const next = nextDay(state);
     expect(next.creature.steps).toBe(10);
     expect(xp(next, 'scout')).toBe(1);
     expect(xp(next, 'keeper')).toBe(1);
-    expect(xp(next, 'guardian')).toBe(0);
+    expect(xp(next, 'warden')).toBe(0);
     expect(xp(nextDay(next), 'scout')).toBe(1);
     // A stay at step 10 adds no step, so no second catch-up.
     const staying = { ...next, creature: { ...next.creature, lingering: true } };
@@ -196,7 +196,7 @@ describe('xp', () => {
 describe('picking a skill', () => {
   const pick = (node: string): Action => ({ kind: 'pick-skill', node });
   const scout = (skills: Partial<Skills>) =>
-    skilled(chainGame(['scout', 'guardian']), 'scout', skills);
+    skilled(chainGame(['scout', 'warden']), 'scout', skills);
 
   it('has a pick per xpPerPick XP, less the nodes taken', () => {
     const state = scout({ xp: PER * 2 - 1 });
@@ -204,8 +204,8 @@ describe('picking a skill', () => {
     const taken = ok(state, 'scout', pick('scout-a1')).state;
     expect(picksAvailable(taken, me(taken, 'scout'))).toBe(0);
     // The XP is one pool: it buys another role's tier 1 as well.
-    const other = ok(scout({ xp: PER }), 'scout', pick('guardian-a1')).state;
-    expect(me(other, 'scout').skills.taken).toEqual(['guardian-a1']);
+    const other = ok(scout({ xp: PER }), 'scout', pick('warden-a1')).state;
+    expect(me(other, 'scout').skills.taken).toEqual(['warden-a1']);
     const dev = createGame(1, { characterIds: ['a'], config: { xpPerPick: 4 } });
     expect(picksAvailable(dev, me(skilled(dev, 'a', { xp: 8 }), 'a'))).toBe(2);
   });
@@ -229,10 +229,8 @@ describe('picking a skill', () => {
     expect(reason(scout({ xp: PER - 1 }), 'scout-a1')).toBe('no-pick');
     expect(reason(scout({ xp: PER * 2, taken: ['scout-a1'] }), 'scout-a1')).toBe('already-have');
     expect(reason(scout({ xp: PER * 2, taken: ['scout-a1'] }), 'scout-b1')).toBe('branch-closed');
-    expect(reason(scout({ xp: PER }), 'guardian-a1')).toBe('ok');
-    expect(reason(scout({ xp: PER * 2, taken: ['guardian-b1'] }), 'guardian-a1')).toBe(
-      'branch-closed',
-    );
+    expect(reason(scout({ xp: PER }), 'warden-a1')).toBe('ok');
+    expect(reason(scout({ xp: PER * 2, taken: ['warden-b1'] }), 'warden-a1')).toBe('branch-closed');
     const over = {
       ...scout({ xp: PER }),
       season: { status: 'over', outcome: 'safe', day: 3 },
@@ -247,7 +245,7 @@ describe('picking a skill', () => {
 
   it('keeps tier order and limits another role to tier 1 (shown with tier 2 switched on for the test)', () => {
     const a2 = skillNode('scout-a2') as { active: boolean };
-    const g2 = skillNode('guardian-a2') as { active: boolean };
+    const g2 = skillNode('warden-a2') as { active: boolean };
     a2.active = true;
     g2.active = true;
     try {
@@ -256,7 +254,7 @@ describe('picking a skill', () => {
       expect(pickRefusal(state, rich({}), 'scout-a2')).toBe('skill-tier-order');
       expect(pickRefusal(state, rich({ taken: ['scout-a1'] }), 'scout-a2')).toBeNull();
       expect(pickRefusal(state, rich({ taken: ['scout-b1'] }), 'scout-a2')).toBe('branch-closed');
-      expect(pickRefusal(state, rich({ taken: ['guardian-a1'] }), 'guardian-a2')).toBe(
+      expect(pickRefusal(state, rich({ taken: ['warden-a1'] }), 'warden-a2')).toBe(
         'skill-tier-limit',
       );
     } finally {
@@ -391,27 +389,36 @@ describe('tier 1 effects', () => {
     });
   });
 
-  it('guardian A1 skywatch: +1 strike against flying threats only', () => {
-    const near = (type: string) =>
-      withThreat(placeCharacter(chainGame(['guardian']), 'guardian', P), type, N, 3);
-    const strength = (s: GameState) => s.threats[0]?.strength;
-    expect(
-      strength(ok(near('swarm'), 'guardian', { kind: 'strike', threat: 'xswarm' }).state),
-    ).toBe(1);
-    const sky = (type: string) => take(near(type), 'guardian', 'guardian-a1');
-    const cleared = ok(sky('swarm'), 'guardian', { kind: 'strike', threat: 'xswarm' });
-    expect(cleared.events.map((e) => e.kind)).toEqual(['threat-hit', 'threat-cleared']);
-    expect(
-      strength(ok(sky('captors'), 'guardian', { kind: 'strike', threat: 'xcaptors' }).state),
-    ).toBe(1);
+  it('a strike-bonus effect: +1 strike against flying threats only (no node carries it now; tier 2 is lent it)', () => {
+    const lent = skillNode('warden-a2') as { effect: unknown; active: boolean };
+    const was = lent.effect;
+    lent.effect = { kind: 'strike-bonus', tag: 'flying', bonus: 1 };
+    lent.active = true;
+    try {
+      const near = (type: string) =>
+        withThreat(placeCharacter(chainGame(['warden']), 'warden', P), type, N, 3);
+      const strength = (s: GameState) => s.threats[0]?.strength;
+      expect(
+        strength(ok(near('swarm'), 'warden', { kind: 'strike', threat: 'xswarm' }).state),
+      ).toBe(1);
+      const sky = (type: string) => take(near(type), 'warden', 'warden-a2');
+      const cleared = ok(sky('swarm'), 'warden', { kind: 'strike', threat: 'xswarm' });
+      expect(cleared.events.map((e) => e.kind)).toEqual(['threat-hit', 'threat-cleared']);
+      expect(
+        strength(ok(sky('captors'), 'warden', { kind: 'strike', threat: 'xcaptors' }).state),
+      ).toBe(1);
+    } finally {
+      lent.effect = was;
+      lent.active = false;
+    }
   });
 
-  it('guardian B1 bulwark: a defending guardian takes 3 off, not 2', () => {
-    const base = chainGame(['guardian']);
-    expect(defence(ok(base, 'guardian', { kind: 'defend' }).state)).toBe(2);
-    expect(
-      defence(ok(take(base, 'guardian', 'guardian-b1'), 'guardian', { kind: 'defend' }).state),
-    ).toBe(3);
+  it('warden A1 bulwark: a defending warden takes 3 off, not 2', () => {
+    const base = chainGame(['warden']);
+    expect(defence(ok(base, 'warden', { kind: 'defend' }).state)).toBe(2);
+    expect(defence(ok(take(base, 'warden', 'warden-a1'), 'warden', { kind: 'defend' }).state)).toBe(
+      3,
+    );
   });
 
   it('engineer A1 double yield: 2 units, within the pack', () => {
@@ -448,37 +455,51 @@ describe('tier 1 effects', () => {
     expect(second.state.project).toBeNull();
   });
 
-  it('envoy A1 silver tongue: a parley gives 1 more favour', () => {
-    const at = (role: string) => withSettlement(placeCharacter(chainGame([role]), role, P), P);
-    const favour = (s: GameState, id: string) =>
-      ok(s, id, { kind: 'parley' }).events.find((e) => e.kind === 'parley');
-    expect(favour(at('envoy'), 'envoy')).toMatchObject({ favour: 2 });
-    expect(favour(take(at('envoy'), 'envoy', 'envoy-a1'), 'envoy')).toMatchObject({ favour: 3 });
+  it('a parley-favour effect: a parley gives 1 more favour (Silver tongue is tier 2, so it is lent the effect)', () => {
+    const lent = skillNode('warden-a2') as { effect: unknown; active: boolean };
+    const was = lent.effect;
+    lent.effect = { kind: 'parley-favour', bonus: 1 };
+    lent.active = true;
+    try {
+      const at = (role: string) => withSettlement(placeCharacter(chainGame([role]), role, P), P);
+      const favour = (s: GameState, id: string) =>
+        ok(s, id, { kind: 'parley' }).events.find((e) => e.kind === 'parley');
+      expect(favour(at('warden'), 'warden')).toMatchObject({ favour: 2 });
+      expect(favour(take(at('warden'), 'warden', 'warden-a2'), 'warden')).toMatchObject({
+        favour: 3,
+      });
+    } finally {
+      lent.effect = was;
+      lent.active = false;
+    }
   });
 
-  it('envoy B1 ravens: parley from up to 3 hexes away, nothing else', () => {
-    const base = chainGame(['envoy']);
-    const far = withSettlement(placeCharacter(base, 'envoy', hex(3, -1)), hex(6, -1));
+  it('warden B1 ravens: parley from up to 3 hexes away, nothing else', () => {
+    const base = chainGame(['warden']);
+    const far = withSettlement(placeCharacter(base, 'warden', hex(3, -1)), hex(6, -1));
     const parley: Action = { kind: 'parley' };
-    expect(checkAction(far, 'envoy', parley)).toMatchObject({ ok: false, reason: 'no-settlement' });
-    const ravens = take(far, 'envoy', 'envoy-b1');
-    expect(checkAction(ravens, 'envoy', parley)).toMatchObject({ ok: true });
-    expect(ok(ravens, 'envoy', parley).events).toMatchObject([{ kind: 'parley', id: 's1' }]);
+    expect(checkAction(far, 'warden', parley)).toMatchObject({
+      ok: false,
+      reason: 'no-settlement',
+    });
+    const ravens = take(far, 'warden', 'warden-b1');
+    expect(checkAction(ravens, 'warden', parley)).toMatchObject({ ok: true });
+    expect(ok(ravens, 'warden', parley).events).toMatchObject([{ kind: 'parley', id: 's1' }]);
     // 4 away is too far.
-    const farther = withSettlement(placeCharacter(base, 'envoy', hex(3, -1)), hex(7, -1));
-    expect(checkAction(take(farther, 'envoy', 'envoy-b1'), 'envoy', parley)).toMatchObject({
+    const farther = withSettlement(placeCharacter(base, 'warden', hex(3, -1)), hex(7, -1));
+    expect(checkAction(take(farther, 'warden', 'warden-b1'), 'warden', parley)).toMatchObject({
       ok: false,
       reason: 'no-settlement',
     });
     // Offers still need the character's own hex.
-    const pocket = withCharacter(ravens, { ...me(ravens, 'envoy'), pack: { 'old-coin': 1 } });
-    expect(checkAction(pocket, 'envoy', { kind: 'offer', material: 'old-coin' })).toMatchObject({
+    const pocket = withCharacter(ravens, { ...me(ravens, 'warden'), pack: { 'old-coin': 1 } });
+    expect(checkAction(pocket, 'warden', { kind: 'offer', material: 'old-coin' })).toMatchObject({
       ok: false,
       reason: 'no-settlement',
     });
     // A rider reaches from the creature's footprint.
-    const riding = withSettlement(take(base, 'envoy', 'envoy-b1'), hex(3, 0));
-    expect(checkAction(riding, 'envoy', parley)).toMatchObject({ ok: true });
+    const riding = withSettlement(take(base, 'warden', 'warden-b1'), hex(3, 0));
+    expect(checkAction(riding, 'warden', parley)).toMatchObject({ ok: true });
   });
 });
 

@@ -1,6 +1,6 @@
 /**
- * Skill node icons: 36 nodes (six roles, two branches of three tiers), id `skill:<role>-<branch><tier>`
- * (`skill:scout-a1`, `skill:guardian-b3`). Each is drawn so its effect reads without words: a tag icon with
+ * Skill node icons: 30 nodes (five roles, two branches of three tiers), id `skill:<role>-<branch><tier>`
+ * (`skill:scout-a1`, `skill:warden-b3`). Each is drawn so its effect reads without words: a tag icon with
  * a mark (plus, minus), a ring for range, a crossed action arrow for cheaper, a doubled material for yield.
  * A node sits on a round tile with a ring in its role's tint, and `drawSkillNode` gives it a look by state:
  * plain, veiled (under the map's hatch veil), available (glowing ring), taken (inked ring and a seal) or
@@ -176,7 +176,7 @@ function gear(cx: number, cy: number, ro: number, ri: number, teeth: number): st
   return poly(pts);
 }
 
-// --- The 36 nodes -----------------------------------------------------------------------------------
+// --- The 30 nodes -----------------------------------------------------------------------------------
 
 const trowel: IconMotif = (pal) => [
   ink(pal, 'M11 38L21 28', 4, pal.ramps.bark.shade),
@@ -371,53 +371,6 @@ export const SKILL_MOTIFS: Readonly<Record<string, IconMotif>> = {
     sub(motif('light-fire'), pal, 24, 25, 0.5),
   ],
 
-  // --- Guardian: hunter (a) or warden (b) ---
-  // Skywatch: a feather (the flying tag), a strike on it, and a plus.
-  'skill:guardian-a1': (pal) => [
-    sub(motif('feather'), pal, 22, 26, 0.9),
-    ink(pal, 'M32 33.5l4 1.2M30 37.5l2 3.4M35 30l4 .2', 1.8, pal.accents.coral.shade),
-    ...badge(pal, 35.5, 13, 'plus'),
-  ],
-  // Long reach: a spear, and the ring it reaches across.
-  'skill:guardian-a2': (pal) => [
-    dashedRing(24, 24, 16.5, pal.accents.ochre.base),
-    sub(motif('strike'), pal, 24, 24, 0.84),
-    ...pips(pal, 24, 41, 2),
-  ],
-  // Rout: the pursuer's paw, struck out, held off for three days.
-  'skill:guardian-a3': (pal) => [
-    sub(motif('paw'), pal, 24, 20, 0.78),
-    ...slash(pal, 12, 32, 36, 9),
-    ...pips(pal, 24, 38.5, 3),
-  ],
-  // Bulwark: a shield, and each blow cut by three.
-  'skill:guardian-b1': (pal) => [
-    sub(shieldMark, pal, 21, 25, 0.9),
-    ...badge(pal, 36, 13, 'minus'),
-    ...pips(pal, 36, 24, 3, 3, 1.4),
-  ],
-  // Wide guard: two hexes, a shield on each.
-  'skill:guardian-b2': (pal) => [
-    hexDot(pal, 16.2, 24, 9.4, pal.accents.slate.light),
-    hexDot(pal, 31.8, 24, 9.4, pal.accents.slate.light),
-    sub(shieldMark, pal, 16.2, 24.5, 0.34),
-    sub(shieldMark, pal, 31.8, 24.5, 0.34),
-  ],
-  // Standing guard: a shield that turns with the days, no action spent.
-  'skill:guardian-b3': (pal) => [
-    sub(shieldMark, pal, 24, 24, 0.68),
-    el('path', {
-      d: 'M24 7A17 17 0 1 1 8.5 17',
-      fill: 'none',
-      stroke: pal.accents.ochre.base,
-      'stroke-width': 2,
-      'stroke-linecap': 'round',
-    }),
-    ink(pal, 'M5 14l3.5 4 4-3.5', 2, pal.accents.ochre.base),
-    ...actionArrowNodes(pal, 31, 32, 7, 'spent'),
-    ...slash(pal, 29, 42, 40, 31),
-  ],
-
   // --- Engineer: prospector (a) or artificer (b) ---
   'skill:engineer-a1': (pal) => doubled(pal, motif('iron')),
   // Pack mule: a bigger pack, ten slots.
@@ -475,31 +428,34 @@ export const SKILL_MOTIFS: Readonly<Record<string, IconMotif>> = {
     ink(pal, 'M9.5 29.5l-3.6-4-3.2 4.4', 2, pal.accents.ochre.base),
   ],
 
-  // --- Envoy: diplomat (a) or schemer (b) ---
-  'skill:envoy-a1': (pal) => [
+  // --- Warden: stand fast (a) or range out (b) ---
+  'skill:warden-a1': (pal) => [
+    sub(shieldMark, pal, 21, 25, 0.9),
+    ...badge(pal, 36, 13, 'minus'),
+    ...pips(pal, 36, 24, 3, 3, 1.4),
+  ],
+
+  'skill:warden-a2': (pal) => [
     sub(motif('parley'), pal, 21, 25, 0.84),
     ...badge(pal, 36, 12.5, 'plus'),
     ...pips(pal, 36, 21, 3, 3, 1.2),
   ],
-  'skill:envoy-a2': (pal) => doubled(pal, motif('gift')),
-  // Allies: a village that throws a blow at a threat across the way.
-  'skill:envoy-a3': (pal) => [
-    solid(pal, 'M7 36V26l7-6 7 6v10z', pal.ramps.sand.base, 1.7),
-    solid(pal, 'M5 27l9-8 9 8z', pal.accents.rose.base, 1.5),
-    solid(pal, 'M12 36v-6h4.5v6z', pal.ramps.bark.shade, 1.1),
+
+  'skill:warden-a3': (pal) => [
+    sub(shieldMark, pal, 24, 24, 0.68),
     el('path', {
-      d: 'M16 17Q26 6 35 15',
+      d: 'M24 7A17 17 0 1 1 8.5 17',
       fill: 'none',
-      stroke: pal.accents.rose.shade,
-      'stroke-width': 1.6,
-      'stroke-dasharray': '2.4 2.2',
+      stroke: pal.accents.ochre.base,
+      'stroke-width': 2,
+      'stroke-linecap': 'round',
     }),
-    ink(pal, 'M31.5 12.5l4 2.7-.8 4.4', 1.8, pal.accents.rose.shade),
-    ...threat(pal, 36, 28, 1.25),
-    ink(pal, 'M42 21l3 -1.5M43 27.5h3', 1.6, pal.accents.coral.shade),
+    ink(pal, 'M5 14l3.5 4 4-3.5', 2, pal.accents.ochre.base),
+    ...actionArrowNodes(pal, 31, 32, 7, 'spent'),
+    ...slash(pal, 29, 42, 40, 31),
   ],
-  // Ravens: a bird crossing three hexes at once.
-  'skill:envoy-b1': (pal) => [
+
+  'skill:warden-b1': (pal) => [
     solid(
       pal,
       'M8 20c5-5 10-5 16 1 6-6 11-6 16-1-5 0-10 2-16 8-6-6-11-8-16-8z',
@@ -518,21 +474,19 @@ export const SKILL_MOTIFS: Readonly<Record<string, IconMotif>> = {
       'stroke-dasharray': '2 2.2',
     }),
   ],
-  // Calm words: an angry coral dot turned to a wary one by a calm spoken wave.
-  'skill:envoy-b2': (pal) => [
-    solid(pal, `${ellipsePath(24, 17, 12, 7.5)}M18 23.5l-3.5 5 8-3`, pal.paper, 1.7),
-    ink(pal, 'M16.5 17c2-2 4-2 6 0s4 2 6 0 3-1.4 3-1.4', 1.4, pal.accents.sage.shade),
-    solid(pal, ellipsePath(13, 37, 4, 4), pal.accents.coral.base, 1.4),
-    ink(pal, 'M19.5 37h10M26.5 33.5l4 3.5-4 3.5', 1.8, pal.inkSoft),
-    solid(pal, ellipsePath(36, 37, 4, 4), pal.accents.ochre.light, 1.4),
+
+  // Long reach: a spear, and the ring it reaches across.
+  'skill:warden-b2': (pal) => [
+    dashedRing(24, 24, 16.5, pal.accents.ochre.base),
+    sub(motif('strike'), pal, 24, 24, 0.84),
+    ...pips(pal, 24, 41, 2),
   ],
-  // Turncoats: a person, and their strength cut by two.
-  'skill:envoy-b3': (pal) => [
-    solid(pal, ellipsePath(21, 14.5, 4.6, 4.6), pal.skin, 1.5),
-    solid(pal, 'M12 36c0-9 3.4-14.5 9-14.5s9 5.5 9 14.5z', pal.accents.rose.base, 1.7),
-    ink(pal, 'M17 28.5l8 2', 1.2, pal.accents.rose.shade),
-    ...badge(pal, 36, 13, 'minus'),
-    ...pips(pal, 36, 22, 2, 2, 1.3),
+
+  'skill:warden-b3': (pal) => [
+    hexDot(pal, 16.2, 24, 9.4, pal.accents.slate.light),
+    hexDot(pal, 31.8, 24, 9.4, pal.accents.slate.light),
+    sub(shieldMark, pal, 16.2, 24.5, 0.34),
+    sub(shieldMark, pal, 31.8, 24.5, 0.34),
   ],
 };
 
@@ -540,12 +494,11 @@ export const SKILL_ROLES: readonly SkillRole[] = [
   'scout',
   'scholar',
   'keeper',
-  'guardian',
   'engineer',
-  'envoy',
+  'warden',
 ];
 
-/** The 36 node ids, role by role, branch a then b, tiers 1 to 3. */
+/** The 30 node ids, role by role, branch a then b, tiers 1 to 3. */
 export const SKILL_IDS: readonly string[] = SKILL_ROLES.flatMap((role) =>
   ['a', 'b'].flatMap((branch) => [1, 2, 3].map((tier) => `skill:${role}-${branch}${tier}`)),
 );

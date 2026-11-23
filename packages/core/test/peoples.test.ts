@@ -39,21 +39,21 @@ const doing = (state: GameState, id: string, action: Action) => {
 };
 
 describe('parley', () => {
-  it('gains the envoy favour without risk, and befriends at favourNeeded', () => {
-    const state = atVillage(['envoy']);
-    expect(checkAction(state, 'envoy', { kind: 'parley' })).toEqual({
+  it('gains the warden favour without risk, and befriends at favourNeeded', () => {
+    const state = atVillage(['warden']);
+    expect(checkAction(state, 'warden', { kind: 'parley' })).toEqual({
       ok: true,
       cost: 1,
       uses: [],
       chance: 1,
     });
-    const once = doing(state, 'envoy', { kind: 'parley' });
-    expect(once.events).toEqual([{ kind: 'parley', id: 's1', characterId: 'envoy', favour: 2 }]);
+    const once = doing(state, 'warden', { kind: 'parley' });
+    expect(once.events).toEqual([{ kind: 'parley', id: 's1', characterId: 'warden', favour: 2 }]);
     expect(once.state.settlements[0]).toMatchObject({ attitude: 'wary', favour: 2 });
-    const twice = doing(once.state, 'envoy', { kind: 'parley' });
+    const twice = doing(once.state, 'warden', { kind: 'parley' });
     expect(twice.events.map((e) => e.kind)).toEqual(['parley', 'befriended']);
     expect(twice.state.settlements[0]).toMatchObject({ attitude: 'friendly', favour: 4 });
-    expect(checkAction(twice.state, 'envoy', { kind: 'parley' })).toMatchObject({
+    expect(checkAction(twice.state, 'warden', { kind: 'parley' })).toMatchObject({
       ok: false,
       reason: 'not-wary',
     });
@@ -101,14 +101,14 @@ describe('parley', () => {
   });
 
   it('needs a settlement on the hex you stand on', () => {
-    const state = withSettlement(fieldGame(['envoy']), VILLAGE);
-    expect(checkAction(state, 'envoy', { kind: 'parley' })).toMatchObject({
+    const state = withSettlement(fieldGame(['warden']), VILLAGE);
+    expect(checkAction(state, 'warden', { kind: 'parley' })).toMatchObject({
       ok: false,
       reason: 'no-settlement',
       cost: 1,
     });
-    const beside = placeCharacter(state, 'envoy', hex(4, -1));
-    expect(checkAction(beside, 'envoy', { kind: 'parley' })).toMatchObject({
+    const beside = placeCharacter(state, 'warden', hex(4, -1));
+    expect(checkAction(beside, 'warden', { kind: 'parley' })).toMatchObject({
       reason: 'no-settlement',
     });
   });

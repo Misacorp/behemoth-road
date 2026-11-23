@@ -129,7 +129,7 @@ export function joinScenario(s: Scenario, role: string, offer: number): Scenario
 export function notJoinedScenario(): Scenario {
   let state = createGame(SEED, { artSeed: ART_SEED });
   state = must(addCharacter(state, { userId: PIP, role: 'keeper', offer: 0 }));
-  state = must(addCharacter(state, { userId: OLA, role: 'envoy', offer: 1 }));
+  state = must(addCharacter(state, { userId: OLA, role: 'engineer', offer: 1 }));
   const c = state.creature.centre;
   state = place(state, OLA, { q: c.q, r: c.r + 2 });
   return { state, you: MISA, version: 3, admin: true };
@@ -297,9 +297,9 @@ export interface SeasonStage extends ChainStage {
   readonly peril?: number;
   readonly steps?: number;
   readonly season?: Season;
-  /** Ola (an envoy, on a hex beside the creature) plays as a guardian standing at this offset. */
-  readonly guardianAt?: Hex;
-  /** Your character defends the creature today (it must be a guardian riding). */
+  /** Ola (a warden, on a hex beside the creature) plays as a warden standing at this offset. */
+  readonly wardenAt?: Hex;
+  /** Your character defends the creature today (it must be a warden riding). */
   readonly defending?: boolean;
   /** The season's tallies so far (the recap's numbers), the players' by user id; default none. */
   readonly stats?: {
@@ -351,12 +351,12 @@ export function seasonScenario(stage: SeasonStage = {}): Scenario {
     },
     creature: { ...s.state.creature, steps: stage.steps ?? 0, defenders: [] },
   };
-  if (stage.guardianAt) {
-    state = place(state, OLA, abs(stage.guardianAt));
+  if (stage.wardenAt) {
+    state = place(state, OLA, abs(stage.wardenAt));
     state = {
       ...state,
       characters: state.characters.map((ch) =>
-        ch.userId === OLA ? { ...ch, role: 'guardian' } : ch,
+        ch.userId === OLA ? { ...ch, role: 'warden' } : ch,
       ),
     };
   }

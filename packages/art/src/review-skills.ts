@@ -1,5 +1,5 @@
 /**
- * Review sheets for the skill trees: all six trees (emblem root, two branches of three nodes, the first
+ * Review sheets for the skill trees: all five trees (emblem root, two branches of three nodes, the first
  * tree shown mid-pick) and the states, notch rings and branch paths.
  */
 import { drawIcon } from './icons.ts';
@@ -77,7 +77,7 @@ function statesSheet(): string {
   const pal = SPRING;
   const items: SvgNode[] = [];
   SKILL_STATES.forEach((state, i) => {
-    items.push(put(drawSkillNode(pal, 'skill:guardian-b1', 64, state), 12 + i * 80, 10));
+    items.push(put(drawSkillNode(pal, 'skill:warden-a1', 64, state), 12 + i * 80, 10));
     items.push(put(drawSkillNode(pal, 'skill:keeper-a2', 64, state), 12 + i * 80, 84));
   });
   (['open', 'taken', 'closed'] as const).forEach((state, i) =>
@@ -87,7 +87,7 @@ function statesSheet(): string {
     items.push(put(drawNotchRing(pal, 'scout', n, 10, 72), 12 + i * 84, 168)),
   );
   [0, 2, 4].forEach((n, i) =>
-    items.push(put(drawNotchRing(pal, 'envoy', n, 4, 72), 12 + i * 84, 250)),
+    items.push(put(drawNotchRing(pal, 'warden', n, 4, 72), 12 + i * 84, 250)),
   );
   return toSvgString(
     el('svg', { viewBox: '0 0 640 330', width: 640, height: 330 }, [
@@ -103,7 +103,7 @@ export function skillReviewItems(): ReviewDraft[] {
       id: 'skills/trees',
       group: 'Skills',
       title:
-        'The six skill trees: emblem root, two branches of three nodes (scout shown mid-pick: branch a taken, next available, last veiled, branch b closed and cut), then all 36 nodes finished',
+        'The five skill trees: emblem root, two branches of three nodes (scout shown mid-pick: branch a taken, next available, last veiled, branch b closed and cut), then all 36 nodes finished',
       file: 'skills-trees.svg',
       kind: 'glance',
       svg: treesSheet(),

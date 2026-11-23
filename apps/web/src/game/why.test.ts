@@ -33,7 +33,7 @@ describe('the reason an action is greyed', () => {
     expect(whyTip('not-enough-actions')).toBe('why:not-enough-actions');
     expect(whyTip('pack-full', null)).toBe('why:pack-full');
     // A role the content does not know falls back to the refusal's own tip.
-    expect(whyTip('needs-guardian', 'nobody')).toBe('why:role-guardian');
+    expect(whyTip('needs-warden', 'nobody')).toBe('why:role-warden');
   });
 
   it('comes from the same check that greys each action', () => {
@@ -41,7 +41,7 @@ describe('the reason an action is greyed', () => {
     const care = careOptions(scout.view, scout.me);
     expect(care.find((a) => a.kind === 'linger')?.why).toBe('why:role-keeper');
     expect(care.find((a) => a.kind === 'feed')?.why).toBeUndefined();
-    expect(defendOption(scout.view, scout.me)?.why).toBe('why:role-guardian');
+    expect(defendOption(scout.view, scout.me)?.why).toBe('why:role-warden');
 
     const tired = {
       ...scout.view,
@@ -100,13 +100,13 @@ describe('a greyed action is a button that does not act', () => {
 });
 
 describe('how the creature is defended', () => {
-  it('counts the guardians riding who defended, and what they take off a strike', () => {
-    const idle = seasonStaged({ role: 'guardian', at: 'creature' });
-    expect(defendedBy(idle.view)).toEqual({ guardians: 0, reduction: 0 });
-    const guarding = seasonStaged({ role: 'guardian', at: 'creature', defending: true });
+  it('counts the wardens riding who defended, and what they take off a strike', () => {
+    const idle = seasonStaged({ role: 'warden', at: 'creature' });
+    expect(defendedBy(idle.view)).toEqual({ wardens: 0, reduction: 0 });
+    const guarding = seasonStaged({ role: 'warden', at: 'creature', defending: true });
     // A threat's card carries the same reduction, to draw as shields against its strength marks.
     const withThreat = seasonStaged({
-      role: 'guardian',
+      role: 'warden',
       at: 'creature',
       defending: true,
       threats: [{ type: 'swarm', at: { q: 3, r: 0 }, strength: 3 }],
@@ -116,7 +116,7 @@ describe('how the creature is defended', () => {
       withThreat.view.config.defendReduction,
     );
     expect(defendedBy(guarding.view)).toEqual({
-      guardians: 1,
+      wardens: 1,
       reduction: guarding.view.config.defendReduction,
     });
   });

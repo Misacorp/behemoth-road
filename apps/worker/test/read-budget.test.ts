@@ -19,7 +19,7 @@ import { ORIGIN, callHandler, freshGuildId, tokenFor } from './helpers.ts';
  */
 
 const handler = createHandler();
-const ROLES = ['guardian', 'scout', 'scholar', 'keeper', 'engineer', 'envoy'];
+const ROLES = ['warden', 'scout', 'scholar', 'keeper', 'engineer', 'warden'];
 const user = (i: number): SessionUser => ({
   id: `3${String(i).padStart(17, '0')}`,
   displayName: `Player ${String(i)}`,

@@ -79,7 +79,7 @@
     "method": "POST",
     "path": "/api/game/replace",
     "body": {
-      "role": "envoy",
+      "role": "warden",
       "offer": 2
     }
   },
@@ -153,7 +153,7 @@
     "method": "POST",
     "path": "/api/game/act",
     "body": {
-      "version": 14,
+      "version": 13,
       "action": {
         "kind": "strike",
         "threat": "t2"
@@ -164,7 +164,7 @@
     "method": "POST",
     "path": "/api/game/act",
     "body": {
-      "version": 27,
+      "version": 24,
       "action": {
         "kind": "offer",
         "material": "old-coin"
@@ -175,7 +175,7 @@
     "method": "POST",
     "path": "/api/game/act",
     "body": {
-      "version": 32,
+      "version": 29,
       "action": {
         "kind": "parley"
       }
@@ -185,7 +185,7 @@
     "method": "POST",
     "path": "/api/game/act",
     "body": {
-      "version": 33,
+      "version": 30,
       "action": {
         "kind": "ask-boon",
         "boon": "gift"

@@ -4,14 +4,13 @@
  * lost) and the final peril are recorded.
  *
  * Policies (the sim reads the full state, as a keeper reads the creature's signs):
- * - `careful`: a guardian strikes any threat it can reach this day (else rides and
- *   defends against one arriving tomorrow); anyone else strikes a threat arriving
- *   tomorrow when in reach; the envoy parleys with wary settlements and asks a
+ * - `careful`: a warden strikes any threat it can reach this day (else rides and
+ *   defends against one arriving tomorrow), then parleys with wary settlements and asks a
  *   boon (shelter when peril is 3 or more, mislead when pursuers are out, else the
- *   gift); whoever rides feeds the creature when it is underfed; everyone else
+ *   gift); anyone else strikes a threat arriving tomorrow when in reach; whoever rides feeds the creature when it is underfed; everyone else
  *   gathers forage within reach and brings it back.
  *   A careful player also spends every pick it earns, at once, on the first node it can take from
- *   its role's list in `SKILL_PREFERENCE` (the guardian prefers bulwark, the rest their A1).
+ *   its role's list in `SKILL_PREFERENCE` (the warden prefers bulwark; the rest their A1).
  * - `careless`: everyone rides; every third day one of them gathers forage within
  *   reach, and the creature is fed only when it is underfed at level 2 or more.
  *
@@ -57,8 +56,8 @@ export const DEV_SEASON: ConfigOverrides = {
   xpPerPick: 5,
 };
 
-/** Roles of a party, by size: the first three are the core of any party. */
-const ROLE_ORDER = ['guardian', 'keeper', 'envoy', 'scout', 'engineer', 'scholar'] as const;
+/** Roles of a party, by size: the first three are the core of any party; a sixth player is a second warden. */
+const ROLE_ORDER = ['warden', 'keeper', 'scout', 'engineer', 'scholar'] as const;
 
 export interface SeasonResult {
   readonly outcome: SeasonOutcome;
@@ -204,8 +203,8 @@ const forage = (state: GameState, id: string): GameState => {
   return goHome(s, id);
 };
 
-/** The envoy's day: parley with a wary settlement, or ask a friendly one for a boon. */
-const envoy = (state: GameState, id: string): GameState => {
+/** The warden's diplomacy: parley with a wary settlement, or ask a friendly one for a boon. */
+const parleyDay = (state: GameState, id: string): GameState => {
   for (const settlement of state.settlements) {
     if (settlement.attitude === 'angry' || settlement.boon !== null) continue;
     const target = nearest(state, id, [settlement.hex], actionsLeft(state, id) - 1);
@@ -232,9 +231,8 @@ const envoy = (state: GameState, id: string): GameState => {
 
 /** The nodes a careful player of each role takes first. */
 const SKILL_PREFERENCE: Readonly<Record<string, readonly string[]>> = {
-  guardian: ['guardian-b1', 'guardian-a1'],
+  warden: ['warden-a1'],
   keeper: ['keeper-a1'],
-  envoy: ['envoy-a1'],
   scout: ['scout-a1'],
   engineer: ['engineer-a1'],
   scholar: ['scholar-a1'],
@@ -257,7 +255,7 @@ const carefulDay = (state: GameState, ids: readonly string[]): GameState => {
     if (actionsLeft(s, id) === 0) continue;
     // Anyone carrying something comes home first, to put it in the stores.
     if (Object.keys(character(s, id)?.pack ?? {}).length > 0) s = goHome(s, id);
-    if (role === 'guardian') {
+    if (role === 'warden') {
       for (const t of byUrgency(s)) {
         if (actionsLeft(s, id) === 0) break;
         s = intercept(s, id, t.id);
@@ -274,9 +272,9 @@ const carefulDay = (state: GameState, ids: readonly string[]): GameState => {
         }
       }
     }
-    if (role === 'envoy') s = envoy(s, id);
+    if (role === 'warden') s = parleyDay(s, id);
     s = feed(s, id, 1);
-    if (role !== 'guardian' && actionsLeft(s, id) >= 2) s = forage(s, id);
+    if (role !== 'warden' && actionsLeft(s, id) >= 2) s = forage(s, id);
     // Never left behind: everyone ends the day as close to the creature as they can.
     s = goHome(s, id);
     s = feed(s, id, 1);

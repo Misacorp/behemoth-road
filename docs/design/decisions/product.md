@@ -4,6 +4,22 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-23: The Warden tree forks by style: stand fast or range out **[Misa]**
+
+ID: `2026-11-23-the-warden-tree-forks-by-style` · Status: current · Amends: `2026-11-23-guardian-and-envoy-merge-into-one`
+
+**Decision.** The Warden tree's branches both hold protection and diplomacy; the fork is a style. Branch a, stand fast (on the spot): A1 Bulwark (active), A2 Silver tongue, A3 Standing guard. Branch b, range out (at a distance): B1 Ravens (active), B2 Long reach, B3 Wide guard. Tiers 2 and 3 stay veiled data. This replaces the shield and word branches of the merge decision (its role, tags and content version are unchanged). Allies is dropped too. Every Warden node, all tiers, has a `skill:warden-<a|b><1-3>` tip in `tips.ts` (one hint line each), for the skills wiki.
+
+**Reasoning.** The first pick in a tree closes the other branch, so a pure shield branch and a pure word branch would make a Warden lose half the role. Mixing both into each branch keeps the whole role open and makes the choice about how to play.
+
+## 2026-11-23: Guardian and Envoy merge into one role, the Warden **[Misa]**
+
+ID: `2026-11-23-guardian-and-envoy-merge-into-one` · Status: current, amended by `2026-11-23-the-warden-tree-forks-by-style` · Amends: `2026-11-20-guardians-strike-defend-and-escort-anyone`, `2026-11-20-settlements-appear-on-the-route-parley`
+
+**Decision.** Guardian and Envoy are one role, the Warden (id `warden`, tags `defend`, `escort`, `peoples`, `trade`; icon key `shield`). Five roles: Scout, Scholar, Keeper, Engineer, Warden. Every role-gated bonus that read the guardian or the envoy reads the warden's tags: strike power (`clearPowerWarden`, 2), defend, escort, parley favour and no anger risk (`parleyFavourWarden`, 2), offer and ask-boon. Non-wardens keep the basics. The refusal `needs-guardian` is now `needs-warden`. One Warden skill tree replaces the two: branch a, shield (A1 Bulwark, active; A2 Wide guard and A3 Standing guard, veiled), branch b, word (B1 Silver tongue, active; B2 Ravens and B3 Allies, veiled). Dropped: Skywatch, Long reach, Rout, Second boon, Calm words, Turncoats (the `strike-bonus` and `parley-range` effect kinds stay in the rules). The emblem is the old Guardian shield emblem (Misa chose to reuse it); the envoy emblem and the dropped skill icons are removed. Content version 16; fixtures recaptured (the capture scenario's parleying non-warden is a scout).
+
+**Reasoning.** Both roles struggled to find things to do when nothing was scouted. One role that protects and deals with the peoples has more to do on any day, and the choice between guarding and parleying is the interesting one. Rules read tags, so the merge is data: no rule names a role. Balance numbers are in `docs/progress.md`.
+
 ## 2026-11-22: The ending and the peril gauge show where peril came from **[Misa]**
 
 ID: `2026-11-22-the-ending-and-the-peril-gauge` · Status: current
@@ -517,7 +533,7 @@ ID: `2026-11-20-threats-are-tagged-data-that-appear` · Status: current, amended
 
 ## 2026-11-20: Guardians strike, defend and escort; anyone can strike a threat
 
-ID: `2026-11-20-guardians-strike-defend-and-escort-anyone` · Status: current
+ID: `2026-11-20-guardians-strike-defend-and-escort-anyone` · Status: current, amended by `2026-11-23-guardian-and-envoy-merge-into-one`
 
 **Decision.** Strike: anyone on or next to a threat, 1 action, strength −2 for a guardian, −1 for others. Defend: guardians riding, 1 action, each strike on the creature until the tick is reduced by 2 per defender. Escort: passive; characters within one hex of a guardian standing on a hex are not struck, nor is the guardian.
 
@@ -525,7 +541,7 @@ ID: `2026-11-20-guardians-strike-defend-and-escort-anyone` · Status: current
 
 ## 2026-11-20: Settlements appear on the route; parley or offer to befriend, or anger them
 
-ID: `2026-11-20-settlements-appear-on-the-route-parley` · Status: current
+ID: `2026-11-20-settlements-appear-on-the-route-parley` · Status: current, amended by `2026-11-23-guardian-and-envoy-merge-into-one`
 
 **Decision.** A settlement appears at the leading edge on fixed step counts (first at step 4, then every 10; steps 3 and 9 on staging), visible at once. Parley: envoys +2 favour; others +1 with a 25 % chance to anger it. Offer a `trade` material (old coin) for +2 without risk. At 3 favour it is friendly and grants one boon, picked by whoever asks: a gift to the stores, misleading the pursuers (they vanish and none come for 4 days), or shelter (peril −3). Angered, it sends raiders at once and stays angry.
 

@@ -105,20 +105,20 @@ describe('river folk', () => {
     expect(river.favourNeeded).toBeLessThan(hill.favourNeeded);
     expect(river.boons).not.toContain('shelter');
     let state = placeCharacter(
-      withSettlement(fieldGame(['envoy'], QUIET), at, { type: 'river-folk' }),
-      'envoy',
+      withSettlement(fieldGame(['warden'], QUIET), at, { type: 'river-folk' }),
+      'warden',
       at,
     );
-    // An envoy's parley gains 2: one parley is enough for river folk (2), not for hill folk (3).
-    const r = act(state, 'envoy', { kind: 'parley' });
+    // A warden's parley gains 2: one parley is enough for river folk (2), not for hill folk (3).
+    const r = act(state, 'warden', { kind: 'parley' });
     if (!r.ok) throw new Error(r.reason);
     state = r.state;
     expect(state.settlements[0]).toMatchObject({ attitude: 'friendly' });
-    expect(checkAction(state, 'envoy', { kind: 'ask-boon', boon: 'shelter' })).toMatchObject({
+    expect(checkAction(state, 'warden', { kind: 'ask-boon', boon: 'shelter' })).toMatchObject({
       ok: false,
       reason: 'unknown-boon',
     });
-    expect(checkAction(state, 'envoy', { kind: 'ask-boon', boon: 'gift' })).toMatchObject({
+    expect(checkAction(state, 'warden', { kind: 'ask-boon', boon: 'gift' })).toMatchObject({
       ok: true,
     });
   });

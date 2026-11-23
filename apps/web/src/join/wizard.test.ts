@@ -7,8 +7,8 @@ describe('join wizard', () => {
     const a = wizard(START, { kind: 'offer', index: 2 });
     expect(a).toEqual({ step: 'role', offer: 2, role: null });
     expect(ready(a)).toBe(false);
-    const b = wizard(a, { kind: 'role', role: 'envoy' });
-    expect(b).toEqual({ step: 'confirm', offer: 2, role: 'envoy' });
+    const b = wizard(a, { kind: 'role', role: 'warden' });
+    expect(b).toEqual({ step: 'confirm', offer: 2, role: 'warden' });
     expect(ready(b)).toBe(true);
     expect(wizard(b, { kind: 'back' }).step).toBe('role');
     expect(wizard(wizard(b, { kind: 'back' }), { kind: 'back' }).step).toBe('character');

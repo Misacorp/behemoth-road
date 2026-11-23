@@ -99,14 +99,14 @@ const config = v.object({
   threatPathDistance: count,
   struckActions: count,
   strikeCost: count,
-  clearPowerGuardian: count,
+  clearPowerWarden: count,
   clearPowerOther: count,
   defendCost: count,
   defendReduction: count,
   parleyCost: count,
   offerCost: count,
   askBoonCost: count,
-  parleyFavourEnvoy: count,
+  parleyFavourWarden: count,
   parleyFavourOther: count,
   parleyAngerChanceOther: v.number(),
   offerFavour: count,
@@ -141,7 +141,7 @@ export const GameStateViewSchema = v.object({
     lingeredDay: v.nullable(count),
     /** Steps walked this season. */
     steps: count,
-    /** Guardians defending it until the next tick. */
+    /** Wardens defending it until the next tick. */
     defenders: v.pipe(v.array(id), v.maxLength(64)),
   }),
   tiles: v.pipe(

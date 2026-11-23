@@ -97,8 +97,8 @@ describe('threats as the map reads them', () => {
 });
 
 describe('defending the creature in the hub', () => {
-  it('is for guardians only: offered riding, faded on a hex or without actions, sealed once done', () => {
-    const riding = staged({ role: 'guardian', at: 'creature' });
+  it('is for wardens only: offered riding, faded on a hex or without actions, sealed once done', () => {
+    const riding = staged({ role: 'warden', at: 'creature' });
     const cost = riding.view.config.defendCost;
     expect(defendOption(riding.view, riding.me)).toEqual({
       kind: 'defend',
@@ -107,10 +107,10 @@ describe('defending the creature in the hub', () => {
       uses: null,
     });
     expect(defendOption(tired(riding.view), riding.me)).toMatchObject({ enabled: false });
-    const onHex = staged({ role: 'guardian' });
+    const onHex = staged({ role: 'warden' });
     expect(defendOption(onHex.view, onHex.me)).toMatchObject({ enabled: false });
     expect(defendOption(onHex.view, onHex.me)?.done).toBeUndefined();
-    const done = staged({ role: 'guardian', at: 'creature', defending: true });
+    const done = staged({ role: 'warden', at: 'creature', defending: true });
     expect(defendOption(done.view, done.me)).toEqual({
       kind: 'defend',
       cost,
@@ -119,32 +119,32 @@ describe('defending the creature in the hub', () => {
       done: true,
       why: 'why:done',
     });
-    // Anyone else sees it greyed, with the guardian's emblem (the role the core's refusal points to).
+    // Anyone else sees it greyed, with the warden's emblem (the role the core's refusal points to).
     const scout = staged({ role: 'scout', at: 'creature' });
     expect(defendOption(scout.view, scout.me)).toEqual({
       kind: 'defend',
       cost,
       enabled: false,
       uses: null,
-      needs: 'guardian',
-      why: 'why:role-guardian',
+      needs: 'warden',
+      why: 'why:role-warden',
     });
   });
 });
 
 describe('settlements', () => {
-  it('a wary one offers parley, with the risk mark for a non-envoy, and an offer for each trade good carried', () => {
+  it('a wary one offers parley, with the risk mark for a non-warden, and an offer for each trade good carried', () => {
     const scout = staged({ settlements: [{ at: START }], pack: { 'old-coin': 1 } });
     const cost = scout.view.config.parleyCost;
     expect(settlementActions(scout.view, scout.me)).toEqual([
       { kind: 'parley', cost, enabled: true, risk: true },
       { kind: 'offer', cost: scout.view.config.offerCost, enabled: true, uses: 'old-coin' },
     ]);
-    const envoy = staged({ role: 'envoy', settlements: [{ at: START }] });
-    expect(settlementActions(envoy.view, envoy.me)).toEqual([
+    const warden = staged({ role: 'warden', settlements: [{ at: START }] });
+    expect(settlementActions(warden.view, warden.me)).toEqual([
       { kind: 'parley', cost, enabled: true, risk: false },
     ]);
-    expect(settlementActions(tired(envoy.view), envoy.me)).toEqual([
+    expect(settlementActions(tired(warden.view), warden.me)).toEqual([
       { kind: 'parley', cost, enabled: false, risk: false, why: 'why:not-enough-actions' },
     ]);
   });
@@ -187,11 +187,11 @@ describe('settlements', () => {
 });
 
 describe('escort, struck and the season', () => {
-  it('a guardian on a hex escorts the characters within 1 of it (itself excepted)', () => {
-    const { view, me, ola, abs } = staged({ guardianAt: { q: 2, r: 2 } });
+  it('a warden on a hex escorts the characters within 1 of it (itself excepted)', () => {
+    const { view, me, ola, abs } = staged({ wardenAt: { q: 2, r: 2 } });
     expect(escortedIds(view)).toEqual(new Set([me]));
     expect(escortCentres(view)).toEqual([abs({ q: 2, r: 2 })]);
-    const apart = staged({ guardianAt: { q: 3, r: 4 } });
+    const apart = staged({ wardenAt: { q: 3, r: 4 } });
     expect(escortedIds(apart.view).size).toBe(0);
     expect(escortedIds(view).has(ola)).toBe(false);
   });

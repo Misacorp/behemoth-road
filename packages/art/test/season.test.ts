@@ -239,7 +239,7 @@ describe('threats and settlements in the scene', () => {
 });
 
 describe('escort and character marks', () => {
-  it('draws the escort ring around the guardian, keyed by its hex', () => {
+  it('draws the escort ring around the warden, keyed by its hex', () => {
     const ring = drawEscortRing(isometric(), { q: 2, r: -1 }, SPRING);
     within(ring);
     expect(ring.attrs['data-escort']).toBe('2,-1');

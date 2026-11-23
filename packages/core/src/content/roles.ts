@@ -1,7 +1,8 @@
 /**
- * The six roles, as data. A character declares one when joining. Rules read a
+ * The five roles, as data. A character declares one when joining. Rules read a
  * role's tags, never its id: `survey` (Scout: surveys for less), `build`
- * (Engineer: works on unlocks), `sites` (Scholar: better chances, tier 2).
+ * (Engineer: works on unlocks), `sites` (Scholar: better chances, tier 2), `defend` and `escort` (Warden: fights and
+ * shields), `peoples` and `trade` (Warden: parleys for more, without risk).
  * `perks` lists abilities that come later as upgrades: they are data only and
  * have no effect while `requiresUpgrade` is true (trap sense, glints and double
  * yield became skill nodes in `skills.ts`; far sight waits for scout tier 2). `icon` names the emblem.
@@ -54,14 +55,6 @@ export const ROLES: readonly Role[] = [
     exploreXp: 0,
   },
   {
-    id: 'guardian',
-    name: 'Guardian',
-    tags: ['defend', 'escort'],
-    icon: 'shield',
-    perks: [],
-    exploreXp: 0,
-  },
-  {
     id: 'engineer',
     name: 'Engineer',
     tags: ['build', 'gather'],
@@ -70,10 +63,10 @@ export const ROLES: readonly Role[] = [
     exploreXp: 0,
   },
   {
-    id: 'envoy',
-    name: 'Envoy',
-    tags: ['peoples', 'trade'],
-    icon: 'banner',
+    id: 'warden',
+    name: 'Warden',
+    tags: ['defend', 'escort', 'peoples', 'trade'],
+    icon: 'shield',
     perks: [],
     exploreXp: 0,
   },

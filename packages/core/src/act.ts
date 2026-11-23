@@ -113,7 +113,7 @@ export type ActRefusal =
   | 'season-over'
   | 'no-threat'
   | 'not-near'
-  | 'needs-guardian'
+  | 'needs-warden'
   | 'no-settlement'
   | 'not-wary'
   | 'not-friendly'
@@ -379,7 +379,7 @@ export const checkAction = (
     case 'defend': {
       const cost = config.defendCost;
       const no = (reason: ActRefusal): ActCheck => ({ ok: false, reason, cost });
-      if (!roleHas(c, DEFEND_TAG)) return no('needs-guardian');
+      if (!roleHas(c, DEFEND_TAG)) return no('needs-warden');
       if (c.at.kind !== 'creature') return no('not-riding');
       if (state.creature.defenders.includes(c.id)) return no('already-have');
       return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
@@ -524,7 +524,7 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
     const threat = state.threats.find((t) => t.id === action.threat);
     if (!threat) return { ok: false, reason: 'no-threat' };
     const power = roleHas(c, DEFEND_TAG)
-      ? state.config.clearPowerGuardian
+      ? state.config.clearPowerWarden
       : state.config.clearPowerOther;
     const tags = threatType(threat.type).tags;
     const bonus = effectsOf(c, 'strike-bonus')
@@ -575,7 +575,7 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
       action.kind === 'offer'
         ? state.config.offerFavour
         : (roleHas(c, PEOPLES_TAG)
-            ? state.config.parleyFavourEnvoy
+            ? state.config.parleyFavourWarden
             : state.config.parleyFavourOther) + parleyBonus;
     const added = addFavour(spent, here, gain);
     const events: GameEvent[] = [

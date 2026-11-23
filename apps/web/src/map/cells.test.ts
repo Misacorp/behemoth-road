@@ -56,7 +56,7 @@ describe('feature art and the creature art', () => {
     ).toBeNull();
   });
 
-  it('counts the guardians defending the creature, for every player', () => {
+  it('counts the wardens defending the creature, for every player', () => {
     expect(creatureArt(s).defenders).toBe(0);
     const defended = { ...s, creature: { ...s.creature, defenders: ['a', 'b'] } };
     expect(creatureArt(defended).defenders).toBe(2);

@@ -25,7 +25,7 @@ const storedState = (sql: SqlStorage): GameState =>
     sql.exec<{ state: string }>('SELECT state FROM game WHERE id = 1').one().state,
   ) as GameState;
 
-async function joined(ctx: GameContext, role = 'guardian') {
+async function joined(ctx: GameContext, role = 'warden') {
   const token = await ctx.signIn(MISA);
   const res = await ctx.call(token, 'POST', '/api/game/join', { role, offer: 0 });
   expect(res.status).toBe(200);
@@ -87,7 +87,7 @@ describe('the five Milestone 5 actions', () => {
         const res = await ctx.call(token, 'POST', '/api/game/act', { version, action });
         expect(res, JSON.stringify(action)).toEqual({ status: 409, body: { error: reason } });
       }
-      // A guardian riding the creature defends; a second defence the same day is refused.
+      // A warden riding the creature defends; a second defence the same day is refused.
       const defended = await ctx.call(token, 'POST', '/api/game/act', {
         version,
         action: { kind: 'defend' },
@@ -263,7 +263,7 @@ describe('POST /api/dev/new-season', () => {
         expect(alarm).toBeGreaterThan(ctx.clock.t);
         expect(alarm).toBeLessThanOrEqual(ctx.clock.t + 24 * 3600_000);
         const rejoined = await ctx.call(token, 'POST', '/api/game/join', {
-          role: 'envoy',
+          role: 'warden',
           offer: 0,
         });
         expect(rejoined.status).toBe(200);

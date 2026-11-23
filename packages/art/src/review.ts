@@ -285,7 +285,7 @@ function placed(icon: SvgNode, x: number, y: number): SvgNode {
   return el('svg', { ...icon.attrs, x, y }, icon.children);
 }
 
-/** The six role emblems in one frame style, at 96, 48 and 32 px. */
+/** The five role emblems in one frame style, at 96, 48 and 32 px. */
 function emblemSheet(frame: EmblemFrame): string {
   const rows: SvgNode[] = [];
   const sizes = [96, 48, 32];

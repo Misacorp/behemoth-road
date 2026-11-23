@@ -3,7 +3,6 @@ export const ROLE_TINT = {
   scout: 'sky',
   scholar: 'plum',
   keeper: 'sage',
-  guardian: 'slate',
   engineer: 'ochre',
-  envoy: 'rose',
+  warden: 'slate',
 } as const;
