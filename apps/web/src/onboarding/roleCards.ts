@@ -29,7 +29,7 @@ export const ROLE_CARDS: readonly RoleCard[] = [
   {
     role: 'scout',
     does: ['eye', 'boot'],
-    gets: { kind: 'moment', id: 'reveal' },
+    gets: { kind: 'moment', id: 'survey' },
     line: 'Finds the way',
   },
   {

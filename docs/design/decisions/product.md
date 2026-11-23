@@ -4,6 +4,54 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-23: Reference: day readout hold menu and wiki link **[Misa]**
+
+ID: `2026-11-23-reference-day-readout-hold-menu-and` · Status: current
+
+**Decision.** Holding the day readout opens a small popover with "Replay the intro" and "Practise again". The join drawer's foot has a link to `/wiki`, opened in the browser (the wiki is built elsewhere).
+
+**Reasoning.** Reference stays out of the way of the map and is found by holding, the same gesture as tips. A press on a part of the readout that has its own tip (the peril gauge) keeps that tip.
+
+## 2026-11-23: Returning recap after a day change **[Misa]**
+
+ID: `2026-11-23-returning-recap-after-a-day-change` · Status: current
+
+**Decision.** On the first open after at least one day turned since the player's last visit, a recap shows once: days passed with the route, marks of what happened near the creature (from `GET /api/game?since=`), then peril and route now. The server keeps the day and version of each player's last visit (`POST /api/me/visit`, sent once per open and when the day turns under an open page); a `GET` writes nothing.
+
+**Reasoning.** Everything in it is already public in the view and the event log, so it reveals nothing new. Writing on `GET` was tried and rejected: it broke the storage read budgets and made reads side-effecting.
+
+## 2026-11-23: First-encounter hints once per user **[Misa]**
+
+ID: `2026-11-23-first-encounter-hints-once-per-user` · Status: current
+
+**Decision.** The first time a player sees a fog edge, a revealed trap, a threat, a settlement, or hunger raising peril in the real game, one short passing hint (icon and a line) shows, once per Discord user. The ids are in the seen record. The hints say that a thing is there, never what it does, and take no taps.
+
+**Reasoning.** Hint, don't explain: the first sight is the moment to notice, the rest is for play. Players who already have a character get each hint once too.
+
+## 2026-11-23: First-time practice map runs only in the browser **[Misa]**
+
+ID: `2026-11-23-first-time-practice-map-runs-only` · Status: current
+
+**Decision.** A new player (and anyone from the replay menu) plays a practice map that runs entirely in the browser on the pure core: a fixed seed, a sandbox `ApiClient` answered by the core, no request and no socket, nothing stored. A guided first day (select yourself, tap the glowing tile, confirm, one action of your role) lights the real map UI. "Join the expedition" is always there; finishing or leaving goes to the real game as it is now.
+
+**Reasoning.** Mistakes are free and the real game is never touched. Reusing the real Game component with a local API keeps one map UI. A guard test holds the practice to making no calls. A first-time player practises as a scout (no role is chosen yet); a replay uses their own role.
+
+## 2026-11-23: Role cards before the pick, in the join drawer **[Misa]**
+
+ID: `2026-11-23-role-cards-before-the-pick-in` · Status: current
+
+**Decision.** The join drawer's role step is a swipeable strip of cards, one per role (Scout, Scholar, Keeper, Engineer, Warden, the Warden with the Guardian shield emblem): what you do out there as icons, leading to what the team gets, and one short line. A tap on a card picks the role, as before.
+
+**Reasoning.** Nobody should lock in blind. Icons carry the meaning; the one line is the role's pitch.
+
+## 2026-11-23: Intro cards once per new Discord user, kept server-side **[Misa]**
+
+ID: `2026-11-23-intro-cards-once-per-new-discord` · Status: current
+
+**Decision.** A new Discord user (no character yet) sees four intro cards once, art-led with one short line each, with back at the top left and skip. Whether it was seen is kept on the server per user in a seen record (`players.seen`, ids from the core's `SEEN_IDS`), read from the player view and added to with `POST /api/me/seen` (strict body, a union, identity from the session). It follows the account across devices, within one Discord server (the game's data is per server). The cards can be replayed from the day readout.
+
+**Reasoning.** Server-side so it follows the account. Players who already have a character are never shown the intro or practice unasked.
+
 ## 2026-11-23: The Warden tree forks by style: stand fast or range out **[Misa]**
 
 ID: `2026-11-23-the-warden-tree-forks-by-style` · Status: current · Amends: `2026-11-23-guardian-and-envoy-merge-into-one`

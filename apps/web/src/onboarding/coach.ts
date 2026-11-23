@@ -140,7 +140,13 @@ export function coachMap(plan: PracticePlan, i: CoachInput): CoachMap {
     case 'act': {
       if (plan.look) {
         const looked = i.state.tiles[`${String(plan.look.q)},${String(plan.look.r)}`]?.explored;
-        if (looked !== true) return { ...none, glow: [plan.look], hand: plan.look, mark: 'act' };
+        if (looked !== true) {
+          // A tap on a hex while you are selected plans a walk onto it: let go of yourself first, then
+          // tap the veiled hex to look at it.
+          if (isSelecting(i.flow)) return { ...none, ringMe: true, hand: myHex };
+          const card = i.flow.kind === 'inspect';
+          return { ...none, glow: [plan.look], hand: card ? null : plan.look, mark: 'act' };
+        }
       }
       // On the creature the action is in its hub: tap the creature, then its button in the bubble, and
       // the action's own button pulses there.

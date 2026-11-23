@@ -95,7 +95,8 @@ export function sandboxState(role: string): GameState {
     ['lookout', true],
   ] as const) {
     const known = tiles[key(SPOTS[spot])];
-    if (known) tiles[key(SPOTS[spot])] = { ...known, explored: revealed };
+    // Open ground, so nothing hides the figures and the hexes that matter.
+    if (known) tiles[key(SPOTS[spot])] = { ...known, terrain: 'plains', explored: revealed };
   }
   state = {
     ...state,

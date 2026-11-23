@@ -64,29 +64,26 @@ export function Practice({ role, onExit }: PracticeProps): JSX.Element {
     <>
       <Game key={run} api={sandbox.api} initial={initial} practice={practice} />
       <div class="coach-bar" data-step={step}>
-        <span class="coach-dots" aria-hidden="true">
-          {STEPS.map((s, i) => (
-            <i key={s} class={i < dotOf(step) || step === 'done' ? 'on' : ''} />
-          ))}
-        </span>
-        <button
-          type="button"
-          class="round coach-restart"
-          aria-label="Start again"
-          data-hint={step === 'stuck' ? 'stuck' : undefined}
-          onClick={() => setRun((n) => n + 1)}
-        >
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path
-              d="M19 12a7 7 0 1 1-2.1-5M19 4v4h-4"
-              fill="none"
-              stroke={PALETTE.ink}
-              stroke-width={2}
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-          </svg>
-        </button>
+        {(step === 'stuck' || step === 'done') && (
+          <button
+            type="button"
+            class="round coach-restart"
+            aria-label="Start again"
+            data-hint={step === 'stuck' ? 'stuck' : undefined}
+            onClick={() => setRun((n) => n + 1)}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path
+                d="M19 12a7 7 0 1 1-2.1-5M19 4v4h-4"
+                fill="none"
+                stroke={PALETTE.ink}
+                stroke-width={2}
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+        )}
         <button
           type="button"
           class="cta coach-join"
@@ -96,12 +93,19 @@ export function Practice({ role, onExit }: PracticeProps): JSX.Element {
           Join the expedition
         </button>
       </div>
-      {caption !== null && (
-        <div class="coach-line" role="status" data-step={step}>
-          {step === 'act' && <ArtIcon id={ACTION_ICONS[plan.action]} size={26} />}
-          <span>{caption}</span>
-        </div>
-      )}
+      <div class="coach-foot">
+        {caption !== null && (
+          <div class="coach-line" role="status" data-step={step}>
+            {step === 'act' && <ArtIcon id={ACTION_ICONS[plan.action]} size={26} />}
+            <span>{caption}</span>
+          </div>
+        )}
+        <span class="coach-dots" aria-hidden="true">
+          {STEPS.map((s, i) => (
+            <i key={s} class={i < dotOf(step) ? 'on' : ''} />
+          ))}
+        </span>
+      </div>
     </>
   );
 }

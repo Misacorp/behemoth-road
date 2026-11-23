@@ -388,7 +388,8 @@
 }
 
 .coach-ring {
-  fill: none;
+  fill: #d6a26f;
+  fill-opacity: 0.2;
   stroke: #d6a26f;
   animation: coach-pulse 1.6s ease-in-out infinite;
 }
@@ -623,6 +624,10 @@
   z-index: 55;
   gap: var(--space-1);
   pointer-events: auto;
+}
+
+.day-menu .tip-chevron {
+  pointer-events: none;
 }
 
 .day-menu-item {

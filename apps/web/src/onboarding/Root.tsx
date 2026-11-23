@@ -6,10 +6,11 @@
  * is now, whatever day that is.
  */
 import type { JSX } from 'preact';
-import { useCallback, useState } from 'preact/hooks';
+import { useCallback, useEffect, useState } from 'preact/hooks';
 import type { ApiClient } from '../api/client.ts';
 import type { PlayerView } from '../api/schema.ts';
 import { Game } from '../game/Game.tsx';
+import { watchPress } from '../ui/press.ts';
 import './onboarding.css';
 import { IntroCards } from './IntroCards.tsx';
 import { Practice } from './Practice.tsx';
@@ -32,6 +33,10 @@ export function Root({ api, initial }: RootProps): JSX.Element {
   // The recap runs once, on the first open that has days to tell.
   const [recapDue, setRecapDue] = useState(() => welcomeNeeded(initial));
   const [loading, setLoading] = useState(false);
+
+  // The press rules (a hold never acts, no browser menu on a long press) cover the intro and the
+  // practice too, which have no tip layer of their own. Idempotent.
+  useEffect(() => watchPress(), []);
 
   const markSeen = useCallback(
     (ids: readonly string[]) => {

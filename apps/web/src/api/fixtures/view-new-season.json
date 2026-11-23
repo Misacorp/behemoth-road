@@ -7,7 +7,10 @@
   "you": {
     "userId": "111111111111111111",
     "characterId": null,
-    "admin": true
+    "admin": true,
+    "seen": [],
+    "lastDay": null,
+    "lastVersion": null
   },
   "offers": [
     {

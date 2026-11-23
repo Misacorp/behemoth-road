@@ -1,4 +1,4 @@
-import { characterOf, type Hex, hexKey } from '@behemoth-road/core';
+import { characterOf, type GameStateView, type Hex, hexKey } from '@behemoth-road/core';
 import { describe, expect, it } from 'vitest';
 import { type Flow, IDLE, tap } from '../map/flow.ts';
 import { type Target } from '../map/pick.ts';
@@ -117,6 +117,22 @@ async function playGuidedDay(role: (typeof ROLES)[number]): Promise<Step[]> {
   return steps;
 }
 
+/** The view with you standing on the guided tile, one action spent getting there. */
+function arrivedAt(
+  state: GameStateView,
+  id: string,
+  plan: ReturnType<typeof planFor>,
+): GameStateView {
+  const to =
+    plan.target.kind === 'hex'
+      ? { kind: 'hex' as const, hex: plan.target.hex }
+      : { kind: 'creature' as const };
+  return {
+    ...state,
+    characters: state.characters.map((c) => (c.id === id ? { ...c, at: to, actionsLeft: 2 } : c)),
+  };
+}
+
 describe('the guided first day', () => {
   for (const role of ROLES) {
     it(`walks a ${role} through select, tile, confirm, one action, done`, async () => {
@@ -133,6 +149,28 @@ describe('the guided first day', () => {
     const selected = coachMap(plan, { ...input, flow: { kind: 'selected' } });
     expect(selected).toMatchObject({ step: 'tile', ringMe: false });
     expect(selected.glow.map(hexKey)).toEqual([hexKey((plan.target as { hex: Hex }).hex)]);
+  });
+
+  it('has a scout let go of themselves before tapping the veiled hex to look at it', () => {
+    const state = sandboxView(sandboxState('scout'), 1).game;
+    const id = state.characters.find((c) => c.userId === SANDBOX_USERS.you)?.id ?? '';
+    const plan = planFor(state, 'scout');
+    const at = (flow: Flow) =>
+      coachMap(plan, {
+        flow,
+        state: arrivedAt(state, id, plan),
+        characterId: id,
+        arrivalActions: 2,
+      });
+    const selected = at({ kind: 'selected' });
+    expect(selected).toMatchObject({ step: 'act', ringMe: true, glow: [] });
+    const idle = at(IDLE);
+    expect(idle).toMatchObject({ step: 'act', ringMe: false, mark: 'act' });
+    expect(idle.glow.map(hexKey)).toEqual([hexKey(plan.look as Hex)]);
+    expect(at({ kind: 'inspect', hex: plan.look as Hex })).toMatchObject({
+      hand: null,
+      mark: 'act',
+    });
   });
 
   it('sends a keeper through the creature, its bubble and its hub for the action', () => {

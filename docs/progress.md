@@ -4,6 +4,8 @@ What has landed and what is next. Newest first. Update it when a step lands or t
 
 ## Next
 
+- Onboarding (branch `r7/onboarding`): intro cards, a browser-only practice map with a guided first day for every role, role cards in the join drawer, first-encounter hints, the returning recap and the day readout's hold menu, with a per-user seen record and last visit kept by the server (`docs/design/onboarding.md`). Next: Misa plays it cold; the wiki link may need Discord's external-link command.
+
 - Everything since Milestone 2 (Milestones 3, 4 and 5, icon tips, the UI feedback round, fast rounds, live updates, the player roster, content rounds, the entity picker, season recaps, skill trees and the peril breakdown) is on `r2/integration`, in one pull request to `main`. Merging it puts all of it on production at once; fast rounds and live updates stay off there (`devTools` and `LIVE`).
 - Skill trees: the first slice is in (one XP pool, tier 1 active). Next: tiers 2 and 3, once players have felt the fork with tier 1 (`docs/design/skill-trees.md`).
 - Before the first real production season: try live updates through Discord in production with `LIVE` on, and play one full 40-step season to check pacing (the chain to climbing spikes lands around day 24) and balance against the simulation (in the latest 200-seed runs, careful parties lose about 12 to 14 % of full seasons).
