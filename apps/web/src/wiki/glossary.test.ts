@@ -79,9 +79,7 @@ describe('the icon glossary', () => {
   });
 
   it('draws every stance glyph and the waiting hourglass', () => {
-    const drawn = new Set(
-      entries.flatMap((e) => (e.draw.kind === 'glyph' ? [e.draw.id] : [])),
-    );
+    const drawn = new Set(entries.flatMap((e) => (e.draw.kind === 'glyph' ? [e.draw.id] : [])));
     expect([...GLYPH_NAMES].filter((g) => !drawn.has(g))).toEqual([]);
   });
 

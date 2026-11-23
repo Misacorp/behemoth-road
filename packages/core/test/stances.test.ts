@@ -147,9 +147,7 @@ describe('lie in wait', () => {
       }
     }
     // Strictly weaker for the defender with more than one action.
-    expect(cfg.clearPowerWarden + cfg.stanceAmbushPerAction).toBeLessThan(
-      cfg.clearPowerWarden * 2,
-    );
+    expect(cfg.clearPowerWarden + cfg.stanceAmbushPerAction).toBeLessThan(cfg.clearPowerWarden * 2);
   });
 
   it('is stronger for a defender (a role tagged defend)', () => {

@@ -218,7 +218,13 @@ export function buildGlossary(): readonly GlossaryEntry[] {
     );
   out.push(
     entry('stances', 'fallback', tipFor('stance', 'fallback'), { kind: 'glyph', id: 'moon' }),
-    entry('stances', 'waiting', tipFor('action', 'wait'), { kind: 'glyph', id: 'hourglass' }, 'Waiting'),
+    entry(
+      'stances',
+      'waiting',
+      tipFor('action', 'wait'),
+      { kind: 'glyph', id: 'hourglass' },
+      'Waiting',
+    ),
   );
   for (const t of TRAITS)
     out.push(
