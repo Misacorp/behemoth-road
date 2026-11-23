@@ -51,16 +51,16 @@ For Misa to react to. Numbers are guesses for the tuning config.
 - B2 Thrift: unlocks cost one fewer of their largest material.
 - B3 Self-winding: the unlock in progress gains 1 work at each tick by itself.
 
-**Warden:** shield or word (the Guardian and Envoy trees merged on 2026-11-23: one role that protects and deals with the peoples).
+**Warden:** stand fast or range out (the Guardian and Envoy trees merged on 2026-11-23). Both branches hold protection and diplomacy, so the first pick chooses a style, not half the role.
 
 - A1 Bulwark: defend reduces each strike by 3, not 2.
-- A2 Wide guard: your escort covers two hexes, not one.
+- A2 Silver tongue: parley gives 3 favour.
 - A3 Standing guard: you defend at every tick you ride, with no action.
-- B1 Silver tongue: parley gives 3 favour.
-- B2 Ravens: parley from up to three hexes away.
-- B3 Allies: friendly settlements strike a threat within 3 each tick.
+- B1 Ravens: parley from up to three hexes away.
+- B2 Long reach: strike a threat from two hexes away.
+- B3 Wide guard: your escort covers two hexes, not one.
 
-Dropped in the merge (the effect kinds `strike-bonus` and `parley-range` stay in the rules, so they can return as nodes): Skywatch (+1 strike against `flying`), Long reach, Rout, Second boon, Calm words, Turncoats. Ravens moved from tier 1 to tier 2, so it is veiled until tier 2 opens.
+Stand fast acts on the spot (the hex you hold, the creature you ride); range out acts at a distance. Dropped in the merge (the effect kinds `strike-bonus` stays in the rules, so it can return as a node): Skywatch (+1 strike against `flying`), Rout, Second boon, Allies, Calm words, Turncoats. A first cut had a pure shield branch and a pure word branch; Misa pointed out that the first pick would cost a Warden half the role, so the branches were re-mixed.
 
 Trap sense, glints and double yield were inactive perks in `roles.ts`; they are now these nodes (far sight stays a perk until scout B2). Most tier 3s help the whole team.
 
@@ -96,7 +96,7 @@ Misa approved the proposal with these picks (the first, picks earned by working,
   - `scholar-a1` Field kit `{ kind: 'action-cost', action: 'work-site', cost: 1 }`; `scholar-b1` Lamplight `{ kind: 'site-chance', tag: 'dark', bonus: 0.2 }`.
   - `keeper-a1` Good forage `{ kind: 'gather-yield', amount: 2, tag: 'food' }`; `keeper-b1` Quiet linger `{ kind: 'action-cost', action: 'linger', cost: 1 }`.
   - `engineer-a1` Double yield `{ kind: 'gather-yield', amount: 2 }`; `engineer-b1` Quick hands `{ kind: 'build-work', amount: 2 }`.
-  - `warden-a1` Bulwark `{ kind: 'defend-reduction', amount: 3 }`; `warden-b1` Silver tongue `{ kind: 'parley-favour', bonus: 1 }`.
+  - `warden-a1` Bulwark `{ kind: 'defend-reduction', amount: 3 }`; `warden-b1` Ravens `{ kind: 'parley-range', range: 3 }`.
 
 **State and view.** Every character has `skills: { xp: number, taken: nodeId[] }` (revised: one XP pool replaces the per-role `notches` record). The branch of a tree is implied by `taken`. It is part of the public view (`game.characters[].skills`): everyone sees everyone's XP and taken nodes. Nothing carries over to the next season (a new character starts at 0).
 
@@ -119,4 +119,4 @@ The player view response (`PlayerView`) gains a per-viewer field `glints: { q, r
 - Good forage and double yield: a gather yields `max(node's own, effect amount)` for materials the effect covers, never more than the pack has room for; a gather that cannot fit even the node's own amount is still `pack-full`.
 - Strike bonus (no node carries it since the merge): a strike on a threat tagged `flying` takes 1 more off. Bulwark: each defending warden riding takes 3 off each strike on the creature, not `defendReduction` (2).
 - Quick hands: a build action adds 2 work (`buildWork` in the config is the base, 1).
-- Silver tongue: a parley gains 1 more favour. Parley range (Ravens, now tier 2 and veiled): a parley reaches the nearest settlement within 3 hexes (a rider measures from the footprint); offer and ask-boon still need your own hex.
+- Parley favour (Silver tongue, now tier 2 and veiled, so no node carries it yet): a parley gains 1 more favour. Ravens: a parley reaches the nearest settlement within 3 hexes (a rider measures from the footprint); offer and ask-boon still need your own hex.

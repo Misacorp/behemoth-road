@@ -100,13 +100,14 @@ export const SKILL_NODES: readonly SkillNode[] = [
   node('engineer', 'b', 2, 'Thrift'),
   node('engineer', 'b', 3, 'Self-winding'),
 
-  // Warden: shield (a, from the old guardian) or word (b, from the old envoy).
+  // Warden: stand fast (a: act on the spot) or range out (b: act at a distance). Each branch has
+  // protection and diplomacy, so the fork is a style, not half the role. (Merged from guardian and envoy.)
   node('warden', 'a', 1, 'Bulwark', { kind: 'defend-reduction', amount: 3 }),
-  node('warden', 'a', 2, 'Wide guard'),
+  node('warden', 'a', 2, 'Silver tongue'),
   node('warden', 'a', 3, 'Standing guard'),
-  node('warden', 'b', 1, 'Silver tongue', { kind: 'parley-favour', bonus: 1 }),
-  node('warden', 'b', 2, 'Ravens'),
-  node('warden', 'b', 3, 'Allies'),
+  node('warden', 'b', 1, 'Ravens', { kind: 'parley-range', range: 3 }),
+  node('warden', 'b', 2, 'Long reach'),
+  node('warden', 'b', 3, 'Wide guard'),
 ];
 
 /**

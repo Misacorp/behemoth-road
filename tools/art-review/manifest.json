@@ -21,7 +21,8 @@
     "2026-11-21-5",
     "2026-11-21-6",
     "2026-11-22-1",
-    "2026-11-23-1"
+    "2026-11-23-1",
+    "2026-11-23-2"
   ],
   "items": [
     {
@@ -580,10 +581,10 @@
       "id": "skills/trees",
       "group": "Skills",
       "title": "The five skill trees: emblem root, two branches of three nodes (scout shown mid-pick: branch a taken, next available, last veiled, branch b closed and cut), then all 36 nodes finished",
-      "version": "de38b4a5",
+      "version": "47e74d29",
       "kind": "glance",
-      "batch": "2026-11-23-1",
-      "file": "art/skills-trees-de38b4a5.svg"
+      "batch": "2026-11-23-2",
+      "file": "art/skills-trees-47e74d29.svg"
     },
     {
       "id": "skills/states",

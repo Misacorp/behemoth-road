@@ -121,7 +121,8 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
-- 2026-11-23 Guardian and Envoy merge into one role, the Warden \[Misa\]
+- 2026-11-23 The Warden tree forks by style: stand fast or range out \[Misa\]
+- 2026-11-23 Guardian and Envoy merge into one role, the Warden \[Misa\] (amended)
 - 2026-11-22 The ending and the peril gauge show where peril came from \[Misa\]
 - 2026-11-22 The catch-up is 1 XP every 10 steps \[Misa\]
 - 2026-11-22 Skill XP comes from any contribution, one pool per character \[Misa\]

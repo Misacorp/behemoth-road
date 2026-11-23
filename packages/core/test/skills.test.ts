@@ -455,51 +455,51 @@ describe('tier 1 effects', () => {
     expect(second.state.project).toBeNull();
   });
 
-  it('warden B1 silver tongue: a parley gives 1 more favour', () => {
-    const at = (role: string) => withSettlement(placeCharacter(chainGame([role]), role, P), P);
-    const favour = (s: GameState, id: string) =>
-      ok(s, id, { kind: 'parley' }).events.find((e) => e.kind === 'parley');
-    expect(favour(at('warden'), 'warden')).toMatchObject({ favour: 2 });
-    expect(favour(take(at('warden'), 'warden', 'warden-b1'), 'warden')).toMatchObject({
-      favour: 3,
-    });
-  });
-
-  it('a parley-range effect: parley from up to 3 hexes away, nothing else (tier 2 is lent it)', () => {
-    const lent = skillNode('warden-b2') as { effect: unknown; active: boolean };
+  it('a parley-favour effect: a parley gives 1 more favour (Silver tongue is tier 2, so it is lent the effect)', () => {
+    const lent = skillNode('warden-a2') as { effect: unknown; active: boolean };
     const was = lent.effect;
-    lent.effect = { kind: 'parley-range', range: 3 };
+    lent.effect = { kind: 'parley-favour', bonus: 1 };
     lent.active = true;
     try {
-      const base = chainGame(['warden']);
-      const far = withSettlement(placeCharacter(base, 'warden', hex(3, -1)), hex(6, -1));
-      const parley: Action = { kind: 'parley' };
-      expect(checkAction(far, 'warden', parley)).toMatchObject({
-        ok: false,
-        reason: 'no-settlement',
+      const at = (role: string) => withSettlement(placeCharacter(chainGame([role]), role, P), P);
+      const favour = (s: GameState, id: string) =>
+        ok(s, id, { kind: 'parley' }).events.find((e) => e.kind === 'parley');
+      expect(favour(at('warden'), 'warden')).toMatchObject({ favour: 2 });
+      expect(favour(take(at('warden'), 'warden', 'warden-a2'), 'warden')).toMatchObject({
+        favour: 3,
       });
-      const ravens = take(far, 'warden', 'warden-b2');
-      expect(checkAction(ravens, 'warden', parley)).toMatchObject({ ok: true });
-      expect(ok(ravens, 'warden', parley).events).toMatchObject([{ kind: 'parley', id: 's1' }]);
-      // 4 away is too far.
-      const farther = withSettlement(placeCharacter(base, 'warden', hex(3, -1)), hex(7, -1));
-      expect(checkAction(take(farther, 'warden', 'warden-b2'), 'warden', parley)).toMatchObject({
-        ok: false,
-        reason: 'no-settlement',
-      });
-      // Offers still need the character's own hex.
-      const pocket = withCharacter(ravens, { ...me(ravens, 'warden'), pack: { 'old-coin': 1 } });
-      expect(checkAction(pocket, 'warden', { kind: 'offer', material: 'old-coin' })).toMatchObject({
-        ok: false,
-        reason: 'no-settlement',
-      });
-      // A rider reaches from the creature's footprint.
-      const riding = withSettlement(take(base, 'warden', 'warden-b2'), hex(3, 0));
-      expect(checkAction(riding, 'warden', parley)).toMatchObject({ ok: true });
     } finally {
       lent.effect = was;
       lent.active = false;
     }
+  });
+
+  it('warden B1 ravens: parley from up to 3 hexes away, nothing else', () => {
+    const base = chainGame(['warden']);
+    const far = withSettlement(placeCharacter(base, 'warden', hex(3, -1)), hex(6, -1));
+    const parley: Action = { kind: 'parley' };
+    expect(checkAction(far, 'warden', parley)).toMatchObject({
+      ok: false,
+      reason: 'no-settlement',
+    });
+    const ravens = take(far, 'warden', 'warden-b1');
+    expect(checkAction(ravens, 'warden', parley)).toMatchObject({ ok: true });
+    expect(ok(ravens, 'warden', parley).events).toMatchObject([{ kind: 'parley', id: 's1' }]);
+    // 4 away is too far.
+    const farther = withSettlement(placeCharacter(base, 'warden', hex(3, -1)), hex(7, -1));
+    expect(checkAction(take(farther, 'warden', 'warden-b1'), 'warden', parley)).toMatchObject({
+      ok: false,
+      reason: 'no-settlement',
+    });
+    // Offers still need the character's own hex.
+    const pocket = withCharacter(ravens, { ...me(ravens, 'warden'), pack: { 'old-coin': 1 } });
+    expect(checkAction(pocket, 'warden', { kind: 'offer', material: 'old-coin' })).toMatchObject({
+      ok: false,
+      reason: 'no-settlement',
+    });
+    // A rider reaches from the creature's footprint.
+    const riding = withSettlement(take(base, 'warden', 'warden-b1'), hex(3, 0));
+    expect(checkAction(riding, 'warden', parley)).toMatchObject({ ok: true });
   });
 });
 

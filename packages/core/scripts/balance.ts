@@ -10,7 +10,7 @@
  *   gift); anyone else strikes a threat arriving tomorrow when in reach; whoever rides feeds the creature when it is underfed; everyone else
  *   gathers forage within reach and brings it back.
  *   A careful player also spends every pick it earns, at once, on the first node it can take from
- *   its role's list in `SKILL_PREFERENCE` (the warden prefers bulwark, then silver tongue; the rest their A1).
+ *   its role's list in `SKILL_PREFERENCE` (the warden prefers bulwark; the rest their A1).
  * - `careless`: everyone rides; every third day one of them gathers forage within
  *   reach, and the creature is fed only when it is underfed at level 2 or more.
  *
@@ -231,7 +231,7 @@ const parleyDay = (state: GameState, id: string): GameState => {
 
 /** The nodes a careful player of each role takes first. */
 const SKILL_PREFERENCE: Readonly<Record<string, readonly string[]>> = {
-  warden: ['warden-a1', 'warden-b1'],
+  warden: ['warden-a1'],
   keeper: ['keeper-a1'],
   scout: ['scout-a1'],
   engineer: ['engineer-a1'],

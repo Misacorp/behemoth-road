@@ -153,9 +153,24 @@ describe('skill tips', () => {
     }
   });
 
-  it('names no veiled node', () => {
-    for (const n of SKILL_NODES.filter((x) => !x.active))
-      expect(Object.hasOwn(TIP_TABLE, `skill:${n.id}`), n.id).toBe(false);
+  it('has a one-line tip for every Warden node, tiers 2 and 3 included (the skills wiki lists them)', () => {
+    for (const n of SKILL_NODES.filter((x) => x.role === 'warden')) {
+      const tip = TIP_TABLE[`skill:${n.id}` as TipId];
+      expect(tip, n.id).toBeDefined();
+      expect(tip.title).toBe(n.name);
+    }
+  });
+
+  it('never shows a veiled node its own tip in the drawer', () => {
+    const { view, me } = staged({ role: 'warden', xp: PER });
+    const tree = treeOf(view, me, 'warden');
+    const veiled = SKILL_NODES.filter((x) => !x.active && x.role === 'warden');
+    expect(veiled).toHaveLength(4);
+    for (const n of veiled) {
+      const shown = nodeOf(tree, n.id);
+      expect(shown.state, n.id).toBe('veiled');
+      expect(nodeTip(shown), n.id).not.toBe(`skill:${n.id}`);
+    }
   });
 
   it('maps each skill refusal to a written reason', () => {
