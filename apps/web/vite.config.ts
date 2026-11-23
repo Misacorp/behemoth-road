@@ -7,6 +7,8 @@ export default defineConfig({
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    // Two entries: the game (index.html) and the public skills wiki (wiki.html, served at /wiki).
+    rollupOptions: { input: { main: 'index.html', wiki: 'wiki.html' } },
     // The CSP (public/_headers) forbids inline resources: never inline assets.
     assetsInlineLimit: 0,
   },

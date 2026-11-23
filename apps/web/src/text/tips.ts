@@ -178,6 +178,44 @@ export const tips = {
   'skill:warden-b3': { title: 'Wide guard', text: 'Your shelter spreads wider.' },
   'skill:engineer-a1': { title: 'Double yield', text: 'Each gather brings more home.' },
   'skill:engineer-b1': { title: 'Quick hands', text: 'Each build action does more work.' },
+  // Planned skills (tiers two and three): hints only, shown in the public wiki; the game keeps them veiled.
+  'skill:scout-a2': { title: 'Long survey', text: 'A survey reaches hexes further out.' },
+  'skill:scout-a3': {
+    title: 'Sweep',
+    text: 'The hexes around you are explored as the day turns, for everyone.',
+  },
+  'skill:scout-b2': {
+    title: 'Far sight',
+    text: 'Threats show a day before they enter the window.',
+  },
+  'skill:scout-b3': { title: 'Forecast', text: 'Threat paths show further ahead, for everyone.' },
+  'skill:scholar-a2': { title: 'Steady hands', text: 'Every tomb gives better odds.' },
+  'skill:scholar-a3': { title: 'Second chamber', text: 'A tomb you open holds one more find.' },
+  'skill:scholar-b2': { title: 'Relic sense', text: 'Now and then a find brings something rare.' },
+  'skill:scholar-b3': {
+    title: 'Old maps',
+    text: 'Each find points to another site nearby, for everyone.',
+  },
+  'skill:keeper-a2': {
+    title: 'Soothing herbs',
+    text: 'Feeding also eases the danger, once a day.',
+  },
+  'skill:keeper-a3': { title: 'Contented', text: 'The creature goes hungry more slowly.' },
+  'skill:keeper-b2': { title: 'Hurry', text: 'The creature walks faster when you ask.' },
+  'skill:keeper-b3': {
+    title: 'Beacon',
+    text: 'Your fires reach further and sway the creature harder.',
+  },
+  'skill:engineer-a2': { title: 'Pack mule', text: 'Your pack holds more.' },
+  'skill:engineer-a3': {
+    title: 'Monkey drone',
+    text: 'A small helper gathers for the stores each day.',
+  },
+  'skill:engineer-b2': { title: 'Thrift', text: 'Unlocks ask for a little less.' },
+  'skill:engineer-b3': {
+    title: 'Self-winding',
+    text: 'The unlock in progress advances a little by itself.',
+  },
   'skill:veiled': { title: 'Veiled', text: 'Not yet known.' },
 
   // Boons a friendly settlement can grant (one each).

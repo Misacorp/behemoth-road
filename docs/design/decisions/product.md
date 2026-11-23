@@ -52,6 +52,14 @@ ID: `2026-11-23-idle-stances-are-a-player-doing` · Status: current
 
 **Reasoning.** Misa's direction for the open question "How do idle stances work?". It keeps an absent player contributing a little and gives an engaged player a real reason to hold still, without a new system to learn beyond one choice and one button.
 
+## 2026-11-23: A public skills wiki at /wiki with a build planner
+
+ID: `2026-11-23-a-public-skills-wiki-at-wiki` · Status: current
+
+**Decision.** `/wiki` is a public, out-of-game page (a second Vite entry, `apps/web/wiki.html`, served by the Worker's static assets with no sign-in) that draws every role's tree from the core content with the art kit and holds a build planner: tap nodes, see picks, XP (`picks x xpPerPick`) and days of play (`WIKI_XP_PER_DAY`, 3, in `apps/web/src/wiki/model.ts`). It shows planned tiers 2 and 3 and nothing of any running game. The plan lives in the URL hash (`#me=keeper;scout:a1,a2`), parsed strictly. The planner's rules are the core's `pickRefusal`, called with a new `planning` flag that lets not-yet-active nodes be picked by the same rules.
+
+**Reasoning.** Players need to see how much a build costs before committing, and Misa asked for it in the browser. Reusing the core's rule check on a mock character leaves no second copy of the rules, and building from content data means it follows role and skill changes by itself. The days figure is a stated guess, kept in one place.
+
 ## 2026-11-22: The ending and the peril gauge show where peril came from **[Misa]**
 
 ID: `2026-11-22-the-ending-and-the-peril-gauge` · Status: current

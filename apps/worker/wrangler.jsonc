@@ -13,6 +13,9 @@
     "directory": "../web/dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
+    // /wiki serves wiki.html (the public skills wiki, a second entry of the frontend build) and /wiki/
+    // redirects to it, both before the single-page fallback; neither needs a session. Explicit, not default.
+    "html_handling": "auto-trailing-slash",
     "run_worker_first": ["/api/*"]
   },
   // One Durable Object per Discord server holds its game (src/guild-world.ts). Bindings are not inherited
