@@ -115,7 +115,7 @@ Done when: the group can play a full short season to a win or a loss.
 
 ## Later, not now
 
-- Skill trees and multi-classing.
+- Skill trees and multi-classing. (First slice built: one XP pool, tier 1 of each tree, another role's tier 1; see `docs/design/skill-trees.md`.)
 - Idle stances.
 - Vehicles and rescue.
 - Personal objectives, sanctuary, archive, artifacts.
@@ -124,7 +124,7 @@ Done when: the group can play a full short season to a win or a loss.
 - Creature outfitting (keeper and engineer).
 - Creature shapes other than the large hex.
 - Larger events (sirens, deity, madness) and story.
-- Balancing simulations: Monte Carlo runs over player patterns, using the headless seeded core. Planned for after the first real season.
+- Balancing simulations: Monte Carlo runs over player patterns, using the headless seeded core. (A seeded careful/careless simulation exists in `packages/core/scripts/balance.ts`; richer player patterns after the first real season.)
 - Letting other Discord servers invite the game.
 
 ## What to watch for while building
