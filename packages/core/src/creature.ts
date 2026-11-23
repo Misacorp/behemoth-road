@@ -92,10 +92,12 @@ export const sideOf = (state: GameStateView, target: Hex): -1 | 0 | 1 => {
 export const stimulusPush = (state: GameState): number => {
   let push = 0;
   for (const s of state.stimuli) {
-    if (hexDistance(state.creature.centre, s.hex) > state.config.stimulusRange) continue;
+    if (hexDistance(state.creature.centre, s.hex) > (s.range ?? state.config.stimulusRange)) {
+      continue;
+    }
     const reaction = reactionTo(state.nature, s);
     const sign = reaction === 'attracted' ? 1 : reaction === 'repelled' ? -1 : 0;
-    push += sign * sideOf(state, s.hex) * stimulusType(s.type).push;
+    push += sign * sideOf(state, s.hex) * stimulusType(s.type).push * (s.push ?? 1);
   }
   return push;
 };

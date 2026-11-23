@@ -50,6 +50,7 @@ import type {
 import { keepSettlements, placeSettlement, settlementDue } from './settlements.ts';
 import { withXp } from './skills.ts';
 import { ambush, applyStances } from './stances.ts';
+import { applySkillTicks, hungerEveryDays } from './skilltick.ts';
 import { PERIL_CALM, PERIL_HUNGER, type PerilPart, perilThreat, recordEvents } from './stats.ts';
 import {
   activeCount,
@@ -90,9 +91,13 @@ const careAfter = (
 ): { readonly care: Care; readonly stores: Materials; readonly ate: string | null } => {
   const { hunger } = creatureType(state.nature.type);
   const list = state.stimuli
-    .filter((s) => hexDistance(state.creature.centre, s.hex) <= state.config.stimulusRange)
+    .filter(
+      (s) => hexDistance(state.creature.centre, s.hex) <= (s.range ?? state.config.stimulusRange),
+    )
     .map((s) => ({ hex: s.hex, stimulus: s.type, reaction: reactionTo(state.nature, s) }));
-  const drains = day % hunger.drainEveryDays === 0;
+  // Contented: while a keeper with the skill is in the game, hunger drains less often.
+  const every = Math.max(hunger.drainEveryDays, hungerEveryDays(state));
+  const drains = day % every === 0;
   let satiety = Math.max(0, state.care.satiety - (drains ? hunger.drainPerDay : 0));
   let stores = state.stores;
   let ate: string | null = null;
@@ -242,7 +247,8 @@ export const nextDayWithEvents = (
   if (before.season.status === 'over') return { state: before, events: [] };
   // Unspent actions go to stances first (a watcher's reveals count for today's step and window).
   const staged = applyStances(before);
-  const state = staged.state;
+  const skilled = applySkillTicks(staged.state);
+  const state = skilled.state;
   const day = state.day + 1;
   const step = chooseCreatureStep(state);
   const creature: Creature = {
@@ -276,6 +282,7 @@ export const nextDayWithEvents = (
   };
   const events: GameEvent[] = [
     ...staged.events,
+    ...skilled.events,
     { kind: 'creature-step', from: state.creature.centre, to: creature.centre },
   ];
   if (ate) events.push({ kind: 'creature-ate', material: ate });

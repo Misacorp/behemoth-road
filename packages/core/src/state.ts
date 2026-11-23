@@ -82,6 +82,10 @@ export interface Stimulus {
   readonly hex: Hex;
   /** The day it was set; it acts on that day's tick (and on later ones while it lasts). */
   readonly litDay: number;
+  /** Reach in hexes when a beacon skill lit it; the tuning's `stimulusRange` when absent. */
+  readonly range?: number;
+  /** How many times the type's push it counts for when a beacon skill lit it; 1 when absent. */
+  readonly push?: number;
 }
 
 /** The creature's hidden nature, rolled from the seed when the game starts. Server only. */
@@ -106,6 +110,8 @@ export interface Care {
   readonly satiety: number;
   /** Reactions felt at the last tick, shown to keepers on `day` (the day after). */
   readonly cues: { readonly day: number; readonly list: readonly Cue[] };
+  /** The last day soothing herbs eased peril (once a day), if ever. */
+  readonly soothedDay?: number;
 }
 
 export type CharacterStatus = 'active' | 'lost';

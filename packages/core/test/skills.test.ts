@@ -78,10 +78,10 @@ describe('skill content', () => {
     }
   });
 
-  it('activates tier 1 only, and gives only tier 1 a working effect', () => {
+  it('activates every node, each with a working effect', () => {
     for (const n of SKILL_NODES) {
-      expect(n.active).toBe(n.tier === 1);
-      expect(n.effect.kind === 'veiled').toBe(n.tier !== 1);
+      expect(n.active).toBe(true);
+      expect(n.effect.kind).not.toBe('veiled');
     }
   });
 
@@ -225,7 +225,7 @@ describe('picking a skill', () => {
       return r.ok ? 'ok' : r.reason;
     };
     expect(reason(scout({ xp: PER }), 'nope')).toBe('unknown-skill');
-    expect(reason(scout({ xp: PER * 3 }), 'scout-a2')).toBe('skill-veiled');
+    expect(reason(scout({ xp: PER * 3 }), 'scout-a2')).toBe('skill-tier-order');
     expect(reason(scout({ xp: PER - 1 }), 'scout-a1')).toBe('no-pick');
     expect(reason(scout({ xp: PER * 2, taken: ['scout-a1'] }), 'scout-a1')).toBe('already-have');
     expect(reason(scout({ xp: PER * 2, taken: ['scout-a1'] }), 'scout-b1')).toBe('branch-closed');
@@ -243,12 +243,8 @@ describe('picking a skill', () => {
     expect(reason(lost, 'scout-a1')).toBe('character-lost');
   });
 
-  it('keeps tier order and limits another role to tier 1 (shown with tier 2 switched on for the test)', () => {
-    const a2 = skillNode('scout-a2') as { active: boolean };
-    const g2 = skillNode('warden-a2') as { active: boolean };
-    a2.active = true;
-    g2.active = true;
-    try {
+  it('keeps tier order and limits another role to tier 1', () => {
+    {
       const rich = (skills: Partial<Skills>) => me(scout({ xp: PER * 4, ...skills }), 'scout');
       const state = scout({ xp: PER * 4 });
       expect(pickRefusal(state, rich({}), 'scout-a2')).toBe('skill-tier-order');
@@ -257,21 +253,24 @@ describe('picking a skill', () => {
       expect(pickRefusal(state, rich({ taken: ['warden-a1'] }), 'warden-a2')).toBe(
         'skill-tier-limit',
       );
-    } finally {
-      a2.active = false;
-      g2.active = false;
     }
   });
 
-  it('planning mode applies the same rules to nodes that are not active yet', () => {
-    const rich = (skills: Partial<Skills>) => me(scout({ xp: PER * 4, ...skills }), 'scout');
-    const state = scout({ xp: PER * 4 });
-    expect(pickRefusal(state, rich({}), 'scout-a2')).toBe('skill-veiled');
-    expect(pickRefusal(state, rich({}), 'scout-a2', true)).toBe('skill-tier-order');
-    expect(pickRefusal(state, rich({ taken: ['scout-a1'] }), 'scout-a2', true)).toBeNull();
-    expect(pickRefusal(state, rich({ taken: ['scout-b1'] }), 'scout-a2', true)).toBe(
-      'branch-closed',
-    );
+  it('planning mode applies the same rules to a node that is not active', () => {
+    const node = skillNode('scout-a2') as { active: boolean };
+    node.active = false;
+    try {
+      const rich = (skills: Partial<Skills>) => me(scout({ xp: PER * 4, ...skills }), 'scout');
+      const state = scout({ xp: PER * 4 });
+      expect(pickRefusal(state, rich({ taken: ['scout-a1'] }), 'scout-a2')).toBe('skill-veiled');
+      expect(pickRefusal(state, rich({}), 'scout-a2', true)).toBe('skill-tier-order');
+      expect(pickRefusal(state, rich({ taken: ['scout-a1'] }), 'scout-a2', true)).toBeNull();
+      expect(pickRefusal(state, rich({ taken: ['scout-b1'] }), 'scout-a2', true)).toBe(
+        'branch-closed',
+      );
+    } finally {
+      node.active = true;
+    }
   });
 
   it('is public on the view: xp and taken nodes', () => {
@@ -401,10 +400,9 @@ describe('tier 1 effects', () => {
   });
 
   it('a strike-bonus effect: +1 strike against flying threats only (no node carries it now; tier 2 is lent it)', () => {
-    const lent = skillNode('warden-a2') as { effect: unknown; active: boolean };
+    const lent = skillNode('warden-a2') as { effect: unknown };
     const was = lent.effect;
     lent.effect = { kind: 'strike-bonus', tag: 'flying', bonus: 1 };
-    lent.active = true;
     try {
       const near = (type: string) =>
         withThreat(placeCharacter(chainGame(['warden']), 'warden', P), type, N, 3);
@@ -420,7 +418,6 @@ describe('tier 1 effects', () => {
       ).toBe(1);
     } finally {
       lent.effect = was;
-      lent.active = false;
     }
   });
 
@@ -466,12 +463,8 @@ describe('tier 1 effects', () => {
     expect(second.state.project).toBeNull();
   });
 
-  it('a parley-favour effect: a parley gives 1 more favour (Silver tongue is tier 2, so it is lent the effect)', () => {
-    const lent = skillNode('warden-a2') as { effect: unknown; active: boolean };
-    const was = lent.effect;
-    lent.effect = { kind: 'parley-favour', bonus: 1 };
-    lent.active = true;
-    try {
+  it('warden A2 silver tongue: a parley gives 1 more favour', () => {
+    {
       const at = (role: string) => withSettlement(placeCharacter(chainGame([role]), role, P), P);
       const favour = (s: GameState, id: string) =>
         ok(s, id, { kind: 'parley' }).events.find((e) => e.kind === 'parley');
@@ -479,9 +472,6 @@ describe('tier 1 effects', () => {
       expect(favour(take(at('warden'), 'warden', 'warden-a2'), 'warden')).toMatchObject({
         favour: 3,
       });
-    } finally {
-      lent.effect = was;
-      lent.active = false;
     }
   });
 

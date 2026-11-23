@@ -26,11 +26,12 @@ import {
   featureType,
   type GameEvent,
   isExplored,
+  keyToHex,
   packSize,
   roleHas,
   unlockTags,
 } from './features.ts';
-import { type Hex, hexDistance, hexKey, isValidHex } from './hex.ts';
+import { type Hex, hexDistance, hexesInRange, hexKey, isValidHex } from './hex.ts';
 import { terrainOf } from './map.ts';
 import { arePlacesAdjacent, onHex, placeNeighbours } from './places.ts';
 import { hashString, hashToUnit } from './random.ts';
@@ -43,6 +44,7 @@ import {
   isSeasonOver,
   type Materials,
   type Settlement,
+  type Stimulus,
 } from './state.ts';
 import { isCreatureHex } from './window.ts';
 import { DEFEND_TAG, PURSUER_TAG, threatType } from './threats.ts';
@@ -56,7 +58,7 @@ import {
 } from './settlements.ts';
 
 import { isStance } from './stances.ts';
-import { PERIL_SHELTER, recordEvents } from './stats.ts';
+import { PERIL_CALM, PERIL_SHELTER, recordEvents } from './stats.ts';
 import {
   bestOf,
   distanceFrom,
@@ -166,6 +168,19 @@ const PARLEY_STREAM = hashString('parley');
 /** The stimulus a fire is (the one tagged `fire`): content, read by tag. */
 const FIRE = STIMULUS_TYPES.find((t) => t.tags.includes('fire'));
 
+/** A fire as lit by a character: a beacon skill widens its reach and strengthens its push. */
+const litFire = (c: Character, type: string, hex: Hex, litDay: number): Stimulus => {
+  const range = bestOf(c, 'fire-boost', (e) => e.range);
+  const push = bestOf(c, 'fire-boost', (e) => e.push);
+  return {
+    type,
+    hex,
+    litDay,
+    ...(range === null ? {} : { range }),
+    ...(push === null ? {} : { push }),
+  };
+};
+
 const hexOf = (c: Character): Hex | null => (c.at.kind === 'hex' ? c.at.hex : null);
 
 const baseSiteChance = (state: GameStateView, c: Character, site: SiteType): number => {
@@ -182,7 +197,7 @@ const siteChance = (state: GameStateView, c: Character, site: SiteType): number 
   const base = baseSiteChance(state, c, site);
   if (base <= 0) return base;
   const bonus = effectsOf(c, 'site-chance')
-    .filter((e) => site.tags.includes(e.tag))
+    .filter((e) => e.tag === undefined || site.tags.includes(e.tag))
     .reduce((sum, e) => sum + e.bonus, 0);
   return Math.min(1, base + bonus);
 };
@@ -229,8 +244,38 @@ const parleyTarget = (state: GameStateView, c: Character): Settlement | undefine
 const parleyChance = (state: GameStateView, c: Character): number =>
   roleHas(c, PEOPLES_TAG) ? 1 : 1 - state.config.parleyAngerChanceOther;
 
+/** Units a character's pack holds: the base, or more where a skill says so. */
+export const packCapacityOf = (state: GameStateView, c: Character): number =>
+  Math.max(state.config.packCapacity, bestOf(c, 'pack-size', (e) => e.capacity) ?? 0);
+
 const free = (state: GameStateView, c: Character): number =>
-  state.config.packCapacity - packSize(c.pack);
+  packCapacityOf(state, c) - packSize(c.pack);
+
+/** How far a survey reaches: 1 (the next hexes), or more where a skill says so. */
+const surveyReach = (c: Character): number =>
+  Math.max(1, bestOf(c, 'survey-range', (e) => e.range) ?? 0);
+
+/** How far a strike reaches: 1, or more where a skill says so. */
+const strikeReach = (c: Character): number =>
+  Math.max(1, bestOf(c, 'strike-range', (e) => e.range) ?? 0);
+
+/** Whether a hex lies within a survey's reach of the character (the next hexes, or further with a skill). */
+const withinSurvey = (state: GameStateView, c: Character, target: Hex): boolean => {
+  const reach = surveyReach(c);
+  if (reach <= 1) return arePlacesAdjacent(state, c.at, onHex(target));
+  const d = distanceFrom(state, c, target);
+  return d >= 1 && d <= reach && state.tiles[hexKey(target)] !== undefined;
+};
+
+/** The unlock's cost for this character: a thrift skill takes `amount` off its largest material. */
+const unlockCost = (c: Character, unlock: Unlock): Unlock['cost'] => {
+  const off = bestOf(c, 'build-discount', (e) => e.amount) ?? 0;
+  if (off <= 0 || unlock.cost.length === 0) return unlock.cost;
+  const largest = unlock.cost.reduce((a, b) => (b.amount > a.amount ? b : a));
+  return unlock.cost.map((u) =>
+    u === largest ? { ...u, amount: Math.max(1, u.amount - off) } : u,
+  );
+};
 
 /**
  * Units a gather yields: the node's own, or more where a skill says so, but never more than the
@@ -284,7 +329,7 @@ export const checkAction = (
       const target = action.hex;
       if (!isValidHex(target)) return no('invalid-hex');
       if (isCreatureHex(state, target)) return no('not-adjacent');
-      if (!arePlacesAdjacent(state, c.at, onHex(target))) return no('not-adjacent');
+      if (!withinSurvey(state, c, target)) return no('not-adjacent');
       if (!isPlaceReachable(state, onHex(target))) return no('unreachable');
       if (isExplored(state, target)) return no('already-explored');
       return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
@@ -323,7 +368,7 @@ export const checkAction = (
       const cost = config.buildCost;
       // Materials are taken only when the work starts.
       const project = state.project;
-      const uses = project?.unlock === unlock.id ? [] : unlock.cost;
+      const uses = project?.unlock === unlock.id ? [] : unlockCost(c, unlock);
       const missing = uses.flatMap((u) => {
         const short = u.amount - (state.stores[u.material] ?? 0);
         return short > 0 ? [{ material: u.material, amount: short }] : [];
@@ -379,7 +424,12 @@ export const checkAction = (
       if (c.at.kind !== 'creature') return no('not-riding');
       // Already asked today: a second linger would change nothing.
       if (state.creature.lingering) return no('already-have');
-      if (state.creature.lingeredDay === state.day - 1) return no('lingered-yesterday');
+      if (
+        state.creature.lingeredDay === state.day - 1 &&
+        effectsOf(c, 'linger-chain').length === 0
+      ) {
+        return no('lingered-yesterday');
+      }
       return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
     }
     case 'strike': {
@@ -388,7 +438,7 @@ export const checkAction = (
       const threat = state.threats.find((t) => t.id === action.threat);
       if (!threat) return no('no-threat');
       const h = hexOf(c);
-      if (!h || hexDistance(h, threat.hex) > 1) return no('not-near');
+      if (!h || hexDistance(h, threat.hex) > strikeReach(c)) return no('not-near');
       return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
     }
     case 'defend': {
@@ -522,7 +572,7 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
     const h = hexOf(c) as Hex;
     const lit: GameState = {
       ...state,
-      stimuli: [...state.stimuli, { type: FIRE.id, hex: h, litDay: state.day }],
+      stimuli: [...state.stimuli, litFire(c, FIRE.id, h, state.day)],
     };
     return {
       ok: true,
@@ -535,16 +585,25 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
     const use = check.uses[0] as { material: string; amount: number };
     const { max } = creatureType(state.nature.type).hunger;
     const satiety = Math.min(max, state.care.satiety + nourishment(use.material) * use.amount);
+    // Soothing herbs: the first feeding of a day also eases peril.
+    const calm = bestOf(c, 'feed-calm', (e) => e.amount) ?? 0;
+    const eased = state.care.soothedDay === state.day ? 0 : Math.min(calm, state.peril);
     const fed: GameState = {
       ...state,
       stores: subtract(state.stores, check.uses),
-      care: { ...state.care, satiety },
+      care: { ...state.care, satiety, ...(calm > 0 ? { soothedDay: state.day } : {}) },
+      peril: state.peril - eased,
     };
-    return {
-      ok: true,
-      state: withCharacter(fed, {}),
-      events: [{ kind: 'fed', characterId, material: use.material }],
-    };
+    const events: GameEvent[] = [{ kind: 'fed', characterId, material: use.material }];
+    if (eased > 0) {
+      events.push({
+        kind: 'peril',
+        from: state.peril,
+        to: fed.peril,
+        sources: [{ source: PERIL_CALM, amount: -eased }],
+      });
+    }
+    return { ok: true, state: withCharacter(fed, {}), events };
   }
 
   if (action.kind === 'linger') {
@@ -713,15 +772,53 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
         events: [{ kind: 'site-failed', hex: h, characterId }],
       };
     }
-    const { material, amount } = type.finds;
-    return {
-      ok: true,
-      state: withCharacter(
-        { ...state, features: { ...state.features, [key]: { ...f, left: 0 } } },
-        { pack: addMaterials(c.pack, { [material]: amount }) },
-      ),
-      events: [{ kind: 'find', hex: h, characterId, material, amount }],
-    };
+    const { material } = type.finds;
+    // A second chamber gives more of the find, within the pack's room (the base find always fits).
+    const more = bestOf(c, 'site-finds', (e) => e.amount) ?? 0;
+    const amount = Math.min(type.finds.amount + more, Math.max(type.finds.amount, free(state, c)));
+    let gained: Materials = { [material]: amount };
+    const events: GameEvent[] = [{ kind: 'find', hex: h, characterId, material, amount }];
+    // Relic sense: now and then one extra unit of a rare material, if the pack has room.
+    const relic = effectsOf(c, 'find-bonus')[0];
+    if (relic && free(state, c) - amount >= 1) {
+      const kinds = MATERIALS.filter((m) => m.tags.includes(relic.tag));
+      const luck = hashToUnit(state.seed, SITE_STREAM, state.day, hashString(c.id), h.q, h.r, 7);
+      if (kinds.length > 0 && luck < relic.chance) {
+        const pick = kinds[
+          Math.floor(
+            hashToUnit(state.seed, SITE_STREAM, state.day, hashString(c.id), h.q, h.r, 8) *
+              kinds.length,
+          )
+        ] as (typeof kinds)[number];
+        gained = addMaterials(gained, { [pick.id]: 1 });
+        events.push({ kind: 'find', hex: h, characterId, material: pick.id, amount: 1 });
+      }
+    }
+    let next: GameState = withCharacter(
+      { ...state, features: { ...state.features, [key]: { ...f, left: 0 } } },
+      { pack: addMaterials(c.pack, gained) },
+    );
+    // Old maps: the nearest unexplored site within range shows itself, for everyone.
+    const reveal = bestOf(c, 'reveal-site', (e) => e.range);
+    if (reveal !== null) {
+      const target = Object.entries(next.features)
+        .flatMap(([k, ft]) => {
+          const tile = next.tiles[k];
+          if (!tile || tile.explored || ft.revealed || featureType(ft.type).kind !== 'site') {
+            return [];
+          }
+          const at = keyToHex(k);
+          const d = hexDistance(h, at);
+          return d <= reveal ? [{ at, d, k }] : [];
+        })
+        .sort((a, b) => a.d - b.d || (a.k < b.k ? -1 : 1))[0];
+      if (target) {
+        const shown = exploreHex(next, target.at);
+        next = shown.state;
+        events.push(...shown.events);
+      }
+    }
+    return { ok: true, state: next, events };
   }
   return { ok: false, reason: 'invalid-action' };
 };
@@ -756,10 +853,16 @@ export const actionsHere = (
 ): { readonly action: Action; readonly check: ActCheck }[] => {
   const c = state.characters.find((x) => x.id === characterId);
   if (!c) return [];
-  const surveys: Action[] = placeNeighbours(state, c.at).flatMap((p) =>
-    p.kind === 'hex' && state.tiles[hexKey(p.hex)] && !isExplored(state, p.hex)
-      ? [{ kind: 'survey' as const, hex: p.hex }]
-      : [],
+  const reach = surveyReach(c);
+  const near: Hex[] =
+    reach <= 1
+      ? placeNeighbours(state, c.at).flatMap((p) => (p.kind === 'hex' ? [p.hex] : []))
+      : hexesInRange(
+          c.at.kind === 'hex' ? c.at.hex : state.creature.centre,
+          reach + state.config.creatureRadius,
+        ).filter((h) => withinSurvey(state, c, h));
+  const surveys: Action[] = near.flatMap((h) =>
+    state.tiles[hexKey(h)] && !isExplored(state, h) ? [{ kind: 'survey' as const, hex: h }] : [],
   );
   const options: Action[] = [
     ...surveys,
