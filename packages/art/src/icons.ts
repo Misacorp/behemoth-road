@@ -109,15 +109,12 @@ const engineer: IconMotif = (pal) => [
   solid(pal, 'M22.5 15.5l6-6 3 3 3-1 2 2-1 3 3 3-6 6z', pal.ramps.stone.base),
 ];
 
-/** Warden: a spear and a swallow-tailed banner on its pole, side by side (the shield is the emblem's frame). */
+/** Warden (the old Guardian's emblem, kept): a round shield with a boss and a band. */
 const warden: IconMotif = (pal) => [
-  ink(pal, 'M16 38V10', 2.6, pal.ramps.bark.shade),
-  solid(pal, 'M16.5 12h11l-3.4 5 3.4 5h-11z', pal.accents.rose.base),
-  ink(pal, 'M19.5 16.5h5', 1.4, pal.accents.rose.shade),
-  solid(pal, ellipsePath(16, 9.5, 1.8, 1.8), pal.accents.ochre.base, 1.4),
-  ink(pal, 'M32 38V16', 2.4, pal.ramps.bark.base),
-  solid(pal, 'M32 7.5l4.2 9.5h-8.4z', pal.ramps.stone.light, 1.6),
-  ink(pal, 'M29.5 30h5', 1.6, pal.accents.slate.shade),
+  solid(pal, ellipsePath(24, 24, 11.5, 11.5), pal.ramps.stone.light),
+  ink(pal, 'M24 12.5v23M12.5 24h23', 2.4, pal.ramps.bark.base),
+  solid(pal, ellipsePath(24, 24, 3.4, 3.4), pal.ramps.stone.base, 1.6),
+  ink(pal, ellipsePath(24, 24, 9, 9), 1.1, pal.inkSoft),
 ];
 
 const ROLE_MOTIFS: Readonly<Record<RoleId, IconMotif>> = {

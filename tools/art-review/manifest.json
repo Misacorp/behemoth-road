@@ -22,7 +22,8 @@
     "2026-11-21-6",
     "2026-11-22-1",
     "2026-11-23-1",
-    "2026-11-23-2"
+    "2026-11-23-2",
+    "2026-11-23-3"
   ],
   "items": [
     {
@@ -235,32 +236,32 @@
       "id": "emblems/roundel",
       "group": "Role emblems",
       "title": "Round frame",
-      "version": "57bcc0f0",
+      "version": "c139934c",
       "kind": "pick",
       "pick": "emblem-frame",
       "question": "Which frame should the role emblems share?",
-      "batch": "2026-11-23-1",
-      "file": "art/emblems-roundel-57bcc0f0.svg"
+      "batch": "2026-11-23-3",
+      "file": "art/emblems-roundel-c139934c.svg"
     },
     {
       "id": "emblems/shield",
       "group": "Role emblems",
       "title": "Shield frame",
-      "version": "ef7da1c3",
+      "version": "0c62e5c9",
       "kind": "pick",
       "pick": "emblem-frame",
       "question": "Which frame should the role emblems share?",
-      "batch": "2026-11-23-1",
-      "file": "art/emblems-shield-ef7da1c3.svg"
+      "batch": "2026-11-23-3",
+      "file": "art/emblems-shield-0c62e5c9.svg"
     },
     {
       "id": "icons/sheet",
       "group": "Icons",
       "title": "Every icon, and the fallback",
-      "version": "78b1fcd8",
+      "version": "8f78c996",
       "kind": "glance",
-      "batch": "2026-11-23-1",
-      "file": "art/icons-sheet-78b1fcd8.svg"
+      "batch": "2026-11-23-3",
+      "file": "art/icons-sheet-8f78c996.svg"
     },
     {
       "id": "characters/lineup",
@@ -527,10 +528,10 @@
       "id": "feedback/marks",
       "group": "Playtest feedback",
       "title": "Explored-empty fading; out of reach; misled; greyed actions with the role they need; nothing here, misled and peril relieved moments",
-      "version": "0234eb9f",
+      "version": "5be75a8c",
       "kind": "glance",
-      "batch": "2026-11-23-1",
-      "file": "art/feedback-marks-0234eb9f.svg"
+      "batch": "2026-11-23-3",
+      "file": "art/feedback-marks-5be75a8c.svg"
     },
     {
       "id": "variety/map",
@@ -581,19 +582,19 @@
       "id": "skills/trees",
       "group": "Skills",
       "title": "The five skill trees: emblem root, two branches of three nodes (scout shown mid-pick: branch a taken, next available, last veiled, branch b closed and cut), then all 36 nodes finished",
-      "version": "47e74d29",
+      "version": "bee419b8",
       "kind": "glance",
-      "batch": "2026-11-23-2",
-      "file": "art/skills-trees-47e74d29.svg"
+      "batch": "2026-11-23-3",
+      "file": "art/skills-trees-bee419b8.svg"
     },
     {
       "id": "skills/states",
       "group": "Skills",
       "title": "Node looks (plain, veiled, available, taken, closed), branch paths (open, taken, closed) and the notch ring filling toward a pick, glowing when ready",
-      "version": "af4ab432",
+      "version": "56e057f8",
       "kind": "glance",
-      "batch": "2026-11-23-1",
-      "file": "art/skills-states-af4ab432.svg"
+      "batch": "2026-11-23-3",
+      "file": "art/skills-states-56e057f8.svg"
     }
   ]
 }
