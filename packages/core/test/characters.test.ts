@@ -116,7 +116,10 @@ describe('addCharacter', () => {
       joinedDay: 2,
       at: ON_CREATURE,
       actionsLeft: 3,
+      pack: {},
       status: 'active',
+      struckDay: null,
+      skills: { xp: 0, taken: [] },
     });
     expect(state.characters).toHaveLength(0);
     const plainIndex = offers.length - 1;

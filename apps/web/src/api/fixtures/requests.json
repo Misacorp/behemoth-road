@@ -11,15 +11,26 @@
     "method": "POST",
     "path": "/api/game/join",
     "body": {
-      "role": "scout",
+      "role": "engineer",
       "offer": 1
+    }
+  },
+  "view-built": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 4,
+      "action": {
+        "kind": "build",
+        "unlock": "grappling-hook"
+      }
     }
   },
   "view-moved": {
     "method": "POST",
     "path": "/api/game/move",
     "body": {
-      "version": 3,
+      "version": 5,
       "path": [
         {
           "kind": "hex",
@@ -36,6 +47,34 @@
     "path": "/api/dev/next-day",
     "body": {}
   },
+  "view-pace-fast": {
+    "method": "POST",
+    "path": "/api/dev/pace",
+    "body": {
+      "pace": "fast"
+    }
+  },
+  "view-pace-daily": {
+    "method": "POST",
+    "path": "/api/dev/pace",
+    "body": {
+      "pace": "daily"
+    }
+  },
+  "view-surveyed": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 9,
+      "action": {
+        "kind": "survey",
+        "hex": {
+          "q": -2,
+          "r": 1
+        }
+      }
+    }
+  },
   "view-replaced": {
     "method": "POST",
     "path": "/api/game/replace",
@@ -43,5 +82,139 @@
       "role": "envoy",
       "offer": 2
     }
+  },
+  "view-foraged": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 4,
+      "action": {
+        "kind": "gather"
+      }
+    }
+  },
+  "view-fire-lit": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 5,
+      "action": {
+        "kind": "light-fire"
+      }
+    }
+  },
+  "view-fed": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 7,
+      "action": {
+        "kind": "feed"
+      }
+    }
+  },
+  "view-lingered": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 8,
+      "action": {
+        "kind": "linger"
+      }
+    }
+  },
+  "view-keeper-cue": {
+    "method": "POST",
+    "path": "/api/dev/next-day",
+    "body": {}
+  },
+  "view-skill-picked": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 3,
+      "action": {
+        "kind": "pick-skill",
+        "node": "scout-b1"
+      }
+    }
+  },
+  "view-defend": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 6,
+      "action": {
+        "kind": "defend"
+      }
+    }
+  },
+  "view-strike": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 14,
+      "action": {
+        "kind": "strike",
+        "threat": "t2"
+      }
+    }
+  },
+  "view-offer": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 27,
+      "action": {
+        "kind": "offer",
+        "material": "old-coin"
+      }
+    }
+  },
+  "view-befriended": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 32,
+      "action": {
+        "kind": "parley"
+      }
+    }
+  },
+  "view-boon": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 33,
+      "action": {
+        "kind": "ask-boon",
+        "boon": "gift"
+      }
+    }
+  },
+  "view-parley": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 15,
+      "action": {
+        "kind": "parley"
+      }
+    }
+  },
+  "view-angered": {
+    "method": "POST",
+    "path": "/api/game/act",
+    "body": {
+      "version": 18,
+      "action": {
+        "kind": "parley"
+      }
+    }
+  },
+  "view-new-season": {
+    "method": "POST",
+    "path": "/api/dev/new-season",
+    "body": {}
   }
 }

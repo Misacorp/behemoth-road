@@ -47,6 +47,32 @@ describe('the player view', () => {
     for (const word of seed) expect(json).not.toMatch(new RegExp(`\\b${word}\\b`));
   });
 
+  it('carries the season, threats and settlements, but never the seed, nature or care', () => {
+    let state = played(6);
+    state = {
+      ...state,
+      peril: 3,
+      misleadUntilDay: 9,
+      threats: [{ id: 't1', type: 'captors', hex: hex(0, 4), strength: 3, appearedDay: 4 }],
+      settlements: [
+        { id: 's2', type: 'hill-folk', hex: hex(1, -5), attitude: 'wary', favour: 1, boon: null },
+      ],
+      creature: { ...state.creature, defenders: ['b'] },
+    };
+    const view = toPlayerView(state) as unknown as Record<string, unknown>;
+    for (const key of ['seed', 'nature', 'care']) expect(key in view).toBe(false);
+    expect(view).toMatchObject({
+      peril: 3,
+      season: { status: 'on' },
+      misleadUntilDay: 9,
+      threats: state.threats,
+      settlements: state.settlements,
+      creature: { steps: state.creature.steps, defenders: ['b'] },
+    });
+    const json = JSON.stringify(view);
+    expect(json).not.toMatch(/satiety|reactions|"cues"/);
+  });
+
   it('is a deep copy: changing it never reaches the server state', () => {
     const state = played(3);
     const before = JSON.stringify(state);
@@ -129,7 +155,18 @@ describe('the player view', () => {
     const onServer = move(state, 'b', plan.steps[0]!.place);
     const onClient = move(view, 'b', plan.steps[0]!.place);
     expect(onServer.ok && onClient.ok).toBe(true);
-    if (onServer.ok && onClient.ok) expect(toPlayerView(onServer.state)).toEqual(onClient.state);
+    // The same movement; only the server can reveal what the hex held.
+    if (onServer.ok && onClient.ok) {
+      const server = toPlayerView(onServer.state);
+      const client = onClient.state;
+      if (!onServer.trapped) expect(server.characters).toEqual(client.characters);
+      expect({ ...server, features: {}, glints: {}, characters: [] }).toEqual({
+        ...client,
+        features: {},
+        glints: {},
+        characters: [],
+      });
+    }
   });
 });
 

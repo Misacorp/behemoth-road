@@ -12,7 +12,7 @@ import {
   onHex,
   terrainAt,
 } from '../src/index.ts';
-import { findSeed, gameAt, withCharacter } from './helpers.ts';
+import { CALM, findSeed, gameAt, withCharacter } from './helpers.ts';
 
 // The creature walks straight north: its centre is (0, 1 - day).
 const straight = { config: { veerWeights: { left: 0, right: 0 } } };
@@ -71,7 +71,7 @@ describe('riding the creature', () => {
   });
 
   it('carries riders day after day, never leaving them behind', () => {
-    let state = createGame(9, { characterIds: ['a', 'b'] });
+    let state = createGame(9, { characterIds: ['a', 'b'], config: CALM });
     for (let day = 0; day < 40; day++) {
       state = { ...state, characters: state.characters.map((c) => ({ ...c, actionsLeft: 0 })) };
       state = nextDay(state);

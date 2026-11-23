@@ -10,6 +10,7 @@ import {
   predictCreature,
   rotate,
 } from '../src/index.ts';
+import { CALM } from './helpers.ts';
 
 describe('the creature', () => {
   it('stands on a 7-hex footprint', () => {
@@ -34,7 +35,7 @@ describe('the creature', () => {
   });
 
   it('steps one hex a day among the predicted options, never back, keeping its heading', () => {
-    let state = createGame(11, { heading: 'se' });
+    let state = createGame(11, { heading: 'se', config: CALM });
     const seen = new Set<string>();
     for (let i = 0; i < 300; i++) {
       const options = predictCreature(state);

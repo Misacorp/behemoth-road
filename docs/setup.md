@@ -21,8 +21,8 @@ Two Discord applications, one per environment, so staging never touches the prod
 - [x] **Installation.** Installation Contexts: **Guild Install** and **User Install**. Install Link: **Discord Provided Link**. Default Install Settings, Guild Install: scopes `applications.commands` and `bot`, no permissions. Open the link and add the app to your server (staging: a test server).
 - [x] **Bot.** Bot: **Reset Token** and copy it. **Public Bot** on (Discord needs it for the provided install link). No privileged intents are needed. Anyone with the link can add the app, so only servers on the allowlist below can play.
 - [x] **Servers that may play.** Server Settings, Widget shows the **Server ID** (or right-click the server with Developer Mode on, Copy Server ID). Send it to an agent; it goes into `ALLOWED_GUILDS` in `apps/worker/wrangler.jsonc` for each environment. Any other server gets a refusal at sign-in and on Launch.
-- [ ] **Interactions Endpoint URL.** General Information: `https://behemoth.misacorp.dev/api/discord/interactions` (staging: `https://behemoth-staging.misacorp.dev/api/discord/interactions`). Discord checks it when you save, so set it **after** the first deploy with Milestone 2 is live; until then the deploy prints a warning and Launch uses Discord's default.
-- [ ] **Secrets into GitHub.** `node scripts/github-setup.mjs --user Misacorp` asks for `DISCORD_CLIENT_SECRET` and `DISCORD_BOT_TOKEN` for `production` and `staging`, with hidden input.
+- [x] **Interactions Endpoint URL.** General Information: `https://behemoth.misacorp.dev/api/discord/interactions` (staging: `https://behemoth-staging.misacorp.dev/api/discord/interactions`). Discord checks it when you save, so set it **after** the first deploy with Milestone 2 is live; until then the deploy prints a warning and Launch uses Discord's default.
+- [x] **Secrets into GitHub.** `node scripts/github-setup.mjs --user Misacorp` asks for `DISCORD_CLIENT_SECRET` and `DISCORD_BOT_TOKEN` for `production` and `staging`, with hidden input.
 - [x] **Client ids to an agent.** Send the two Client IDs (public, not secret); they go into `apps/worker/wrangler.jsonc` as `DISCORD_CLIENT_ID`.
 
 ### Testing the Activity before it is published
@@ -31,4 +31,6 @@ Not checklist steps; how anyone tests from Discord ([Building an Activity](https
 
 - **Developer Mode.** Only for launching an in-development Activity: desktop and web, User Settings, Advanced; mobile, Profile, Appearance. It is not needed for normal play.
 - **Who can launch.** Until the app is published, only its owner and members of its developer team can launch it. Add friends who test to the team: Developer Portal, Teams.
-- **Finding it.** In a voice or text channel, open the App Launcher and search for the app by name.
+- **Finding it.** Activities launch from a voice channel: join one and press its **Activities** button (the rocket), then pick the app or search for it by name.
+- **The OAuth2 redirect must be saved.** The Activity never uses `https://127.0.0.1`, but without a saved redirect the SDK's authorize step fails with error 5000.
+- **A changed secret needs a deploy.** A new `DISCORD_CLIENT_SECRET` or `DISCORD_BOT_TOKEN` in GitHub reaches the Worker only on the next deploy of that environment (and a new client secret signs everyone out once).

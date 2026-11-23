@@ -24,7 +24,7 @@ import {
 import { findSeed, gameAt, nearP, P, withCharacter } from './helpers.ts';
 
 const allPassable = (hexes: readonly Hex[]) => (s: number) =>
-  hexes.every((h) => terrainAt(s, h).passable);
+  hexes.every((h) => terrainAt(s, h).passable && !terrainAt(s, h).tags.includes('boggy'));
 
 const keys = (hexes: readonly Hex[]) => hexes.map((h) => `${h.q},${h.r}`);
 
@@ -51,7 +51,10 @@ describe('planPath', () => {
         const h = hexOf(step.place);
         expect(isAdjacent(from, h)).toBe(true);
         expect(isPassable(state, h)).toBe(true);
-        expect(step).toEqual({ place: onHex(h), cost: 1 }); // nothing sets `via` yet
+        expect(step).toEqual({
+          place: onHex(h),
+          cost: terrainAt(seed, h).tags.includes('boggy') ? 2 : 1,
+        }); // nothing sets `via` yet
         from = h;
       }
     }
@@ -153,18 +156,18 @@ describe('moveAlong', () => {
   });
 
   it('applies nothing when any step is refused, and says which', () => {
-    const seed = findSeed((s) => terrainAt(s, hex(0, -5)).passable);
-    const state = gameAt(seed, hex(0, -4));
-    const result = moveAlong(state, 'a', [hex(0, -5), hex(0, -6)]);
+    const seed = findSeed((s) => terrainAt(s, hex(0, -6)).passable);
+    const state = gameAt(seed, hex(0, -5));
+    const result = moveAlong(state, 'a', [hex(0, -6), hex(0, -7)]);
     expect(result).toEqual({ ok: false, reason: 'unreachable', step: 1 });
-    const gap = moveAlong(state, 'a', [hex(0, -2)]);
+    const gap = moveAlong(state, 'a', [hex(0, -3)]);
     expect(gap).toEqual({ ok: false, reason: 'not-adjacent', step: 0 });
   });
 
   it('accepts an empty path for an active character only, and bare hexes', () => {
     const seed = findSeed(allPassable([nearP(0, -1)]));
     const state = gameAt(seed);
-    expect(moveAlong(state, 'a', [])).toEqual({ ok: true, state });
+    expect(moveAlong(state, 'a', [])).toEqual({ ok: true, state, events: [], stopped: null });
     expect(moveAlong(state, 'a', [nearP(0, -1)])).toMatchObject({ ok: true });
     expect(moveAlong(state, 'a', [onHex(nearP(0, -1))])).toMatchObject({ ok: true });
     expect(moveAlong(state, 'b', [])).toEqual({ ok: false, reason: 'unknown-character', step: 0 });

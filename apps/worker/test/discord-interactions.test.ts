@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { createHandler } from '../src/index.ts';
+import { createHandler } from '../src/handler.ts';
 import { GUILD_ID, ORIGIN, STRANGER_GUILD_ID, callHandler } from './helpers.ts';
 
 const NOW = Date.UTC(2030, 0, 1);

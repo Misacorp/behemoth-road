@@ -24,6 +24,14 @@ export const TERRAIN_TYPES: readonly TerrainType[] = [
     extraMoveCost: 0,
     elevation: 0,
   },
+  {
+    id: 'swamp',
+    tags: ['wet', 'boggy'],
+    passable: true,
+    // Mud and reeds slow a walker (2 actions a step); marsh boards undo it.
+    extraMoveCost: 1,
+    elevation: 0,
+  },
   { id: 'river', tags: ['water'], passable: true, extraMoveCost: 0, elevation: 0 },
   { id: 'cliff', tags: ['steep'], passable: false, extraMoveCost: 0, elevation: 0 },
 ];

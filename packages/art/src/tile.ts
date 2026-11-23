@@ -4,6 +4,7 @@
  * 91-hex map stays a few dozen nodes (the web app hit-tests hexes by maths, not by element).
  */
 import { ART_TUNING } from './config.ts';
+import { refUrl } from './filters.ts';
 import { ellipsePath, poly, smoothClosed, smoothOpen, type Box, type Point } from './geom.ts';
 import type { Palette } from './palette.ts';
 import {
@@ -17,9 +18,16 @@ import {
 import { inkAttrs } from './props.ts';
 import { rngFor, type Rng } from './rng.ts';
 import { el, type AttrValue, type SvgNode } from './svg.ts';
+import type { FeatureArt } from './features.ts';
+import type { SettlementArt } from './settlements.ts';
+import type { ThreatArt } from './threats.ts';
 import { terrainLook, TRODDEN_LOOK } from './terrain.ts';
 
-export type CellState = 'seen' | 'unseen' | 'fading' | 'lost';
+/**
+ * `seen`: explored ground. `unexplored`: in the window, terrain known, under the veil until someone explores
+ * it. `unseen`: blank paper. `fading`: behind the creature, about to be lost. `lost`: gone into the fog.
+ */
+export type CellState = 'seen' | 'unexplored' | 'unseen' | 'fading' | 'lost';
 
 export interface ArtCell {
   readonly q: number;
@@ -30,8 +38,16 @@ export interface ArtCell {
   readonly state?: CellState;
   /** A site drawn on the tile (`SITE_PROPS`), such as `ruin`. */
   readonly site?: string;
-  /** Shows the hint mark: something here is undiscovered. */
+  /** Shows the glint (the hint mark): something here is undiscovered, never what. */
   readonly hint?: boolean;
+  /** A revealed feature on the tile (a resource node, a site, a trap); it replaces the terrain's props. */
+  readonly feature?: FeatureArt;
+  /** A fire burns here (lit today); visible to everyone, also under the veil. */
+  readonly fire?: boolean;
+  /** A threat on the hex (public): drawn in full, also under the veil; it replaces the terrain's props. */
+  readonly threat?: ThreatArt;
+  /** A people's settlement on the hex (public): drawn in full, also under the veil; it replaces the props. */
+  readonly settlement?: SettlementArt;
   /** Hand-placed props replacing the terrain's own: kind and offset from the centre in hex sizes. */
   readonly props?: readonly PropSpot[];
 }
@@ -44,6 +60,48 @@ export interface PropSpot {
   readonly scale?: number;
 }
 
+/** A hex's top face and, below its front edges, its side faces: the area a veil covers. */
+function veilOutline(p: Projection, corners: readonly Point[]): Point[] {
+  return p.depth > 0
+    ? [
+        ...corners.slice(0, 4).map((q) => ({ x: q.x, y: q.y + p.depth })),
+        ...corners.slice(3),
+        corners[0]!,
+      ]
+    : [...corners];
+}
+
+/**
+ * A hex's veil shape: its top face and a side strip only under the edges that show a side face (no solid tile
+ * in front). A strip over an edge with a tile in front would paint the top of that tile, so a tile further
+ * back would show its forward edge on top of the one before it.
+ */
+function veilShape(p: Projection, corners: readonly Point[], sides: readonly boolean[]): string {
+  let d = poly(corners);
+  if (p.depth > 0) {
+    for (let i = 0; i < 3; i += 1) {
+      if (!sides[i]) continue;
+      const a = corners[i]!;
+      const b = corners[i + 1]!;
+      d += poly([a, b, { x: b.x, y: b.y + p.depth }, { x: a.x, y: a.y + p.depth }]);
+    }
+  }
+  return d;
+}
+
+/**
+ * One hex's veil, on its own, for the map to lift away when the hex becomes explored (fade it and drift it
+ * up a little). Drawn with the scene's veil pattern (same `prefix`).
+ */
+export function drawVeilLift(p: Projection, hex: { q: number; r: number }, prefix = 'br'): SvgNode {
+  const corners = hexCorners(p, hexCenter(p, hex.q, hex.r));
+  return el('path', {
+    d: poly(veilOutline(p, corners)),
+    fill: refUrl(prefix, 'veil'),
+    'data-veil': `${hex.q},${hex.r}`,
+  });
+}
+
 export function cellState(cell: ArtCell): CellState {
   return cell.state ?? 'seen';
 }
@@ -51,7 +109,7 @@ export function cellState(cell: ArtCell): CellState {
 export function isSolid(cell: ArtCell | undefined): boolean {
   if (!cell) return false;
   const s = cellState(cell);
-  return s === 'seen' || s === 'fading';
+  return s === 'seen' || s === 'fading' || s === 'unexplored';
 }
 
 /** Collects path data by paint, so each paint becomes one element. Insertion order is kept. */
@@ -101,6 +159,8 @@ export function drawGround(
   ink: number,
   /** Hexes the creature stands on (`hexKey`): drawn as its own trodden ground instead of their terrain. */
   occupied: ReadonlySet<string> = new Set(),
+  /** Prefix of the scene's defs (for the veil pattern). */
+  prefix = 'br',
 ): GroundLayers {
   const byKey = new Map(cells.map((c) => [hexKey(c.q, c.r), c]));
   const k = p.k;
@@ -108,11 +168,14 @@ export function drawGround(
   const tops = new Batch();
   const washes = new Batch();
   const marks = new Batch();
+  const treads = new Batch();
+  const scuffs = new Batch();
   const rivers = { banks: [] as string[], water: [] as string[], light: [] as string[] };
   const veils = new Batch();
   const fog = new Batch();
   const outlines: string[] = [];
   const dotted: string[] = [];
+  const veiled: string[] = [];
   const boxes: Box[] = [];
 
   const ordered = [...cells].sort((a, b) => {
@@ -157,15 +220,18 @@ export function drawGround(
     }
 
     const trodden = occupied.has(hexKey(cell.q, cell.r));
-    const look = trodden ? TRODDEN_LOOK : terrainLook(cell.terrain);
+    // Trodden ground keeps its terrain (a cliff stays a cliff, a river a river) under a sandy wash.
+    const look = terrainLook(cell.terrain);
     const ground = palette.ramps[look.ground];
     const side = palette.ramps[look.side];
 
     // Side faces on the edges that face the viewer and have no solid tile in front.
+    const showsSide = [false, false, false];
     if (p.depth > 0) {
       for (let i = 0; i < 3; i += 1) {
         const d = DIRECTIONS[i]!;
         if (isSolid(byKey.get(hexKey(cell.q + d.q, cell.r + d.r)))) continue;
+        showsSide[i] = true;
         const a = corners[i]!;
         const b = corners[i + 1]!;
         const a2 = { x: a.x, y: a.y + p.depth };
@@ -191,9 +257,27 @@ export function drawGround(
         smoothClosed(blob(rng, p, sc, rng.range(0.15, 0.26), 7, 0.2)),
       );
     }
+    if (trodden) {
+      treads.add({ fill: palette.ramps[TRODDEN_LOOK.ground].base, opacity: 0.5 }, poly(corners));
+    }
     outlines.push(poly(corners));
 
     // Ground marks painted flat on the tile.
+    if (trodden) {
+      const lines: string[] = [];
+      for (let j = 0, n = rng.int(2, 3); j < n; j += 1) {
+        const o = onPlane(p, c, rng.range(-0.5, 0.45), rng.range(-0.45, 0.45));
+        const len = rng.range(0.12, 0.22) * p.size;
+        lines.push(
+          smoothOpen([
+            o,
+            { x: o.x + len * 0.5, y: o.y - len * 0.1 },
+            { x: o.x + len, y: o.y + len * 0.04 },
+          ]),
+        );
+      }
+      scuffs.add(inkAttrs(palette.ramps.trodden.shade, ink * 0.85), lines.join(''));
+    }
     if (look.marks === 'ripples') {
       const lines: string[] = [];
       for (let j = 0, n = rng.int(2, 3); j < n; j += 1) {
@@ -224,6 +308,24 @@ export function drawGround(
         );
       }
       marks.add(inkAttrs(palette.ramps.water.shade, ink * 0.8), lines.join(''));
+    } else if (look.marks === 'pools') {
+      // Standing water: a few small shallow pools with a short ripple stroke across each.
+      const pools: string[] = [];
+      const glints: string[] = [];
+      for (let j = 0, n = rng.int(3, 4); j < n; j += 1) {
+        const o = onPlane(p, c, rng.range(-0.5, 0.5), rng.range(-0.45, 0.45));
+        const rx = rng.range(2.6, 4.6) * k;
+        pools.push(ellipsePath(o.x, o.y, rx, rx * p.squash));
+        glints.push(
+          smoothOpen([
+            { x: o.x - rx * 0.5, y: o.y },
+            { x: o.x, y: o.y - rx * p.squash * 0.35 },
+            { x: o.x + rx * 0.5, y: o.y },
+          ]),
+        );
+      }
+      marks.add({ fill: palette.ramps.water.base, opacity: 0.85 }, pools.join(''));
+      marks.add(inkAttrs(palette.ramps.water.shade, ink * 0.7), glints.join(''));
     } else if (look.marks === 'scree') {
       const dots: string[] = [];
       for (let j = 0, n = rng.int(4, 7); j < n; j += 1) {
@@ -276,20 +378,12 @@ export function drawGround(
       rivers.light.push(d);
     }
 
+    if (state === 'unexplored') {
+      veiled.push(veilShape(p, corners, showsSide));
+    }
     if (state === 'fading') {
       const veil = { fill: palette.paper, opacity: ART_TUNING.fadingVeil };
-      veils.add(
-        veil,
-        poly(
-          p.depth > 0
-            ? [
-                ...corners.slice(0, 4).map((q) => ({ x: q.x, y: q.y + p.depth })),
-                ...corners.slice(3),
-                corners[0]!,
-              ]
-            : corners,
-        ),
-      );
+      veils.add(veil, veilShape(p, corners, showsSide));
     }
   }
 
@@ -319,7 +413,9 @@ export function drawGround(
     ...sides.nodes(),
     ...tops.nodes(),
     ...washes.nodes(),
+    ...treads.nodes(),
     ...marks.nodes(),
+    ...scuffs.nodes(),
     ...riverNodes,
     ...fog.nodes(),
   ];
@@ -331,6 +427,11 @@ export function drawGround(
     );
   }
   ground.push(...veils.nodes());
+  if (veiled.length) {
+    ground.push(
+      el('path', { d: veiled.join(''), fill: refUrl(prefix, 'veil'), 'data-veil': 'all' }),
+    );
+  }
   const crisp: SvgNode[] = dotted.length
     ? [
         el('path', {

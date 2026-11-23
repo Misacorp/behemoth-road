@@ -1,7 +1,7 @@
 import { env } from 'cloudflare:workers';
 import { listDurableObjectIds } from 'cloudflare:test';
 import { describe, expect, it, vi } from 'vitest';
-import { createHandler } from '../src/index.ts';
+import { createHandler } from '../src/handler.ts';
 import { SERVER_CONFIG } from '../src/server-config.ts';
 import { parseSessionToken } from '../src/session.ts';
 import {
@@ -263,6 +263,7 @@ describe('the Worker refuses bad tokens before any game route', () => {
       ['POST', '/api/game/move'],
       ['POST', '/api/game/join'],
       ['POST', '/api/dev/next-day'],
+      ['POST', '/api/dev/new-season'],
     ] as const) {
       // A tampered MAC, and this token's MAC on another guild's id.
       for (const bad of [
@@ -306,7 +307,7 @@ describe('the Worker refuses bad tokens before any game route', () => {
 });
 
 describe('GET /api/config', () => {
-  it('is public and reports the build, the client id and the dev tools flag', async () => {
+  it('is public and reports the build, the client id and the dev tools and live flags', async () => {
     const { handler } = setup();
     const res = await callHandler(handler, new Request(`${ORIGIN}/api/config`));
     expect(res.status).toBe(200);
@@ -318,6 +319,7 @@ describe('GET /api/config', () => {
       branch: 'dev',
       discordClientId: env.DISCORD_CLIENT_ID,
       devTools: true,
+      live: true,
     });
     expectNoSeed(body);
   });

@@ -35,6 +35,7 @@ const meets = (seed: Seed, field: FieldRef, when: FieldCondition, h: Hex): boole
   const value = sample(seed, field, h);
   if ('above' in when) return value > when.above;
   if ('below' in when) return value < when.below;
+  if ('between' in when) return value >= when.between[0] && value < when.between[1];
   return value >= when.contour && neighbours(h).some((n) => sample(seed, field, n) < when.contour);
 };
 

@@ -21,6 +21,9 @@ const storedState = (sql: SqlStorage): GameState =>
 
 const asView = (body: unknown) => body as PlayerView;
 
+/** A season that cannot end soon: no peril from hunger, no threats, the default route. */
+const CALM = { gameConfig: { perilHungry: 0, threatsMax: 0 } };
+
 async function joined(ctx: GameContext, user = MISA, role = 'scout') {
   const token = await ctx.signIn(user);
   const res = await ctx.call(token, 'POST', '/api/game/join', { role, offer: 0 });
@@ -83,7 +86,10 @@ describe('POST /api/game/join', () => {
           joinedDay: 1,
           at: { kind: 'creature' },
           actionsLeft: 3,
+          pack: {},
           status: 'active',
+          struckDay: null,
+          skills: { xp: 0, taken: [] },
         },
       ]);
       // A second join changes nothing and answers the same view.
@@ -290,6 +296,8 @@ describe('GET /api/game?since', () => {
   it('answers unchanged for the current version and the view otherwise', async () => {
     await runGame(async (ctx) => {
       const { token, view } = await joined(ctx);
+      // Created at sign-in (1), then the join (2).
+      expect(view.version).toBe(2);
       expect(await ctx.call(token, 'GET', `/api/game?since=${String(view.version)}`)).toEqual({
         status: 200,
         body: { unchanged: true },
@@ -454,6 +462,7 @@ describe('the day tick', () => {
   });
 
   it('catches up missed ticks on the next request, up to the limit', async () => {
+    // A calm season (no hunger peril, no threats, the full route), so it cannot end within the jump.
     await runGame(async (ctx) => {
       await joined(ctx);
       // Sessions idle out after an hour, so each look after a jump signs in again.
@@ -467,6 +476,6 @@ describe('the day tick', () => {
       const alarm = await ctx.storage.getAlarm();
       expect(alarm).toBeGreaterThan(ctx.clock.t);
       expect(alarm).toBeLessThanOrEqual(ctx.clock.t + 24 * 3600_000);
-    });
+    }, CALM);
   });
 });

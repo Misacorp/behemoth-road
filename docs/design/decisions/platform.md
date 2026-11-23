@@ -4,6 +4,114 @@ Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-21: The view carries the server clock
+
+ID: `2026-11-21-the-view-carries-the-server-clock` · Status: current
+
+**Decision.** `PlayerView.now` is the server's clock (epoch ms) when the view was built. The client keeps `skew = view.now - its own clock` at each accepted view (`Sync.serverNow()`) and uses it to time the fast-tick refresh and the day ring, instead of comparing `fastTickAt` with the device clock.
+
+**Reasoning.** `fastTickAt` is a server time; a phone clock a few minutes off made the refresh fire at the wrong moment and the ring start empty or never drain. The skew is measured when a view arrives, so it needs no extra request; latency is a few hundred ms at most, well inside the grace.
+
+## 2026-11-21: Rows read are metered per source and budgeted in tests
+
+ID: `2026-11-21-rows-read-are-metered-per-source` · Status: current
+
+**Decision.** The Durable Object wraps its `SqlStorage` in a `ReadMeter` that sums `cursor.rowsRead` per source (`start`, `alarm`, `socket`, `request:<known route>`), in memory. `test/read-budget.test.ts` holds budgets of about 1.5 times the measured rows for the hot operations and checks the query plans of every hot statement for a full scan. Two hot queries were rewritten because of it: the events-since read (`ORDER BY version, seq`, so it uses the version index) and the event-log prune (one primary-key lookup instead of `MAX(version)` over the whole index).
+
+**Reasoning.** Free tier allows 5,000,000 rows read a day across the account, staging included, and the creatures app used it up twice with a scan on a hot path. Both queries read the whole 100-event log on every write or changed poll; with live pushes every player refetches after every change, so that would have multiplied. The counters are not stored (no write cost); production visibility is Cloudflare's dashboard until we want a stored daily total like creatures' `db_reads`.
+
+## 2026-11-21: Live sockets: ticket auth, caps, Hibernation, flag off in production
+
+ID: `2026-11-21-live-sockets-ticket-auth-caps-hibernation` · Status: current
+
+**Decision.** Sockets live in `GuildWorld` with the WebSocket Hibernation API (user tag, `serializeAttachment`, `setWebSocketAutoResponse` ping/pong, no timers, stale sockets pruned on connect, push and alarm). Server to client only: any message but `ping` closes the socket with 4002. Auth is a one-time ticket from `POST /api/live/ticket` (bearer session): 30 s, single use, HMAC under its own HKDF label, at most 200 held in memory; `GET /api/live?t=` is checked by the Worker (flag, Upgrade header, one query parameter, constant-time MAC) before the guild's object redeems it. The session token never goes in a URL. Caps: 3 sockets per player (oldest closed with 4000), 64 per guild (503 `live_full`). The `LIVE` var is `on` in staging and local, `off` in production, pinned by a test; off means both routes answer 404 before any object is woken.
+
+**Reasoning.** Adapted from the creatures app's live socket, which has run in production since October. A browser WebSocket cannot send headers, and a URL is logged, so the ticket is worth nothing after a use or 30 s. Production stays off until Misa has tried it on staging, including through Discord's proxy.
+
+## 2026-11-21: Live sockets only say "changed"; the client fetches its own view
+
+ID: `2026-11-21-live-sockets-only-say-changed-the` · Status: current
+
+**Decision.** After every write transaction (act, move, join, replace, tick including the fast tick and the alarm, pace, new season, a renamed player) the object sends `{ v: 1, type: 'changed', version }` to every socket of the guild, once per transaction; `hello` carries the version on connect. The client fetches its own view with `GET /api/game?since=` (debounced 150 ms) and polls only every 60 s while live, every 10 s otherwise.
+
+**Reasoning.** A push with no per-viewer data cannot leak anything and needs no new view code: the existing authenticated, rate-limited path builds each player's view. It costs one small fetch per change per player instead of a pushed view, and the poll stays as the fallback for anything the socket misses.
+
+## 2026-11-21: Fast pace schedules a second alarm time in the one Durable Object alarm
+
+ID: `2026-11-21-fast-pace-schedules-a-second-alarm` · Status: current
+
+**Decision.** The game row stores `pace` and `fast_tick_at` (migration 3). After every write to the game and on a pace switch, `fast_tick_at` is recomputed in the same transaction: set to now plus `fastTickDelayMs` when the pace is fast and everyone is spent (keeping an earlier schedule that still holds), else cleared. The Durable Object's single alarm is set to the earlier of the daily tick and `fast_tick_at`. `alarm()` and every request first run the due daily ticks, then the fast tick once if it is due, then re-arm. The fast tick uses `tickWithEvents` like the daily one and leaves `next_tick_at` alone. The player view carries `pace` and `fastTickAt`. Clients keep the normal poll and schedule one extra refresh just after `fastTickAt` (plus a retry 2 s later if the day has not turned); there is no faster polling and the rate limit is unchanged. To keep storage reads low, the object keeps the game row, guild id, live sessions and the armed alarm time in memory: a poll that changes nothing reads no storage (it was 6 SQL statements and an alarm lookup), a changed poll reads 3 statements (was 10 and 1) and an action 9 (was 15 and 2). Every write transaction drops the in-memory game, so it reloads on the next read and a rolled-back write never stays in memory.
+
+**Reasoning.** A Durable Object has one alarm, so two schedules share it as a minimum. Recomputing inside the write transaction means the stored schedule can never disagree with the state, and a due fast tick that was missed (the alarm and a request racing) is run by the next request. Misa wants database reads kept low (creatures had a read incident), and live WebSockets come later and will read from the same memory.
+
+## 2026-11-20: The short dev season follows the dev-tools switch; an ended season stops the schedule
+
+ID: `2026-11-20-the-short-dev-season-follows-the` · Status: current
+
+**Decision.** A new game takes `SERVER_CONFIG.devSeason` exactly when `DEV_TOOLS` is `"on"` (`seasonConfig(devTools)` in `guild-game.ts`, passed to `GuildGame` as `gameConfig`); any other value, or none, gives the core defaults. This covers the first game, a game replacing an outdated one and a new season. The overrides live in the stored state's config, so a game keeps its season length if the switch changes later. Replacing a game (outdated content or a new season) drops its events and marks the log pruned through the new game's version, so every client that saw the old game gets `eventsTruncated` and reloads. Once the season is over, no tick runs (alarm or catch-up), the alarm is deleted, and next day answers the unchanged view; a new season schedules the next tick from now. The five M5 actions' strings (threat id, material, boon) are bounded to `^[a-z0-9-]{1,64}$` and otherwise left to the core, which refuses unknown ones by name.
+
+**Reasoning.** The dev-tools switch is already the fail-closed signal for staging and local (production pins it `"off"` and a test checks that), so a second switch would only add a way to get them out of step. The core names its own refusals (`no-threat`, `unknown-boon`, `no-trade-good`), which the client shows; checking content ids in the schema too would turn them into a bare `invalid_body`. Pruning through the new version (rather than the one before) also catches a client whose last seen version was the old game's very last one.
+
+## 2026-11-20: Staging and local seasons are short; admins start a new season there
+
+ID: `2026-11-20-staging-and-local-seasons-are-short` · Status: current
+
+**Decision.** The Worker creates staging and local games with `SERVER_CONFIG.devSeason` overrides (route 12 steps, settlements at steps 3 and 9, threats from day 2); production uses the core defaults. `POST /api/dev/new-season` (dev tools on, server admins only, like next day) replaces the game with a new seed; every character is gone and players join again. The alarm schedules no ticks once a season is over. Production has no new-season control yet.
+
+**Reasoning.** The done criterion asks for a full season to a win or a loss with the staging next day. Reusing the dev-tools gate and admin check adds no new trust boundary. How production starts its next season is Misa's call and is left for later.
+
+## 2026-11-20: Web schema requires the M4 view fields now the fixtures carry them
+
+ID: `2026-11-20-web-schema-requires-the-m4-view` · Status: current · Supersedes: `2026-11-20-web-schema-defaults-the-m4-view`
+
+**Decision.** `stimuli`, `creature.lingering`, `creature.lingeredDay`, the Milestone 4 config costs and `PlayerView.signs` are required in the web client's schema, with no defaults. The contract test covers the fire, feed, linger, keeper-cue and not-keeper fixtures and the act request bodies.
+
+**Reasoning.** The Worker's recaptured fixtures carry them, so a missing field is now a contract break to catch, not an older server to tolerate.
+
+## 2026-11-20: The player view carries each viewer's creature signs; the creature's nature and condition never leave the server
+
+ID: `2026-11-20-the-player-view-carries-each-viewer-2` · Status: current
+
+## 2026-11-20: The Durable Object keeps the last 100 game events for clients to replay
+
+ID: `2026-11-20-the-durable-object-keeps-the-last` · Status: current
+
+**Decision.** Every change that produces game events writes them to an `events` table, each stamped with the game version it produced (every catch-up tick is now its own version). The last 100 are kept (`SERVER_CONFIG.eventLogSize`); `events_pruned_through` on the game row remembers the highest dropped version. `GET /api/game?since=v` returns the view plus the kept events after `v` and `eventsTruncated` when the client missed some; a replaced game clears the log and marks everything before it as missed. Act and move answers stamp their own events with the version too. The tick's events (`creature-step`, `deposit`, `lost`, `day`) come from the core's `nextDayWithEvents` through one adapter (`tickWithEvents`).
+
+**Reasoning.** The web was guessing other players' moments from differences between views, which breaks as soon as two things change at once. A short server-side log is exact and cheap at this scale (a few changes a day per player); a client that falls far behind just reloads the view without the moments.
+
+## 2026-11-20: The core state holds exploration, packs, stores and unlocks; no glints, no migration
+
+ID: `2026-11-20-the-player-view-carries-each-viewer` · Status: current
+
+**Decision.** `POST /api/game/act` also takes `{ kind: 'light-fire' }`, `{ kind: 'feed' }` and `{ kind: 'linger' }`, strict like the others; their refusals and events pass through unchanged. Every player view (game, join, move, act, replace, next day) carries `signs`: the core's `creatureSigns` for the signed-in player's newest character when it is active, else `null` (a lost or absent character reads only what anyone may). It is computed per request and not cached; since it is a pure function of the stored state and the viewer, and every change to either (a tick, an action, a replace into another role) bumps the game version, `?since=` stays correct per viewer. The test client checks every response for the keys `nature`, `care`, `satiety` and `reactions`, and that `signs` equals exactly what the core allows that viewer (no cues for a non-keeper). Content version 5: a stored version-4 game is replaced through the existing outdated-game path. The fixture capture adds a keeper scenario (forage, fire, feed, linger, next day) with a keeper's and a non-keeper's view.
+
+**Reasoning.** The reaction a cue reveals is the keeper's role, so the server must never send it to anyone else, nor the hidden numbers it comes from. Checking every response in the shared test client, rather than one test per route, keeps any new route covered.
+
+## 2026-11-20: The Worker replaces an outdated game on start and refuses an unreadable one with 503
+
+ID: `2026-11-20-the-worker-replaces-an-outdated-game` · Status: current · Supersedes: `2026-11-20-act-and-move-answer-the-view`
+
+**Decision.** `POST /api/game/act` takes `{ version, action }` with exactly one of `survey { hex }`, `gather`, `work-site` or `build { unlock }` (unlock ids from content). Act and move answer the player view plus `events` and `stopped` through one path in the Durable Object (version check, newest character, rule, write, one transaction). When the object starts, a stored game the core refuses as outdated (`OutdatedGameError`) is replaced by a new game for that server in one transaction: players stay and rejoin with new offers, and the game version keeps counting up so no client's `since` matches the new game. A stored game that is corrupt or from newer content is left untouched: game requests answer `503 game_unavailable`, sign-in still works, and the start and the alarm never throw, so the object never crash-loops. Tests check every response for the seed and for features the stored game still hides, and the fixture capture now removes (or, with `--check`, reports) fixture files it no longer writes.
+
+**Reasoning.** Misa chose wiping over migration before a stable release ("Before a stable release, older games are wiped, not migrated"). Leaving an unreadable game alone means a rollback never wipes a newer game, and a 503 says the game is temporarily out rather than failing in a loop.
+
+## 2026-11-20: The core state holds exploration, packs, stores and unlocks; no glints, no migration
+
+ID: `2026-11-20-the-core-state-holds-exploration-packs` · Status: current · Supersedes: `2026-11-20-features-live-in-the-state-per`
+
+**Decision.** Tiles carry `explored`. Characters carry a `pack`. The team has `stores`, `unlocks` (finished) and one `project` (`{ unlock, work }` or null). Features stay per hex, generated on the server as hexes come into view; the player view carries only revealed ones. Glints and the item inventory are gone from the state. Content version 4: `loadGame` throws `OutdatedGameError` for an older version, so the server starts a new game; `migrateGame` is removed. A test checks this against a game stored by the version-2 code.
+
+**Reasoning.** Misa's notes replaced crafting with unlocks and made glints a later upgrade. Before a stable release, older games are wiped rather than migrated (Misa's decision), so the migration and its upkeep go.
+
+## 2026-11-20: Before a stable release, older games are wiped, not migrated **[Misa]**
+
+ID: `2026-11-20-before-a-stable-release-older-games` · Status: current
+
+**Decision.** Until a stable release, a stored game whose content version is older than the code's is replaced by a new game rather than migrated. No migration code is kept for prototype content changes.
+
+**Reasoning.** Misa: forget the live game on production, everything can be wiped. Migrations for every prototype content change would slow iteration for no benefit.
+
 ## 2026-11-19: Only allowed Discord servers can play; the app itself is public **[Misa]**
 
 ID: `2026-11-19-only-allowed-discord-servers-can-play` · Status: current · Amends: `2026-11-19-sign-in-interactions-and-the-deploy`
@@ -395,3 +503,31 @@ ID: `2026-11-19-strict-security-headers-and-everything-served` · Status: curren
 **Decision.** The frontend sends a strict CSP (`default-src 'self'`, no inline scripts or styles, `object-src 'none'`, `base-uri 'none'`) plus `nosniff`, a referrer policy, HSTS and a permissions policy, and fonts and other assets are self-hosted with their licence texts shipped. API responses carry `Cache-Control: no-store` and no CORS headers. Text is rendered as text only; `innerHTML` and `dangerouslySetInnerHTML` are banned by lint.
 
 **Reasoning.** Serving everything from one origin keeps the CSP simple and removes third-party requests. Banning raw HTML in lint makes the safe path the only one.
+
+<!-- Superseded entries below: kept for history, no longer in force. -->
+
+# Superseded
+
+## 2026-11-20: Web schema defaults the M4 view fields until the fixtures are recaptured
+
+ID: `2026-11-20-web-schema-defaults-the-m4-view` · Status: superseded by `2026-11-20-web-schema-requires-the-m4-view`
+
+**Decision.** The web client's response schema reads Milestone 4's fields (`stimuli`, `creature.lingering`, `creature.lingeredDay`, the new config costs, `PlayerView.signs`), each optional with a default (empty, false, null, the core's `DEFAULT_CONFIG`, no signs) until the Worker's recaptured fixtures carry them; then they become required.
+
+**Reasoning.** The captured fixtures are Milestone 3's until the M4 Worker lands. Defaults keep the contract tests honest on both the old and the new fixtures, and the parsed type is still the core's `GameStateView` and `CreatureSigns` (checked in `viewState.ts`).
+
+## 2026-11-20: Act and move answer the view with what happened; stored games are upgraded once on load
+
+ID: `2026-11-20-act-and-move-answer-the-view` · Status: superseded by `2026-11-20-the-worker-replaces-an-outdated-game`
+
+**Decision.** `POST /api/game/act` (`{ version, action }`, one of three strict shapes, recipe ids from content) and `POST /api/game/move` answer the new player view plus `events` (the core's list, passed through) and `stopped` (where a trap ended a walk, or `null`); refusals stay `409 { error }` with the core's reason. Both run through one path in the Durable Object: the version check, the player's newest character, the rule, the write, in one transaction. When the object starts, a game stored with older content is upgraded through the core's `loadGame` (which runs `migrateGame`) and written back once, bumping the version so clients reload. Every test response is checked for the seed and for any feature the stored game still hides.
+
+**Reasoning.** One answer with the view and the moments saves a second request and lets the web show reveals, finds and traps exactly once. Upgrading at start, rather than on every read, keeps reads cheap and makes the upgrade a single recorded write; the live production game keeps its characters and map.
+
+## 2026-11-20: Features live in the state per hex; the view carries revealed ones and team glints; version-2 games migrate
+
+ID: `2026-11-20-features-live-in-the-state-per` · Status: superseded by `2026-11-20-the-core-state-holds-exploration-packs`
+
+**Decision.** The state gains `features` (by hex key: type, revealed, what is `left`), `glints` (hex keys a scout has sensed), `inventory` (team materials and items) and `craftsToday` on each character. Features are generated on the server for each hex when it first comes into view, using known terrain, and pruned with their tiles. `toPlayerView` keeps only revealed features, plus glints and the inventory, which are public. Content version 3: `loadGame` migrates a version-2 game through `migrateGame`. New tuning values take their defaults, characters keep everything and get `craftsToday` 0, the team gets an empty inventory, and hexes already in view get their hidden features as if they had just come into view. A fixture captured from the version-2 code proves this.
+
+**Reasoning.** Hidden features are the point of fog and scouting, so they stay on the server like the seed. Generating per hex on first sight keeps the state small and lets the live production game continue on its existing map.

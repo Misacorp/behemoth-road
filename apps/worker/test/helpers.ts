@@ -2,9 +2,15 @@ import { env } from 'cloudflare:workers';
 import { runInDurableObject } from 'cloudflare:test';
 import { expect } from 'vitest';
 import { DiscordError, type DiscordApi, type GuildApi } from '../src/discord.ts';
-import type { Seed } from '../src/game-core.ts';
-import { GuildGame, type GuildGameOptions, type SessionUser } from '../src/guild-game.ts';
-import { createHandler } from '../src/index.ts';
+import { creatureSigns, hiddenFeatureKeys, isKeeper, toPlayerView } from '@behemoth-road/core';
+import { loadGame, type Seed } from '../src/game-core.ts';
+import {
+  GuildGame,
+  seasonConfig,
+  type GuildGameOptions,
+  type SessionUser,
+} from '../src/guild-game.ts';
+import { createHandler } from '../src/handler.ts';
 import type { ActivityInstance, DiscordMember, DiscordRole, DiscordUser } from '../src/schemas.ts';
 import { formatSessionToken, getSessionKey } from '../src/session.ts';
 
@@ -172,6 +178,64 @@ export function expectNoSeed(body: unknown, seed: Seed = SEED): void {
     expect(text).not.toMatch(new RegExp(`(^|[^0-9])${String(word)}([^0-9]|$)`));
 }
 
+/**
+ * Fails the test if a response's view carries a feature the stored game still hides: only revealed
+ * features may leave the server (glints mark a hex, never what is there).
+ */
+export function expectNoHiddenFeatures(body: unknown, sql: SqlStorage): void {
+  const features = (body as { game?: { features?: Record<string, { revealed?: unknown }> } } | null)
+    ?.game?.features;
+  if (features === undefined) return;
+  const row = sql.exec<{ state: string }>('SELECT state FROM game WHERE id = 1').toArray()[0];
+  if (row === undefined) return;
+  const hidden = hiddenFeatureKeys(loadGame(JSON.parse(row.state)));
+  for (const key of hidden) expect(features, `hidden feature at ${key}`).not.toHaveProperty([key]);
+  for (const [key, feature] of Object.entries(features)) {
+    expect(feature.revealed, `feature at ${key}`).toBe(true);
+  }
+}
+
+/** Keys of the creature's hidden nature and condition: never in any response. */
+const SECRET_KEYS = ['nature', 'care', 'satiety', 'reactions'];
+
+/**
+ * Fails the test if a response carries the creature's hidden nature or condition anywhere, or signs that
+ * are not exactly what the core lets this viewer read (a non-keeper gets no cues, so no reaction).
+ */
+export function expectNoCreatureSecrets(body: unknown, sql: SqlStorage): void {
+  const walk = (value: unknown, at: string): void => {
+    if (value === null || typeof value !== 'object') return;
+    for (const [key, inner] of Object.entries(value)) {
+      if (!Array.isArray(value)) expect(SECRET_KEYS, `${at}.${key}`).not.toContain(key);
+      walk(inner, `${at}.${key}`);
+    }
+  };
+  walk(body, '$');
+  const view = body as { you?: { characterId: string | null }; signs?: unknown } | null;
+  if (view?.you === undefined) return;
+  const row = sql.exec<{ state: string }>('SELECT state FROM game WHERE id = 1').toArray()[0];
+  if (row === undefined) return;
+  const state = loadGame(JSON.parse(row.state));
+  const id = view.you.characterId;
+  const active = state.characters.find((c) => c.id === id)?.status === 'active' ? id : null;
+  expect(view.signs).toEqual(creatureSigns(state, active));
+  if (!isKeeper(state, active)) {
+    expect((view.signs as { cues: unknown[] }).cues).toEqual([]);
+  }
+}
+
+/**
+ * Fails the test if a response's `game` is anything but the core's public view of the stored game: the
+ * seed, the creature's nature and care, hidden features and anything else server-only never leave in it.
+ */
+export function expectPublicGame(body: unknown, sql: SqlStorage): void {
+  const game = (body as { game?: unknown } | null)?.game;
+  if (game === undefined) return;
+  const row = sql.exec<{ state: string }>('SELECT state FROM game WHERE id = 1').toArray()[0];
+  if (row === undefined) return;
+  expect(game).toEqual(JSON.parse(JSON.stringify(toPlayerView(loadGame(JSON.parse(row.state))))));
+}
+
 export interface Called {
   status: number;
   body: unknown;
@@ -183,9 +247,14 @@ export interface GameContext {
   clock: { t: number };
   sql: SqlStorage;
   storage: DurableObjectStorage;
+  /** Storage reads the game made since `reads.reset()`: SQL statements run, and alarm lookups. */
+  reads: { sql: number; alarm: number; reset(): void };
   /** Signs a player in (as the Worker would after Discord confirmed them); returns their token. */
   signIn(user: SessionUser): Promise<string>;
-  /** One API request as that player; every body is checked for the seed. */
+  /**
+   * One API request as that player; every body is checked for the seed, hidden features and the
+   * creature's secrets, and its game must be exactly the core's public view.
+   */
   call(token: string, method: string, path: string, body?: unknown): Promise<Called>;
 }
 
@@ -202,12 +271,38 @@ export async function runGame<R>(
   const stub = env.GUILD_WORLD.get(env.GUILD_WORLD.idFromName(guildId));
   return runInDurableObject(stub, async (_instance, state) => {
     const clock = { t: options.now?.() ?? T0 };
-    const game = new GuildGame(state.storage, {
+    const reads = {
+      sql: 0,
+      alarm: 0,
+      reset() {
+        reads.sql = 0;
+        reads.alarm = 0;
+      },
+    };
+    // The game's storage, counting what it asks: every SQL statement, and every alarm lookup.
+    const real = state.storage;
+    const counting = {
+      sql: {
+        exec: (...args: Parameters<SqlStorage['exec']>) => {
+          reads.sql += 1;
+          return real.sql.exec(...args);
+        },
+      } as unknown as SqlStorage,
+      transactionSync: <T>(fn: () => T): T => real.transactionSync(fn),
+      getAlarm: () => {
+        reads.alarm += 1;
+        return real.getAlarm();
+      },
+      setAlarm: (t: number) => real.setAlarm(t),
+      deleteAlarm: () => real.deleteAlarm(),
+    };
+    const game = new GuildGame(counting, {
       newSeed: () => seed,
       newArtSeed: () => ART_SEED,
       devTools: true,
       guildApi: null,
       everyoneIsAdmin: false,
+      gameConfig: seasonConfig(options.devTools ?? true),
       ...options,
       now: () => clock.t,
     });
@@ -227,14 +322,24 @@ export async function runGame<R>(
       expectApiHeaders(res);
       const parsed: unknown = await res.json();
       expectNoSeed(parsed, seed);
+      expectNoHiddenFeatures(parsed, state.storage.sql);
+      expectNoCreatureSecrets(parsed, state.storage.sql);
+      expectPublicGame(parsed, state.storage.sql);
       return { status: res.status, body: parsed };
     };
     return fn({
       guildId,
       game,
       clock,
-      sql: state.storage.sql,
+      // Tests that write to the database directly change it behind the game's back: it forgets its memory.
+      sql: {
+        exec: (...args: Parameters<SqlStorage['exec']>) => {
+          if (!/^\s*select/i.test(args[0])) game.dropMemory();
+          return real.sql.exec(...args);
+        },
+      } as unknown as SqlStorage,
       storage: state.storage,
+      reads,
       signIn,
       call,
     });

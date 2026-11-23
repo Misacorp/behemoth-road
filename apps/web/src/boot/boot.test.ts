@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { createApiClient, type Fetch } from '../api/client.ts';
+import { ApiError, createApiClient, type Fetch } from '../api/client.ts';
 import { CONFIG, joined, SESSION } from '../api/fixtures.ts';
-import { boot, type DiscordLike, isInsideDiscord } from './boot.ts';
+import { boot, describeError, type DiscordLike, isInsideDiscord } from './boot.ts';
 
 function server(): { fetch: Fetch; paths: string[] } {
   const paths: string[] = [];
@@ -108,5 +108,11 @@ describe('boot', () => {
     });
     expect(b.kind).toBe('ready');
     expect(s.paths).toEqual(['/api/config', '/api/game']);
+  });
+});
+
+describe('describeError', () => {
+  it('names an unreadable game by its status and code, for the retry state', () => {
+    expect(describeError(new ApiError(503, 'game_unavailable'))).toBe('503 game_unavailable');
   });
 });

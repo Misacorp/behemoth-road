@@ -24,6 +24,10 @@ export const MAP_TUNING = {
   maxZoom: 2.4,
   /** The first view fits this many hexes around the character (phone). */
   fitRadius: 3.5,
+  /** The opening view looks this many hexes ahead of the creature, along its heading. */
+  openAhead: 1.5,
+  /** Space kept between the map's frame and the HUD above and below it, in screen px. */
+  framePad: 6,
   /** From this screen width up, the first view fits the whole window plus one ring, at most at zoom 1. */
   wideFrom: 900,
   wideMaxZoom: 1,

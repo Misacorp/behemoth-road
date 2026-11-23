@@ -5,9 +5,12 @@
 import { type ConfigOverrides, resolveConfig } from './config.ts';
 import { type Direction, DIRECTIONS, type Hex, isValidHex } from './hex.ts';
 import { CONTENT_VERSION } from './content/index.ts';
+import { freshCare, rollNature } from './care.ts';
+import { addFeatures, keyToHex } from './features.ts';
 import { ON_CREATURE } from './places.ts';
 import { hashInts, hashString, newArtSeed, type Seed, toSeed } from './random.ts';
-import type { GameState } from './state.ts';
+import { emptyStats } from './stats.ts';
+import { emptySkills, type GameState } from './state.ts';
 import { updateTiles } from './window.ts';
 
 export interface CreateGameOptions {
@@ -57,14 +60,29 @@ export const createGame = (
   }
 
   const day = 1;
+  const tiles = updateTiles({}, centre, day, config, seed);
+  const nature = rollNature(seed);
   return {
     contentVersion: CONTENT_VERSION,
     artSeed,
     seed,
     day,
     config,
-    creature: { centre, heading },
-    tiles: updateTiles({}, centre, day, config, seed),
+    creature: { centre, heading, lingering: false, lingeredDay: null, steps: 0, defenders: [] },
+    nature,
+    care: freshCare(nature, day),
+    stimuli: [],
+    threats: [],
+    settlements: [],
+    peril: 0,
+    season: { status: 'on' },
+    stats: emptyStats(),
+    misleadUntilDay: null,
+    tiles,
+    features: addFeatures({}, tiles, Object.keys(tiles).map(keyToHex), seed, config.featureChance),
+    stores: {},
+    unlocks: [],
+    project: null,
     characters: ids.map((id) => ({
       id,
       userId: id,
@@ -76,7 +94,10 @@ export const createGame = (
       joinedDay: day,
       at: ON_CREATURE,
       actionsLeft: config.actionsPerDay,
+      pack: {},
       status: 'active',
+      struckDay: null,
+      skills: emptySkills(),
     })),
   };
 };

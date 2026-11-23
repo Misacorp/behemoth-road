@@ -1,5 +1,5 @@
 import * as v from 'valibot';
-import { ROLE_IDS } from './game-core.ts';
+import { ROLE_IDS, SKILL_IDS, UNLOCK_IDS } from './game-core.ts';
 import { SERVER_CONFIG } from './server-config.ts';
 
 export const SNOWFLAKE_RE = /^\d{17,20}$/;
@@ -42,6 +42,9 @@ export const RoleSchema = v.pipe(
 /** The game version a client last saw. */
 export const VersionSchema = v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(2 ** 31));
 
+/** POST /api/dev/pace: how the game's days advance. */
+export const PaceBodySchema = v.strictObject({ pace: v.picklist(['daily', 'fast']) });
+
 /** POST /api/game/join and /replace: a role, and the index of the picked character in the view's `offers`. */
 export const PickBodySchema = v.strictObject({
   role: RoleSchema,
@@ -53,6 +56,50 @@ export const MoveBodySchema = v.strictObject({
   version: VersionSchema,
   path: v.pipe(v.array(PlaceSchema), v.minLength(1), v.maxLength(maxPathLength)),
 });
+
+/** A threat id, material id or boon name: short, lower-case letters, digits and dashes. */
+const contentId = v.pipe(v.string(), v.regex(/^[a-z0-9-]{1,64}$/));
+
+/** An action by the player's own character: exactly one of the shapes. */
+export const ActionSchema = v.variant('kind', [
+  v.strictObject({
+    kind: v.literal('survey'),
+    hex: v.strictObject({ q: coordinate, r: coordinate }),
+  }),
+  v.strictObject({ kind: v.literal('gather') }),
+  v.strictObject({ kind: v.literal('work-site') }),
+  v.strictObject({
+    kind: v.literal('build'),
+    unlock: v.pipe(
+      v.string(),
+      v.maxLength(64),
+      v.check((id) => UNLOCK_IDS.includes(id)),
+    ),
+  }),
+  // Milestone 4: the creature's care, at the character's place.
+  v.strictObject({ kind: v.literal('light-fire') }),
+  v.strictObject({ kind: v.literal('feed') }),
+  v.strictObject({ kind: v.literal('linger') }),
+  // Milestone 5: threats and settlements. The core refuses an unknown threat, material or boon by name
+  // (`no-threat`, `no-trade-good`, `unknown-boon`), so the schema only bounds the strings.
+  v.strictObject({ kind: v.literal('strike'), threat: contentId }),
+  v.strictObject({ kind: v.literal('defend') }),
+  v.strictObject({ kind: v.literal('parley') }),
+  v.strictObject({ kind: v.literal('offer'), material: contentId }),
+  v.strictObject({ kind: v.literal('ask-boon'), boon: contentId }),
+  // Skills: a node id from the content list (veiled and unknown nodes are the core's to refuse by name).
+  v.strictObject({
+    kind: v.literal('pick-skill'),
+    node: v.pipe(
+      v.string(),
+      v.maxLength(64),
+      v.check((id) => SKILL_IDS.includes(id)),
+    ),
+  }),
+]);
+
+/** POST /api/game/act. */
+export const ActBodySchema = v.strictObject({ version: VersionSchema, action: ActionSchema });
 
 /** POST /api/dev/next-day. */
 export const EmptyBodySchema = v.strictObject({});

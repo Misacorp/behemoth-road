@@ -28,7 +28,7 @@ These matter a great deal to Misa. Follow them strictly.
 - **Visual language over text.** No explanatory prose in the UI. Game state is readable from visuals. A tile shows its details only when tapped, clicked or hovered.
 - **Hint, don't explain.** The UI may show that something is undiscovered and allude to possibilities. It must not spell out what an undiscovered thing does.
 - **Prose is reserved for story.**
-- **Popovers** for small contextual things, on both screen sizes.
+- **Popovers** for small contextual things, on both screen sizes. Only passing, non-interactive help (tips) may cover a popover; interactions continue inside it, wizard-style with a back button at the top left, or in a drawer while the popover stays open to mark the target.
 - **Drawers** for larger views. Phone: one bottom drawer that swipes up and down, with step-by-step (wizard) navigation. Desktop: drawers from the left and right, with scrolling where it fits.
 - Desktop gets a full desktop experience, not a stretched phone layout.
 - **No focus outlines** or other visible accessibility aids; accessibility is not a priority for this game. Do keep focus management: focus moves into a dialog, popover or drawer when it opens and back when it closes, without a ring.

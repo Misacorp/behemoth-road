@@ -20,6 +20,7 @@ import {
   visibilityAt,
   windowHexes,
 } from '../src/index.ts';
+import { CALM } from './helpers.ts';
 
 const apply = (
   state: GameState,
@@ -40,7 +41,7 @@ const wander = (state: GameState, day: number): GameState => {
 
 describe('30 seeded days', () => {
   it('keeps its invariants with a rider, a wanderer and a sitter left behind', () => {
-    let state = createGame(2026, { characterIds: ['rider', 'wanderer', 'sitter'] });
+    let state = createGame(2026, { characterIds: ['rider', 'wanderer', 'sitter'], config: CALM });
     const { windowRadius, graceDays } = state.config;
 
     // The sitter steps off behind the creature on day 1 and never moves again.

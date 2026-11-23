@@ -11,10 +11,12 @@ import {
   isPlaceReachable,
   move,
   type MoveRefusal,
+  stepOnly,
 } from './actions.ts';
+import type { GameEvent } from './features.ts';
 import type { Hex } from './hex.ts';
 import { placeEquals, placeKey, placeNeighbours, toPlace } from './places.ts';
-import type { GameStateView, Place } from './state.ts';
+import { type GameStateView, isSeasonOver, type Place } from './state.ts';
 
 /** One step of a path: the place stepped onto, what it costs, and what makes it possible. */
 export interface PathStep extends Entry {
@@ -40,7 +42,14 @@ export type PathPlan =
   | { readonly ok: false; readonly reason: PathRefusal };
 
 export type PathResult<S extends GameStateView = GameStateView> =
-  | { readonly ok: true; readonly state: S }
+  | {
+      readonly ok: true;
+      readonly state: S;
+      /** What happened on the way: reveals, a scout's glints, a trap. */
+      readonly events: readonly GameEvent[];
+      /** Set when a hidden trap or a hazard stopped the walk at that step (the rest was not taken). */
+      readonly stopped: { readonly step: number; readonly reason: 'trap' } | null;
+    }
   | {
       readonly ok: false;
       readonly reason: MoveRefusal;
@@ -106,7 +115,7 @@ const search = (state: GameStateView, start: Place, budget: number): Map<string,
  */
 export const reachablePlaces = (state: GameStateView, characterId: string): ReachablePlace[] => {
   const found = activeCharacter(state, characterId);
-  if (!found.ok) return [];
+  if (!found.ok || isSeasonOver(state)) return [];
   const { at, actionsLeft } = found.character;
   return [...search(state, at, actionsLeft).values()]
     .filter((v) => v.step !== null)
@@ -119,6 +128,7 @@ export const reachablePlaces = (state: GameStateView, characterId: string): Reac
  * nothing connects to it, or the cheapest path costs more than the actions left.
  */
 export const planPath = (state: GameStateView, characterId: string, to: Hex | Place): PathPlan => {
+  if (isSeasonOver(state)) return { ok: false, reason: 'season-over' };
   const target = toPlace(state, to);
   if (!target) return { ok: false, reason: 'invalid-hex' };
   const found = activeCharacter(state, characterId);
@@ -143,21 +153,38 @@ const isStep = (item: Hex | Place | PathStep): item is PathStep =>
   typeof item === 'object' && item !== null && 'place' in item;
 
 /**
- * Walks a path through `move`: every step applies, or none does. Takes the
- * steps from `planPath`, places, or bare hexes.
+ * Walks a path. The whole path is checked first, without what happens on
+ * arrival: if any step is refused, nothing applies (all or nothing). Then the
+ * steps are taken one by one, each revealing what it enters; a hidden trap that
+ * catches the character stops the walk there, and the rest is not taken or
+ * spent (`stopped`). Takes the steps from `planPath`, places, or bare hexes.
  */
 export const moveAlong = <S extends GameStateView>(
   state: S,
   characterId: string,
   path: readonly (Hex | Place | PathStep)[],
 ): PathResult<S> => {
+  if (isSeasonOver(state)) return { ok: false, reason: 'season-over', step: 0 };
   const found = activeCharacter(state, characterId);
   if (!found.ok) return { ok: false, reason: found.reason, step: 0 };
+  const places = path.map((item) => (isStep(item) ? item.place : item));
+  let check = state;
+  for (const [step, to] of places.entries()) {
+    const result = stepOnly(check, characterId, to);
+    if (!result.ok) return { ok: false, reason: result.reason, step };
+    check = result.state;
+  }
   let current = state;
-  for (const [step, item] of path.entries()) {
-    const result = move(current, characterId, isStep(item) ? item.place : item);
+  const events: GameEvent[] = [];
+  for (const [step, to] of places.entries()) {
+    const result = move(current, characterId, to);
+    // Checked above; a refusal here would mean a reveal changed the rules mid-walk.
     if (!result.ok) return { ok: false, reason: result.reason, step };
     current = result.state;
+    events.push(...result.events);
+    if (result.trapped) {
+      return { ok: true, state: current, events, stopped: { step, reason: 'trap' } };
+    }
   }
-  return { ok: true, state: current };
+  return { ok: true, state: current, events, stopped: null };
 };

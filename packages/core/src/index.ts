@@ -19,6 +19,17 @@ export {
   type VeerWeights,
 } from './config.ts';
 export {
+  FEATURE_TYPES,
+  MATERIALS,
+  UNLOCKS,
+  type FeatureType,
+  type Material,
+  type Perk,
+  type Unlock,
+  type UnlockMovement,
+  type NodeType,
+  type SiteType,
+  type TrapType,
   BY_NAMES,
   CONTENT_VERSION,
   KNOWN_CONTENT_VERSIONS,
@@ -37,6 +48,20 @@ export {
   type TerrainGeneration,
   type TerrainRule,
   type TerrainType,
+  CREATURE_TYPES,
+  REACTIONS,
+  STIMULUS_TYPES,
+  type CreatureType,
+  type Need,
+  type Reaction,
+  type StimulusType,
+  BOONS,
+  PEOPLE_TYPES,
+  THREAT_TYPES,
+  type Boon,
+  type PeopleType,
+  type ThreatApproach,
+  type ThreatType,
 } from './content/index.ts';
 export {
   DEFAULT_MAP_CONTENT,
@@ -48,16 +73,50 @@ export {
 } from './map.ts';
 export { noiseAt, type NoiseField } from './noise.ts';
 export type {
+  Attitude,
+  Season,
+  SeasonOutcome,
+  Settlement,
+  Threat,
+  Care,
+  Cue,
+  Nature,
+  Stimulus,
   Character,
   CharacterStatus,
   Creature,
   GameState,
   GameStateView,
+  FeatureState,
+  Materials,
+  Project,
   Place,
   TileKnowledge,
   Visibility,
 } from './state.ts';
-export { findCharacter, hasSeed } from './state.ts';
+export { findCharacter, hasSeed, isSeasonOver } from './state.ts';
+export {
+  approachHexes,
+  contactDistance,
+  defence,
+  DEFEND_TAG,
+  ESCORT_TAG,
+  GROUND_TAG,
+  isEscorted,
+  leadingEdge,
+  PURSUER_TAG,
+  stepToward,
+  hazardAt,
+  struckBy,
+  threatNextPath,
+  threatOutlook,
+  threatPath,
+  threatStrength,
+  threatType,
+  type Arrival,
+  type ThreatOutlook,
+} from './threats.ts';
+export { PEOPLES_TAG, peopleType, settlementAt, settlementDue, TRADE_TAG } from './settlements.ts';
 export {
   creatureHexes,
   isCreatureHex,
@@ -67,7 +126,29 @@ export {
   visibilityAt,
   windowHexes,
 } from './window.ts';
-export { chooseCreatureStep, predictCreature, type CreatureStepOption } from './creature.ts';
+export {
+  chooseCreatureStep,
+  predictCreature,
+  sideOf,
+  stepWeights,
+  stimulusPush,
+  type CreatureStepOption,
+} from './creature.ts';
+export {
+  appetiteOf,
+  creatureSigns,
+  creatureType,
+  isKeeper,
+  KEEPER_TAG,
+  reactionTo,
+  rollNature,
+  stimulusType,
+  type Appetite,
+  type AppetiteKind,
+  type CreatureSigns,
+  type CueGesture,
+  type SignLevel,
+} from './care.ts';
 export {
   entryInto,
   entryToPlace,
@@ -75,6 +156,7 @@ export {
   isPlaceReachable,
   legalMoves,
   move,
+  stepOnly,
   type ActionResult,
   type Entry,
   type MoveRefusal,
@@ -102,7 +184,22 @@ export {
   placeNeighbours,
   toPlace,
 } from './places.ts';
-export { nextDay } from './tick.ts';
+export { nextDay, nextDayWithEvents } from './tick.ts';
+export {
+  emptyPerilLog,
+  emptyStats,
+  PERIL_CALM,
+  PERIL_HUNGER,
+  PERIL_SHELTER,
+  perilThreat,
+  recordEvents,
+  threatOfSource,
+  type PerilLog,
+  type PerilPart,
+  type CharacterTally,
+  type SeasonStats,
+  type SharedTally,
+} from './stats.ts';
 export { createGame, type CreateGameOptions } from './game.ts';
 export {
   addCharacter,
@@ -118,6 +215,56 @@ export {
 export {
   isKnownContentVersion,
   loadGame,
+  OutdatedGameError,
   toPlayerView,
   UnknownContentVersionError,
 } from './view.ts';
+export {
+  addMaterials,
+  depositPack,
+  enterHex,
+  exploreHex,
+  isExplored,
+  packSize,
+  unlockTags,
+  type ExploreResult,
+  featureType,
+  generateFeature,
+  hiddenFeatureKeys,
+  keyToHex,
+  revealedFeatureAt,
+  roleHas,
+  type EnterResult,
+  type GameEvent,
+} from './features.ts';
+export {
+  act,
+  actionsHere,
+  checkAction,
+  possibleActions,
+  type Action,
+  type ActCheck,
+  type ActRefusal,
+  type ActResult,
+} from './act.ts';
+export {
+  ACTION_XP,
+  SKILL_NODES,
+  type SkillBranch,
+  type SkillCostAction,
+  type SkillEffect,
+  type SkillNode,
+  type SkillTier,
+} from './content/index.ts';
+export {
+  distanceFrom,
+  effectsOf,
+  glintsFor,
+  picksAvailable,
+  pickRefusal,
+  skillNode,
+  takenNodes,
+  withXp,
+  type PickRefusal,
+} from './skills.ts';
+export { emptySkills, type Skills } from './state.ts';

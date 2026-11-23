@@ -1,13 +1,19 @@
 /**
  * Role emblems and trait and quirk icons: the art kit's `drawIcon`, keyed by the content's `icon` ids
  * (`packages/core` content), through the same allowlisted mapper as the map. Unknown ids draw the art
- * kit's neutral mark. No text.
+ * kit's neutral mark. Their only text is their content name, shown on a tap or hover (`Named`).
  */
 import { drawIcon } from '@behemoth-road/art';
 import { QUIRKS, ROLES, TRAITS } from '@behemoth-road/core';
 import { cloneElement, type JSX } from 'preact';
 import { PALETTE } from '../map/art.ts';
 import { toPreact } from '../map/svgToPreact.ts';
+
+/** A role, trait or quirk's content name (the only text these icons have), or the id itself. */
+export function contentName(kind: 'role' | 'trait' | 'quirk', id: string): string {
+  const list = kind === 'role' ? ROLES : kind === 'trait' ? TRAITS : QUIRKS;
+  return list.find((x) => x.id === id)?.name ?? id;
+}
 
 /** The six role ids, in content order. */
 export const ROLE_IDS: readonly string[] = ROLES.map((r) => r.id);

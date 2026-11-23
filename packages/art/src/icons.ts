@@ -6,8 +6,19 @@
  * (`boot`, `owl`…).
  */
 import { ellipsePath, poly, type Point } from './geom.ts';
-import { ink, MOTIFS, solid, type IconMotif } from './icon-motifs.ts';
+import {
+  ACTION_MOTIFS,
+  ink,
+  ITEM_MOTIFS,
+  MATERIAL_MOTIFS,
+  MOTIFS,
+  solid,
+  type IconMotif,
+} from './icon-motifs.ts';
 import { accentRamp, type Palette } from './palette.ts';
+import { ROLE_TINT } from './role-tint.ts';
+import { drawSkillNode, SKILL_MOTIFS, type SkillState } from './skills.ts';
+import { riskParts, sealParts } from './team-marks.ts';
 import { el, type SvgNode } from './svg.ts';
 
 export type { IconMotif } from './icon-motifs.ts';
@@ -18,13 +29,19 @@ export type RoleId = (typeof ROLE_IDS)[number];
 export type EmblemFrame = 'roundel' | 'shield';
 
 export interface IconOptions {
-  /** The shared frame of the role emblems (default `roundel`). */
+  /** The shared frame of the role emblems (default `shield`, Misa's pick). */
   readonly frame?: EmblemFrame;
   /**
    * The tile behind a trait or quirk icon: `quirk` adds a ring split into two colours (it helps and
    * hinders); `trait` and `plain` draw a plain tile.
    */
   readonly tile?: 'trait' | 'quirk' | 'plain';
+  /** Marks an unlock as done: a wax seal at the icon's lower right. */
+  readonly done?: boolean;
+  /** Marks an action as risky (parley by a non-envoy): a cracked coral triangle at the icon's upper right. */
+  readonly risk?: boolean;
+  /** The look of a `skill:<role>-<branch><tier>` node (default `plain`). */
+  readonly skill?: SkillState;
 }
 
 const P = (x: number, y: number): Point => ({ x, y });
@@ -108,16 +125,6 @@ const envoy: IconMotif = (pal) => [
   solid(pal, ellipsePath(16, 9.5, 1.8, 1.8), pal.accents.ochre.base, 1.4),
 ];
 
-/** The wash colour behind each role's motif, so the set tells apart by colour too. */
-const ROLE_TINT: Readonly<Record<RoleId, string>> = {
-  scout: 'sky',
-  scholar: 'plum',
-  keeper: 'sage',
-  guardian: 'slate',
-  engineer: 'ochre',
-  envoy: 'rose',
-};
-
 const ROLE_MOTIFS: Readonly<Record<RoleId, IconMotif>> = {
   scout,
   scholar,
@@ -129,6 +136,9 @@ const ROLE_MOTIFS: Readonly<Record<RoleId, IconMotif>> = {
 
 /** Trait and quirk icons by the `icon` key content gives them; each motif follows the same 48-unit grid. */
 export const ICON_MOTIFS: Readonly<Record<string, IconMotif>> = MOTIFS;
+/** Materials sit on a rounded square tile, items on a round tile with a double ring. */
+/** Actions (`light-fire`, `feed`, `linger`, `strike`, `defend`, `parley`, `offer`) and boons (`gift`, `mislead`, `shelter`) sit on a round tile with a dashed inner ring. */
+export { ACTION_MOTIFS, ITEM_MOTIFS, MATERIAL_MOTIFS };
 
 /** Role icon keys as content names them, drawn as that role's emblem. */
 export const ROLE_ICON_KEYS: Readonly<Record<string, RoleId>> = {
@@ -207,7 +217,14 @@ function neutral(palette: Palette): SvgNode[] {
 
 /** Whether an id names an icon the kit draws (otherwise `drawIcon` draws the neutral mark). */
 export function hasIcon(id: string): boolean {
-  return roleOf(id) !== null || Object.hasOwn(ICON_MOTIFS, id);
+  return (
+    roleOf(id) !== null ||
+    Object.hasOwn(ICON_MOTIFS, id) ||
+    Object.hasOwn(MATERIAL_MOTIFS, id) ||
+    Object.hasOwn(ITEM_MOTIFS, id) ||
+    Object.hasOwn(ACTION_MOTIFS, id) ||
+    Object.hasOwn(SKILL_MOTIFS, id)
+  );
 }
 
 /** An icon as a self-contained `<svg>` of `size` px. */
@@ -218,10 +235,11 @@ export function drawIcon(
   options: IconOptions = {},
 ): SvgNode {
   const px = Number.isFinite(size) && size > 0 ? size : 48;
+  if (Object.hasOwn(SKILL_MOTIFS, id)) return drawSkillNode(palette, id, px, options.skill);
   const role = roleOf(id);
   let children: SvgNode[];
   if (role) {
-    children = emblem(palette, role, options.frame ?? 'roundel');
+    children = emblem(palette, role, options.frame ?? 'shield');
   } else if (Object.hasOwn(ICON_MOTIFS, id)) {
     children = [
       el('path', {
@@ -233,8 +251,53 @@ export function drawIcon(
       ...(options.tile === 'quirk' ? quirkRing(palette) : []),
       ...ICON_MOTIFS[id]!(palette),
     ];
+  } else if (Object.hasOwn(MATERIAL_MOTIFS, id)) {
+    children = [
+      el('path', {
+        d: 'M12 5h24a7 7 0 0 1 7 7v24a7 7 0 0 1-7 7H12a7 7 0 0 1-7-7V12a7 7 0 0 1 7-7z',
+        fill: palette.paper,
+        stroke: palette.ink,
+        'stroke-width': 2.2,
+      }),
+      ...MATERIAL_MOTIFS[id]!(palette),
+    ];
+  } else if (Object.hasOwn(ITEM_MOTIFS, id)) {
+    children = [
+      el('path', {
+        d: ellipsePath(24, 24, 20, 20),
+        fill: palette.paper,
+        stroke: palette.ink,
+        'stroke-width': 2.2,
+      }),
+      el('path', {
+        d: ellipsePath(24, 24, 17.2, 17.2),
+        fill: 'none',
+        stroke: palette.inkSoft,
+        'stroke-width': 1,
+      }),
+      ...ITEM_MOTIFS[id]!(palette),
+    ];
+  } else if (Object.hasOwn(ACTION_MOTIFS, id)) {
+    children = [
+      el('path', {
+        d: ellipsePath(24, 24, 20, 20),
+        fill: palette.paper,
+        stroke: palette.ink,
+        'stroke-width': 2.2,
+      }),
+      el('path', {
+        d: ellipsePath(24, 24, 17.2, 17.2),
+        fill: 'none',
+        stroke: palette.inkSoft,
+        'stroke-width': 1.1,
+        'stroke-dasharray': '2.2 2.6',
+      }),
+      ...ACTION_MOTIFS[id]!(palette),
+    ];
   } else {
     children = neutral(palette);
   }
+  if (options.done) children = [...children, ...sealParts(palette, 37, 37, 0.85)];
+  if (options.risk) children = [...children, ...riskParts(palette, 38, 10.5, 0.8)];
   return el('svg', { viewBox: '0 0 48 48', width: px, height: px }, children);
 }

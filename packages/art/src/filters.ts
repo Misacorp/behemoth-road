@@ -7,7 +7,7 @@ import type { Palette } from './palette.ts';
 import { rgbUnit } from './palette.ts';
 import { el, type SvgNode } from './svg.ts';
 
-export type FilterName = 'wash' | 'ink' | 'grain' | 'vignette';
+export type FilterName = 'wash' | 'ink' | 'grain' | 'vignette' | 'veil';
 
 export function refId(prefix: string, name: FilterName): string {
   return `${prefix}-${name}`;
@@ -45,7 +45,36 @@ export function artDefs(palette: Palette, prefix: string, k: number, effects = t
       el('stop', { offset: '100%', 'stop-color': palette.paperDeep, 'stop-opacity': 0.75 }),
     ],
   );
-  if (!effects) return el('defs', {}, [vignette]);
+  // The unexplored veil: paper with a fine slanted hatch, one pattern for every veiled hex.
+  const veil = el(
+    'pattern',
+    {
+      id: refId(prefix, 'veil'),
+      patternUnits: 'userSpaceOnUse',
+      width: 7 * k,
+      height: 7 * k,
+      patternTransform: 'rotate(32)',
+    },
+    [
+      // A dusky base (darker than any explored ground), so unexplored hexes inside the window stand out at a glance.
+      el('rect', {
+        x: 0,
+        y: 0,
+        width: 7 * k,
+        height: 7 * k,
+        fill: palette.paperDeep,
+        opacity: 0.74,
+      }),
+      el('rect', { x: 0, y: 0, width: 7 * k, height: 7 * k, fill: palette.shadow, opacity: 0.14 }),
+      el('path', {
+        d: `M${(1.5 * k).toFixed(2)} 0V${(7 * k).toFixed(2)}`,
+        stroke: palette.inkSoft,
+        'stroke-width': 0.7 * k,
+        opacity: 0.45,
+      }),
+    ],
+  );
+  if (!effects) return el('defs', {}, [vignette, veil]);
   return el('defs', {}, [
     el('filter', { id: refId(prefix, 'wash'), x: '-3%', y: '-3%', width: '106%', height: '106%' }, [
       turbulence(0.035 / k, 2, 7),
@@ -63,5 +92,6 @@ export function artDefs(palette: Palette, prefix: string, k: number, effects = t
       }),
     ]),
     vignette,
+    veil,
   ]);
 }

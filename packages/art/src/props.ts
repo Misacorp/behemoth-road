@@ -250,6 +250,50 @@ const dune: PropDraw = (c) => {
   };
 };
 
+const reeds: PropDraw = (c) => {
+  const { rng, palette } = c;
+  const stems = rng.int(5, 8);
+  const T = mapper(c.origin, c.k, 1, c.k * c.rise);
+  const P = (x: number, y: number): Point => T(x, y);
+  const parts: string[] = [];
+  const heads: string[] = [];
+  const pts: Point[] = [];
+  for (let i = 0; i < stems; i += 1) {
+    const x = (i - (stems - 1) / 2) * 1.9 + rng.range(-0.5, 0.5);
+    const len = rng.range(13, 22);
+    const lean = (i - (stems - 1) / 2) * rng.range(0.5, 1.1);
+    const a = P(x, 0);
+    const m = P(x + lean * 0.4, -len * 0.55);
+    const b = P(x + lean, -len);
+    parts.push(smoothOpen([a, m, b]));
+    pts.push(a, b);
+    // Every other stem carries a brown seed head: a narrow oval at its tip.
+    if (i % 2 === 0) {
+      const t = P(x + lean * 1.05, -len - 1.8);
+      heads.push(ellipsePath(t.x, t.y, 0.9 * c.k, 1.9 * c.k));
+      pts.push(t);
+    }
+  }
+  const pool = P(0, 0.6);
+  return {
+    nodes: [
+      el('path', {
+        d: ellipsePath(pool.x, pool.y, 9 * c.k, 2 * c.k * c.rise),
+        fill: palette.ramps.water.base,
+        opacity: 0.8,
+      }),
+      el('path', { d: parts.join(''), ...inkAttrs(palette.ramps.foliage.shade, c.ink * 0.9) }),
+      el('path', {
+        d: heads.join(''),
+        fill: palette.ramps.bark.base,
+        stroke: palette.ink,
+        'stroke-width': c.ink * 0.6,
+      }),
+    ],
+    box: boxOf(pts),
+  };
+};
+
 const rock: PropDraw = (c) => {
   const { rng, palette } = c;
   const ramp = palette.ramps.rock;
@@ -493,38 +537,84 @@ const ruin: PropDraw = (outer) => {
   };
 };
 
-/** The hint mark: something here is undiscovered. A small floating glint; it never says what. */
+/**
+ * The glint (the hint mark): something here is undiscovered, never what. Made to read at phone zoom: a large
+ * four-point twinkle with a soft glow, two small sparkles, and a ring on the ground around the hex's heart
+ * that pulses. Its parts carry `data-glint` (`ring`, `halo`, `star`, `specks`) so the map can pulse the
+ * ring and the glow and twinkle the star. Warm and light, never the red of a threat.
+ */
 export const hintMark: PropDraw = (c) => {
   const { palette } = c;
   const T = mapper(c.origin, c.k, 1, c.k * c.rise);
-  const cy = -24;
+  const cy = -32;
   const star: Point[] = [];
   for (let i = 0; i < 8; i += 1) {
     const a = (Math.PI / 4) * i - Math.PI / 2;
-    const rr = i % 2 === 0 ? 9 : 2.6;
+    const rr = i % 2 === 0 ? (i % 4 === 0 ? 26 : 17) : 3.6;
     star.push(T(Math.cos(a) * rr, cy + Math.sin(a) * rr));
   }
-  const d1 = T(11, cy - 8);
-  const d2 = T(-10, cy + 6);
+  const d1 = T(24, cy - 20);
+  const d2 = T(-23, cy + 14);
+  const ringRx = 38 * c.k;
+  const ringRy = ringRx * c.squash;
+  const small = (p: Point, r: number): string => {
+    const w = r * c.k;
+    const h = r * c.k * c.rise;
+    return poly([
+      { x: p.x, y: p.y - h },
+      { x: p.x + 0.3 * w, y: p.y - 0.3 * h },
+      { x: p.x + w, y: p.y },
+      { x: p.x + 0.3 * w, y: p.y + 0.3 * h },
+      { x: p.x, y: p.y + h },
+      { x: p.x - 0.3 * w, y: p.y + 0.3 * h },
+      { x: p.x - w, y: p.y },
+      { x: p.x - 0.3 * w, y: p.y - 0.3 * h },
+    ]);
+  };
   return {
     nodes: [
       el('path', {
-        d: ellipsePath(c.origin.x, c.origin.y + cy * c.k, 13 * c.k, 13 * c.k),
+        d: ellipsePath(c.origin.x, c.origin.y, ringRx, ringRy),
         fill: palette.hint,
-        opacity: 0.18,
+        'fill-opacity': 0.14,
+        stroke: palette.hint,
+        'stroke-width': c.ink * 1.6,
+        'stroke-opacity': 0.75,
+        'stroke-dasharray': `${6 * c.k} ${4 * c.k}`,
+        'data-glint': 'ring',
+      }),
+      el('path', {
+        d: ellipsePath(c.origin.x, c.origin.y + cy * c.k * c.rise, 26 * c.k, 26 * c.k),
+        fill: palette.hint,
+        opacity: 0.16,
+        'data-glint': 'halo',
       }),
       el('path', {
         d: poly(star),
-        fill: palette.hint,
-        ...{ stroke: palette.ink, 'stroke-width': c.ink * 0.8, 'stroke-linejoin': 'round' },
+        fill: palette.paper,
+        stroke: palette.hint,
+        'stroke-width': c.ink * 1.3,
+        'stroke-linejoin': 'round',
+        'data-glint': 'star',
       }),
       el('path', {
-        d:
-          ellipsePath(d1.x, d1.y, 1.3 * c.k, 1.3 * c.k) + ellipsePath(d2.x, d2.y, 1 * c.k, 1 * c.k),
-        fill: palette.hint,
+        d: small(d1, 7) + small(d2, 5.5),
+        fill: palette.paper,
+        stroke: palette.hint,
+        'stroke-width': c.ink * 0.9,
+        'stroke-linejoin': 'round',
+        'data-glint': 'specks',
       }),
     ],
-    box: boxOf([...star, d1, d2, T(-13, cy - 13), T(13, cy + 13)]),
+    box: boxOf([
+      ...star,
+      d1,
+      d2,
+      { x: c.origin.x - ringRx, y: c.origin.y - ringRy },
+      { x: c.origin.x + ringRx, y: c.origin.y + ringRy },
+      T(-30, cy - 30),
+      T(30, cy + 30),
+    ]),
   };
 };
 
@@ -534,6 +624,7 @@ export const PROP_DRAWERS: Readonly<Record<string, PropDraw>> = {
   broadleaf,
   tuft,
   dune,
+  reeds,
   rock,
   cliff,
   hill,
@@ -546,6 +637,7 @@ export const PROP_SPACING: Readonly<Record<string, number>> = {
   broadleaf: 0.32,
   tuft: 0.14,
   dune: 0.42,
+  reeds: 0.3,
   rock: 0.24,
   cliff: 0.9,
   hill: 0.44,

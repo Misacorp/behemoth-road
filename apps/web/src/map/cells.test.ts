@@ -2,7 +2,7 @@ import { createGame, hexKey, nextDay } from '@behemoth-road/core';
 import { describe, expect, it } from 'vitest';
 import { TERRAIN_LOOKS } from '@behemoth-road/art';
 import { TERRAIN_TYPES } from '@behemoth-road/core';
-import { cellStateAt, creatureArt, sceneCells } from './cells.ts';
+import { cellStateAt, creatureArt, featureArtAt, sceneCells } from './cells.ts';
 import { MAP_TUNING } from './config.ts';
 
 describe('scene cells', () => {
@@ -12,9 +12,12 @@ describe('scene cells', () => {
     const r = s.config.windowRadius + MAP_TUNING.paperRings;
     const cells = sceneCells(s);
     expect(cells).toHaveLength(1 + 3 * r * (r + 1));
-    expect(cells.filter((c) => c.state === 'seen')).toHaveLength(
-      1 + 3 * s.config.windowRadius * (s.config.windowRadius + 1),
-    );
+    // The window: explored ground clear, the rest under the veil.
+    const inWindow = cells.filter((c) => c.state === 'seen' || c.state === 'unexplored');
+    expect(inWindow).toHaveLength(1 + 3 * s.config.windowRadius * (s.config.windowRadius + 1));
+    for (const c of inWindow) {
+      expect(c.state).toBe(s.tiles[`${c.q},${c.r}`]!.explored ? 'seen' : 'unexplored');
+    }
     for (const c of cells.filter((x) => x.state === 'unseen')) expect(c.terrain).toBe('unknown');
   });
 
@@ -31,5 +34,46 @@ describe('scene cells', () => {
     for (const t of TERRAIN_TYPES) expect(TERRAIN_LOOKS[t.id], t.id).toBeDefined();
     expect(creatureArt(createGame(1, { heading: 'nw' })).heading).toEqual({ q: -1, r: 0 });
     expect(creatureArt(createGame(1, { heading: 'n' })).heading).toEqual({ q: 0, r: -1 });
+  });
+});
+
+describe('feature art and the creature art', () => {
+  const s = createGame(1, { characterIds: ['you'] });
+
+  it('marks every revealed trap as a trap, whatever its look, and no other feature', () => {
+    const at = (type: string, left = 1) => ({
+      ...s,
+      features: { '0,0': { type, revealed: true, left } },
+    });
+    expect(featureArtAt(at('snare'), '0,0')).toEqual({ look: 'snare', trap: true });
+    expect(featureArtAt(at('pitfall'), '0,0')).toEqual({ look: 'pitfall', trap: true });
+    expect(featureArtAt(at('iron-deposit'), '0,0')).toEqual({ look: 'ore' });
+    expect(
+      featureArtAt(
+        { ...s, features: { '0,0': { type: 'snare', revealed: false, left: 1 } } },
+        '0,0',
+      ),
+    ).toBeNull();
+  });
+
+  it('counts the guardians defending the creature, for every player', () => {
+    expect(creatureArt(s).defenders).toBe(0);
+    const defended = { ...s, creature: { ...s.creature, defenders: ['a', 'b'] } };
+    expect(creatureArt(defended).defenders).toBe(2);
+  });
+});
+
+describe('glints', () => {
+  const s = createGame(1, { characterIds: ['you'] });
+  const c = s.creature.centre;
+
+  it("mark only the viewer's glinting hexes with the hint, and nothing without them", () => {
+    expect(sceneCells(s).some((x) => x.hint)).toBe(false);
+    const glinting = [
+      { q: c.q + 1, r: c.r },
+      { q: c.q, r: c.r + 2 },
+    ];
+    const hinted = sceneCells(s, glinting).filter((x) => x.hint);
+    expect(hinted.map((x) => `${x.q},${x.r}`).sort()).toEqual(glinting.map(hexKey).sort());
   });
 });

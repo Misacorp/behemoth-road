@@ -13,7 +13,16 @@ import {
   type GameState,
 } from '@behemoth-road/core';
 import { describe, expect, it } from 'vitest';
-import { confirmMove, type Flow, IDLE, isSelecting, openHub, tap, tapHex } from './flow.ts';
+import {
+  confirmMove,
+  type Flow,
+  IDLE,
+  isPopover,
+  isSelecting,
+  openHub,
+  tap,
+  tapHex,
+} from './flow.ts';
 
 const ME = { kind: 'me' } as const;
 
@@ -71,14 +80,33 @@ describe('move flow', () => {
     expect(me(s).actionsLeft).toBe(s.config.actionsPerDay);
   });
 
-  it('tapping your character again, or an unreachable hex, cancels and spends nothing', () => {
+  it('tapping your character again, or an unreachable hex, cancels the plan and spends nothing', () => {
     const s = game();
     const planned = tapHex({ kind: 'selected' }, s, ID, target(s, 1));
     expect(tapHex(planned, s, ID, here(s))).toEqual(IDLE);
     const far = windowHexes(s).find((h) => hexDistance(h, here(s)) > s.config.actionsPerDay)!;
-    expect(tapHex(planned, s, ID, far)).toEqual({ kind: 'inspect', hex: far });
+    expect(tapHex(planned, s, ID, far)).toEqual({ kind: 'out-of-reach', hex: far });
     expect(confirmMove(IDLE, s, ID).state).toBe(s);
-    expect(confirmMove({ kind: 'inspect', hex: far }, s, ID).state).toBe(s);
+    expect(confirmMove({ kind: 'out-of-reach', hex: far }, s, ID).state).toBe(s);
+  });
+
+  it('an unreachable hex shows the out-of-reach mark first, keeps you selected, and a second tap looks at it', () => {
+    const s = game();
+    const far = windowHexes(s).find((h) => hexDistance(h, here(s)) > s.config.actionsPerDay)!;
+    const marked = tapHex({ kind: 'selected' }, s, ID, far);
+    expect(marked).toEqual({ kind: 'out-of-reach', hex: far });
+    expect(isSelecting(marked)).toBe(true);
+    expect(tapHex(marked, s, ID, far)).toEqual({ kind: 'inspect', hex: far });
+    // A reachable hex from the mark plans as usual; your own figure lets go.
+    expect(tapHex(marked, s, ID, target(s, 1)).kind).toBe('planned');
+    expect(tap(marked, s, ID, ME)).toEqual(IDLE);
+    // Another far hex moves the mark there.
+    const other = windowHexes(s).find(
+      (h) => hexDistance(h, here(s)) > s.config.actionsPerDay && (h.q !== far.q || h.r !== far.r),
+    )!;
+    expect(tapHex(marked, s, ID, other)).toEqual({ kind: 'out-of-reach', hex: other });
+    // Not selected: a far hex is simply looked at.
+    expect(tapHex(IDLE, s, ID, far)).toEqual({ kind: 'inspect', hex: far });
   });
 
   it('tapping a hex while idle inspects it; tapping it again closes', () => {
@@ -87,6 +115,46 @@ describe('move flow', () => {
     const open = tapHex(IDLE, s, ID, h);
     expect(open).toEqual({ kind: 'inspect', hex: h });
     expect(tapHex(open, s, ID, h)).toEqual(IDLE);
+  });
+
+  it('a tap elsewhere closes an open popover and does nothing more; a second tap opens it', () => {
+    const s = game();
+    const a = { q: 3, r: -1 };
+    const b = { q: 2, r: 1 };
+    const open = tapHex(IDLE, s, ID, a);
+    expect(isPopover(open)).toBe(true);
+    expect(tapHex(open, s, ID, b)).toEqual(IDLE);
+    expect(tapHex(tapHex(open, s, ID, b), s, ID, b)).toEqual({ kind: 'inspect', hex: b });
+    // Every looking state closes on any map tap, your own figure and the creature included.
+    const looking: Flow[] = [
+      open,
+      { kind: 'pick', hex: a },
+      { kind: 'character', id: 'other' },
+      { kind: 'threat', id: 'x' },
+      { kind: 'settlement', id: 'x' },
+      { kind: 'creature' },
+      { kind: 'bubble', selecting: false },
+    ];
+    for (const flow of looking) {
+      expect(isPopover(flow)).toBe(true);
+      expect(tapHex(flow, s, ID, b)).toEqual(IDLE);
+      expect(tap(flow, s, ID, ME)).toEqual(IDLE);
+      expect(tap(flow, s, ID, { kind: 'character', id: 'other' })).toEqual(IDLE);
+    }
+  });
+
+  it('a selection in progress is not a popover: the next tap goes on through it', () => {
+    const s = game();
+    for (const flow of [
+      { kind: 'selected' },
+      { kind: 'out-of-reach', hex: { q: 5, r: 5 } },
+      { kind: 'bubble', selecting: true },
+    ] as Flow[]) {
+      expect(isPopover(flow)).toBe(false);
+      expect(isSelecting(flow)).toBe(true);
+    }
+    expect(isPopover(IDLE)).toBe(false);
+    expect(tapHex({ kind: 'selected' }, s, ID, target(s, 1)).kind).toBe('planned');
   });
 
   it('a plan the state no longer allows is refused by the core and spends nothing', () => {
@@ -200,5 +268,17 @@ describe('the creature as the hub', () => {
     expect(plan.cost).toBe(2);
     expect(plan.steps.map((st) => st.place)).toEqual([ON_CREATURE, onHex(far)]);
     expect(me(confirmMove(plan, s, ID).state).at).toEqual(onHex(far));
+  });
+});
+
+describe('cards inside the bubble', () => {
+  it('a rider opened from the bubble continues in it, and back returns to the bubble', async () => {
+    const { openCharacter, goBack, IDLE } = await import('./flow.ts');
+    const bubble = { kind: 'bubble', selecting: false } as const;
+    const card = openCharacter('pip', bubble);
+    expect(card).toEqual({ kind: 'character', id: 'pip', back: bubble });
+    expect(goBack(card)).toBe(bubble);
+    // A card opened from the map has nothing to go back to.
+    expect(goBack(openCharacter('pip'))).toBe(IDLE);
   });
 });

@@ -2,13 +2,19 @@
  * Player actions. Each returns a new state or the reason it was refused.
  */
 
+import { UNLOCKS } from './content/index.ts';
+import { depositPack, enterHex, type GameEvent } from './features.ts';
 import type { Hex } from './hex.ts';
+import { earnXp } from './skills.ts';
+import { recordEvents } from './stats.ts';
 import { terrainOf } from './map.ts';
+import { hazardAt } from './threats.ts';
 import { arePlacesAdjacent, placeNeighbours, toPlace } from './places.ts';
-import type { Character, GameStateView, Place } from './state.ts';
+import { type Character, type GameStateView, isSeasonOver, type Place } from './state.ts';
 import { isCreatureHex, isReachable } from './window.ts';
 
 export type MoveRefusal =
+  | 'season-over'
   | 'invalid-hex'
   | 'unknown-character'
   | 'character-lost'
@@ -18,7 +24,15 @@ export type MoveRefusal =
   | 'not-enough-actions';
 
 export type ActionResult<S extends GameStateView = GameStateView> =
-  { readonly ok: true; readonly state: S } | { readonly ok: false; readonly reason: MoveRefusal };
+  | {
+      readonly ok: true;
+      readonly state: S;
+      /** What happened on arrival: reveals, a scout's glints, a trap. */
+      readonly events: readonly GameEvent[];
+      /** A hidden trap or a hazard (a rockslide) caught the character here: its day is over. */
+      readonly trapped: boolean;
+    }
+  | { readonly ok: false; readonly reason: MoveRefusal };
 
 /** How a character can enter a place. */
 export interface Entry {
@@ -26,7 +40,7 @@ export interface Entry {
   readonly cost: number;
   /**
    * A tag naming what makes entering possible where the terrain alone would not
-   * (later: a rope over a cliff, a tunnel, a boat). Nothing sets it yet.
+   * (a team unlock's id: the grappling hook over a cliff).
    */
   readonly via?: string;
 }
@@ -35,13 +49,26 @@ export interface Entry {
  * Whether and how a character may enter a hex, ignoring reachability and actions.
  * The creature's footprint hexes are not hexes to stand on (the creature is
  * entered as a whole, by boarding). A hex whose terrain the state does not know
- * cannot be entered. Gear will plug in here, returning a `via`.
+ * cannot be entered. Terrain that is not passable can be entered with a team
+ * unlock whose `movement` covers its tags; the cheapest wins, and its id is the
+ * step's `via` (the grappling hook over a cliff). On passable terrain such an
+ * unlock replaces the walking cost when it is lower (marsh boards over a swamp).
  */
 export const entryInto = (state: GameStateView, h: Hex): Entry | null => {
   if (isCreatureHex(state, h)) return null;
   const terrain = terrainOf(state, h);
-  if (!terrain?.passable) return null;
-  return { cost: state.config.moveCost + terrain.extraMoveCost };
+  if (!terrain) return null;
+  // Over passable ground an unlock counts only when it is cheaper than walking (the marsh boards).
+  let best: Entry | null = terrain.passable
+    ? { cost: state.config.moveCost + terrain.extraMoveCost }
+    : null;
+  for (const unlock of UNLOCKS) {
+    const movement = unlock.movement;
+    if (!movement || !state.unlocks.includes(unlock.id)) continue;
+    if (!movement.terrainTags.some((tag) => terrain.tags.includes(tag))) continue;
+    if (!best || movement.cost < best.cost) best = { cost: movement.cost, via: unlock.id };
+  }
+  return best;
 };
 
 /** Whether and how a character may enter a place. Boarding the creature is one normal step. */
@@ -67,16 +94,17 @@ export const activeCharacter = (state: GameStateView, characterId: string): Char
   return { ok: true, index, character };
 };
 
-/**
- * Moves a character one step: to an adjacent hex, onto the creature from a hex
- * beside it (any footprint hex means the creature), or off the creature onto a
- * hex beside it.
- */
-export const move = <S extends GameStateView>(
+type StepResult<S extends GameStateView> =
+  | { readonly ok: true; readonly state: S; readonly to: Place }
+  | { readonly ok: false; readonly reason: MoveRefusal };
+
+/** The movement of one step and its cost, without what happens on arrival. */
+export const stepOnly = <S extends GameStateView>(
   state: S,
   characterId: string,
   to: Hex | Place,
-): ActionResult<S> => {
+): StepResult<S> => {
+  if (isSeasonOver(state)) return { ok: false, reason: 'season-over' };
   const target = toPlace(state, to);
   if (!target) return { ok: false, reason: 'invalid-hex' };
   const found = activeCharacter(state, characterId);
@@ -90,7 +118,48 @@ export const move = <S extends GameStateView>(
 
   const characters = state.characters.slice();
   characters[index] = { ...character, at: target, actionsLeft: character.actionsLeft - entry.cost };
-  return { ok: true, state: { ...state, characters } };
+  return { ok: true, state: { ...state, characters }, to: target };
+};
+
+/**
+ * Moves a character one step: to an adjacent hex, onto the creature from a hex
+ * beside it (any footprint hex means the creature), or off the creature onto a
+ * hex beside it. Entering a hex explores it, revealing its feature (on the
+ * server, where hidden features exist); a hidden trap ends the character's day.
+ * Boarding empties the character's pack into the team stores.
+ */
+export const move = <S extends GameStateView>(
+  state: S,
+  characterId: string,
+  to: Hex | Place,
+): ActionResult<S> => {
+  const stepped = stepOnly(state, characterId, to);
+  if (!stepped.ok) return stepped;
+  if (stepped.to.kind !== 'hex') {
+    const boarded = depositPack(stepped.state, characterId);
+    return { ok: true, state: boarded.state, events: boarded.events, trapped: false };
+  }
+  const entered = enterHex(stepped.state, characterId, stepped.to.hex);
+  // Walking into a hazard (a rockslide) ends the day like a trap; the tick then strikes whoever still stands there.
+  const hazard = !entered.trapped && hazardAt(entered.state, characterId, stepped.to.hex) !== null;
+  const settled = hazard
+    ? {
+        ...entered.state,
+        characters: entered.state.characters.map((c) =>
+          c.id === characterId ? { ...c, actionsLeft: 0 } : c,
+        ),
+      }
+    : entered.state;
+  return {
+    ok: true,
+    state: recordEvents(
+      earnXp(settled, characterId, null, entered.events),
+      entered.events,
+      characterId,
+    ),
+    events: entered.events,
+    trapped: entered.trapped || hazard,
+  };
 };
 
 /** The places a character can move to with one step right now. */

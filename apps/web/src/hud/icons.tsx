@@ -4,6 +4,7 @@
  */
 import {
   accentRamp,
+  actionArrowNodes,
   drawCharacter,
   drawCreatureIcon,
   GENTLE_AMBLER,
@@ -87,6 +88,44 @@ export function NextDayIcon(): JSX.Element {
   );
 }
 
+/** New season: a sunrise over a fresh road. */
+export function NewSeasonIcon(): JSX.Element {
+  return (
+    <svg viewBox="0 0 32 32" aria-hidden="true">
+      <path d="M9 17a7 7 0 0 1 14 0Z" {...line} fill={PALETTE.accents.ochre.light} />
+      <path d="M3 20h26M16 4v3M7 8l2 2M25 8l-2 2M12 28l2-5M20 28l-2-5" {...line} />
+    </svg>
+  );
+}
+
+/** The season's recap: three bars of a small chart. */
+export function RecapIcon(): JSX.Element {
+  return (
+    <svg viewBox="0 0 32 32" aria-hidden="true">
+      <path
+        d="M6 26V17h5v9ZM13.5 26V8h5v18ZM21 26v-6h5v6Z"
+        {...line}
+        fill={PALETTE.accents.ochre.light}
+      />
+      <path d="M4 27h24" {...line} />
+    </svg>
+  );
+}
+
+/** A small star: the mark of whoever led the party in a stat. */
+export function TopMark(): JSX.Element {
+  return (
+    <svg viewBox="0 0 16 16" aria-hidden="true">
+      <path
+        d="m8 1.5 1.9 4.2 4.6.4-3.5 3 1.1 4.5L8 11.2l-4.1 2.4L5 9.1 1.5 6.1l4.6-.4Z"
+        {...line}
+        stroke-width={1.2}
+        fill={PALETTE.accents.ochre.light}
+      />
+    </svg>
+  );
+}
+
 /** Join: a character's standee with a small plus beside it. */
 export function JoinIcon(): JSX.Element {
   return (
@@ -117,17 +156,61 @@ export function TickMark({ r }: { r: number }): JSX.Element {
   );
 }
 
-/** Action pips: `left` filled; the last `planned` of those drawn hollow (what the plan would spend). */
+/**
+ * Actions as the art kit's action arrows, one per action: `left` drawn solid; the last `planned` of those as
+ * dashed outlines (what the plan would spend); the rest, up to `total`, faint (spent today). In ink, not
+ * colour (`tint` is only the grace day's warning wash on the solid ones).
+ */
 export function Pips({
   total,
   left,
   planned = 0,
   size = 12,
+  tint,
 }: {
   total: number;
   left: number;
   planned?: number;
   size?: number;
+  tint?: string;
+}): JSX.Element {
+  const w = size * 0.85;
+  const h = w * 1.2;
+  const gap = w * 0.25;
+  const width = total > 0 ? total * w + (total - 1) * gap + 2 : w;
+  const nodes = Array.from({ length: total }, (_, i) => {
+    const state = i >= left ? 'spent' : i >= left - planned ? 'spending' : 'ready';
+    return actionArrowNodes(PALETTE, 1 + i * (w + gap), 1, w, state).map((n) =>
+      tint && state === 'ready' ? { ...n, attrs: { ...n.attrs, fill: tint } } : n,
+    );
+  }).flat();
+  return (
+    <svg
+      viewBox={`0 0 ${width} ${h + 2}`}
+      width={width}
+      height={h + 2}
+      aria-hidden="true"
+      data-arrows={total}
+    >
+      {nodes.map(toPreact)}
+    </svg>
+  );
+}
+
+/** Round slots (a pack's capacity): `left` filled; the last `planned` of those drawn hollow. */
+export function Slots({
+  total,
+  left,
+  planned = 0,
+  size = 12,
+  tint,
+}: {
+  total: number;
+  left: number;
+  planned?: number;
+  size?: number;
+  /** A warning fill for the filled pips (the grace day), instead of the accent. */
+  tint?: string;
 }): JSX.Element {
   const gap = size * 1.7;
   const r = size / 2;
@@ -144,7 +227,7 @@ export function Pips({
             cx={2 + r + i * gap}
             cy={2 + r}
             r={r}
-            fill={filled && !spending ? ramp.base : PALETTE.paper}
+            fill={filled && !spending ? (tint ?? ramp.base) : PALETTE.paper}
             stroke={filled ? ink : PALETTE.inkSoft}
             stroke-width={1.4}
             stroke-dasharray={spending ? '2.5 2' : filled ? undefined : '1.5 2.5'}

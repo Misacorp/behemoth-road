@@ -52,13 +52,24 @@ export const updateTiles = (
     const left = tile.leftWindowOnDay ?? day;
     next[key] =
       day - left >= config.graceDays
-        ? { visibility: 'lost', terrain: tile.terrain }
-        : { visibility: 'seen', terrain: tile.terrain, leftWindowOnDay: left };
+        ? { visibility: 'lost', terrain: tile.terrain, explored: tile.explored }
+        : {
+            visibility: 'seen',
+            terrain: tile.terrain,
+            explored: tile.explored,
+            leftWindowOnDay: left,
+          };
   }
   for (const h of hexesInRange(centre, config.windowRadius)) {
     const key = hexKey(h);
-    const terrain = next[key]?.terrain ?? terrainIdAt(seed, h);
-    next[key] = { visibility: 'seen', terrain, leftWindowOnDay: null };
+    const known = next[key];
+    const terrain = known?.terrain ?? terrainIdAt(seed, h);
+    next[key] = {
+      visibility: 'seen',
+      terrain,
+      explored: known?.explored ?? false,
+      leftWindowOnDay: null,
+    };
   }
   return next;
 };

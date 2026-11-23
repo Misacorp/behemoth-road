@@ -4,7 +4,23 @@
     "2026-11-19-2",
     "2026-11-19-3",
     "2026-11-19-4",
-    "2026-11-19-5"
+    "2026-11-19-5",
+    "2026-11-19-6",
+    "2026-11-19-7",
+    "2026-11-19-8",
+    "2026-11-20-1",
+    "2026-11-20-2",
+    "2026-11-20-3",
+    "2026-11-20-4",
+    "2026-11-20-5",
+    "2026-11-20-6",
+    "2026-11-21-1",
+    "2026-11-21-2",
+    "2026-11-21-3",
+    "2026-11-21-4",
+    "2026-11-21-5",
+    "2026-11-21-6",
+    "2026-11-22-1"
   ],
   "items": [
     {
@@ -83,19 +99,19 @@
       "id": "sheet/terrain",
       "group": "Sheets",
       "title": "Terrain tiles",
-      "version": "d2ac9ec1",
+      "version": "77b1a289",
       "kind": "glance",
-      "batch": "2026-11-19-3",
-      "file": "art/sheet-terrain-d2ac9ec1.svg"
+      "batch": "2026-11-21-4",
+      "file": "art/sheet-terrain-77b1a289.svg"
     },
     {
       "id": "sheet/props",
       "group": "Sheets",
       "title": "Props",
-      "version": "506e2c55",
+      "version": "abc49ac5",
       "kind": "glance",
-      "batch": "2026-11-19-3",
-      "file": "art/sheet-props-506e2c55.svg"
+      "batch": "2026-11-21-4",
+      "file": "art/sheet-props-abc49ac5.svg"
     },
     {
       "id": "creature/gentle-ambler",
@@ -111,19 +127,19 @@
       "id": "sheet/characters",
       "group": "Sheets",
       "title": "Character standees",
-      "version": "ae715362",
+      "version": "c30df2c8",
       "kind": "glance",
-      "batch": "2026-11-19-4",
-      "file": "art/sheet-characters-ae715362.svg"
+      "batch": "2026-11-21-4",
+      "file": "art/sheet-characters-c30df2c8.svg"
     },
     {
       "id": "sheet/fog",
       "group": "Sheets",
       "title": "Unseen, fading, lost, hint",
-      "version": "86fad2bf",
+      "version": "6d3348c6",
       "kind": "glance",
-      "batch": "2026-11-19-3",
-      "file": "art/sheet-fog-86fad2bf.svg"
+      "batch": "2026-11-21-4",
+      "file": "art/sheet-fog-6d3348c6.svg"
     },
     {
       "id": "facing/side",
@@ -163,19 +179,19 @@
       "id": "map/patch",
       "group": "Map",
       "title": "The map, Spring at tilt 0.8",
-      "version": "cb2ee06d",
+      "version": "88c41490",
       "kind": "glance",
-      "batch": "2026-11-19-4",
-      "file": "art/map-patch-cb2ee06d.svg"
+      "batch": "2026-11-21-6",
+      "file": "art/map-patch-88c41490.svg"
     },
     {
       "id": "creature/headings",
       "group": "Creature",
       "title": "Walking the six directions",
-      "version": "36677bf7",
+      "version": "8482ab71",
       "kind": "glance",
-      "batch": "2026-11-19-4",
-      "file": "art/creature-headings-36677bf7.svg"
+      "batch": "2026-11-21-4",
+      "file": "art/creature-headings-8482ab71.svg"
     },
     {
       "id": "creature-shape/broad",
@@ -239,28 +255,343 @@
       "id": "icons/sheet",
       "group": "Icons",
       "title": "Every icon, and the fallback",
-      "version": "0fc8a90c",
+      "version": "89bc12f9",
       "kind": "glance",
-      "batch": "2026-11-19-5",
-      "file": "art/icons-sheet-0fc8a90c.svg"
+      "batch": "2026-11-21-4",
+      "file": "art/icons-sheet-89bc12f9.svg"
     },
     {
       "id": "characters/lineup",
       "group": "Characters",
       "title": "Fifteen rolled characters",
-      "version": "6edead14",
+      "version": "b6bb5fd0",
       "kind": "glance",
-      "batch": "2026-11-19-4",
-      "file": "art/characters-lineup-6edead14.svg"
+      "batch": "2026-11-19-6",
+      "file": "art/characters-lineup-b6bb5fd0.svg"
     },
     {
       "id": "characters/riders",
       "group": "Characters",
       "title": "Fifteen riders on the creature",
-      "version": "b98781d3",
+      "version": "19589117",
       "kind": "glance",
-      "batch": "2026-11-19-4",
-      "file": "art/characters-riders-b98781d3.svg"
+      "batch": "2026-11-21-4",
+      "file": "art/characters-riders-19589117.svg"
+    },
+    {
+      "id": "features/sheet",
+      "group": "Features",
+      "title": "Nodes, sites and traps, as found and used up",
+      "version": "67406756",
+      "kind": "glance",
+      "batch": "2026-11-21-6",
+      "file": "art/features-sheet-67406756.svg"
+    },
+    {
+      "id": "features/glint",
+      "group": "Features",
+      "title": "The glint on sensed tiles",
+      "version": "82eabfe6",
+      "kind": "glance",
+      "batch": "2026-11-21-4",
+      "file": "art/features-glint-82eabfe6.svg"
+    },
+    {
+      "id": "marks/moments",
+      "group": "Marks",
+      "title": "Reveal, find, trap and survey moments; via marks on a path step",
+      "version": "94c96b0c",
+      "kind": "glance",
+      "batch": "2026-11-19-7",
+      "file": "art/marks-moments-94c96b0c.svg"
+    },
+    {
+      "id": "creature/underfed",
+      "group": "Creature care",
+      "title": "Underfed: calm, levels 1 to 3, then faint at 2 and 3",
+      "version": "2fe096d1",
+      "kind": "glance",
+      "batch": "2026-11-21-4",
+      "file": "art/creature-underfed-2fe096d1.svg"
+    },
+    {
+      "id": "creature/overfed",
+      "group": "Creature care",
+      "title": "Overfed: calm, levels 1 to 3, then faint at 2 and 3",
+      "version": "d7eaa605",
+      "kind": "glance",
+      "batch": "2026-11-21-4",
+      "file": "art/creature-overfed-d7eaa605.svg"
+    },
+    {
+      "id": "creature/cues",
+      "group": "Creature care",
+      "title": "Keeper's cues: drawn to the fire, shying from it, unmoved; two at once",
+      "version": "5432c7c2",
+      "kind": "glance",
+      "batch": "2026-11-21-6",
+      "file": "art/creature-cues-5432c7c2.svg"
+    },
+    {
+      "id": "creature/linger",
+      "group": "Creature care",
+      "title": "Lying down to linger, beside standing",
+      "version": "7df98f40",
+      "kind": "glance",
+      "batch": "2026-11-21-4",
+      "file": "art/creature-linger-7df98f40.svg"
+    },
+    {
+      "id": "features/care",
+      "group": "Creature care",
+      "title": "Fires on four tiles and under the veil; berry bushes, picked bare, beside a fire",
+      "version": "ac1bee48",
+      "kind": "glance",
+      "batch": "2026-11-21-6",
+      "file": "art/features-care-ac1bee48.svg"
+    },
+    {
+      "id": "marks/care",
+      "group": "Creature care",
+      "title": "Forage, light a fire, feed, linger; the stay hint; fire, feed and linger moments",
+      "version": "55bc8fec",
+      "kind": "glance",
+      "batch": "2026-11-19-7",
+      "file": "art/marks-care-55bc8fec.svg"
+    },
+    {
+      "id": "map/care",
+      "group": "Creature care",
+      "title": "On the map: fires, berries, an underfed creature and two cues",
+      "version": "949c1846",
+      "kind": "glance",
+      "batch": "2026-11-21-6",
+      "file": "art/map-care-949c1846.svg"
+    },
+    {
+      "id": "map/care-lite",
+      "group": "Creature care",
+      "title": "The same in lite mode",
+      "version": "b416d965",
+      "kind": "glance",
+      "batch": "2026-11-21-6",
+      "file": "art/map-care-lite-b416d965.svg"
+    },
+    {
+      "id": "features/veil",
+      "group": "Features",
+      "title": "Explored, unexplored, blank paper, fading",
+      "version": "1c022d5a",
+      "kind": "glance",
+      "batch": "2026-11-21-4",
+      "file": "art/features-veil-1c022d5a.svg"
+    },
+    {
+      "id": "team/marks",
+      "group": "Team",
+      "title": "Pack from empty to full, stores, unlocks done, work bars",
+      "version": "6e6388a0",
+      "kind": "glance",
+      "batch": "2026-11-19-7",
+      "file": "art/team-marks-6e6388a0.svg"
+    },
+    {
+      "id": "creature/appetite-phone",
+      "group": "Creature care",
+      "title": "Appetite at phone zoom: calm, underfed 1-3; calm, overfed 1-3; faint 2 and 3",
+      "version": "6270518d",
+      "kind": "glance",
+      "batch": "2026-11-21-4",
+      "file": "art/creature-appetite-phone-6270518d.svg"
+    },
+    {
+      "id": "marks/signs",
+      "group": "Creature care",
+      "title": "Hub badge (calm, underfed, overfed, faint); weighted step hints; the stayed moment",
+      "version": "f7330f40",
+      "kind": "glance",
+      "batch": "2026-11-20-1",
+      "file": "art/marks-signs-f7330f40.svg"
+    },
+    {
+      "id": "season/map-phone",
+      "group": "Season",
+      "title": "The season on a phone: threats, a village, an escort, a defender, peril 4 (full, then lite)",
+      "version": "e389003f",
+      "kind": "glance",
+      "batch": "2026-11-21-6",
+      "file": "art/season-map-phone-e389003f.svg"
+    },
+    {
+      "id": "season/map-desktop",
+      "group": "Season",
+      "title": "The same at desktop scale",
+      "version": "564dd2e1",
+      "kind": "glance",
+      "batch": "2026-11-21-6",
+      "file": "art/season-map-desktop-564dd2e1.svg"
+    },
+    {
+      "id": "season/threats",
+      "group": "Season",
+      "title": "Captors, swarm, rockslide, raiders: strength marks, next-step arrows, the last of each arriving tomorrow",
+      "version": "9caff119",
+      "kind": "glance",
+      "batch": "2026-11-21-4",
+      "file": "art/season-threats-9caff119.svg"
+    },
+    {
+      "id": "season/settlements",
+      "group": "Season",
+      "title": "Hill folk: wary with favour 0, 1, 2 (under the veil), friendly, angry, angry with its raiders",
+      "version": "18c235a0",
+      "kind": "glance",
+      "batch": "2026-11-21-6",
+      "file": "art/season-settlements-18c235a0.svg"
+    },
+    {
+      "id": "season/escort",
+      "group": "Season",
+      "title": "A guardian’s escort ring, escorted and struck marks, guardians defending on the creature",
+      "version": "7811b4fa",
+      "kind": "glance",
+      "batch": "2026-11-21-4",
+      "file": "art/season-escort-7811b4fa.svg"
+    },
+    {
+      "id": "season/icons",
+      "group": "Season",
+      "title": "Strike, defend, parley, offer; gift, mislead, shelter; parley at risk; card icons and status marks",
+      "version": "ce129fa0",
+      "kind": "glance",
+      "batch": "2026-11-21-6",
+      "file": "art/season-icons-ce129fa0.svg"
+    },
+    {
+      "id": "season/hud",
+      "group": "Season",
+      "title": "Peril gauge 0 to 10 and the route strip at phone and desktop widths; the vignette at peril 3, 6, 9",
+      "version": "cf289f50",
+      "kind": "glance",
+      "batch": "2026-11-21-6",
+      "file": "art/season-hud-cf289f50.svg"
+    },
+    {
+      "id": "season/moments",
+      "group": "Season",
+      "title": "Threat appears, creature struck, character struck, threat hit, cleared, defence holds, befriended, angered, boon, season end",
+      "version": "e5268a06",
+      "kind": "glance",
+      "batch": "2026-11-20-3",
+      "file": "art/season-moments-e5268a06.svg"
+    },
+    {
+      "id": "season/ending-safe",
+      "group": "Season",
+      "title": "Ending: home safe (desktop and phone)",
+      "version": "b73bdf1a",
+      "kind": "glance",
+      "batch": "2026-11-21-4",
+      "file": "art/season-ending-safe-b73bdf1a.svg"
+    },
+    {
+      "id": "season/ending-wounded",
+      "group": "Season",
+      "title": "Ending: home, wounded (desktop and phone)",
+      "version": "7e4d3700",
+      "kind": "glance",
+      "batch": "2026-11-21-4",
+      "file": "art/season-ending-wounded-7e4d3700.svg"
+    },
+    {
+      "id": "season/ending-lost",
+      "group": "Season",
+      "title": "Ending: lost (desktop and phone)",
+      "version": "7519c4a8",
+      "kind": "glance",
+      "batch": "2026-11-20-3",
+      "file": "art/season-ending-lost-7519c4a8.svg"
+    },
+    {
+      "id": "feedback/phone-features",
+      "group": "Playtest feedback",
+      "title": "At phone zoom: tall features on ground shadows (fieldstones, outcrop, deadfall, river stones, iron, picked berries, snare, logs, a village) beside plain props; two explored-empty hexes (full, then lite)",
+      "version": "eef0fa97",
+      "kind": "glance",
+      "batch": "2026-11-21-6",
+      "file": "art/feedback-phone-features-eef0fa97.svg"
+    },
+    {
+      "id": "feedback/marks",
+      "group": "Playtest feedback",
+      "title": "Explored-empty fading; out of reach; misled; greyed actions with the role they need; nothing here, misled and peril relieved moments",
+      "version": "8b38e8b5",
+      "kind": "glance",
+      "batch": "2026-11-21-4",
+      "file": "art/feedback-marks-8b38e8b5.svg"
+    },
+    {
+      "id": "variety/map",
+      "group": "More content",
+      "title": "Sunken shrine (ready, spent), undertow and river stones on rivers; an ambush in the forest, a stampede on the plains; river folk wary, friendly and angry beside hill folk; a desert, a swamp and a swamp with a sunken shrine",
+      "version": "e4e6ecac",
+      "kind": "glance",
+      "batch": "2026-11-21-6",
+      "file": "art/variety-map-e4e6ecac.svg"
+    },
+    {
+      "id": "variety/icons",
+      "group": "More content",
+      "title": "River pearl; marsh boards (and done) with their path mark; ambush and stampede cards; river folk cards in each attitude",
+      "version": "d88dfbc2",
+      "kind": "glance",
+      "batch": "2026-11-21-6",
+      "file": "art/variety-icons-d88dfbc2.svg"
+    },
+    {
+      "id": "features/danger",
+      "group": "Features",
+      "title": "Features drawn tall, rising above the tile with a ground shadow, no platform: finds and sites calm, live traps with the coral danger cue, defused traps muted",
+      "version": "0c4f2dcb",
+      "kind": "glance",
+      "batch": "2026-11-21-6",
+      "file": "art/features-danger-0c4f2dcb.svg"
+    },
+    {
+      "id": "map/telegraph",
+      "group": "Creature care",
+      "title": "Trodden ground that keeps cliffs and river readable, the defended ring and shields, the darker unexplored veil",
+      "version": "626a9fa8",
+      "kind": "glance",
+      "batch": "2026-11-21-4",
+      "file": "art/map-telegraph-626a9fa8.svg"
+    },
+    {
+      "id": "features/tall",
+      "group": "Features",
+      "title": "Tall features that rise above their tiles, no platform: iron, timber, tombs, outcrop, shrine, berries, stones, fieldstones, deadfall, villages, a fire and a snare, with characters standing in front",
+      "version": "fc1ad4aa",
+      "kind": "glance",
+      "batch": "2026-11-21-6",
+      "file": "art/features-tall-fc1ad4aa.svg"
+    },
+    {
+      "id": "skills/trees",
+      "group": "Skills",
+      "title": "The six skill trees: emblem root, two branches of three nodes (scout shown mid-pick: branch a taken, next available, last veiled, branch b closed and cut), then all 36 nodes finished",
+      "version": "6c0d38dd",
+      "kind": "glance",
+      "batch": "2026-11-22-1",
+      "file": "art/skills-trees-6c0d38dd.svg"
+    },
+    {
+      "id": "skills/states",
+      "group": "Skills",
+      "title": "Node looks (plain, veiled, available, taken, closed), branch paths (open, taken, closed) and the notch ring filling toward a pick, glowing when ready",
+      "version": "bf9f8325",
+      "kind": "glance",
+      "batch": "2026-11-22-1",
+      "file": "art/skills-states-bf9f8325.svg"
     }
   ]
 }

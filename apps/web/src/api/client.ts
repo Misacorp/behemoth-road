@@ -7,12 +7,16 @@ import type { Place } from '@behemoth-road/core';
 import * as v from 'valibot';
 import { createReauth, type Reauth } from './reauth.ts';
 import {
+  ActionAnswerSchema,
   ConfigSchema,
   ErrorBodySchema,
   GameResponseSchema,
+  LiveTicketSchema,
   PlayerViewSchema,
   SessionSchema,
+  type ActionAnswer,
   type AppConfig,
+  type GameAction,
   type GameResponse,
   type PlayerView,
   type Session,
@@ -41,6 +45,8 @@ export type Fetch = (input: string, init?: RequestInit) => Promise<Response>;
 
 export interface ApiClient {
   config(): Promise<AppConfig>;
+  /** Whether the config said the server offers live sockets (false before it was read). */
+  liveEnabled(): boolean;
   /** Exchanges a Discord authorisation code for a session, and keeps the token. */
   signIn(code: string, instanceId: string): Promise<Session>;
   /** Uses a session obtained elsewhere (local development's fake session). */
@@ -48,10 +54,19 @@ export interface ApiClient {
   /** Signs in again when a request finds the session expired. */
   setReauthenticator(reauthenticate: () => Promise<void>): void;
   game(since?: number): Promise<GameResponse>;
+  /** A one-time ticket for the live socket (404 where the server has it off). */
+  liveTicket(): Promise<string>;
   join(role: string, offer: number): Promise<PlayerView>;
   replace(role: string, offer: number): Promise<PlayerView>;
-  move(version: number, path: readonly Place[]): Promise<PlayerView>;
+  /** The new view, and the events of the walk (a reveal, a trap that stopped it). */
+  move(version: number, path: readonly Place[]): Promise<ActionAnswer>;
+  /** Gather, craft or work a site, for your own character where it stands. */
+  act(version: number, action: GameAction): Promise<ActionAnswer>;
   nextDay(): Promise<PlayerView>;
+  /** Staging only: sets how days advance. */
+  setPace(pace: 'daily' | 'fast'): Promise<PlayerView>;
+  /** Staging and local only, admins: ends this game and starts a new season (everyone joins again). */
+  newSeason(): Promise<void>;
 }
 
 function parse<T extends v.GenericSchema>(
@@ -67,6 +82,7 @@ function parse<T extends v.GenericSchema>(
 export function createApiClient(fetchImpl: Fetch = (i, init) => fetch(i, init)): ApiClient {
   let token: string | null = null;
   let reauth: Reauth | null = null;
+  let live = false;
 
   async function request(path: string, init: RequestInit = {}): Promise<unknown> {
     const headers = new Headers(init.headers);
@@ -99,11 +115,16 @@ export function createApiClient(fetchImpl: Fetch = (i, init) => fetch(i, init)):
   const post = (body: unknown): RequestInit => ({ method: 'POST', body: JSON.stringify(body) });
   const view = async (path: string, body: unknown): Promise<PlayerView> =>
     parse(PlayerViewSchema, path, await authed(path, post(body)));
+  const answer = async (path: string, body: unknown): Promise<ActionAnswer> =>
+    parse(ActionAnswerSchema, path, await authed(path, post(body)));
 
   return {
     async config() {
-      return parse(ConfigSchema, '/api/config', await request('/api/config'));
+      const config = parse(ConfigSchema, '/api/config', await request('/api/config'));
+      live = config.live;
+      return config;
     },
+    liveEnabled: () => live,
     async signIn(code, instanceId) {
       const path = '/api/auth/session';
       const session = parse(SessionSchema, path, await request(path, post({ code, instanceId })));
@@ -123,9 +144,19 @@ export function createApiClient(fetchImpl: Fetch = (i, init) => fetch(i, init)):
       const path = since === undefined ? '/api/game' : `/api/game?since=${String(since)}`;
       return parse(GameResponseSchema, '/api/game', await authed(path));
     },
+    async liveTicket() {
+      const path = '/api/live/ticket';
+      return parse(LiveTicketSchema, path, await authed(path, post({}))).ticket;
+    },
     join: (role, offer) => view('/api/game/join', { role, offer }),
     replace: (role, offer) => view('/api/game/replace', { role, offer }),
-    move: (version, path) => view('/api/game/move', { version, path }),
+    move: (version, path) => answer('/api/game/move', { version, path }),
+    act: (version, action) => answer('/api/game/act', { version, action }),
     nextDay: () => view('/api/dev/next-day', {}),
+    setPace: (pace) => view('/api/dev/pace', { pace }),
+    async newSeason() {
+      // The answer is not read: the caller loads the new game's view afterwards.
+      await authed('/api/dev/new-season', post({}));
+    },
   };
 }
