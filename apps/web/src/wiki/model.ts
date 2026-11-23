@@ -7,6 +7,7 @@ import type { BranchPathState, SkillState } from '@behemoth-road/art';
 import {
   type Character,
   DEFAULT_CONFIG,
+  DEFAULT_STANCE,
   type GameStateView,
   ON_CREATURE,
   type PickRefusal,
@@ -59,6 +60,8 @@ const mockCharacter = (role: string, taken: readonly string[]): Character => ({
   pack: {},
   status: 'active',
   struckDay: null,
+  stance: DEFAULT_STANCE,
+  waiting: false,
   // Plenty of XP: the planner counts the cost, it does not limit the picks.
   skills: { xp: SKILL_NODES.length * XP_PER_PICK, taken: [...taken] },
 });
