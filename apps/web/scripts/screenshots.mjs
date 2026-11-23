@@ -1810,8 +1810,8 @@ async function run() {
         const takenNow = () => characterOf(fake.scenario.state, USERS.MISA).skills.taken;
         if ((await page.locator('[data-skill][data-state=available]').count()) !== 2)
           problems.push(`${vp.name}: the tree does not offer both first nodes`);
-        if ((await page.locator('[data-tab]').count()) !== 6)
-          problems.push(`${vp.name}: the tree does not have six role tabs`);
+        if ((await page.locator('[data-tab]').count()) !== 5)
+          problems.push(`${vp.name}: the tree does not have five role tabs`);
         await shotS('2-tree-ready');
         await holdAll('skills', 'skills drawer', '.drawer');
 
