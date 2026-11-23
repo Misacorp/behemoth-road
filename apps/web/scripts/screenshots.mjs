@@ -370,6 +370,9 @@ async function run() {
       const shotT = (name) => page.screenshot({ path: join(out, `tips-${vp.name}-${name}.png`) });
       const cdp0 = vp.touch ? await context.newCDPSession(page) : null;
       const centreOf = async (selector) => {
+        // A role card in the swiped strip may sit past the edge: bring it into view first.
+        await page.locator(selector).first().scrollIntoViewIfNeeded();
+        await page.waitForTimeout(150);
         const b = await page.locator(selector).first().boundingBox();
         return [b.x + b.width / 2, b.y + b.height / 2];
       };
