@@ -174,3 +174,18 @@ export {
   type SkillState,
 } from './skills.ts';
 export { drawNotchRing, drawPickGlow } from './notch-ring.ts';
+export { boxAround, drawTrace, TRACE_KINDS, type TraceKind, type TraceOptions } from './traces.ts';
+export {
+  drawRouteDestination,
+  drawStandingStone,
+  STANDING_STONE_HEIGHT,
+  type StandingStoneOptions,
+} from './waymarks.ts';
+export {
+  drawGateSign,
+  drawStoryVignette,
+  GATE_SIGN_KINDS,
+  STORY_VIGNETTE_IDS,
+  type GateSignKind,
+  type StoryVignetteId,
+} from './story-art.ts';

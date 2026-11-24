@@ -24,7 +24,8 @@
     "2026-11-23-1",
     "2026-11-23-2",
     "2026-11-23-3",
-    "2026-11-24-1"
+    "2026-11-24-1",
+    "2026-11-24-2"
   ],
   "items": [
     {
@@ -103,10 +104,10 @@
       "id": "sheet/terrain",
       "group": "Sheets",
       "title": "Terrain tiles",
-      "version": "9a91b60b",
+      "version": "b6a0c62a",
       "kind": "glance",
-      "batch": "2026-11-24-1",
-      "file": "art/sheet-terrain-9a91b60b.svg"
+      "batch": "2026-11-24-2",
+      "file": "art/sheet-terrain-b6a0c62a.svg"
     },
     {
       "id": "sheet/props",
@@ -259,10 +260,10 @@
       "id": "icons/sheet",
       "group": "Icons",
       "title": "Every icon, and the fallback",
-      "version": "d95d97d7",
+      "version": "16250654",
       "kind": "glance",
-      "batch": "2026-11-24-1",
-      "file": "art/icons-sheet-d95d97d7.svg"
+      "batch": "2026-11-24-2",
+      "file": "art/icons-sheet-16250654.svg"
     },
     {
       "id": "characters/lineup",
@@ -623,6 +624,42 @@
       "kind": "glance",
       "batch": "2026-11-24-1",
       "file": "art/terrain-colourblind-1e424984.svg"
+    },
+    {
+      "id": "world/traces",
+      "group": "World art",
+      "title": "Traces over every ground: fire scar, green trail, cairn, broken chain, open gate (plains, forest, desert, cliffs, lake, swamp, hills, trodden, veiled)",
+      "version": "2fee41cf",
+      "kind": "glance",
+      "batch": "2026-11-24-2",
+      "file": "art/world-traces-2fee41cf.svg"
+    },
+    {
+      "id": "world/waymarks",
+      "group": "World art",
+      "title": "The standing stone (bare, then one, two and three marks) and the Greyfold route mark",
+      "version": "28c721ab",
+      "kind": "glance",
+      "batch": "2026-11-24-2",
+      "file": "art/world-waymarks-28c721ab.svg"
+    },
+    {
+      "id": "world/story-cards",
+      "group": "World art",
+      "title": "Story card vignettes: twelve route beats and four endings",
+      "version": "ae2c34fa",
+      "kind": "glance",
+      "batch": "2026-11-24-2",
+      "file": "art/world-story-cards-ae2c34fa.svg"
+    },
+    {
+      "id": "world/gate-signs",
+      "group": "World art",
+      "title": "Gate signs: a bell with its clapper tied (hill folk), a pearl on a stone (river folk)",
+      "version": "0514c7a7",
+      "kind": "glance",
+      "batch": "2026-11-24-2",
+      "file": "art/world-gate-signs-0514c7a7.svg"
     }
   ]
 }
