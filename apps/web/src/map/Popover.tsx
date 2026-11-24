@@ -644,8 +644,12 @@ const SKILL_ICON = 24;
 const SKILL_ROW_H = 30;
 const SKILL_MAX = 9;
 
-export const characterSize = (back: boolean, skills = 0): { width: number; height: number } => ({
-  width: CHARACTER_SIZE.width + (back ? BACK_W : 0),
+export const characterSize = (
+  back: boolean,
+  skills = 0,
+  tow = false,
+): { width: number; height: number } => ({
+  width: CHARACTER_SIZE.width + (back ? BACK_W : 0) + (tow ? ACTION_W : 0),
   height: CHARACTER_SIZE.height + (skills > 0 ? SKILL_ROW_H : 0),
 });
 
@@ -690,8 +694,16 @@ export function CharacterCard({
   who,
   onBack,
   backRef,
+  tow = null,
+  onThrow,
+  arm,
 }: {
   who: Identity;
+  /** The tow line, for a rider: the throw button (its cost and whether it can be done now), or none. */
+  tow?: { readonly cost: number; readonly enabled: boolean; readonly why?: TipId | null } | null;
+  onThrow?: () => void;
+  /** Two taps spend the throw. */
+  arm?: Arming;
   /** Opened inside another popup: the back button at its top left returns to it. */
   onBack?: () => void;
   backRef?: (el: SVGGElement | null) => void;
@@ -705,7 +717,20 @@ export function CharacterCard({
   );
   return (
     <g data-popover="character" data-character={who.id} data-back={onBack ? true : undefined}>
-      <Card {...characterSize(Boolean(onBack), who.skills.length)} />
+      <Card {...characterSize(Boolean(onBack), who.skills.length, tow !== null)} />
+      {tow && (
+        <ActionButton
+          kind="throw-line"
+          icon="towline"
+          cost={tow.cost}
+          enabled={tow.enabled}
+          why={tow.why ?? null}
+          x={characterSize(Boolean(onBack), 0, true).width - ACTION_W - 2}
+          y={12}
+          onRun={() => onThrow?.()}
+          {...(arm ? { arm } : {})}
+        />
+      )}
       {onBack && <BackButton onBack={onBack} {...(backRef ? { buttonRef: backRef } : {})} />}
       <g transform={`translate(${shift} 0)`}>
         <Fitted drawn={bubbleFigure(who.accent, who.look)} x={8} y={8} width={40} height={60} />

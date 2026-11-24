@@ -1860,6 +1860,51 @@ async function run() {
         if (!(await page.locator('.hud-actions.is-warned').count()))
           problems.push(`${vp.name}: the pips are not tinted on the grace day`);
         await shotP('03-grace-day');
+        // Cut off: on the grace day with no actions to get back, every figure like this wears a flare.
+        {
+          const day1 = nextDayWithEvents(EDGE.state).state;
+          const cut = {
+            ...EDGE,
+            version: EDGE.version + 1,
+            state: {
+              ...day1,
+              characters: day1.characters.map((ch) =>
+                ch.userId === USERS.MISA ? { ...ch, actionsLeft: 0 } : ch,
+              ),
+            },
+          };
+          await load(cut);
+          await page.waitForTimeout(1500);
+          if ((await page.locator('[data-mark=stranded]').count()) !== 1)
+            problems.push(`${vp.name}: no stranded flare on a cut-off figure`);
+          await shotP('03-stranded-flare');
+          // The tow line: Pip (riding) threw it to you, two hexes from the creature; it is drawn to your
+          // figure for everyone, and your own card offers the grab.
+          {
+            const joined = joinedScenario();
+            const c0 = joined.state.creature.centre;
+            const nearYou = { q: c0.q, r: c0.r + 3 };
+            const withLine = {
+              ...joined.state,
+              unlocks: [...joined.state.unlocks, 'towline'],
+              characters: joined.state.characters.map((ch) =>
+                ch.userId === USERS.MISA ? { ...ch, at: { kind: 'hex', hex: nearYou } } : ch,
+              ),
+            };
+            const pip = characterOf(withLine, USERS.PIP);
+            const me2 = characterOf(withLine, USERS.MISA);
+            const thrown = act(withLine, pip.id, { kind: 'throw-line', to: me2.id });
+            if (!thrown.ok) throw new Error(`tow line refused: ${thrown.reason}`);
+            await load({ ...joined, state: thrown.state, version: joined.version + 1 });
+            await page.waitForTimeout(800);
+            if (!(await page.locator('[data-mark=tow-line]').count()))
+              problems.push(`${vp.name}: no tow line drawn to the target`);
+            await shotP('03-tow-line');
+          }
+          await load(EDGE);
+          await press('[aria-label="Next day"]');
+          await page.waitForTimeout(2000);
+        }
         await press('[aria-label="Next day"]');
         await page.waitForTimeout(600);
         if (!(await page.locator('[data-moment=lost]').count()))

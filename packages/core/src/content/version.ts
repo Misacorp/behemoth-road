@@ -31,8 +31,9 @@
  * 17: merged Warden and stances.
  * 18: onboarding: the core's SEEN_IDS (what a player was shown once) joins the shared ids.
  * 19: skill tiers 2 and 3 are active (new effects; fires may carry a range and push, care a soothed day).
+ * 20: the tow line unlock; the creature carries the day's thrown tow lines (`creature.tows`).
  */
-export const CONTENT_VERSION = 19;
+export const CONTENT_VERSION = 20;
 
 /** Content versions this code can load. */
 export const KNOWN_CONTENT_VERSIONS: readonly number[] = [CONTENT_VERSION];

@@ -60,6 +60,10 @@ export interface TuningConfig {
   readonly feedCost: number;
   /** Keepers only: the creature stays put at the next tick. */
   readonly lingerCost: number;
+  /** The tow line (a rider throws it, the target grabs it): both cost actions; reach is hexes from the footprint. */
+  readonly towThrowCost: number;
+  readonly towGrabCost: number;
+  readonly towReach: number;
 
   // Threats (docs/design/m5-season.md).
   /** The first day (after a tick) on which a threat may appear. */
@@ -163,6 +167,9 @@ export const DEFAULT_CONFIG: TuningConfig = {
   lightFireCost: 1,
   feedCost: 1,
   lingerCost: 2,
+  towThrowCost: 1,
+  towGrabCost: 1,
+  towReach: 2,
   threatsFromDay: 3,
   threatChanceBase: 0.25,
   threatChancePerPlayer: 0.05,
@@ -225,6 +232,7 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
   };
   const problems: string[] = [];
   if (!isCount(config.actionsPerDay, 0)) problems.push('actionsPerDay');
+  if (!isCount(config.towReach, 1)) problems.push('towReach');
   if (!isCount(config.moveCost, 1)) problems.push('moveCost');
   if (!isCount(config.creatureRadius, 0)) problems.push('creatureRadius');
   if (!isCount(config.windowRadius, config.creatureRadius + 1)) problems.push('windowRadius');
@@ -261,6 +269,8 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     'lightFireCost',
     'feedCost',
     'lingerCost',
+    'towThrowCost',
+    'towGrabCost',
     'strikeCost',
     'defendCost',
     'parleyCost',

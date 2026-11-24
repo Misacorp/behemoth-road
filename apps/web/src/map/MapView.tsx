@@ -140,6 +140,12 @@ export interface MapViewProps {
   readonly onSurvey?: (h: Hex) => void;
   /** The strike button on a threat's card was tapped. */
   readonly onStrike?: (threat: string) => void;
+  /** The tow line: what throwing it to this character offers you (a rider with the line built), or null. */
+  readonly towOf?: (
+    id: string,
+  ) => { readonly cost: number; readonly enabled: boolean; readonly why?: TipId } | null;
+  /** The throw button on a character's card was tapped (the second tap that spends). */
+  readonly onThrow?: (id: string) => void;
   /** Short visual beats to play on the map (reveals, finds, a trap); they end by themselves. */
   readonly moments?: readonly Moment[];
   /**
@@ -266,6 +272,7 @@ function popoverAnchor(
   here: Here | null,
   survey: boolean,
   fire: boolean,
+  tow: boolean,
 ): Anchor | null {
   const tile = 2 * p.size * p.squash;
   const me = state.characters.find((c) => c.id === characterId);
@@ -306,12 +313,12 @@ function popoverAnchor(
     if (!feet) return null;
     const head = 0.9 * p.size;
     return {
-      key: `character:${flow.id}:${flow.back ? 'back' : ''}`,
+      key: `character:${flow.id}:${flow.back ? 'back' : ''}${tow ? ':tow' : ''}`,
       top: { x: feet.x, y: feet.y - head },
       below: head,
       size: flow.back
         ? characterSize(true, skillsOf(state, flow.id))
-        : characterSize(false, skillsOf(state, flow.id)),
+        : characterSize(false, skillsOf(state, flow.id), tow),
     };
   }
   if (flow.kind === 'threat' || flow.kind === 'settlement') {
@@ -510,6 +517,7 @@ export function MapView(props: MapViewProps): JSX.Element {
     props.here ?? null,
     survey !== null,
     fireHint !== null,
+    flow.kind === 'character' && !flow.back && (props.towOf?.(flow.id) ?? null) !== null,
   );
 
   function apply(): void {
@@ -992,7 +1000,12 @@ export function MapView(props: MapViewProps): JSX.Element {
           }}
         />
       ) : (
-        <CharacterCard who={who} />
+        <CharacterCard
+          who={who}
+          tow={props.towOf?.(flow.id) ?? null}
+          onThrow={() => props.onThrow?.(flow.id)}
+          arm={arm}
+        />
       );
     }
   } else if (flow.kind === 'bubble' || flow.kind === 'creature') {

@@ -346,7 +346,7 @@ export const nextDayWithEvents = (
   }
   moved = {
     ...moved,
-    creature: { ...moved.creature, defenders: [] },
+    creature: { ...moved.creature, defenders: [], tows: [] },
     settlements: keepSettlements(moved),
     misleadUntilDay:
       moved.misleadUntilDay !== null && day >= moved.misleadUntilDay ? null : moved.misleadUntilDay,

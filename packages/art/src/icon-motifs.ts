@@ -302,6 +302,15 @@ export const ITEM_MOTIFS: Readonly<Record<string, IconMotif>> = {
       pal.ramps.bark.base,
     ),
   ],
+  // Tow line: a coil of rope (three nested loops) with a free end trailing out to a loop.
+  towline: (pal) => [
+    ink(pal, ellipsePath(22, 26, 12, 8.5), 4, pal.ramps.bark.base),
+    ink(pal, ellipsePath(22, 26, 7.5, 5), 3.4, pal.ramps.bark.light),
+    ink(pal, ellipsePath(22, 26, 12, 8.5), 1.2, pal.ramps.bark.shade),
+    ink(pal, ellipsePath(22, 26, 3, 1.8), 2.2, pal.ramps.bark.base),
+    ink(pal, 'M33 22c4-3 6-8 5-12', 3.2, pal.ramps.bark.base),
+    ink(pal, ellipsePath(37, 10, 3, 2.4), 1.8, pal.ramps.bark.shade),
+  ],
   lantern: (pal) => [
     el('path', { d: ellipsePath(24, 26, 9, 9), fill: pal.accents.ochre.light, opacity: 0.6 }),
     ink(pal, 'M20 13c0-4 8-4 8 0', 1.6),

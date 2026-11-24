@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-24: The tow line needs the hauled player's approval **[Misa]**
+
+ID: `2026-11-24-the-tow-line-needs-the-hauled` · Status: current
+
+**Decision.** The tow line is an Engineer unlock (`towline`, 2 timber, 1 stone, 3 work; the tag `towline`, since `rope` is the grappling hook's). With it a rider spends 1 action (`towThrowCost`) to throw the line to a character within 2 hexes (`towReach`) of the footprint, once per rider per day and one line per target. The target sees the line on their figure and may grab it on their own turn for 1 action (`towGrabCost`), which moves them onto the creature (riding, pack deposited). An ungrabbed line lapses at the tick. No one can be pulled aboard without their own action, and absent players simply do not interact: there are no special rules for rescuing or carrying them. Public state: `creature.tows`. Content version 20. Note: grace hexes lie 7 or more hexes from the creature's centre, so the line (reach 3 from the centre) cannot reach a stranded character; it saves someone close with too few actions to walk back.
+
+**Reasoning.** Misa's call: consent. Being moved is the player's own choice, and the game is not designed around players who are away.
+
 ## 2026-11-24: Each terrain gets its own base colour **[Misa]**
 
 ID: `2026-11-24-each-terrain-gets-its-own-base` · Status: current

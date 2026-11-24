@@ -58,6 +58,18 @@ export const UNLOCKS: readonly Unlock[] = [
     work: 4,
     movement: { terrainTags: ['steep'], cost: 2 },
   },
+  // A rider throws the line to a character cut off near the creature; they grab it to be hauled aboard.
+  {
+    id: 'towline',
+    name: 'Tow line',
+    tags: ['towline'],
+    icon: 'towline',
+    cost: [
+      { material: 'timber', amount: 2 },
+      { material: 'stone', amount: 1 },
+    ],
+    work: 3,
+  },
   {
     id: 'lantern',
     name: 'Lantern',

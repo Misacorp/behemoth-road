@@ -71,6 +71,9 @@ export type GameEvent =
     }
   | { readonly kind: 'fed'; readonly characterId: string; readonly material: string }
   | { readonly kind: 'linger'; readonly characterId: string }
+  /** A rider threw the tow line to a character outside; and that character grabbed it and was hauled aboard. */
+  | { readonly kind: 'tow-thrown'; readonly characterId: string; readonly target: string }
+  | { readonly kind: 'tow-grabbed'; readonly characterId: string; readonly thrower: string }
   /** From the day tick: the creature's step (public: it shows on the map anyway); `from` equals `to` when it lingered. */
   | { readonly kind: 'creature-step'; readonly from: Hex; readonly to: Hex }
   /** From the day tick: a character left out of reach, where they stood. */

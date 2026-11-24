@@ -14,7 +14,7 @@
   },
   "offers": null,
   "game": {
-    "contentVersion": 19,
+    "contentVersion": 20,
     "artSeed": 4242,
     "day": 6,
     "config": {
@@ -52,6 +52,9 @@
       "lightFireCost": 1,
       "feedCost": 1,
       "lingerCost": 2,
+      "towThrowCost": 1,
+      "towGrabCost": 1,
+      "towReach": 2,
       "threatsFromDay": 1,
       "threatChanceBase": 0.6,
       "threatChancePerPlayer": 0.05,
@@ -100,6 +103,7 @@
       "lingeredDay": null,
       "steps": 5,
       "defenders": [],
+      "tows": [],
       "lingerStreak": 0
     },
     "tiles": {
