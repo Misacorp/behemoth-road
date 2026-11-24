@@ -6,12 +6,13 @@ import {
   type GameState,
   hex,
   hexDistance,
+  neighbours,
   nextDay,
   planPath,
   stranded,
   UNLOCKS,
 } from '../src/index.ts';
-import { CALM, placeCharacter, withCharacter } from './helpers.ts';
+import { CALM, placeCharacter, withCharacter, withTerrain } from './helpers.ts';
 
 const straight = { ...CALM, veerWeights: { left: 0, right: 0 } };
 // The creature walks north: on day 2 its centre is (0, -1) and the window radius is 6. The line reaches
@@ -150,6 +151,24 @@ describe('the tow line', () => {
     const thrown = ok(act(s, 'a', throwTo('x')));
     // Thrown but not grabbed: lost at the tick.
     expect(me(nextDay(thrown), 'x').status).toBe('lost');
+    const saved = nextDay(ok(act(thrown, 'x', { kind: 'grab-line' })));
+    expect(me(saved, 'x').status).toBe('active');
+    expect(me(saved, 'x').at).toEqual({ kind: 'creature' });
+  });
+
+  it('hauls a character stranded on a lake islet: the line crosses the water, the grab lifts them out', () => {
+    const islet = hex(0, 6);
+    const start = placeCharacter(
+      createGame(1, { characterIds: ['a', 'c', 'x'], config: straight }),
+      'x',
+      islet,
+    );
+    const day2 = nextDay({ ...start, unlocks: [...start.unlocks, 'towline'] });
+    // Deep water on every side and no raft: there is no way back at any number of actions.
+    const surrounded = neighbours(islet).reduce((st, h) => withTerrain(st, h, 'lake'), day2);
+    expect(me(surrounded, 'x').actionsLeft).toBe(surrounded.config.actionsPerDay);
+    expect(stranded(surrounded, 'x')).toBe(true);
+    const thrown = ok(act(surrounded, 'a', throwTo('x')));
     const saved = nextDay(ok(act(thrown, 'x', { kind: 'grab-line' })));
     expect(me(saved, 'x').status).toBe('active');
     expect(me(saved, 'x').at).toEqual({ kind: 'creature' });
