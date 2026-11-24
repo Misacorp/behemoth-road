@@ -12,13 +12,13 @@ Each `CreatureType` also has: `fate: 'stays' | 'goes-on'`, `sound`, `habit` (tex
 
 `traces: { kind: 'fire' | 'trail' | 'cairn' | 'chain' | 'gate', hex, step, by?: characterId }[]`. `step` is the creature's steps when it was written. Written when the event happens:
 
-| Event                                                       | Trace                                                    |
-| ----------------------------------------------------------- | -------------------------------------------------------- |
-| `fire-lit`                                                  | `fire` on the fire's hex, `by` the lighter               |
-| `creature-step` (not a linger)                              | `trail` on each hex the footprint left                   |
-| `linger`                                                    | `cairn` on the creature's centre, `by` the keeper        |
-| `threat-cleared` for a type with `ending: 'pursuer'`        | `chain` on the threat's hex, `by` the one who cleared it |
-| `lost`                                                      | `gate` on the hex where the character was, `by` them     |
+| Event                                                | Trace                                                    |
+| ---------------------------------------------------- | -------------------------------------------------------- |
+| `fire-lit`                                           | `fire` on the fire's hex, `by` the lighter               |
+| `creature-step` (not a linger)                       | `trail` on each hex the footprint left                   |
+| `linger`                                             | `cairn` on the creature's centre, `by` the keeper        |
+| `threat-cleared` for a type with `ending: 'pursuer'` | `chain` on the threat's hex, `by` the one who cleared it |
+| `lost`                                               | `gate` on the hex where the character was, `by` them     |
 
 A newer trace of the same kind on the same hex replaces the older. At most `traceCap` (60); over it the oldest `trail` goes first. A trace is dropped with its hex when the tile is pruned from the fog (the lost character's own hex is kept, so a gate stays). Traces change no rule. The ending screen can show them all.
 

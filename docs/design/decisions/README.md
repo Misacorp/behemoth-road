@@ -123,6 +123,14 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-25 The tow line is for those outside the window
+- 2026-11-25 Story core: traces, storylets and endings are public and change no rule
+- 2026-11-25 Blessings become a rule only after the balance sim \[Misa\]
+- 2026-11-25 The Reckoners arrive in season two with their own threat \[Misa\]
+- 2026-11-25 Ending titles follow fate: Arrived, Gone on, Lost \[Misa\]
+- 2026-11-25 At a go-on ending the party watches rather than rides off \[Misa\]
+- 2026-11-25 Young creatures stay and old ones go on; old kinds from tier two \[Misa\]
+- 2026-11-25 The world: creatures are living beings everyone knows \[Misa\]
 - 2026-11-24 Lakes, ponds and seas: the creature swims, a raft lets everyone else cross \[Misa\]
 - 2026-11-24 The tow line reaches the first ring outside the window \[Misa\]
 - 2026-11-24 The tow line needs the hauled player's approval \[Misa\] (amended)
@@ -142,7 +150,7 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-24 Lore fragments found in a lost season are kept \[Misa\]
 - 2026-11-24 Rain makes fire dearer, to build after the balance sim \[Misa\]
 - 2026-11-24 Madness (Far-eyed) is parked \[Misa\]
-- 2026-11-24 Endings get a line each, varied by the largest peril source \[Misa\]
+- 2026-11-24 Endings get a line each, varied by the largest peril source \[Misa\] (amended)
 - 2026-11-24 No dawn digest for now \[Misa\]
 - 2026-11-24 A lingering creature holds the fog \[Misa\]
 - 2026-11-23 Skill tiers 2 and 3 are active, with adjusted effects

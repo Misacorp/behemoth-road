@@ -10,11 +10,12 @@
     "admin": true,
     "seen": [],
     "lastDay": null,
-    "lastVersion": null
+    "lastVersion": null,
+    "storyRead": []
   },
   "offers": null,
   "game": {
-    "contentVersion": 21,
+    "contentVersion": 22,
     "artSeed": 4242,
     "day": 1,
     "config": {
@@ -91,13 +92,17 @@
       "routeLength": 12,
       "xpPerPick": 5,
       "catchUpEverySteps": 10,
-      "catchUpXp": 1
+      "catchUpXp": 1,
+      "storyOn": true,
+      "storyPerDay": 2,
+      "traceCap": 60
     },
     "creature": {
       "centre": {
         "q": 0,
         "r": 0
       },
+      "kind": "mossback",
       "heading": "n",
       "lingering": false,
       "lingeredDay": null,
@@ -949,8 +954,18 @@
       },
       "byCharacter": {}
     },
-    "misleadUntilDay": null
+    "misleadUntilDay": null,
+    "traces": [],
+    "story": {
+      "fired": ["beat.setting-out"],
+      "queue": [],
+      "today": {
+        "day": 1,
+        "count": 1
+      }
+    }
   },
+  "ending": null,
   "signs": {
     "appetite": null,
     "cues": []

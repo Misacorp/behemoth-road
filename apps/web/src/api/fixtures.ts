@@ -25,6 +25,7 @@ import {
   replaceCharacter,
   SEEN_IDS,
   toPlayerView,
+  endingOf,
 } from '@behemoth-road/core';
 import type { AppConfig, PlayerView, Session } from './schema.ts';
 
@@ -90,10 +91,12 @@ export function toView(s: Scenario): PlayerView {
       seen: [...(s.seen ?? [])],
       lastDay: s.lastDay ?? null,
       lastVersion: s.lastVersion ?? null,
+      storyRead: [],
     },
     offers: needsCharacter ? characterOffers(s.state, s.you) : null,
     // The core's view type is read-only; the parsed type is the same shape.
     game: toPlayerView(s.state) as PlayerView['game'],
+    ending: endingOf(s.state),
     players: users.map((userId) => {
       const c = characterOf(s.state, userId) ?? null;
       return {

@@ -10,11 +10,12 @@
     "admin": true,
     "seen": [],
     "lastDay": null,
-    "lastVersion": null
+    "lastVersion": null,
+    "storyRead": []
   },
   "offers": null,
   "game": {
-    "contentVersion": 21,
+    "contentVersion": 22,
     "artSeed": 4242,
     "day": 13,
     "config": {
@@ -91,13 +92,17 @@
       "routeLength": 12,
       "xpPerPick": 5,
       "catchUpEverySteps": 10,
-      "catchUpXp": 1
+      "catchUpXp": 1,
+      "storyOn": true,
+      "storyPerDay": 2,
+      "traceCap": 60
     },
     "creature": {
       "centre": {
         "q": 1,
         "r": -8
       },
+      "kind": "mossback",
       "heading": "n",
       "lingering": false,
       "lingeredDay": null,
@@ -1429,7 +1434,282 @@
         }
       }
     },
-    "misleadUntilDay": null
+    "misleadUntilDay": null,
+    "traces": [
+      {
+        "kind": "trail",
+        "hex": {
+          "q": -1,
+          "r": 1
+        },
+        "step": 1
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": 0,
+          "r": 1
+        },
+        "step": 1
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": 1,
+          "r": 0
+        },
+        "step": 1
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": -1,
+          "r": 0
+        },
+        "step": 2
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": 0,
+          "r": 0
+        },
+        "step": 2
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": 1,
+          "r": -1
+        },
+        "step": 3
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": 2,
+          "r": -3
+        },
+        "step": 3
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": 2,
+          "r": -2
+        },
+        "step": 3
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": 0,
+          "r": -1
+        },
+        "step": 4
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": 1,
+          "r": -2
+        },
+        "step": 4
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": -2,
+          "r": -1
+        },
+        "step": 5
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": -1,
+          "r": -1
+        },
+        "step": 5
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": 0,
+          "r": -2
+        },
+        "step": 6
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": 1,
+          "r": -4
+        },
+        "step": 6
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": 1,
+          "r": -3
+        },
+        "step": 6
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": -2,
+          "r": -2
+        },
+        "step": 7
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": -1,
+          "r": -2
+        },
+        "step": 7
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": 0,
+          "r": -3
+        },
+        "step": 7
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": -2,
+          "r": -3
+        },
+        "step": 8
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": -1,
+          "r": -3
+        },
+        "step": 8
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": 0,
+          "r": -4
+        },
+        "step": 9
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": 1,
+          "r": -5
+        },
+        "step": 9
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": -2,
+          "r": -5
+        },
+        "step": 10
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": -2,
+          "r": -4
+        },
+        "step": 10
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": -1,
+          "r": -4
+        },
+        "step": 10
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": -1,
+          "r": -6
+        },
+        "step": 11
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": -1,
+          "r": -5
+        },
+        "step": 11
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": 0,
+          "r": -5
+        },
+        "step": 11
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": 0,
+          "r": -6
+        },
+        "step": 12
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": 1,
+          "r": -6
+        },
+        "step": 12
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": 2,
+          "r": -7
+        },
+        "step": 12
+      }
+    ],
+    "story": {
+      "fired": [
+        "beat.setting-out",
+        "beat.first.captors",
+        "beat.first.settlement",
+        "beat.waymark.quarter",
+        "beat.waymark.half",
+        "beat.terrain.wooded",
+        "beat.terrain.water",
+        "beat.waymark.three-quarters",
+        "beat.greyfold"
+      ],
+      "queue": [],
+      "today": {
+        "day": 12,
+        "count": 1
+      }
+    }
+  },
+  "ending": {
+    "outcome": "wounded",
+    "fate": "stays",
+    "creature": "mossback",
+    "title": "Arrived, wounded",
+    "line": "mossback.wounded"
   },
   "signs": {
     "appetite": {

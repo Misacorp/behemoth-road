@@ -48,6 +48,7 @@ describe('the game on first sign-in', () => {
         seen: [],
         lastDay: null,
         lastVersion: null,
+        storyRead: [],
       });
       expect(view.players).toEqual([]);
       // Two or three rolled characters, then the plain one.

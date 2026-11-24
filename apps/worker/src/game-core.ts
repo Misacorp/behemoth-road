@@ -11,6 +11,7 @@ import {
   ROLES,
   SKILL_NODES,
   STANCES,
+  STORYLETS,
   type Action,
   type GameEvent,
   type GameState,
@@ -30,6 +31,7 @@ export {
   characterOffers,
   createGame,
   creatureSigns,
+  endingOf,
   glintsFor,
   isSeasonOver,
   loadGame,
@@ -41,6 +43,7 @@ export {
   type Action,
   type CharacterOffer,
   type ConfigOverrides,
+  type Ending,
   type GameEvent,
   type CharacterResult,
   type CreatureSigns,
@@ -64,6 +67,9 @@ export const STANCE_IDS: readonly string[] = STANCES.map((s) => s.id);
 
 /** The skill node ids from content, for the request schema. */
 export const SKILL_IDS: readonly string[] = SKILL_NODES.map((n) => n.id);
+
+/** The storylet ids from content, in content order, for the story-read schema and the view. */
+export const STORY_IDS: readonly string[] = STORYLETS.map((s) => s.id);
 
 /** A rule's result as the Worker answers it: the new state, what happened, and whether a trap stopped a walk. */
 export type EventResult =

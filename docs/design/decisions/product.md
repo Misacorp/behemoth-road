@@ -4,6 +4,70 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-25: The tow line is for those outside the window
+
+ID: `2026-11-25-the-tow-line-is-for-those` · Status: current
+
+**Decision.** A thrown tow line is refused (`in-window`) when the target is already inside the window: they can walk to the creature. It remains for characters cut off outside it, up to the first ring.
+
+**Reasoning.** Review of #19: a line to someone who can simply walk is a wasted action and a way to skip the walk cost.
+
+## 2026-11-25: Story core: traces, storylets and endings are public and change no rule
+
+ID: `2026-11-25-story-core-traces-storylets-and-endings` · Status: current
+
+**Decision.** The core keeps public `traces` (fire, trail, cairn, chain, gate; at most `traceCap` 60, written when the event happens, dropped with their hex) and a thin storylet engine: content `STORYLETS` with conditions over a closed union of public facts, at most `storyPerDay` (2) fired a game day, the rest queued, each firing a public `story` event naming the condition. The first beats (setting out, terrain under the first footprint) fire at game creation with no event. A tuning flag `storyOn` exists so a test can prove that nothing else changes. The creature's kind is public (`creature.kind`). The Worker keeps per-player reads in `story_read`, set by `POST /api/me/story-read`, and returns `you.storyRead` and `ending`. Content version 22. Details in `docs/design/story.md`.
+
+**Reasoning.** The world proposal's season one cut. Conditions take a `GameStateView`, so they cannot read the seed, nature, care or hidden features, and the balance simulation plays identically with the story on and off. A read table per player keeps cards from repeating across devices, and a memory copy keeps an unchanged or changed poll at zero extra rows.
+
+## 2026-11-25: Blessings become a rule only after the balance sim **[Misa]**
+
+ID: `2026-11-25-blessings-become-a-rule-only-after` · Status: current
+
+**Decision.** A creature kind's `blessing` is public data (tags for art and lines) until the balance simulation has been run with it. Then one generic rule may read the tag and public peril: low peril for five steps makes the blessing appear ahead. Hunger is never read.
+
+**Reasoning.** Misa's pick on question 5. A blessing is a free gain; it must be tuned against peril before it can change play.
+
+## 2026-11-25: The Reckoners arrive in season two with their own threat **[Misa]**
+
+ID: `2026-11-25-the-reckoners-arrive-in-season-two` · Status: current
+
+**Decision.** The Reckoners, a grieving order that ends creatures, arrive in season two with their own threat type and a loss ending, and never strike riders. Season one has only the faceless captors. The havoc-driven rise of v4 is cut.
+
+**Reasoning.** Misa's pick on question 4. It keeps the first season simple and the ambush faceless, and the threat's `ending` field already has room for a second kind.
+
+## 2026-11-25: Ending titles follow fate: Arrived, Gone on, Lost **[Misa]**
+
+ID: `2026-11-25-ending-titles-follow-fate-arrived-gone` · Status: current · Amends: `2026-11-24-endings-get-a-line-each-varied`
+
+**Decision.** The ending title follows the creature's fate and the outcome: stays: 'Arrived' or 'Arrived, wounded'; goes on: 'Gone on' or 'Gone on, wounded'; lost: 'Lost'. This replaces 'Home safe' and 'Home, wounded'. The line under it is `${creature}.${outcome}` for safe and wounded; for lost it follows the largest `stats.peril.added` source (a tie goes to the latest strike): `ending.lost.hunger`; `ending.lost.pursuer` for a threat type with `ending: 'pursuer'`; no line otherwise. Built as core `endingOf` (`docs/design/story.md`).
+
+**Reasoning.** Misa's pick on question 3. The words 'home' and the in-world road are retired, and a creature that goes on never arrives home. The explicit `ending` field on threat content keeps rules reading data, not ids.
+
+## 2026-11-25: At a go-on ending the party watches rather than rides off **[Misa]**
+
+ID: `2026-11-25-at-a-go-on-ending-the` · Status: current
+
+**Decision.** When an old creature goes on, the party watches from where its tracks stop; nobody rides off with it. A young creature is left to live in its place. Either way the characters leave play as now.
+
+**Reasoning.** Misa's pick on question 2. Fate must not decide who could come back as a veteran, and watching keeps the party in every ending line.
+
+## 2026-11-25: Young creatures stay and old ones go on; old kinds from tier two **[Misa]**
+
+ID: `2026-11-25-young-creatures-stay-and-old-ones` · Status: current
+
+**Decision.** Each creature kind has a `fate`: `stays` (young: it lives where it is going and the place comes alive) or `goes-on` (old: it leaves the world by its own way out, stopping on the way to do last things). The Mossback is young. Old kinds come from tier two. Fate is story only: no rule reads it, and it never touches the roster, veterans or the sanctuary.
+
+**Reasoning.** Misa's pick on question 1 of the world proposal. One premise explains both, and fate staying out of the rules keeps every later kind cheap to add.
+
+## 2026-11-25: The world: creatures are living beings everyone knows **[Misa]**
+
+ID: `2026-11-25-the-world-creatures-are-living-beings-2` · Status: current
+
+**Decision.** The world follows the v4.1 proposal (`docs/design/world/world.md`). Creatures are living beings that everyone has seen or heard of, not terrain. The Open Gate, a company drawn from all peoples, helps them: it opens what holds a creature and walks beside it. The Wheelhouse harnesses creatures. The Reckoners end them. Peoples read the same five facts differently. The five facts: a young one is first seen grown and old as trees; it walks toward one place; things grow on it; where a young one stays, the land changes; an old one walks to the edge of what anyone knows and is not seen again.
+
+**Reasoning.** Misa's call on the world's foundation. It keeps the creature the centre of play and gives every people, threat and ending one frame, with the keeper's puzzle protected (no sound, habit or blessing names a stimulus or shows hunger). The season one cut is built from it (`docs/design/story.md`).
+
 ## 2026-11-24: Lakes, ponds and seas: the creature swims, a raft lets everyone else cross **[Misa]**
 
 ID: `2026-11-24-lakes-ponds-and-seas-the-creature` · Status: current
@@ -158,7 +222,7 @@ ID: `2026-11-24-madness-far-eyed-is-parked` · Status: current
 
 ## 2026-11-24: Endings get a line each, varied by the largest peril source **[Misa]**
 
-ID: `2026-11-24-endings-get-a-line-each-varied` · Status: current · Amends: `2026-11-20-peril-is-a-public-track-the`
+ID: `2026-11-24-endings-get-a-line-each-varied` · Status: current, amended by `2026-11-25-ending-titles-follow-fate-arrived-gone` · Amends: `2026-11-20-peril-is-a-public-track-the`
 
 **Decision.** Each ending shows a short line (amends 'a title only'). The line varies by the tag of the largest source of peril in the season.
 

@@ -206,6 +206,6 @@ describe('escort, struck and the season', () => {
     expect(seasonEnd(staged({}).view)).toBeNull();
     const over = staged({ season: { status: 'over', outcome: 'wounded', day: 9 } });
     expect(seasonEnd(over.view)).toEqual({ outcome: 'wounded', day: 9 });
-    expect(ENDING_TITLES).toEqual({ safe: 'Home safe', wounded: 'Home, wounded', lost: 'Lost' });
+    expect(ENDING_TITLES).toEqual({ safe: 'Arrived', wounded: 'Arrived, wounded', lost: 'Lost' });
   });
 });

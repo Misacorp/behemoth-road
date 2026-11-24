@@ -267,9 +267,9 @@ export const seasonEnd = (
 ): { readonly outcome: 'safe' | 'wounded' | 'lost'; readonly day: number } | null =>
   game.season.status === 'over' ? { outcome: game.season.outcome, day: game.season.day } : null;
 
-/** The three ending titles: the only words on the ending screen. */
+/** The ending titles for a creature that stays (the Mossback); the core's `endingOf` has them for every fate. */
 export const ENDING_TITLES = {
-  safe: 'Home safe',
-  wounded: 'Home, wounded',
+  safe: 'Arrived',
+  wounded: 'Arrived, wounded',
   lost: 'Lost',
 } as const;

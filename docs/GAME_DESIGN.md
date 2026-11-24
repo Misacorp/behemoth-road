@@ -4,7 +4,7 @@ This is the design as of 19 November 2026. It records what is decided, what is a
 
 ## 1. Concept
 
-An invite-only group of friends escorts a mythical creature back to its habitat, having freed it from captivity. The creature walks one step per day. Players act in the hex area around it: exploring, gathering, meeting locals, and dealing with whatever threatens it.
+An invite-only group of friends escorts a mythical creature to where it is going, having freed it from captivity. The creature walks one step per day. Players act in the hex area around it: exploring, gathering, meeting locals, and dealing with whatever threatens it.
 
 Play is asynchronous and takes a few minutes a day. Each player runs one character with a clear role. Each season brings a new creature with its own nature, and a season can fail.
 

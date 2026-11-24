@@ -49,7 +49,9 @@ describe('parley', () => {
       chance: 1,
     });
     const once = doing(state, 'warden', { kind: 'parley' });
-    expect(plain(once.events)).toEqual([{ kind: 'parley', id: 's1', characterId: 'warden', favour: 2 }]);
+    expect(plain(once.events)).toEqual([
+      { kind: 'parley', id: 's1', characterId: 'warden', favour: 2 },
+    ]);
     expect(once.state.settlements[0]).toMatchObject({ attitude: 'wary', favour: 2 });
     const twice = doing(once.state, 'warden', { kind: 'parley' });
     expect(plain(twice.events).map((e) => e.kind)).toEqual(['parley', 'befriended']);
@@ -169,7 +171,9 @@ describe('ask a boon', () => {
     const r = doing(friendly(), 'scout', { kind: 'ask-boon', boon: 'gift' });
     expect(r.state.stores).toEqual({ forage: 2, timber: 1 });
     expect(r.state.settlements[0]?.boon).toBe('gift');
-    expect(plain(r.events)).toEqual([{ kind: 'boon', id: 's1', characterId: 'scout', boon: 'gift' }]);
+    expect(plain(r.events)).toEqual([
+      { kind: 'boon', id: 's1', characterId: 'scout', boon: 'gift' },
+    ]);
   });
 
   it('shelter: peril falls by shelterPeril', () => {

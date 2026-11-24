@@ -1,5 +1,13 @@
 import * as v from 'valibot';
-import { ROLE_IDS, SEEN_IDS, SEEN_MAX, SKILL_IDS, STANCE_IDS, UNLOCK_IDS } from './game-core.ts';
+import {
+  ROLE_IDS,
+  SEEN_IDS,
+  SEEN_MAX,
+  SKILL_IDS,
+  STANCE_IDS,
+  STORY_IDS,
+  UNLOCK_IDS,
+} from './game-core.ts';
 import { SERVER_CONFIG } from './server-config.ts';
 
 export const SNOWFLAKE_RE = /^\d{17,20}$/;
@@ -45,6 +53,15 @@ export const VersionSchema = v.pipe(v.number(), v.integer(), v.minValue(0), v.ma
 /** POST /api/me/seen: ids from the core's list of things shown once, at most the whole list. */
 export const SeenBodySchema = v.strictObject({
   ids: v.pipe(v.array(v.picklist(SEEN_IDS)), v.minLength(1), v.maxLength(SEEN_MAX)),
+});
+
+/** POST /api/me/story-read: storylet ids from content, each a known id, at most the whole list. */
+export const StoryReadBodySchema = v.strictObject({
+  ids: v.pipe(
+    v.array(v.picklist(STORY_IDS as [string, ...string[]])),
+    v.minLength(1),
+    v.maxLength(STORY_IDS.length),
+  ),
 });
 
 /** POST /api/dev/pace: how the game's days advance. */

@@ -28,6 +28,7 @@ import {
   UNLOCKS,
 } from '../src/index.ts';
 import { canAppearOn } from '../src/threats.ts';
+import { waterIdAt } from '../src/waters.ts';
 import { fieldGame, placeCharacter, QUIET, withCharacter, withTerrain } from './helpers.ts';
 
 const P = hex(3, -1);
@@ -264,5 +265,19 @@ describe('where water is generated', { timeout: 60_000 }, () => {
     const state = lakeside();
     expect(isPassable(state, lake)).toBe(false);
     expect(hexDistance(P, lake)).toBe(1);
+  });
+});
+
+describe('the water cache', () => {
+  it('is keyed by the water config as well as the seed', () => {
+    const waters = TERRAIN_GENERATION.waters!;
+    const dry = { ...waters, kinds: waters.kinds.map((k) => ({ ...k, chance: 0 })) };
+    const seed = toSeed(4242);
+    const wet = (w: typeof waters) =>
+      hexesInRange(hex(0, 0), 70).filter((h) => waterIdAt(seed, h, w) !== null).length;
+    // The dry config first: it must not leave its answers for the real one.
+    expect(wet(dry)).toBe(0);
+    expect(wet(waters)).toBeGreaterThan(0);
+    expect(wet(dry)).toBe(0);
   });
 });

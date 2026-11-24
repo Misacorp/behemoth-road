@@ -10,7 +10,8 @@
     "admin": true,
     "seen": [],
     "lastDay": null,
-    "lastVersion": null
+    "lastVersion": null,
+    "storyRead": []
   },
   "offers": [
     {
@@ -39,7 +40,7 @@
     }
   ],
   "game": {
-    "contentVersion": 21,
+    "contentVersion": 22,
     "artSeed": 4242,
     "day": 2,
     "config": {
@@ -116,13 +117,17 @@
       "routeLength": 12,
       "xpPerPick": 5,
       "catchUpEverySteps": 10,
-      "catchUpXp": 1
+      "catchUpXp": 1,
+      "storyOn": true,
+      "storyPerDay": 2,
+      "traceCap": 60
     },
     "creature": {
       "centre": {
         "q": 0,
         "r": -1
       },
+      "kind": "mossback",
       "heading": "n",
       "lingering": false,
       "lingeredDay": null,
@@ -1075,8 +1080,43 @@
         }
       }
     },
-    "misleadUntilDay": null
+    "misleadUntilDay": null,
+    "traces": [
+      {
+        "kind": "trail",
+        "hex": {
+          "q": -1,
+          "r": 1
+        },
+        "step": 1
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": 0,
+          "r": 1
+        },
+        "step": 1
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": 1,
+          "r": 0
+        },
+        "step": 1
+      }
+    ],
+    "story": {
+      "fired": ["beat.setting-out"],
+      "queue": [],
+      "today": {
+        "day": 2,
+        "count": 0
+      }
+    }
   },
+  "ending": null,
   "signs": {
     "appetite": null,
     "cues": []

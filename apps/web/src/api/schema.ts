@@ -131,6 +131,9 @@ const config = v.object({
   xpPerPick: count,
   catchUpEverySteps: count,
   catchUpXp: count,
+  storyOn: v.boolean(),
+  storyPerDay: count,
+  traceCap: count,
 });
 
 /** The core state without the seed (the core's `GameStateView`): known tiles carry their terrain. */
@@ -142,6 +145,8 @@ export const GameStateViewSchema = v.object({
   config,
   creature: v.object({
     centre: hex,
+    /** The creature's kind (a content id). */
+    kind: id,
     heading: direction,
     /** A keeper asked it to stay put at the next tick. */
     lingering: v.boolean(),
@@ -232,6 +237,27 @@ export const GameStateViewSchema = v.object({
     ),
   }),
   misleadUntilDay: v.nullable(count),
+  /** What the season left on the map: fire scars, trails, cairns, broken chain, open gates. */
+  traces: v.pipe(
+    v.array(
+      v.object({
+        kind: v.picklist(['fire', 'trail', 'cairn', 'chain', 'gate']),
+        hex,
+        step: count,
+        by: v.exactOptional(id),
+      }),
+    ),
+    v.maxLength(200),
+  ),
+  /** The story so far: the ids that fired, and those waiting for the day's cap. */
+  story: v.object({
+    fired: v.pipe(v.array(id), v.maxLength(64)),
+    queue: v.pipe(
+      v.array(v.object({ id, hex: v.nullable(hex), when: v.pipe(v.string(), v.maxLength(200)) })),
+      v.maxLength(64),
+    ),
+    today: v.object({ day: count, count }),
+  }),
 });
 
 /**
@@ -326,6 +352,16 @@ const KNOWN_EVENTS = [
     sources: v.pipe(v.array(v.object({ source: id, amount: int })), v.maxLength(16)),
   }),
   event('settlement-appears', { id, hex }),
+  /** A storylet fired: where it is anchored, and the condition that fired it (debugging). */
+  event('story', {
+    id,
+    step: count,
+    anchor: v.variant('kind', [
+      v.object({ kind: v.literal('creature') }),
+      v.object({ kind: v.literal('hex'), hex }),
+    ]),
+    when: v.pipe(v.string(), v.maxLength(200)),
+  }),
   /** `favour`: the settlement's favour now. */
   event('parley', { id, characterId: id, favour: count }),
   event('befriended', { id }),
@@ -372,8 +408,23 @@ export const PlayerViewSchema = v.object({
     /** The game day and version of your previous visit, for the recap; null on your first. */
     lastDay: v.optional(v.nullable(count), null),
     lastVersion: v.optional(v.nullable(count), null),
+    /** The storylets you have read (ids from `game.story.fired`). */
+    storyRead: v.optional(v.pipe(v.array(id), v.maxLength(64)), []),
   }),
   game: GameStateViewSchema,
+  /** How the season ended (title and the key of its line); null while it goes on. */
+  ending: v.optional(
+    v.nullable(
+      v.object({
+        outcome: v.picklist(['safe', 'wounded', 'lost']),
+        fate: v.picklist(['stays', 'goes-on']),
+        creature: id,
+        title: text,
+        line: v.nullable(id),
+      }),
+    ),
+    null,
+  ),
   players: v.pipe(v.array(player), v.maxLength(64)),
   devTools: v.boolean(),
   offers: v.nullable(v.pipe(v.array(OfferSchema), v.maxLength(8))),
