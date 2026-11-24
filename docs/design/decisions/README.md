@@ -123,6 +123,7 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-24 Lakes, ponds and seas: the creature swims, a raft lets everyone else cross \[Misa\]
 - 2026-11-23 Skill tiers 2 and 3 are active, with adjusted effects
 - 2026-11-23 Reference: day readout hold menu and wiki link \[Misa\]
 - 2026-11-23 Returning recap after a day change \[Misa\]

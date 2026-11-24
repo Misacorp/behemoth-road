@@ -14,7 +14,7 @@
   },
   "offers": null,
   "game": {
-    "contentVersion": 19,
+    "contentVersion": 20,
     "artSeed": 4242,
     "day": 3,
     "config": {
@@ -311,7 +311,7 @@
       },
       "-2,-3": {
         "visibility": "seen",
-        "terrain": "forest",
+        "terrain": "plains",
         "explored": false,
         "leftWindowOnDay": null
       },
@@ -441,7 +441,7 @@
       },
       "0,-6": {
         "visibility": "seen",
-        "terrain": "forest",
+        "terrain": "plains",
         "explored": false,
         "leftWindowOnDay": null
       },
@@ -702,7 +702,7 @@
       },
       "3,2": {
         "visibility": "seen",
-        "terrain": "desert",
+        "terrain": "plains",
         "explored": false,
         "leftWindowOnDay": null
       },

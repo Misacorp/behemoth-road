@@ -14,7 +14,7 @@
   },
   "offers": null,
   "game": {
-    "contentVersion": 19,
+    "contentVersion": 20,
     "artSeed": 4242,
     "day": 13,
     "config": {
@@ -207,7 +207,7 @@
       },
       "-2,-3": {
         "visibility": "seen",
-        "terrain": "forest",
+        "terrain": "plains",
         "explored": false,
         "leftWindowOnDay": null
       },
@@ -285,7 +285,7 @@
       },
       "0,-6": {
         "visibility": "seen",
-        "terrain": "forest",
+        "terrain": "plains",
         "explored": false,
         "leftWindowOnDay": null
       },
@@ -758,7 +758,7 @@
       },
       "-6,-3": {
         "visibility": "lost",
-        "terrain": "forest",
+        "terrain": "plains",
         "explored": false
       },
       "-5,-4": {
@@ -769,7 +769,7 @@
       },
       "-4,-5": {
         "visibility": "seen",
-        "terrain": "forest",
+        "terrain": "plains",
         "explored": false,
         "leftWindowOnDay": null
       },
@@ -891,7 +891,7 @@
       },
       "-4,-7": {
         "visibility": "seen",
-        "terrain": "cliff",
+        "terrain": "plains",
         "explored": false,
         "leftWindowOnDay": null
       },
@@ -1123,7 +1123,7 @@
       },
       "7,-12": {
         "visibility": "seen",
-        "terrain": "forest",
+        "terrain": "plains",
         "explored": false,
         "leftWindowOnDay": null
       },
@@ -1201,7 +1201,7 @@
       },
       "4,-14": {
         "visibility": "seen",
-        "terrain": "desert",
+        "terrain": "plains",
         "explored": false,
         "leftWindowOnDay": null
       },
