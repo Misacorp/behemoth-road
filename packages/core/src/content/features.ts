@@ -193,4 +193,18 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
     icon: 'undertow',
     placement: { on: ['water', 'boggy'], weight: 3 },
   },
+  // Content version 20, last again: the water temple on a lake or sea island (a scholar's site,
+  // tagged like the sunken shrine so every rule for shrines applies). Islands are rare and
+  // small, so the weight is high: about 4 in 10 island hexes.
+  {
+    id: 'water-temple',
+    kind: 'site',
+    name: 'Water temple',
+    tags: ['shrine', 'ancient', 'temple'],
+    icon: 'temple',
+    placement: { on: ['island'], weight: 100 },
+    tier: 1,
+    needs: [],
+    finds: { material: 'river-pearl', amount: 1 },
+  },
 ];

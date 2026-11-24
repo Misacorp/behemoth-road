@@ -93,4 +93,15 @@ export const UNLOCKS: readonly Unlock[] = [
     work: 4,
     movement: { terrainTags: ['boggy'], cost: 1 },
   },
+  // A log raft: deep water (lake, sea) becomes a step at one action more than walking. Only a
+  // crossing tool for now; seats and carrying are a later vehicle system.
+  {
+    id: 'raft',
+    name: 'Raft',
+    tags: ['float', 'boat'],
+    icon: 'raft',
+    cost: [{ material: 'timber', amount: 3 }],
+    work: 4,
+    movement: { terrainTags: ['deep'], cost: 2 },
+  },
 ];

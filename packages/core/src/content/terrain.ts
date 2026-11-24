@@ -33,5 +33,24 @@ export const TERRAIN_TYPES: readonly TerrainType[] = [
     elevation: 0,
   },
   { id: 'river', tags: ['water'], passable: true, extraMoveCost: 0, elevation: 0 },
+  // Standing water. Deep water cannot be walked: the creature swims it, riders cross with it, and
+  // the raft lets everyone else over (`UNLOCKS`). Shallows can be waded.
+  {
+    id: 'shallows',
+    tags: ['water', 'shallow'],
+    passable: true,
+    extraMoveCost: 0,
+    elevation: 0,
+  },
+  { id: 'lake', tags: ['water', 'deep', 'fresh'], passable: false, extraMoveCost: 0, elevation: 0 },
+  {
+    id: 'sea',
+    tags: ['water', 'deep', 'salt'],
+    passable: false,
+    extraMoveCost: 0,
+    elevation: 0,
+  },
+  // A little land inside a lake or the sea: reached by raft, or from the creature as it swims past.
+  { id: 'islet', tags: ['open', 'island'], passable: true, extraMoveCost: 0, elevation: 0 },
   { id: 'cliff', tags: ['steep'], passable: false, extraMoveCost: 0, elevation: 0 },
 ];

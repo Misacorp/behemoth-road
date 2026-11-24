@@ -4,6 +4,8 @@ export {
   type FieldRef,
   type TerrainGeneration,
   type TerrainRule,
+  type WaterGeneration,
+  type WaterKind,
 } from './generation.ts';
 export { BY_NAMES, NAME_ENDS, NAME_STARTS } from './names.ts';
 export { ROLES, type Perk, type Role } from './roles.ts';

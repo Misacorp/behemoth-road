@@ -31,8 +31,10 @@
  * 17: merged Warden and stances.
  * 18: onboarding: the core's SEEN_IDS (what a player was shown once) joins the shared ids.
  * 19: skill tiers 2 and 3 are active (new effects; fires may carry a range and push, care a soothed day).
+ * 20: water: lakes, ponds, seas and islands (deep water needs the raft; the creature swims), the water
+ *    temple, the raft; forest, desert and cliff thinned a little to keep the plains share.
  */
-export const CONTENT_VERSION = 19;
+export const CONTENT_VERSION = 20;
 
 /** Content versions this code can load. */
 export const KNOWN_CONTENT_VERSIONS: readonly number[] = [CONTENT_VERSION];
