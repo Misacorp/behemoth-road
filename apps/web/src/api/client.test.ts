@@ -164,4 +164,47 @@ describe('live flag from the config', () => {
     await api.config();
     expect(api.liveEnabled()).toBe(true);
   });
+
+  it('marks things seen with a strict body, and reads the record back', async () => {
+    const f = fake({ body: { seen: ['intro', 'hint:fog'] } }, { body: { ok: true } });
+    const api = createApiClient(f.fetch);
+    api.useSession(SESSION);
+    expect(await api.markSeen(['intro', 'hint:fog'])).toEqual(['intro', 'hint:fog']);
+    expect(f.calls[0]!.path).toBe('/api/me/seen');
+    expect(bodyOf(f.calls[0]!)).toEqual({ ids: ['intro', 'hint:fog'] });
+    await api.visit();
+    expect(f.calls[1]!.path).toBe('/api/me/visit');
+    expect(bodyOf(f.calls[1]!)).toEqual({});
+    const odd = createApiClient(fake({ body: { seen: [], extra: 1 } }).fetch);
+    odd.useSession(SESSION);
+    await expect(odd.markSeen(['intro'])).rejects.toBeInstanceOf(ShapeError);
+  });
+
+  it('reads the seen record and last visit from a view, and defaults them for an older server', async () => {
+    const view = joined();
+    const withSeen = {
+      ...view,
+      you: { ...view.you, seen: ['intro'], lastDay: 3, lastVersion: 40 },
+    };
+    const api = createApiClient(fake({ body: withSeen }).fetch);
+    api.useSession(SESSION);
+    const got = await api.game();
+    expect('unchanged' in got ? null : got.you).toMatchObject({
+      seen: ['intro'],
+      lastDay: 3,
+      lastVersion: 40,
+    });
+    const old = {
+      ...view,
+      you: { userId: view.you.userId, characterId: view.you.characterId, admin: false },
+    };
+    const api2 = createApiClient(fake({ body: old }).fetch);
+    api2.useSession(SESSION);
+    const got2 = await api2.game();
+    expect('unchanged' in got2 ? null : got2.you).toMatchObject({
+      seen: [],
+      lastDay: null,
+      lastVersion: null,
+    });
+  });
 });

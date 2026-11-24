@@ -18,6 +18,8 @@ export const verbs = {
   offer: 'Offer',
   'ask-boon': 'Ask',
   'pick-skill': 'Pick',
+  'set-stance': 'Stance',
+  wait: 'Wait',
 } as const satisfies Record<Action['kind'], string>;
 
 /** The verb for a button's kind (`offer:<material>` is an offer, `boon:<id>` asks for a boon), or null. */

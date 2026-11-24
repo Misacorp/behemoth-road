@@ -89,7 +89,7 @@ describe('defence', () => {
     return nextDayWithEvents(state);
   };
 
-  it('takes defendReduction off each strike per defending guardian still riding', () => {
+  it('takes defendReduction off each strike per defending warden still riding', () => {
     expect(ofKind(atContact([]).events, 'threat-strikes')[0]?.damage).toBe(3);
     expect(ofKind(atContact(['g1']).events, 'threat-strikes')[0]?.damage).toBe(1);
     const held = atContact(['g1', 'g2']);
@@ -128,18 +128,18 @@ describe('striking characters', () => {
     expect(next.state.threats).toHaveLength(1);
   });
 
-  it('spares guardians and anyone they escort', () => {
-    const next = near(['guardian', 'scout', 'scholar'], {
-      guardian: hex(-1, 4),
+  it('spares wardens and anyone they escort', () => {
+    const next = near(['warden', 'scout', 'scholar'], {
+      warden: hex(-1, 4),
       scout: hex(-1, 5),
       scholar: hex(1, 3),
     });
-    // The scout stands beside the guardian; the scholar, beside the ambush, is out of escort.
+    // The scout stands beside the warden; the scholar, beside the ambush, is out of escort.
     expect(ofKind(next.events, 'struck').map((e) => e.characterId)).toEqual(['scholar']);
   });
 
-  it('is not escorted by a guardian who rides', () => {
-    const next = near(['guardian', 'scout'], { scout: hex(-1, 4) });
+  it('is not escorted by a warden who rides', () => {
+    const next = near(['warden', 'scout'], { scout: hex(-1, 4) });
     expect(ofKind(next.events, 'struck').map((e) => e.characterId)).toEqual(['scout']);
   });
 
@@ -371,20 +371,20 @@ describe('intercepting a threat', () => {
     return result.state;
   };
 
-  it('lets a guardian near a threat from behind clear it before it reaches the creature', () => {
-    // Day d: captors appear on the window's edge straight behind; the guardian stands just behind the footprint.
-    let state = withThreat(fieldGame(['guardian'], STRAIGHT), 'captors', hex(0, 6), 3, 'c');
-    state = placeCharacter(state, 'guardian', hex(0, 2));
+  it('lets a warden near a threat from behind clear it before it reaches the creature', () => {
+    // Day d: captors appear on the window's edge straight behind; the warden stands just behind the footprint.
+    let state = withThreat(fieldGame(['warden'], STRAIGHT), 'captors', hex(0, 6), 3, 'c');
+    state = placeCharacter(state, 'warden', hex(0, 2));
     expect(threatOutlook(toPlayerView(state))[0]?.arrives).toBe('later');
     // The guardian walks one hex toward it and waits; the captors close in next to them (and do not strike them).
-    state = ok(moveAlong(state, 'guardian', [hex(0, 3)]));
+    state = ok(moveAlong(state, 'warden', [hex(0, 3)]));
     let next = nextDayWithEvents(state);
     expect(next.state.threats[0]?.hex).toEqual(hex(0, 4));
     expect(ofKind(next.events, 'struck')).toEqual([]);
     state = next.state;
     // Day d + 1: two strikes clear it.
-    state = ok(act(state, 'guardian', { kind: 'strike', threat: 'c' }));
-    state = ok(act(state, 'guardian', { kind: 'strike', threat: 'c' }));
+    state = ok(act(state, 'warden', { kind: 'strike', threat: 'c' }));
+    state = ok(act(state, 'warden', { kind: 'strike', threat: 'c' }));
     expect(state.threats).toEqual([]);
     for (let i = 0; i < 3; i++) {
       next = nextDayWithEvents(state);
@@ -425,12 +425,12 @@ describe('walking into a hazard', () => {
     expect(next.state.characters[0]?.actionsLeft).toBe(1);
   });
 
-  it('does not stop a walk beside it, nor a guardian', () => {
+  it('does not stop a walk beside it, nor a warden', () => {
     const beside = moveAlong(setup(['scout']), 'scout', [hex(3, -1)]);
     if (!beside.ok) throw new Error(beside.reason);
     expect(beside.stopped).toBeNull();
-    const guardian = moveAlong(setup(['guardian']), 'guardian', [SLIDE]);
-    if (!guardian.ok) throw new Error(guardian.reason);
-    expect(guardian.stopped).toBeNull();
+    const warden = moveAlong(setup(['warden']), 'warden', [SLIDE]);
+    if (!warden.ok) throw new Error(warden.reason);
+    expect(warden.stopped).toBeNull();
   });
 });

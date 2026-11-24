@@ -12,6 +12,9 @@ import { DiscordError } from './discord.ts';
 import { canManageGuild } from './discord-permissions.ts';
 import {
   addCharacter,
+  addSeen,
+  readSeen,
+  type SeenId,
   characterOf,
   characterOffers,
   createGame,
@@ -45,6 +48,7 @@ import {
   PaceBodySchema,
   MoveBodySchema,
   PickBodySchema,
+  SeenBodySchema,
   SINCE_RE,
   SNOWFLAKE_RE,
 } from './schemas.ts';
@@ -76,7 +80,19 @@ export interface PlayerView {
   /** The server clock when the view was built (epoch ms), so a client can measure its own clock's skew. */
   now: number;
   /** `admin`: may run the staging "next day"; always false with the dev tools off. */
-  you: { userId: string; characterId: string | null; admin: boolean };
+  you: {
+    userId: string;
+    characterId: string | null;
+    admin: boolean;
+    /** What this player was shown once (the core's `SEEN_IDS`), so the intro and the hints never repeat. */
+    seen: string[];
+    /**
+     * The game day and version of this player's previous visit (null on their first), for the "while you
+     * were away" recap. `POST /api/me/visit` moves them on to now.
+     */
+    lastDay: number | null;
+    lastVersion: number | null;
+  };
   /** The characters this player may pick (the rolls, then the plain one): only while they have no active character. */
   offers: CharacterOffer[] | null;
   game: GameStateView;
@@ -145,6 +161,9 @@ interface GameRow {
 type PlayerRow = {
   user_id: string;
   display_name: string;
+  seen: string;
+  last_day: number | null;
+  last_version: number | null;
 };
 
 /** A stored game this build cannot read: corrupt JSON, or content it does not have (a newer build's). */
@@ -152,6 +171,15 @@ export class GameUnreadable extends Error {
   constructor() {
     super('stored game unreadable');
     this.name = 'GameUnreadable';
+  }
+}
+
+/** A stored seen record (JSON text) as the known ids it holds; anything unreadable is an empty record. */
+function readSeenText(text: string): SeenId[] {
+  try {
+    return readSeen(JSON.parse(text));
+  } catch {
+    return [];
   }
 }
 
@@ -173,11 +201,14 @@ const { eventLogSize, tick, sessions, rateLimits, adminCacheMs, maxCatchUpTicks,
 
 export type Pace = 'daily' | 'fast';
 
-/** Fast pace waits for this: the season runs and every active character has spent all their actions. */
+/**
+ * Fast pace waits for this: the season runs and every active character has spent all their actions or
+ * ended their day (waiting: the rest goes to their stance at the tick).
+ */
 function everyoneSpent(state: GameState): boolean {
   if (isSeasonOver(state)) return false;
   const active = state.characters.filter((c) => c.status === 'active');
-  return active.length > 0 && active.every((c) => c.actionsLeft === 0);
+  return active.length > 0 && active.every((c) => c.actionsLeft === 0 || c.waiting);
 }
 
 export class GuildGame {
@@ -611,7 +642,10 @@ export class GuildGame {
   private player(userId: string): PlayerRow | null {
     return (
       this.sql
-        .exec<PlayerRow>('SELECT user_id, display_name FROM players WHERE user_id = ?', userId)
+        .exec<PlayerRow>(
+          'SELECT user_id, display_name, seen, last_day, last_version FROM players WHERE user_id = ?',
+          userId,
+        )
         .toArray()[0] ?? null
     );
   }
@@ -743,6 +777,10 @@ export class GuildGame {
         return this.move(user, request);
       case 'POST /api/game/act':
         return this.act(user, request);
+      case 'POST /api/me/seen':
+        return this.markSeen(user, request);
+      case 'POST /api/me/visit':
+        return this.visit(user, request);
       case 'POST /api/live/ticket':
         return this.liveTicket(user, request);
       case 'POST /api/dev/next-day':
@@ -766,6 +804,51 @@ export class GuildGame {
     const log =
       since === null ? { events: [], eventsTruncated: false } : this.eventsSince(Number(since));
     return json({ ...(await this.view(user, game)), ...log });
+  }
+
+  /**
+   * `POST /api/me/visit`: moves the session player's "last visit" (the day and version the recap compares
+   * with) to the game as it is now. The client sends it once per open and when the day turns under an open
+   * page. A read of the game stays read-only: nothing is written by a `GET`.
+   */
+  private async visit(user: SessionUser, request: Request): Promise<Response> {
+    const body = await parseBody(request, EmptyBodySchema);
+    if (body === undefined) return errorResponse('invalid_body', 400);
+    const game = this.readGame();
+    if (game === null) return errorResponse('no_game', 409);
+    this.tx(() => {
+      this.sql.exec(
+        `UPDATE players SET last_day = ?, last_version = ?
+         WHERE user_id = ? AND (last_day IS NOT ? OR last_version IS NOT ?)`,
+        game.state.day,
+        game.version,
+        user.id,
+        game.state.day,
+        game.version,
+      );
+    });
+    return json({ ok: true });
+  }
+
+  /**
+   * `POST /api/me/seen`: adds ids to the session player's seen record (a union; an id is never removed) and
+   * answers it. The player is the session's, never the body's. Not a game change: the version stays.
+   */
+  private async markSeen(user: SessionUser, request: Request): Promise<Response> {
+    const body = await parseBody(request, SeenBodySchema);
+    if (body === undefined) return errorResponse('invalid_body', 400);
+    const seen = this.tx(() => {
+      const row = this.player(user.id);
+      if (row === null) return null;
+      const next = addSeen(readSeenText(row.seen), body.ids);
+      const text = JSON.stringify(next);
+      if (text !== row.seen) {
+        this.sql.exec('UPDATE players SET seen = ? WHERE user_id = ?', text, user.id);
+      }
+      return next;
+    });
+    if (seen === null) return errorResponse('invalid_session', 401);
+    return json({ seen });
   }
 
   /** A one-time ticket for a live socket, for the session's player. 404 where the flag is off. */
@@ -949,12 +1032,11 @@ export class GuildGame {
   }
 
   private async view(user: SessionUser, game: GameRow): Promise<PlayerView> {
-    const names = new Map(
-      this.sql
-        .exec<PlayerRow>('SELECT user_id, display_name FROM players')
-        .toArray()
-        .map((r) => [r.user_id, r.display_name]),
-    );
+    const rows = this.sql
+      .exec<PlayerRow>('SELECT user_id, display_name, seen, last_day, last_version FROM players')
+      .toArray();
+    const names = new Map(rows.map((r) => [r.user_id, r.display_name]));
+    const own = rows.find((r) => r.user_id === user.id);
     // One entry per player who has a character: their newest one.
     const players: PlayerEntry[] = [];
     for (const userId of new Set(game.state.characters.map((c) => c.userId))) {
@@ -983,7 +1065,14 @@ export class GuildGame {
       pace: game.pace,
       fastTickAt: game.fastTickAt,
       now: this.options.now(),
-      you: { userId: user.id, characterId: mine?.id ?? null, admin },
+      you: {
+        userId: user.id,
+        characterId: mine?.id ?? null,
+        admin,
+        seen: readSeenText(own?.seen ?? '[]'),
+        lastDay: own?.last_day ?? null,
+        lastVersion: own?.last_version ?? null,
+      },
       offers: mine?.status === 'active' ? null : characterOffers(game.state, user.id),
       game: toPlayerView(game.state),
       signs: creatureSigns(game.state, mine?.status === 'active' ? mine.id : null),

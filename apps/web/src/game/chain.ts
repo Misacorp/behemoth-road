@@ -165,7 +165,7 @@ export interface CostedAction {
   readonly short?: boolean;
   /** Linger or defend: already done today. */
   readonly done?: boolean;
-  /** Greyed because another role can (a keeper's linger, a guardian's defence): that role, for its badge. */
+  /** Greyed because another role can (a keeper's linger, a warden's defence): that role, for its badge. */
   readonly needs?: string;
   /** Why it is greyed (the core's refusal, as a tip): a tap on it shows this and never acts. */
   readonly why?: TipId;

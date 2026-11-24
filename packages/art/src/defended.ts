@@ -1,6 +1,6 @@
 /**
- * The telegraph that guardians are defending the creature today, readable at map scale by every player.
- * Each guardian's own raised shield (`escort.ts`) is small; this one marks the creature's whole footprint.
+ * The telegraph that wardens are defending the creature today, readable at map scale by every player.
+ * Each warden's own raised shield (`escort.ts`) is small; this one marks the creature's whole footprint.
  */
 import { boxOf, ellipsePath, type Point } from './geom.ts';
 import { shieldPath } from './escort.ts';

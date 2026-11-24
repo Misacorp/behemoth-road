@@ -18,6 +18,8 @@ export const READ_ROUTES: ReadonlySet<string> = new Set([
   'POST /api/game/replace',
   'POST /api/game/move',
   'POST /api/game/act',
+  'POST /api/me/seen',
+  'POST /api/me/visit',
   'POST /api/live/ticket',
   'POST /api/dev/next-day',
   'POST /api/dev/pace',

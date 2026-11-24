@@ -71,10 +71,10 @@ describe('the peril breakdown', () => {
   });
 
   it('records calm as easing, and what defence held off as held', () => {
-    let state = fieldGame(['guardian'], QUIET);
+    let state = fieldGame(['warden'], QUIET);
     state = withThreat(lingering(state), 'captors', hex(0, 3), 3);
     state = { ...state, peril: 4 };
-    const defended = act(state, 'guardian', { kind: 'defend' });
+    const defended = act(state, 'warden', { kind: 'defend' });
     if (!defended.ok) throw new Error(defended.reason);
     const { state: next } = nextDayWithEvents(defended.state);
     // Strength 3 less defence 2: 1 gets through; 2 held.

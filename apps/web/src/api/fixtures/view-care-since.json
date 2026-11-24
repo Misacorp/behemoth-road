@@ -7,11 +7,14 @@
   "you": {
     "userId": "222222222222222222",
     "characterId": "222222222222222222.0",
-    "admin": true
+    "admin": true,
+    "seen": [],
+    "lastDay": null,
+    "lastVersion": null
   },
   "offers": null,
   "game": {
-    "contentVersion": 15,
+    "contentVersion": 19,
     "artSeed": 4242,
     "day": 2,
     "config": {
@@ -59,15 +62,17 @@
       "threatStrengthDays": 14,
       "threatPathDistance": 5,
       "struckActions": 1,
+      "stanceAmbushPerAction": 1,
+      "lingerChainMax": 2,
       "strikeCost": 1,
-      "clearPowerGuardian": 2,
+      "clearPowerWarden": 2,
       "clearPowerOther": 1,
       "defendCost": 1,
       "defendReduction": 2,
       "parleyCost": 1,
       "offerCost": 1,
       "askBoonCost": 1,
-      "parleyFavourEnvoy": 2,
+      "parleyFavourWarden": 2,
       "parleyFavourOther": 1,
       "parleyAngerChanceOther": 0.25,
       "offerFavour": 2,
@@ -94,7 +99,8 @@
       "lingering": false,
       "lingeredDay": 1,
       "steps": 0,
-      "defenders": []
+      "defenders": [],
+      "lingerStreak": 1
     },
     "tiles": {
       "-6,0": {
@@ -877,6 +883,8 @@
         "pack": {},
         "status": "active",
         "struckDay": null,
+        "stance": "rest",
+        "waiting": false,
         "skills": {
           "xp": 4,
           "taken": []
@@ -898,6 +906,8 @@
         "pack": {},
         "status": "active",
         "struckDay": null,
+        "stance": "rest",
+        "waiting": false,
         "skills": {
           "xp": 0,
           "taken": []

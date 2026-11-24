@@ -37,9 +37,11 @@ export interface Creature {
   readonly lingering: boolean;
   /** The last day it lingered (it cannot linger the day after), or null. */
   readonly lingeredDay: number | null;
+  /** Days in a row it has lingered, up to the last one (a linger-chain skill is capped by it). */
+  readonly lingerStreak?: number;
   /** Steps walked this season (lingering adds none). Public: the route strip. */
   readonly steps: number;
-  /** Guardians defending it until the next tick (character ids). Public. */
+  /** Wardens defending it until the next tick (character ids). Public. */
   readonly defenders: readonly string[];
 }
 
@@ -82,6 +84,10 @@ export interface Stimulus {
   readonly hex: Hex;
   /** The day it was set; it acts on that day's tick (and on later ones while it lasts). */
   readonly litDay: number;
+  /** Reach in hexes when a beacon skill lit it; the tuning's `stimulusRange` when absent. */
+  readonly range?: number;
+  /** How many times the type's push it counts for when a beacon skill lit it; 1 when absent. */
+  readonly push?: number;
 }
 
 /** The creature's hidden nature, rolled from the seed when the game starts. Server only. */
@@ -106,6 +112,8 @@ export interface Care {
   readonly satiety: number;
   /** Reactions felt at the last tick, shown to keepers on `day` (the day after). */
   readonly cues: { readonly day: number; readonly list: readonly Cue[] };
+  /** The last day soothing herbs eased peril (once a day), if ever. */
+  readonly soothedDay?: number;
 }
 
 export type CharacterStatus = 'active' | 'lost';
@@ -148,6 +156,13 @@ export interface Character {
   readonly status: CharacterStatus;
   /** The day a threat struck them (they start it with fewer actions), or null. Public. */
   readonly struckDay: number | null;
+  /**
+   * The stance (content `STANCES`) the character's unspent actions go to at the tick: chosen any time,
+   * free, kept until changed. Public: it shows on the map and the roster.
+   */
+  readonly stance: string;
+  /** The character ended their day (wait): no more acts today; the stance gets the rest at the tick. Public. */
+  readonly waiting: boolean;
   /** XP earned and skill nodes taken this season. Public. */
   readonly skills: Skills;
 }

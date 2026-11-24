@@ -4,6 +4,7 @@
  * the same offers; only the server can roll (it holds the seed).
  */
 
+import { DEFAULT_STANCE } from './content/index.ts';
 import { BY_NAMES, NAME_ENDS, NAME_STARTS, QUIRKS, ROLES, TRAITS } from './content/index.ts';
 import { ON_CREATURE } from './places.ts';
 import { createRng, hashInts, hashString, type Seed, toSeed } from './random.ts';
@@ -122,6 +123,8 @@ const create = (state: GameState, request: CharacterRequest): CharacterResult =>
     pack: {},
     status: 'active',
     struckDay: null,
+    stance: DEFAULT_STANCE,
+    waiting: false,
     skills: emptySkills(),
   };
   return {

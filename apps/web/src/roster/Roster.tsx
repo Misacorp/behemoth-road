@@ -6,7 +6,9 @@
  */
 import type { JSX } from 'preact';
 import { useEffect, useRef } from 'preact/hooks';
+import { stanceIcon } from '../game/stances.ts';
 import { Pips } from '../hud/icons.tsx';
+import { Glyph } from '../hud/Stance.tsx';
 import { Drawer, type Snap } from '../ui/Drawer.tsx';
 import { RoleEmblem } from '../ui/emblems.tsx';
 import { IconTip } from '../ui/IconTip.tsx';
@@ -49,6 +51,20 @@ function Row({
             <span class="roster-actions" data-tip="roster:actions">
               <Pips total={row.actionsPerDay} left={row.actionsLeft} size={11} />
             </span>
+            {row.stance !== null && (
+              <IconTip id={tipFor('stance', row.stance)}>
+                <span class="roster-mark" data-mark="stance" data-stance={row.stance}>
+                  <Glyph name={stanceIcon(row.stance)} size={20} />
+                </span>
+              </IconTip>
+            )}
+            {row.waiting && (
+              <IconTip id="roster:waiting">
+                <span class="roster-mark" data-mark="waiting">
+                  <Glyph name="hourglass" size={20} />
+                </span>
+              </IconTip>
+            )}
             {row.done && (
               <IconTip id="roster:done">
                 <span class="roster-mark" data-mark="done">

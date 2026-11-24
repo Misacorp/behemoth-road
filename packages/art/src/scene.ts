@@ -329,7 +329,7 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
       at: c,
       drawn: { nodes: [el('g', { 'data-layer': 'creature' }, body.nodes)], box: body.box },
     });
-    // Guardians defending today: a ring under the creature and one big shield each in front of it.
+    // Wardens defending today: a ring under the creature and one big shield each in front of it.
     const defenders =
       creature.defenders ?? (input.characters ?? []).filter((ch) => ch.marks?.defending).length;
     const defended = drawDefended(palette, c, p.size, p.squash, ink, defenders);
@@ -440,7 +440,11 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
 
   /** A character's standee with its marks for the day over it. */
   function withMarks(drawn: Drawn, at: Point, marks: CharacterArt['marks']): Drawn {
-    if (!marks || !(marks.escorted || marks.struck || marks.defending)) return drawn;
+    if (
+      !marks ||
+      !(marks.escorted || marks.struck || marks.defending || marks.stance || marks.waiting)
+    )
+      return drawn;
     const m = drawCharacterMarks(palette, at, p.size, p.squash, ink, marks);
     return { nodes: [...drawn.nodes, ...m.nodes], box: unionBox([drawn.box, m.box]) };
   }

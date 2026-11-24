@@ -40,10 +40,11 @@ import {
   hexKey,
   placeHex,
   threatOutlook,
+  forecastDays,
 } from '@behemoth-road/core';
 import { drawExploredEmpty, drawMisledMark } from './art.ts';
 import { accentOf } from '../game/identity.ts';
-import { escortCentres, threatAt, threatNextPath } from '../game/season.ts';
+import { escorts, threatAt, threatNextPath } from '../game/season.ts';
 import { cellStateAt } from './cells.ts';
 import { MAP_TUNING } from './config.ts';
 import { figureFeet, placePoint } from './figures.ts';
@@ -384,7 +385,7 @@ export function pips(i: OverlayInput, at: Point, count: number): SvgNode[] {
 export function threatTrail(i: OverlayInput, threatId: string): SvgNode[] {
   const threat = i.state.threats.find((t) => t.id === threatId);
   if (!threat) return [];
-  const path = threatNextPath(i.state, threatId);
+  const path = threatNextPath(i.state, threatId, forecastDays(i.state));
   const arrives = threatOutlook(i.state).find((o) => o.id === threatId)?.arrives === 'tomorrow';
   // A threat that waits (a rockslide) has no trail, but it still strikes when the creature walks into it.
   const end = path.at(-1) ?? (arrives ? threat.hex : undefined);
@@ -674,9 +675,9 @@ export function misledMark(i: OverlayInput): SvgNode[] {
   ];
 }
 
-/** The art kit's soft ring over the hexes each guardian on a hex escorts. */
+/** The art kit's soft ring over the hexes each warden on a hex escorts. */
 function escortRings(i: OverlayInput): SvgNode[] {
-  return escortCentres(i.state).map((g) => drawEscortRing(i.projection, g, i.palette));
+  return escorts(i.state).map((g) => drawEscortRing(i.projection, g.hex, i.palette, g.reach));
 }
 
 export function buildOverlays(i: OverlayInput): Overlays {

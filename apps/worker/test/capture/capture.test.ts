@@ -44,13 +44,13 @@ const ASH: SessionUser = { id: '666666666666666666', displayName: 'Ash' };
 interface SeasonPlan {
   /** The keeper feeds on days divisible by this (0: never); the stores are stocked for it. */
   feedEvery: number;
-  /** Misa, a guardian, defends from the creature every day. */
+  /** Misa, a warden, defends from the creature every day. */
   defend: boolean;
-  /** Ash, a guardian, walks to the nearest threat and strikes it. */
+  /** Ash, a scout, walks to the nearest threat and strikes it. */
   strike: boolean;
-  /** Robin, an envoy, walks to the settlement, offers a coin, parleys and asks for a gift. */
-  envoy: boolean;
-  /** Ash parleys with the settlement instead (a guardian: it may anger them). */
+  /** Robin, a warden, walks to the settlement, offers a coin, parleys and asks for a gift. */
+  diplomacy: boolean;
+  /** Ash parleys with the settlement instead (a scout: it may anger them). */
   parley: boolean;
   /** Robin walks to where the nearest threat steps next (unescorted, so it strikes them). */
   bait: boolean;
@@ -192,7 +192,20 @@ describe('capture', () => {
         };
         ctx.sql.exec('UPDATE game SET state = ?, version = version + 1', JSON.stringify(lost));
         await ok('view-lost', 'GET', '/api/game');
-        await ok('view-replaced', 'POST', '/api/game/replace', { role: 'envoy', offer: 2 });
+        await ok('view-replaced', 'POST', '/api/game/replace', { role: 'warden', offer: 2 });
+        // Stances: choose one (free), then end the day (the rest goes to the stance at the tick).
+        await ok('view-stance', 'POST', '/api/game/act', {
+          version: await versionNow(),
+          action: { kind: 'set-stance', stance: 'lie-in-wait' },
+        });
+        await ok('view-waited', 'POST', '/api/game/act', {
+          version: await versionNow(),
+          action: { kind: 'wait' },
+        });
+        await refused(misa, 'POST', '/api/game/act', {
+          version: await versionNow(),
+          action: { kind: 'wait' },
+        });
       },
       { everyoneIsAdmin: true },
     );
@@ -327,7 +340,7 @@ describe('capture', () => {
       { everyoneIsAdmin: true },
     );
     // Skills: a scout with notches picks glints (the view then carries a glint and the taken node), and is
-    // refused a veiled node and the closed branch.
+    // refused a tier 2 node (tier order) and the closed branch.
     await runGame(
       async (ctx) => {
         const misa = await ctx.signIn(MISA);
@@ -388,7 +401,7 @@ describe('capture', () => {
       feedEvery: 2,
       defend: true,
       strike: true,
-      envoy: true,
+      diplomacy: true,
       parley: false,
       bait: false,
     });
@@ -396,7 +409,7 @@ describe('capture', () => {
       feedEvery: 20,
       defend: true,
       strike: true,
-      envoy: false,
+      diplomacy: false,
       parley: false,
       bait: false,
     });
@@ -404,7 +417,7 @@ describe('capture', () => {
       feedEvery: 0,
       defend: false,
       strike: false,
-      envoy: false,
+      diplomacy: false,
       parley: true,
       bait: true,
     });
@@ -414,10 +427,10 @@ describe('capture', () => {
 });
 
 /**
- * One short dev season to `outcome`, played through the API with Misa (guardian), Robin (envoy), Kai
- * (keeper) and Ash (guardian). Each day the plan's actions run, then an admin's next day. Two things are
+ * One short dev season to `outcome`, played through the API with Misa (warden), Robin (warden), Kai
+ * (keeper) and Ash (scout). Each day the plan's actions run, then an admin's next day. Two things are
  * placed as setup, as in the scenarios above: forage in the stores for the keeper, and a coin in the
- * envoy's pack when they reach the settlement. Everything else is the core's play from the seed.
+ * warden's pack when they reach the settlement. Everything else is the core's play from the seed.
  */
 async function season(outcome: SeasonOutcome, plan: SeasonPlan, out: Captured): Promise<void> {
   await runGame(
@@ -482,10 +495,10 @@ async function season(outcome: SeasonOutcome, plan: SeasonPlan, out: Captured): 
       };
 
       for (const [user, role] of [
-        [MISA, 'guardian'],
-        [ROBIN, 'envoy'],
+        [MISA, 'warden'],
+        [ROBIN, 'warden'],
         [KAI, 'keeper'],
-        [ASH, 'guardian'],
+        [ASH, 'scout'],
       ] as const) {
         const res = await ctx.call(token(user), 'POST', '/api/game/join', { role, offer: 0 });
         expect(res.status).toBe(200);
@@ -524,7 +537,7 @@ async function season(outcome: SeasonOutcome, plan: SeasonPlan, out: Captured): 
           }
         }
         const settlement = read().settlements.find((s) => s.attitude !== 'angry');
-        if (plan.envoy && settlement !== undefined) {
+        if (plan.diplomacy && settlement !== undefined) {
           await walk(ROBIN, settlement.hex);
           const robin = read().characters.find((c) => c.id === idOf(ROBIN));
           if (

@@ -38,7 +38,7 @@ export const MATERIALS: readonly Material[] = [
   { id: 'stone', name: 'Stone', tags: ['stone'], icon: 'stone' },
   { id: 'timber', name: 'Timber', tags: ['wood'], icon: 'timber' },
   { id: 'ancient-alloy', name: 'Ancient alloy', tags: ['metal', 'rare', 'ancient'], icon: 'alloy' },
-  // A tier-1 tomb's find: nothing uses it yet (the Envoy's trade, later).
+  // A tier-1 tomb's find: nothing uses it yet (the Warden's trade, later).
   { id: 'old-coin', name: 'Old coin', tags: ['rare', 'ancient', 'trade'], icon: 'coin' },
   { id: 'forage', name: 'Forage', tags: ['food'], icon: 'forage', nourishes: 4 },
   // A shrine's find: an offering for any people's settlement.

@@ -1,14 +1,14 @@
 /**
  * Threats: they appear at the window's edge (or on the road ahead), move toward
  * the creature at each tick, and strike it at contact (next to its footprint) or
- * strike characters standing beside them. Guardians defend the creature, escort
+ * strike characters standing beside them. Wardens defend the creature, escort
  * the characters near them and strike threats down. Threat types are content,
  * read by their tags and properties, never by id.
  */
 
 import { THREAT_TYPES, type ThreatType } from './content/index.ts';
 import { roleHas } from './features.ts';
-import { bestOf } from './skills.ts';
+import { bestOf, effectsOf } from './skills.ts';
 import {
   type Direction,
   type Hex,
@@ -27,9 +27,9 @@ import { isCreatureHex } from './window.ts';
 export const GROUND_TAG = 'ground';
 /** The threat tag a mislead leads away. */
 export const PURSUER_TAG = 'pursuer';
-/** The role tag of a guardian's strength in a fight, and of defending the creature. */
+/** The role tag of a warden's strength in a fight, and of defending the creature. */
 export const DEFEND_TAG = 'defend';
-/** The role tag of a guardian's escort: no one near them is struck, nor are they. */
+/** The role tag of a warden's escort: no one near them is struck, nor are they. */
 export const ESCORT_TAG = 'escort';
 /** The terrain tag ground threats never appear on. */
 const WATER_TAG = 'water';
@@ -151,19 +151,23 @@ export const canAppearOn = (state: GameStateView, h: Hex, type?: ThreatType): bo
   return !state.threats.some((t) => hexEquals(t.hex, h));
 };
 
-/** An active guardian standing on a hex escorts everyone within 1 of it. */
+/** How far a warden's escort reaches: 1, or more with a skill (wide guard). */
+export const escortReach = (g: Character): number =>
+  Math.max(1, bestOf(g, 'escort-range', (e) => e.range) ?? 0);
+
+/** An active warden standing on a hex escorts everyone within 1 of it. */
 export const isEscorted = (state: GameStateView, h: Hex): boolean =>
   state.characters.some(
     (g) =>
       g.status === 'active' &&
       g.at.kind === 'hex' &&
       roleHas(g, ESCORT_TAG) &&
-      hexDistance(g.at.hex, h) <= 1,
+      hexDistance(g.at.hex, h) <= escortReach(g),
   );
 
 /**
  * The characters a threat on `at` strikes: every active one on a hex within its
- * `reach` of it (not on the creature's footprint), unless a guardian or escorted.
+ * `reach` of it (not on the creature's footprint), unless a warden or escorted.
  * Riders are never struck. A reach of 0 strikes only those standing on its hex.
  */
 export const struckBy = (state: GameStateView, at: Hex, reach: number): Character[] =>
@@ -179,7 +183,7 @@ export const struckBy = (state: GameStateView, at: Hex, reach: number): Characte
 
 /**
  * The hazard on a hex a character is about to walk into: a threat standing there that strikes only its own
- * hex (reach 0, a rockslide), unless the character is a guardian or escorted. Null when the way is safe.
+ * hex (reach 0, a rockslide), unless the character is a warden or escorted. Null when the way is safe.
  */
 export const hazardAt = (state: GameStateView, characterId: string, h: Hex): Threat | null => {
   const character = state.characters.find((c) => c.id === characterId);
@@ -212,10 +216,29 @@ const nextCentreGuess = (state: GameStateView): Hex =>
  * creature walks straight on (the same guess as `threatOutlook`). Empty when it
  * will not move, or when there is no threat with that id. Reads only the public view.
  */
-export const threatNextPath = (state: GameStateView, threatId: string): Hex[] => {
+export const threatNextPath = (state: GameStateView, threatId: string, days = 1): Hex[] => {
   const threat = state.threats.find((t) => t.id === threatId);
-  return threat ? threatPath(state, threat, nextCentreGuess(state)) : [];
+  if (!threat) return [];
+  const out: Hex[] = [];
+  let centre = nextCentreGuess(state);
+  let at = threat.hex;
+  for (let tick = 1; tick <= Math.max(1, days); tick++) {
+    const path = threatPath(state, { ...threat, hex: at }, centre);
+    out.push(...path);
+    at = path.at(-1) ?? at;
+    centre = neighbour(centre, state.creature.heading);
+  }
+  return out;
 };
+
+/** How many ticks ahead threat trails show: 1, or more while a character in the game has a forecast skill. */
+export const forecastDays = (state: GameStateView): number =>
+  Math.max(
+    1,
+    ...state.characters
+      .filter((c) => c.status === 'active')
+      .flatMap((c) => effectsOf(c, 'forecast').map((e) => e.days)),
+  );
 
 export type Arrival = 'tomorrow' | 'later' | 'never';
 

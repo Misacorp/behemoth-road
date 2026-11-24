@@ -339,7 +339,7 @@ function HeadingMark({ heading }: { heading: { q: number; r: number } }): JSX.El
   );
 }
 
-/** A small shield, its top-left corner at the origin (the defence mark, as one guardian's or one point's). */
+/** A small shield, its top-left corner at the origin (the defence mark, as one warden's or one point's). */
 function Shield({ x, y, w = 10 }: { x: number; y: number; w?: number }): JSX.Element {
   const h = w * 1.2;
   return (
@@ -354,23 +354,23 @@ function Shield({ x, y, w = 10 }: { x: number; y: number; w?: number }): JSX.Ele
 }
 
 /**
- * The creature is defended: one shield per guardian riding who defended today, bottom right of its card
+ * The creature is defended: one shield per warden riding who defended today, bottom right of its card
  * (the reduction they give shows against a threat's strength on its card). Nothing while undefended.
  */
 function DefendedMark({
-  guardians,
+  wardens,
   reduction,
 }: {
-  guardians: number;
+  wardens: number;
   reduction: number;
 }): JSX.Element | null {
-  if (guardians <= 0) return null;
-  const shown = Math.min(guardians, 5);
+  if (wardens <= 0) return null;
+  const shown = Math.min(wardens, 5);
   return (
     <g
       transform={`translate(${CREATURE_SIZE.width - 14 - shown * 13} 54)`}
       data-mark="defended"
-      data-guardians={guardians}
+      data-wardens={wardens}
       data-reduction={reduction}
       {...tipProps('map:defended')}
     >
@@ -418,7 +418,7 @@ export function CreatureCard({
       <g transform="translate(110 37)">
         <HeadingMark heading={art.heading} />
       </g>
-      <DefendedMark guardians={defended.guardians} reduction={defended.reduction} />
+      <DefendedMark wardens={defended.wardens} reduction={defended.reduction} />
     </g>
   );
 }
@@ -751,7 +751,7 @@ export interface HereAction {
   readonly kind: string;
   /** The art kit icon it shows, when not its kind's own. */
   readonly icon?: string;
-  /** It may go wrong (a parley by a non-envoy): a small risk mark on the button. */
+  /** It may go wrong (a parley by a non-warden): a small risk mark on the button. */
   readonly risk?: boolean;
   readonly cost: number;
   readonly enabled: boolean;

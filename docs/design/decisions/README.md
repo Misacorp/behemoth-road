@@ -51,9 +51,10 @@ Record a decision:
 
 [platform.md](platform.md): Hosting, CI and deploys, environments, dependencies, security, dev tools.
 
+- 2026-11-23 Live updates are on in production \[Misa\]
 - 2026-11-21 The view carries the server clock
 - 2026-11-21 Rows read are metered per source and budgeted in tests
-- 2026-11-21 Live sockets: ticket auth, caps, Hibernation, flag off in production
+- 2026-11-21 Live sockets: ticket auth, caps, Hibernation, flag off in production (amended)
 - 2026-11-21 Live sockets only say "changed"; the client fetches its own view
 - 2026-11-21 Fast pace schedules a second alarm time in the one Durable Object alarm
 - 2026-11-20 The short dev season follows the dev-tools switch; an ended season stops the schedule
@@ -121,12 +122,26 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-23 Skill tiers 2 and 3 are active, with adjusted effects
+- 2026-11-23 Reference: day readout hold menu and wiki link \[Misa\]
+- 2026-11-23 Returning recap after a day change \[Misa\]
+- 2026-11-23 First-encounter hints once per user \[Misa\]
+- 2026-11-23 First-time practice map runs only in the browser \[Misa\]
+- 2026-11-23 Role cards before the pick, in the join drawer \[Misa\]
+- 2026-11-23 Intro cards once per new Discord user, kept server-side \[Misa\]
+- 2026-11-23 The Warden tree forks by style: stand fast or range out \[Misa\]
+- 2026-11-23 Guardian and Envoy merge into one role, the Warden \[Misa\] (amended)
+- 2026-11-23 A passive option never beats an active one \[Misa\]
+- 2026-11-23 Wait ends the character's day but still resolves at the tick; it counts as spent for fast rounds
+- 2026-11-23 Stances: rest is the default and shakes off a strike; unfit stances fall back to rest
+- 2026-11-23 Idle stances are a player doing nothing, with good reasons \[Misa\]
+- 2026-11-23 A public skills wiki at /wiki with a build planner
 - 2026-11-22 The ending and the peril gauge show where peril came from \[Misa\]
 - 2026-11-22 The catch-up is 1 XP every 10 steps \[Misa\]
 - 2026-11-22 Skill XP comes from any contribution, one pool per character \[Misa\]
 - 2026-11-22 One tap on a skill node shows its tip and arms it; the glint is bigger \[Misa\]
 - 2026-11-22 Skill tree UI: emblem ring on the HUD, arm then take, tips for reasons (amended)
-- 2026-11-22 Skill slice: notch per action performed, tier 1 live, effects as data hooks
+- 2026-11-22 Skill slice: notch per action performed, tier 1 live, effects as data hooks (amended)
 - 2026-11-22 Nothing carries over between seasons \[Misa\]
 - 2026-11-22 Everyone earns a catch-up notch every 10 steps \[Misa\] (amended)
 - 2026-11-22 Another role's skill tree is open to tier 1 only \[Misa\]
@@ -176,8 +191,8 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-20 Milestone 5 art: threats, settlements and the guardian's marks are drawn by the art kit from content keys
 - 2026-11-20 Milestone 5 core: readings of the season contract
 - 2026-11-20 Threats are tagged data that appear at the window's edge and walk in openly (amended)
-- 2026-11-20 Guardians strike, defend and escort; anyone can strike a threat
-- 2026-11-20 Settlements appear on the route; parley or offer to befriend, or anger them
+- 2026-11-20 Guardians strike, defend and escort; anyone can strike a threat (amended)
+- 2026-11-20 Settlements appear on the route; parley or offer to befriend, or anger them (amended)
 - 2026-11-20 Peril is a public track; the season ends at home or at full peril
 - 2026-11-20 The day's step uses Milestone 3's creature walk; a linger plays the stayed mark
 - 2026-11-20 The step hints, appetite badge and stayed mark use the art kit's drawings

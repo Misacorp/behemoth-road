@@ -53,14 +53,11 @@ export const tips = {
   'role:keeper': {
     text: 'Reads the creature’s signs and tends it. Riding, can make it stay put for a day.',
   },
-  'role:guardian': {
-    text: 'Strikes threats harder ({strike.guardian} against {strike.other}) and is never struck. Standing on a hex, keeps those next to them safe.',
-  },
   'role:engineer': {
     text: 'Builds the team’s unlocks from the stores, while riding the creature.',
   },
-  'role:envoy': {
-    text: 'Speaks for the team. A parley wins {parleyFavour.envoy} favour (others {parleyFavour.other}), with no risk of anger.',
+  'role:warden': {
+    text: 'Guards and speaks for the team. Strikes harder, parleys without risk, is never struck, and keeps those beside them safe.',
   },
 
   // Traits: a character's knack. Not in play yet.
@@ -140,13 +137,13 @@ export const tips = {
     text: 'Keepers, riding: the creature stays put when the day turns. Not two days running.',
   },
   'action:strike': {
-    text: 'Weaken a threat next to you by {strike.other}, or by {strike.guardian} as a guardian. At 0 it is gone.',
+    text: 'Weaken a threat next to you by {strike.other}, or by {strike.warden} as a warden. At 0 it is gone.',
   },
   'action:defend': {
-    text: 'Guardians, riding: stand guard over the creature. Every strike on it today lands {defendReduction} weaker, for each guardian.',
+    text: 'Wardens, riding: stand guard over the creature. Every strike on it today lands {defendReduction} weaker, for each warden.',
   },
   'action:parley': {
-    text: 'Win a wary settlement’s favour. An envoy gains {parleyFavour.envoy}; others gain {parleyFavour.other} and may anger it.',
+    text: 'Win a wary settlement’s favour. A warden gains {parleyFavour.warden}; others gain {parleyFavour.other} and may anger it.',
   },
   'action:offer': {
     text: 'Give an old coin or a pearl to a wary settlement: {offerFavour} favour, no risk.',
@@ -154,8 +151,13 @@ export const tips = {
   'action:ask-boon': { title: 'Ask a boon', text: 'A friendly settlement grants one boon.' },
   // Skills: the tree drawer's tips are below; this one names the action.
   'action:pick-skill': { title: 'Pick', text: 'Take a skill.' },
+  'action:set-stance': { title: 'Stance', text: 'Choose where your spare actions go.' },
+  'action:wait': {
+    title: 'Wait',
+    text: 'End your day here. What is left goes to your stance.',
+  },
 
-  // Skills: the first node of each branch (later tiers stay veiled). Names and one line, never numbers.
+  // Skills: every node of the five trees. Names and one line, never numbers.
   'skill:scout-a1': {
     title: 'Trap sense',
     text: 'Hidden traps show themselves, and never spring on you.',
@@ -165,12 +167,51 @@ export const tips = {
   'skill:scholar-b1': { title: 'Lamplight', text: 'Better odds in tombs that lie in the dark.' },
   'skill:keeper-a1': { title: 'Good forage', text: 'Gathering food gives more.' },
   'skill:keeper-b1': { title: 'Quiet linger', text: 'Asking the creature to stay costs less.' },
-  'skill:guardian-a1': { title: 'Skywatch', text: 'Strikes bite harder against flying threats.' },
-  'skill:guardian-b1': { title: 'Bulwark', text: 'Standing guard turns more of each blow.' },
+  'skill:warden-a1': { title: 'Bulwark', text: 'Standing guard turns more of each blow.' },
+  'skill:warden-a2': { title: 'Silver tongue', text: 'Your parleys win more favour.' },
+  'skill:warden-a3': { title: 'Standing guard', text: 'A guard who never rests.' },
+  'skill:warden-b1': { title: 'Ravens', text: 'A parley reaches a settlement further away.' },
+  'skill:warden-b2': { title: 'Long reach', text: 'Your blows reach threats a hex further off.' },
+  'skill:warden-b3': { title: 'Wide guard', text: 'Your shelter spreads wider.' },
   'skill:engineer-a1': { title: 'Double yield', text: 'Each gather brings more home.' },
   'skill:engineer-b1': { title: 'Quick hands', text: 'Each build action does more work.' },
-  'skill:envoy-a1': { title: 'Silver tongue', text: 'A parley wins more favour.' },
-  'skill:envoy-b1': { title: 'Ravens', text: 'A parley reaches a settlement further away.' },
+  'skill:scout-a2': { title: 'Long survey', text: 'A survey reaches hexes further out.' },
+  'skill:scout-a3': {
+    title: 'Sweep',
+    text: 'The hexes around you are explored as the day turns, for everyone.',
+  },
+  'skill:scout-b2': {
+    title: 'Far sight',
+    text: 'Things worth finding catch your eye from much further off.',
+  },
+  'skill:scout-b3': { title: 'Forecast', text: 'Threat paths show further ahead, for everyone.' },
+  'skill:scholar-a2': { title: 'Steady hands', text: 'Every tomb gives better odds.' },
+  'skill:scholar-a3': { title: 'Second chamber', text: 'A tomb you open holds one more find.' },
+  'skill:scholar-b2': { title: 'Relic sense', text: 'Now and then a find brings something rare.' },
+  'skill:scholar-b3': {
+    title: 'Old maps',
+    text: 'Each find points to another site nearby, for everyone.',
+  },
+  'skill:keeper-a2': {
+    title: 'Soothing herbs',
+    text: 'Feeding also eases the danger, once a day.',
+  },
+  'skill:keeper-a3': { title: 'Contented', text: 'The creature goes hungry more slowly.' },
+  'skill:keeper-b2': { title: 'Long rest', text: 'The creature will stay for you, day after day.' },
+  'skill:keeper-b3': {
+    title: 'Beacon',
+    text: 'Your fires reach further and sway the creature harder.',
+  },
+  'skill:engineer-a2': { title: 'Pack mule', text: 'Your pack holds more.' },
+  'skill:engineer-a3': {
+    title: 'Monkey drone',
+    text: 'A small helper gathers for the stores each day.',
+  },
+  'skill:engineer-b2': { title: 'Thrift', text: 'Unlocks ask for a little less.' },
+  'skill:engineer-b3': {
+    title: 'Self-winding',
+    text: 'The unlock in progress advances a little by itself.',
+  },
   'skill:veiled': { title: 'Veiled', text: 'Not yet known.' },
 
   // Boons a friendly settlement can grant (one each).
@@ -185,9 +226,8 @@ export const tips = {
   'why:role-scout': { title: 'Not your role', text: 'A scout can do this.' },
   'why:role-scholar': { title: 'Not your role', text: 'A scholar can do this.' },
   'why:role-keeper': { title: 'Not your role', text: 'A keeper can do this.' },
-  'why:role-guardian': { title: 'Not your role', text: 'A guardian can do this.' },
   'why:role-engineer': { title: 'Not your role', text: 'An engineer can do this.' },
-  'why:role-envoy': { title: 'Not your role', text: 'An envoy can do this.' },
+  'why:role-warden': { title: 'Not your role', text: 'A warden can do this.' },
   'why:not-enough-actions': {
     title: 'Not now',
     text: 'Not enough actions left today. They refill when the day turns.',
@@ -277,12 +317,34 @@ export const tips = {
     title: 'Fire',
     text: 'Burns until the day turns. The creature may take notice.',
   },
-  'map:escort': { title: 'Escorted', text: 'Next to a guardian: threats will not strike here.' },
+  'map:escort': { title: 'Escorted', text: 'Next to a warden: threats will not strike here.' },
   'map:defended': {
     title: 'Defended',
-    text: 'Each guardian on its back takes {defendReduction} off every strike today.',
+    text: 'Each warden on its back takes {defendReduction} off every strike today.',
   },
   'map:struck': { title: 'Struck', text: 'Hit by a threat: only {struckActions} action tomorrow.' },
+
+  // Idle stances: where spare actions go at the tick.
+  'stance:rest': {
+    title: 'Rest',
+    text: 'Do nothing with your spare actions.',
+    group: 'hud',
+  },
+  'stance:lie-in-wait': {
+    title: 'Lie in wait',
+    text: 'Hold your hex. Strike first at what reaches it.',
+    group: 'hud',
+  },
+  'stance:gather': {
+    title: 'Gather',
+    text: 'Spare actions gather from the node you stand on.',
+    group: 'hud',
+  },
+  'stance:fallback': {
+    title: 'Resting instead',
+    text: 'This stance has nothing to do where you are.',
+    group: 'hud',
+  },
 
   // The heads-up display.
   'hud:day': {
@@ -314,6 +376,10 @@ export const tips = {
     title: 'Skills',
     text: 'Your skills. The ring fills as you work; when it glows, take one.',
   },
+  'hud:stance': {
+    title: 'Stance',
+    text: 'Where your spare actions go when the day turns. Tap to choose.',
+  },
   'hud:recentre-me': { title: 'Your character', text: 'Back to your character.' },
   'hud:recentre-creature': { title: 'Behemoth', text: 'Back to the creature, and its hub.' },
   'hud:peril': {
@@ -324,7 +390,7 @@ export const tips = {
   'peril:hunger': { title: 'Hunger', text: 'A hungry creature is in danger. Feed it.' },
   'peril:calm': { title: 'Quiet', text: 'Quiet days ease the danger.' },
   'peril:shelter': { title: 'Shelter', text: 'A friendly settlement eased it.' },
-  'peril:held': { title: 'Held off', text: 'Guardians defending kept this off the creature.' },
+  'peril:held': { title: 'Held off', text: 'Wardens defending kept this off the creature.' },
   'peril:threat:captors': { text: 'They reached the creature. Strike them down, or defend.' },
   'peril:threat:swarm': { text: 'They reached the creature. Strike them down, or defend.' },
   'peril:threat:rockslide': { text: 'It fell on the creature. Clear it, or steer around.' },
@@ -348,6 +414,11 @@ export const tips = {
   'roster:lost': { title: 'Lost', text: 'Lost to the fog. Waiting to join again.', group: 'hud' },
   'roster:riding': { title: 'Riding', text: 'On the creature’s back.', group: 'hud' },
   'roster:map': { title: 'Out on the map', text: 'Away from the creature.', group: 'hud' },
+  'roster:waiting': {
+    title: 'Waiting',
+    text: 'Ended their day. Their stance takes the rest.',
+    group: 'hud',
+  },
   'roster:none': { title: 'No character', text: 'Has not joined yet.', group: 'hud' },
 
   // The season's recap, on the ending.

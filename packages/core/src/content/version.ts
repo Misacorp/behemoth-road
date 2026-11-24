@@ -26,8 +26,13 @@
  * 14: skill trees: notches and picks on every character, the pick-skill action.
  * 15: one XP pool replaces role notches (any contributing act earns XP; scouts earn for exploring);
  *    stats gain the peril breakdown (where peril came from).
+ * 16: Guardian and Envoy merge into the Warden (five roles; one Warden skill tree: shield and word).
+ * 16: stances and waiting: every character has a stance and a waiting flag (docs/design/stances.md).
+ * 17: merged Warden and stances.
+ * 18: onboarding: the core's SEEN_IDS (what a player was shown once) joins the shared ids.
+ * 19: skill tiers 2 and 3 are active (new effects; fires may carry a range and push, care a soothed day).
  */
-export const CONTENT_VERSION = 15;
+export const CONTENT_VERSION = 19;
 
 /** Content versions this code can load. */
 export const KNOWN_CONTENT_VERSIONS: readonly number[] = [CONTENT_VERSION];

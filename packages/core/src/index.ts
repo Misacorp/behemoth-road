@@ -103,12 +103,14 @@ export {
   ESCORT_TAG,
   GROUND_TAG,
   isEscorted,
+  escortReach,
   leadingEdge,
   PURSUER_TAG,
   stepToward,
   hazardAt,
   struckBy,
   threatNextPath,
+  forecastDays,
   threatOutlook,
   threatPath,
   threatStrength,
@@ -186,6 +188,16 @@ export {
 } from './places.ts';
 export { nextDay, nextDayWithEvents } from './tick.ts';
 export {
+  AMBUSH_TAG,
+  effectiveStance,
+  GATHER_TAG,
+  isStance,
+  REST_TAG,
+  stanceFits,
+  stanceType,
+} from './stances.ts';
+export { DEFAULT_STANCE, STANCES, type Stance, type StanceNeeds } from './content/index.ts';
+export {
   emptyPerilLog,
   emptyStats,
   PERIL_CALM,
@@ -242,6 +254,7 @@ export {
   actionsHere,
   checkAction,
   possibleActions,
+  packCapacityOf,
   type Action,
   type ActCheck,
   type ActRefusal,
@@ -268,3 +281,4 @@ export {
   type PickRefusal,
 } from './skills.ts';
 export { emptySkills, type Skills } from './state.ts';
+export { addSeen, isSeenId, readSeen, SEEN_IDS, SEEN_MAX, type SeenId } from './seen.ts';

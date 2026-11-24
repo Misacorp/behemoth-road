@@ -4,6 +4,118 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-23: Skill tiers 2 and 3 are active, with adjusted effects
+
+ID: `2026-11-23-skill-tiers-2-and-3-are` · Status: current · Amends: `2026-11-22-skill-slice-notch-per-action-performed`
+
+**Decision.** Misa approved building tiers 2 and 3: all 30 skill nodes are active (content version 19) and each wires an effect through a data hook (new kinds: `survey-range`, `sweep`, `site-finds`, `find-bonus`, `reveal-site`, `feed-calm`, `hunger-slow`, `linger-chain`, `fire-boost`, `forecast`, `pack-size`, `drone`, `build-discount`, `build-tick`, `defend-tick`, `strike-range`, `escort-range`; `site-chance` no longer needs a tag). Tier order, the closed branch and the tier-1 limit for other roles are unchanged. Changes from the plan: Sweep explores 2 hexes a tick (not all six) and earns no XP; Far sight widens glints to 4 hexes (it does not show threats before the window); Old maps reveals only the nearest unrevealed site within 4; Hurry became Long rest (no linger cooldown), because a second creature step is out of scope. Skills that act at the tick (sweep, drone, self-winding, standing guard) run before the creature steps (`skilltick.ts`). Fires may carry a `range` and `push` (beacon) and care a `soothedDay` (once-a-day herbs), both optional fields. The balance sim's careful party now takes its own branch of three tiers, then other roles' tier 1. Fixtures recaptured; the wiki shows no node as planned.
+
+**Reasoning.** The first slice let players feel the fork; tiers 2 and 3 give it somewhere to go. Each passive effect is held at or below what the same character could do by hand with an action (the stance principle), and the strength table in `docs/design/skill-trees.md` gives the reason per node. Effects that needed a new hidden-state view or a different creature step were moved to the nearest in-scope effect rather than built half.
+
+## 2026-11-23: Reference: day readout hold menu and wiki link **[Misa]**
+
+ID: `2026-11-23-reference-day-readout-hold-menu-and` · Status: current
+
+**Decision.** Holding the day readout opens a small popover with "Replay the intro" and "Practise again". The join drawer's foot has a link to `/wiki`, opened in the browser (the wiki is built elsewhere).
+
+**Reasoning.** Reference stays out of the way of the map and is found by holding, the same gesture as tips. A press on a part of the readout that has its own tip (the peril gauge) keeps that tip.
+
+## 2026-11-23: Returning recap after a day change **[Misa]**
+
+ID: `2026-11-23-returning-recap-after-a-day-change` · Status: current
+
+**Decision.** On the first open after at least one day turned since the player's last visit, a recap shows once: days passed with the route, marks of what happened near the creature (from `GET /api/game?since=`), then peril and route now. The server keeps the day and version of each player's last visit (`POST /api/me/visit`, sent once per open and when the day turns under an open page); a `GET` writes nothing.
+
+**Reasoning.** Everything in it is already public in the view and the event log, so it reveals nothing new. Writing on `GET` was tried and rejected: it broke the storage read budgets and made reads side-effecting.
+
+## 2026-11-23: First-encounter hints once per user **[Misa]**
+
+ID: `2026-11-23-first-encounter-hints-once-per-user` · Status: current
+
+**Decision.** The first time a player sees a fog edge, a revealed trap, a threat, a settlement, or hunger raising peril in the real game, one short passing hint (icon and a line) shows, once per Discord user. The ids are in the seen record. The hints say that a thing is there, never what it does, and take no taps.
+
+**Reasoning.** Hint, don't explain: the first sight is the moment to notice, the rest is for play. Players who already have a character get each hint once too.
+
+## 2026-11-23: First-time practice map runs only in the browser **[Misa]**
+
+ID: `2026-11-23-first-time-practice-map-runs-only` · Status: current
+
+**Decision.** A new player (and anyone from the replay menu) plays a practice map that runs entirely in the browser on the pure core: a fixed seed, a sandbox `ApiClient` answered by the core, no request and no socket, nothing stored. A guided first day (select yourself, tap the glowing tile, confirm, one action of your role) lights the real map UI. "Join the expedition" is always there; finishing or leaving goes to the real game as it is now.
+
+**Reasoning.** Mistakes are free and the real game is never touched. Reusing the real Game component with a local API keeps one map UI. A guard test holds the practice to making no calls. A first-time player practises as a scout (no role is chosen yet); a replay uses their own role.
+
+## 2026-11-23: Role cards before the pick, in the join drawer **[Misa]**
+
+ID: `2026-11-23-role-cards-before-the-pick-in` · Status: current
+
+**Decision.** The join drawer's role step is a swipeable strip of cards, one per role (Scout, Scholar, Keeper, Engineer, Warden, the Warden with the Guardian shield emblem): what you do out there as icons, leading to what the team gets, and one short line. A tap on a card picks the role, as before.
+
+**Reasoning.** Nobody should lock in blind. Icons carry the meaning; the one line is the role's pitch.
+
+## 2026-11-23: Intro cards once per new Discord user, kept server-side **[Misa]**
+
+ID: `2026-11-23-intro-cards-once-per-new-discord` · Status: current
+
+**Decision.** A new Discord user (no character yet) sees four intro cards once, art-led with one short line each, with back at the top left and skip. Whether it was seen is kept on the server per user in a seen record (`players.seen`, ids from the core's `SEEN_IDS`), read from the player view and added to with `POST /api/me/seen` (strict body, a union, identity from the session). It follows the account across devices, within one Discord server (the game's data is per server). The cards can be replayed from the day readout.
+
+**Reasoning.** Server-side so it follows the account. Players who already have a character are never shown the intro or practice unasked.
+
+## 2026-11-23: The Warden tree forks by style: stand fast or range out **[Misa]**
+
+ID: `2026-11-23-the-warden-tree-forks-by-style` · Status: current · Amends: `2026-11-23-guardian-and-envoy-merge-into-one`
+
+**Decision.** The Warden tree's branches both hold protection and diplomacy; the fork is a style. Branch a, stand fast (on the spot): A1 Bulwark (active), A2 Silver tongue, A3 Standing guard. Branch b, range out (at a distance): B1 Ravens (active), B2 Long reach, B3 Wide guard. Tiers 2 and 3 stay veiled data. This replaces the shield and word branches of the merge decision (its role, tags and content version are unchanged). Allies is dropped too. Every Warden node, all tiers, has a `skill:warden-<a|b><1-3>` tip in `tips.ts` (one hint line each), for the skills wiki.
+
+**Reasoning.** The first pick in a tree closes the other branch, so a pure shield branch and a pure word branch would make a Warden lose half the role. Mixing both into each branch keeps the whole role open and makes the choice about how to play.
+
+## 2026-11-23: Guardian and Envoy merge into one role, the Warden **[Misa]**
+
+ID: `2026-11-23-guardian-and-envoy-merge-into-one` · Status: current, amended by `2026-11-23-the-warden-tree-forks-by-style` · Amends: `2026-11-20-guardians-strike-defend-and-escort-anyone`, `2026-11-20-settlements-appear-on-the-route-parley`
+
+**Decision.** Guardian and Envoy are one role, the Warden (id `warden`, tags `defend`, `escort`, `peoples`, `trade`; icon key `shield`). Five roles: Scout, Scholar, Keeper, Engineer, Warden. Every role-gated bonus that read the guardian or the envoy reads the warden's tags: strike power (`clearPowerWarden`, 2), defend, escort, parley favour and no anger risk (`parleyFavourWarden`, 2), offer and ask-boon. Non-wardens keep the basics. The refusal `needs-guardian` is now `needs-warden`. One Warden skill tree replaces the two: branch a, shield (A1 Bulwark, active; A2 Wide guard and A3 Standing guard, veiled), branch b, word (B1 Silver tongue, active; B2 Ravens and B3 Allies, veiled). Dropped: Skywatch, Long reach, Rout, Second boon, Calm words, Turncoats (the `strike-bonus` and `parley-range` effect kinds stay in the rules). The emblem is the old Guardian shield emblem (Misa chose to reuse it); the envoy emblem and the dropped skill icons are removed. Content version 16; fixtures recaptured (the capture scenario's parleying non-warden is a scout).
+
+**Reasoning.** Both roles struggled to find things to do when nothing was scouted. One role that protects and deals with the peoples has more to do on any day, and the choice between guarding and parleying is the interesting one. Rules read tags, so the merge is data: no rule names a role. Balance numbers are in `docs/progress.md`.
+
+## 2026-11-23: A passive option never beats an active one **[Misa]**
+
+ID: `2026-11-23-a-passive-option-never-beats-an` · Status: current
+
+**Decision.** A passive option (a stance) is an activity a player could do on any hex with their actions (in a real-time mode they would spend each of the day's actions on it), so a stance's use of an action is never stronger than a specialist's active action. Recorded in `GAME_DESIGN.md` (Rules for cooperation) and `docs/design/stances.md`; the config refuses a lie-in-wait bonus above the weakest active strike.
+
+**Reasoning.** Misa's guiding principle for stances. It keeps resting from out-doing the specialists (a resting player scouting better than the Scout, or defending better than a Warden).
+
+## 2026-11-23: Wait ends the character's day but still resolves at the tick; it counts as spent for fast rounds
+
+ID: `2026-11-23-wait-ends-the-character-s-day` · Status: current
+
+**Decision.** `wait` is a free action that sets `waiting` on the character: no more moves or acts that day (only the stance and skill picks can change), and the unspent actions go to the stance at the tick, which clears it. A waiting character counts as spent for fast rounds, so the countdown can start once everyone has spent their actions or is waiting.
+
+**Reasoning.** Misa wants a player to be able to skip the rest of their turn, for example to hold a hex for arriving threats. Keeping the actions (instead of zeroing them) lets lie in wait and gather use them at the tick, and lets the fast round start without waiting for someone who has nothing left to do.
+
+## 2026-11-23: Stances: rest is the default and shakes off a strike; unfit stances fall back to rest
+
+ID: `2026-11-23-stances-rest-is-the-default-and` · Status: current
+
+**Decision.** Every character has one stance (content `STANCES`: rest, lie in wait, gather; default rest), chosen any time for free and kept until changed; an absent player's stance applies like anyone's. A stance whose need does not hold where the character is (a hex to lie in wait on, a node to gather from) falls back to rest and does nothing, with no chance to find anything, and the UI shows that. Resting gives nothing, not even shaking off a strike. Lie in wait strikes a threat that ends on or crosses the hex with the character's strike power for the first unspent action plus `stanceAmbushPerAction` (1, at most `clearPowerOther`) for each further one; gather uses the gather action itself.
+
+**Reasoning.** Misa's feedback: less is better for now. Watch was dropped because anyone resting would out-scout the Scout, help aboard to keep the slice small, and gathering in empty fields is not allowed so nobody skips walking to scouted woodland. Rules read stance tags and needs, never ids.
+
+## 2026-11-23: Idle stances are a player doing nothing, with good reasons **[Misa]**
+
+ID: `2026-11-23-idle-stances-are-a-player-doing` · Status: current
+
+**Decision.** An idle stance is a player doing nothing; sometimes there are good gameplay reasons to sit on a hex and do nothing. A player can skip the rest of their turn entirely (for example to wait on a hex for threats to arrive and strike them), and somewhat passive but beneficial options are welcome. Built as `docs/design/stances.md`: five stances (rest, watch, lie in wait, gather, help aboard) and a free "wait" that ends the character's day.
+
+**Reasoning.** Misa's direction for the open question "How do idle stances work?". It keeps an absent player contributing a little and gives an engaged player a real reason to hold still, without a new system to learn beyond one choice and one button.
+
+## 2026-11-23: A public skills wiki at /wiki with a build planner
+
+ID: `2026-11-23-a-public-skills-wiki-at-wiki` · Status: current
+
+**Decision.** `/wiki` is a public, out-of-game page (a second Vite entry, `apps/web/wiki.html`, served by the Worker's static assets with no sign-in) that draws every role's tree from the core content with the art kit and holds a build planner: tap nodes, see picks, XP (`picks x xpPerPick`) and days of play (`WIKI_XP_PER_DAY`, 3, in `apps/web/src/wiki/model.ts`). It shows planned tiers 2 and 3 and nothing of any running game. The plan lives in the URL hash (`#me=keeper;scout:a1,a2`), parsed strictly. The planner's rules are the core's `pickRefusal`, called with a new `planning` flag that lets not-yet-active nodes be picked by the same rules.
+
+**Reasoning.** Players need to see how much a build costs before committing, and Misa asked for it in the browser. Reusing the core's rule check on a mock character leaves no second copy of the rules, and building from content data means it follows role and skill changes by itself. The days figure is a stated guess, kept in one place.
+
 ## 2026-11-22: The ending and the peril gauge show where peril came from **[Misa]**
 
 ID: `2026-11-22-the-ending-and-the-peril-gauge` · Status: current
@@ -46,7 +158,7 @@ ID: `2026-11-22-skill-tree-ui-emblem-ring-on` · Status: current, amended by `20
 
 ## 2026-11-22: Skill slice: notch per action performed, tier 1 live, effects as data hooks
 
-ID: `2026-11-22-skill-slice-notch-per-action-performed` · Status: current
+ID: `2026-11-22-skill-slice-notch-per-action-performed` · Status: current, amended by `2026-11-23-skill-tiers-2-and-3-are`
 
 **Decision.** First slice: a notch is earned per action performed, not per action point spent (a cheaper action must not earn less). Only tier 1 is active; tiers 2 and 3 are data with `active: false` and a `veiled` effect, refused as `skill-veiled`. A node's effect is a data hook (`action-cost`, `gather-yield`, `site-chance`, `strike-bonus`, `defend-reduction`, `build-work`, `parley-favour`, `parley-range`, `trap-sense`, `glints`) that rules read, never the node id. A pick costs no actions. Glints are a per-viewer field of the player view (`glints`), never in the shared view. The scout's trap sense, glints and engineer's double yield perks left `roles.ts` for these nodes. Lamplight only adds chance for a character who could work the site at all (a non-scholar still cannot work a tier-2 site). A yield above the node's own is cut to the pack's room, and a gather that cannot hold even the node's own amount is still refused. A parley with ravens takes the nearest settlement within range; offers and boons still need your own hex. Content version 14.
 
@@ -517,7 +629,7 @@ ID: `2026-11-20-threats-are-tagged-data-that-appear` · Status: current, amended
 
 ## 2026-11-20: Guardians strike, defend and escort; anyone can strike a threat
 
-ID: `2026-11-20-guardians-strike-defend-and-escort-anyone` · Status: current
+ID: `2026-11-20-guardians-strike-defend-and-escort-anyone` · Status: current, amended by `2026-11-23-guardian-and-envoy-merge-into-one`
 
 **Decision.** Strike: anyone on or next to a threat, 1 action, strength −2 for a guardian, −1 for others. Defend: guardians riding, 1 action, each strike on the creature until the tick is reduced by 2 per defender. Escort: passive; characters within one hex of a guardian standing on a hex are not struck, nor is the guardian.
 
@@ -525,7 +637,7 @@ ID: `2026-11-20-guardians-strike-defend-and-escort-anyone` · Status: current
 
 ## 2026-11-20: Settlements appear on the route; parley or offer to befriend, or anger them
 
-ID: `2026-11-20-settlements-appear-on-the-route-parley` · Status: current
+ID: `2026-11-20-settlements-appear-on-the-route-parley` · Status: current, amended by `2026-11-23-guardian-and-envoy-merge-into-one`
 
 **Decision.** A settlement appears at the leading edge on fixed step counts (first at step 4, then every 10; steps 3 and 9 on staging), visible at once. Parley: envoys +2 favour; others +1 with a 25 % chance to anger it. Offer a `trade` material (old coin) for +2 without risk. At 3 favour it is friendly and grants one boon, picked by whoever asks: a gift to the stores, misleading the pursuers (they vanish and none come for 4 days), or shelter (peril −3). Angered, it sends raiders at once and stays angry.
 

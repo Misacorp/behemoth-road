@@ -41,7 +41,14 @@ describe('the game on first sign-in', () => {
       const view = asView(body);
       expect(view.version).toBe(1);
       expect(view.day).toBe(1);
-      expect(view.you).toEqual({ userId: USER_ID, characterId: null, admin: false });
+      expect(view.you).toEqual({
+        userId: USER_ID,
+        characterId: null,
+        admin: false,
+        seen: [],
+        lastDay: null,
+        lastVersion: null,
+      });
       expect(view.players).toEqual([]);
       // Two or three rolled characters, then the plain one.
       expect(view.offers?.length).toBeGreaterThanOrEqual(3);
@@ -89,11 +96,13 @@ describe('POST /api/game/join', () => {
           pack: {},
           status: 'active',
           struckDay: null,
+          stance: 'rest',
+          waiting: false,
           skills: { xp: 0, taken: [] },
         },
       ]);
       // A second join changes nothing and answers the same view.
-      const again = await ctx.call(token, 'POST', '/api/game/join', { role: 'envoy', offer: 1 });
+      const again = await ctx.call(token, 'POST', '/api/game/join', { role: 'warden', offer: 1 });
       expect(again.status).toBe(200);
       expect(asView(again.body).version).toBe(2);
       expect(asView(again.body).players[0]?.role).toBe('scout');

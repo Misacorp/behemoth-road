@@ -39,9 +39,9 @@ const inBox = (node: SvgNode, lo: number, hi: number): boolean => {
 };
 
 describe('skill node icons', () => {
-  it('has the 36 ids, six roles by two branches by three tiers, and each draws', () => {
-    expect(SKILL_IDS).toHaveLength(36);
-    expect(new Set(SKILL_IDS).size).toBe(36);
+  it('has the 30 ids, five roles by two branches by three tiers, and each draws', () => {
+    expect(SKILL_IDS).toHaveLength(30);
+    expect(new Set(SKILL_IDS).size).toBe(30);
     expect(Object.keys(SKILL_MOTIFS).sort()).toEqual([...SKILL_IDS].sort());
     for (const role of ROLE_IDS) {
       for (const branch of ['a', 'b']) {
@@ -57,7 +57,7 @@ describe('skill node icons', () => {
 
   it('draws every node differently', () => {
     const svgs = SKILL_IDS.map((id) => toSvgString(drawIcon(id, SPRING, 48)));
-    expect(new Set(svgs).size).toBe(36);
+    expect(new Set(svgs).size).toBe(30);
   });
 
   it('stays in the allowlist and the palette, in every state and palette', () => {
@@ -121,13 +121,13 @@ describe('notch ring', () => {
       });
       return c;
     };
-    const part = drawNotchRing(SPRING, 'guardian', 4, 10);
+    const part = drawNotchRing(SPRING, 'warden', 4, 10);
     expect(count(part, 'earned')).toBe(4);
     expect(count(part, 'empty')).toBe(6);
     expect(part.attrs['data-ready']).toBe('no');
     expect(toSvgString(part)).not.toContain('data-glow');
 
-    const ready = drawNotchRing(SPRING, 'guardian', 10, 10);
+    const ready = drawNotchRing(SPRING, 'warden', 10, 10);
     expect(count(ready, 'earned')).toBe(10);
     expect(ready.attrs['data-ready']).toBe('yes');
     expect(toSvgString(ready)).toContain('data-glow="ready"');

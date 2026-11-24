@@ -10,6 +10,7 @@ import {
   UNLOCKS,
   ROLES,
   SKILL_NODES,
+  STANCES,
   type Action,
   type GameEvent,
   type GameState,
@@ -18,6 +19,11 @@ import {
 
 export {
   addCharacter,
+  addSeen,
+  readSeen,
+  SEEN_IDS,
+  SEEN_MAX,
+  type SeenId,
   CONTENT_VERSION,
   OutdatedGameError,
   characterOf,
@@ -52,6 +58,9 @@ export const ROLE_IDS: readonly string[] = ROLES.map((r) => r.id);
 
 /** The unlock ids from content, for the request schema. */
 export const UNLOCK_IDS: readonly string[] = UNLOCKS.map((u) => u.id);
+
+/** The stance ids from content, for the request schema. */
+export const STANCE_IDS: readonly string[] = STANCES.map((s) => s.id);
 
 /** The skill node ids from content, for the request schema. */
 export const SKILL_IDS: readonly string[] = SKILL_NODES.map((n) => n.id);

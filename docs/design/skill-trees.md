@@ -1,6 +1,6 @@
 # Skill trees: a proposal
 
-For Misa to react to. Numbers are guesses for the tuning config.
+For Misa to react to. Numbers are guesses for the tuning config. **All 30 nodes are active** (r8, content version 19): the first slice built tier 1, Misa then approved tiers 2 and 3. Where a planned effect was too strong, too vague or touched an out-of-scope system, it was changed to the nearest in-scope effect: see "Tiers 2 and 3, as built" below.
 
 ## How progression works in a season
 
@@ -8,7 +8,7 @@ For Misa to react to. Numbers are guesses for the tuning config.
 - **A pick per `xpPerPick` XP** (14 on a full season, 5 on the dev season), tuned so a busy player gets about the same picks as under the notch rule (simulated: 1.4 each at 3 players, 1.0 at 6, per 40 steps; a human who acts all three actions a day earns far more).
 - **Pick any time**, free, effective at once, kept for the season.
 - **Each tree forks:** two branches of three tiers. Your first pick in a tree chooses the branch; the other closes. Mastery is three picks.
-- **Multi-classing is open.** Any pick can buy another role's tier 1 (never deeper): a scout can take Skywatch, never Rout.
+- **Multi-classing is open.** Any pick can buy another role's tier 1 (never deeper): a scout can take Bulwark, never Wide guard.
 - **No combos.** No node reads who else is near or their role.
 
 **Between seasons:** nothing for now. Later, optional: a master who came home joins the roster as a veteran with a matching trait, for one run (a sidegrade), and the archive keeps a seal per mastered branch.
@@ -42,15 +42,6 @@ For Misa to react to. Numbers are guesses for the tuning config.
 - B2 Hurry: 2 actions; the creature takes two steps at the next tick.
 - B3 Beacon: fires you light reach 5 hexes and sway the creature twice as hard (whichever way it reacts).
 
-**Guardian:** hunter or warden.
-
-- A1 Skywatch: +1 strike power against `flying` threats.
-- A2 Long reach: strike a threat from two hexes away.
-- A3 Rout: clearing a `pursuer` threat keeps pursuers away for 3 days.
-- B1 Bulwark: defend reduces each strike by 3, not 2.
-- B2 Wide guard: your escort covers two hexes, not one.
-- B3 Standing guard: you defend at every tick you ride, with no action.
-
 **Engineer:** prospector or artificer.
 
 - A1 Double yield: gathering gives 2 units.
@@ -60,16 +51,59 @@ For Misa to react to. Numbers are guesses for the tuning config.
 - B2 Thrift: unlocks cost one fewer of their largest material.
 - B3 Self-winding: the unlock in progress gains 1 work at each tick by itself.
 
-**Envoy:** diplomat or schemer.
+**Warden:** stand fast or range out (the Guardian and Envoy trees merged on 2026-11-23). Both branches hold protection and diplomacy, so the first pick chooses a style, not half the role.
 
-- A1 Silver tongue: parley gives 3 favour.
-- A2 Second boon: a settlement you befriended grants one more boon.
-- A3 Allies: friendly settlements strike a threat within 3 each tick.
+- A1 Bulwark: defend reduces each strike by 3, not 2.
+- A2 Silver tongue: parley gives 3 favour.
+- A3 Standing guard: at every tick you ride, one of your unspent actions defends.
 - B1 Ravens: parley from up to three hexes away.
-- B2 Calm words: parley with an angry settlement turns it wary again.
-- B3 Turncoats: parley with a threat tagged `people`: it loses 2 strength.
+- B2 Long reach: strike a threat from two hexes away.
+- B3 Wide guard: your escort covers two hexes, not one.
+
+Stand fast acts on the spot (the hex you hold, the creature you ride); range out acts at a distance. Dropped in the merge (the effect kinds `strike-bonus` stays in the rules, so it can return as a node): Skywatch (+1 strike against `flying`), Rout, Second boon, Allies, Calm words, Turncoats. A first cut had a pure shield branch and a pure word branch; Misa pointed out that the first pick would cost a Warden half the role, so the branches were re-mixed.
 
 Trap sense, glints and double yield were inactive perks in `roles.ts`; they are now these nodes (far sight stays a perk until scout B2). Most tier 3s help the whole team.
+
+## Tiers 2 and 3, as built
+
+Every effect is a data hook (`SkillEffect` in `content/skills.ts`); rules read the kind and numbers, never the id. A passive effect (no action spent) is held at or below what the same character could do by hand, in the spirit of the stance principle. Changes from the plan above are marked **changed**.
+
+| Node                                                                                                                                      | Effect as built                                                                             | Why it does not break the game                                                                                                                        |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Scout A2 Long survey                                                                                                                      | Survey hexes up to 2 away, same cost (1)                                                    | Saves walking, not actions; a scout's survey was already the cheapest.                                                                                |
+| Scout A3 Sweep (**changed**: two hexes, not all six)                                                                                      | At each tick up to 2 hexes next to you are explored for everyone; no XP                     | Below the 3 hexes a scout can survey by hand in a day, and earns no `exploreXp`, so it cannot farm picks.                                             |
+| Scout B2 Far sight (**changed**)                                                                                                          | Glints reach 4 hexes, not 2                                                                 | Planned "see threats before the window" needs a new hidden-state view; this stays in the glints system. It shows that something is there, never what. |
+| Scout B3 Forecast                                                                                                                         | Threat trails draw 2 ticks ahead, for everyone while the scout is in the game               | Information only; trails already assume the creature walks straight on.                                                                               |
+| Scholar A2 Steady hands                                                                                                                   | +15 % on every site (for those who can work it)                                             | A tomb stays a gamble (0.7 to 0.85); a deep tomb with Lamplight caps at 1.                                                                            |
+| Scholar A3 Second chamber                                                                                                                 | A site you open gives 1 more of its find, within the pack                                   | Sites are once-only and rare; one extra coin or alloy.                                                                                                |
+| Scholar B2 Relic sense                                                                                                                    | A find has a 1 in 3 chance of 1 extra unit of a `rare` material (seeded pick)               | Expected +0.33 units per site; the pack must have room.                                                                                               |
+| Scholar B3 Old maps (**changed**: the nearest one)                                                                                        | A find reveals the nearest unexplored, unrevealed site within 4, for everyone               | One survey's worth per find, never traps or nodes.                                                                                                    |
+| Keeper A2 Soothing herbs                                                                                                                  | The first feeding of a day also lowers peril by 1                                           | Once a day (`care.soothedDay`), costs the food and the action; calm is worth 1 peril, a Warden's defence is worth 2 per strike.                       |
+| Keeper A3 Contented                                                                                                                       | While a keeper with it is in the game, hunger drains every second day                       | The strongest team effect here: halves feeding. Tier 3, own tree only, and the creature still starves if nobody forages.                              |
+| Keeper B2 Long rest (**changed** from Hurry: the creature taking two steps changes the window, the route and threat timing, out of scope) | Your linger is not blocked the day after a linger, up to `lingerChainMax` (2) days in a row | Costs the days the creature does not advance, every threat closes in meanwhile, and two days in a row is the cap.                                     |
+| Keeper B3 Beacon                                                                                                                          | Fires you light reach 5 hexes and push twice as hard                                        | Still only sideways, never back; the creature's hidden reaction decides which way. Fuel and an action each time.                                      |
+| Engineer A2 Pack mule                                                                                                                     | Your pack holds 10, not 6                                                                   | Carrying more still means walking it home.                                                                                                            |
+| Engineer A3 Monkey drone                                                                                                                  | At each tick, 1 unit from a revealed node beside the creature into the stores               | One unit; a gather by hand gives 1 to 2 per action. Depletes the node.                                                                                |
+| Engineer B2 Thrift                                                                                                                        | Starting an unlock costs 1 less of its largest material (never below 1)                     | One-off saving per unlock; the work stays the same.                                                                                                   |
+| Engineer B3 Self-winding                                                                                                                  | The unlock in progress gains 1 work at each tick (once, whoever has it)                     | Quick hands adds 2 per action; this is 1 a day with no action, and needs a project started and paid.                                                  |
+| Warden A2 Silver tongue                                                                                                                   | A parley gives 1 more favour                                                                | Parley still angers a wary people on a failed roll for non-wardens only; a warden never fails, so +1 shortens befriending by one parley.              |
+| Warden A3 Standing guard                                                                                                                  | At every tick you ride, one of your unspent actions defends (none left: no guard)           | Spends the action a hand defend would, so equal to it and never more; does not stack with a defend action; riders only.                               |
+| Warden B2 Long reach                                                                                                                      | Strike a threat up to 2 hexes away                                                          | Same strike power, only the reach grows; threats strike characters within their own reach.                                                            |
+| Warden B3 Wide guard                                                                                                                      | Your escort covers 2 hexes, not 1                                                           | A bigger shelter for the party; does not touch the creature's defence.                                                                                |
+
+Closed from the planned list because they touched systems not built (creature outfitting, a second creature step): the original Hurry, Far sight's view of threats before the window. Both can return when those systems exist.
+
+### Balance (sim, `packages/core/scripts/balance.ts`)
+
+200 seeds, full season of 40, careful party picking sensibly (own branch of three tiers, then other roles' tier 1), with `xpPerPick` 3 so that a party earns about 6 to 9 picks (a busy player's season); `BALANCE_SKILLS=tier1` is the old behaviour (tier 1 only).
+
+| party              | tier 1 only (before) lost / safe | all tiers (after) lost / safe |
+| ------------------ | -------------------------------- | ----------------------------- |
+| careful, 3 players | 13 % / 80 %                      | 11 % / 87 %                   |
+| careful, 6 players | 10 % / 84 %                      | 8 % / 90 %                    |
+| careless, 3 and 6  | 100 % lost                       | 100 % lost                    |
+
+At the real 14 XP per pick a sim party earns only about 1.6 picks (the sim does not act every action), and the result is unchanged within noise (careful 3 players 14 % lost both ways). The dev season (12 steps) is unchanged: 0 to 1 % lost.
 
 ## What it needs from the UI
 
@@ -80,7 +114,7 @@ Trap sense, glints and double yield were inactive perks in `roles.ts`; they are 
 
 ## First slice
 
-XP, picks, the fork, the tree drawer and the twelve tier-1 nodes (each one number or an existing perk). Tiers 2 and 3 show veiled. On the dev season (a pick per 5 XP) everyone makes two or three choices. Tiers 2 and 3 follow once you have felt the fork.
+XP, picks, the fork, the tree drawer and the ten tier-1 nodes (each one number or an existing perk). Tiers 2 and 3 showed veiled in the first slice (they are active now). On the dev season (a pick per 5 XP) everyone makes two or three choices. Tiers 2 and 3 follow once you have felt the fork.
 
 ## Open questions
 
@@ -94,17 +128,16 @@ XP, picks, the fork, the tree drawer and the twelve tier-1 nodes (each one numbe
 
 Misa approved the proposal with these picks (the first, picks earned by working, was revised by the XP pool below): the first pick in a role's tree closes the other branch for good; another role's tree only to tier 1; everyone gets a catch-up 1 XP every 10 steps; nothing carries over between seasons. (Open questions 1 to 5 above are settled this way.)
 
-**Content** (`packages/core/src/content/skills.ts`, exported from `@behemoth-road/core`): `SKILL_NODES`, 36 nodes `{ id, name, role, branch: 'a' | 'b', tier: 1 | 2 | 3, icon, active, effect }`.
+**Content** (`packages/core/src/content/skills.ts`, exported from `@behemoth-road/core`): `SKILL_NODES`, 30 nodes `{ id, name, role, branch: 'a' | 'b', tier: 1 | 2 | 3, icon, active, effect }`.
 
-- `id` is `<role>-<branch><tier>`: `scout-a1` to `scout-b3`, likewise `scholar-`, `keeper-`, `guardian-`, `engineer-`, `envoy-`. `icon` is `skill:<id>`, so the art agent draws `skill:scout-a1` and so on (36 ids; the 12 active ones first).
-- Only tier 1 is `active`. Tiers 2 and 3 are data with `active: false` and `effect: { kind: 'veiled' }`: draw them veiled, never name or describe them. The server refuses them (`skill-veiled`).
-- The 12 active nodes and their `effect` (a data hook; the UI draws the kind, not prose):
+- `id` is `<role>-<branch><tier>`: `scout-a1` to `scout-b3`, likewise `scholar-`, `keeper-`, `engineer-`, `warden-`. `icon` is `skill:<id>`, so the art agent draws `skill:scout-a1` and so on (30 ids; the 10 active ones first).
+- Every node is `active` (r8). A node with `active: false` and `effect: { kind: 'veiled' }` would be drawn veiled and refused (`skill-veiled`); none is now.
+- The 10 active nodes and their `effect` (a data hook; the UI draws the kind, not prose):
   - `scout-a1` Trap sense `{ kind: 'trap-sense' }`; `scout-b1` Glints `{ kind: 'glints', range: 2 }`.
   - `scholar-a1` Field kit `{ kind: 'action-cost', action: 'work-site', cost: 1 }`; `scholar-b1` Lamplight `{ kind: 'site-chance', tag: 'dark', bonus: 0.2 }`.
   - `keeper-a1` Good forage `{ kind: 'gather-yield', amount: 2, tag: 'food' }`; `keeper-b1` Quiet linger `{ kind: 'action-cost', action: 'linger', cost: 1 }`.
-  - `guardian-a1` Skywatch `{ kind: 'strike-bonus', tag: 'flying', bonus: 1 }`; `guardian-b1` Bulwark `{ kind: 'defend-reduction', amount: 3 }`.
   - `engineer-a1` Double yield `{ kind: 'gather-yield', amount: 2 }`; `engineer-b1` Quick hands `{ kind: 'build-work', amount: 2 }`.
-  - `envoy-a1` Silver tongue `{ kind: 'parley-favour', bonus: 1 }`; `envoy-b1` Ravens `{ kind: 'parley-range', range: 3 }`.
+  - `warden-a1` Bulwark `{ kind: 'defend-reduction', amount: 3 }`; `warden-b1` Ravens `{ kind: 'parley-range', range: 3 }`.
 
 **State and view.** Every character has `skills: { xp: number, taken: nodeId[] }` (revised: one XP pool replaces the per-role `notches` record). The branch of a tree is implied by `taken`. It is part of the public view (`game.characters[].skills`): everyone sees everyone's XP and taken nodes. Nothing carries over to the next season (a new character starts at 0).
 
@@ -125,6 +158,6 @@ The player view response (`PlayerView`) gains a per-viewer field `glints: { q, r
 - Field kit and quiet linger set the action's cost to 1 (never raise it).
 - Lamplight adds 0.2 (capped at 1) on sites tagged `dark` (the deep tomb), but only for a character who could work that site at all: a non-scholar still cannot work a tier-2 site (`cannot-work`).
 - Good forage and double yield: a gather yields `max(node's own, effect amount)` for materials the effect covers, never more than the pack has room for; a gather that cannot fit even the node's own amount is still `pack-full`.
-- Skywatch: a strike on a threat tagged `flying` takes 1 more off. Bulwark: each defending guardian riding takes 3 off each strike on the creature, not `defendReduction` (2).
+- Strike bonus (no node carries it since the merge): a strike on a threat tagged `flying` takes 1 more off. Bulwark: each defending warden riding takes 3 off each strike on the creature, not `defendReduction` (2).
 - Quick hands: a build action adds 2 work (`buildWork` in the config is the base, 1).
-- Silver tongue: a parley gains 1 more favour. Ravens: a parley reaches the nearest settlement within 3 hexes (a rider measures from the footprint); offer and ask-boon still need your own hex.
+- Parley favour (Silver tongue, tier 2): a parley gains 1 more favour. Ravens: a parley reaches the nearest settlement within 3 hexes (a rider measures from the footprint); offer and ask-boon still need your own hex.

@@ -4,7 +4,7 @@
 
 import { type ConfigOverrides, resolveConfig } from './config.ts';
 import { type Direction, DIRECTIONS, type Hex, isValidHex } from './hex.ts';
-import { CONTENT_VERSION } from './content/index.ts';
+import { CONTENT_VERSION, DEFAULT_STANCE } from './content/index.ts';
 import { freshCare, rollNature } from './care.ts';
 import { addFeatures, keyToHex } from './features.ts';
 import { ON_CREATURE } from './places.ts';
@@ -97,6 +97,8 @@ export const createGame = (
       pack: {},
       status: 'active',
       struckDay: null,
+      stance: DEFAULT_STANCE,
+      waiting: false,
       skills: emptySkills(),
     })),
   };

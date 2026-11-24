@@ -13,7 +13,7 @@
  * anything. A mouse right-click closes the tip and is announced to `onRightClick` subscribers.
  */
 import { holdMs, TIP_TABLE, type TipId } from '../text/tips.ts';
-import { TipController, type TipTarget } from './tip.ts';
+import { HOLD_SLOP, TipController, type TipTarget } from './tip.ts';
 
 /** The app's one tip controller. */
 export const TIPS = new TipController({
@@ -144,6 +144,31 @@ export function onRightClick(fn: (e: MouseEvent) => void): () => void {
 /** The event a tip element hears after its tap showed the tip (so a tap can also do its own small thing). */
 export const TIP_TAP_EVENT = 'tip-tap';
 
+/**
+ * A hold on an element marked `data-hold-menu` opens that element's menu instead of its tip (the day
+ * readout's replay menu): the element hears this event, bubbling, with its screen rectangle as `detail`.
+ * Touch and mouse alike hold for the tip hold time; moving away or lifting first cancels it, and the click
+ * a hold ends in never acts.
+ */
+export const HOLD_MENU_EVENT = 'hold-menu';
+const MENU_HOST = '[data-hold-menu]';
+
+export interface HoldMenuDetail {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+/** The hold under way on a menu element, and the element whose next click a finished hold swallows. */
+let menuHold: { id: number; x: number; y: number; timer: number; el: Element } | null = null;
+let menuSwallow: Element | null = null;
+
+const endMenuHold = (): void => {
+  if (menuHold) window.clearTimeout(menuHold.timer);
+  menuHold = null;
+};
+
 /** The tip id an element names, only if the tips table has it. */
 export const idOf = (host: Element | null): TipId | null => {
   const id = host?.getAttribute('data-tip') ?? null;
@@ -175,7 +200,33 @@ export function watchPress(): void {
       const id = idOf(host);
       // A press anywhere but on a thing with a tip closes the open one.
       if (!host && TIPS.open) TIPS.close();
-      if (host && id && e.pointerType !== 'mouse') {
+      // A part of the element with a tip of its own (the peril gauge in the day readout) keeps that tip.
+      const candidate = (e.target as Element | null)?.closest?.(MENU_HOST) ?? null;
+      const menuEl = candidate !== null && (host === null || host === candidate) ? candidate : null;
+      endMenuHold();
+      menuSwallow = null;
+      if (menuEl) {
+        const el = menuEl;
+        menuHold = {
+          id: e.pointerId,
+          x: e.clientX,
+          y: e.clientY,
+          el,
+          timer: window.setTimeout(() => {
+            menuHold = null;
+            menuSwallow = el;
+            TIPS.close();
+            const r = el.getBoundingClientRect();
+            el.dispatchEvent(
+              new CustomEvent<HoldMenuDetail>(HOLD_MENU_EVENT, {
+                bubbles: true,
+                detail: { x: r.left, y: r.top, width: r.width, height: r.height },
+              }),
+            );
+          }, holdMs),
+        };
+      }
+      if (host && id && e.pointerType !== 'mouse' && !menuEl) {
         TIPS.press(id, elementTarget(host), e.clientX, e.clientY);
       }
     },
@@ -184,6 +235,9 @@ export function watchPress(): void {
   document.addEventListener(
     'pointermove',
     (e) => {
+      if (menuHold && e.pointerId === menuHold.id) {
+        if (Math.hypot(e.clientX - menuHold.x, e.clientY - menuHold.y) > HOLD_SLOP) endMenuHold();
+      }
       if (e.pointerType !== 'mouse') TIPS.move(e.clientX, e.clientY);
     },
     true,
@@ -192,6 +246,7 @@ export function watchPress(): void {
     'pointerup',
     (e) => {
       lift(e);
+      endMenuHold();
       ended = e.pointerType !== 'mouse' && TIPS.release();
     },
     true,
@@ -200,6 +255,7 @@ export function watchPress(): void {
     'pointercancel',
     (e) => {
       lift(e);
+      endMenuHold();
       ended = TIPS.release();
     },
     true,
@@ -227,6 +283,13 @@ export function watchPress(): void {
   document.addEventListener(
     'click',
     (e) => {
+      // The click a menu hold ends in never acts (and no tip opens from it).
+      if (menuSwallow && e.target instanceof Node && menuSwallow.contains(e.target)) {
+        menuSwallow = null;
+        e.preventDefault();
+        e.stopPropagation();
+        return;
+      }
       // takeClick first: it must run to end the swallow. A touch press held past the hold time never acts.
       const swallowed = TIPS.takeClick(e.target);
       if (swallowed || isHeldClick(lastPress, e.timeStamp)) {

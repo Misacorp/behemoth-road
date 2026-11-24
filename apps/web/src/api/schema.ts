@@ -57,6 +57,9 @@ const character = v.object({
     xp: count,
     taken: v.pipe(v.array(id), v.maxLength(64)),
   }),
+  /** The stance the spare actions go to at the tick (a content id), and whether the day is ended. */
+  stance: id,
+  waiting: v.boolean(),
 });
 
 const weights = v.object({ left: v.number(), straight: v.number(), right: v.number() });
@@ -98,15 +101,17 @@ const config = v.object({
   threatStrengthDays: count,
   threatPathDistance: count,
   struckActions: count,
+  stanceAmbushPerAction: count,
+  lingerChainMax: count,
   strikeCost: count,
-  clearPowerGuardian: count,
+  clearPowerWarden: count,
   clearPowerOther: count,
   defendCost: count,
   defendReduction: count,
   parleyCost: count,
   offerCost: count,
   askBoonCost: count,
-  parleyFavourEnvoy: count,
+  parleyFavourWarden: count,
   parleyFavourOther: count,
   parleyAngerChanceOther: v.number(),
   offerFavour: count,
@@ -139,9 +144,10 @@ export const GameStateViewSchema = v.object({
     lingering: v.boolean(),
     /** The last day it lingered, or null. */
     lingeredDay: v.nullable(count),
+    lingerStreak: v.exactOptional(count),
     /** Steps walked this season. */
     steps: count,
-    /** Guardians defending it until the next tick. */
+    /** Wardens defending it until the next tick. */
     defenders: v.pipe(v.array(id), v.maxLength(64)),
   }),
   tiles: v.pipe(
@@ -161,7 +167,18 @@ export const GameStateViewSchema = v.object({
   /** The one unlock in progress. */
   project: v.nullable(v.object({ unlock: id, work: count })),
   /** Lit fires (public): each burns through the tick that ends the day it was lit. */
-  stimuli: v.pipe(v.array(v.object({ type: id, hex, litDay: count })), v.maxLength(200)),
+  stimuli: v.pipe(
+    v.array(
+      v.object({
+        type: id,
+        hex,
+        litDay: count,
+        range: v.exactOptional(count),
+        push: v.exactOptional(count),
+      }),
+    ),
+    v.maxLength(200),
+  ),
   /** Threats on the map (public). */
   threats: v.pipe(
     v.array(v.object({ id, type: id, hex, strength: count, appearedDay: count })),
@@ -265,7 +282,13 @@ const KNOWN_EVENTS = [
   event('reveal', { hex, feature: id }),
   event('trap', { hex, characterId: id }),
   event('gather', { hex, characterId: id, material: id, amount: count }),
-  event('find', { hex, characterId: id, material: id, amount: count }),
+  event('find', {
+    hex,
+    characterId: id,
+    material: id,
+    amount: count,
+    extra: v.exactOptional(v.object({ material: id, amount: count })),
+  }),
   event('site-failed', { hex, characterId: id }),
   event('deposit', { characterId: id, materials: counts }),
   event('unlock-progress', { unlock: id, work: count, needed: count }),
@@ -304,6 +327,8 @@ const KNOWN_EVENTS = [
   event('offer', { id, characterId: id, material: id }),
   event('boon', { id, characterId: id, boon: id }),
   event('skill-picked', { characterId: id, node: id }),
+  event('stance', { characterId: id, stance: id }),
+  event('wait', { characterId: id }),
   event('season-over', { outcome: v.picklist(['safe', 'wounded', 'lost']) }),
 ] as const;
 
@@ -336,6 +361,11 @@ export const PlayerViewSchema = v.object({
     userId: id,
     characterId: v.nullable(id),
     admin: v.boolean(),
+    /** What you were shown once (the core's `SEEN_IDS`), kept by the server per Discord user. */
+    seen: v.optional(v.pipe(v.array(v.pipe(v.string(), v.maxLength(40))), v.maxLength(32)), []),
+    /** The game day and version of your previous visit, for the recap; null on your first. */
+    lastDay: v.optional(v.nullable(count), null),
+    lastVersion: v.optional(v.nullable(count), null),
   }),
   game: GameStateViewSchema,
   players: v.pipe(v.array(player), v.maxLength(64)),
@@ -373,6 +403,11 @@ export const SessionSchema = v.object({
   token: v.pipe(v.string(), v.minLength(1), v.maxLength(4096)),
   accessToken: v.optional(v.pipe(v.string(), v.maxLength(4096)), ''),
   user: v.object({ id, name: text }),
+});
+
+/** The answer to `POST /api/me/seen`: the player's whole record. */
+export const SeenAnswerSchema = v.strictObject({
+  seen: v.pipe(v.array(v.pipe(v.string(), v.maxLength(40))), v.maxLength(32)),
 });
 
 export const LiveTicketSchema = v.strictObject({ ticket: v.pipe(v.string(), v.maxLength(160)) });
@@ -423,4 +458,6 @@ export type GameAction =
   | { readonly kind: 'parley' }
   | { readonly kind: 'offer'; readonly material: string }
   | { readonly kind: 'ask-boon'; readonly boon: string }
-  | { readonly kind: 'pick-skill'; readonly node: string };
+  | { readonly kind: 'pick-skill'; readonly node: string }
+  | { readonly kind: 'set-stance'; readonly stance: string }
+  | { readonly kind: 'wait' };

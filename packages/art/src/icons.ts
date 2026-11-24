@@ -1,5 +1,5 @@
 /**
- * Small ink icons on a 48-unit grid: the six role emblems in one shared frame, and the trait and quirk
+ * Small ink icons on a 48-unit grid: the five role emblems in one shared frame, and the trait and quirk
  * icons, looked up by id. `drawIcon` returns a self-contained `<svg>` sized for the interface (readable at
  * 32 to 48 px). Unknown ids draw a neutral mark, never an error. Icons are drawn as data: a role is named
  * `role:<id>` or by its content icon key (`spyglass`, `crook`…), a trait or quirk by its content icon key
@@ -23,7 +23,7 @@ import { el, type SvgNode } from './svg.ts';
 
 export type { IconMotif } from './icon-motifs.ts';
 
-export const ROLE_IDS = ['scout', 'scholar', 'keeper', 'guardian', 'engineer', 'envoy'] as const;
+export const ROLE_IDS = ['scout', 'scholar', 'keeper', 'engineer', 'warden'] as const;
 export type RoleId = (typeof ROLE_IDS)[number];
 
 export type EmblemFrame = 'roundel' | 'shield';
@@ -38,7 +38,7 @@ export interface IconOptions {
   readonly tile?: 'trait' | 'quirk' | 'plain';
   /** Marks an unlock as done: a wax seal at the icon's lower right. */
   readonly done?: boolean;
-  /** Marks an action as risky (parley by a non-envoy): a cracked coral triangle at the icon's upper right. */
+  /** Marks an action as risky (parley by a non-warden): a cracked coral triangle at the icon's upper right. */
   readonly risk?: boolean;
   /** The look of a `skill:<role>-<branch><tier>` node (default `plain`). */
   readonly skill?: SkillState;
@@ -98,14 +98,6 @@ const keeper: IconMotif = (pal) => [
   ink(pal, 'M20.5 23.5l3 2', 1.4, pal.accents.rose.shade),
 ];
 
-/** Guardian: a round shield with a boss and a band. */
-const guardian: IconMotif = (pal) => [
-  solid(pal, ellipsePath(24, 24, 11.5, 11.5), pal.ramps.stone.light),
-  ink(pal, 'M24 12.5v23M12.5 24h23', 2.4, pal.ramps.bark.base),
-  solid(pal, ellipsePath(24, 24, 3.4, 3.4), pal.ramps.stone.base, 1.6),
-  ink(pal, ellipsePath(24, 24, 9, 9), 1.1, pal.inkSoft),
-];
-
 /** Engineer: a hammer. */
 const engineer: IconMotif = (pal) => [
   solid(
@@ -117,21 +109,20 @@ const engineer: IconMotif = (pal) => [
   solid(pal, 'M22.5 15.5l6-6 3 3 3-1 2 2-1 3 3 3-6 6z', pal.ramps.stone.base),
 ];
 
-/** Envoy: a swallow-tailed banner on a pole. */
-const envoy: IconMotif = (pal) => [
-  ink(pal, 'M16 38V10', 2.6, pal.ramps.bark.shade),
-  solid(pal, 'M16.5 12h17l-4 6 4 6h-17z', pal.accents.rose.base),
-  ink(pal, 'M20 16.5h6', 1.4, pal.accents.rose.shade),
-  solid(pal, ellipsePath(16, 9.5, 1.8, 1.8), pal.accents.ochre.base, 1.4),
+/** Warden (the old Guardian's emblem, kept): a round shield with a boss and a band. */
+const warden: IconMotif = (pal) => [
+  solid(pal, ellipsePath(24, 24, 11.5, 11.5), pal.ramps.stone.light),
+  ink(pal, 'M24 12.5v23M12.5 24h23', 2.4, pal.ramps.bark.base),
+  solid(pal, ellipsePath(24, 24, 3.4, 3.4), pal.ramps.stone.base, 1.6),
+  ink(pal, ellipsePath(24, 24, 9, 9), 1.1, pal.inkSoft),
 ];
 
 const ROLE_MOTIFS: Readonly<Record<RoleId, IconMotif>> = {
   scout,
   scholar,
   keeper,
-  guardian,
   engineer,
-  envoy,
+  warden,
 };
 
 /** Trait and quirk icons by the `icon` key content gives them; each motif follows the same 48-unit grid. */
@@ -145,9 +136,8 @@ export const ROLE_ICON_KEYS: Readonly<Record<string, RoleId>> = {
   spyglass: 'scout',
   book: 'scholar',
   crook: 'keeper',
-  shield: 'guardian',
+  shield: 'warden',
   hammer: 'engineer',
-  banner: 'envoy',
 };
 
 /** The role an id names: `role:<role id>` or a role's icon key. */

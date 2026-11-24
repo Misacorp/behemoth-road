@@ -105,6 +105,18 @@ export class FakeServer {
       const events = Number.isNaN(since) ? [] : this.log.filter((e) => e.version > since);
       return [200, { ...toView(s), events }];
     }
+    // Onboarding: what the player was shown (a union, like the Worker), and their last visit.
+    if (path === '/api/me/seen') {
+      const seen = [...new Set([...(s.seen ?? []), ...(body?.ids ?? [])])];
+      this.scenario = { ...s, seen };
+      this.seenPosts = [...(this.seenPosts ?? []), body?.ids ?? []];
+      return [200, { seen }];
+    }
+    if (path === '/api/me/visit') {
+      this.visits = (this.visits ?? 0) + 1;
+      this.scenario = { ...s, lastDay: s.state.day, lastVersion: s.version };
+      return [200, { ok: true }];
+    }
     if (path === '/api/game/join' || path === '/api/game/replace') {
       const base =
         path === '/api/game/replace'

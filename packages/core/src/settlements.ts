@@ -13,7 +13,7 @@ import type { GameState, GameStateView, Settlement, Threat } from './state.ts';
 import { leadingEdge, threatStrength, threatType } from './threats.ts';
 import type { GameEvent } from './features.ts';
 
-/** The role tag of an envoy: parleys for more, and without risk. */
+/** The role tag of a warden: parleys for more, and without risk. */
 export const PEOPLES_TAG = 'peoples';
 /** The material tag a settlement takes as an offering. */
 export const TRADE_TAG = 'trade';

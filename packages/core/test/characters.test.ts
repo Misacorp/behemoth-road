@@ -17,23 +17,9 @@ import {
 const unique = (xs: readonly string[]) => new Set(xs).size === xs.length;
 
 describe('content', () => {
-  it('has the six roles', () => {
-    expect(ROLES.map((r) => r.id)).toEqual([
-      'scout',
-      'scholar',
-      'keeper',
-      'guardian',
-      'engineer',
-      'envoy',
-    ]);
-    expect(ROLES.map((r) => r.name)).toEqual([
-      'Scout',
-      'Scholar',
-      'Keeper',
-      'Guardian',
-      'Engineer',
-      'Envoy',
-    ]);
+  it('has the five roles', () => {
+    expect(ROLES.map((r) => r.id)).toEqual(['scout', 'scholar', 'keeper', 'engineer', 'warden']);
+    expect(ROLES.map((r) => r.name)).toEqual(['Scout', 'Scholar', 'Keeper', 'Engineer', 'Warden']);
   });
 
   it('has about a dozen traits and quirks, each with an icon and tags', () => {
@@ -119,6 +105,8 @@ describe('addCharacter', () => {
       pack: {},
       status: 'active',
       struckDay: null,
+      stance: 'rest',
+      waiting: false,
       skills: { xp: 0, taken: [] },
     });
     expect(state.characters).toHaveLength(0);
@@ -190,7 +178,7 @@ describe('replaceCharacter', () => {
 
   it('only replaces a lost character, and keeps the lost one', () => {
     const start = createGame(3);
-    const request = { userId: '1001', offer: 0, role: 'envoy' };
+    const request = { userId: '1001', offer: 0, role: 'warden' };
     expect(replaceCharacter(start, request)).toEqual({ ok: false, reason: 'no-character' });
     const joined = join(start, '1001').state;
     expect(replaceCharacter(joined, request)).toEqual({ ok: false, reason: 'not-lost' });
@@ -206,7 +194,7 @@ describe('replaceCharacter', () => {
     expect(characterOf(result.state, '1001')).toMatchObject({
       id: result.characterId,
       name: fresh[0]!.name,
-      role: 'envoy',
+      role: 'warden',
       at: ON_CREATURE,
       status: 'active',
     });
@@ -225,7 +213,7 @@ describe('replaceCharacter', () => {
   });
 
   it('round-trips characters through JSON', () => {
-    const { state } = join(createGame(3), '1001', 0, 'guardian');
+    const { state } = join(createGame(3), '1001', 0, 'warden');
     expect(JSON.parse(JSON.stringify(state))).toEqual(state);
   });
 });

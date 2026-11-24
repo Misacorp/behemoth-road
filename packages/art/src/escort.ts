@@ -1,7 +1,7 @@
 /**
- * The guardian's care, drawn on the map: a soft ring over the six hexes around a guardian (the escort), a
+ * The warden's care, drawn on the map: a soft ring over the six hexes around a warden (the escort), a
  * small shield mark on an escorted character, a bandage on a character struck today, and a shield raised
- * over the head of a guardian defending from the creature's back. The marks on a figure follow the
+ * over the head of a warden defending from the creature's back. The marks on a figure follow the
  * character standee's proportions (`drawCharacter`), so they sit on any look.
  */
 import { ART_TUNING } from './config.ts';
@@ -9,36 +9,45 @@ import { boxOf, ellipsePath, mapper, poly, smoothOpen, type Point } from './geom
 import type { Palette } from './palette.ts';
 import { hexCenter, type Hex, type Projection } from './projection.ts';
 import { inkAttrs, riseFor, type Drawn } from './props.ts';
+import { glyphBadge, isGlyph } from './glyphs.ts';
 import { el, type SvgNode } from './svg.ts';
 
 /** Signs on a character for the day; all optional. */
 export interface CharacterMarks {
-  /** Next to a guardian: a small shield mark at its shoulder. */
+  /** Next to a warden: a small shield mark at its shoulder. */
   readonly escorted?: boolean;
   /** Struck by a threat today: a bandage round its head. */
   readonly struck?: boolean;
   /** Defending the creature today: a round shield raised over its head. */
   readonly defending?: boolean;
+  /**
+   * A stance's glyph name (content `Stance.icon`) to show beside the head, for a stance that is doing
+   * something (never rest). Unknown names draw nothing.
+   */
+  readonly stance?: string;
+  /** Ended the day (waiting): a small hourglass at the other side of the head. */
+  readonly waiting?: boolean;
 }
 
 /** The character standee's height in its own units (`drawCharacter`). */
 const HEIGHT_UNITS = 50;
 
 /**
- * The soft escort ring around a guardian on `hex`: a wide, faint slate band over the six neighbouring hexes
+ * The soft escort ring around a warden on `hex`: a wide, faint slate band over the six neighbouring hexes
  * and a dashed line through their centres, on the ground plane. Drawing coordinates, like `drawVeilLift`;
  * the part carries `data-escort="q,r"`.
  */
-export function drawEscortRing(p: Projection, hex: Hex, palette: Palette): SvgNode {
+export function drawEscortRing(p: Projection, hex: Hex, palette: Palette, reach = 1): SvgNode {
   const c = hexCenter(p, hex.q, hex.r);
-  const r = Math.sqrt(3) * p.size;
+  // One ring over the neighbours; a wider guard (reach 2 or more) widens the band over the hexes beyond.
+  const r = Math.sqrt(3) * p.size * ((reach + 1) / 2);
   const ring = ellipsePath(c.x, c.y, r, r * p.squash);
   return el('g', { 'data-escort': `${hex.q},${hex.r}` }, [
     el('path', {
       d: ring,
       fill: 'none',
       stroke: palette.accents.slate.light,
-      'stroke-width': p.size * 1.15,
+      'stroke-width': p.size * 1.15 + (reach - 1) * Math.sqrt(3) * p.size,
       opacity: 0.35,
     }),
     el('path', {
@@ -99,7 +108,7 @@ function skewRect(c: Point, w: number, h: number, a: number): Point[] {
 
 /**
  * A character's marks for the day, drawn over its standee at `origin` (its feet). Same arguments as
- * `drawCharacter`. Parts carry `data-mark="escorted" | "struck" | "defending"`.
+ * `drawCharacter`. Parts carry `data-mark="escorted" | "struck" | "defending" | "stance" | "waiting"`.
  */
 export function drawCharacterMarks(
   palette: Palette,
@@ -118,7 +127,7 @@ export function drawCharacterMarks(
     el('path', { d, ...inkAttrs(colour, width) });
   if (marks.defending) {
     // An arm up from the shoulder and a round shield held over the head, seen a little from below: a slate
-    // rim, a cross band and a boss, like the guardian's emblem.
+    // rim, a cross band and a boss, like the warden's emblem.
     const arm = [T(5, -28), T(9.5, -40), T(8, -47)];
     const c = T(4, -55);
     const rx = 12.5 * k;
@@ -210,6 +219,21 @@ export function drawCharacterMarks(
         ),
       ]),
     );
+  }
+  if (marks.stance !== undefined && isGlyph(marks.stance)) {
+    // The stance the character's spare actions go to: a glyph on a paper disc up at the right of the head.
+    const c = T(15, -49);
+    const r = 8 * k;
+    all.push({ x: c.x - r, y: c.y - r }, { x: c.x + r, y: c.y + r });
+    nodes.push(
+      glyphBadge(palette, 'stance', marks.stance, c.x, c.y, r, palette.accents.slate.shade, w),
+    );
+  }
+  if (marks.waiting) {
+    const c = T(-15, -49);
+    const r = 8 * k;
+    all.push({ x: c.x - r, y: c.y - r }, { x: c.x + r, y: c.y + r });
+    nodes.push(glyphBadge(palette, 'waiting', 'hourglass', c.x, c.y, r, palette.inkSoft, w));
   }
   return { nodes, box: all.length ? boxOf(all) : boxOf([origin]) };
 }

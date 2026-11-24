@@ -13,6 +13,9 @@
     "directory": "../web/dist",
     "binding": "ASSETS",
     "not_found_handling": "single-page-application",
+    // /wiki serves wiki.html (the public skills wiki, a second entry of the frontend build) and /wiki/
+    // redirects to it, both before the single-page fallback; neither needs a session. Explicit, not default.
+    "html_handling": "auto-trailing-slash",
     "run_worker_first": ["/api/*"]
   },
   // One Durable Object per Discord server holds its game (src/guild-world.ts). Bindings are not inherited
@@ -36,7 +39,7 @@
   // ENVIRONMENT "local" (this top level, used by wrangler dev and the tests) also turns on the dev login
   // (POST /api/dev/login) and makes every player an admin; each deployed environment sets its own name.
   // LIVE: "on" turns on the live sockets (POST /api/live/ticket and GET /api/live, docs/design/live.md):
-  // staging and local only for now. Anything else makes both answer 404 and the client polls as before.
+  // on in every environment (production too, Misa's call). Anything else makes both answer 404 and the client polls as before.
   // Vars are not inherited by environments: a var added here is added to each environment below too.
   "vars": {
     "ENVIRONMENT": "local",
@@ -85,7 +88,7 @@
         "DISCORD_CLIENT_ID": "1573036223470247996",
         "DISCORD_PUBLIC_KEY": "",
         "DEV_TOOLS": "off",
-        "LIVE": "off",
+        "LIVE": "on",
         "ALLOWED_GUILDS": "215386000132669440"
       }
     }

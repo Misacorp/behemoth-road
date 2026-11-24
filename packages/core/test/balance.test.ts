@@ -14,5 +14,6 @@ describe('the balance simulation', () => {
     const careless = summarise(10, 'careless', 3, DEV_SEASON);
     expect(careful.safe).toBeGreaterThan(careless.safe);
     expect(careful.peril).toBeLessThan(careless.peril);
-  });
+    // 20 seasons of simulation: slow when the whole suite runs at once, so it gets more than the default 5 s.
+  }, 30_000);
 });

@@ -34,23 +34,21 @@ describe('strike', () => {
       hex(3, -1),
     );
 
-  it('lowers a threat by clearPowerGuardian for a guardian, clearPowerOther for anyone else', () => {
-    const g = ok(act(near('guardian'), 'guardian', { kind: 'strike', threat: 'c' }));
+  it('lowers a threat by clearPowerWarden for a warden, clearPowerOther for anyone else', () => {
+    const g = ok(act(near('warden'), 'warden', { kind: 'strike', threat: 'c' }));
     expect(g.state.threats[0]?.strength).toBe(1);
-    expect(g.events).toEqual([
-      { kind: 'threat-hit', id: 'c', characterId: 'guardian', strength: 1 },
-    ]);
+    expect(g.events).toEqual([{ kind: 'threat-hit', id: 'c', characterId: 'warden', strength: 1 }]);
     const s = ok(act(near('scout'), 'scout', { kind: 'strike', threat: 'c' }));
     expect(s.state.threats[0]?.strength).toBe(2);
     expect(s.state.characters[0]?.actionsLeft).toBe(2);
   });
 
   it('clears a threat at 0', () => {
-    const r = ok(act(near('guardian', 2), 'guardian', { kind: 'strike', threat: 'c' }));
+    const r = ok(act(near('warden', 2), 'warden', { kind: 'strike', threat: 'c' }));
     expect(r.state.threats).toEqual([]);
     expect(r.events).toEqual([
-      { kind: 'threat-hit', id: 'c', characterId: 'guardian', strength: 0 },
-      { kind: 'threat-cleared', id: 'c', characterId: 'guardian' },
+      { kind: 'threat-hit', id: 'c', characterId: 'warden', strength: 0 },
+      { kind: 'threat-cleared', id: 'c', characterId: 'warden' },
     ]);
   });
 
@@ -73,19 +71,19 @@ describe('strike', () => {
 });
 
 describe('defend', () => {
-  it('is for guardians riding, once a day', () => {
-    const state = fieldGame(['guardian', 'scout']);
+  it('is for wardens riding, once a day', () => {
+    const state = fieldGame(['warden', 'scout']);
     expect(checkAction(state, 'scout', { kind: 'defend' })).toMatchObject({
-      reason: 'needs-guardian',
+      reason: 'needs-warden',
     });
-    const off = placeCharacter(state, 'guardian', hex(3, -1));
-    expect(checkAction(off, 'guardian', { kind: 'defend' })).toMatchObject({
+    const off = placeCharacter(state, 'warden', hex(3, -1));
+    expect(checkAction(off, 'warden', { kind: 'defend' })).toMatchObject({
       reason: 'not-riding',
     });
-    const r = ok(act(state, 'guardian', { kind: 'defend' }));
-    expect(r.state.creature.defenders).toEqual(['guardian']);
-    expect(r.events).toEqual([{ kind: 'defend', characterId: 'guardian' }]);
-    expect(checkAction(r.state, 'guardian', { kind: 'defend' })).toMatchObject({
+    const r = ok(act(state, 'warden', { kind: 'defend' }));
+    expect(r.state.creature.defenders).toEqual(['warden']);
+    expect(r.events).toEqual([{ kind: 'defend', characterId: 'warden' }]);
+    expect(checkAction(r.state, 'warden', { kind: 'defend' })).toMatchObject({
       reason: 'already-have',
     });
   });
@@ -154,25 +152,25 @@ describe('the season', () => {
   });
 
   it('once over, refuses every action and move, and the tick changes nothing', () => {
-    let state = fieldGame(['guardian'], { ...QUIET, routeLength: 1 });
+    let state = fieldGame(['warden'], { ...QUIET, routeLength: 1 });
     state = nextDay(state);
     expect(state.season.status).toBe('over');
     expect(nextDayWithEvents(state)).toEqual({ state, events: [] });
-    expect(checkAction(state, 'guardian', { kind: 'defend' })).toEqual({
+    expect(checkAction(state, 'warden', { kind: 'defend' })).toEqual({
       ok: false,
       reason: 'season-over',
     });
-    expect(act(state, 'guardian', { kind: 'feed' })).toEqual({ ok: false, reason: 'season-over' });
+    expect(act(state, 'warden', { kind: 'feed' })).toEqual({ ok: false, reason: 'season-over' });
     const edge = creatureEdge(state)[0]!;
-    expect(move(state, 'guardian', edge)).toEqual({ ok: false, reason: 'season-over' });
-    expect(move(toPlayerView(state), 'guardian', edge)).toEqual({
+    expect(move(state, 'warden', edge)).toEqual({ ok: false, reason: 'season-over' });
+    expect(move(toPlayerView(state), 'warden', edge)).toEqual({
       ok: false,
       reason: 'season-over',
     });
-    expect(planPath(state, 'guardian', edge)).toEqual({ ok: false, reason: 'season-over' });
-    expect(reachablePlaces(state, 'guardian')).toEqual([]);
+    expect(planPath(state, 'warden', edge)).toEqual({ ok: false, reason: 'season-over' });
+    expect(reachablePlaces(state, 'warden')).toEqual([]);
     for (const path of [[], [edge]]) {
-      expect(moveAlong(state, 'guardian', path)).toEqual({
+      expect(moveAlong(state, 'warden', path)).toEqual({
         ok: false,
         reason: 'season-over',
         step: 0,
@@ -196,7 +194,7 @@ describe('the season', () => {
 /**
  * Milestone 5's done criterion: full short seasons played through the core to
  * each outcome. The short season of staging and local play (12 steps); the
- * team rides: two guardians and a keeper. Threats roll as they would in play.
+ * team rides: two wardens and a keeper. Threats roll as they would in play.
  */
 const SHORT: ConfigOverrides = {
   routeLength: 12,
@@ -219,7 +217,7 @@ const season = (
     stores: plan.feed ? { forage: 20 } : {},
     characters: state.characters.map((c) => ({
       ...c,
-      role: c.id === 'keeper' ? 'keeper' : 'guardian',
+      role: c.id === 'keeper' ? 'keeper' : 'warden',
     })),
   };
   const events: GameEvent[] = [];

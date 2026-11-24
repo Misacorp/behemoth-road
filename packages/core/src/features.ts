@@ -50,6 +50,8 @@ export type GameEvent =
       readonly characterId: string;
       readonly material: string;
       readonly amount: number;
+      /** A relic-sense bonus found with it (a different material). */
+      readonly extra?: { readonly material: string; readonly amount: number };
     }
   | { readonly kind: 'site-failed'; readonly hex: Hex; readonly characterId: string }
   | { readonly kind: 'deposit'; readonly characterId: string; readonly materials: Materials }
@@ -141,6 +143,9 @@ export type GameEvent =
       readonly boon: string;
     }
   /** A character took a skill node (public: it shows on their card). */
+  | { readonly kind: 'stance'; readonly characterId: string; readonly stance: string }
+  /** A character ended their day. */
+  | { readonly kind: 'wait'; readonly characterId: string }
   | { readonly kind: 'skill-picked'; readonly characterId: string; readonly node: string }
   | { readonly kind: 'season-over'; readonly outcome: SeasonOutcome };
 

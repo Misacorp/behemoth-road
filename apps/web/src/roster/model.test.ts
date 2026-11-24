@@ -10,6 +10,8 @@ interface C {
   actionsLeft: number;
   status: string;
   at: unknown;
+  stance: string;
+  waiting: boolean;
 }
 const ch = (id: string, userId: string, o: Partial<C> = {}): C => ({
   id,
@@ -18,6 +20,8 @@ const ch = (id: string, userId: string, o: Partial<C> = {}): C => ({
   actionsLeft: 2,
   status: 'active',
   at: { kind: 'hex', hex: { q: 0, r: 0 } },
+  stance: 'rest',
+  waiting: false,
   ...o,
 });
 const pl = (
@@ -44,15 +48,15 @@ describe('roster rows', () => {
     [
       pl('u3', 'zed', 'c3', 'keeper'),
       pl('u2', 'Ann', 'c2', 'scout'),
-      pl('u1', 'Wes', 'c1', 'guardian'),
+      pl('u1', 'Wes', 'c1', 'warden'),
       pl('u4', 'bea', null),
-      pl('u5', 'Cy', 'c5', 'envoy'),
+      pl('u5', 'Cy', 'c5', 'warden'),
     ],
     [
-      ch('c1', 'u1', { role: 'guardian', actionsLeft: 0 }),
+      ch('c1', 'u1', { role: 'warden', actionsLeft: 0 }),
       ch('c2', 'u2', { at: { kind: 'creature' } }),
       ch('c3', 'u3', { role: 'keeper', status: 'lost', actionsLeft: 1 }),
-      ch('c5', 'u5', { role: 'envoy', actionsLeft: 1 }),
+      ch('c5', 'u5', { role: 'warden', actionsLeft: 1 }),
     ],
   );
   const rows = rosterRows(v, 2);
@@ -89,6 +93,22 @@ describe('roster rows', () => {
       Cy: true,
       zed: false,
     });
+  });
+
+  it('shows each active player’s stance and whether they ended their day', () => {
+    expect(Object.fromEntries(rows.map((r) => [r.name, [r.stance, r.waiting]]))).toEqual({
+      Wes: ['rest', false],
+      Ann: ['rest', false],
+      bea: [null, false],
+      Cy: ['rest', false],
+      zed: [null, false],
+    });
+    const waiting = rosterRows(
+      view([pl('u1', 'Me', 'c1')], [ch('c1', 'u1', { waiting: true, stance: 'lie-in-wait' })]),
+      2,
+    );
+    // The view has no tiles or config to fit a stance against: only rest never needs them.
+    expect(waiting[0]).toMatchObject({ waiting: true });
   });
 
   it('keeps the order stable for equal names', () => {

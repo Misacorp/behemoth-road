@@ -13,6 +13,7 @@ import {
   type GameStateView,
   type Hex,
   hexEquals,
+  escortReach,
   isEscorted,
   MATERIALS,
   PEOPLE_TYPES,
@@ -125,20 +126,20 @@ export function threatCard(
 }
 
 /**
- * How the creature is defended today: the guardians riding it who defended (each one's shield) and what
+ * How the creature is defended today: the wardens riding it who defended (each one's shield) and what
  * their defence takes off every strike on it (the core's `defence`, so the number is the rule's own).
  */
 export function defendedBy(game: GameStateView): {
-  readonly guardians: number;
+  readonly wardens: number;
   readonly reduction: number;
 } {
   const reduction = defence(game);
   const per = game.config.defendReduction;
-  return { guardians: per > 0 ? Math.round(reduction / per) : 0, reduction };
+  return { wardens: per > 0 ? Math.round(reduction / per) : 0, reduction };
 }
 
 /**
- * Defending the creature, for the hub, like a linger: greyed with the guardian's emblem for anyone else,
+ * Defending the creature, for the hub, like a linger: greyed with the warden's emblem for anyone else,
  * faded unless riding with the actions, sealed once done today.
  */
 export function defendOption(game: GameStateView, characterId: string): CostedAction | null {
@@ -228,8 +229,8 @@ export function settlementActions(game: GameStateView, characterId: string): Set
 }
 
 /**
- * Characters a guardian's escort covers (the shield mark): active, on a hex the core counts as escorted
- * (`isEscorted`), guardians themselves left out (their own escort shows as the ring).
+ * Characters a warden's escort covers (the shield mark): active, on a hex the core counts as escorted
+ * (`isEscorted`), wardens themselves left out (their own escort shows as the ring).
  */
 export function escortedIds(game: GameStateView): Set<string> {
   return new Set(
@@ -245,10 +246,15 @@ export function escortedIds(game: GameStateView): Set<string> {
   );
 }
 
-/** Guardians standing on a hex: each shows the soft ring of its escort. */
-export const escortCentres = (game: GameStateView): Hex[] =>
+/** Wardens standing on a hex: each shows the soft ring of its escort. */
+export const escortCentres = (game: GameStateView): Hex[] => escorts(game).map((e) => e.hex);
+
+/** The same wardens with how far each one's escort reaches (more with a wide-guard skill). */
+export const escorts = (game: GameStateView): { hex: Hex; reach: number }[] =>
   game.characters.flatMap((g) =>
-    g.status === 'active' && g.at.kind === 'hex' && roleHas(g, ESCORT_TAG) ? [g.at.hex] : [],
+    g.status === 'active' && g.at.kind === 'hex' && roleHas(g, ESCORT_TAG)
+      ? [{ hex: g.at.hex, reach: escortReach(g) }]
+      : [],
   );
 
 /** Whether a threat struck this character today (it shows a bandage for the day). */
