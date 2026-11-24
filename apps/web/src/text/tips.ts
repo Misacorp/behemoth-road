@@ -114,6 +114,7 @@ export const tips = {
   'unlock:lantern': { text: 'Light for deep tombs, so a scholar can work them.' },
   'unlock:climbing-spikes': { text: 'Cliffs cost only {climbCost.climbing-spikes} action a step.' },
   'unlock:marsh-boards': { text: 'Swamp costs only {climbCost.marsh-boards} action a step.' },
+  'unlock:raft': { text: 'Lets everyone cross deep water, for {climbCost.raft} actions a step.' },
 
   // Actions (buttons in the cards and the hub).
   'action:survey': {
@@ -270,6 +271,10 @@ export const tips = {
   'terrain:swamp': { title: 'Swamp', text: 'Reeds and standing water. Heavy going.' },
   'terrain:river': { title: 'River', text: 'Running water. No fire will light here.' },
   'terrain:cliff': { title: 'Cliff', text: 'Too steep to climb without gear.' },
+  'terrain:shallows': { title: 'Shallows', text: 'Clear and shallow. Wade on through.' },
+  'terrain:lake': { title: 'Deep water', text: 'Too deep to wade. The creature swims it.' },
+  'terrain:sea': { title: 'Sea', text: 'Salt water, too deep to wade. The creature swims it.' },
+  'terrain:islet': { title: 'Island', text: 'A scrap of land in deep water.' },
 
   // What a hex holds, once found.
   'feature:iron-deposit': { text: 'Gather iron here, until it runs out.' },
@@ -286,6 +291,7 @@ export const tips = {
 
   'feature:sunken-shrine': { text: 'A shrine in the shallows. Search it for what it keeps.' },
   'feature:undertow': { text: 'An undertow, found. Harmless now.' },
+  'feature:water-temple': { text: 'A temple on the water. Search it for what it keeps.' },
 
   // Threats on the map.
   'threat:captors': {

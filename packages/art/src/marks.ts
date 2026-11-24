@@ -335,6 +335,22 @@ export const VIA_MARKS: Readonly<Record<string, (p: Palette) => SvgNode[]>> = {
     }),
     el('path', { d: 'M-4 0l.5 5M0 0v5M4 0l-.5 5', ...stroke(pal.ink, 1.6) }),
   ],
+  // A raft: three lashed logs and a pole, for a step across deep water.
+  raft: (pal) => [
+    el('path', {
+      d: ellipsePath(0, 0, 11, 11),
+      fill: pal.paper,
+      stroke: pal.ink,
+      'stroke-width': 1.6,
+    }),
+    el('path', {
+      d: 'M-7 -3h13l1 2.5h-14zM-7 .5h13l1 2.5h-14zM-7 4h13l1 2.5h-14z',
+      fill: pal.ramps.bark.base,
+      stroke: pal.ink,
+      'stroke-width': 1,
+    }),
+    el('path', { d: 'M5 -8L2 3', ...stroke(pal.ramps.bark.shade, 1.4) }),
+  ],
   // Marsh boards: two planks laid side by side, for a swamp step taken on the boards.
   'marsh-boards': (pal) => [
     el('path', {

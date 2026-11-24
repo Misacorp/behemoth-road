@@ -173,7 +173,11 @@ export function buildGlossary(): readonly GlossaryEntry[] {
         'features',
         f.id,
         tipFor('feature', f.id),
-        { kind: 'tile', terrain: 'plains', look: f.icon },
+        {
+          kind: 'tile',
+          terrain: f.placement.on.includes('island') ? 'islet' : 'plains',
+          look: f.icon,
+        },
         f.name,
       ),
     );

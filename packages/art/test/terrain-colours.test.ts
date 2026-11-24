@@ -7,6 +7,8 @@ import { SIX_TERRAINS } from '../src/review-terrain.ts';
 /** Lightest to darkest, by ground colour. Value separates terrains first, hue second. */
 const ORDER = ['desert', 'plains', 'lake', 'cliff', 'forest', 'swamp'] as const;
 const MIN_GAP = 6;
+/** The water family: lake, sea and shallows are all blue, and nothing else is. */
+const WATER_GROUNDS = ['water', 'sea', 'shoal'];
 const MIN_SIM_DELTA_E = 12;
 
 const base = (p: Palette, terrain: string): string => p.ramps[terrainLook(terrain).ground].base;
@@ -43,12 +45,43 @@ describe('terrain colours', () => {
         };
         for (const terrain of Object.keys(TERRAIN_LOOKS)) {
           const b = blueness(base(palette, terrain));
-          if (terrainLook(terrain).ground === 'water') expect(b, terrain).toBeGreaterThan(15);
-          else expect(b, terrain).toBeLessThan(15);
+          if (WATER_GROUNDS.includes(terrainLook(terrain).ground)) {
+            expect(b, terrain).toBeGreaterThan(15);
+          } else expect(b, terrain).toBeLessThan(15);
         }
       });
     });
   }
+
+  it('tells lake, sea and shallows apart: sea darker and greener than the lake, shallows lighter', () => {
+    const water = ['lake', 'sea', 'shallows'] as const;
+    for (const palette of PALETTES) {
+      const [lake, sea, shallows] = water.map((t) => base(palette, t)) as [string, string, string];
+      expect(lightness(lake) - lightness(sea), palette.id).toBeGreaterThanOrEqual(MIN_GAP);
+      expect(lightness(shallows) - lightness(lake), palette.id).toBeGreaterThanOrEqual(MIN_GAP);
+      const green = (hex: string): number =>
+        parseInt(hex.slice(3, 5), 16) - parseInt(hex.slice(1, 3), 16);
+      expect(green(sea), palette.id).toBeGreaterThan(green(lake));
+      for (const vision of VISION) {
+        for (const [x, y] of [
+          [lake, sea],
+          [lake, shallows],
+          [sea, shallows],
+        ] as const) {
+          expect(deltaE(x, y, vision), `${palette.id} ${vision}`).toBeGreaterThanOrEqual(
+            MIN_SIM_DELTA_E,
+          );
+        }
+      }
+    }
+  });
+
+  it('draws sea, shallows and islands differently from a lake and from plains', () => {
+    expect(terrainLook('sea').marks).toBe('swell');
+    expect(terrainLook('shallows').marks).toBe('shoals');
+    expect(terrainLook('lake').marks).toBe('waves');
+    expect(terrainLook('islet').ground).toBe('plain');
+  });
 
   it('gives each of the six terrains its own ground material', () => {
     const grounds = SIX_TERRAINS.map((t) => terrainLook(t).ground);
@@ -63,7 +96,17 @@ describe('terrain colours', () => {
   });
 
   it('keeps ground ramps light to dark and inside plausible bounds', () => {
-    const grounds: Material[] = ['plain', 'wood', 'dune', 'crag', 'upland', 'mire', 'water'];
+    const grounds: Material[] = [
+      'plain',
+      'wood',
+      'dune',
+      'crag',
+      'upland',
+      'mire',
+      'water',
+      'sea',
+      'shoal',
+    ];
     for (const palette of PALETTES) {
       for (const g of grounds) {
         const { light, base: b, shade } = palette.ramps[g];

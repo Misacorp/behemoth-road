@@ -308,6 +308,38 @@ export function drawGround(
         );
       }
       marks.add(inkAttrs(palette.ramps.water.shade, ink * 0.8), lines.join(''));
+    } else if (look.marks === 'swell') {
+      // The sea: more, longer, two-humped swells than a lake's waves, in the sea's own shade.
+      const lines: string[] = [];
+      for (let j = 0, n = rng.int(4, 5); j < n; j += 1) {
+        const o = onPlane(p, c, rng.range(-0.55, 0.2), rng.range(-0.5, 0.5));
+        const s = 5.5 * k;
+        lines.push(
+          smoothOpen(
+            [0, 1, 2, 3, 4, 5].map((t) => ({
+              x: o.x + s * t,
+              y: o.y - (t % 2 === 0 ? 0 : s * 0.55),
+            })),
+          ),
+        );
+      }
+      marks.add(inkAttrs(palette.ramps.sea.shade, ink * 0.9), lines.join(''));
+    } else if (look.marks === 'shoals') {
+      // Shallows: a few short ripples and pale sand flecks showing through the clear water.
+      const lines: string[] = [];
+      const sand: string[] = [];
+      for (let j = 0, n = rng.int(2, 3); j < n; j += 1) {
+        const o = onPlane(p, c, rng.range(-0.5, 0.3), rng.range(-0.5, 0.5));
+        const s = 3.5 * k;
+        lines.push(smoothOpen([o, { x: o.x + s, y: o.y - s * 0.45 }, { x: o.x + 2 * s, y: o.y }]));
+      }
+      for (let j = 0, n = rng.int(3, 5); j < n; j += 1) {
+        const o = onPlane(p, c, rng.range(-0.55, 0.55), rng.range(-0.5, 0.5));
+        const r = rng.range(0.8, 1.5) * k;
+        sand.push(ellipsePath(o.x, o.y, r * 1.3, r * p.squash));
+      }
+      marks.add({ fill: palette.ramps.dune.light, opacity: 0.7 }, sand.join(''));
+      marks.add(inkAttrs(palette.ramps.shoal.shade, ink * 0.8), lines.join(''));
     } else if (look.marks === 'pools') {
       // Standing water: a few small shallow pools with a short ripple stroke across each.
       const pools: string[] = [];

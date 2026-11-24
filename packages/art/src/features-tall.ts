@@ -809,6 +809,95 @@ const shrine: FeatureDraw = (c, state) => {
   return { nodes, box: boxOf([...roof, ...pool, ...left, ...right]) };
 };
 
+/**
+ * A water temple: two slim columns under a pediment with a round window, a dark doorway between them and a
+ * pearl in it; no plinth, the water laps at its feet. Spent, the doorway is empty and the ripples still.
+ */
+const temple: FeatureDraw = (c, state) => {
+  const { fill, line, pts, blob } = kit(c);
+  const pal = c.palette;
+  const sq = c.squash / 0.6;
+  const column = (x: number) =>
+    pts([
+      [x - 3, 1],
+      [x - 2.6, -23],
+      [x + 2.6, -23],
+      [x + 3, 1],
+    ]);
+  const left = column(-9);
+  const right = column(9);
+  const door = pts([
+    [-5.5, 0],
+    [-5.5, -17],
+    [0, -21],
+    [5.5, -17],
+    [5.5, 0],
+  ]);
+  const beam = pts([
+    [-15, -23],
+    [-15, -27],
+    [15, -27],
+    [15, -23],
+  ]);
+  const pediment = pts([
+    [-16, -27],
+    [0, -41],
+    [16, -27],
+  ]);
+  const pedimentShade = pts([
+    [0, -41],
+    [16, -27],
+    [0, -27],
+  ]);
+  const nodes: SvgNode[] = [
+    fill(smoothClosed(blob(0, -0.5, 17, 3.4 * sq)), pal.ramps.sea.light, 0.7),
+    fill(poly(door), state === 'spent' ? pal.inkSoft : pal.ramps.stone.shade),
+    fill(poly(left), pal.ramps.stone.base),
+    fill(poly(right), pal.ramps.stone.light),
+    fill(poly(beam), pal.ramps.stone.base),
+    fill(poly(pediment), pal.ramps.stone.light),
+    fill(poly(pedimentShade), pal.ramps.stone.shade, 0.45),
+    line(poly(left) + poly(right) + poly(beam) + poly(pediment) + poly(door), 1),
+    // The round window under the apex, in the sea's blue.
+    fill(smoothClosed(blob(0, -31, 2.4, 2.4)), pal.ramps.sea.base),
+    line(smoothClosed(blob(0, -31, 2.4, 2.4)), 0.7),
+  ];
+  if (state !== 'spent') {
+    nodes.push(
+      fill(smoothClosed(blob(0, -8, 2, 2)), pal.paper),
+      line(smoothClosed(blob(0, -8, 2, 2)), 0.7),
+    );
+  }
+  const lap = blob(0, 1, 14, 2.4 * sq);
+  nodes.push(
+    fill(smoothClosed(lap), pal.ramps.sea.light, 0.78),
+    line(smoothClosed(lap), 0.7, pal.ramps.sea.shade),
+  );
+  if (state !== 'spent') {
+    nodes.push(
+      line(
+        smoothOpen(
+          pts([
+            [-21, 3],
+            [-17, 1.8],
+            [-13, 3],
+          ]),
+        ) +
+          smoothOpen(
+            pts([
+              [13, 3.5],
+              [17, 2.3],
+              [21, 3.5],
+            ]),
+          ),
+        0.7,
+        pal.ramps.sea.shade,
+      ),
+    );
+  }
+  return { nodes, box: boxOf([...pediment, ...left, ...right, ...lap]) };
+};
+
 /** Berry bushes: one tall bramble of arching canes, thick with leaves and berries; depleted, picked bare. */
 const berryBushes: FeatureDraw = (c, state) => {
   const { fill, line, blob, pts } = kit(c);
@@ -912,4 +1001,5 @@ export const TALL_DRAWERS: Readonly<Record<string, FeatureDraw>> = {
   outcrop: oreOutcrop,
   deadfall,
   shrine,
+  temple,
 };

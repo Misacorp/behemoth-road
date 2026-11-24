@@ -4,7 +4,8 @@
  */
 import type { Material } from './palette.ts';
 
-export type GroundMark = 'flecks' | 'ripples' | 'waves' | 'scree' | 'scuffs' | 'pools' | 'none';
+export type GroundMark =
+  'flecks' | 'ripples' | 'waves' | 'swell' | 'shoals' | 'scree' | 'scuffs' | 'pools' | 'none';
 
 export interface PropRule {
   /** A prop kind (`props.ts`). */
@@ -100,6 +101,31 @@ export const TERRAIN_LOOKS: Readonly<Record<string, TerrainLook>> = {
     side: 'earth',
     marks: 'waves',
     props: [],
+  },
+  // The sea: a deeper, greener blue with long swells (more and longer wave marks than a lake).
+  sea: {
+    ground: 'sea',
+    side: 'earth',
+    marks: 'swell',
+    props: [],
+  },
+  // Shallows: light, clear water with short ripples and pale sand showing through.
+  shallows: {
+    ground: 'shoal',
+    side: 'earth',
+    marks: 'shoals',
+    props: [],
+  },
+  // A small island: green ground with a tree or a rock, ringed by deep water.
+  islet: {
+    ground: 'plain',
+    side: 'earth',
+    marks: 'flecks',
+    props: [
+      { kind: 'broadleaf', count: [1, 1], chance: 0.6 },
+      { kind: 'tuft', count: [1, 2] },
+      { kind: 'rock', count: [1, 1], chance: 0.4 },
+    ],
   },
 };
 

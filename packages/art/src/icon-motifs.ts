@@ -318,6 +318,15 @@ export const ITEM_MOTIFS: Readonly<Record<string, IconMotif>> = {
     ink(pal, 'M38 36c0-6 1-10 2-14M41 36c0-5 1-8 3-11', 1.4, pal.ramps.foliage.shade),
     ink(pal, 'M7 40h9M24 41h8', 1.2, pal.ramps.water.shade),
   ],
+  // A raft: three lashed logs side by side on a few waves, with a punting pole.
+  raft: (pal) => [
+    ink(pal, 'M6 38c4-2 6 2 10 0s6 2 10 0 6 2 10 0 6 2 10 0', 1.4, pal.ramps.sea.shade),
+    solid(pal, 'M9 33l30-3 1 4-30 3z', pal.ramps.bark.base, 1.6),
+    solid(pal, 'M8 29l30-3 1 4-30 3z', pal.ramps.bark.light, 1.6),
+    solid(pal, 'M7 25l30-3 1 4-30 3z', pal.ramps.bark.base, 1.6),
+    ink(pal, 'M16 24l1 9M30 22l1 9', 1.6, pal.ramps.bark.shade),
+    ink(pal, 'M38 10L30 36', 2.2, pal.ramps.bark.shade),
+  ],
   spikes: (pal) => [
     solid(pal, 'M12 22h24l-2 5H14z', pal.ramps.stone.light),
     ink(pal, 'M15 27l1 7M20 27l.5 7M25 27v7M30 27l-.5 7M34 27l-1 7', 2, pal.ramps.stone.shade),
