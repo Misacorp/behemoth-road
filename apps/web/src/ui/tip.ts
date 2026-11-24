@@ -108,10 +108,10 @@ export class TipController {
   }
 
   /** A mouse came to rest on `id`: its tip opens after the delay (at once when another tip is showing). */
-  hover(id: TipId, target: TipTarget): void {
+  hover(id: TipId, target: TipTarget, extra?: unknown): void {
     this.cancel();
-    if (this.current !== null) this.show(id, target);
-    else this.timer = this.clock.setTimeout(() => this.show(id, target), delayOf(id));
+    if (this.current !== null) this.show(id, target, false, extra);
+    else this.timer = this.clock.setTimeout(() => this.show(id, target, false, extra), delayOf(id));
   }
 
   /** The mouse left `id`. */
@@ -121,14 +121,14 @@ export class TipController {
   }
 
   /** A finger (or pen) went down on `id` at (x, y): its tip opens if it is held. */
-  press(id: TipId, target: TipTarget, x: number, y: number): void {
+  press(id: TipId, target: TipTarget, x: number, y: number, extra?: unknown): void {
     this.cancel();
     this.close();
     this.hold = { x, y };
     this.wasHold = false;
     this.timer = this.clock.setTimeout(() => {
       this.timer = null;
-      if (this.show(id, target)) {
+      if (this.show(id, target, false, extra)) {
         this.wasHold = true;
         this.swallowNextClick(target);
       }

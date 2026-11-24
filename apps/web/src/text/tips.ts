@@ -54,10 +54,10 @@ export const tips = {
     text: 'Reads the creature’s signs and tends it. Riding, can make it stay put for a day.',
   },
   'role:engineer': {
-    text: 'Builds the team’s unlocks from the stores, while riding the creature.',
+    text: 'Builds the party’s unlocks from the stores, while riding the creature.',
   },
   'role:warden': {
-    text: 'Guards and speaks for the team. Strikes harder, parleys without risk, is never struck, and keeps those beside them safe.',
+    text: 'Guards and speaks for the party. Strikes harder, parleys without risk, is never struck, and keeps those beside them safe.',
   },
 
   // Traits: a character's knack. Not in play yet.
@@ -90,7 +90,7 @@ export const tips = {
   'quirk:gourmand': { text: 'Helps: tending. Hinders: saving food. Not in play yet.' },
   'quirk:old-bones': { text: 'Helps: old lore. Hinders: getting about. Not in play yet.' },
 
-  // Materials (in packs and the team stores).
+  // Materials (in packs and the party stores).
   'material:iron': {
     text: 'From iron deposits and outcrops. Builds the grappling hook, the spikes and the marsh boards.',
   },
@@ -107,7 +107,7 @@ export const tips = {
   },
   'material:forage': { text: 'Food from berry bushes. Feed it to the creature from the stores.' },
 
-  // Unlocks (built by engineers, for the whole team).
+  // Unlocks (built by engineers, for the whole party).
   'unlock:grappling-hook': {
     text: 'Lets everyone climb cliffs, for {climbCost.grappling-hook} actions a step.',
   },
@@ -221,7 +221,7 @@ export const tips = {
   'skill:veiled': { title: 'Veiled', text: 'Not yet known.' },
 
   // Boons a friendly settlement can grant (one each).
-  'boon:gift': { title: 'Gift', text: 'Food and materials into the team stores.' },
+  'boon:gift': { title: 'Gift', text: 'Food and materials into the party stores.' },
   'boon:mislead': {
     title: 'Mislead',
     text: 'Captor bands lose the trail, and none follow for {misleadDays} days.',
@@ -242,7 +242,7 @@ export const tips = {
     title: 'Not now',
     text: 'Your pack is full ({packSize}). Board the creature to empty it.',
   },
-  'why:needs-unlock': { title: 'Not yet', text: 'The team has yet to build what this needs.' },
+  'why:needs-unlock': { title: 'Not yet', text: 'The party has yet to build what this needs.' },
   'why:missing-materials': { title: 'Not yet', text: 'The stores lack what this takes.' },
   'why:no-fuel': { title: 'Not now', text: 'You carry no fuel.' },
   'why:no-food': { title: 'Not now', text: 'The stores hold no food.' },
@@ -306,7 +306,7 @@ export const tips = {
     text: 'Flies in from the side. Fast, but weaker. Tap it to see its next step.',
   },
   'threat:rockslide': {
-    text: 'Loose rock on the road ahead. Best not to walk into it.',
+    text: 'Loose rock on the way ahead. Best not to walk into it.',
   },
   'threat:ambush': {
     text: 'Lies in wait among the trees. Slow, but close. Tap it to see its next step.',
@@ -336,6 +336,13 @@ export const tips = {
   'map:towline': { title: 'Tow line', text: 'A line is thrown their way. They can take it.' },
   'map:stranded': { title: 'Cut off', text: 'Out in the fog, with no way back today.' },
   'map:struck': { title: 'Struck', text: 'Hit by a threat: only {struckActions} action tomorrow.' },
+  // What the walk leaves behind. The tip adds who made it and at which step.
+  'map:trace-fire': { title: 'Fire scar', text: 'A fire burned here.' },
+  'map:trace-trail': { title: 'Green trail', text: 'The creature walked here.' },
+  'map:trace-cairn': { title: 'Cairn', text: 'The creature stayed here a day.' },
+  'map:trace-chain': { title: 'Broken chain', text: 'Its pursuers were turned back here.' },
+  'map:trace-gate': { title: 'Open gate', text: 'Someone was lost to the fog here.' },
+  'map:standing-stone': { title: 'Standing stone', text: 'Set here before you came.' },
 
   // Idle stances: where spare actions go at the tick.
   'stance:rest': {
@@ -383,7 +390,7 @@ export const tips = {
   },
   'hud:stores': {
     title: 'Stores',
-    text: 'The team’s stores, on the creature. Unlocks and feeding use them.',
+    text: 'The party’s stores, on the creature. Unlocks and feeding use them.',
   },
   'hud:skills': {
     title: 'Skills',
@@ -410,7 +417,10 @@ export const tips = {
   'peril:threat:ambush': { text: 'It reached the creature. Strike it down, or defend.' },
   'peril:threat:stampede': { text: 'It reached the creature. Strike it down, or defend.' },
   'peril:threat:raiders': { text: 'They reached the creature. Keep their people friendly.' },
-  'hud:route': { title: 'The way home', text: 'Steps walked toward home.' },
+  'hud:route': { title: 'The route', text: 'Steps walked so far.' },
+  'hud:greyfold': { title: 'The Greyfold', text: 'Where the creature is going.' },
+  'hud:date': { title: 'Step', text: 'Steps walked, of all the route.' },
+  'hud:story': { title: 'A card waits', text: 'Tap to read the next.' },
   'hud:appetite': {
     title: 'Appetite',
     text: 'How the creature’s appetite seems: hungry or full. Keepers read it best.',
@@ -441,7 +451,7 @@ export const tips = {
     group: 'hud',
   },
   'stat:finds': { title: 'Finds', text: 'Sites opened with something found.', group: 'hud' },
-  'stat:unlocks': { title: 'Unlocks', text: 'Team unlocks built.', group: 'hud' },
+  'stat:unlocks': { title: 'Unlocks', text: 'Unlocks built by the party.', group: 'hud' },
   'stat:friends': { title: 'Friends', text: 'Settlements won over.', group: 'hud' },
   'stat:explored': { title: 'Explored', text: 'Hexes explored.', group: 'hud' },
   'stat:strikes': { title: 'Strikes', text: 'Blows struck against threats.', group: 'hud' },

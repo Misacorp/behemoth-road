@@ -33,6 +33,7 @@ import {
   NextDayIcon,
   Pips,
   Slots,
+  StoryIcon,
   SunIcon,
 } from './icons.tsx';
 
@@ -63,6 +64,8 @@ export interface HudProps {
   /** Milestone 5: the creature's peril (the gauge beside the day) and the route toward home. */
   readonly peril?: PerilProps;
   readonly route?: RouteProps;
+  /** Story cards waiting: a small ribbon by the route; a tap plays the next. Null when none wait. */
+  readonly story?: { readonly onTap: () => void } | null;
   /** Your role's emblem with the notch ring toward the next pick; a tap opens the skill tree. */
   readonly skills?: {
     readonly role: string;
@@ -169,7 +172,20 @@ export function Hud(props: HudProps): JSX.Element {
             />
           )}
         </div>
-        {props.route && <RouteStrip {...props.route} />}
+        <div class="hud-routerow">
+          {props.route && <RouteStrip {...props.route} />}
+          {props.story && (
+            <button
+              type="button"
+              class="hud-story"
+              aria-label="Story"
+              {...tipProps('hud:story')}
+              onClick={props.story.onTap}
+            >
+              <StoryIcon />
+            </button>
+          )}
+        </div>
       </div>
       <div class="hud-turn">
         <div

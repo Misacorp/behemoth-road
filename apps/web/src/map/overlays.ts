@@ -15,6 +15,8 @@ import {
   drawStayMark,
   drawStepHint,
   drawIcon,
+  drawStandingStone,
+  drawTrace,
   drawViaMark,
   el,
   hexCenter,
@@ -51,6 +53,7 @@ import { MAP_TUNING } from './config.ts';
 import { figureFeet, placePoint } from './figures.ts';
 import { type Flow, isSelecting } from './flow.ts';
 import { feetOf, type Point } from './pick.ts';
+import type { Stone } from '../game/traces.ts';
 
 export interface OverlayInput {
   readonly state: GameStateView;
@@ -62,6 +65,8 @@ export interface OverlayInput {
   readonly palette: Palette;
   /** Screen px per world px the map settles at (default 1); keeps key marks legible when zoomed out. */
   readonly zoom?: number;
+  /** The standing stones set so far (`standingStones`). */
+  readonly stones?: readonly Stone[];
 }
 
 export interface Overlays {
@@ -720,6 +725,50 @@ function escortRings(i: OverlayInput): SvgNode[] {
   return escorts(i.state).map((g) => drawEscortRing(i.projection, g.hex, i.palette, g.reach));
 }
 
+/**
+ * What the walk left on the ground: fire scars, the green trail, cairns, broken chain and open gates, each on
+ * its hex (never on a hex that is not known). The art kit draws them light, so they sit under props and
+ * figures. The trail runs along the creature's heading.
+ */
+function traceMarks(i: OverlayInput): SvgNode[] {
+  const p = i.projection;
+  const a = hexCenter(p, 0, 0);
+  const d = directionOffset(i.state.creature.heading);
+  const b = hexCenter(p, d.q, d.r);
+  const heading = (Math.atan2(b.y - a.y, b.x - a.x) * 180) / Math.PI;
+  const out: SvgNode[] = [];
+  for (const t of i.state.traces) {
+    const key = hexKey(t.hex);
+    const cell = cellStateAt(i.state, key);
+    if (cell === 'unseen' || cell === 'lost') continue;
+    const drawn = drawTrace(i.palette, t.kind, {
+      origin: hexCenter(p, t.hex.q, t.hex.r),
+      k: p.size / 64,
+      squash: p.squash,
+      seed: key,
+      heading,
+    });
+    out.push(el('g', { 'data-trace': t.kind, 'data-step': t.step }, drawn.nodes));
+  }
+  return out;
+}
+
+/** The standing stones, upright like the other things on the map. */
+function stoneMarks(i: OverlayInput): SvgNode[] {
+  const p = i.projection;
+  return (i.stones ?? []).map((s) => {
+    const c = hexCenter(p, s.hex.q, s.hex.r);
+    const drawn = drawStandingStone(i.palette, {
+      origin: { x: c.x, y: c.y + 0.1 * p.size },
+      k: p.size / 64,
+      squash: p.squash,
+      seed: s.id,
+      ticks: s.ticks,
+    });
+    return el('g', { 'data-stone': s.id }, drawn.nodes);
+  });
+}
+
 export function buildOverlays(i: OverlayInput): Overlays {
   const under: SvgNode[] = [];
   const over: SvgNode[] = [];
@@ -730,6 +779,7 @@ export function buildOverlays(i: OverlayInput): Overlays {
   under.push(...graceTiles(i, grace));
   under.push(...escortRings(i));
   under.push(...exploredEmpty(i));
+  under.push(...traceMarks(i));
   const feet = figureFeet(i.state, i.characterId, i.projection);
   const riding = me?.at.kind === 'creature';
   if (isSelecting(i.flow) && feet) {
@@ -760,6 +810,7 @@ export function buildOverlays(i: OverlayInput): Overlays {
         ? threatAt(i.state, me.at.hex)
         : null;
   if (looked) over.push(...threatTrail(i, looked));
+  over.push(...stoneMarks(i));
   over.push(...lostCharacters(i));
   if (staysPut(i.predicted)) over.push(stayHint(i));
   over.push(...actionHints(i));

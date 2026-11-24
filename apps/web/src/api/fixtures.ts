@@ -71,6 +71,8 @@ export interface Scenario {
   readonly seen?: readonly string[];
   readonly lastDay?: number | null;
   readonly lastVersion?: number | null;
+  /** The story cards you have read (default none: every fired beat is unread). */
+  readonly storyRead?: readonly string[];
 }
 
 /** The view the server would send `scenario.you`. */
@@ -91,7 +93,7 @@ export function toView(s: Scenario): PlayerView {
       seen: [...(s.seen ?? [])],
       lastDay: s.lastDay ?? null,
       lastVersion: s.lastVersion ?? null,
-      storyRead: [],
+      storyRead: [...(s.storyRead ?? [])],
     },
     offers: needsCharacter ? characterOffers(s.state, s.you) : null,
     // The core's view type is read-only; the parsed type is the same shape.

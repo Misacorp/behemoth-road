@@ -14,6 +14,7 @@ import {
   LiveTicketSchema,
   PlayerViewSchema,
   SeenAnswerSchema,
+  StoryReadAnswerSchema,
   SessionSchema,
   type ActionAnswer,
   type AppConfig,
@@ -65,6 +66,8 @@ export interface ApiClient {
   act(version: number, action: GameAction): Promise<ActionAnswer>;
   /** Adds ids to your seen record (things shown once); answers the whole record. */
   markSeen(ids: readonly string[]): Promise<readonly string[]>;
+  /** Records story cards you have read (1 to 12 ids); answers all you have read. */
+  markStoryRead(ids: readonly string[]): Promise<readonly string[]>;
   /** Tells the server you are looking at the game now (your next visit's recap starts from here). */
   visit(): Promise<void>;
   nextDay(): Promise<PlayerView>;
@@ -160,6 +163,10 @@ export function createApiClient(fetchImpl: Fetch = (i, init) => fetch(i, init)):
     async markSeen(ids) {
       const path = '/api/me/seen';
       return parse(SeenAnswerSchema, path, await authed(path, post({ ids }))).seen;
+    },
+    async markStoryRead(ids) {
+      const path = '/api/me/story-read';
+      return parse(StoryReadAnswerSchema, path, await authed(path, post({ ids }))).storyRead;
     },
     async visit() {
       // The answer is not read.

@@ -1,7 +1,7 @@
 /**
  * The practice map: the real map UI on a small game that runs only in the browser (`sandboxApi.ts`), with
  * the guided first day lit over it (`coach.ts`): select yourself, tap the glowing tile, confirm the arrow,
- * one action of your role. Mistakes are free; "Join the expedition" is there at every step (leaving the
+ * one action of your role. Mistakes are free; "Join the party" is there at every step (leaving the
  * practice by it, or by finishing, goes to the real game). It never sends a request: its own API answers
  * from the core, and nothing it does is stored or shared.
  */
@@ -90,7 +90,7 @@ export function Practice({ role, onExit }: PracticeProps): JSX.Element {
           data-ready={step === 'done' ? true : undefined}
           onClick={() => exit.current()}
         >
-          Join the expedition
+          Join the party
         </button>
       </div>
       <div class="coach-foot">

@@ -9,6 +9,10 @@ import {
   drawIcon,
   drawMoment,
   drawPackIcon,
+  drawRouteDestination,
+  drawStandingStone,
+  drawTrace,
+  TRACE_KINDS,
   drawSettlementIcon,
   drawSkillNode,
   drawStoresIcon,
@@ -81,6 +85,8 @@ export type Draw =
   | { readonly kind: 'threat'; readonly look: string }
   | { readonly kind: 'settlement'; readonly look: string; readonly attitude: string }
   | { readonly kind: 'moment'; readonly moment: string }
+  | { readonly kind: 'trace'; readonly trace: string }
+  | { readonly kind: 'stone' }
   | { readonly kind: 'hud'; readonly id: string };
 
 export interface GlossaryEntry {
@@ -134,6 +140,9 @@ export const HUD_ICONS: readonly string[] = [
   'recentre-creature',
   'recap',
   'join',
+  'story',
+  'greyfold',
+  'date',
 ];
 
 export function buildGlossary(): readonly GlossaryEntry[] {
@@ -254,6 +263,16 @@ export function buildGlossary(): readonly GlossaryEntry[] {
   for (const n of SKILL_NODES)
     out.push(entry('skills', n.id, tipFor('skill', n.id), { kind: 'skill', icon: n.icon }, n.name));
 
+  // What the walk leaves on the map.
+  for (const kind of TRACE_KINDS)
+    out.push(
+      entry('marks', `trace-${kind}`, tipFor('map', `trace-${kind}`), {
+        kind: 'trace',
+        trace: kind,
+      }),
+    );
+  out.push(entry('marks', 'standing-stone', tipFor('map', 'standing-stone'), { kind: 'stone' }));
+
   for (const kind of MOMENT_KINDS)
     out.push(entry('marks', kind, null, { kind: 'moment', moment: kind }));
 
@@ -281,6 +300,27 @@ export function drawEntry(d: Draw, size: number): SvgNode | null {
       });
     case 'moment':
       return drawMoment(d.moment, PALETTE, size);
+    case 'trace':
+    case 'stone': {
+      const drawn =
+        d.kind === 'trace'
+          ? drawTrace(PALETTE, d.trace, { k: 0.8, seed: 1 })
+          : drawStandingStone(PALETTE, { k: 0.8, seed: 1, ticks: 2 });
+      const { x0, y0, x1, y1 } = drawn.box;
+      const pad = 3;
+      const w = x1 - x0 + 2 * pad;
+      const h = y1 - y0 + 2 * pad;
+      const side = Math.max(w, h);
+      return el(
+        'svg',
+        {
+          viewBox: `${x0 - pad - (side - w) / 2} ${y0 - pad - (side - h) / 2} ${side} ${side}`,
+          width: size,
+          height: size,
+        },
+        drawn.nodes,
+      );
+    }
     case 'tile': {
       const scene = renderScene({
         cells: [
@@ -303,6 +343,7 @@ export function drawEntry(d: Draw, size: number): SvgNode | null {
     case 'hud':
       if (d.id === 'pack') return drawPackIcon(PALETTE, size, 3, DEFAULT_CONFIG.packCapacity);
       if (d.id === 'stores') return drawStoresIcon(PALETTE, size);
+      if (d.id === 'greyfold') return drawRouteDestination(PALETTE, size);
       return null;
   }
 }

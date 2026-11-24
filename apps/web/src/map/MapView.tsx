@@ -9,6 +9,7 @@ import {
   type FeatureArt,
   hexCenter,
   hexCorners,
+  drawStoryVignette,
   paperGrain,
   renderSceneFramed,
   type SvgNode,
@@ -51,6 +52,9 @@ import { mapTipAt, placeNoun, tileTipAt } from './mapTips.ts';
 import type { TipId } from '../text/tips.ts';
 import type { TipTarget } from '../ui/tip.ts';
 import { holdEnded, onRightClick, TIPS } from '../ui/press.ts';
+import { type StoryCard } from '../game/story.ts';
+import { beatText, vignetteOf } from '../text/story.ts';
+import { standingStones, traceTipAt } from '../game/traces.ts';
 import { MAP_TUNING } from './config.ts';
 import { type Flow, entryKey, isSelecting, pickEntries } from './flow.ts';
 import { holdMs } from '../text/tips.ts';
@@ -170,6 +174,8 @@ export interface MapViewProps {
    * a change recentres on your character (or the creature before you have one).
    */
   readonly coverBottom?: number;
+  /** The story card passing now (anchored to the creature or a hex); the next tap anywhere closes it. */
+  readonly story?: StoryCard | null;
   /** The practice map's guided day: what to light (glowing hexes, a ring, a ghost hand), and which part of the card to pulse. */
   readonly coach?: CoachMap | null;
 }
@@ -422,6 +428,7 @@ export function MapView(props: MapViewProps): JSX.Element {
   const svgRef = useRef<SVGSVGElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
   const popRef = useRef<SVGGElement>(null);
+  const storyRef = useRef<HTMLDivElement>(null);
   // The popover's chevron: its path data is set with the card's position, every frame it moves.
   const chevronFillRef = useRef<SVGPathElement>(null);
   const chevronEdgeRef = useRef<SVGPathElement>(null);
@@ -490,6 +497,8 @@ export function MapView(props: MapViewProps): JSX.Element {
       raster: layerRaster(inkZoom, box, window.devicePixelRatio, MAP_TUNING.layer),
     };
   }, [state, signs, glints, inkZoom, walking]);
+  const stoneMemory = useRef(new Map<string, Hex>());
+  const stones = useMemo(() => standingStones(state, stoneMemory.current), [state]);
   const layerRef = useRef(layers);
   layerRef.current = layers;
 
@@ -504,9 +513,10 @@ export function MapView(props: MapViewProps): JSX.Element {
       projection: p,
       palette: PALETTE,
       zoom: inkZoom,
+      stones,
     });
     return { under: o.under.map(toPreact), over: o.over.map(toPreact) };
-  }, [state, flow, characterId, inkZoom]);
+  }, [state, flow, characterId, inkZoom, stones]);
 
   const survey = flow.kind === 'inspect' ? (props.surveyAt?.(flow.hex) ?? null) : null;
   const fireHint = flow.kind === 'inspect' ? fireHintAt(state, flow.hex) : null;
@@ -562,6 +572,33 @@ export function MapView(props: MapViewProps): JSX.Element {
       chevronFillRef.current?.setAttribute('d', chevron.fill);
       chevronEdgeRef.current?.setAttribute('d', chevron.edge);
     }
+    placeStory(v);
+  }
+
+  /** The story card sits above its anchor like a popover, inside the frame, and never takes a tap. */
+  function placeStory(v: View): void {
+    const el = storyRef.current;
+    const card = latest.current.story;
+    if (!el || !card) return;
+    const s = latest.current.state;
+    const tile = 2 * p.size * p.squash;
+    const at = card.anchor.kind === 'hex' ? card.anchor.hex : s.creature.centre;
+    const c = hexCenter(p, at.q, at.r);
+    const lift = card.anchor.kind === 'hex' ? tile / 2 : tile * 1.5 + 0.5 * p.size;
+    const below = card.anchor.kind === 'hex' ? tile : lift + tile;
+    const f = seen();
+    const top = toScreen(v, { x: c.x, y: c.y - lift });
+    const rect = placePopover(
+      { x: top.x - f.x, y: top.y - f.y },
+      below * v.scale,
+      { width: el.offsetWidth, height: el.offsetHeight },
+      f,
+      MAP_TUNING.popoverMargin,
+    );
+    setCssTransform(
+      el,
+      `translate(${String(Math.round(rect.x + f.x))}px, ${String(Math.round(rect.y + f.y))}px)`,
+    );
   }
 
   function requestApply(): void {
@@ -793,6 +830,12 @@ export function MapView(props: MapViewProps): JSX.Element {
     apply();
   }, [layers]);
 
+  // A story card passing: placed once it is drawn and its size is known.
+  const storyId = props.story?.id ?? '';
+  useLayoutEffect(() => {
+    apply();
+  }, [storyId]);
+
   // The card's enabled buttons, by arm key: a refresh that disables the armed one drops the arming.
   const enabledKeys: string[] =
     flow.kind === 'inspect'
@@ -839,15 +882,40 @@ export function MapView(props: MapViewProps): JSX.Element {
   // Tips on the map (a threat, a settlement, a struck or escorted character, a fire): a mouse resting on one,
   // or a finger held on one; a hold never becomes a tap.
   const hoverTip = useRef<TipId | null>(null);
-  const mapTip = (e: PointerEvent): { id: TipId; target: TipTarget } | null => {
+  /** A trace or a standing stone on the hex: its tip, with who and which step as plain text under it. */
+  const traceOrStoneTip = (hex: Hex): { id: TipId; extra?: () => JSX.Element } | null => {
+    const s = latest.current.state;
+    const trace = traceTipAt(s, hex, (cid) => latest.current.identities?.get(cid)?.name ?? null);
+    if (trace) {
+      return {
+        id: trace.id,
+        extra: () => (
+          <span class="tip-trace" data-trace-tip>
+            {trace.who !== null && <span class="tip-trace-who">{trace.who}</span>}
+            <span class="tip-trace-step">{`Step ${String(trace.step)}`}</span>
+          </span>
+        ),
+      };
+    }
+    return stoneMarks.some((x) => x.hex.q === hex.q && x.hex.r === hex.r)
+      ? { id: 'map:standing-stone' }
+      : null;
+  };
+  const stoneMarks = stones;
+  const mapTip = (
+    e: PointerEvent,
+  ): { id: TipId; target: TipTarget; extra?: () => JSX.Element } | null => {
     const svg = svgRef.current;
     if (!svg || (e.target instanceof Node && popRef.current?.contains(e.target))) return null;
     const v = view.current;
     const hex = worldToHex(p, toWorld(v, local(e)));
     const id = mapTipAt(latest.current.state, hex);
-    if (!id) return null;
+    const found = id ? null : traceOrStoneTip(hex);
+    if (!id && !found) return null;
+    const tipId: TipId = id ?? found!.id;
     return {
-      id,
+      id: tipId,
+      ...(found?.extra ? { extra: found.extra } : {}),
       target: {
         rect: () => {
           if (!svg.isConnected) return null;
@@ -863,7 +931,9 @@ export function MapView(props: MapViewProps): JSX.Element {
           };
         },
         // Still what is there: a threat that moved or was cleared takes its tip with it.
-        alive: () => svg.isConnected && mapTipAt(latest.current.state, hex) === id,
+        alive: () =>
+          svg.isConnected &&
+          (id ? mapTipAt(latest.current.state, hex) === id : traceOrStoneTip(hex) !== null),
         owns: (t) => t instanceof Node && svg.contains(t),
       },
     };
@@ -883,7 +953,7 @@ export function MapView(props: MapViewProps): JSX.Element {
     unhoverTip();
     if (e.pointerType !== 'mouse') {
       const tip = tracker.current.count === 0 ? mapTip(e) : null;
-      if (tip) TIPS.press(tip.id, tip.target, e.clientX, e.clientY);
+      if (tip) TIPS.press(tip.id, tip.target, e.clientX, e.clientY, tip.extra);
       else TIPS.release();
     }
     handle(tracker.current.down(e.pointerId, local(e), e.timeStamp));
@@ -895,7 +965,7 @@ export function MapView(props: MapViewProps): JSX.Element {
         unhoverTip();
         if (tip) {
           hoverTip.current = tip.id;
-          TIPS.hover(tip.id, tip.target);
+          TIPS.hover(tip.id, tip.target, tip.extra);
         }
       }
     }
@@ -1114,6 +1184,20 @@ export function MapView(props: MapViewProps): JSX.Element {
           </svg>
         )}
       </div>
+      {props.story && beatText(props.story.id) !== null && (
+        <div
+          ref={storyRef}
+          class="story-card"
+          role="status"
+          data-story={props.story.id}
+          data-anchor={props.story.anchor.kind}
+        >
+          <span class="story-art" aria-hidden="true">
+            {toPreact(drawStoryVignette(PALETTE, vignetteOf(props.story.id), 132))}
+          </span>
+          <p class="story-text">{beatText(props.story.id)}</p>
+        </div>
+      )}
       <svg class="map-grain" aria-hidden="true">
         {GRAIN}
       </svg>

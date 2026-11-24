@@ -2,12 +2,12 @@
  * Milestone 5 on the HUD: the peril gauge beside the day (its marks jolt when a threat strikes the
  * creature), the route strip toward home, a light darkening of the map's edges as peril rises, and the
  * ending that fills the screen once the season is over (a title, the outcome's scene, the route and the days
- * taken; admins on staging get a new-season button). No prose: the three ending titles are the only words.
+ * taken; admins on staging get a new-season button). The only prose is the ending's line of story.
  */
 import { tipProps } from '../ui/press.ts';
 import type { JSX } from 'preact';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { ENDING_TITLES } from '../game/season.ts';
+import { endingText, endingVignetteOf } from '../text/story.ts';
 import {
   type Accent,
   type CharacterLook,
@@ -15,7 +15,9 @@ import {
   drawEnding,
   drawPerilGauge,
   drawPerilVignette,
+  drawRouteDestination,
   drawRouteStrip,
+  drawStoryVignette,
   drawThreatIcon,
 } from '@behemoth-road/art';
 import type { PerilLog } from '@behemoth-road/core';
@@ -177,17 +179,41 @@ export function PerilBreakdownView({ breakdown }: { breakdown: PerilBreakdown })
   );
 }
 
-/** The route: steps walked of the season's length, home at the end. */
-export function RouteStrip({ steps, length, width = 160 }: RouteProps & { width?: number }) {
+/** The date: the step walked of the route's length ("9 of 40"). A linger keeps its step. */
+export const dateOf = (steps: number, length: number): string =>
+  `${String(Math.min(Math.max(steps, 0), length))} of ${String(length)}`;
+
+/** The route: steps walked of the season's length, the Greyfold's mark at its end, the date beside it. */
+export function RouteStrip({
+  steps,
+  length,
+  width = 160,
+  date = true,
+}: RouteProps & { width?: number; date?: boolean }) {
   return (
-    <span
-      class="hud-route"
-      aria-label="Route"
-      data-steps={steps}
-      data-length={length}
-      {...tipProps('hud:route')}
-    >
-      {toPreact(drawRouteStrip(PALETTE, width, steps, length))}
+    <span class="hud-routeline">
+      <span
+        class="hud-route"
+        aria-label="Route"
+        data-steps={steps}
+        data-length={length}
+        {...tipProps('hud:route')}
+      >
+        {toPreact(drawRouteStrip(PALETTE, width, steps, length))}
+      </span>
+      <span class="hud-greyfold" aria-label="Greyfold" {...tipProps('hud:greyfold')}>
+        {toPreact(drawRouteDestination(PALETTE, 20))}
+      </span>
+      {date && (
+        <span
+          class="hud-date"
+          aria-label="Step"
+          data-date={dateOf(steps, length)}
+          {...tipProps('hud:date')}
+        >
+          {dateOf(steps, length)}
+        </span>
+      )}
     </span>
   );
 }
@@ -269,6 +295,9 @@ export interface EndingProps {
   readonly perilMax: number;
   readonly perilWoundedAt: number;
   readonly outcome: 'safe' | 'wounded' | 'lost';
+  /** The core's title for how it ended, and the key of its line of story (null: the plain title). */
+  readonly title: string;
+  readonly line: string | null;
   /** Days the season took (the day it ended). */
   readonly days: number;
   readonly route: RouteProps;
@@ -287,6 +316,7 @@ export function Ending(props: EndingProps): JSX.Element {
   const button = useRef<HTMLButtonElement>(null);
   const scene = useRef<HTMLDivElement>(null);
   const failed = props.failed ?? 0;
+  const text = endingText(props.line);
   // The recap is part of the ending and open with it; its button hides it to see the whole scene.
   const [recapOpen, setRecapOpen] = useState(true);
   // The scene is drawn at the size of its box (the screen above the foot's strip), measured once laid out.
@@ -321,7 +351,15 @@ export function Ending(props: EndingProps): JSX.Element {
           }),
         )}
       </div>
-      <h1 class="ending-title">{ENDING_TITLES[props.outcome]}</h1>
+      <h1 class="ending-title">{props.title}</h1>
+      {text !== null && props.line !== null && (
+        <div class="ending-story" data-line={props.line}>
+          <span class="ending-line-art" aria-hidden="true">
+            {toPreact(drawStoryVignette(PALETTE, endingVignetteOf(props.line), 150))}
+          </span>
+          <p class="ending-line">{text}</p>
+        </div>
+      )}
       {recapOpen && (
         <RecapPanel
           recap={props.recap}

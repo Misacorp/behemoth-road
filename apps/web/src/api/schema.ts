@@ -467,6 +467,11 @@ export const SeenAnswerSchema = v.strictObject({
   seen: v.pipe(v.array(v.pipe(v.string(), v.maxLength(40))), v.maxLength(32)),
 });
 
+/** `POST /api/me/story-read`: the storylets you have read, in content order. */
+export const StoryReadAnswerSchema = v.strictObject({
+  storyRead: v.pipe(v.array(id), v.maxLength(64)),
+});
+
 export const LiveTicketSchema = v.strictObject({ ticket: v.pipe(v.string(), v.maxLength(160)) });
 
 /** What the live socket pushes: only that the game changed (the client then fetches its own view). */

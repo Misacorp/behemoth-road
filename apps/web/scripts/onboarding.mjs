@@ -240,7 +240,7 @@ async function runViewport(browser, vite, vp) {
     await sweep('the practice guide', '.coach-bar', '.coach-bar');
     if (requests.length) fail(`practice made requests: ${requests.join(', ')}`);
     if (sockets) fail('practice opened a socket');
-    // Leaving by "Join the expedition" goes to the real game (the join drawer, as there is no character).
+    // Leaving by "Join the party" goes to the real game (the join drawer, as there is no character).
     await press('.coach-join');
     await page.waitForSelector('.drawer .offer');
     await wait(500);

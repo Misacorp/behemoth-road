@@ -76,29 +76,23 @@ describe('terrain colours', () => {
     }
   });
 
-  // Known gap (PR #19 review): sea and cliff are 9.9 to 11.3 apart under protan vision in the three
-  // palettes, below MIN_SIM_DELTA_E. It needs a palette change (the art agent's), not a looser bound;
-  // `fails` flips this test red the day it is fixed, so remove `.fails` then.
-  it.fails(
-    'keeps sea and shallows apart from every land terrain under protan and deutan vision',
-    () => {
-      const land = ORDER.filter((t) => t !== 'lake');
-      const close: string[] = [];
-      for (const palette of PALETTES) {
-        for (const water of ['sea', 'shallows']) {
-          for (const terrain of land) {
-            for (const vision of VISION) {
-              const d = deltaE(base(palette, water), base(palette, terrain), vision);
-              if (d < MIN_SIM_DELTA_E) {
-                close.push(`${palette.id} ${water} and ${terrain} (${vision}): ${d.toFixed(1)}`);
-              }
+  it('keeps sea and shallows apart from every land terrain under protan and deutan vision', () => {
+    const land = ORDER.filter((t) => t !== 'lake');
+    const close: string[] = [];
+    for (const palette of PALETTES) {
+      for (const water of ['sea', 'shallows']) {
+        for (const terrain of land) {
+          for (const vision of VISION) {
+            const d = deltaE(base(palette, water), base(palette, terrain), vision);
+            if (d < MIN_SIM_DELTA_E) {
+              close.push(`${palette.id} ${water} and ${terrain} (${vision}): ${d.toFixed(1)}`);
             }
           }
         }
       }
-      expect(close).toEqual([]);
-    },
-  );
+    }
+    expect(close).toEqual([]);
+  });
 
   it('draws sea, shallows and islands differently from a lake and from plains', () => {
     expect(terrainLook('sea').marks).toBe('swell');

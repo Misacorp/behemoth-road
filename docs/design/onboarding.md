@@ -5,7 +5,7 @@ How a new player learns the game, and how a returning one is caught up. Decision
 ## The flow
 
 1. **Intro cards** (new Discord user, no character yet): four cards led by the game's art, one short line each, back at the top left, skip, swipe. Once per user.
-2. **Practice map**: the real map UI on a game that runs only in the browser (fixed seed, the pure core, no requests, no socket, nothing stored). A guided first day lights what to tap: select yourself, tap the glowing tile, confirm the arrow, then one action of your role (scout looks at a veiled hex, scholar studies a ruin, engineer gathers iron, keeper feeds from the stores, warden stands guard). "Join the expedition" is always on screen; finishing or leaving goes to the real game as it is now.
+2. **Practice map**: the real map UI on a game that runs only in the browser (fixed seed, the pure core, no requests, no socket, nothing stored). A guided first day lights what to tap: select yourself, tap the glowing tile, confirm the arrow, then one action of your role (scout looks at a veiled hex, scholar studies a ruin, engineer gathers iron, keeper feeds from the stores, warden stands guard). "Join the party" is always on screen; finishing or leaving goes to the real game as it is now.
 3. **Role cards** in the join drawer: a swipeable strip, what you do as icons leading to what the team gets, one line. A `/wiki` link sits at the drawer's foot.
 4. **First-encounter hints** in the real game: fog edge, trap, threat, settlement, hunger raising peril. One passing hint each, once per user.
 5. **Returning recap**: first open after a day turned since the last visit: days passed and route, marks of what happened near the creature, peril and route now.

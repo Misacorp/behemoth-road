@@ -351,8 +351,15 @@ button svg,
 }
 
 .ending-title,
+.ending-story,
 .ending-foot {
   position: relative;
+}
+
+.ending-story {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
 }
 
 /* The route, the days and the new-season button sit low, clear of the scene's middle. */
@@ -1797,4 +1804,133 @@ button.roster-row:active {
   50% {
     transform: scale(1.1);
   }
+}
+
+/* The story: a passing card over the map (its drawing and its few sentences), beside the creature or the
+   hex it is about. It takes no tap: the next tap anywhere closes it. */
+.story-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  width: min(264px, calc(100vw - 32px));
+  padding: var(--space-3);
+  border-radius: 14px;
+  background: #f3f1e2;
+  border: 1.5px solid #9a9776;
+  box-shadow: 1px 2px 0 #e1ddc3;
+  color: #5c5a43;
+  pointer-events: none;
+  animation: story-in 320ms ease-out both;
+}
+
+.story-art {
+  display: block;
+  line-height: 0;
+}
+
+.story-art svg {
+  display: block;
+}
+
+.story-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  font-style: italic;
+}
+
+@keyframes story-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-card {
+    animation: none;
+  }
+}
+
+/* The story badge by the route strip: a small ribbon while cards wait. */
+.hud-story {
+  display: block;
+  width: 28px;
+  height: 28px;
+  margin-left: 4px;
+  pointer-events: auto;
+  animation: story-nudge 2.4s ease-in-out infinite;
+}
+
+@keyframes story-nudge {
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-story {
+    animation: none;
+  }
+}
+
+/* The step beside the route strip ("9 of 40") and the Greyfold mark at its end. */
+.hud-routeline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.hud-date {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #5c5a43;
+  pointer-events: auto;
+}
+
+.hud-greyfold {
+  display: block;
+  width: 20px;
+  height: 20px;
+  pointer-events: auto;
+}
+
+.hud-greyfold svg {
+  display: block;
+}
+
+.tip-trace {
+  display: flex;
+  gap: 6px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.tip-trace-who {
+  font-weight: 600;
+}
+
+/* The ending's line of story, above the recap. */
+.ending-line {
+  margin: 0;
+  max-width: min(420px, calc(100vw - 48px));
+  font-size: 15px;
+  line-height: 1.45;
+  font-style: italic;
+  text-align: center;
+  color: #5c5a43;
+  pointer-events: none;
+}
+
+.ending-line-art {
+  display: block;
+  line-height: 0;
 }

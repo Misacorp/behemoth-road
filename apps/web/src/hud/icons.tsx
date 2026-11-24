@@ -237,3 +237,14 @@ export function Slots({
     </svg>
   );
 }
+
+/** The story badge: a small ribbon on a folded page, while cards wait to be read. */
+export function StoryIcon(): JSX.Element {
+  return (
+    <svg viewBox="0 0 32 32" aria-hidden="true">
+      <path d="M7 5h18v22H7Z" {...line} fill={PALETTE.paper} />
+      <path d="M11 11h10M11 15h10M11 19h6" {...line} />
+      <path d="M21 21v8l3-2 3 2v-8Z" {...line} fill={PALETTE.accents.rose.base} />
+    </svg>
+  );
+}

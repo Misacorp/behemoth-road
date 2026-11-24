@@ -112,6 +112,13 @@ export class FakeServer {
       this.seenPosts = [...(this.seenPosts ?? []), body?.ids ?? []];
       return [200, { seen }];
     }
+    // Story cards read (a union, like the Worker).
+    if (path === '/api/me/story-read') {
+      const storyRead = [...new Set([...(s.storyRead ?? []), ...(body?.ids ?? [])])];
+      this.scenario = { ...s, storyRead };
+      this.storyPosts = [...(this.storyPosts ?? []), body?.ids ?? []];
+      return [200, { storyRead }];
+    }
     if (path === '/api/me/visit') {
       this.visits = (this.visits ?? 0) + 1;
       this.scenario = { ...s, lastDay: s.state.day, lastVersion: s.version };

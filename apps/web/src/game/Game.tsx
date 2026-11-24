@@ -65,6 +65,7 @@ import type { CoachMap } from '../onboarding/coach.ts';
 import { Guides } from '../onboarding/Guides.tsx';
 import {
   defendOption,
+  ENDING_TITLES,
   seasonEnd,
   settlementActions,
   settlementAt,
@@ -84,6 +85,21 @@ import {
 } from './moments.ts';
 import { canWait, stanceView } from './stances.ts';
 import { toGameState, toSigns } from './viewState.ts';
+import {
+  anchorsOf,
+  arrive,
+  badgeShown,
+  type CardAnchor,
+  closeCard,
+  NO_STORY,
+  readBatches,
+  type StoryModel,
+  tapBadge,
+  unreadOf,
+} from './story.ts';
+
+/** How long story reads wait to go out together, in ms. */
+const READ_FLUSH_MS = 500;
 
 export interface GameProps {
   readonly api: ApiClient;
@@ -269,6 +285,34 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
   const step = walk?.kind === 'step' ? { from: walk.from, to: walk.hex } : null;
   // Your character lost: the fog moment plays out before the join drawer opens.
   const fading = shownMoments.some((m) => m.kind === 'lost' && m.mine);
+
+  // Story cards (docs/design/story.md): the unread ones are `story.fired` minus what you have read, whether or
+  // not an event came with them (a new game fires its opening beats without one). One plays on load; the rest
+  // wait behind the badge. Never in the practice map. Reads go out in batches.
+  const [story, setStory] = useState<StoryModel>(NO_STORY);
+  const storyRef = useRef<StoryModel>(NO_STORY);
+  storyRef.current = story;
+  const storyAnchors = useRef(new Map<string, CardAnchor>());
+  const toRead = useRef<string[]>([]);
+  const readTimer = useRef(0);
+  const flushReads = (): void => {
+    const batches = readBatches(toRead.current);
+    toRead.current = [];
+    for (const ids of batches) {
+      api.markStoryRead(ids).catch((err: unknown) => console.warn('story read not recorded', err));
+    }
+  };
+  useEffect(() => () => window.clearTimeout(readTimer.current), []);
+  const queueRead = (id: string): void => {
+    toRead.current.push(id);
+    window.clearTimeout(readTimer.current);
+    readTimer.current = window.setTimeout(flushReads, READ_FLUSH_MS);
+  };
+  anchorsOf(view.events, storyAnchors.current);
+  const unread = useMemo(
+    () => (practice ? [] : unreadOf(view.game.story.fired, view.you.storyRead, story.shown)),
+    [view, story.shown, practice],
+  );
 
   // A plan made on an older view may no longer hold: drop it when the view changes under it.
   const planVersion = useRef(view.version);
@@ -515,6 +559,31 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
     setRosterPeek((n) => n + 1);
   };
   const ended = seasonEnd(state);
+  // The map is free for a card when nothing else is open or moving on it.
+  const storyFree =
+    !practice &&
+    flow.kind === 'idle' &&
+    !anyDrawer &&
+    !rosterShown &&
+    !ended &&
+    !fading &&
+    step === null &&
+    !guides?.recapDue;
+  useEffect(() => {
+    const r = arrive(storyRef.current, unread, storyAnchors.current, storyFree);
+    if (r.model !== storyRef.current) setStory(r.model);
+    if (r.started !== null) queueRead(r.started);
+  }, [unread, storyFree]);
+  // A card never stays over a popover or a drawer that opens.
+  useEffect(() => {
+    if (!storyFree) setStory(closeCard);
+  }, [storyFree]);
+  const onStoryBadge = (): void => {
+    const r = tapBadge(storyRef.current, unread, storyAnchors.current);
+    if (r.started === null) return;
+    setStory(r.model);
+    queueRead(r.started);
+  };
   const care = me
     ? [...careOptions(state, me.id), ...[defendOption(state, me.id)].filter((a) => a !== null)]
     : [];
@@ -558,11 +627,13 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
         characterId={id}
         identities={who}
         onTap={(target: Target) => {
-          // Moments are skippable: any tap clears them.
+          // Moments are skippable: any tap clears them, and the story card too.
           setMoments([]);
+          setStory(closeCard);
           setFlow((f) => tap(f, state, id, target));
         }}
         moments={shownMoments}
+        story={story.playing}
         step={step}
         onConfirm={onConfirm}
         onOpenHub={() => setFlow(openHub())}
@@ -666,6 +737,7 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
           log: state.stats.peril,
         }}
         route={{ steps: state.creature.steps, length: state.config.routeLength }}
+        story={badgeShown(story, unread) && storyFree ? { onTap: onStoryBadge } : null}
         jolt={moments.some((m) => m.kind === 'strike' || m.kind === 'hungry')}
         hungry={moments.some((m) => m.kind === 'hungry')}
         relieved={moments.some((m) => m.kind === 'relieved')}
@@ -726,6 +798,8 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
           perilMax={state.config.perilMax}
           perilWoundedAt={state.config.perilWoundedAt}
           outcome={ended.outcome}
+          title={view.ending?.title ?? ENDING_TITLES[ended.outcome]}
+          line={view.ending?.line ?? null}
           days={ended.day}
           route={{ steps: state.creature.steps, length: state.config.routeLength }}
           onNewSeason={showsNextDay(view) ? onNewSeason : null}
