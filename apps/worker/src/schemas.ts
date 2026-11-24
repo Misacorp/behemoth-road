@@ -85,6 +85,13 @@ export const ActionSchema = v.variant('kind', [
   v.strictObject({ kind: v.literal('light-fire') }),
   v.strictObject({ kind: v.literal('feed') }),
   v.strictObject({ kind: v.literal('linger') }),
+  // The tow line: a rider throws it to a character (the core refuses unknown or out-of-reach targets by
+  // name); the target grabs it with their own action.
+  v.strictObject({
+    kind: v.literal('throw-line'),
+    to: v.pipe(v.string(), v.minLength(1), v.maxLength(64)),
+  }),
+  v.strictObject({ kind: v.literal('grab-line') }),
   // Milestone 5: threats and settlements. The core refuses an unknown threat, material or boon by name
   // (`no-threat`, `no-trade-good`, `unknown-boon`), so the schema only bounds the strings.
   v.strictObject({ kind: v.literal('strike'), threat: contentId }),

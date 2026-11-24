@@ -302,6 +302,15 @@ export const ITEM_MOTIFS: Readonly<Record<string, IconMotif>> = {
       pal.ramps.bark.base,
     ),
   ],
+  // Tow line: a coil of rope (three nested loops) with a free end trailing out to a loop.
+  towline: (pal) => [
+    ink(pal, ellipsePath(22, 26, 12, 8.5), 4, pal.ramps.bark.base),
+    ink(pal, ellipsePath(22, 26, 7.5, 5), 3.4, pal.ramps.bark.light),
+    ink(pal, ellipsePath(22, 26, 12, 8.5), 1.2, pal.ramps.bark.shade),
+    ink(pal, ellipsePath(22, 26, 3, 1.8), 2.2, pal.ramps.bark.base),
+    ink(pal, 'M33 22c4-3 6-8 5-12', 3.2, pal.ramps.bark.base),
+    ink(pal, ellipsePath(37, 10, 3, 2.4), 1.8, pal.ramps.bark.shade),
+  ],
   lantern: (pal) => [
     el('path', { d: ellipsePath(24, 26, 9, 9), fill: pal.accents.ochre.light, opacity: 0.6 }),
     ink(pal, 'M20 13c0-4 8-4 8 0', 1.6),
@@ -317,6 +326,15 @@ export const ITEM_MOTIFS: Readonly<Record<string, IconMotif>> = {
     ink(pal, 'M16 27l3 3M24 25l3 3M22 31l3 3M30 29l3 3', 1.3, pal.ramps.bark.shade),
     ink(pal, 'M38 36c0-6 1-10 2-14M41 36c0-5 1-8 3-11', 1.4, pal.ramps.foliage.shade),
     ink(pal, 'M7 40h9M24 41h8', 1.2, pal.ramps.water.shade),
+  ],
+  // A raft: three lashed logs side by side on a few waves, with a punting pole.
+  raft: (pal) => [
+    ink(pal, 'M6 38c4-2 6 2 10 0s6 2 10 0 6 2 10 0 6 2 10 0', 1.4, pal.ramps.sea.shade),
+    solid(pal, 'M9 33l30-3 1 4-30 3z', pal.ramps.bark.base, 1.6),
+    solid(pal, 'M8 29l30-3 1 4-30 3z', pal.ramps.bark.light, 1.6),
+    solid(pal, 'M7 25l30-3 1 4-30 3z', pal.ramps.bark.base, 1.6),
+    ink(pal, 'M16 24l1 9M30 22l1 9', 1.6, pal.ramps.bark.shade),
+    ink(pal, 'M38 10L30 36', 2.2, pal.ramps.bark.shade),
   ],
   spikes: (pal) => [
     solid(pal, 'M12 22h24l-2 5H14z', pal.ramps.stone.light),

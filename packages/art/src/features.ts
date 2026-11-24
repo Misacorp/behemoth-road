@@ -2,7 +2,7 @@
  * Features that sit on a tile once revealed: resource nodes, tomb sites and traps, drawn upright in side
  * view like the other props (shrunk in height for the high view), with a used-up look. Keyed by the `icon`
  * content gives each feature (`ore`, `stones`, `logs`, `berries`, `tomb`, `deep-tomb`, `snare`, `pitfall`, `fieldstones`,
- * `outcrop`, `deadfall`, `shrine`, `undertow`); an unknown
+ * `outcrop`, `deadfall`, `shrine`, `temple`, `undertow`); an unknown
  * key draws a neutral cairn.
  */
 import { boxOf, ellipsePath, poly, smoothClosed, smoothOpen, type Point } from './geom.ts';

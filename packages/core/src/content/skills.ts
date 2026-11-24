@@ -156,6 +156,7 @@ export const ACTION_XP: Readonly<Record<string, number>> = {
   'work-site': 1,
   feed: 1,
   linger: 1,
+  'throw-line': 1,
   'light-fire': 1,
   strike: 1,
   defend: 1,

@@ -43,6 +43,8 @@ export interface Creature {
   readonly steps: number;
   /** Wardens defending it until the next tick (character ids). Public. */
   readonly defenders: readonly string[];
+  /** Tow lines thrown today, each from a rider to a character cut off outside; they lapse at the tick. Public. */
+  readonly tows: readonly { readonly from: string; readonly to: string }[];
 }
 
 /** A threat on the map (content `THREAT_TYPES`). Public: seeing it come is the forecast. */

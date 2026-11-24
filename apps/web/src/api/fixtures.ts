@@ -177,6 +177,9 @@ export const CHAIN_SPOTS = {
   cliff: { q: 1, r: 4 },
 } as const;
 
+/** The water scene's island, as an offset from the creature's centre (see `ChainStage.water`). */
+export const WATER_ISLET = { q: 0, r: 4 } as const;
+
 export interface ChainStage {
   readonly role?: string;
   /** Where you stand: a spot, or riding the creature. Default `start`. */
@@ -190,6 +193,11 @@ export interface ChainStage {
   readonly explored?: readonly (keyof typeof CHAIN_SPOTS)[];
   /** The node on the deposit spot (a feature id); default the iron deposit. */
   readonly deposit?: string;
+  /**
+   * Stage water south of the creature, over the chain's ground and in place of its features: an island with a
+   * revealed water temple ringed by lake, sea beyond it and shallows round (for the raft's path mark).
+   */
+  readonly water?: boolean;
   /** Milestone 4: fires lit today, as offsets from the creature's centre. */
   readonly fires?: readonly Hex[];
   /** The creature's hidden hunger (server only; drives the appetite sign). */
@@ -237,6 +245,53 @@ export function chainScenario(stage: ChainStage = {}): Scenario {
       explored: explored.has(name),
     };
   }
+  if (stage.water) {
+    const set = (h: Hex, terrain: string): void => {
+      const k = key(h);
+      const known = tiles[k];
+      if (known) tiles[k] = { ...known, terrain, explored: true };
+    };
+    const at = (list: readonly (readonly [number, number])[], terrain: string): void => {
+      for (const [q, r] of list) set({ q, r }, terrain);
+    };
+    at(
+      [
+        [2, 2],
+        [3, 3],
+        [3, 2],
+        [-1, 3],
+        [-2, 3],
+        [2, 5],
+        [1, 6],
+        [-3, 5],
+      ],
+      'shallows',
+    );
+    at(
+      [
+        [0, 3],
+        [1, 3],
+        [1, 4],
+        [0, 5],
+        [-1, 5],
+        [-1, 4],
+      ],
+      'lake',
+    );
+    at(
+      [
+        [2, 3],
+        [2, 4],
+        [1, 5],
+        [-2, 5],
+        [-2, 4],
+        [-1, 6],
+        [0, 6],
+      ],
+      'sea',
+    );
+    set(WATER_ISLET, 'islet');
+  }
   const feature = (spot: keyof typeof CHAIN_SPOTS, type: string, left: number) => ({
     [key(CHAIN_SPOTS[spot])]: { type, revealed: explored.has(spot), left },
   });
@@ -244,11 +299,13 @@ export function chainScenario(stage: ChainStage = {}): Scenario {
     ...s.state,
     day: stage.day ?? s.state.day,
     tiles,
-    features: {
-      ...feature('iron', stage.deposit ?? 'iron-deposit', 3),
-      ...feature('tomb', 'tomb', 1),
-      ...feature('snare', 'snare', 1),
-    },
+    features: stage.water
+      ? { [key(WATER_ISLET)]: { type: 'water-temple', revealed: true, left: 1 } }
+      : {
+          ...feature('iron', stage.deposit ?? 'iron-deposit', 3),
+          ...feature('tomb', 'tomb', 1),
+          ...feature('snare', 'snare', 1),
+        },
     stores: stage.stores ?? {},
     unlocks: stage.unlocks ?? [],
     project: stage.project ?? null,

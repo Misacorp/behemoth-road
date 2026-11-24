@@ -22,6 +22,7 @@ import { creatureType, FOOD_TAG, firstWithTag, isKeeper, nourishment } from './c
 import { activeCharacter, isPlaceReachable } from './actions.ts';
 import {
   addMaterials,
+  depositPack,
   exploreHex,
   featureType,
   type GameEvent,
@@ -33,7 +34,7 @@ import {
 } from './features.ts';
 import { type Hex, hexDistance, hexesInRange, hexKey, isValidHex } from './hex.ts';
 import { terrainOf } from './map.ts';
-import { arePlacesAdjacent, onHex, placeNeighbours } from './places.ts';
+import { arePlacesAdjacent, ON_CREATURE, onHex, placeNeighbours } from './places.ts';
 import { hashString, hashToUnit } from './random.ts';
 import {
   type Character,
@@ -77,6 +78,10 @@ export type Action =
   | { readonly kind: 'light-fire' }
   | { readonly kind: 'feed' }
   | { readonly kind: 'linger' }
+  /** A rider throws the tow line to a character cut off within reach of the creature (needs the tow line). */
+  | { readonly kind: 'throw-line'; readonly to: string }
+  /** The target of a thrown line grabs it and is hauled onto the creature: their own action, never forced. */
+  | { readonly kind: 'grab-line' }
   | { readonly kind: 'strike'; readonly threat: string }
   | { readonly kind: 'defend' }
   | { readonly kind: 'parley' }
@@ -116,6 +121,8 @@ export type ActRefusal =
   | 'no-food'
   | 'needs-keeper'
   | 'lingered-yesterday'
+  /** The tow line: the target is out of reach, or no line was thrown to this character. */
+  | 'no-line'
   | 'on-creature'
   | 'season-over'
   | 'no-threat'
@@ -161,6 +168,9 @@ export type ActCheck =
 export type ActResult =
   | { readonly ok: true; readonly state: GameState; readonly events: readonly GameEvent[] }
   | { readonly ok: false; readonly reason: ActRefusal };
+
+/** The tag of the unlock that lets riders throw a line. */
+export const TOW_TAG = 'towline';
 
 const SITE_STREAM = hashString('site');
 const PARLEY_STREAM = hashString('parley');
@@ -435,6 +445,34 @@ export const checkAction = (
       }
       return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
     }
+    case 'throw-line': {
+      const cost = config.towThrowCost;
+      const no = (reason: ActRefusal): ActCheck => ({ ok: false, reason, cost });
+      if (!unlockTags(state).has(TOW_TAG)) return no('needs-unlock');
+      if (c.at.kind !== 'creature') return no('not-riding');
+      if (typeof action.to !== 'string' || action.to === c.id) return no('invalid-action');
+      const target = state.characters.find((x) => x.id === action.to);
+      if (!target) return no('unknown-character');
+      if (target.status !== 'active') return no('character-lost');
+      if (target.at.kind !== 'hex') return no('on-creature');
+      if (state.creature.tows.some((t) => t.from === c.id)) return no('already-have');
+      if (state.creature.tows.some((t) => t.to === target.id)) return no('already-have');
+      if (
+        hexDistance(target.at.hex, state.creature.centre) >
+        config.windowRadius + config.towReach
+      ) {
+        return no('not-near');
+      }
+      if (isCreatureHex(state, target.at.hex)) return no('on-creature');
+      return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
+    }
+    case 'grab-line': {
+      const cost = config.towGrabCost;
+      const no = (reason: ActRefusal): ActCheck => ({ ok: false, reason, cost });
+      if (c.at.kind !== 'hex') return no('on-creature');
+      if (!state.creature.tows.some((t) => t.to === c.id)) return no('no-line');
+      return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
+    }
     case 'strike': {
       const cost = config.strikeCost;
       const no = (reason: ActRefusal): ActCheck => ({ ok: false, reason, cost });
@@ -615,6 +653,33 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
       ok: true,
       state: withCharacter(lingering, {}),
       events: [{ kind: 'linger', characterId }],
+    };
+  }
+
+  if (action.kind === 'throw-line') {
+    const creature = {
+      ...state.creature,
+      tows: [...state.creature.tows, { from: characterId, to: action.to }],
+    };
+    return {
+      ok: true,
+      state: withCharacter({ ...state, creature }, {}),
+      events: [{ kind: 'tow-thrown', characterId, target: action.to }],
+    };
+  }
+
+  if (action.kind === 'grab-line') {
+    const line = state.creature.tows.find((t) => t.to === characterId) as { from: string };
+    const creature = {
+      ...state.creature,
+      tows: state.creature.tows.filter((t) => t.to !== characterId),
+    };
+    const hauled = withCharacter({ ...state, creature }, { at: ON_CREATURE });
+    const deposited = depositPack(hauled, characterId);
+    return {
+      ok: true,
+      state: deposited.state,
+      events: [{ kind: 'tow-grabbed', characterId, thrower: line.from }, ...deposited.events],
     };
   }
 
@@ -879,6 +944,10 @@ export const actionsHere = (
     { kind: 'light-fire' },
     { kind: 'feed' },
     { kind: 'linger' },
+    { kind: 'grab-line' },
+    ...state.characters
+      .filter((x) => x.id !== characterId && x.status === 'active' && x.at.kind === 'hex')
+      .map((x) => ({ kind: 'throw-line' as const, to: x.id })),
     ...state.threats.map((t) => ({ kind: 'strike' as const, threat: t.id })),
     { kind: 'defend' },
     { kind: 'parley' },

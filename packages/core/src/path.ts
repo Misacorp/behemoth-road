@@ -14,9 +14,10 @@ import {
   stepOnly,
 } from './actions.ts';
 import type { GameEvent } from './features.ts';
-import type { Hex } from './hex.ts';
+import { type Hex, hexKey } from './hex.ts';
 import { placeEquals, placeKey, placeNeighbours, toPlace } from './places.ts';
 import { type GameStateView, isSeasonOver, type Place } from './state.ts';
+import { isInWindow } from './window.ts';
 
 /** One step of a path: the place stepped onto, what it costs, and what makes it possible. */
 export interface PathStep extends Entry {
@@ -187,4 +188,25 @@ export const moveAlong = <S extends GameStateView>(
     }
   }
   return { ok: true, state: current, events, stopped: null };
+};
+
+/**
+ * A character on a grace hex (out of the window, not yet lost) who is either waiting or cannot
+ * afford the cheapest way back into the window (or onto the creature) with today's actions: the
+ * rescue flare. Public information only, so everyone can see it.
+ */
+export const stranded = (state: GameStateView, characterId: string): boolean => {
+  const found = activeCharacter(state, characterId);
+  if (!found.ok || isSeasonOver(state)) return false;
+  const { at, actionsLeft, waiting } = found.character;
+  if (at.kind !== 'hex' || isInWindow(state, at.hex)) return false;
+  if (state.tiles[hexKey(at.hex)]?.visibility !== 'seen') return false;
+  if (waiting) return true;
+  let cheapest = Number.POSITIVE_INFINITY;
+  for (const v of search(state, at, Number.POSITIVE_INFINITY).values()) {
+    if (v.step && (v.place.kind === 'creature' || isInWindow(state, v.place.hex))) {
+      cheapest = Math.min(cheapest, v.cost);
+    }
+  }
+  return cheapest > actionsLeft;
 };

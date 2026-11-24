@@ -18,7 +18,7 @@ export const PEOPLES_TAG = 'peoples';
 /** The material tag a settlement takes as an offering. */
 export const TRADE_TAG = 'trade';
 /** Terrain tags a settlement is never placed on. */
-const NOT_ON = ['water', 'steep'];
+const NOT_ON = ['water', 'steep', 'island'];
 
 const SETTLEMENT_STREAM = hashString('settlement');
 

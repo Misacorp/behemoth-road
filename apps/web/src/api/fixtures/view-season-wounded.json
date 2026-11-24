@@ -14,7 +14,7 @@
   },
   "offers": null,
   "game": {
-    "contentVersion": 19,
+    "contentVersion": 21,
     "artSeed": 4242,
     "day": 13,
     "config": {
@@ -52,6 +52,9 @@
       "lightFireCost": 1,
       "feedCost": 1,
       "lingerCost": 2,
+      "towThrowCost": 1,
+      "towGrabCost": 1,
+      "towReach": 1,
       "threatsFromDay": 1,
       "threatChanceBase": 0.6,
       "threatChancePerPlayer": 0.05,
@@ -100,6 +103,7 @@
       "lingeredDay": null,
       "steps": 12,
       "defenders": [],
+      "tows": [],
       "lingerStreak": 0
     },
     "tiles": {
@@ -207,7 +211,7 @@
       },
       "-2,-3": {
         "visibility": "seen",
-        "terrain": "forest",
+        "terrain": "plains",
         "explored": false,
         "leftWindowOnDay": null
       },
@@ -285,7 +289,7 @@
       },
       "0,-6": {
         "visibility": "seen",
-        "terrain": "forest",
+        "terrain": "plains",
         "explored": false,
         "leftWindowOnDay": null
       },
@@ -758,7 +762,7 @@
       },
       "-6,-3": {
         "visibility": "lost",
-        "terrain": "forest",
+        "terrain": "plains",
         "explored": false
       },
       "-5,-4": {
@@ -769,7 +773,7 @@
       },
       "-4,-5": {
         "visibility": "seen",
-        "terrain": "forest",
+        "terrain": "plains",
         "explored": false,
         "leftWindowOnDay": null
       },
@@ -891,7 +895,7 @@
       },
       "-4,-7": {
         "visibility": "seen",
-        "terrain": "cliff",
+        "terrain": "plains",
         "explored": false,
         "leftWindowOnDay": null
       },
@@ -1123,7 +1127,7 @@
       },
       "7,-12": {
         "visibility": "seen",
-        "terrain": "forest",
+        "terrain": "plains",
         "explored": false,
         "leftWindowOnDay": null
       },
@@ -1201,7 +1205,7 @@
       },
       "4,-14": {
         "visibility": "seen",
-        "terrain": "desert",
+        "terrain": "plains",
         "explored": false,
         "leftWindowOnDay": null
       },

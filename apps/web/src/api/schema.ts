@@ -91,6 +91,9 @@ const config = v.object({
   lightFireCost: count,
   feedCost: count,
   lingerCost: count,
+  towThrowCost: count,
+  towGrabCost: count,
+  towReach: count,
   threatsFromDay: count,
   threatChanceBase: v.number(),
   threatChancePerPlayer: v.number(),
@@ -149,6 +152,7 @@ export const GameStateViewSchema = v.object({
     steps: count,
     /** Wardens defending it until the next tick. */
     defenders: v.pipe(v.array(id), v.maxLength(64)),
+    tows: v.pipe(v.array(v.strictObject({ from: id, to: id })), v.maxLength(64)),
   }),
   tiles: v.pipe(
     v.record(v.pipe(v.string(), v.regex(/^-?\d+,-?\d+$/), v.maxLength(24)), tile),
@@ -296,6 +300,8 @@ const KNOWN_EVENTS = [
   event('fire-lit', { hex, characterId: id, stimulus: id }),
   event('fed', { characterId: id, material: id }),
   event('linger', { characterId: id }),
+  event('tow-thrown', { characterId: id, target: id }),
+  event('tow-grabbed', { characterId: id, thrower: id }),
   /** The creature's step at the tick (a linger: from equals to). */
   event('creature-step', { from: hex, to: hex }),
   event('lost', { characterId: id, hex }),
@@ -453,6 +459,8 @@ export type GameAction =
   | { readonly kind: 'light-fire' }
   | { readonly kind: 'feed' }
   | { readonly kind: 'linger' }
+  | { readonly kind: 'throw-line'; readonly to: string }
+  | { readonly kind: 'grab-line' }
   | { readonly kind: 'strike'; readonly threat: string }
   | { readonly kind: 'defend' }
   | { readonly kind: 'parley' }

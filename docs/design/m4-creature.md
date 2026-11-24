@@ -48,7 +48,7 @@ CreatureSigns = {
 - **Feed**: riding the creature, 1 action, takes 1 food from the stores, adds its `nourishes` to satiety (capped at 20; overfeeding is possible and shows). Anyone can feed: basics for all.
 - **Underfed takes worse steps and makes trouble, but it always moves.** While underfed, the base weights become `hungryVeerWeights` (1 : 1 : 1, erratic) and stimuli still pull. At level 3 (satiety 3 or less) it also eats one unit from the team stores at each tick (food first, else a seeded pick).
 - **Overfed is sluggish.** Stimuli pull less: the pull becomes `1 + (stimulusPull − 1) / (level + 1)`. Feeding too much makes steering hard; feeding too little makes it erratic. The comfortable band is where the team can steer.
-- **Linger (keeper)**: riding, 2 actions; the creature stays put at the next tick (the day still turns: fires go out, hunger drains, grace days run, actions reset). Not on the day after a linger, so it always moves at least every other day. Public: `creature.lingering: boolean` shows on the creature, and the step hints show it staying. Keeper only: pace is the keeper's lever.
+- **Linger (keeper)**: riding, 2 actions; the creature stays put at the next tick (the day still turns: fires go out, hunger drains, actions reset; the fog holds, so no hex leaves the window or is lost and the grace days do not run, Misa 2026-11-24). Not on the day after a linger, so it always moves at least every other day. Public: `creature.lingering: boolean` shows on the creature, and the step hints show it staying. Keeper only: pace is the keeper's lever.
 
 ## Tick order (additions)
 

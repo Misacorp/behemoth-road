@@ -31,8 +31,8 @@ export const PURSUER_TAG = 'pursuer';
 export const DEFEND_TAG = 'defend';
 /** The role tag of a warden's escort: no one near them is struck, nor are they. */
 export const ESCORT_TAG = 'escort';
-/** The terrain tag ground threats never appear on. */
-const WATER_TAG = 'water';
+/** The terrain tags threats never appear on (water, and islands nobody can walk to). */
+const OFF_LIMITS_TAGS = ['water', 'island'];
 
 export const threatType = (id: string): ThreatType => {
   const type = THREAT_TYPES.find((t) => t.id === id);
@@ -146,7 +146,7 @@ export const canAppearOn = (state: GameStateView, h: Hex, type?: ThreatType): bo
   const terrain = terrainOf(state, h);
   if (!terrain || isCreatureHex(state, h)) return false;
   if (type?.on && !type.on.some((tag) => terrain.tags.includes(tag))) return false;
-  if (terrain.tags.includes(WATER_TAG)) return false;
+  if (OFF_LIMITS_TAGS.some((tag) => terrain.tags.includes(tag))) return false;
   if (state.settlements.some((s) => hexEquals(s.hex, h))) return false;
   return !state.threats.some((t) => hexEquals(t.hex, h));
 };

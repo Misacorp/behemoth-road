@@ -56,6 +56,14 @@ describe('stance glyphs', () => {
     expect(none.nodes).toHaveLength(0);
   });
 
+  it('draws the stranded flare only when asked', () => {
+    const on = drawCharacterMarks(SPRING, { x: 0, y: 0 }, 64, 0.8, 1.4, { stranded: true });
+    const g = el('g', {}, on.nodes);
+    within(g);
+    expect(marks(g, 'stranded')).toBe(1);
+    expect(drawCharacterMarks(SPRING, { x: 0, y: 0 }, 64, 0.8, 1.4, {}).nodes).toHaveLength(0);
+  });
+
   it('shows in a scene on a walker and on a rider, with no other mark', () => {
     const cells = [-1, 0, 1].flatMap((q) =>
       [-1, 0, 1].map((r) => ({ q, r, terrain: 'plains', props: [] })),

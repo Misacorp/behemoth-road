@@ -22,6 +22,7 @@ Record a decision:
 
 [direction.md](direction.md): Priorities, how the owner and agents work, naming and tone.
 
+- 2026-11-24 Each terrain has its own base colour, separated by value first (Misa) \[Misa\]
 - 2026-11-21 Features rise tall from the ground, no raised plinth \[Misa\]
 - 2026-11-21 Art review round 2: features rise from plinths, traps share a danger cue, the shield is the role frame, trodden ground keeps its terrain \[Misa\] (amended)
 - 2026-11-19 The art review page shows only what needs Misa; silence means accepted \[Misa\]
@@ -122,6 +123,28 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-24 Lakes, ponds and seas: the creature swims, a raft lets everyone else cross \[Misa\]
+- 2026-11-24 The tow line reaches the first ring outside the window \[Misa\]
+- 2026-11-24 The tow line needs the hauled player's approval \[Misa\] (amended)
+- 2026-11-24 Each terrain gets its own base colour \[Misa\]
+- 2026-11-24 The in-world word road is retired \[Misa\]
+- 2026-11-24 Personal objective: one of two at join, picked like the creature \[Misa\]
+- 2026-11-24 Legacy content need not survive \[Misa\]
+- 2026-11-24 Rosters are personal \[Misa\]
+- 2026-11-24 The next creature is picked from two veiled options during a rest \[Misa\]
+- 2026-11-24 Recruits first; veterans maybe later at baseline skills \[Misa\]
+- 2026-11-24 A lost season keeps only the record; objectives count on a homecoming \[Misa\]
+- 2026-11-24 Entering a vehicle takes the player's own action \[Misa\]
+- 2026-11-24 Vehicles first slice: tow line, stranded flare, linger holds the fog \[Misa\]
+- 2026-11-24 A lost vehicle is rebuilt at full cost \[Misa\]
+- 2026-11-24 No head-home stance; stances stay optional \[Misa\]
+- 2026-11-24 Regions are named by the terrain in view \[Misa\]
+- 2026-11-24 Lore fragments found in a lost season are kept \[Misa\]
+- 2026-11-24 Rain makes fire dearer, to build after the balance sim \[Misa\]
+- 2026-11-24 Madness (Far-eyed) is parked \[Misa\]
+- 2026-11-24 Endings get a line each, varied by the largest peril source \[Misa\]
+- 2026-11-24 No dawn digest for now \[Misa\]
+- 2026-11-24 A lingering creature holds the fog \[Misa\]
 - 2026-11-23 Skill tiers 2 and 3 are active, with adjusted effects
 - 2026-11-23 Reference: day readout hold menu and wiki link \[Misa\]
 - 2026-11-23 Returning recap after a day change \[Misa\]
@@ -193,7 +216,7 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-20 Threats are tagged data that appear at the window's edge and walk in openly (amended)
 - 2026-11-20 Guardians strike, defend and escort; anyone can strike a threat (amended)
 - 2026-11-20 Settlements appear on the route; parley or offer to befriend, or anger them (amended)
-- 2026-11-20 Peril is a public track; the season ends at home or at full peril
+- 2026-11-20 Peril is a public track; the season ends at home or at full peril (amended)
 - 2026-11-20 The day's step uses Milestone 3's creature walk; a linger plays the stayed mark
 - 2026-11-20 The step hints, appetite badge and stayed mark use the art kit's drawings
 - 2026-11-20 The creature card's heading loses its ring; the bubble carries an appetite badge (amended)
@@ -214,7 +237,7 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-20 The here card is compact and lets taps through its body; moments use the art kit's marks
 - 2026-11-20 Unexplored hexes sit under one hatched paper veil; packs, stores and unlocks have their own marks (amended)
 - 2026-11-20 M4 core: hunger cap in creature data, starving meals nourish, lingering twice refused
-- 2026-11-20 Lingering is the keeper's action and never runs two days in a row
+- 2026-11-20 Lingering is the keeper's action and never runs two days in a row (amended)
 - 2026-11-20 Hunger has a comfortable band; underfed is erratic, overfed is sluggish; anyone can feed (amended)
 - 2026-11-20 Symptoms are computed per viewer; keepers see them earlier and see reaction cues
 - 2026-11-20 Fires pull the creature's step by a weighted score; the public prediction stays blind (amended)

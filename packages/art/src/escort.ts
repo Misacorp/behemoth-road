@@ -27,6 +27,8 @@ export interface CharacterMarks {
   readonly stance?: string;
   /** Ended the day (waiting): a small hourglass at the other side of the head. */
   readonly waiting?: boolean;
+  /** Cut off on a grace hex and waiting or unable to get back (core `stranded`): a small orange flare overhead. */
+  readonly stranded?: boolean;
 }
 
 /** The character standee's height in its own units (`drawCharacter`). */
@@ -108,7 +110,7 @@ function skewRect(c: Point, w: number, h: number, a: number): Point[] {
 
 /**
  * A character's marks for the day, drawn over its standee at `origin` (its feet). Same arguments as
- * `drawCharacter`. Parts carry `data-mark="escorted" | "struck" | "defending" | "stance" | "waiting"`.
+ * `drawCharacter`. Parts carry `data-mark="escorted" | "struck" | "defending" | "stance" | "waiting" | "stranded"`.
  */
 export function drawCharacterMarks(
   palette: Palette,
@@ -234,6 +236,35 @@ export function drawCharacterMarks(
     const r = 8 * k;
     all.push({ x: c.x - r, y: c.y - r }, { x: c.x + r, y: c.y + r });
     nodes.push(glyphBadge(palette, 'waiting', 'hourglass', c.x, c.y, r, palette.inkSoft, w));
+  }
+  if (marks.stranded) {
+    // A rescue flare: a pointed coral flame with a pale core and three short rays, high above the head.
+    const base = T(0, -66);
+    const tip = T(0, -90);
+    const half = 7 * k;
+    const drop =
+      `M${base.x.toFixed(1)} ${(base.y + 1.5 * k).toFixed(1)}` +
+      `C${(base.x - half * 1.5).toFixed(1)} ${(base.y - 2 * k).toFixed(1)} ${(base.x - half * 0.4).toFixed(1)} ${(tip.y + 7 * k).toFixed(1)} ${tip.x.toFixed(1)} ${tip.y.toFixed(1)}` +
+      `C${(base.x + half * 0.4).toFixed(1)} ${(tip.y + 7 * k).toFixed(1)} ${(base.x + half * 1.5).toFixed(1)} ${(base.y - 2 * k).toFixed(1)} ${base.x.toFixed(1)} ${(base.y + 1.5 * k).toFixed(1)}Z`;
+    const core = ellipsePath(base.x, base.y - 3 * k, 2.1 * k, 3.4 * k);
+    const mid = T(0, -78);
+    const rays = [-1, 0, 1]
+      .map((i) => {
+        const a = (i * 0.75 * Math.PI) / 2;
+        const x0 = mid.x + Math.sin(a) * 9.5 * k;
+        const y0 = mid.y - Math.cos(a) * 9.5 * k;
+        return `M${x0.toFixed(1)} ${y0.toFixed(1)}L${(mid.x + Math.sin(a) * 13.5 * k).toFixed(1)} ${(mid.y - Math.cos(a) * 13.5 * k).toFixed(1)}`;
+      })
+      .join('');
+    all.push({ x: base.x - 14 * k, y: mid.y - 14 * k }, { x: base.x + 14 * k, y: base.y + 2 * k });
+    nodes.push(
+      el('g', { 'data-mark': 'stranded' }, [
+        line(rays, w * 1.1, palette.accents.coral.shade),
+        el('path', { d: drop, fill: palette.accents.coral.base }),
+        el('path', { d: core, fill: palette.accents.ochre.light }),
+        line(drop, w * 0.9, palette.accents.coral.shade),
+      ]),
+    );
   }
   return { nodes, box: all.length ? boxOf(all) : boxOf([origin]) };
 }

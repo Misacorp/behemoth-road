@@ -4,6 +4,14 @@ Priorities, how the owner and agents work, naming and tone.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-24: Each terrain has its own base colour, separated by value first (Misa) **[Misa]**
+
+ID: `2026-11-24-each-terrain-has-its-own-base` · Status: current
+
+**Decision.** Fields, woods, swamp and the rest no longer share colours. Each terrain has its own ground ramp in the palette: plains straw-green (Spring #c1d07f), forest deep teal-green (#5f9577), desert warm sand (#f1ddb0), cliffs and rocks lilac-grey (#a09cae), lake and rivers the only cool blue (#8fbdd8), swamp muddy brown with a dark-green shade (#8a7648), hills warm ochre (#c0a06c). Order by lightness, lightest first: desert, plains, lake, cliffs, forest, swamp, at least 6 L* apart (Spring: 88.7, 80.7, 74.3, 65.2, 57.3, 50.5). Morning and Mist follow the same order with their own hues. A test checks the order, the gaps, that water is the only blue ground, and that every pair stays apart under a protan and a deutan simulation. Each terrain keeps its prop or texture as a second signal.
+
+**Reasoning.** Board games (Catan, Kingdomino, Cascadia) tell tiles apart by value first, then hue, and add a prop. The old ground ramps were all pale yellow-greens. Colour alone fails red-green colour vision, so the props and the value gaps carry the rest. New ground materials (plain, wood, dune, crag, upland) leave the shared prop ramps (rock, sand, heath, grass) untouched, so features and icons keep their look.
+
 ## 2026-11-21: Features rise tall from the ground, no raised plinth **[Misa]**
 
 ID: `2026-11-21-features-rise-tall-from-the-ground` · Status: current · Amends: `2026-11-21-art-review-round-2-features-rise`

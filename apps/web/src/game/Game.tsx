@@ -74,6 +74,7 @@ import {
 /** The width from which the layout is the desktop one (`styles.css` media queries). */
 const DESKTOP_FROM = 900;
 import { identities, partySeeds, setAccents } from './identity.ts';
+import { grabOption, throwOption } from './tow.ts';
 import {
   eventKeys,
   type Moment,
@@ -356,10 +357,23 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
       ...(a.risk ? { risk: true } : {}),
       ...(a.why ? { why: a.why } : {}),
     }));
+    // A tow line thrown to you: grab it (its own action, never forced).
+    const grab = grabOption(state, me.id);
     const actions = [
       ...(feature ? actionsAt(state, me.id) : []),
       ...(fire ? [fire] : []),
       ...settlement,
+      ...(grab
+        ? [
+            {
+              kind: 'grab-line',
+              icon: 'towline',
+              cost: grab.cost,
+              enabled: grab.enabled,
+              ...(grab.why ? { why: grab.why } : {}),
+            } satisfies HereAction,
+          ]
+        : []),
     ];
     // A settlement where you stand always opens the card (its attitude and the boon it gave), even with
     // nothing left to do there.
@@ -374,7 +388,17 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
     return mine && mine.actionsLeft > 0 ? { kind: 'selected' } : IDLE;
   };
   const onAct = (kind: string): void => {
-    if (kind === 'gather' || kind === 'work-site' || kind === 'light-fire' || kind === 'parley') {
+    if (kind === 'grab-line') {
+      void act(
+        () => api.act(view.version, { kind }),
+        () => IDLE,
+      );
+    } else if (
+      kind === 'gather' ||
+      kind === 'work-site' ||
+      kind === 'light-fire' ||
+      kind === 'parley'
+    ) {
       void act(() => api.act(view.version, { kind }), stillSelected);
     } else if (kind.startsWith('offer:')) {
       void act(
@@ -387,6 +411,14 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
         stillSelected,
       );
     }
+  };
+  // Throwing the line from the target's card: the card closes, and the line shows on their figure.
+  const towOf = (id: string) => (me?.status === 'active' ? throwOption(state, me.id, id) : null);
+  const onThrow = (to: string): void => {
+    void act(
+      () => api.act(view.version, { kind: 'throw-line', to }),
+      () => IDLE,
+    );
   };
   // A strike keeps the threat's card open while it stands, so the next strike is one tap.
   const onStrike = (threat: string): void => {
@@ -564,6 +596,8 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
         surveyAt={surveyAt}
         onSurvey={onSurvey}
         onStrike={onStrike}
+        towOf={towOf}
+        onThrow={onThrow}
       />
       <PerilEdge peril={state.peril} max={state.config.perilMax} />
       <DayCountdown

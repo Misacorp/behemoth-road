@@ -4,7 +4,8 @@
  */
 import type { Material } from './palette.ts';
 
-export type GroundMark = 'flecks' | 'ripples' | 'waves' | 'scree' | 'scuffs' | 'pools' | 'none';
+export type GroundMark =
+  'flecks' | 'ripples' | 'waves' | 'swell' | 'shoals' | 'scree' | 'scuffs' | 'pools' | 'none';
 
 export interface PropRule {
   /** A prop kind (`props.ts`). */
@@ -26,7 +27,7 @@ export interface TerrainLook {
 
 export const TERRAIN_LOOKS: Readonly<Record<string, TerrainLook>> = {
   plains: {
-    ground: 'grass',
+    ground: 'plain',
     side: 'earth',
     marks: 'flecks',
     props: [
@@ -35,7 +36,7 @@ export const TERRAIN_LOOKS: Readonly<Record<string, TerrainLook>> = {
     ],
   },
   forest: {
-    ground: 'moss',
+    ground: 'wood',
     side: 'earth',
     marks: 'none',
     props: [
@@ -44,13 +45,13 @@ export const TERRAIN_LOOKS: Readonly<Record<string, TerrainLook>> = {
     ],
   },
   pines: {
-    ground: 'moss',
+    ground: 'wood',
     side: 'earth',
     marks: 'none',
     props: [{ kind: 'conifer', count: [3, 5] }],
   },
   hills: {
-    ground: 'heath',
+    ground: 'upland',
     side: 'earth',
     marks: 'flecks',
     props: [
@@ -59,7 +60,7 @@ export const TERRAIN_LOOKS: Readonly<Record<string, TerrainLook>> = {
     ],
   },
   desert: {
-    ground: 'sand',
+    ground: 'dune',
     side: 'earth',
     marks: 'ripples',
     props: [{ kind: 'dune', count: [1, 2] }],
@@ -74,7 +75,7 @@ export const TERRAIN_LOOKS: Readonly<Record<string, TerrainLook>> = {
     ],
   },
   rocks: {
-    ground: 'heath',
+    ground: 'crag',
     side: 'rock',
     marks: 'scree',
     props: [
@@ -83,13 +84,13 @@ export const TERRAIN_LOOKS: Readonly<Record<string, TerrainLook>> = {
     ],
   },
   cliff: {
-    ground: 'rock',
+    ground: 'crag',
     side: 'rock',
     marks: 'scree',
     props: [{ kind: 'cliff', count: [1, 1] }],
   },
   river: {
-    ground: 'grass',
+    ground: 'plain',
     side: 'earth',
     marks: 'none',
     props: [],
@@ -100,6 +101,31 @@ export const TERRAIN_LOOKS: Readonly<Record<string, TerrainLook>> = {
     side: 'earth',
     marks: 'waves',
     props: [],
+  },
+  // The sea: a deeper, greener blue with long swells (more and longer wave marks than a lake).
+  sea: {
+    ground: 'sea',
+    side: 'earth',
+    marks: 'swell',
+    props: [],
+  },
+  // Shallows: light, clear water with short ripples and pale sand showing through.
+  shallows: {
+    ground: 'shoal',
+    side: 'earth',
+    marks: 'shoals',
+    props: [],
+  },
+  // A small island: green ground with a tree or a rock, ringed by deep water.
+  islet: {
+    ground: 'plain',
+    side: 'earth',
+    marks: 'flecks',
+    props: [
+      { kind: 'broadleaf', count: [1, 1], chance: 0.6 },
+      { kind: 'tuft', count: [1, 2] },
+      { kind: 'rock', count: [1, 1], chance: 0.4 },
+    ],
   },
 };
 

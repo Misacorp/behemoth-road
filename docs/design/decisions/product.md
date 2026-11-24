@@ -4,6 +4,182 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-24: Lakes, ponds and seas: the creature swims, a raft lets everyone else cross **[Misa]**
+
+ID: `2026-11-24-lakes-ponds-and-seas-the-creature` · Status: current
+
+**Decision.** Misa asked for lakes, ponds and seas, with tools to cross them and no ocean that takes weeks. Terrain: `shallows` (tags `water`, `shallow`, walkable), `lake` (`water`, `deep`, `fresh`, for ponds too) and `sea` (`water`, `deep`, `salt`), both impassable on foot; `islet` (`open`, `island`) is the land inside them. The creature ignores terrain, so it swims; its riders cross with it and can survey from its back as before. Everyone else needs the `raft`, an Engineer unlock (3 timber, 4 work) whose `movement` reads the tag `deep` at cost 2 (one more than a step), through the same `entryInto`/`via` hook as the marsh boards and the hook; path planning needs nothing new (no raft, no path). Generation (`content/generation.ts`, `waters.ts`): bodies sit on a coarse grid, one per cell and kind, as ragged discs; deep water ends at its radius, so the longest line of deep hexes is bounded by the content (`maxCrossing` 4, a radius under 2: three or four creature steps, never weeks), seas and lakes get a ring of shallows, a body is whole or absent, ponds keep clear of lakes and lakes of seas, and nothing lies within 8 hexes of the start. Bodies overlay the rules, so a river ends in a lake. Islands: one land hex at the centre of a lake or sea (about 8 in a 4900-hex area), ringed by deep water so it is a true island; threats and settlements never use it. The `water-temple` (a tier-1 site tagged `shrine`, `ancient`, `temple`, finds a river pearl) stands on islands (weight 100); the sunken shrine, undertow, river stones and river folk already fit shallows by tag. To keep the plains share above the map test's floor, forest (0.71 to 0.725), desert (0.27 to 0.26) and cliff (highland mask 0.5 to 0.57) were thinned a little. Content version 20. The full vehicle system (seats, carrying, rafts placed on a hex, the `vehicles.md` proposal) stays a later option: the raft is only a crossing tool for now.
+
+**Reasoning.** A pure per-radius construction gives a hard bound on crossing length that a noise threshold cannot, and keeps the map lazy and seeded. Reusing `entryInto` and tags means no new movement code and the existing path, window and grace rules apply as they are. One-hex islands, not 1 to 3: a larger island needs a larger body to stay ringed by deep water, which would break the four-hex bound. Balance and findability are unchanged within noise (careful full season 3 players: 79 % safe before, 80 % after; 6 players 84 % and 85 %; stone, iron and timber still found in 39 to 40 of 40 seeds within a week).
+
+## 2026-11-24: The tow line reaches the first ring outside the window **[Misa]**
+
+ID: `2026-11-24-the-tow-line-reaches-the-first` · Status: current · Amends: `2026-11-24-the-tow-line-needs-the-hauled`
+
+**Decision.** The tow line reaches the first ring outside the window, counted from the window's edge: a thrown line may go to any character within `windowRadius + towReach` hexes of the creature's centre, with `towReach` now 1 (it was 2 hexes from the footprint). So a character on a grace hex next to the edge can be thrown a line. Throw and grab keep costing 1 action each.
+
+**Reasoning.** At the old reach the line could not touch a grace hex, so it could not save anyone who was about to be lost. Counting from the window keeps the reach tied to the config (`windowRadius`) rather than a separate number.
+
+## 2026-11-24: The tow line needs the hauled player's approval **[Misa]**
+
+ID: `2026-11-24-the-tow-line-needs-the-hauled` · Status: current, amended by `2026-11-24-the-tow-line-reaches-the-first`
+
+**Decision.** The tow line is an Engineer unlock (`towline`, 2 timber, 1 stone, 3 work; the tag `towline`, since `rope` is the grappling hook's). With it a rider spends 1 action (`towThrowCost`) to throw the line to a character within 2 hexes (`towReach`) of the footprint, once per rider per day and one line per target. The target sees the line on their figure and may grab it on their own turn for 1 action (`towGrabCost`), which moves them onto the creature (riding, pack deposited). An ungrabbed line lapses at the tick. No one can be pulled aboard without their own action, and absent players simply do not interact: there are no special rules for rescuing or carrying them. Public state: `creature.tows`. Content version 20. Note: grace hexes lie 7 or more hexes from the creature's centre, so the line (reach 3 from the centre) cannot reach a stranded character; it saves someone close with too few actions to walk back.
+
+**Reasoning.** Misa's call: consent. Being moved is the player's own choice, and the game is not designed around players who are away.
+
+## 2026-11-24: Each terrain gets its own base colour **[Misa]**
+
+ID: `2026-11-24-each-terrain-gets-its-own-base` · Status: current
+
+**Decision.** Each terrain gets its own base colour; another agent is researching the palette.
+
+**Reasoning.** Terrain should read at a glance.
+
+## 2026-11-24: The in-world word road is retired **[Misa]**
+
+ID: `2026-11-24-the-in-world-word-road-is` · Status: current
+
+**Decision.** The in-world word 'road' for the creature's way is retired; the game should feel like an open world. The product name stays.
+
+**Reasoning.** Misa's call on feel.
+
+## 2026-11-24: Personal objective: one of two at join, picked like the creature **[Misa]**
+
+ID: `2026-11-24-personal-objective-one-of-two-at` · Status: current
+
+**Decision.** At join a player picks a personal objective from two cards, with the same two-card pick UX as the creature choice.
+
+**Reasoning.** One pattern to learn.
+
+## 2026-11-24: Legacy content need not survive **[Misa]**
+
+ID: `2026-11-24-legacy-content-need-not-survive` · Status: current
+
+**Decision.** Old content and saved games need not survive a change: everything can be wiped before release.
+
+**Reasoning.** Nothing is live to protect yet.
+
+## 2026-11-24: Rosters are personal **[Misa]**
+
+ID: `2026-11-24-rosters-are-personal` · Status: current
+
+**Decision.** Rosters are personal to each player.
+
+**Reasoning.** Misa's call.
+
+## 2026-11-24: The next creature is picked from two veiled options during a rest **[Misa]**
+
+ID: `2026-11-24-the-next-creature-is-picked-from` · Status: current
+
+**Decision.** During a rest everyone picks the next creature from two veiled options, tied to the story (who the party are and who sends them is being written).
+
+**Reasoning.** A shared choice that carries story.
+
+## 2026-11-24: Recruits first; veterans maybe later at baseline skills **[Misa]**
+
+ID: `2026-11-24-recruits-first-veterans-maybe-later-at` · Status: current
+
+**Decision.** New characters are recruits. Veterans may come later, and if so they start at baseline skills.
+
+**Reasoning.** Keeps early progression simple.
+
+## 2026-11-24: A lost season keeps only the record; objectives count on a homecoming **[Misa]**
+
+ID: `2026-11-24-a-lost-season-keeps-only-the` · Status: current
+
+**Decision.** A lost season keeps only the record (and lore). Objectives count only on a homecoming.
+
+**Reasoning.** Misa's call.
+
+## 2026-11-24: Entering a vehicle takes the player's own action **[Misa]**
+
+ID: `2026-11-24-entering-a-vehicle-takes-the-player` · Status: current
+
+**Decision.** A player must take their own action to enter a vehicle; another player cannot force them in.
+
+**Reasoning.** Consent: being moved against one's will is not a game the group wants.
+
+## 2026-11-24: Vehicles first slice: tow line, stranded flare, linger holds the fog **[Misa]**
+
+ID: `2026-11-24-vehicles-first-slice-tow-line-stranded` · Status: current
+
+**Decision.** The first slice of vehicles and rescue is the tow line, the stranded flare and linger holding the fog. The sled follows.
+
+**Reasoning.** Smallest slice that makes rescue possible.
+
+## 2026-11-24: A lost vehicle is rebuilt at full cost **[Misa]**
+
+ID: `2026-11-24-a-lost-vehicle-is-rebuilt-at` · Status: current
+
+**Decision.** A vehicle lost to the fog is rebuilt at full cost.
+
+**Reasoning.** Keeps loss meaningful; the unlock clears on loss.
+
+## 2026-11-24: No head-home stance; stances stay optional **[Misa]**
+
+ID: `2026-11-24-no-head-home-stance-stances-stay` · Status: current
+
+**Decision.** There is no 'head home' stance. Stances stay optional: players never need to use them.
+
+**Reasoning.** A head-home stance would make most rescues pointless.
+
+## 2026-11-24: Regions are named by the terrain in view **[Misa]**
+
+ID: `2026-11-24-regions-are-named-by-the-terrain` · Status: current
+
+**Decision.** For now regions are named by the terrain in view; route stretches get names later.
+
+**Reasoning.** Simplest option that keeps the other possible.
+
+## 2026-11-24: Lore fragments found in a lost season are kept **[Misa]**
+
+ID: `2026-11-24-lore-fragments-found-in-a-lost` · Status: current
+
+**Decision.** Lore fragments found in a season that is lost are kept.
+
+**Reasoning.** Misa's call: a lost season still teaches the world.
+
+## 2026-11-24: Rain makes fire dearer, to build after the balance sim **[Misa]**
+
+ID: `2026-11-24-rain-makes-fire-dearer-to-build` · Status: current
+
+**Decision.** In rain a fire costs two timber unless the Engineer has built a brazier. Accepted, but built only after the balance sim.
+
+**Reasoning.** Weather should bite through the Engineer's work; the numbers need the sim first.
+
+## 2026-11-24: Madness (Far-eyed) is parked **[Misa]**
+
+ID: `2026-11-24-madness-far-eyed-is-parked` · Status: current
+
+**Decision.** Madness and the Far-eyed idea are not built for now.
+
+**Reasoning.** Misa's call.
+
+## 2026-11-24: Endings get a line each, varied by the largest peril source **[Misa]**
+
+ID: `2026-11-24-endings-get-a-line-each-varied` · Status: current · Amends: `2026-11-20-peril-is-a-public-track-the`
+
+**Decision.** Each ending shows a short line (amends 'a title only'). The line varies by the tag of the largest source of peril in the season.
+
+**Reasoning.** Gives the end some story while the cause stays readable from play.
+
+## 2026-11-24: No dawn digest for now **[Misa]**
+
+ID: `2026-11-24-no-dawn-digest-for-now` · Status: current
+
+**Decision.** No dawn digest is posted to Discord and none is shown in the game for now. Names may be shown where something is displayed.
+
+**Reasoning.** Misa's call: keep the first rounds quiet.
+
+## 2026-11-24: A lingering creature holds the fog **[Misa]**
+
+ID: `2026-11-24-a-lingering-creature-holds-the-fog-2` · Status: current · Amends: `2026-11-20-lingering-is-the-keeper-s-action`
+
+**Decision.** When the creature lingers, the fog does not advance: no hex leaves the window, no hex is lost and the grace counters do not run at that tick. The next walking tick resumes them. This amends the m4 rule that grace runs during a linger.
+
+**Reasoning.** Fog should always be around the creature; a linger is a deliberate pause and must not cost anyone a character.
+
 ## 2026-11-23: Skill tiers 2 and 3 are active, with adjusted effects
 
 ID: `2026-11-23-skill-tiers-2-and-3-are` · Status: current · Amends: `2026-11-22-skill-slice-notch-per-action-performed`
@@ -645,7 +821,7 @@ ID: `2026-11-20-settlements-appear-on-the-route-parley` · Status: current, amen
 
 ## 2026-11-20: Peril is a public track; the season ends at home or at full peril
 
-ID: `2026-11-20-peril-is-a-public-track-the` · Status: current
+ID: `2026-11-20-peril-is-a-public-track-the` · Status: current, amended by `2026-11-24-endings-get-a-line-each-varied`
 
 **Decision.** Peril (0 to 10) rises by strike damage and by 1 at a tick that ends with the creature underfed at level 2 or more, and falls by 1 at a tick where it did not rise. The route is `routeLength` steps (40; 12 on staging and locally); lingering adds none. Peril at 10 loses the season; reaching the route's end wins it, safe below 5 peril, wounded at 5 or more. Once over, actions, moves and ticks do nothing; the ending shows a title only.
 
@@ -843,7 +1019,7 @@ ID: `2026-11-20-m4-core-hunger-cap-in-creature` · Status: current
 
 ## 2026-11-20: Lingering is the keeper's action and never runs two days in a row
 
-ID: `2026-11-20-lingering-is-the-keeper-s-action` · Status: current
+ID: `2026-11-20-lingering-is-the-keeper-s-action` · Status: current, amended by `2026-11-24-a-lingering-creature-holds-the-fog-2`
 
 **Decision.** A keeper riding the creature can spend 2 actions to make it stay put at the next tick. It cannot linger on the day after a linger. Whether it lingers is public. Other roles cannot linger.
 

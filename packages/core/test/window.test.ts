@@ -10,7 +10,7 @@ import {
   visibilityAt,
   windowHexes,
 } from '../src/index.ts';
-import { placeCharacter } from './helpers.ts';
+import { lingering, placeCharacter } from './helpers.ts';
 
 // The creature walks straight north: its centre is (0, 1 - day).
 const straight = { veerWeights: { left: 0, right: 0 } };
@@ -77,5 +77,27 @@ describe('window and fog of war', () => {
     for (let i = 0; i < 10; i++) state = nextDay(state);
     const inPlay = hexesInRange(state.creature.centre, state.config.windowRadius);
     expect(inPlay.every((h) => visibilityAt(state, h) === 'seen')).toBe(true);
+  });
+
+  it('holds the fog while the creature lingers: no hex and no character is lost', () => {
+    let state = createGame(1, { characterIds: ['a', 'b'], config: straight });
+    state = placeCharacter(state, 'a', hex(0, 6));
+    state = nextDay(state); // a is in its grace day
+    expect(visibilityAt(state, hex(0, 6))).toBe('seen');
+    const before = Object.keys(state.tiles).length;
+    for (let i = 0; i < 2; i++) {
+      const centre = state.creature.centre;
+      state = nextDay(lingering(state));
+      expect(state.creature.centre).toEqual(centre);
+      expect(visibilityAt(state, hex(0, 6))).toBe('seen');
+      expect(state.characters[0]?.status).toBe('active');
+      expect(Object.keys(state.tiles)).toHaveLength(before);
+      // A lingering creature cannot linger again the day after: walk is next.
+      if (i === 0) state = { ...state, creature: { ...state.creature, lingeredDay: null } };
+    }
+    // The grace day was not used up: the next walking tick loses the hex.
+    state = nextDay(state);
+    expect(visibilityAt(state, hex(0, 6))).toBe('lost');
+    expect(state.characters[0]).toMatchObject({ status: 'lost' });
   });
 });

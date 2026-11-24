@@ -17,6 +17,7 @@ import { type Hex, hexKey, neighbours } from './hex.ts';
 import { noiseAt } from './noise.ts';
 import { hashString, type Seed, toSeed } from './random.ts';
 import { type GameStateView, hasSeed } from './state.ts';
+import { waterIdAt } from './waters.ts';
 
 export interface MapContent {
   readonly terrains: readonly TerrainType[];
@@ -46,6 +47,10 @@ export const terrainIdAt = (
   generation: TerrainGeneration = TERRAIN_GENERATION,
 ): string => {
   const key = toSeed(seed);
+  if (generation.waters) {
+    const water = waterIdAt(key, h, generation.waters);
+    if (water) return water;
+  }
   for (const rule of generation.rules) {
     if (!meets(key, rule.field, rule.when, h)) continue;
     if (rule.mask && !(sample(key, rule.mask.field, h) > rule.mask.above)) continue;
