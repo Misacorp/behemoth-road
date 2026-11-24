@@ -54,7 +54,7 @@ import type { TipTarget } from '../ui/tip.ts';
 import { holdEnded, onRightClick, TIPS } from '../ui/press.ts';
 import { type StoryCard } from '../game/story.ts';
 import { beatText, vignetteOf } from '../text/story.ts';
-import { standingStones, traceTipAt } from '../game/traces.ts';
+import { bare, newStoneMemory, standingStones, traceTipAt } from '../game/traces.ts';
 import { MAP_TUNING } from './config.ts';
 import { type Flow, entryKey, isSelecting, pickEntries } from './flow.ts';
 import { holdMs } from '../text/tips.ts';
@@ -497,7 +497,7 @@ export function MapView(props: MapViewProps): JSX.Element {
       raster: layerRaster(inkZoom, box, window.devicePixelRatio, MAP_TUNING.layer),
     };
   }, [state, signs, glints, inkZoom, walking]);
-  const stoneMemory = useRef(new Map<string, Hex>());
+  const stoneMemory = useRef(newStoneMemory());
   const stones = useMemo(() => standingStones(state, stoneMemory.current), [state]);
   const layerRef = useRef(layers);
   layerRef.current = layers;
@@ -882,14 +882,23 @@ export function MapView(props: MapViewProps): JSX.Element {
   // Tips on the map (a threat, a settlement, a struck or escorted character, a fire): a mouse resting on one,
   // or a finger held on one; a hold never becomes a tap.
   const hoverTip = useRef<TipId | null>(null);
-  /** A trace or a standing stone on the hex: its tip, with who and which step as plain text under it. */
-  const traceOrStoneTip = (hex: Hex): { id: TipId; extra?: () => JSX.Element } | null => {
+  const stoneMarks = stones;
+  /**
+   * A trace or a standing stone on the hex: its tip, with who and which step as plain text under it. The
+   * green trail is only a mouse hover, and only on a bare hex (not under the creature, a figure, a feature,
+   * a threat or a settlement), so a long press on an ordinary tile still inspects it.
+   */
+  const traceOrStoneTip = (
+    hex: Hex,
+    mouse: boolean,
+  ): { id: TipId; extra?: () => JSX.Element } | null => {
     const s = latest.current.state;
     const trace = traceTipAt(s, hex, (cid) => latest.current.identities?.get(cid)?.name ?? null);
     // A stone stands on a trail hex: the stone is what is seen there, unless something more told is too.
     const stone = stoneMarks.some((x) => x.hex.q === hex.q && x.hex.r === hex.r);
     if (stone && (!trace || trace.id === 'map:trace-trail')) return { id: 'map:standing-stone' };
     if (trace) {
+      if (trace.id === 'map:trace-trail' && (!mouse || !bare(s, hex))) return null;
       return {
         id: trace.id,
         extra: () => (
@@ -900,11 +909,8 @@ export function MapView(props: MapViewProps): JSX.Element {
         ),
       };
     }
-    return stoneMarks.some((x) => x.hex.q === hex.q && x.hex.r === hex.r)
-      ? { id: 'map:standing-stone' }
-      : null;
+    return null;
   };
-  const stoneMarks = stones;
   const mapTip = (
     e: PointerEvent,
   ): { id: TipId; target: TipTarget; extra?: () => JSX.Element } | null => {
@@ -913,7 +919,8 @@ export function MapView(props: MapViewProps): JSX.Element {
     const v = view.current;
     const hex = worldToHex(p, toWorld(v, local(e)));
     const id = mapTipAt(latest.current.state, hex);
-    const found = id ? null : traceOrStoneTip(hex);
+    const mouse = e.pointerType === 'mouse';
+    const found = id ? null : traceOrStoneTip(hex, mouse);
     if (!id && !found) return null;
     const tipId: TipId = id ?? found!.id;
     return {
@@ -936,7 +943,7 @@ export function MapView(props: MapViewProps): JSX.Element {
         // Still what is there: a threat that moved or was cleared takes its tip with it.
         alive: () =>
           svg.isConnected &&
-          (id ? mapTipAt(latest.current.state, hex) === id : traceOrStoneTip(hex) !== null),
+          (id ? mapTipAt(latest.current.state, hex) === id : traceOrStoneTip(hex, mouse) !== null),
         owns: (t) => t instanceof Node && svg.contains(t),
       },
     };

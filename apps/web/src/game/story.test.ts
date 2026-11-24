@@ -15,14 +15,17 @@ import {
   anchorsOf,
   arrive,
   badgeShown,
-  closeCard,
+  closeByLoss,
+  closeByTap,
   NO_STORY,
+  READ_AFTER_MS,
   READ_BATCH,
   readBatches,
+  settle,
   tapBadge,
   unreadOf,
 } from './story.ts';
-import { standingStones, tracesAt, traceTipAt, WAYMARKS } from './traces.ts';
+import { bare, newStoneMemory, standingStones, tracesAt, traceTipAt, WAYMARKS } from './traces.ts';
 
 const none = new Map();
 const A = 'beat.setting-out';
@@ -49,65 +52,96 @@ describe('what is unread', () => {
 });
 
 describe('the story card model', () => {
+  const T0 = 1000;
+  const later = T0 + READ_AFTER_MS;
+  const unreadNow = (all: string[], m: { shown: readonly string[] }) => unreadOf(all, [], m.shown);
+
   it('plays one unread card on load (the oldest), and the rest wait behind the badge', () => {
-    const r = arrive(NO_STORY, [A, B, C], none, true);
+    const r = arrive(NO_STORY, [A, B, C], none, true, T0);
     expect(r.started).toBe(A);
-    expect(r.model.playing).toEqual({ id: A, anchor: { kind: 'creature' } });
-    // The played one is read; the others wait.
-    const left = unreadOf([A, B, C], [], r.model.shown);
+    expect(r.model.playing).toMatchObject({ id: A, anchor: { kind: 'creature' } });
+    // Read only once the player closes it.
+    expect(r.read).toBeNull();
+    const closed = closeByTap(r.model);
+    expect(closed.read).toBe(A);
+    const left = unreadNow([A, B, C], closed.model);
     expect(left).toEqual([B, C]);
+    expect(badgeShown(closed.model, left)).toBe(true);
     expect(badgeShown(r.model, left)).toBe(false);
-    const closed = closeCard(r.model);
-    expect(badgeShown(closed, left)).toBe(true);
   });
 
   it('plays the others one at a time on taps of the badge, never while one shows', () => {
-    let m = closeCard(arrive(NO_STORY, [A, B, C], none, true).model);
-    let left = unreadOf([A, B, C], [], m.shown);
-    const first = tapBadge(m, left, none);
+    let m = closeByTap(arrive(NO_STORY, [A, B, C], none, true, T0).model).model;
+    const first = tapBadge(m, unreadNow([A, B, C], m), none, T0);
     expect(first.started).toBe(B);
-    m = first.model;
     // A tap while a card shows does nothing.
-    expect(tapBadge(m, ['x'], none).started).toBeNull();
-    m = closeCard(m);
-    left = unreadOf([A, B, C], [], m.shown);
-    expect(tapBadge(m, left, none).started).toBe(C);
-    const last = closeCard(tapBadge(m, left, none).model);
-    expect(badgeShown(last, unreadOf([A, B, C], [], last.shown))).toBe(false);
+    expect(tapBadge(first.model, ['x'], none, T0).started).toBeNull();
+    m = closeByTap(first.model).model;
+    const second = tapBadge(m, unreadNow([A, B, C], m), none, T0);
+    expect(second.started).toBe(C);
+    const last = closeByTap(second.model).model;
+    expect(badgeShown(last, unreadNow([A, B, C], last))).toBe(false);
   });
 
-  it('does not replay what the next view still lists before the server echoes the read', () => {
-    const m = arrive(NO_STORY, [A], none, true).model;
-    expect(unreadOf([A], [], m.shown)).toEqual([]);
-    expect(unreadOf([A], [A], m.shown)).toEqual([]);
+  it('counts a card read after it has been up a while, even with no closing tap', () => {
+    const m = arrive(NO_STORY, [A], none, true, T0).model;
+    expect(settle(m, T0 + 100).read).toBeNull();
+    const s = settle(m, later);
+    expect(s.read).toBe(A);
+    expect(unreadNow([A], s.model)).toEqual([]);
+    // Closing it afterwards does not count it twice.
+    expect(closeByTap(s.model).read).toBeNull();
+  });
+
+  it('puts a card taken down too soon back to unread, and it plays again once the map is free', () => {
+    const m = arrive(NO_STORY, [A], none, true, T0).model;
+    const lost = closeByLoss(m, T0 + 300);
+    expect(lost.read).toBeNull();
+    expect(lost.model.playing).toBeNull();
+    expect(unreadNow([A], lost.model)).toEqual([A]);
+    expect(arrive(lost.model, [A], none, false, T0 + 400).started).toBeNull();
+    expect(arrive(lost.model, [A], none, true, T0 + 400).started).toBe(A);
+  });
+
+  it('counts a card taken down after it was up long enough as read', () => {
+    const m = arrive(NO_STORY, [A], none, true, T0).model;
+    const lost = closeByLoss(m, later);
+    expect(lost.read).toBe(A);
+    expect(unreadNow([A], lost.model)).toEqual([]);
   });
 
   it('waits for a free map: nothing plays or is noticed over a popover or drawer', () => {
-    const busy = arrive(NO_STORY, [A], none, false);
+    const busy = arrive(NO_STORY, [A], none, false, T0);
     expect(busy.started).toBeNull();
     expect(busy.model).toBe(NO_STORY);
-    expect(arrive(busy.model, [A], none, true).started).toBe(A);
+    expect(arrive(busy.model, [A], none, true, T0).started).toBe(A);
   });
 
-  it('plays a card that arrives later by itself once, when nothing is playing', () => {
-    let m = closeCard(arrive(NO_STORY, [A], none, true).model);
-    // Nothing new: no card plays by itself.
-    expect(arrive(m, [B], none, true).started).toBe(B);
-    m = closeCard(arrive(m, [B], none, true).model);
-    const same = arrive(m, [C], none, true);
-    expect(same.started).toBe(C);
-    // The same unread list again plays nothing more.
-    expect(arrive(closeCard(same.model), [], none, true).started).toBeNull();
+  it('plays a late arrival by itself: the newest that arrived, not the oldest unread', () => {
+    let m = closeByTap(arrive(NO_STORY, [A], none, true, T0).model).model;
+    // B waits unread behind a card that was showing when it arrived; then C and D arrive together.
+    const playing = tapBadge(m, [B], none, T0);
+    m = arrive(playing.model, [B, C, 'beat.waymark.half'], none, true, T0).model;
+    m = closeByTap(m).model;
+    expect(arrive(m, [B, C, 'beat.waymark.half'], none, true, T0).started).toBeNull();
+    // Fresh ones while nothing is playing.
+    const fresh = arrive(
+      m,
+      [B, C, 'beat.waymark.half', 'beat.greyfold', 'beat.terrain.dry'],
+      none,
+      true,
+      T0,
+    );
+    expect(fresh.started).toBe('beat.terrain.dry');
   });
 
   it('only queues a card that arrives while another is showing', () => {
-    const playing = arrive(NO_STORY, [A], none, true).model;
-    const next = arrive(playing, [B], none, true);
+    const playing = arrive(NO_STORY, [A], none, true, T0).model;
+    const next = arrive(playing, [A, B], none, true, T0);
     expect(next.started).toBeNull();
     expect(next.model.playing?.id).toBe(A);
-    // After it closes, the new one is noticed and waits behind the badge.
-    const closed = closeCard(next.model);
-    expect(arrive(closed, [B], none, true).started).toBeNull();
+    const closed = closeByTap(next.model).model;
+    expect(arrive(closed, [B], none, true, T0).started).toBeNull();
     expect(badgeShown(closed, [B])).toBe(true);
   });
 
@@ -117,11 +151,11 @@ describe('the story card model', () => {
       { kind: 'story', id: B, anchor: { kind: 'hex', hex } },
       { kind: 'step' },
     ]);
-    expect(arrive(NO_STORY, [B], anchors, true).model.playing?.anchor).toEqual({
+    expect(arrive(NO_STORY, [B], anchors, true, T0).model.playing?.anchor).toEqual({
       kind: 'hex',
       hex,
     });
-    expect(arrive(NO_STORY, [C], anchors, true).model.playing?.anchor).toEqual({
+    expect(arrive(NO_STORY, [C], anchors, true, T0).model.playing?.anchor).toEqual({
       kind: 'creature',
     });
   });
@@ -246,15 +280,48 @@ describe('standing stones', () => {
       creature: { ...s0.creature, steps: step + 5 },
       traces: [{ kind: 'trail' as const, hex: at, step }],
     };
-    const memory = new Map<string, Hex>();
+    const memory = newStoneMemory();
     expect(standingStones(s, memory)).toEqual([{ id: WAYMARKS[0].id, hex: at, ticks: 1 }]);
     // The trail is pruned later; the stone stays.
     expect(standingStones({ ...s, traces: [] }, memory)).toHaveLength(1);
     // Without the memory it is gone (and not placed at the creature, which has walked on).
-    expect(standingStones({ ...s, traces: [] }, new Map())).toEqual([]);
+    expect(standingStones({ ...s, traces: [] }, newStoneMemory())).toEqual([]);
+  });
+
+  it('are forgotten when the game changes (a new season)', () => {
+    const step = Math.ceil(0.25 * route);
+    const s = {
+      ...s0,
+      story: { ...s0.story, fired: [...s0.story.fired, WAYMARKS[0].id] },
+      creature: { ...s0.creature, steps: step + 5 },
+      traces: [{ kind: 'trail' as const, hex: at, step }],
+    };
+    const memory = newStoneMemory();
+    expect(standingStones(s, memory)).toHaveLength(1);
+    // Another game: its trail is gone and the old stone is not carried over.
+    const next = { ...s, artSeed: s.artSeed + 1, traces: [] };
+    expect(standingStones(next, memory)).toEqual([]);
+    expect(memory.hexes.size).toBe(0);
   });
 
   it('are set only for the beats that fired', () => {
-    expect(standingStones(s0, new Map())).toEqual([]);
+    expect(standingStones(s0, newStoneMemory())).toEqual([]);
+  });
+});
+
+describe('trail tips are for a bare hex', () => {
+  const s0 = joinedScenario().state;
+  const c = s0.creature.centre;
+
+  it('is not bare under the creature, a figure or a feature, and is elsewhere', () => {
+    expect(bare(s0, c)).toBe(false);
+    const figure = s0.characters.find((x) => x.status === 'active' && x.at.kind === 'hex');
+    if (figure?.at.kind === 'hex') expect(bare(s0, figure.at.hex)).toBe(false);
+    const featured = Object.keys(s0.features)[0];
+    if (featured) {
+      const [q, r] = featured.split(',').map(Number) as [number, number];
+      expect(bare(s0, { q, r })).toBe(false);
+    }
+    expect(bare(s0, { q: c.q + 5, r: c.r - 9 })).toBe(true);
   });
 });

@@ -5,7 +5,7 @@
  * three-quarter beats of `game.story.fired`.
  */
 import type { GameStateView, Hex, Trace, TraceKind } from '@behemoth-road/core';
-import { hexKey } from '@behemoth-road/core';
+import { creatureHexes, hexKey } from '@behemoth-road/core';
 import type { TipId } from '../text/tips.ts';
 
 /** When several traces share a hex, the one that tells most shows first (a trail is the least). */
@@ -24,6 +24,18 @@ export const tracesAt = (state: GameStateView, hex: Hex): Trace[] =>
   state.traces
     .filter((t) => t.hex.q === hex.q && t.hex.r === hex.r)
     .sort((a, b) => PRIORITY.indexOf(a.kind) - PRIORITY.indexOf(b.kind));
+
+/** Whether nothing else stands on a hex: not the creature's footprint, a figure, a feature, a threat or a settlement. */
+export function bare(state: GameStateView, hex: Hex): boolean {
+  const same = (h: Hex): boolean => h.q === hex.q && h.r === hex.r;
+  return !(
+    creatureHexes(state).some(same) ||
+    state.characters.some((c) => c.status === 'active' && c.at.kind === 'hex' && same(c.at.hex)) ||
+    state.threats.some((t) => same(t.hex)) ||
+    state.settlements.some((t) => same(t.hex)) ||
+    state.features[hexKey(hex)] !== undefined
+  );
+}
 
 export interface TraceTip {
   readonly id: TipId;
@@ -60,21 +72,33 @@ export interface Stone {
 /**
  * The standing stones set so far. A stone stands where the creature was at the step its beat fired: a trail
  * the footprint left then, else (the trail may be gone) the creature's own hex while it is still at that
- * step, else nowhere. Where a stone was once found it is remembered in `memory` (which the caller keeps),
+ * step, else nowhere. Where a stone was once found it is remembered in `memory` (which the caller keeps, per game),
  * so it stays when its trail is pruned. A stone on a hex no longer on the map is not drawn.
  */
-export function standingStones(state: GameStateView, memory: Map<string, Hex>): readonly Stone[] {
+export interface StoneMemory {
+  /** The game the memory belongs to (`artSeed`): another game, another season, starts it afresh. */
+  seed: GameStateView['artSeed'] | null;
+  readonly hexes: Map<string, Hex>;
+}
+
+export const newStoneMemory = (): StoneMemory => ({ seed: null, hexes: new Map() });
+
+export function standingStones(state: GameStateView, memory: StoneMemory): readonly Stone[] {
+  if (memory.seed !== state.artSeed) {
+    memory.hexes.clear();
+    memory.seed = state.artSeed;
+  }
   const out: Stone[] = [];
   const fired = new Set(state.story.fired);
   for (const w of WAYMARKS) {
     if (!fired.has(w.id)) continue;
     const step = Math.ceil(w.fraction * state.config.routeLength);
-    let hex = memory.get(w.id) ?? null;
+    let hex = memory.hexes.get(w.id) ?? null;
     if (!hex) {
       hex =
         state.traces.find((t) => t.kind === 'trail' && t.step === step)?.hex ??
         (state.creature.steps - step <= 1 ? state.creature.centre : null);
-      if (hex) memory.set(w.id, hex);
+      if (hex) memory.hexes.set(w.id, hex);
     }
     if (hex && state.tiles[hexKey(hex)]) out.push({ id: w.id, hex, ticks: w.ticks });
   }

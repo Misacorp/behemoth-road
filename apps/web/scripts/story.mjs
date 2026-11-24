@@ -144,7 +144,7 @@ async function runViewport(browser, vite, vp) {
       fail('the story card is off screen');
     await shot('card-setting-out');
   }
-  await wait(700);
+  await wait(2200);
   if (posts().join('|') !== 'beat.setting-out') fail(`reads posted: ${posts().join('|')}`);
   await tapAt(vp.width / 2, vp.height * 0.7);
   if ((await count('.story-card')) !== 0) fail('a tap did not close the card');
@@ -227,7 +227,14 @@ async function runViewport(browser, vite, vp) {
   };
   await tipOf(2, 0, 'map:trace-fire', ['Fire scar', 'Step 6']);
   await tapAt(vp.width / 2, vp.height * 0.8);
-  await tipOf(0, -2, 'map:trace-trail', ['Green trail', 'Step 8']);
+  if (vp.touch) {
+    // A long press on a plain trail hex does not open a tip (it behaves as an ordinary tile).
+    const [x, y] = await hexOnScreen(c.q, c.r - 2);
+    await holdAt(x, y - 4);
+    if ((await count('.tip')) !== 0) fail('a long press on a trail hex opened a tip');
+  } else {
+    await tipOf(0, -2, 'map:trace-trail', ['Green trail', 'Step 8']);
+  }
   await tapAt(vp.width / 2, vp.height * 0.8);
   await tipOf(-1, -2, 'map:standing-stone', ['Standing stone']);
   await tapAt(vp.width / 2, vp.height * 0.8);

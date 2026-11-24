@@ -740,7 +740,8 @@ function traceMarks(i: OverlayInput): SvgNode[] {
   for (const t of i.state.traces) {
     const key = hexKey(t.hex);
     const cell = cellStateAt(i.state, key);
-    if (cell === 'unseen' || cell === 'lost') continue;
+    // A lost character's gate stands on a lost hex: only blank paper has no traces.
+    if (cell === 'unseen') continue;
     const drawn = drawTrace(i.palette, t.kind, {
       origin: hexCenter(p, t.hex.q, t.hex.r),
       k: p.size / 64,

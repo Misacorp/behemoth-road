@@ -90,9 +90,14 @@ import {
   arrive,
   badgeShown,
   type CardAnchor,
-  closeCard,
+  cardOf,
+  closeByLoss,
+  closeByTap,
   NO_STORY,
+  READ_AFTER_MS,
   readBatches,
+  settle,
+  type Step,
   type StoryModel,
   tapBadge,
   unreadOf,
@@ -296,13 +301,25 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
   const toRead = useRef<string[]>([]);
   const readTimer = useRef(0);
   const flushReads = (): void => {
+    window.clearTimeout(readTimer.current);
     const batches = readBatches(toRead.current);
     toRead.current = [];
     for (const ids of batches) {
       api.markStoryRead(ids).catch((err: unknown) => console.warn('story read not recorded', err));
     }
   };
-  useEffect(() => () => window.clearTimeout(readTimer.current), []);
+  // Reads still waiting go out when the game closes or the page is hidden for good (a keepalive request).
+  const flushRef = useRef(flushReads);
+  flushRef.current = flushReads;
+  useEffect(() => {
+    const onHide = (): void => flushRef.current();
+    window.addEventListener('pagehide', onHide);
+    return () => {
+      window.removeEventListener('pagehide', onHide);
+      window.clearTimeout(readTimer.current);
+      flushRef.current();
+    };
+  }, []);
   const queueRead = (id: string): void => {
     toRead.current.push(id);
     window.clearTimeout(readTimer.current);
@@ -569,20 +586,43 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
     !fading &&
     step === null &&
     !guides?.recapDue;
+  const applyStory = (r: Step): void => {
+    if (r.model !== storyRef.current) {
+      storyRef.current = r.model;
+      setStory(r.model);
+    }
+    if (r.read !== null) queueRead(r.read);
+  };
   useEffect(() => {
-    const r = arrive(storyRef.current, unread, storyAnchors.current, storyFree);
-    if (r.model !== storyRef.current) setStory(r.model);
-    if (r.started !== null) queueRead(r.started);
+    applyStory(arrive(storyRef.current, unread, storyAnchors.current, storyFree, Date.now()));
   }, [unread, storyFree]);
-  // A card never stays over a popover or a drawer that opens.
+  // A card never stays over a popover or a drawer that opens. Taken down too soon, it is unread again and
+  // plays once the map is free.
   useEffect(() => {
-    if (!storyFree) setStory(closeCard);
+    if (!storyFree) applyStory(closeByLoss(storyRef.current, Date.now()));
   }, [storyFree]);
+  // A card up for a while counts as read even if no tap closes it.
+  const playingId = story.playing?.id ?? null;
+  useEffect(() => {
+    if (playingId === null) return undefined;
+    const t = window.setTimeout(
+      () => applyStory(settle(storyRef.current, Date.now())),
+      READ_AFTER_MS,
+    );
+    return () => window.clearTimeout(t);
+  }, [playingId]);
+  // A new game (a new season) starts the story afresh.
+  const gameSeed = state.artSeed;
+  const seedRef = useRef(gameSeed);
+  useEffect(() => {
+    if (seedRef.current === gameSeed) return;
+    seedRef.current = gameSeed;
+    storyAnchors.current.clear();
+    storyRef.current = NO_STORY;
+    setStory(NO_STORY);
+  }, [gameSeed]);
   const onStoryBadge = (): void => {
-    const r = tapBadge(storyRef.current, unread, storyAnchors.current);
-    if (r.started === null) return;
-    setStory(r.model);
-    queueRead(r.started);
+    applyStory(tapBadge(storyRef.current, unread, storyAnchors.current, Date.now()));
   };
   const care = me
     ? [...careOptions(state, me.id), ...[defendOption(state, me.id)].filter((a) => a !== null)]
@@ -631,13 +671,13 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
           // goes no further.
           setMoments([]);
           if (storyRef.current.playing) {
-            setStory(closeCard);
+            applyStory(closeByTap(storyRef.current));
             return;
           }
           setFlow((f) => tap(f, state, id, target));
         }}
         moments={shownMoments}
-        story={story.playing}
+        story={cardOf(story)}
         step={step}
         onConfirm={onConfirm}
         onOpenHub={() => setFlow(openHub())}

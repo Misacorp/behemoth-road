@@ -166,7 +166,11 @@ export function createApiClient(fetchImpl: Fetch = (i, init) => fetch(i, init)):
     },
     async markStoryRead(ids) {
       const path = '/api/me/story-read';
-      return parse(StoryReadAnswerSchema, path, await authed(path, post({ ids }))).storyRead;
+      return parse(
+        StoryReadAnswerSchema,
+        path,
+        await authed(path, { ...post({ ids }), keepalive: true }),
+      ).storyRead;
     },
     async visit() {
       // The answer is not read.

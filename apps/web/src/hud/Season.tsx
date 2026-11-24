@@ -352,7 +352,7 @@ export function Ending(props: EndingProps): JSX.Element {
         )}
       </div>
       <h1 class="ending-title">{props.title}</h1>
-      {text !== null && props.line !== null && (
+      {text !== null && props.line && (
         <div class="ending-story" data-line={props.line}>
           <span class="ending-line-art" aria-hidden="true">
             {toPreact(drawStoryVignette(PALETTE, endingVignetteOf(props.line), 150))}

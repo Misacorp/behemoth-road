@@ -333,3 +333,30 @@ describe('polish round marks', () => {
     expect(marks({ ...s, misleadUntilDay: s.day - 1 }, 'misled')).toBe(0);
   });
 });
+
+describe('traces on the map', () => {
+  const marks = (state: GameState, kind: string): SvgNode[] =>
+    overlays(state, IDLE).under.filter((n) => n.attrs['data-trace'] === kind);
+
+  it('draws a lost character’s open gate on its lost hex, and nothing on blank paper', () => {
+    const base = seasonScenario({}).state;
+    const c = base.creature.centre;
+    const key = (h: { q: number; r: number }): string => `${h.q},${h.r}`;
+    const lostHex = { q: c.q + 3, r: c.r };
+    const paperHex = { q: c.q + 40, r: c.r };
+    const tile = base.tiles[key(lostHex)]!;
+    const state: GameState = {
+      ...base,
+      tiles: {
+        ...base.tiles,
+        [key(lostHex)]: { visibility: 'lost', terrain: tile.terrain, explored: true },
+      },
+      traces: [
+        { kind: 'gate', hex: lostHex, step: 4 },
+        { kind: 'fire', hex: paperHex, step: 4 },
+      ],
+    };
+    expect(marks(state, 'gate')).toHaveLength(1);
+    expect(marks(state, 'fire')).toHaveLength(0);
+  });
+});
