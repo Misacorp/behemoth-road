@@ -22,6 +22,7 @@ Record a decision:
 
 [direction.md](direction.md): Priorities, how the owner and agents work, naming and tone.
 
+- 2026-11-24 Each terrain has its own base colour, separated by value first (Misa) \[Misa\]
 - 2026-11-21 Features rise tall from the ground, no raised plinth \[Misa\]
 - 2026-11-21 Art review round 2: features rise from plinths, traps share a danger cue, the shield is the role frame, trodden ground keeps its terrain \[Misa\] (amended)
 - 2026-11-19 The art review page shows only what needs Misa; silence means accepted \[Misa\]

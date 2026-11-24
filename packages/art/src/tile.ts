@@ -292,7 +292,7 @@ export function drawGround(
           ),
         );
       }
-      marks.add(inkAttrs(palette.ramps.sand.shade, ink * 0.8), lines.join(''));
+      marks.add(inkAttrs(palette.ramps.dune.shade, ink * 0.8), lines.join(''));
     } else if (look.marks === 'waves') {
       const lines: string[] = [];
       for (let j = 0, n = rng.int(3, 4); j < n; j += 1) {
@@ -333,7 +333,7 @@ export function drawGround(
         const r = rng.range(1, 2) * k;
         dots.push(ellipsePath(o.x, o.y, r * 1.3, r * p.squash));
       }
-      marks.add({ fill: palette.ramps.rock.shade, opacity: 0.6 }, dots.join(''));
+      marks.add({ fill: palette.ramps.crag.shade, opacity: 0.6 }, dots.join(''));
     } else if (look.marks === 'scuffs') {
       // Pressed, scuffed earth: short curved strokes and a few shallow dents.
       const lines: string[] = [];
