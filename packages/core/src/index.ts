@@ -167,6 +167,7 @@ export {
   moveAlong,
   planPath,
   reachablePlaces,
+  stranded,
   type PathPlan,
   type PathRefusal,
   type PathResult,
