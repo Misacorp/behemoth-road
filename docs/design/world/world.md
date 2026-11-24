@@ -1,484 +1,407 @@
-# Behemoth Road: world bible v3
+# Behemoth Road: world bible v4.1
 
-A proposal, 23 November 2026. It revises v2 (`world-v2.md`) after five reviews (editor, design, player, canon, engineering); `changes-v3.md` lists every point and what was done. Every name, line and number is content or tuning: data the game can grow, change or drop.
+A proposal, 24 November 2026. It revises v4 after three reviews (design, editor, player); v4 stays as it was, and `changes-v4.1.md` lists every point. Every name, line and number is content: data the game can grow, change or drop.
 
-Misa's direction: mythical fantasy, and a world that is alive.
+## 0. What changed from v4
 
-## 0. What changed from v2
+- **The Keeper's puzzle is protected.** No personality line, sound, habit or blessing names a stimulus or shows hunger. Claims like "it follows smoke" live only in folk sayings, which may be wrong.
+- **Shipped names are respected.** The creature's `fate` (not `shape`, which is its build), its `blessing` (not `boon`, which is a settlement's), and an open-gate trace (not a "shrine", which is a site).
+- **The ambush stays faceless.** The destroyers, now the **Reckoners**, get their own threat from season two. The havoc-driven rise is cut.
+- **Endings are explicit:** chosen by peril source id, through an `ending` field on threat content. Misa's "endings get a line each" amends m5's "a title only".
+- **Fate is story only.** It never touches the roster, veterans or the sanctuary, and the sanctuary becomes a chart.
+- **The route data is fixed:** legs with seeded turns, separate stops, and a public turn telegraphed 2 or more steps ahead.
+- **The calls stay unconfirmed.** Word of two held creatures sets the pick; members claim a call afterwards.
+- **Each kind has a sound, a habit and one moment of delight**, all in channels the Keeper doesn't read. Four kinds are renamed.
+- **Season one opens on a jailbreak**, with one Wheelhouse face and the party in every ending.
 
-- **The creature's body belongs to the Keeper.** No flavour pose or story line uses the body language the keeper reads. The creature gets its personality from the garden on its back instead (2.2).
-- **Weather and events make a role more valuable. They never switch one off.** Rain makes fire dearer and gives the Engineer a counter. Mist, wind and dust are parked.
-- **Every world clock counts in route steps**, with dev-season (12 steps) values beside the full ones (2.9).
-- **Smaller.** Spreading word, garlands as a rule, herds as a stimulus, omens, festival rules, private cards, the leaning fires (was the Kindled One) and the Passing are parked (2.8).
-- **Canon fixes.** Rain's tag is `rain`. The Wheelhouse's value is `hunt`. The Hook Line is one threat outside `threatsMax`. No new peril sources. Endings pick their variant by peril-source tag.
-- **The hill is a fact; what is inside it is not.** The narrator says a hill comes. Peoples argue about what lies in it: a sleeper, a grave, dreams, or nothing.
-- **Fewer names in play.** Season one uses seven proper nouns (section 6).
-- **The Engineer gets world hooks:** the brazier, tending wonders, the Broken Wheel, the bell, salvage.
+**Decided by Misa** (unchanged): no Discord digest; a line for each ending; madness parked; rain makes fire dearer after the sim; lore kept after a lost season; wipe before release; personal rosters; recruits first, veterans later at baseline; a vow chosen from two; the next creature picked by everyone from two veiled options; regions named by terrain; the tow line needs the player's own grab; absent players don't interact.
 
-## 1. The mythic layer
+## 1. The premise
 
 ### What the narrator states
 
-The Long Country is low, rounded hills. Walkers walk. An old walker goes home, turns three times and lies down, and in time grass covers it into a hill. Grass grows thick in its tracks. Everything else is somebody's story.
+Creatures are enormous, rare and impossible to miss. Everyone has seen one or knows someone who has, and nobody has counted them. The narrator states five things:
 
-The Wheelhouse and the Brightsmiths are not peoples: one is a city, the other long gone. The peoples are the hill folk, river folk, Mothfolk, the Glass Caravan and the Reedchoir.
+1. A young one is first seen far from anywhere, already grown, and often already old in the way of trees: the moss on the first one is older than the village that saw it.
+2. It walks toward one place as if it had been there before, and cannot be turned from it for long.
+3. Things grow on it as it goes.
+4. Where a young one stays, the land around it changes within a few years.
+5. An old one walks to the edge of what anyone knows and is not seen again.
 
-### The same evidence, five readings
+Everything else is somebody's story.
 
-Every legend explains the same things anyone can see. None is confirmed, ever.
+### Young and old (fate)
 
-| Evidence              | Hill folk                                | River folk                                             | Mothfolk                     | Wheelhouse                           | Glass Caravan                                    |
-| --------------------- | ---------------------------------------- | ------------------------------------------------------ | ---------------------------- | ------------------------------------ | ------------------------------------------------ |
-| The three turns       | saying goodnight                         | finding downstream                                     | folding up its dreams        | any dog does it                      | luck settling in                                 |
-| The hill              | a sleeper, who wakes when called by name | an empty coat; the walker has gone downstream to Larun | full of the dead's dreams    | a grave, grassed over like any grave | depends who is paying                            |
-| Morning mist on hills | breath                                   | river-breath, come up for air                          | the few dreams that slip out | weather                              | weather, at a price                              |
-| The white Glass Waste | the Brightsmiths' doing                  | the land that lost its river                           | where dreams dried up        | salt                                 | always white; our grandmothers sold salt from it |
+- **Young creatures stay.** Each goes to the place it is meant for: a valley, a mountain, a dry lake, a pass. The place is waiting for its kind; without one it never blooms, or slowly fails. When the creature arrives it lives there, and the place comes alive around it.
+- **Old creatures go on.** Each kind leaves the world by its own way out: a shingle bank where the tracks stop halfway to the water, a high col, a dry well. On the way it stops to do a last few things (let a flock go, break its horns on a stone, rain on a valley). These stops never halt it.
 
-**The feud.** The hill folk of Brackenlow keep the true name of one hill, written down and sealed, and never say it: spoken, it would wake the sleeper. The river folk say waking any sleeper would end the rivers. The Mothfolk say a woken hill spills the dreams of the dead. This is data (a `feud` entry linking three legends), so a later page can surface it.
+The veiled card shows a sprout or a setting sun. With turns in play, the sun honestly hints "turns ahead". The first creature, the Mossback, is young: one leg, no turns.
 
-**The Caravan's code.** The Caravan sells any story, but keeps three rules it never breaks. It never sells the road back. It never lies about water. It keeps a debt for a hundred years.
+### How a creature ends up held
+
+Creatures can't be turned for long, so anyone who wants one waits where it must pass. **The Wheelhouse's captors** follow the Caravan's sighting maps, stretch chain across a gap the creature has to cross, and walk it home in a collar. Others are held too: a village fences one in for its blessing, a creature mires in a gorge, a herd blocks a pass. In tier one, every season starts at a Wheelhouse pen. Later seasons can start anywhere a creature is held.
+
+### The old law and the Open Gate
+
+> Where a creature walks, no gate stays shut.
+
+Even the Wheelhouse says the law is older than bread, and then explains why it doesn't cover pens.
+
+**The Open Gate** is a company with no people of its own, drawn from all of them. It opens what holds a creature, walks beside it, and writes down who walked.
+
+- **The calls.** Many members say a creature called them, once, in winter. Many joined without one, and plenty doubt it. The narrator never says.
+- **The pick.** Between seasons, word reaches the Gate of two held creatures. The two veiled options are those two. Afterwards, someone always says they heard the one you chose. _Two held, and one Gate. It can open only one._
+- **Recruits** are people met on the way who join the Gate (your personal roster). **Vows** are your personal objective, chosen from two.
+- **Fate is story only.** The party watch an old creature go on, and leave a young one in its place. Either way the characters leave play as now, and nobody's roster changes.
+
+### Who wants what
+
+|            | Harness                                                                                                                                                                    | End                                                                                     | Help                                                            |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | --------------------------------------------------------------- |
+| Who        | the Wheelhouse                                                                                                                                                             | the Reckoners                                                                           | the Open Gate                                                   |
+| Why        | a penned creature tramples no village and turns wheels that feed nine towns. The cost: its place is still waiting, and the Glass Waste is what waiting too long looks like | when one place blooms for a creature, another gives way, and they have lost homes to it | the law; a creature tended well does little harm and great good |
+| On the map | captors (shipped)                                                                                                                                                          | their own threat, season two                                                            | you                                                             |
+
+**The Wheelhouse** is millers and bakers. They give every creature in the pens a name and know what each one eats. Their collars are old metal (the alloy from tombs), worked out by smiths nobody remembers, and they wear them well. Creed: _bread doesn't ask what turned the wheel._
+
+**The Reckoners** are an order, like the Gate, drawn from every people. Each wears a coat with one patch sewn on for every home lost to a creature. They give up their names and answer to the place they lost: Low Ford, Kettle End. When the Hearthcoil woke the warm springs above Kettle End, the meltwater took Low Ford in a night. They don't hate creatures. They think every arrival is a debt somebody else pays, and they want to burn the hill folk's sealed name so no more creatures come. Code: they never strike a rider. (The rules already spare riders.)
+
+## 2. Peoples and their creatures
+
+### The same five facts, read differently
+
+Each people has its own word for a creature and its own sign on its gates. Players meet the sign first and the name later.
+
+- **Hill folk** (herders) call them _grandfolk_. Creatures are **born** of the land's quiet places when the land asks. _Sign:_ a bell hung on every gate a creature passed, with its clapper tied.
+- **River folk** (fishers) call them _the sent_. They come up from the deep water from the one downstream, whom the river folk never name. Old ones are going back. _Sign:_ a pearl set down where a creature drank.
+- **Mothfolk** (forest) call them _bearers_: gifts from the dead, carrying what the dead wished for. _Sign:_ a lantern left to burn out.
+- **Glass Caravan** (traders) call them _lodes_. The Caravan never sells the way back, never lies about water, and keeps a debt for a hundred years. It says the first creatures were made, long ago, and will tell you by whom. _Sign:_ sighting marks on its maps.
+- **Reedchoir** (fen) call them _the stilled_. Every creature should rest in a fen, above all the Mirrorneck: the pools go still as it passes, and they hear that as a wish to stay. _Sign:_ a reed cut and left upright.
+- **Wheelhouse** calls them _draught_. Creatures follow grass like any herd; "a place waiting" is herders' talk for a good valley. _Sign:_ a pen number painted on a post.
+- **Reckoners** call them _debts_. Every creature is a debt walking, and somebody always pays. _Sign:_ a strip of cloth tied to a post.
+
+Each people also names the same creature differently. The Mossback is _Old Thatch_ to the hill folk, _the Green Stone_ to the river folk and _Pen Four_ to the Wheelhouse.
+
+**The feud.** The hill folk of Brackenlow keep the true name of the first creature ever seen, sealed and never said. The Reckoners have tried for a hundred years to buy it and burn it. It is stored as data (`feud`) for a later page.
 
 ### Names and sounds
 
-Season one says only seven names (section 6). The rest wait for later seasons and arrive through sayings and fragments. Place names are plain compounds (Coldhollow, Heelmere). Personal names follow their people's rule:
+Peoples' rules apply to people the party meet. Player characters come from the shipped mixed generator, so sample players such as Kelith and Wrena (from _Kel+ith_, _Wren+a_) follow no people's rule.
 
-| People        | Rule                                            | Names                                        | Word for walkers |
-| ------------- | ----------------------------------------------- | -------------------------------------------- | ---------------- |
-| Hill folk     | two syllables, voiced, ends -o, -ow, -en        | Garrow, Brennen, Haldo, Ollen                | the Grandfolk    |
-| River folk    | liquid l and r, ends -ai, -un                   | Lessai, Orun, Merrai, Selai                  | Larun's children |
-| Mothfolk      | one hushed syllable ending in a consonant       | Thess, Hesh, Sill, Ith                       | bearers          |
-| Glass Caravan | clipped k and t, ends -ek, -ar                  | Kettar, Tamek, Varek, Daskar                 | lodes            |
-| Reedchoir     | reed sounds (sh, wh, soft s), long vowels, sung | Shaal, Whisse, Sulesh                        | the lost ones    |
-| Wheelhouse    | trade titles, tool surnames                     | Master Cogan, Hookwife Tallow, Second Wright | draught          |
-| Brightsmiths  | no names, only hammer marks                     | Three-Strokes, Ring-and-Bar                  | the bound        |
+| People        | Rule                                       | Names                                        |
+| ------------- | ------------------------------------------ | -------------------------------------------- |
+| Hill folk     | two syllables, voiced; ends -o, -ow, -en   | Garrow, Brennen, Haldo, Ollen                |
+| River folk    | liquid l and r; ends -ai, -un              | Lessai, Merrai, Selai, Ravun                 |
+| Mothfolk      | one hushed syllable, ending in a consonant | Thess, Hesh, Vesh, Thal                      |
+| Glass Caravan | clipped k and t; ends -ek, -ar             | Kettar, Tamek, Varek, Daskar                 |
+| Reedchoir     | reed sounds (sh, wh, soft s), long vowels  | Shaal, Whisse, Sulesh                        |
+| Wheelhouse    | trade titles, tool surnames                | Master Cogan, Hookwife Tallow, Second Wright |
+| Reckoners     | the place they lost                        | Low Ford, Kettle End                         |
 
-**Land that remembers.** The Road is the wide green way walkers have always used. By old law no one owns it and no one fences it. Heelmere is a round lake the hill folk call a heel print; the Wheelhouse map calls it Stone Tarn. Each region ships a few such names with two rival tellings.
+## 3. Creature kinds
 
-### The calendar
+Each kind has:
 
-The year has four **walks**: the Waking (spring), the Wander (summer), the Homing (autumn) and the Settling (winter, the quiet; it has no festival, by custom).
+- **sound** and **habit**: free channels, drawn and written
+- **havoc**: what goes wrong around it
+- **blessing**: what those near it gain while peril stays low (public)
+- **delight**: one visible moment in play, with a public condition
+- where it is going
 
-- **Every season is a Homing** until two have been played.
-- **Dates count route steps:** "Homing · 9 of 40", always beside the route strip. A linger day keeps its step.
-- **Waymarks:** standing stones at a quarter, a half and three quarters of the route, and the Threshold (a spring and a cairn) at the last step. They are fixed route beats, so every season has one rhythm: setting out, three stones, homecoming.
+None of these names a stimulus or shows hunger. Its reactions are rolled and secret, as now.
 
-### Wayside rituals
+**1. Mossback** (young; stays). _First creature._
 
-- **Cairns:** a stone for each safe night where a walker rested.
-- **Offerings:** river folk set pearls down at sunken shrines. The Caravan collects them and sells them back, and both sides think this is fair.
-- **The chalk walker:** a figure cut into a slope and scraped clean each Waking. Left alone, the grass takes it back.
-- **Taboos:** don't light a fire on a still hill; don't say a hill's true name near it; no flame in the Hushwood on the night of the Hush.
+- **Sound:** it hums while it grazes.
+- **Habit:** it starts eating before it has stopped walking.
+- **Havoc:** fields flattened, thatch gone from a roof.
+- **Blessing:** berries ripen along its trail.
+- **Delight:** passing a friendly settlement, its whole garden flowers at once.
+- **Bound for:** the Greyfold, a valley waiting for something to graze it green.
 
-Sayings live on the Roadbook's endpapers, never beside a mark or a tip (samples in 4.4).
+**2. Hearthcoil** (young; stays). _Was the Cinder Serpent._
 
-## 2. The living world
+- **Sound:** a slow tick, like a cooling kettle.
+- **Habit:** its tracks steam for an hour after it has passed.
+- **Havoc:** scorched grass where it lies; snowmelt floods below its mountain.
+- **Blessing:** frost-free nights nearby.
+- **Delight:** at its first river crossing, steam stands up in a column taller than any tree.
+- **Bound for:** a cold mountain whose hot springs it will wake.
 
-Things change at the tick whether anyone plays or not. The morning map differs from the evening map.
+**3. Mirrorneck** (young; stays). _Was the Reedwyrm._
 
-**Rules for this layer:**
+- **Sound:** a low gargle, like water down a drain.
+- **Habit:** every pool it passes goes still as glass, and stays that way until evening.
+- **Havoc:** streams dammed so it can bathe; moored boats dragged off.
+- **Blessing:** silted water runs clear behind it.
+- **Delight:** fish follow it, silver along its length.
+- **Bound for:** a dry lake whose springs it will dig open. The Reedchoir want it for their fen.
 
-- A few values, seeded, in the core. The world moves only at the tick. Deeds are recorded as events when they happen.
-- It reads public facts and the tags rules already use.
-- Drawn first. Prose is rare.
-- **The creature's body is reserved** for the keeper's signals, in art and in text. Reserved: head, gaze, ears and eyes turned; flinching; stillness; lying down; droop and dullness; roundness and drowsiness; the sideways turn. Free for story: the garden on its back, its sounds, its tracks, dust and mud on it, and things people tie to it. Garden changes follow public facts only, never its nature or hunger.
+**4. Rimeox** (young; stays)
 
-### 2.1 Traces players leave (season one)
+- **Sound:** a creak, like ice on a pond.
+- **Habit:** frost stays in its footprints until noon, even in summer.
+- **Havoc:** cold snaps blacken crops.
+- **Blessing:** food keeps, and fevers cool.
+- **Delight:** around halfway, birds start sitting on its horns. Nothing perched there before.
+- **Bound for:** a high pass whose snow it will hold, so the rivers below run all summer.
 
-- **See:**
-  - a blackened ring where a fire burned
-  - taller grass and flowers along the creature's trail
-  - a small cairn where it lingered
-  - broken stakes where captors were turned back
-  - a wayside shrine where a character was lost
-- **Tap:** who and which step, by character name.
-- **Data:** `traces: { kind, hex, step, by? }[]`, derived from events, capped at 60, dropped with their hex.
-- **Rules:** none. **Writing:** none.
+**5. Bellmother** (old; goes on)
 
-### 2.2 The creature's garden (next)
+- **Sound:** a ticking, like hundreds of beaks on a shell.
+- **Habit:** she walks through walls she never knew were there.
+- **Havoc:** whole houses, once, at Low Ford's neighbour.
+- **Blessing:** her birds strip pests from fields.
+- **Delight:** at each stop a flock rises off her shell and does not come back down.
+- **Way out:** a shingle bank where her tracks stop halfway to the water. **Stops:** three flocks let go where they were born.
 
-- **See:** the moss on its back collects the road. It takes on thistle from the plain, ferns from the wood, white dust in the desert and reeds after the fen. Birds come and go. A settlement won over ties a cord into the moss, credited to whoever won it.
-- **Data:** derived from the terrain kinds walked and from `befriended` events. Nothing stored.
-- **Rules:** none. **Writing:** 3 lines. This is where the creature's personality lives.
+**6. Breakhorn** (old; goes on). _Was the Thornstag._
 
-### 2.3 Wonders that bloom and fade
+- **Sound:** one cracked note at dawn.
+- **Habit:** it scores every standing stone it passes, leaving pale scars as traces.
+- **Havoc:** woods stripped of bark.
+- **Blessing:** shed horn, carved and kept for generations.
+- **Delight:** at each stop it breaks a horn on a stone, and the stone is scarred white.
+- **Way out:** a high col. **Stops:** one stone for each people it walked among.
 
-- **See:** a hex with a ring of segments, one filled per step. The icon in the middle hints at what it holds.
-- **Data:** `wonders: { kind, hex, phase, clock }[]`, at most two. They live in an overlay layer, not in features. They are placed only on unexplored hexes as those enter view.
-- **Rules:** each works like something that exists, a little better, and shares its find:
-  - **Footprint meadow:** berry bushes with 3 more charges.
-  - **Hill-lights:** the lamplight bonus on one deep tomb (a lantern is still needed).
-  - **Chalk walker:** fades in 4 steps unless it gets 3 work. Building is the tending action, so the Engineer's work counts double. Tended, it stays white for the season and gives a fragment, which goes to the Roadbook for everyone, with credit.
-- **Writing:** 2 lines a kind.
+**7. Lowcloud** (old; goes on). _Was the Cloudwhale._
 
-### 2.4 Rain (after the balance sim)
+- **Sound:** a long hum at dusk, felt more than heard.
+- **Habit:** it drifts so low that children run under it.
+- **Havoc:** a week of shadow on a field; rain all at once.
+- **Blessing:** rain where it is wanted.
+- **Delight:** its shadow passes over the party and everything goes cool and quiet.
+- **Way out:** a dry well on a hill. It rises straight up out of it. **Stops:** it rains on three dry valleys.
 
-- **See:** a band of rain hatching crossing the map. It is visible 2 to 4 steps before it arrives.
-- **Data:** `front: { kind: 'rain', axis, offset, heading, speed, stepsLeft } | null`. The hexes under it are derived and carry the tag `rain`. Swamp keeps `wet`.
-- **Rules:**
-  - Lighting a fire on a `rain` hex costs 2 timber. A team with the **brazier** (an Engineer unlock tagged `brazier`: 1 iron, 1 stone, 2 work) pays 1.
-  - Rain is checked when the fire is lit. A lit fire burns through its tick whatever the front does.
-  - The Keeper keeps the lever. The Engineer gains a reason to build.
-- **Writing:** 1 line. Tip: "Rain: two timber."
+Sayings may claim reactions ("the bakers say a Hearthcoil follows the smell of bread"). A saying can be wrong, and the Keeper's cues still decide.
 
-### 2.5 Rumours as map pins
+## 4. Customs
 
-- **See:** a "?" over a small area (a hex and its neighbours) with a faint icon: a site, a resource or a wonder. It is resolved when its true hex is explored, by a walk or a survey.
-- **Data:** the view carries `{ id, centre, about, expires }` only. Truth and the true hex stay on the server, rolled from their own seeded stream.
-- **Rules:**
-  - A settlement won over shows one pin, free, on top of its boon.
-  - 70 % true. 30 % twisted, meaning a different good: a promised site turns out to be a node. Never a trap.
-  - It expires after 6 steps (2 on dev).
-- **Writing:** about 6 resolution lines.
+- **Standing stones:** one at each waymark (a quarter, a half and three quarters of the route), raised by whoever lives there.
+- **Cairns:** a stone for each safe night beside a creature.
+- **Gate signs:** bell, pearl, lantern, upright reed, pen number, cloth strip. Each settlement's sign says at a glance what its people think of creatures.
+- **The chalk figure:** a creature cut into a slope and scraped clean each spring. Left alone, the grass takes it back.
+- **Gate Night** (hill folk): once a year every gate in the village stands open all night. _See:_ open gates as the creature passes. It carries no rule.
+- **Taboo:** don't say the true name.
 
-### 2.6 The hunt (after the balance sim)
+**Dates show "9 of 40"** beside the route strip. The four-part calendar stays lore until it has something to do.
 
-- **See:** smoke columns on the back edge of the map, one per point of `hunt` (0 to 4).
-- **Data:** `hunt`, moved by deeds only:
-  - +1 when a settlement is angered
-  - +1 when a pursuer strikes the creature
-  - −1 when a captor band is cleared
-- **Rules:** captor weight is multiplied by `1 + 0.25 × hunt`. At 3 the Hook Line can come (4.6). Mislead leaves the hunt alone, so it does not crowd out gift and shelter.
-- **Writing:** 3 lines.
+## 5. The living world
 
-### 2.7 What the next season remembers
+The world changes at the tick whether anyone plays or not. Everything is seeded, reads public facts and the tags the rules use, and is drawn first.
 
-**Waits for Misa's decision on carry-over (page Q12/Q16).** Until then nothing here ships. All of it is knowledge and marks, never power.
+**The creature's body belongs to the Keeper.**
 
-- Old traces: up to five, seeded near the next start, keeping their makers' names.
-- The Threshold cairn: one stone per season that reached it.
-- **Last season retold as a slightly wrong legend:** a template whose slots are filled from real data (creature, place, a credited character, the outcome), with one slot bent.
-- Tied pages (3.6).
-- The sanctuary drawn as the _Folds_ page, one rise per creature.
-- The legacy schema then adds the walk, Threshold stones, old traces, legacy facts and the chronicle icons.
+- **Reserved:** head, gaze, ears and eyes turned; flinching; stillness; lying down; droop and dullness; roundness and drowsiness; the sideways turn.
+- **Free:** the garden or coat, sound, habit, tracks, dust and mud, things tied to it.
+- **Endings are exempt.** Nothing is read from the body after the season ends.
 
-### 2.8 Parked, with the reason
+### 5.1 Traces (season one)
 
-| Parked                                  | Why                                                                           | If it returns                                               |
-| --------------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Spreading word; garlands as a rule      | Never reaches a threshold at current spacing; garlands repeat the peril gauge | The last settlement's outcome sets the next one's favour ±1 |
-| Herds as a stimulus                     | Steering noise players can't control; `herd` is the stampede's tag            | Harmless `grazers`, decoration only                         |
-| Omens                                   | The body belongs to the Keeper; fronts are already visible                    | Keeper-only, always true, own glyph                         |
-| Wind, mist, dust                        | Wind swings steering 36 to 1; mist switches off the Scout                     | Each must make a role more valuable                         |
-| Festival rules                          | Each was a hidden temporary rule                                              | The visuals stay (4.5)                                      |
-| Private role cards                      | Content undefined; hidden information                                         | Only with a defined, useful payload                         |
-| The leaning fires (was the Kindled One) | It overrides the learned nature                                               | Unnamed, unexplained                                        |
-| The Passing                             | A threat band is new behaviour                                                | After the Hook Line proves multi-hex threats                |
-| Far-eyed                                | Needs a madness system (question 4)                                           | With that system                                            |
+- **See:** fire scars, a green trail, cairns where it lingered, broken chain where captors were cleared (`threat-cleared` for a type with `ending: 'pursuer'`), and **a small open gate** where a character was lost. Tap one: who and which step.
+- **Data:** `traces: { kind, hex, step, by? }[]`. Each is stored when its event happens (the log keeps only 100), capped at 60.
+- **Rules:** none.
 
-### 2.9 Clocks and budget
+### 5.2 The garden (next)
 
-Every clock is `{ full, dev }` in config; the dev values go in `SERVER_CONFIG.devSeason`.
+The coat collects the trail: thistle from the plain, a fern from the wood, white dust caught between them. A friendly settlement ties its sign into it, credited to whoever won it over. It is derived from terrain walked and from `befriended`. Each kind's delight (section 3) plays here or on the map.
 
-| Clock               | Full (40 steps) | Dev (12)          |
-| ------------------- | --------------- | ----------------- |
-| A rain front starts | every 8 steps   | every 3           |
-| Front crossing      | 2–4 steps       | 1–2               |
-| Wonder bloom / fade | 3 / 4 steps     | 1 / 2             |
-| Rumour expiry       | 6 steps         | 2                 |
-| Storylet cooldowns  | as written      | × 0.3, rounded up |
-| Hook Line telegraph | 2 steps         | 2                 |
+### 5.3 Creatures far off (season two)
 
-The stored world is about 10 KB in the game row: `front`, `hunt`, three rumours, two wonders, 60 traces.
+A vast silhouette crosses the map's edge now and then: wild ones, never earlier seasons' creatures (those stay where they went). It is `farCreature: { kind, edge, steps } | null`, seeded, with one line per kind. The world is full without any rule.
 
-## 3. Storylets
+### 5.4 Old havoc
 
-Story is small, standalone cards that fire when public facts allow. Route beats, finds, world lines, event lines and endings are all storylets.
+A burned ridge, a flattened wood, a frozen-over pond. It is **art only**, an overlay on unexplored hexes as they enter view. A real feature may sit under it. Later, a **Scholar** can read a fragment carved there that nobody else can.
 
-### 3.1 The unit
+### 5.5 Wonders, rain, rumours, the hunt
 
-- **Conditions** read only public facts: the view, public events, the viewer's own signs for role cards. The `Quality` type is a closed union with no hunger, nature or truth in it, so a hidden condition is a type error.
-- **Audience:** all, the actor, or a role **tag** (`tend`, not "Keeper").
-- **Repeat:** once-only, or a cooldown in steps.
-- **Content:** an id, a text key and an art key. Ids are never reused; old ones are retired.
+- **Wonders** bloom and fade on step clocks (v3).
+- **The chalk figure** fades in 4 steps unless someone builds 3 work on its hex. The **Engineer**'s build bonuses apply. Tended, it stays white for the season and gives a fragment.
+- **Rain** (after the sim): fire costs 2 timber, or 1 with the **Engineer**'s brazier.
+- **Rumours** pin an area, given by a friendly settlement.
+- **The hunt** (after the sim): smoke on the back edge, one column per point, 0 to 4.
+  - **Deeds:** +1 when a settlement is angered; +1 when a threat with `ending: 'pursuer'` strikes the creature; −1 when one is cleared. Nothing else moves it.
+  - **For captors only, it replaces the day term:** their strength scaling `floor((day − 1) / 14)` becomes `floor(hunt / 2)`, so the two never stack. Weight × (1 + 0.25 × hunt).
+  - At 3 the Hook Line can come: one multi-hex threat outside `threatsMax`, whose salvage gives the **Engineer** iron.
 
-### 3.2 A thin engine first
+### 5.6 Blessings as a rule (after the sim)
 
-- **Season one:** conditions, once-only, cooldowns, and a cap of **2 cards a day per player**. A card that loses to the cap waits; none is ever dropped.
-- **Salience and recency** come once the pool passes about 30 cards. Broad cards per terrain come first, specific ones after.
-- **Fired and read are separate.** The core decides what fires, seeded by `(seed, STORY_STREAM, step, character)`, with ties broken by id. Whether a player has read a card lives in a Worker table, because when someone opens the app is not an input to the core.
-- Every fired card logs the conditions that fired it.
-- Every card stands alone. Each event says its default outcome.
+One generic rule reading the `blessing` tag and **public peril**. While peril stays at 2 or below for 5 steps, the blessing shows on the next unexplored hex to enter view along the heading (the Mossback's: a berry bush). Hunger is never read. Until then, blessings are art and lines.
 
-### 3.3 The story card
+### 5.7 Role hooks
 
-- A passing card, anchored to its hex or to the creature, like a moment. The next tap closes it. It never covers a popover.
-- On return, one card plays. The rest sit behind a ribbon on the Roadbook icon.
+- **Scout:** rumour pins, old havoc, the first sight of a telegraphed turn on the map.
+- **Scholar:** tombs; fragments at old havoc (later); the Wheelhouse ledgers found in tombs.
+- **Keeper:** the body, unshared.
+- **Engineer:** the brazier, tending the chalk figure, Hook Line salvage, the Broken Wheel (v3 event).
+- **Warden:** settlements. If havoc near one ever becomes a rule, it costs favour (visible, a Warden fix), never brings threats.
 
-### 3.4 Role marks
+## 6. Storylets and the Gatebook
 
-The same explored tile shows each role a different **mark**, computed per viewer on the server. A tip names the mark, never its meaning. First sight uses the existing seen-ids hints, not a card. Each mark is a true fact.
+As in v3 and v4:
 
-| Tile       | Scout                                              | Scholar                                  | Keeper                                         | Engineer                         | Warden                                      |
-| ---------- | -------------------------------------------------- | ---------------------------------------- | ---------------------------------------------- | -------------------------------- | ------------------------------------------- |
-| Tomb       | tracks, if a threat crossed it in the last 2 steps | the glyph of the page its fragment fills | —                                              | —                                | a roost mark, if a swarm appeared beside it |
-| Fire scar  | —                                                  | —                                        | the cue that fire drew (toward, away, unmoved) | —                                | —                                           |
-| Node       | —                                                  | —                                        | —                                              | pips for charges left            | —                                           |
-| Settlement | —                                                  | —                                        | —                                              | what it lacks (the Broken Wheel) | favour still needed                         |
+- Conditions read public facts only.
+- Audience: all, the actor, or a role tag.
+- Once-only, and cooldowns in steps; 2 cards a day per player at most, none dropped.
+- The core decides what fires; a Worker table records reads.
+- Cards pass, anchored to a hex or the creature. One plays on return.
+- Role marks are true facts that a tip only names.
 
-### 3.5 The dawn digest
+**Beat timing:**
 
-Off by default. An admin picks the channel. It is built from the public view and public events only.
+- Terrain beats fire when the **footprint first touches** the tag, not when it comes into view (at radius 6 all five would be visible on day 1).
+- The destination beat fires at route fraction 0.9, with a mark on the route strip, because the map never draws the destination.
 
-- **Two lines.** Line 1: date and step, then what the creature did (a public fact, never its body), then one credited deed. Line 2: a teaser drawn from something visible on the map.
-- **Quiet days post nothing.**
-- **Credit rotates:** anyone credited in the last 3 posts ranks lower.
-- Stored as a template plus slots and rendered on read. No mentions (`allowed_mentions: { parse: [] }`), names escaped. It posts after the tick commits; a failed post is retried at the next alarm and never throws. Nothing posts in fast pace.
+**The Gatebook** keeps one chapter a season: the route strip with an icon per step, the beats seen, fragments with finder and step, the ending, and everyone who walked. Lore stays after a lost season. "Previously" openers retell last season as a slightly wrong legend. Everything sits in the guild's legacy tables, wiped before release.
 
-### 3.6 The Roadbook
+## 7. Samples
 
-- One chapter per season: the route strip with one icon per step (the digest line behind a tap), the beats seen, fragments with finder and step, and the ending.
-- It is read only through `GET /api/roadbook`, never on a poll.
-- **Per season until Misa decides carry-over (page Q12/Q16).** After that, pages fill across seasons, and **tied pages** (renamed from "sealed", since "seal" is a mastered branch) open on a later-season condition. A tied page shows its knot and tag icon only; a test proves no condition text reaches the client.
-- Event paths count **this season's** fragments only.
+One to three plain sentences; one concrete detail; no mechanics; no reserved body words; nothing that isn't on the map.
 
-### 3.7 Pool size
+### 7.1 Setting out
 
-| Kind                                         | Written | Seen in a season              |
-| -------------------------------------------- | ------- | ----------------------------- |
-| Route beats                                  | 12      | about 9, shared               |
-| Endings                                      | 4       | 1                             |
-| Digest templates                             | 10      | up to 40, fewer on quiet days |
-| World (garden, wonders, rain, rumours, hunt) | 20      | about 10                      |
-| Finds and fragments                          | 20      | 6–8                           |
-| Event lines (4 events × 2)                   | 8       | 2–4                           |
+- **Season one (the jailbreak):** The chain comes off the pen gate with one pull. A miller's girl watches from the hayloft and says nothing. The Mossback steps over the chain, sniffs the wind once, and turns toward somewhere only it knows.
+- **A later young creature:** The Wheelhouse horn is still blowing when the gate swings open. The Hearthcoil goes out past the mill race, and its tracks steam all the way up the lane.
+- **An old creature:** Nobody lifts the latch. The Bellmother leans on the gate until it gives, and one of her three flocks circles once over the pens.
+- **After a lost season:** The Gatebook is open at a page with no ending written on it. Someone has drawn a small gate in the margin, standing open.
 
-About 75 pieces in all; **season one needs 26**. The real cost is art and condition checks, not words.
+### 7.2 Storylets
 
-## 4. Samples
-
-Story text keeps one to three plain sentences in the narrator's voice, with one concrete detail. It never explains a mechanic, never uses a reserved body word, and every detail exists on the map.
-
-### 4.1 Storylets
-
-1. **`beat.setting-out`**. _When:_ step 0. All. Once.
-   The pen gates hang open behind you. The Mossback sniffs the wind once and turns toward somewhere only it can smell.
-2. **`beat.first.dry`**. _When:_ the first hex tagged `dry` comes into view. All. Once.
-   The ground turns white and rings underfoot. By evening the moss on the Mossback's back is grey with dust.
+1. **`beat.first.captors`**. _When:_ the first threat with `ending: 'pursuer'` appears. All. Once.
+   Smoke behind you at dusk. Somebody back there is calling a name, the way you call an animal in for the night.
+2. **`beat.first.settlement`**. _When:_ the first settlement comes into view. All. Once.
+   A bell hangs over the village gate with its clapper tied. Children are sitting on the wall, waiting.
 3. **`beat.waymark.half`**. _When:_ route fraction 0.5. All. Once.
-   A standing stone, taller than a rider, leans toward the way you came. Someone has wedged a fresh pebble under its foot.
-4. **`world.rain.arrives`**. _When:_ a rain front enters view. All. Cooldown 12 steps.
-   Rain walks over the grass towards you, and the dust goes dark in one long line.
-5. **`find.tomb.ring`**. _When:_ a site tagged `tomb` worked with success. Actor. Once.
-   Inside, a broken iron ring leans against the wall, too wide for any neck you know. Someone has scratched a hill on it.
-6. **`garden.seeds`**. _When:_ step 10 or later; three terrain kinds walked. All. Once.
-   Something has taken root in the moss on its back: a thistle from the plain, a fern from the wood, a pinch of white sand.
-7. **`settlement.cord`**. _When:_ `befriended`. All. Cooldown 10 steps.
-   They tie a red cord into the moss on its back, and say Kelith's name twice, the way they say their own.
-8. **`hunt.three`**. _When:_ hunt reaches 3. All. Once.
-   At dusk the smoke behind you stands in three columns. One of them is moving.
-9. **`wonder.meadow.bloom`**. _When:_ a footprint meadow blooms. All. Once per wonder.
-   The hollow is white with flowers this morning, a pond's worth, in the shape of a heel.
-10. **`rumour.twist.bramble`**. _When:_ a rumour about a site resolves twisted. Actor. Once.
-    The ferrywoman said a tomb. It is a ring of brambles, planted on purpose long ago, heavy with fruit.
+   A standing stone on the slope, taller than a rider, with a fresh pebble wedged under its foot. Nobody here will say who put it there.
+4. **`garden.seeds`**. _When:_ step 10 or later; three terrain kinds walked. All. Once.
+   Something has taken root in the moss on its back: a thistle from the plain, a fern from the wood, and white dust caught between them.
+5. **`settlement.sign`**. _When:_ `befriended`, hill folk. All. Cooldown 10 steps.
+   They tie a bell into the moss with its clapper free, ask Kelith's name, and say it back.
+6. **`delight.mossback`**. _When:_ the creature passes within 2 hexes of a friendly settlement. All. Once.
+   Every flower in its moss opens at once. The children on the wall go very quiet, and then very loud.
+7. **`reckoners.first`** (season two). _When:_ the first Reckoner threat appears. All. Once.
+   A strip of blue cloth is tied to a fence post at the edge of the wood. It was cut from a curtain; the hem is still on it.
 
-### 4.2 Dawn digests
-
-1. **Homing · 3 of 40.** The Mossback walked into the long grass with Rin's Warden riding. _Something white stands on the slope ahead._
-2. **Homing · 9 of 40.** The Mossback crossed the river at the shallows Kai's Scout had found. _Smoke behind, closer than yesterday._
-3. **Homing · 14 of 40, still.** The Mossback rested by the stones while Ode's Scholar opened a tomb. _The Roadbook has a new page._
-4. **Homing · 20 of 40.** The Mossback walked into the reeds; Juno's Engineer finished the lantern. _Singing, somewhere to the west._
-5. **Homing · 27 of 40.** The Mossback passed a village with a new cord in its moss, for Rin's Warden. _Rain coming off the hills._
-6. **Homing · 39 of 40.** The Mossback reached the spring at the last stone, and everyone came through the night. _One more step._
-
-### 4.3 Lore fragments
+### 7.3 Lore fragments
 
 Pairs argue over the same evidence. Neither is ever confirmed.
 
-_The Bright Collars_
+1. _Inside a collar:_ So you will hear me when you are far away.
+2. We made the collars to ring if they strayed. They never strayed. They only stopped.
+3. The land asks for them, the way a field asks for rain. You can hear it, if you are quiet enough.
+4. _A Wheelhouse ledger:_ Pen four. Grazer, grown, origin unknown. Hay: two loads a day. Asks for nothing else.
+5. Leave a pearl where it drank. It is going back to the one downstream, and it will need something to show.
+6. _A patch on a Reckoner coat, stitched:_ Low Ford, eleven houses. The bird-mother walked through them in the night and never knew they were there.
+7. A place out there waited for its creature. The smiths kept the creature collared, and the place stopped waiting.
+8. _A Caravan count:_ Salt from the white ground, forty loads, the year my grandmother's grandmother was born. It was white then too.
 
-1. We made the collars to ring if they strayed. They never strayed. They only stopped.
-2. Old walkers forget the way home. We made them something to listen for.
-3. _Carved inside a collar:_ So you will hear me when you are far away.
+### 7.4 Folk sayings
 
-_What the Water Keeps_
-
-4. Leave a pearl for the one downstream. Set it down; do not drop it.
-5. _A Wheelhouse surveyor's note:_ Dug the hill at Coldhollow to the bedrock. Clay, stone, a badger's sett. No beast.
-
-_The Folds_
-
-6. Count the hills from the Greenfold to the sea. Every one of them walked there.
-
-_The White Ground_
-
-7. Where a walker dies far from its fold, the ground forgets how to grow.
-8. _A Caravan tally:_ Salt from the white ground, forty loads, the year my grandmother's grandmother was born. It was white then too.
-
-### 4.4 Folk sayings
-
-1. _Hill folk:_ Don't light a fire on a still hill.
+1. _Hill folk:_ Never say a grandfolk's true name to its face.
 2. _River folk:_ What sinks is only resting.
 3. _Wheelhouse:_ Bread doesn't ask what turned the wheel.
-4. _Glass Caravan:_ Everything is for sale but the road back.
+4. _Reckoners:_ Every bloom is somebody's flood.
 
-### 4.5 Festivals (visuals only)
+### 7.5 Endings
 
-No festival changes a rule. While every season is a Homing, only the Owing appears.
+The title follows fate and outcome, and the line follows the kind. Every line has the party in it.
 
-- **The Owing** (hill folk, the last quarter of the Homing). Each household carries a pot of soil from its garden up the nearest hill: the hill is owed its garden. _See:_ lanterns climbing the hill behind each hill-folk village. _Line:_ Lanterns climb the hill behind the village in a slow line. Everyone carries a clay pot, and nobody carries it back.
-- **Husk boats** (river folk, the lowest water of the Wander). One small reed boat for each child born that year, each carrying a single seed husk downstream. _See:_ tiny boats on every river hex for one step. _Line:_ Reed boats go past all day, a hand's width apart. One has caught on a stone, and a girl wades in after it.
-- **The Whitening** (hill folk, the first quarter of the Waking). The chalk walker is scraped clean. Nobody agrees which way it faced when it was first cut. _See:_ the chalk-walker wonder (2.3) with people on the slope. _Line:_ Someone has started on the figure's head and given up at the neck. A broken scraper lies in the chalk.
+**Stays:**
 
-### 4.6 Events
+- **Mossback, safe.** It walks into the Greyfold and starts eating before it has stopped walking. By spring the valley is green from rim to rim, the hill folk are arguing over a new name for it, and two of you are still there, building a hut on the rim.
+- **Mossback, wounded.** It reaches the Greyfold limping and grazes in a smaller circle than it should. The valley greens anyway, slowly, from that circle out. You stay until the first frost to be sure.
+- **Hearthcoil, safe.** It coils down into the cold crater and does not come out. Three nights later the springs below run warm, and you wash the whole way off in them.
 
-Each event is a short chain of storylets on existing systems. It is telegraphed on the map, each way through shows a role mark on its target, and it has a stated default outcome. No event adds a peril source.
+**Goes on:**
 
-**The Reedchoir**: care + information + diplomacy
+- **Bellmother, safe.** On the shingle she lets the last flock go and walks on, and her tracks stop halfway to the water. You stand where they stop. The gulls on the rocks don't move.
+- **Lowcloud, safe.** Over the last dry valley it rains all night. In the morning there is mud where the dust was, a speck rising out of the well on the hill, and you, soaked, around a fire that won't light.
+- **Breakhorn, wounded.** It breaks two horns on the stones and keeps the third. At the col it looks back once at the scarred stones below, then goes on over, carrying the one it wouldn't give up. You go down to read the scars.
 
-- _Where:_ a hex tagged `boggy` or `water` in view.
-- _Telegraph:_ rings drift in from a pinned area (a hex and its neighbours) for 3 steps.
-- _Effect:_ the singers are a stimulus tagged `song`. The creature's reaction is content data (the Mossback: attracted).
-- _Ways through:_
-  - A **Scout** finds the singers' hex.
-  - A **Warden** parleys there (2 favour quiets them), or anyone sets down a river pearl.
-  - A **Keeper** balances the pull with a fire on the other side.
-  - A **Scholar** works a sunken shrine inside the area.
-- _Default:_ the song stops after 3 steps. If the creature stepped onto a `boggy` hex meanwhile, it stays there one step.
-- _Lines:_ Singing, somewhere in the reeds. The birds on the Mossback's back have gone quiet. / The song stops. Somewhere, someone is crying.
+**Lost** (by the largest peril source; the latest strike breaks a tie):
 
-**The Broken Wheel** (new): crafting + diplomacy
+- **`pursuer`.** The hooks find it at dusk. You hear the mill horn from three valleys away, and then the wheels start up again.
+- **`hunger`.** It stops a long way from where it was going and lies down. Somebody sits with it all night, a hand in the moss. When the grass comes up there, it comes up thin and pale.
+- **Reckoners** (season two). It falls in the wood, among strips of cloth. Somewhere a Reckoner sews a new patch onto a coat, then sits a long time with the needle.
 
-- _Where:_ a settlement appears.
-- _Telegraph:_ its water-wheel hangs broken, with two timber pips over it.
-- _Ways through:_
-  - An **Engineer** (or anyone, more slowly) repairs it: 2 timber from the stores and 3 work on the hex. The settlement turns friendly at once.
-  - A **Warden** parleys as usual.
-  - A **Scout**'s glints find timber nearby.
-- _Default:_ it stays wary and broken.
-- _Lines:_ The village wheel hangs still over the stream, two paddles missing. / The wheel turns again. Children run beside it as far as the bend.
+### 7.6 "Previously" openers
 
-**The Ringing Tomb** (new): information + discovery + crafting
+- _After a stay:_ The hill folk say a woman called Wrena walked the Mossback into the Greyfold with a lantern. It was Kelith with the lantern. Nobody corrects them.
+- _After a go-on:_ Five names are written in the Gatebook under the Bellmother, and someone has drawn the shingle beside them, with the tracks stopping halfway.
+- _After a loss:_ Nobody found where the Mossback lay down. Wrena's cairns still stand by the river, and someone has been adding stones.
 
-- _Where:_ a deep tomb enters view (an overlay over its pinned area).
-- _Telegraph:_ a ring mark over the area, with a 3-step clock.
-- _Ways through:_
-  - A **Scout** finds which hex.
-  - An **Engineer** builds the lantern if the team lacks one.
-  - A **Scholar** works the tomb at +0.2 while it rings.
-  - Afterwards, an Engineer can cast its alloy into a **bell** (an unlock tagged `calm`), which quiets singers like a pearl.
-- _Default:_ it falls silent; nothing is lost.
-- _Lines:_ Somewhere ahead a tomb rings once, like a struck bowl. / The ringing stops when the door gives. Inside, the air is warm.
+## 8. Fit and the season one cut
 
-**The Hook Line** (after the balance sim): attack + information + crafting
-
-- _Where:_ open ground on the straight-ahead path, when hunt is 3 or more.
-- _Telegraph:_ 2 steps ahead, stakes are drawn across seven hexes of the path. Four are real; a gap as wide as the footprint lies one hex off centre, and it shows only once a scout walks or surveys it.
-- _Data:_ one threat type `hook-line`: approach `line`, speed 0, reach 0, tags `pursuer`, `staked`, `ground`. It covers several hexes, counts as one threat and sits outside `threatsMax`. Its strikes are `threat:hook-line`, an existing kind of source.
-- _Ways through:_
-  - A **Scout** reveals the gap.
-  - A **Keeper** steers into it with one fire.
-  - A role tagged `build` strikes stakes at double; anyone can strike.
-  - A **Warden**'s mislead removes it.
-- _Default:_ it strikes the creature like a rockslide.
-- _Outcomes:_ cleared, it lowers the hunt by 1 and leaves salvage, an iron node with 2 charges.
-- _Lines:_ Chain glints in the grass ahead, from one stake to the next. / The chain lies slack in the grass. Far behind, one smoke goes out.
-
-### 4.7 Endings
-
-The variant follows the tag of the largest peril source. Any other loss keeps the plain title, as today.
-
-- **Home safe.** The Mossback walks into the Greenfold, turns three times and lies down. By the Waking the grass has covered it, and the moss on the new hill is soft enough to sleep on.
-- **Home, wounded.** It reaches the fold limping and lies down slower than it should. The hill it becomes is a little crooked. It is still a hill.
-- **Lost (`pursuer`).** The hooks find it at dusk. Far behind you, the Wheelhouse turns a little faster, and the bakers light their ovens early.
-- **Lost (`hunger`).** It lies down a long way from home, in a place with no name. When the grass comes up there, it comes up thin and pale.
-
-### 4.8 "Previously" openers (wait for carry-over, page Q12/Q16)
-
-- _After a safe season:_ The hill folk say a woman called Wrena walked the new hill home with a lantern. It was Kelith with the lantern. Nobody corrects them.
-- _After a wounded season:_ The new hill in the Greenfold is a little crooked, and the hill folk already call it Selis's Rest. The Wheelhouse has bought new chain.
-- _After a lost season:_ Nobody found where the Mossback lay down. Wrena Long-step's cairns still stand by the river, and someone has been adding stones.
-
-## 5. Fit
-
-### 5.1 Data shapes (sketch)
+### 8.1 Data shapes (sketch)
 
 ```ts
-interface Storylet {
-  // content, text-free
-  id: string; // text key; never reused
-  kind: 'beat' | 'world' | 'find' | 'event' | 'ending' | 'previously';
-  when: Condition[]; // public facts only
-  audience: 'all' | 'actor' | { roleTag: string };
-  once?: true;
-  cooldownSteps?: { full: number; dev: number };
-  art: string;
+interface CreatureType {
+  // ...existing: id, name, tags, icon, hunger, reactions
+  fate: 'stays' | 'goes-on';
+  personality: string[];
+  sound: string;
+  habit: string; // public; never a stimulus
+  havoc: string[];
+  blessing: string[]; // public; blessing reads public peril
+  tier: number;
+  route: {
+    legs: { share: number; turn: -1 | 0 | 1 | 'seeded' }[]; // Mossback: [{ share: 1, turn: 0 }]
+    stops?: { at: number; task: string }[]; // route fraction; art and beats only; never halts it
+  };
 }
-type Condition =
-  | { event: string; tags?: string[] }
-  | { firstSight: string } // terrain tag
-  | { routeFraction: [number, number] }
-  | { quality: PublicQuality; min?: number; max?: number } // closed union: peril, hunt, steps, pagesThisSeason…
-  | { pageComplete: string } // by page tag, this season
-  | { not: Condition };
+interface ThreatType {
+  /* ...existing */ ending?: 'pursuer' | 'reckoner';
+} // captors: 'pursuer'
 ```
 
-- **Core:** `story.ts` evaluates conditions over `toPlayerView(state)`. The `storylet` event goes into the shared log only for audiences `all` and `actor`. Role cards go to a per-player `cards` table, and others see `{ kind: 'private-card', role }` with no id.
-- **Worker tables:**
-  - `cards (user_id, season, step, id, read)`, indexed on `(user_id, read)`, with a read budget for the changed poll and capped writes
-  - `roadbook_season`, `roadbook_entry`
-  - `digest (season, step, template, slots_json, posted_at)`
-  - `guild_meta.digest_channel_id`
-- **Discord:** `postMessage` in `discord.ts`, checked against creatures' channel post first. Misa grants the bot View Channel and Send Messages.
-- **The text module** goes in a shared package, because the Worker renders the digest.
+- **Heading stays state** (`state.ts`). A leg boundary is `round(cumulative share × routeLength)`. At a boundary tick the heading changes by one direction, and the seed picks the side for `'seeded'`. Only `leg` joins the state. A later rule (turning after repeated veers) can change heading the same way.
+- **Public view now:** `route: { leg, nextTurn: { atStep, side } | null }`. A turn is known at least `turnNotice` (2) steps ahead and drawn on the route strip and the step hints, so players can still plan trips out and back.
+- **Legs across seasons:** the leg index goes into legacy (for a journey over two seasons, later).
+- **Endings:** the largest `stats.peril.added` source wins, ties going to the latest strike. `hunger` gives the hunger ending. `threat:<type>` gives that type's `ending`, otherwise the plain title. Keys: `${kind}.${outcome}`, then the title. Fate joins the key when the second kind ships.
+- **Titles follow fate:** stays gives "Arrived" or "Arrived, wounded"; goes on gives "Gone on" or "Gone on, wounded"; and "Lost". This replaces "Home safe" in `season.ts` (question 3).
+- **Group name:** "party" everywhere, including onboarding's "Join the expedition". Story says "you".
 
-### 5.2 Tests
+**Docs to amend by decision:**
 
-1. Same seed and inputs, same storylet ids.
-2. Balance-sim states are identical with story on and off, except `story` and `traces`.
-3. Once-only and cooldowns hold across ticks.
-4. The cap queues a card and never drops one.
-5. Content check: every condition names a known public tag or quality, and every id has text.
-6. The view never holds an unfired id, a rumour's truth or a tied page's condition.
-7. Tick and poll read budgets hold.
+- m5 "title only", by Misa's line-per-ending call
+- "Nothing carries over" and madness, by Misa's calls
+- `GAME_DESIGN.md` "back to its habitat" becomes "to where it is going"
+- `progression.md`: the sanctuary becomes a chart of places and ways out, and veterans are unaffected by fate
 
-### 5.3 Copy to change when built
-
-- The mislead tip says "pursuers", not "captor bands".
-- One public name for the captors.
-- Fire tips gain "Rain: two timber".
-- The peril tip stays as is (no new sources).
-- Day and route tips cover the step date and waymarks.
-- "Six emblems" becomes five.
-- One word for the group: "party".
-- Every new icon gets a tip, and new seen-ids are added.
-- Order on return: the recap first, then one card.
-
-### 5.4 Build order
+### 8.2 Build order
 
 1. Traces.
 2. Beats and endings on the thin engine.
-3. Digest, once Misa says yes.
-4. Wonders.
-5. Roadbook.
-6. Rain with the brazier, after the sim.
+3. The Gatebook.
+4. Wonders and old havoc art.
+5. The garden and delights.
+6. Rain and the brazier (after the sim).
 7. Rumours.
-8. Hunt from deeds.
+8. The hunt.
+9. The Reckoners' threat, far creatures, legs and the turn telegraph, when the first old kind arrives.
 
-Then the Hook Line and anything parked, after the sim.
+### 8.3 Season one cut
 
-### 5.5 Out of scope
+Exactly this ships first: 16 pieces of text, plus trace art.
 
-Per-hex value fields; economies; NPC arcs and dialogue; messages players write on the map; a free-form chronicle; day and night; more than one front; confirming any legend.
+1. **Traces:** fire scars, the green trail, linger cairns, broken chain, the small open gate. A tap shows name and step.
+2. **The thin storylet engine:** audience `all`; passing cards anchored to a hex or the creature; one card on return.
+3. **12 route beats:**
+   - the jailbreak setting-out (7.1)
+   - the footprint first touching `wooded`, `dry`, `steep`, `water` and `boggy`
+   - first captors (the voice calling a name)
+   - first settlement
+   - three standing stones
+   - the Greyfold at 0.9
+4. **4 endings:** Mossback safe, Mossback wounded, lost to `pursuer`, lost to `hunger`. Other losses keep the plain title.
+5. **The date:** "9 of 40" beside the route strip.
+6. **Names in play:** Mossback, Greyfold, Wheelhouse, captors, hill folk, river folk, the Open Gate. Nothing else; peoples show their signs first.
 
-## 6. Season one cut
+## 9. Questions for Misa
 
-Exactly this ships first: about 26 pieces, plus trace art.
-
-1. **Traces:** fire scars, the green trail, linger cairns, broken stakes, wayside shrines. Tapping one shows name and step. No text.
-2. **The thin storylet engine** (audience `all`), passing cards anchored to hex or creature, one card on return.
-3. **12 route beats:** setting out; first sight of `wooded`, `dry`, `steep`, `water` and `boggy`; first captors seen; first settlement seen; the three waymark stones; the Threshold.
-4. **4 endings** (safe, wounded, lost to a `pursuer`, lost to `hunger`). Other losses stay title-only.
-5. **10 digest templates**, if Misa says yes: two lines, creature first, teaser last, quiet days silent, off by default.
-6. **The date** "Homing · 9 of 40" beside the route strip.
-7. **Names in play:** Mossback, Greenfold, Wheelhouse, captors, hill folk, river folk, Homing. Nothing else.
-
-Not in season one: the garden, wonders, rain, rumours, the hunt, events, fragments and the Roadbook (after the beats prove themselves), and everything in 2.7 and 2.8.
-
-## 7. Questions for Misa
-
-1. **The daily digest.** One two-line post per day with news, none on quiet days, no pings, off until an admin picks a channel. _My pick: yes._
-2. **Names in the digest.** Discord display names ("Rin's Warden") in the digest, character names in the app, traces and legends? _My pick: yes._
-3. **Endings get a line each.** This amends "a title only": four lines, picked by the tag of the largest peril source. _My pick: yes._
-4. **Parking Far-eyed.** Madness is one of the design's failure modes; parking it leaves three for now (captured, destroyed, lured). _My pick: park it until a madness system is planned._
-5. **Rain makes fire dearer.** Two timber under rain unless the Engineer has built a brazier: a rule players learn. _My pick: yes, after the balance sim._
-6. **The hill is a fact; its inside is a legend.** The narrator says a hill comes; nobody ever learns what is in it. _My pick: yes._
+1. **Young and old.** Young creatures stay and old ones go on, under one premise, with the veiled card's sun hinting "turns ahead"? _My pick: yes; young kinds first, old from tier two._
+2. **Watching, not riding.** At a go-on ending the party watch from where the tracks stop, rather than riding off, so fate never decides who could come back as a veteran. _My pick: watch._
+3. **Ending titles follow fate.** This changes the shipped "Home safe" and "Home, wounded" to "Arrived" and "Arrived, wounded" (and "Gone on" for old kinds). _My pick: yes, with the line under it._
+4. **The Reckoners.** From season two: a grieving order with its own threat type and a loss ending, never striking riders. _My pick: yes._
+5. **Blessings as a rule.** One generic rule: low public peril for 5 steps makes the kind's blessing appear ahead (for the Mossback, a berry bush). _My pick: yes, after the balance sim; until then, art only._
