@@ -60,7 +60,7 @@ export interface TuningConfig {
   readonly feedCost: number;
   /** Keepers only: the creature stays put at the next tick. */
   readonly lingerCost: number;
-  /** The tow line (a rider throws it, the target grabs it): both cost actions; reach is hexes from the footprint. */
+  /** The tow line (a rider throws it, the target grabs it): both cost actions; reach is rings beyond the window's edge (1 reaches the first grace ring). */
   readonly towThrowCost: number;
   readonly towGrabCost: number;
   readonly towReach: number;
@@ -169,7 +169,7 @@ export const DEFAULT_CONFIG: TuningConfig = {
   lingerCost: 2,
   towThrowCost: 1,
   towGrabCost: 1,
-  towReach: 2,
+  towReach: 1,
   threatsFromDay: 3,
   threatChanceBase: 0.25,
   threatChancePerPlayer: 0.05,

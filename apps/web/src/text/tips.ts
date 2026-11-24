@@ -111,7 +111,7 @@ export const tips = {
   'unlock:grappling-hook': {
     text: 'Lets everyone climb cliffs, for {climbCost.grappling-hook} actions a step.',
   },
-  'unlock:towline': { text: 'A rope for riders to throw to someone left near the creature.' },
+  'unlock:towline': { text: 'A rope for riders to throw to someone left behind.' },
   'unlock:lantern': { text: 'Light for deep tombs, so a scholar can work them.' },
   'unlock:climbing-spikes': { text: 'Cliffs cost only {climbCost.climbing-spikes} action a step.' },
   'unlock:marsh-boards': { text: 'Swamp costs only {climbCost.marsh-boards} action a step.' },
@@ -138,7 +138,7 @@ export const tips = {
     text: 'Keepers, riding: the creature stays put when the day turns. Not two days running.',
   },
   'action:throw-line': {
-    text: 'Throw the line to someone near the creature. They choose to take it.',
+    text: 'Throw the line to someone left behind. They choose to take it.',
   },
   'action:grab-line': { text: 'Take the line and be pulled aboard.' },
   'action:strike': {

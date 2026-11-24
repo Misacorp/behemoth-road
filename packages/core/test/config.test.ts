@@ -32,7 +32,7 @@ describe('tuning config', () => {
       lingerCost: 2,
       towThrowCost: 1,
       towGrabCost: 1,
-      towReach: 2,
+      towReach: 1,
       threatsFromDay: 3,
       threatChanceBase: 0.25,
       threatChancePerPlayer: 0.05,

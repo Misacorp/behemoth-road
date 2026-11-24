@@ -4,9 +4,17 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-24: The tow line reaches the first ring outside the window **[Misa]**
+
+ID: `2026-11-24-the-tow-line-reaches-the-first` · Status: current · Amends: `2026-11-24-the-tow-line-needs-the-hauled`
+
+**Decision.** The tow line reaches the first ring outside the window, counted from the window's edge: a thrown line may go to any character within `windowRadius + towReach` hexes of the creature's centre, with `towReach` now 1 (it was 2 hexes from the footprint). So a character on a grace hex next to the edge can be thrown a line. Throw and grab keep costing 1 action each.
+
+**Reasoning.** At the old reach the line could not touch a grace hex, so it could not save anyone who was about to be lost. Counting from the window keeps the reach tied to the config (`windowRadius`) rather than a separate number.
+
 ## 2026-11-24: The tow line needs the hauled player's approval **[Misa]**
 
-ID: `2026-11-24-the-tow-line-needs-the-hauled` · Status: current
+ID: `2026-11-24-the-tow-line-needs-the-hauled` · Status: current, amended by `2026-11-24-the-tow-line-reaches-the-first`
 
 **Decision.** The tow line is an Engineer unlock (`towline`, 2 timber, 1 stone, 3 work; the tag `towline`, since `rope` is the grappling hook's). With it a rider spends 1 action (`towThrowCost`) to throw the line to a character within 2 hexes (`towReach`) of the footprint, once per rider per day and one line per target. The target sees the line on their figure and may grab it on their own turn for 1 action (`towGrabCost`), which moves them onto the creature (riding, pack deposited). An ungrabbed line lapses at the tick. No one can be pulled aboard without their own action, and absent players simply do not interact: there are no special rules for rescuing or carrying them. Public state: `creature.tows`. Content version 20. Note: grace hexes lie 7 or more hexes from the creature's centre, so the line (reach 3 from the centre) cannot reach a stranded character; it saves someone close with too few actions to walk back.
 
