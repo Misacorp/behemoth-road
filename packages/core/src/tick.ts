@@ -64,7 +64,7 @@ import {
   threatPath,
   threatStrength,
 } from './threats.ts';
-import { isCreatureHex, isReachable, pruneLostTiles, updateTiles } from './window.ts';
+import { isCreatureHex, holdTiles, isReachable, pruneLostTiles, updateTiles } from './window.ts';
 
 const EAT_STREAM = hashString('creature-eats');
 const THREAT_STREAM = hashString('threat');
@@ -264,7 +264,9 @@ export const nextDayWithEvents = (
     steps: state.creature.steps + (step.stay ? 0 : 1),
   };
   const { care, stores, ate } = careAfter(state, day);
-  const tiles = updateTiles(state.tiles, creature.centre, day, state.config, state.seed);
+  const tiles = step.stay
+    ? holdTiles(state.tiles)
+    : updateTiles(state.tiles, creature.centre, day, state.config, state.seed);
   const newHexes = Object.keys(tiles)
     .filter((key) => !state.tiles[key])
     .map(keyToHex);

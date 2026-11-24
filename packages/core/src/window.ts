@@ -75,6 +75,22 @@ export const updateTiles = (
 };
 
 /**
+ * A lingering creature holds the fog: the window has not moved, so no hex leaves it and
+ * the grace counters do not advance (each grace hex's leave day moves on with the day).
+ */
+export const holdTiles = (
+  tiles: Readonly<Record<string, TileKnowledge>>,
+): Record<string, TileKnowledge> =>
+  Object.fromEntries(
+    Object.entries(tiles).map(([key, tile]) => [
+      key,
+      tile.visibility === 'seen' && tile.leftWindowOnDay !== null
+        ? { ...tile, leftWindowOnDay: tile.leftWindowOnDay + 1 }
+        : tile,
+    ]),
+  );
+
+/**
  * Drops lost tiles more than `lostTileRings` beyond the window, except under a
  * character (a lost character still stands somewhere), so the state stops growing.
  * A pruned hex reads as hidden; if the window ever reaches it again, it is seen afresh.
