@@ -51,7 +51,7 @@ describe('the tow line in the interface', () => {
     // Not offered from the ground.
     expect(throwOption(base(), 'x', 'a')).toBeNull();
     // Out of reach: faded, with the core's reason as a tip.
-    const far = place(base(), 'x', hex(0, 5));
+    const far = place(base(), 'x', hex(0, 7));
     expect(throwOption(far, 'a', 'x')).toMatchObject({ enabled: false, why: 'why:not-near' });
   });
 

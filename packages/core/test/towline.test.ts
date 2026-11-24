@@ -5,15 +5,17 @@ import {
   createGame,
   type GameState,
   hex,
+  hexDistance,
   nextDay,
   planPath,
+  stranded,
   UNLOCKS,
 } from '../src/index.ts';
 import { CALM, placeCharacter, withCharacter } from './helpers.ts';
 
 const straight = { ...CALM, veerWeights: { left: 0, right: 0 } };
-// The creature walks north: on day 2 its centre is (0, -1), its footprint reaches (0, 0) and the line
-// reaches 2 more, so (0, 2) is in reach and (0, 3) is not. Grace hexes lie 7 or more from the centre.
+// The creature walks north: on day 2 its centre is (0, -1) and the window radius is 6. The line reaches
+// the first ring outside the window (7 from the centre): (0, 6) is in reach, (0, 7) is not.
 const NEAR = hex(0, 2);
 
 /** Day 2: `a` and `c` are riders (the tow line built), `x` stands near the creature. */
@@ -74,10 +76,12 @@ describe('the tow line', () => {
     expect(checkAction(s, 'a', throwTo('a'))).toMatchObject({ reason: 'invalid-action' });
     expect(checkAction(s, 'a', throwTo('c'))).toMatchObject({ reason: 'on-creature' });
     expect(checkAction(s, 'a', throwTo('nobody'))).toMatchObject({ reason: 'unknown-character' });
-    // The creature's centre is (0, -1) on day 2: radius 1 plus reach 2 is 3 hexes.
-    const far = placeCharacter(s, 'x', hex(0, 3));
-    expect(checkAction(far, 'a', throwTo('x'))).toMatchObject({ reason: 'not-near' });
-    expect(checkAction(placeCharacter(s, 'x', hex(0, 5)), 'a', throwTo('x'))).toMatchObject({
+    // The creature's centre is (0, -1) on day 2 and the window radius 6: the first ring outside the
+    // window (7 from the centre) is in reach, the next is not.
+    expect(checkAction(placeCharacter(s, 'x', hex(0, 6)), 'a', throwTo('x'))).toMatchObject({
+      ok: true,
+    });
+    expect(checkAction(placeCharacter(s, 'x', hex(0, 7)), 'a', throwTo('x'))).toMatchObject({
       reason: 'not-near',
     });
     expect(checkAction(withActions(s, 'a', 0), 'a', throwTo('x'))).toMatchObject({
@@ -129,6 +133,26 @@ describe('the tow line', () => {
     const saved = ok(act(thrown, 'x', { kind: 'grab-line' }));
     expect(me(saved, 'x').at).toEqual({ kind: 'creature' });
     expect(me(saved, 'x').actionsLeft).toBe(0);
+  });
+
+  it('saves a stranded character on the first grace ring, only by their own grab', () => {
+    const start = placeCharacter(
+      createGame(1, { characterIds: ['a', 'c', 'x'], config: { ...straight, moveCost: 2 } }),
+      'x',
+      hex(0, 6),
+    );
+    const day2 = nextDay({ ...start, unlocks: [...start.unlocks, 'towline'] });
+    const s = withActions(day2, 'x', 1);
+    // On the first grace ring, one action and a two-action way back: the flare shows.
+    const at = me(s, 'x').at;
+    expect(at.kind === 'hex' && hexDistance(at.hex, s.creature.centre)).toBe(7);
+    expect(stranded(s, 'x')).toBe(true);
+    const thrown = ok(act(s, 'a', throwTo('x')));
+    // Thrown but not grabbed: lost at the tick.
+    expect(me(nextDay(thrown), 'x').status).toBe('lost');
+    const saved = nextDay(ok(act(thrown, 'x', { kind: 'grab-line' })));
+    expect(me(saved, 'x').status).toBe('active');
+    expect(me(saved, 'x').at).toEqual({ kind: 'creature' });
   });
 
   it('is public and deterministic: the same inputs give the same state', () => {

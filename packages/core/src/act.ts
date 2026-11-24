@@ -459,7 +459,7 @@ export const checkAction = (
       if (state.creature.tows.some((t) => t.to === target.id)) return no('already-have');
       if (
         hexDistance(target.at.hex, state.creature.centre) >
-        config.creatureRadius + config.towReach
+        config.windowRadius + config.towReach
       ) {
         return no('not-near');
       }

@@ -54,7 +54,7 @@
       "lingerCost": 2,
       "towThrowCost": 1,
       "towGrabCost": 1,
-      "towReach": 2,
+      "towReach": 1,
       "threatsFromDay": 1,
       "threatChanceBase": 0.6,
       "threatChancePerPlayer": 0.05,

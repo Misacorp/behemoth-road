@@ -124,7 +124,8 @@ Superseded: 3 entries (see the topic file).
 [product.md](product.md): Features, UX and behaviour the users see.
 
 - 2026-11-24 Lakes, ponds and seas: the creature swims, a raft lets everyone else cross \[Misa\]
-- 2026-11-24 The tow line needs the hauled player's approval \[Misa\]
+- 2026-11-24 The tow line reaches the first ring outside the window \[Misa\]
+- 2026-11-24 The tow line needs the hauled player's approval \[Misa\] (amended)
 - 2026-11-24 Each terrain gets its own base colour \[Misa\]
 - 2026-11-24 The in-world word road is retired \[Misa\]
 - 2026-11-24 Personal objective: one of two at join, picked like the creature \[Misa\]
