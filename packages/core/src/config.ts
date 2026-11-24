@@ -138,6 +138,14 @@ export interface TuningConfig {
   /** Each time the creature's steps reach a multiple of this, every active character gets `catchUpXp` XP. */
   readonly catchUpEverySteps: number;
   readonly catchUpXp: number;
+
+  // Story (docs/design/story.md): traces and storylets change no rule.
+  /** Writes traces and fires storylets. Off only for tests that prove they change nothing else. */
+  readonly storyOn: boolean;
+  /** The most storylets that fire in one game day (the rest wait in the queue, none dropped). */
+  readonly storyPerDay: number;
+  /** The most traces kept (the oldest trail goes first). */
+  readonly traceCap: number;
 }
 
 export const DEFAULT_CONFIG: TuningConfig = {
@@ -207,6 +215,9 @@ export const DEFAULT_CONFIG: TuningConfig = {
   xpPerPick: 14,
   catchUpEverySteps: 10,
   catchUpXp: 1,
+  storyOn: true,
+  storyPerDay: 2,
+  traceCap: 60,
 };
 
 export type ConfigOverrides = Partial<Omit<TuningConfig, 'veerWeights' | 'hungryVeerWeights'>> & {
@@ -283,6 +294,8 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     'routeLength',
     'perilMax',
     'lingerChainMax',
+    'storyPerDay',
+    'traceCap',
   ] as const;
   for (const key of costs) if (!isCount(config[key], 1)) problems.push(key);
   const counts = [
@@ -317,6 +330,7 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
   if (config.stanceAmbushPerAction > config.clearPowerOther) problems.push('stanceAmbushPerAction');
   if (!validWeights(config.veerWeights)) problems.push('veerWeights');
   if (!validWeights(config.hungryVeerWeights)) problems.push('hungryVeerWeights');
+  if (typeof config.storyOn !== 'boolean') problems.push('storyOn');
   if (!isCount(config.stimulusRange, 0)) problems.push('stimulusRange');
   if (!(Number.isFinite(config.stimulusPull) && config.stimulusPull >= 1)) {
     problems.push('stimulusPull');

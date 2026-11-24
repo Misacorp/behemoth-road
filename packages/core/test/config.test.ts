@@ -70,6 +70,9 @@ describe('tuning config', () => {
       xpPerPick: 14,
       catchUpEverySteps: 10,
       catchUpXp: 1,
+      storyOn: true,
+      storyPerDay: 2,
+      traceCap: 60,
     });
   });
 

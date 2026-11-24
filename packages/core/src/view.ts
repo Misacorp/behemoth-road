@@ -34,6 +34,8 @@ export const toPlayerView = (state: GameState): GameStateView => {
     season: state.season,
     stats: state.stats,
     misleadUntilDay: state.misleadUntilDay,
+    traces: state.traces,
+    story: state.story,
   };
   // A deep copy, so nothing done to the view can reach the server's state.
   return JSON.parse(JSON.stringify(view)) as GameStateView;

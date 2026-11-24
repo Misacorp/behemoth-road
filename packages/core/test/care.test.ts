@@ -79,14 +79,17 @@ describe('the hidden nature', () => {
       'stats',
       'stimuli',
       'stores',
+      'story',
       'threats',
       'tiles',
+      'traces',
       'unlocks',
     ]);
     expect(Object.keys(view0.creature as object).sort()).toEqual([
       'centre',
       'defenders',
       'heading',
+      'kind',
       'lingerStreak',
       'lingeredDay',
       'lingering',

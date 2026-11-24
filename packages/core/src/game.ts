@@ -10,7 +10,8 @@ import { addFeatures, keyToHex } from './features.ts';
 import { ON_CREATURE } from './places.ts';
 import { hashInts, hashString, newArtSeed, type Seed, toSeed } from './random.ts';
 import { emptyStats } from './stats.ts';
-import { emptySkills, type GameState } from './state.ts';
+import { fireStory } from './story.ts';
+import { emptySkills, emptyStory, type GameState } from './state.ts';
 import { updateTiles } from './window.ts';
 
 export interface CreateGameOptions {
@@ -62,7 +63,7 @@ export const createGame = (
   const day = 1;
   const tiles = updateTiles({}, centre, day, config, seed);
   const nature = rollNature(seed);
-  return {
+  const game: GameState = {
     contentVersion: CONTENT_VERSION,
     artSeed,
     seed,
@@ -70,6 +71,7 @@ export const createGame = (
     config,
     creature: {
       centre,
+      kind: nature.type,
       heading,
       lingering: false,
       lingeredDay: null,
@@ -86,6 +88,8 @@ export const createGame = (
     season: { status: 'on' },
     stats: emptyStats(),
     misleadUntilDay: null,
+    traces: [],
+    story: emptyStory(),
     tiles,
     features: addFeatures({}, tiles, Object.keys(tiles).map(keyToHex), seed, config.featureChance),
     stores: {},
@@ -110,4 +114,7 @@ export const createGame = (
       skills: emptySkills(),
     })),
   };
+  // What is true at the start (setting out; terrain under the first footprint) fires now, with no event
+  // (a new game has no event stream): `story.fired` is the record.
+  return fireStory(game).state;
 };

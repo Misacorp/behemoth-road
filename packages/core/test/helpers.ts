@@ -159,3 +159,7 @@ export const withStance = (state: GameState, id: string, stance: string): GameSt
   ...state,
   characters: state.characters.map((c) => (c.id === id ? { ...c, stance } : c)),
 });
+
+/** Events without the story's (a beat can fire on any act once its conditions hold). */
+export const plain = <E extends { readonly kind: string }>(events: readonly E[]): E[] =>
+  events.filter((e) => e.kind !== 'story');

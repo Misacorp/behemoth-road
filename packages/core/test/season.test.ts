@@ -17,7 +17,7 @@ import {
   reachablePlaces,
   toPlayerView,
 } from '../src/index.ts';
-import { fieldGame, lingering, placeCharacter, QUIET, withThreat } from './helpers.ts';
+import { fieldGame, lingering, placeCharacter, plain, QUIET, withThreat } from './helpers.ts';
 
 const ok = (r: ActResult) => {
   if (!r.ok) throw new Error(r.reason);
@@ -37,7 +37,7 @@ describe('strike', () => {
   it('lowers a threat by clearPowerWarden for a warden, clearPowerOther for anyone else', () => {
     const g = ok(act(near('warden'), 'warden', { kind: 'strike', threat: 'c' }));
     expect(g.state.threats[0]?.strength).toBe(1);
-    expect(g.events).toEqual([{ kind: 'threat-hit', id: 'c', characterId: 'warden', strength: 1 }]);
+    expect(plain(g.events)).toEqual([{ kind: 'threat-hit', id: 'c', characterId: 'warden', strength: 1 }]);
     const s = ok(act(near('scout'), 'scout', { kind: 'strike', threat: 'c' }));
     expect(s.state.threats[0]?.strength).toBe(2);
     expect(s.state.characters[0]?.actionsLeft).toBe(2);

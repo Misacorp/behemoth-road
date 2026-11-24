@@ -17,6 +17,7 @@ import {
   findSeed,
   lingering,
   placeCharacter,
+  plain,
   QUIET,
   withSettlement,
   withThreat,
@@ -48,10 +49,10 @@ describe('parley', () => {
       chance: 1,
     });
     const once = doing(state, 'warden', { kind: 'parley' });
-    expect(once.events).toEqual([{ kind: 'parley', id: 's1', characterId: 'warden', favour: 2 }]);
+    expect(plain(once.events)).toEqual([{ kind: 'parley', id: 's1', characterId: 'warden', favour: 2 }]);
     expect(once.state.settlements[0]).toMatchObject({ attitude: 'wary', favour: 2 });
     const twice = doing(once.state, 'warden', { kind: 'parley' });
-    expect(twice.events.map((e) => e.kind)).toEqual(['parley', 'befriended']);
+    expect(plain(twice.events).map((e) => e.kind)).toEqual(['parley', 'befriended']);
     expect(twice.state.settlements[0]).toMatchObject({ attitude: 'friendly', favour: 4 });
     expect(checkAction(twice.state, 'warden', { kind: 'parley' })).toMatchObject({
       ok: false,
@@ -90,7 +91,7 @@ describe('parley', () => {
     expect(angry.state.threats).toEqual([
       { id: 'ts1', type: 'raiders', hex: VILLAGE, strength: 2, appearedDay: 1 },
     ]);
-    expect(angry.events).toEqual([
+    expect(plain(angry.events)).toEqual([
       { kind: 'angered', id: 's1' },
       { kind: 'threat-appears', id: 'ts1', type: 'raiders', hex: VILLAGE },
     ]);
@@ -135,7 +136,7 @@ describe('offer', () => {
       chance: 1,
     });
     const r = doing(state, 'scout', { kind: 'offer', material: 'old-coin' });
-    expect(r.events).toEqual([
+    expect(plain(r.events)).toEqual([
       { kind: 'offer', id: 's1', characterId: 'scout', material: 'old-coin' },
     ]);
     expect(r.state.characters[0]?.pack).toEqual({ forage: 2 });
@@ -168,7 +169,7 @@ describe('ask a boon', () => {
     const r = doing(friendly(), 'scout', { kind: 'ask-boon', boon: 'gift' });
     expect(r.state.stores).toEqual({ forage: 2, timber: 1 });
     expect(r.state.settlements[0]?.boon).toBe('gift');
-    expect(r.events).toEqual([{ kind: 'boon', id: 's1', characterId: 'scout', boon: 'gift' }]);
+    expect(plain(r.events)).toEqual([{ kind: 'boon', id: 's1', characterId: 'scout', boon: 'gift' }]);
   });
 
   it('shelter: peril falls by shelterPeril', () => {

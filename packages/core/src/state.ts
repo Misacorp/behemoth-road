@@ -29,8 +29,48 @@ export type TileKnowledge =
 /** Material counts by content id (a pack, the team stores). */
 export type Materials = Readonly<Record<string, number>>;
 
+/** What a trace marks (`docs/design/story.md`). */
+export type TraceKind = 'fire' | 'trail' | 'cairn' | 'chain' | 'gate';
+
+/**
+ * A mark the season left on the map, written when its event happened (the event log keeps only 100):
+ * a fire scar, the trail the creature left, a cairn where it lingered, broken chain where captors were
+ * cleared, a small open gate where a character was lost. Public.
+ */
+export interface Trace {
+  readonly kind: TraceKind;
+  readonly hex: Hex;
+  /** The creature's steps when it was made. */
+  readonly step: number;
+  /** The character it is credited to (who lit the fire, cleared the captors, was lost), if any. */
+  readonly by?: string;
+}
+
+/** A storylet waiting for its turn (the day's cap was reached). Public. */
+export interface StoryQueued {
+  readonly id: string;
+  /** The hex of a `hex`-anchored storylet, from the moment its conditions held. */
+  readonly hex: Hex | null;
+  /** The conditions that held, for debugging (`kind` or `kind:parameter`, joined by `+`). */
+  readonly when: string;
+}
+
+/** Storylets fired and waiting. Public. */
+export interface StoryState {
+  /** Ids of storylets that have fired (each at most once), in order. */
+  readonly fired: readonly string[];
+  /** Ids whose conditions held but whose turn has not come (the day's cap), in order. */
+  readonly queue: readonly StoryQueued[];
+  /** How many fired on which day, for the cap. */
+  readonly today: { readonly day: number; readonly count: number };
+}
+
+export const emptyStory = (): StoryState => ({ fired: [], queue: [], today: { day: 0, count: 0 } });
+
 export interface Creature {
   readonly centre: Hex;
+  /** The creature's kind (content `CREATURE_TYPES`). Public: creatures are known to everyone; what it feels is not. */
+  readonly kind: string;
   /** The general heading. Each step goes this way or one sixth of a turn to either side. */
   readonly heading: Direction;
   /** A keeper asked it to stay put: it does not step at the next tick. Public. */
@@ -231,6 +271,10 @@ export interface GameStateView {
   readonly stats: SeasonStats;
   /** No pursuer appears at a tick that starts a day up to this one (a mislead); null for none. */
   readonly misleadUntilDay: number | null;
+  /** What the season left on the map (at most `traceCap`). */
+  readonly traces: readonly Trace[];
+  /** The story so far. */
+  readonly story: StoryState;
 }
 
 /**

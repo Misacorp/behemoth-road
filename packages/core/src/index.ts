@@ -51,7 +51,11 @@ export {
   CREATURE_TYPES,
   REACTIONS,
   STIMULUS_TYPES,
+  type CreatureRoute,
   type CreatureType,
+  type Fate,
+  type RouteLeg,
+  type RouteStop,
   type Need,
   type Reaction,
   type StimulusType,
@@ -61,7 +65,12 @@ export {
   type Boon,
   type PeopleType,
   type ThreatApproach,
+  type ThreatEnding,
   type ThreatType,
+  STORYLETS,
+  type Condition,
+  type StoryKind,
+  type Storylet,
 } from './content/index.ts';
 export {
   DEFAULT_MAP_CONTENT,
@@ -77,7 +86,11 @@ export type {
   Season,
   SeasonOutcome,
   Settlement,
+  StoryQueued,
+  StoryState,
   Threat,
+  Trace,
+  TraceKind,
   Care,
   Cue,
   Nature,
@@ -94,7 +107,10 @@ export type {
   TileKnowledge,
   Visibility,
 } from './state.ts';
-export { findCharacter, hasSeed, isSeasonOver } from './state.ts';
+export { emptyStory, findCharacter, hasSeed, isSeasonOver } from './state.ts';
+export { conditionLabel, fireStory, storyletHolds } from './story.ts';
+export { addTraces, pruneTraces, recordTraces } from './traces.ts';
+export { ENDING_TITLES, endingOf, largestPerilSource, type Ending } from './ending.ts';
 export {
   approachHexes,
   contactDistance,

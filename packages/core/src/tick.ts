@@ -52,6 +52,8 @@ import { withXp } from './skills.ts';
 import { ambush, applyStances } from './stances.ts';
 import { applySkillTicks, hungerEveryDays } from './skilltick.ts';
 import { PERIL_CALM, PERIL_HUNGER, type PerilPart, perilThreat, recordEvents } from './stats.ts';
+import { fireStory } from './story.ts';
+import { pruneTraces, recordTraces } from './traces.ts';
 import {
   activeCount,
   approachHexes,
@@ -386,11 +388,15 @@ export const nextDayWithEvents = (
   }
   events.push(...lost);
   if (outcome) events.push({ kind: 'season-over', outcome });
-  events.push({ kind: 'day', day });
-  return {
-    state: recordEvents(pruneFeatures({ ...settled, tiles: pruneLostTiles(settled) }), events),
+  // Traces of what happened, then the story from the new state; both change nothing else.
+  const recorded = recordTraces(
+    before,
+    recordEvents(pruneFeatures({ ...settled, tiles: pruneLostTiles(settled) }), events),
     events,
-  };
+  );
+  const told = fireStory(pruneTraces(recorded));
+  events.push(...told.events, { kind: 'day', day });
+  return { state: told.state, events };
 };
 
 /** The day tick (see `nextDayWithEvents` for what happened). */

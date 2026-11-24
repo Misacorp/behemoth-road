@@ -40,7 +40,20 @@ interface Body {
   readonly island: Hex | null;
 }
 
-const bodyCache = new Map<string, Body | null>();
+/**
+ * Bodies already worked out, per water config (its identity) and then by seed and cell, so a game made
+ * with other water settings never reads another's bodies.
+ */
+const bodyCaches = new WeakMap<WaterGeneration, Map<string, Body | null>>();
+
+const bodyCacheFor = (waters: WaterGeneration): Map<string, Body | null> => {
+  let cache = bodyCaches.get(waters);
+  if (cache === undefined) {
+    cache = new Map();
+    bodyCaches.set(waters, cache);
+  }
+  return cache;
+};
 
 const distance = (body: Body, h: Hex): number => {
   const [x, y] = plane(h);
@@ -73,6 +86,7 @@ const bodyIn = (
   gy: number,
 ): Body | null => {
   const key = `${seedKey}/${index}/${gx}/${gy}`;
+  const bodyCache = bodyCacheFor(waters);
   const cached = bodyCache.get(key);
   if (cached !== undefined) return cached;
   const kind = waters.kinds[index] as WaterKind;

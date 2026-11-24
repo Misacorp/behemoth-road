@@ -34,8 +34,10 @@
  * 20: water: lakes, ponds, seas and islands (deep water needs the raft; the creature swims), the water
  *    temple, the raft; forest, desert and cliff thinned a little to keep the plains share.
  * 21: the tow line unlock; the creature carries the day's thrown tow lines (`creature.tows`).
+ * 22: the world (docs/design/story.md): creature fate, sound, habit, blessing, tier and route; threats may
+ *    have an `ending`; traces and the story (storylets) join the state; the creature has a public kind.
  */
-export const CONTENT_VERSION = 21;
+export const CONTENT_VERSION = 22;
 
 /** Content versions this code can load. */
 export const KNOWN_CONTENT_VERSIONS: readonly number[] = [CONTENT_VERSION];

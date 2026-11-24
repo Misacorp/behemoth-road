@@ -124,6 +124,17 @@ export type GameEvent =
       readonly sources: readonly PerilPart[];
     }
   | { readonly kind: 'settlement-appears'; readonly id: string; readonly hex: Hex }
+  /**
+   * A storylet fired (`story.ts`): its id, the creature's steps, what it is anchored to, and the
+   * conditions that fired it (for debugging). Public: conditions read public facts only.
+   */
+  | {
+      readonly kind: 'story';
+      readonly id: string;
+      readonly step: number;
+      readonly anchor: { readonly kind: 'creature' } | { readonly kind: 'hex'; readonly hex: Hex };
+      readonly when: string;
+    }
   /** A parley gained favour: `favour` is the settlement's favour now. */
   | {
       readonly kind: 'parley';

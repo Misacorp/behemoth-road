@@ -27,6 +27,7 @@ import {
   CALM,
   chainGame,
   placeCharacter,
+  plain,
   withCharacter,
   withFeature,
   withSettlement,
@@ -485,7 +486,7 @@ describe('tier 1 effects', () => {
     });
     const ravens = take(far, 'warden', 'warden-b1');
     expect(checkAction(ravens, 'warden', parley)).toMatchObject({ ok: true });
-    expect(ok(ravens, 'warden', parley).events).toMatchObject([{ kind: 'parley', id: 's1' }]);
+    expect(plain(ok(ravens, 'warden', parley).events)).toMatchObject([{ kind: 'parley', id: 's1' }]);
     // 4 away is too far.
     const farther = withSettlement(placeCharacter(base, 'warden', hex(3, -1)), hex(7, -1));
     expect(checkAction(take(farther, 'warden', 'warden-b1'), 'warden', parley)).toMatchObject({

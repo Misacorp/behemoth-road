@@ -16,7 +16,7 @@ import { mapTipAt } from '../map/mapTips.ts';
 import { buildOverlays } from '../map/overlays.ts';
 import { grabOption, throwOption } from './tow.ts';
 
-const NEAR = hex(0, 2);
+const NEAR = hex(0, 6);
 const place = (s: GameState, id: string, at: ReturnType<typeof hex>): GameState => ({
   ...s,
   characters: s.characters.map((c) => (c.id === id ? { ...c, at: onHex(at) } : c)),

@@ -12,6 +12,9 @@
  */
 export type ThreatApproach = 'behind' | 'flank' | 'path' | 'sent';
 
+/** What a threat that ends a season is: the ending text it gives (`endingOf`). */
+export type ThreatEnding = 'pursuer';
+
 export interface ThreatType {
   readonly id: string;
   readonly name: string;
@@ -37,6 +40,8 @@ export interface ThreatType {
   readonly reach: number;
   /** How often the daily roll picks it; 0 means never rolled. */
   readonly weight: number;
+  /** Set when a season lost to this threat has its own ending line, and when clearing it leaves a trace. */
+  readonly ending?: ThreatEnding;
 }
 
 export const THREAT_TYPES: readonly ThreatType[] = [
@@ -50,6 +55,7 @@ export const THREAT_TYPES: readonly ThreatType[] = [
     approach: 'behind',
     reach: 1,
     weight: 1,
+    ending: 'pursuer',
   },
   {
     id: 'swarm',

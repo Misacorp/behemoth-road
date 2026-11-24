@@ -47,7 +47,7 @@ import {
   type Settlement,
   type Stimulus,
 } from './state.ts';
-import { isCreatureHex } from './window.ts';
+import { isCreatureHex, isInWindow } from './window.ts';
 import { DEFEND_TAG, PURSUER_TAG, threatType } from './threats.ts';
 import {
   addFavour,
@@ -60,6 +60,8 @@ import {
 
 import { isStance } from './stances.ts';
 import { PERIL_CALM, PERIL_SHELTER, recordEvents } from './stats.ts';
+import { fireStory } from './story.ts';
+import { recordTraces } from './traces.ts';
 import {
   bestOf,
   distanceFrom,
@@ -127,6 +129,8 @@ export type ActRefusal =
   | 'season-over'
   | 'no-threat'
   | 'not-near'
+  /** A tow line to someone inside the window: they can walk. */
+  | 'in-window'
   | 'needs-warden'
   | 'no-settlement'
   | 'not-wary'
@@ -464,6 +468,8 @@ export const checkAction = (
         return no('not-near');
       }
       if (isCreatureHex(state, target.at.hex)) return no('on-creature');
+      // Someone inside the window can walk to the creature: the line is for those cut off outside it.
+      if (isInWindow(state, target.at.hex)) return no('in-window');
       return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
     }
     case 'grab-line': {
@@ -903,7 +909,13 @@ export const act = (state: GameState, characterId: string, action: Action): ActR
   const result = actCore(state, characterId, action);
   if (!result.ok) return result;
   const earned = earnXp(result.state, characterId, action.kind, result.events);
-  return { ...result, state: recordEvents(earned, result.events, characterId) };
+  const recorded = recordTraces(
+    state,
+    recordEvents(earned, result.events, characterId),
+    result.events,
+  );
+  const told = fireStory(recorded);
+  return { ...result, state: told.state, events: [...result.events, ...told.events] };
 };
 
 /** Boons any people offers, in content order. */

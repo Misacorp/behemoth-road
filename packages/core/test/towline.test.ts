@@ -17,7 +17,7 @@ import { CALM, placeCharacter, withCharacter, withTerrain } from './helpers.ts';
 const straight = { ...CALM, veerWeights: { left: 0, right: 0 } };
 // The creature walks north: on day 2 its centre is (0, -1) and the window radius is 6. The line reaches
 // the first ring outside the window (7 from the centre): (0, 6) is in reach, (0, 7) is not.
-const NEAR = hex(0, 2);
+const NEAR = hex(0, 6);
 
 /** Day 2: `a` and `c` are riders (the tow line built), `x` stands near the creature. */
 const base = (): GameState => {
@@ -81,6 +81,11 @@ describe('the tow line', () => {
     // window (7 from the centre) is in reach, the next is not.
     expect(checkAction(placeCharacter(s, 'x', hex(0, 6)), 'a', throwTo('x'))).toMatchObject({
       ok: true,
+    });
+    // Inside the window they can walk: no line (6 from the centre is the window's edge).
+    expect(checkAction(placeCharacter(s, 'x', hex(0, 5)), 'a', throwTo('x'))).toMatchObject({
+      ok: false,
+      reason: 'in-window',
     });
     expect(checkAction(placeCharacter(s, 'x', hex(0, 7)), 'a', throwTo('x'))).toMatchObject({
       reason: 'not-near',
