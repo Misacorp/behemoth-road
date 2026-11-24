@@ -369,7 +369,7 @@ export function Ending(props: EndingProps): JSX.Element {
       )}
       <div class="ending-foot">
         <div class="ending-route">
-          <RouteStrip {...props.route} width={240} />
+          <RouteStrip {...props.route} width={240} date={false} />
           <span class="ending-days" aria-label="Days">
             <SunIcon />
             <span>{props.days}</span>

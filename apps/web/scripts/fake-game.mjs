@@ -72,6 +72,12 @@ export function serve() {
   return new Promise((ok) => server.listen(0, '127.0.0.1', () => ok(server)));
 }
 
+/**
+ * The view a scenario gives. Unless it says what was read, every fired story beat counts as read, so a card
+ * does not take the first tap of the older scripts; the story script sets `storyRead` itself.
+ */
+const viewOf = (sc) => toView(sc.storyRead ? sc : { ...sc, storyRead: sc.state.story.fired });
+
 /** A fake game server on the real core: it holds a scenario and answers the API like the Worker. */
 export class FakeServer {
   constructor() {
@@ -95,7 +101,7 @@ export class FakeServer {
       if (next) this.scenario = { ...next, version: next.version ?? s.version + 1 };
       const stamped = events.map((e) => ({ ...e, version: this.scenario.version }));
       this.log.push(...stamped);
-      return [200, { ...toView(this.scenario), events: stamped }];
+      return [200, { ...viewOf(this.scenario), events: stamped }];
     };
     if (path === '/api/config') return [200, CONFIG];
     if (path === '/api/dev/login') return [200, SESSION];
@@ -103,7 +109,7 @@ export class FakeServer {
       const since = Number(new URL(`http://x${this.lastUrl}`).searchParams.get('since') ?? NaN);
       if (since === s.version) return [200, { unchanged: true }];
       const events = Number.isNaN(since) ? [] : this.log.filter((e) => e.version > since);
-      return [200, { ...toView(s), events }];
+      return [200, { ...viewOf(s), events }];
     }
     // Onboarding: what the player was shown (a union, like the Worker), and their last visit.
     if (path === '/api/me/seen') {
@@ -159,13 +165,13 @@ export class FakeServer {
       // The fake counts down as if everyone had spent their actions.
       const fastTickAt = body.pace === 'fast' ? Date.now() + 6000 : null;
       ok({ ...s, pace: body.pace, fastTickAt, version: s.version + 1 });
-      return [200, toView(this.scenario)];
+      return [200, viewOf(this.scenario)];
     }
     if (path === '/api/dev/next-day') {
       // Like the Worker, the tick answers the view alone; its events wait in the log.
       const ticked = nextDayWithEvents(s.state);
       ok({ ...s, state: ticked.state, version: s.version + 1 }, ticked.events);
-      return [200, toView(this.scenario)];
+      return [200, viewOf(this.scenario)];
     }
     return [404, { error: 'not_found' }];
   }

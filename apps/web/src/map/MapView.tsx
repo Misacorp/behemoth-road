@@ -886,6 +886,9 @@ export function MapView(props: MapViewProps): JSX.Element {
   const traceOrStoneTip = (hex: Hex): { id: TipId; extra?: () => JSX.Element } | null => {
     const s = latest.current.state;
     const trace = traceTipAt(s, hex, (cid) => latest.current.identities?.get(cid)?.name ?? null);
+    // A stone stands on a trail hex: the stone is what is seen there, unless something more told is too.
+    const stone = stoneMarks.some((x) => x.hex.q === hex.q && x.hex.r === hex.r);
+    if (stone && (!trace || trace.id === 'map:trace-trail')) return { id: 'map:standing-stone' };
     if (trace) {
       return {
         id: trace.id,

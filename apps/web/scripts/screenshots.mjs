@@ -1888,12 +1888,12 @@ async function run() {
           if ((await page.locator('[data-mark=stranded]').count()) !== 1)
             problems.push(`${vp.name}: no stranded flare on a cut-off figure`);
           await shotP('03-stranded-flare');
-          // The tow line: Pip (riding) threw it to you, two hexes from the creature; it is drawn to your
+          // The tow line: Pip (riding) threw it to you, outside the window; it is drawn to your
           // figure for everyone, and your own card offers the grab.
           {
             const joined = joinedScenario();
             const c0 = joined.state.creature.centre;
-            const nearYou = { q: c0.q, r: c0.r + 3 };
+            const nearYou = { q: c0.q, r: c0.r + 7 };
             const withLine = {
               ...joined.state,
               unlocks: [...joined.state.unlocks, 'towline'],

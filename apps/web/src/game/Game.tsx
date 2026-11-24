@@ -627,9 +627,13 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
         characterId={id}
         identities={who}
         onTap={(target: Target) => {
-          // Moments are skippable: any tap clears them, and the story card too.
+          // Moments are skippable: any tap clears them. A story card passes: the next tap closes it and
+          // goes no further.
           setMoments([]);
-          setStory(closeCard);
+          if (storyRef.current.playing) {
+            setStory(closeCard);
+            return;
+          }
           setFlow((f) => tap(f, state, id, target));
         }}
         moments={shownMoments}

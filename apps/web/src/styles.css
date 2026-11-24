@@ -360,6 +360,10 @@ button svg,
   display: grid;
   justify-items: center;
   gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: 14px;
+  background: #f3f1e2;
+  border: 1.5px solid #9a9776;
 }
 
 /* The route, the days and the new-season button sit low, clear of the scene's middle. */
