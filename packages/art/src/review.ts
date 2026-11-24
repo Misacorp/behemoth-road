@@ -21,6 +21,7 @@ import { TERRAIN_LOOKS } from './terrain.ts';
 import type { ArtCell } from './tile.ts';
 import { seasonReviewItems } from './review-season.ts';
 import { round2ReviewItems } from './review-round2.ts';
+import { terrainReviewItems } from './review-terrain.ts';
 import { varietyReviewItems } from './review-variety.ts';
 import { skillReviewItems } from './review-skills.ts';
 
@@ -691,6 +692,7 @@ export function buildReviewItems(): ReviewDraft[] {
   return [
     ...feedbackReviewItems(),
     ...seasonReviewItems(),
+    ...terrainReviewItems(),
     ...varietyReviewItems(),
     ...round2ReviewItems(),
     ...skillReviewItems(),
