@@ -38,6 +38,7 @@ const { act, characterOf, checkAction, hexDistance, hexesInRange, moveAlong, nex
 const {
   CHAIN_SPOTS,
   chainScenario,
+  WATER_ISLET,
   characterIdOf,
   joinedScenario,
   lostScenario,
@@ -963,6 +964,15 @@ async function run() {
         if (!(await page.locator('[data-mark="via:grappling-hook"]').count()))
           problems.push(`${vp.name}: the cliff step has no hook mark`);
         await shot3('09-via-hook');
+
+        // Water: an island with a water temple in the lake, sea beyond, shallows towards you. With the raft the
+        // way over deep water is a step, and the arrow carries the raft mark.
+        await stage({ role: 'engineer', water: true, unlocks: ['raft'] });
+        const centre = fake.scenario.state.creature.centre;
+        await plan(await hexOnScreen(centre.q + WATER_ISLET.q, centre.r + WATER_ISLET.r));
+        if (!(await page.locator('[data-mark="via:raft"]').count()))
+          problems.push(`${vp.name}: the lake step has no raft mark`);
+        await shot3('09b-water-raft');
 
         // A scholar enters the tomb (it is revealed) and works it: the find rises into the pack.
         await stage({ role: 'scholar', day: SCHOLAR_DAY });
