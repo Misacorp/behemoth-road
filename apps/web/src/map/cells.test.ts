@@ -1,9 +1,10 @@
-import { createGame, hexKey, nextDay } from '@behemoth-road/core';
+import { createGame, hex, hexKey, nextDay, onHex } from '@behemoth-road/core';
 import { describe, expect, it } from 'vitest';
 import { TERRAIN_LOOKS } from '@behemoth-road/art';
 import { TERRAIN_TYPES } from '@behemoth-road/core';
-import { cellStateAt, creatureArt, featureArtAt, sceneCells } from './cells.ts';
+import { cellStateAt, characterArts, creatureArt, featureArtAt, sceneCells } from './cells.ts';
 import { MAP_TUNING } from './config.ts';
+import { mapTipAt } from './mapTips.ts';
 
 describe('scene cells', () => {
   const s = createGame(1, { characterIds: ['you'] });
@@ -75,5 +76,32 @@ describe('glints', () => {
     ];
     const hinted = sceneCells(s, glinting).filter((x) => x.hint);
     expect(hinted.map((x) => `${x.q},${x.r}`).sort()).toEqual(glinting.map(hexKey).sort());
+  });
+});
+
+describe('the stranded flare', () => {
+  const straight = { veerWeights: { left: 0, right: 0 } };
+  const grace = () => {
+    const start = createGame(1, { characterIds: ['a', 'b'], config: straight });
+    const placed = {
+      ...start,
+      characters: start.characters.map((c) => (c.id === 'a' ? { ...c, at: onHex(hex(0, 6)) } : c)),
+    };
+    return nextDay(placed);
+  };
+  const flare = (s: ReturnType<typeof grace>, id: string) =>
+    characterArts(s).find((c) => c.id === id)?.marks?.stranded === true;
+
+  it('shows over a figure on a grace hex that cannot get back, for every viewer', () => {
+    const s = grace();
+    expect(flare(s, 'a')).toBe(false);
+    const cut = {
+      ...s,
+      characters: s.characters.map((c) => (c.id === 'a' ? { ...c, actionsLeft: 0 } : c)),
+    };
+    expect(flare(cut, 'a')).toBe(true);
+    expect(flare(cut, 'b')).toBe(false);
+    expect(mapTipAt(cut, hex(0, 6))).toBe('map:stranded');
+    expect(mapTipAt(s, hex(0, 6))).toBeNull();
   });
 });

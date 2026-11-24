@@ -24,6 +24,7 @@ import {
   type SvgNode,
 } from '@behemoth-road/art';
 import {
+  stranded,
   type CreatureStepOption,
   directionOffset,
   type GameStateView,
@@ -601,6 +602,45 @@ function actionHints(i: OverlayInput): SvgNode[] {
   return out;
 }
 
+/**
+ * The day's tow lines, public: a rope arcing from the creature's back to each character it was thrown to,
+ * with the coiled-rope mark above that figure (the one who can take it). They lapse at the tick.
+ */
+function towLines(i: OverlayInput): SvgNode[] {
+  const p = i.projection;
+  const out: SvgNode[] = [];
+  for (const t of i.state.creature.tows) {
+    const to = figureFeet(i.state, t.to, p);
+    const from = figureFeet(i.state, t.from, p);
+    if (!to || !from) continue;
+    const k = atLeast(i, p.k, 0.6);
+    const a = { x: from.x, y: from.y - 0.9 * p.size };
+    const b = { x: to.x, y: to.y - 0.2 * p.size };
+    const mid = { x: (a.x + b.x) / 2, y: Math.min(a.y, b.y) - 0.7 * p.size };
+    const size = 20 * k;
+    out.push(
+      el('g', { 'data-mark': 'tow-line', 'data-target': t.to }, [
+        el('path', {
+          d: `M${n(a.x)} ${n(a.y)}Q${n(mid.x)} ${n(mid.y)} ${n(b.x)} ${n(b.y)}`,
+          fill: 'none',
+          stroke: i.palette.ramps.bark.base,
+          'stroke-width': 2.2 * k,
+          'stroke-dasharray': `${n(5 * k)} ${n(3 * k)}`,
+          'stroke-linecap': 'round',
+        }),
+        el('path', {
+          d: ellipse({ x: to.x, y: to.y - 1.2 * p.size }, size * 0.62, size * 0.62),
+          fill: i.palette.paper,
+          stroke: i.palette.ramps.bark.shade,
+          'stroke-width': 1.4 * k,
+        }),
+        iconAt(i, 'towline', { x: to.x, y: to.y - 1.2 * p.size }, size),
+      ]),
+    );
+  }
+  return out;
+}
+
 /** A small hourglass above a figure on a grace-day tile: time is running out here. No words. */
 function graceWarning(i: OverlayInput, feet: Point): SvgNode {
   const p = i.projection;
@@ -724,8 +764,15 @@ export function buildOverlays(i: OverlayInput): Overlays {
   if (staysPut(i.predicted)) over.push(stayHint(i));
   over.push(...actionHints(i));
   over.push(...misledMark(i));
+  over.push(...towLines(i));
   const standing = me?.status === 'active' && me.at.kind === 'hex' ? me.at.hex : null;
-  if (feet && standing && grace.some((h) => h.q === standing.q && h.r === standing.r)) {
+  // The flare over a cut-off figure already says it: the hourglass is for those who still can get out.
+  if (
+    feet &&
+    standing &&
+    !(me && stranded(i.state, me.id)) &&
+    grace.some((h) => h.q === standing.q && h.r === standing.r)
+  ) {
     over.push(graceWarning(i, feet));
   }
   return { under, over };

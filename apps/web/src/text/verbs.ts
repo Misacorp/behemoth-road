@@ -12,6 +12,8 @@ export const verbs = {
   'light-fire': 'Light',
   feed: 'Feed',
   linger: 'Linger',
+  'throw-line': 'Throw',
+  'grab-line': 'Grab',
   strike: 'Strike',
   defend: 'Defend',
   parley: 'Parley',

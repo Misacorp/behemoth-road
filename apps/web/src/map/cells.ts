@@ -15,6 +15,7 @@ import {
   hexesInRange,
   hexKey,
   placeHex,
+  stranded,
 } from '@behemoth-road/core';
 import { accentOf, lookOf } from '../game/identity.ts';
 import { actingStance, stanceIcon } from '../game/stances.ts';
@@ -177,6 +178,8 @@ export function characterArts(
         // The stance doing something with the spare actions (never rest), and an ended day.
         ...(acting ? { stance: stanceIcon(acting) } : {}),
         ...(c.waiting ? { waiting: true } : {}),
+        // The rescue flare, for everyone: public state only.
+        ...(stranded(state, c.id) ? { stranded: true } : {}),
       };
       return {
         id: c.id,

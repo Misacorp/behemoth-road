@@ -52,6 +52,9 @@
       "lightFireCost": 1,
       "feedCost": 1,
       "lingerCost": 2,
+      "towThrowCost": 1,
+      "towGrabCost": 1,
+      "towReach": 2,
       "threatsFromDay": 1,
       "threatChanceBase": 0.6,
       "threatChancePerPlayer": 0.05,
@@ -100,6 +103,7 @@
       "lingeredDay": 1,
       "steps": 1,
       "defenders": [],
+      "tows": [],
       "lingerStreak": 0
     },
     "tiles": {

@@ -7,6 +7,7 @@ import {
   type GameStateView,
   type Hex,
   hexKey,
+  stranded,
   terrainOf,
 } from '@behemoth-road/core';
 import { escortedIds, struckToday } from '../game/season.ts';
@@ -25,6 +26,8 @@ export function mapTipAt(game: GameStateView, h: Hex): TipId | null {
     (c) => c.status === 'active' && c.at.kind === 'hex' && same(c.at.hex, h),
   );
   if (here.some((c) => struckToday(c, game.day))) return 'map:struck';
+  if (game.creature.tows.some((t) => here.some((c) => c.id === t.to))) return 'map:towline';
+  if (here.some((c) => stranded(game, c.id))) return 'map:stranded';
   const escorted = escortedIds(game);
   if (here.some((c) => escorted.has(c.id))) return 'map:escort';
   if (game.stimuli.some((s) => hexKey(s.hex) === hexKey(h))) return 'map:fire';

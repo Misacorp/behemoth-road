@@ -12,6 +12,14 @@ ID: `2026-11-24-lakes-ponds-and-seas-the-creature` · Status: current
 
 **Reasoning.** A pure per-radius construction gives a hard bound on crossing length that a noise threshold cannot, and keeps the map lazy and seeded. Reusing `entryInto` and tags means no new movement code and the existing path, window and grace rules apply as they are. One-hex islands, not 1 to 3: a larger island needs a larger body to stay ringed by deep water, which would break the four-hex bound. Balance and findability are unchanged within noise (careful full season 3 players: 79 % safe before, 80 % after; 6 players 84 % and 85 %; stone, iron and timber still found in 39 to 40 of 40 seeds within a week).
 
+## 2026-11-24: The tow line needs the hauled player's approval **[Misa]**
+
+ID: `2026-11-24-the-tow-line-needs-the-hauled` · Status: current
+
+**Decision.** The tow line is an Engineer unlock (`towline`, 2 timber, 1 stone, 3 work; the tag `towline`, since `rope` is the grappling hook's). With it a rider spends 1 action (`towThrowCost`) to throw the line to a character within 2 hexes (`towReach`) of the footprint, once per rider per day and one line per target. The target sees the line on their figure and may grab it on their own turn for 1 action (`towGrabCost`), which moves them onto the creature (riding, pack deposited). An ungrabbed line lapses at the tick. No one can be pulled aboard without their own action, and absent players simply do not interact: there are no special rules for rescuing or carrying them. Public state: `creature.tows`. Content version 20. Note: grace hexes lie 7 or more hexes from the creature's centre, so the line (reach 3 from the centre) cannot reach a stranded character; it saves someone close with too few actions to walk back.
+
+**Reasoning.** Misa's call: consent. Being moved is the player's own choice, and the game is not designed around players who are away.
+
 ## 2026-11-24: Each terrain gets its own base colour **[Misa]**
 
 ID: `2026-11-24-each-terrain-gets-its-own-base` · Status: current

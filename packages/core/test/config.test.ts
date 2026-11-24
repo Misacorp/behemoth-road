@@ -30,6 +30,9 @@ describe('tuning config', () => {
       lightFireCost: 1,
       feedCost: 1,
       lingerCost: 2,
+      towThrowCost: 1,
+      towGrabCost: 1,
+      towReach: 2,
       threatsFromDay: 3,
       threatChanceBase: 0.25,
       threatChancePerPlayer: 0.05,
@@ -92,7 +95,13 @@ describe('tuning config', () => {
     expect(() => resolveConfig({ stimulusRange: 1.5 })).toThrow(/stimulusRange/);
     expect(() => resolveConfig({ stimulusPull: 0.5 })).toThrow(/stimulusPull/);
     expect(() => resolveConfig({ stimulusPull: Infinity })).toThrow(/stimulusPull/);
-    for (const key of ['lightFireCost', 'feedCost', 'lingerCost'] as const) {
+    for (const key of [
+      'lightFireCost',
+      'feedCost',
+      'lingerCost',
+      'towThrowCost',
+      'towGrabCost',
+    ] as const) {
       expect(() => resolveConfig({ [key]: 0 })).toThrow(new RegExp(key));
     }
   });

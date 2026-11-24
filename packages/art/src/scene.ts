@@ -442,7 +442,14 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
   function withMarks(drawn: Drawn, at: Point, marks: CharacterArt['marks']): Drawn {
     if (
       !marks ||
-      !(marks.escorted || marks.struck || marks.defending || marks.stance || marks.waiting)
+      !(
+        marks.escorted ||
+        marks.struck ||
+        marks.defending ||
+        marks.stance ||
+        marks.waiting ||
+        marks.stranded
+      )
     )
       return drawn;
     const m = drawCharacterMarks(palette, at, p.size, p.squash, ink, marks);

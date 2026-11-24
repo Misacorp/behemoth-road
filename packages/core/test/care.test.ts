@@ -91,6 +91,7 @@ describe('the hidden nature', () => {
       'lingeredDay',
       'lingering',
       'steps',
+      'tows',
     ]);
     const view = toPlayerView(withFire(state, LEFT_FIRE));
     expect(view.stimuli).toEqual([{ type: 'fire', hex: LEFT_FIRE, litDay: state.day }]);

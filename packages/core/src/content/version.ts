@@ -33,8 +33,9 @@
  * 19: skill tiers 2 and 3 are active (new effects; fires may carry a range and push, care a soothed day).
  * 20: water: lakes, ponds, seas and islands (deep water needs the raft; the creature swims), the water
  *    temple, the raft; forest, desert and cliff thinned a little to keep the plains share.
+ * 21: the tow line unlock; the creature carries the day's thrown tow lines (`creature.tows`).
  */
-export const CONTENT_VERSION = 20;
+export const CONTENT_VERSION = 21;
 
 /** Content versions this code can load. */
 export const KNOWN_CONTENT_VERSIONS: readonly number[] = [CONTENT_VERSION];

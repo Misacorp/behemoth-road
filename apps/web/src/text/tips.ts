@@ -111,6 +111,7 @@ export const tips = {
   'unlock:grappling-hook': {
     text: 'Lets everyone climb cliffs, for {climbCost.grappling-hook} actions a step.',
   },
+  'unlock:towline': { text: 'A rope for riders to throw to someone left near the creature.' },
   'unlock:lantern': { text: 'Light for deep tombs, so a scholar can work them.' },
   'unlock:climbing-spikes': { text: 'Cliffs cost only {climbCost.climbing-spikes} action a step.' },
   'unlock:marsh-boards': { text: 'Swamp costs only {climbCost.marsh-boards} action a step.' },
@@ -137,6 +138,10 @@ export const tips = {
   'action:linger': {
     text: 'Keepers, riding: the creature stays put when the day turns. Not two days running.',
   },
+  'action:throw-line': {
+    text: 'Throw the line to someone near the creature. They choose to take it.',
+  },
+  'action:grab-line': { text: 'Take the line and be pulled aboard.' },
   'action:strike': {
     text: 'Weaken a threat next to you by {strike.other}, or by {strike.warden} as a warden. At 0 it is gone.',
   },
@@ -328,6 +333,8 @@ export const tips = {
     title: 'Defended',
     text: 'Each warden on its back takes {defendReduction} off every strike today.',
   },
+  'map:towline': { title: 'Tow line', text: 'A line is thrown their way. They can take it.' },
+  'map:stranded': { title: 'Cut off', text: 'Out in the fog, with no way back today.' },
   'map:struck': { title: 'Struck', text: 'Hit by a threat: only {struckActions} action tomorrow.' },
 
   // Idle stances: where spare actions go at the tick.
