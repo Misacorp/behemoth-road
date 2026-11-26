@@ -281,6 +281,8 @@ describe('keeper', () => {
 
   it('B3 beacon: fires you light reach 5 hexes and push twice as hard', () => {
     let s = placeCharacter(chainGame(['keeper']), 'keeper', hex(-4, 2));
+    // Deadfalls to burn: each is a one-night fire.
+    s = withFeature(withFeature(s, hex(-4, 2), 'deadfall', true), hex(-2, 0), 'deadfall', true);
     s = {
       ...s,
       nature: { ...s.nature, reactions: { fire: 'attracted' } },

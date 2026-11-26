@@ -118,7 +118,7 @@
     "method": "POST",
     "path": "/api/game/act",
     "body": {
-      "version": 5,
+      "version": 6,
       "action": {
         "kind": "light-fire"
       }
@@ -128,7 +128,7 @@
     "method": "POST",
     "path": "/api/game/act",
     "body": {
-      "version": 7,
+      "version": 8,
       "action": {
         "kind": "feed"
       }
@@ -138,7 +138,7 @@
     "method": "POST",
     "path": "/api/game/act",
     "body": {
-      "version": 8,
+      "version": 9,
       "action": {
         "kind": "linger"
       }

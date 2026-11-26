@@ -40,7 +40,15 @@ export type SkillEffect =
   /** The day-after cooldown on lingering does not apply to this character. */
   | { readonly kind: 'linger-chain' }
   /** Fires this character lights reach `range` hexes and push `push` times as hard. */
-  | { readonly kind: 'fire-boost'; readonly range: number; readonly push: number }
+  | {
+      readonly kind: 'fire-boost';
+      readonly range: number;
+      readonly push: number;
+      /** Extra nights a brazier lit by this character burns. */
+      readonly nights?: number;
+    }
+  /** A strike on a threat with this tag is `factor` times as likely to bring it down on the striker (0: never). */
+  | { readonly kind: 'sure-footed'; readonly tag: string; readonly factor: number }
   /** While this character is in the game, threat trails show `days` ticks ahead, for everyone. */
   | { readonly kind: 'forecast'; readonly days: number }
   /** This character's pack holds `capacity` units (never fewer than the base). */
@@ -86,6 +94,8 @@ export interface SkillNode {
   /** False: not pickable (drawn veiled). */
   readonly active: boolean;
   readonly effect: SkillEffect;
+  /** Further effects the node has besides `effect`. */
+  readonly extra?: readonly SkillEffect[];
 }
 
 const node = (
@@ -94,6 +104,7 @@ const node = (
   tier: SkillTier,
   name: string,
   effect: SkillEffect = { kind: 'veiled' },
+  extra?: readonly SkillEffect[],
 ): SkillNode => ({
   id: `${role}-${branch}${tier}`,
   name,
@@ -103,6 +114,7 @@ const node = (
   icon: `skill:${role}-${branch}${tier}`,
   active: effect.kind !== 'veiled',
   effect,
+  ...(extra ? { extra } : {}),
 });
 
 export const SKILL_NODES: readonly SkillNode[] = [
@@ -125,10 +137,13 @@ export const SKILL_NODES: readonly SkillNode[] = [
   node('keeper', 'a', 3, 'Contented', { kind: 'hunger-slow', everyDays: 2 }),
   node('keeper', 'b', 1, 'Quiet linger', { kind: 'action-cost', action: 'linger', cost: 1 }),
   node('keeper', 'b', 2, 'Long rest', { kind: 'linger-chain' }),
-  node('keeper', 'b', 3, 'Beacon', { kind: 'fire-boost', range: 5, push: 2 }),
+  node('keeper', 'b', 3, 'Beacon', { kind: 'fire-boost', range: 5, push: 2, nights: 1 }),
 
   node('engineer', 'a', 1, 'Double yield', { kind: 'gather-yield', amount: 2 }),
-  node('engineer', 'a', 2, 'Pack mule', { kind: 'pack-size', capacity: 10 }),
+  // Sure-footed on the rocks: a slide never falls on a pack mule's driver.
+  node('engineer', 'a', 2, 'Pack mule', { kind: 'pack-size', capacity: 10 }, [
+    { kind: 'sure-footed', tag: 'falls', factor: 0 },
+  ]),
   node('engineer', 'a', 3, 'Monkey drone', { kind: 'drone', amount: 1 }),
   node('engineer', 'b', 1, 'Quick hands', { kind: 'build-work', amount: 2 }),
   node('engineer', 'b', 2, 'Thrift', { kind: 'build-discount', amount: 1 }),
@@ -158,6 +173,7 @@ export const ACTION_XP: Readonly<Record<string, number>> = {
   linger: 1,
   'throw-line': 1,
   'light-fire': 1,
+  'dig-out': 1,
   strike: 1,
   defend: 1,
   parley: 1,

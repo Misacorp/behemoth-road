@@ -46,7 +46,16 @@ export interface TrapType extends FeatureBase {
   readonly kind: 'trap';
 }
 
-export type FeatureType = NodeType | SiteType | TrapType;
+/**
+ * A place that takes fire (an old brazier or beacon cairn), tagged `fire-site`. It is placed by map
+ * generation along the creature's route (`brazierPlan`), never rolled by weight, and shown as soon as
+ * its hex is seen.
+ */
+export interface HearthType extends FeatureBase {
+  readonly kind: 'hearth';
+}
+
+export type FeatureType = NodeType | SiteType | TrapType | HearthType;
 
 /** A feature with this weight appears with `featureChance` where it fits. */
 export const FEATURE_WEIGHT_SCALE = 20;
@@ -108,7 +117,7 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
     id: 'snare',
     kind: 'trap',
     name: 'Snare',
-    tags: ['trap', 'hidden'],
+    tags: ['trap', 'hidden', 'burnable'],
     icon: 'snare',
     placement: { on: ['wooded', 'open'], weight: 1 },
   },
@@ -162,7 +171,7 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
     id: 'deadfall',
     kind: 'node',
     name: 'Deadfall',
-    tags: ['wood', 'fell'],
+    tags: ['wood', 'fell', 'burnable'],
     icon: 'deadfall',
     placement: { on: ['open'], weight: 2 },
     charges: 3,
@@ -206,5 +215,15 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
     tier: 1,
     needs: [],
     finds: { material: 'river-pearl', amount: 1 },
+  },
+  // Content version 23, last again: the brazier. Weight 0 and no terrain: it is never rolled by chance;
+  // `brazierPlan` puts it along the creature's likely route.
+  {
+    id: 'brazier',
+    kind: 'hearth',
+    name: 'Old brazier',
+    tags: ['fire-site'],
+    icon: 'brazier',
+    placement: { on: [], weight: 0 },
   },
 ];

@@ -11,6 +11,11 @@
  *   gathers forage within reach and brings it back.
  *   A careful player also spends every pick it earns, at once, on the next node it can take from
  *   its list in `SKILL_PREFERENCE` (its own branch of three tiers, then other roles' tier 1).
+ *   Static hazards (a rockslide ahead): a non-warden who can fetch wood and reach a brazier on the side
+ *   that bends the creature clear (the sim reads the creature's nature, as a keeper learns it by trying)
+ *   lights it instead of striking the hazard down; with no such brazier in reach it is struck down as
+ *   before, at the risk of the slide falling on the striker. Anyone near a pinned character digs them out.
+ *   `BALANCE_STEER=off` turns steering off, so hazards are always struck down.
  * - `careless`: everyone rides; every third day one of them gathers forage within
  *   reach, and the creature is fed only when it is underfed at level 2 or more.
  *
@@ -33,11 +38,14 @@ import {
   moveAlong,
   neighbours,
   nextDayWithEvents,
+  nightsLeft,
   type GameEvent,
   ON_CREATURE,
   type Place,
   planPath,
   reachablePlaces,
+  reactionTo,
+  sideOf,
   type SeasonOutcome,
   threatOutlook,
   threatType,
@@ -65,6 +73,10 @@ export interface SeasonResult {
   readonly days: number;
   /** Strikes on the creature over the season. */
   readonly strikes: number;
+  /** Characters pinned by a falling slide over the season. */
+  readonly pinned: number;
+  /** Fires lit over the season. */
+  readonly lit: number;
   /** Picks earned per character over the season (XP / `xpPerPick`, spent or not). */
   readonly picks: number;
 }
@@ -76,9 +88,18 @@ const actionsLeft = (state: GameState, id: string): number => {
   return c?.status === 'active' ? c.actionsLeft : 0;
 };
 
+/** Characters pinned by a falling slide in the season being played (counted as they are struck). */
+let pinnedCount = 0;
+/** Fires lit (braziers, steering) in the season being played. */
+let litCount = 0;
+
 /** Does an action; returns the state unchanged when it is refused. */
 const tryAct = (state: GameState, id: string, action: Action): GameState => {
   const result = act(state, id, action);
+  if (result.ok) {
+    pinnedCount += result.events.filter((e) => e.kind === 'pinned').length;
+    litCount += result.events.filter((e) => e.kind === 'fire-lit').length;
+  }
   return result.ok ? result.state : state;
 };
 
@@ -262,17 +283,168 @@ const pickSkills = (state: GameState, id: string): GameState => {
   return s;
 };
 
+/** Nights of fire still burning anywhere on the map. */
+const burning = (state: GameState): boolean => state.stimuli.some((s) => nightsLeft(state, s) >= 1);
+
+/** The static hazard ahead that steering could clear: a threat that waits where it is, not yet at the creature. */
+const staticHazard = (state: GameState) =>
+  state.threats.find(
+    (t) =>
+      threatType(t.type).speed === 0 &&
+      hexDistance(t.hex, state.creature.centre) <= state.config.stimulusRange + 2,
+  );
+
+/**
+ * The unlit brazier whose fire bends the creature's step away from the hazard's side (or either way
+ * when the hazard lies straight ahead), within reach of the creature's range, nearest first.
+ */
+const steeringBrazier = (state: GameState, hazard: Hex, id: string): Hex | null => {
+  const reaction = reactionTo(state.nature, { type: 'fire', hex: hazard, litDay: state.day });
+  const sign = reaction === 'attracted' ? 1 : reaction === 'repelled' ? -1 : 0;
+  const slideSide = sideOf(state, hazard);
+  const lit = new Set(state.stimuli.map((x) => `${x.hex.q},${x.hex.r}`));
+  const options = Object.entries(state.features)
+    .filter(([key, f]) => {
+      const t = featureType(f.type);
+      return f.revealed && t.tags.includes('fire-site') && !lit.has(key);
+    })
+    .map(([key]) => keyToHex(key))
+    .filter((h) => {
+      const push = sign * sideOf(state, h);
+      return (
+        push !== 0 &&
+        Math.sign(push) !== slideSide &&
+        hexDistance(h, state.creature.centre) <= state.config.stimulusRange + 2
+      );
+    });
+  return nearestAny(state, id, options);
+};
+
+/** The cheapest of these hexes to walk to, however far (null when none can be reached). */
+const nearestAny = (state: GameState, id: string, targets: readonly Hex[]): Hex | null => {
+  let best: { hex: Hex; cost: number } | null = null;
+  for (const h of targets) {
+    const plan = planPath(state, id, h);
+    if (plan.ok && (!best || plan.cost < best.cost)) best = { hex: h, cost: plan.cost };
+  }
+  return best?.hex ?? null;
+};
+
+/** Walks toward a hex as far as `budget` actions allow, staying out when it is not reached today. */
+const approach = (state: GameState, id: string, to: Hex, budget: number): GameState => {
+  const plan = planPath(state, id, to);
+  if (!plan.ok) return state;
+  const steps: (typeof plan.steps)[number][] = [];
+  let spent = 0;
+  for (const step of plan.steps) {
+    if (spent + step.cost > budget) break;
+    spent += step.cost;
+    steps.push(step);
+  }
+  if (steps.length === 0) return state;
+  const walked = moveAlong(state, id, steps);
+  return walked.ok ? walked.state : state;
+};
+
+/** With `BALANCE_STEER=off` the party never steers: it strikes hazards down (for before and after runs). */
+const NO_STEERING =
+  (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env[
+    'BALANCE_STEER'
+  ] === 'off';
+
+/** The character on a steering errand (out fetching wood or walking to a brazier), if any, today. */
+let errand: string | null = null;
+
+/**
+ * Steers around a static hazard, possibly over days: fetches wood (staying out where it was gathered),
+ * walks to the brazier that bends the creature clear and lights it. Sets `errand` while it is under way.
+ */
+const steer = (state: GameState, id: string): GameState => {
+  if (NO_STEERING) return state;
+  const hazard = staticHazard(state);
+  if (!hazard || burning(state)) return state;
+  const brazier = steeringBrazier(state, hazard.hex, id);
+  if (!brazier) return state;
+  let s = state;
+  const holds = () => (character(s, id)?.pack['timber'] ?? 0) > 0;
+  if (!holds()) {
+    const nodes = Object.entries(s.features)
+      .filter(([, f]) => {
+        const t = featureType(f.type);
+        return f.left > 0 && t.kind === 'node' && t.tags.includes('wood');
+      })
+      .map(([key]) => keyToHex(key))
+      .filter((h) => hexDistance(h, s.creature.centre) < s.config.windowRadius);
+    const node = nearestAny(s, id, nodes);
+    if (!node) return s;
+    // Only an errand that fits in two days is worth it: the walk, the gather, the walk on and the light.
+    const there = planPath(s, id, node);
+    const rest = hexDistance(node, brazier);
+    if (
+      !there.ok ||
+      there.cost + s.config.gatherCost + rest + s.config.lightFireCost > 2 * s.config.actionsPerDay
+    ) {
+      return s;
+    }
+    errand = id;
+    const reserve = s.config.gatherCost;
+    s = approach(s, id, node, actionsLeft(s, id) - reserve);
+    const here = hexOf(s, id);
+    if (here && hexDistance(here, node) === 0) s = tryAct(s, id, { kind: 'gather' });
+    if (!holds()) return s;
+  }
+  errand = id;
+  s = approach(s, id, brazier, actionsLeft(s, id) - s.config.lightFireCost);
+  const there = hexOf(s, id);
+  if (there && hexDistance(there, brazier) === 0) {
+    s = tryAct(s, id, { kind: 'light-fire' });
+    if (burning(s)) errand = null;
+  }
+  return s;
+};
+
+/** Digs out a pinned character who is within reach this day. */
+const rescue = (state: GameState, id: string): GameState => {
+  const pinnedOne = state.characters.find((c) => c.id !== id && c.pinnedDay !== undefined);
+  const where = pinnedOne && hexOf(state, pinnedOne.id);
+  if (!pinnedOne || !where) return state;
+  const here = hexOf(state, id);
+  const target =
+    here && hexDistance(here, where) <= 1
+      ? { hex: here, cost: 0 }
+      : nearest(
+          state,
+          id,
+          [where, ...neighbours(where)],
+          actionsLeft(state, id) - state.config.digOutCost,
+        );
+  if (!target) return state;
+  const s = target.cost > 0 ? walk(state, id, target.hex, target.cost) : state;
+  return tryAct(s, id, { kind: 'dig-out', target: pinnedOne.id });
+};
+
 const carefulDay = (state: GameState, ids: readonly string[]): GameState => {
   let s = state;
+  // Steering is set up first (by the first non-warden with actions), so nobody strikes the hazard needlessly.
+  errand = null;
+  const steerer =
+    ids.find(
+      (id) => character(s, id)?.role !== 'warden' && actionsLeft(s, id) > 0 && !isRiding(s, id),
+    ) ?? ids.find((id) => character(s, id)?.role !== 'warden' && actionsLeft(s, id) > 0);
+  if (steerer) s = steer(s, steerer);
+  const underway = (): boolean => burning(s) || errand !== null;
   for (const id of ids) {
     s = pickSkills(s, id);
     const role = character(s, id)?.role;
     if (actionsLeft(s, id) === 0) continue;
+    s = rescue(s, id);
     // Anyone carrying something comes home first, to put it in the stores.
-    if (Object.keys(character(s, id)?.pack ?? {}).length > 0) s = goHome(s, id);
+    if (id !== errand && Object.keys(character(s, id)?.pack ?? {}).length > 0) s = goHome(s, id);
     if (role === 'warden') {
       for (const t of byUrgency(s)) {
         if (actionsLeft(s, id) === 0) break;
+        // A hazard being steered clear of is left alone, unless it will still arrive tomorrow.
+        if (underway() && t.speed === 0 && t.arrives !== 'tomorrow') continue;
         s = intercept(s, id, t.id);
       }
       if (byUrgency(s).some((t) => t.arrives === 'tomorrow')) {
@@ -280,8 +452,10 @@ const carefulDay = (state: GameState, ids: readonly string[]): GameState => {
         s = tryAct(s, id, { kind: 'defend' });
       }
     } else {
-      // A hazard that waits (a rockslide ahead) is struck down while it is still ahead, not only on the day it is reached.
+      // A hazard that waits (a rockslide ahead) is steered clear of when a brazier allows, else struck
+      // down while it is still ahead, not only on the day it is reached.
       for (const t of byUrgency(s)) {
+        if (underway() && t.speed === 0 && t.arrives !== 'tomorrow') continue;
         if (t.arrives === 'tomorrow' || (t.speed === 0 && t.arrives === 'later')) {
           s = intercept(s, id, t.id);
         }
@@ -289,8 +463,9 @@ const carefulDay = (state: GameState, ids: readonly string[]): GameState => {
     }
     if (role === 'warden') s = parleyDay(s, id);
     s = feed(s, id, 1);
+    if (id === errand) continue;
     if (role !== 'warden' && actionsLeft(s, id) >= 2) s = forage(s, id);
-    // Never left behind: everyone ends the day as close to the creature as they can.
+    // Never left behind: everyone ends the day as close to the creature as they can (but for an errand).
     s = goHome(s, id);
     s = feed(s, id, 1);
   }
@@ -324,6 +499,8 @@ export const playSeason = (
     })),
   };
   let strikes = 0;
+  pinnedCount = 0;
+  litCount = 0;
   // A season ends by its route; the bound only guards against a creature that never steps.
   for (let guard = 0; guard < 400 && state.season.status === 'on'; guard++) {
     state = policy === 'careful' ? carefulDay(state, ids) : carelessDay(state, ids);
@@ -349,6 +526,8 @@ export const playSeason = (
     peril: state.peril,
     days: state.day,
     strikes,
+    pinned: pinnedCount,
+    lit: litCount,
     picks:
       state.characters.reduce((n, c) => n + Math.floor(c.skills.xp / state.config.xpPerPick), 0) /
       players,
@@ -361,6 +540,8 @@ export interface Summary {
   readonly lost: number;
   readonly peril: number;
   readonly strikes: number;
+  readonly pinned: number;
+  readonly lit: number;
   readonly picks: number;
 }
 
@@ -380,6 +561,8 @@ export const summarise = (
     lost: rate('lost'),
     peril: mean((r) => r.peril),
     strikes: mean((r) => r.strikes),
+    pinned: mean((r) => r.pinned),
+    lit: mean((r) => r.lit),
     picks: mean((r) => r.picks),
   };
 };
@@ -393,9 +576,9 @@ export const report = (
   const pct = (x: number) => `${Math.round(x * 100)} %`;
   log(`Seeds 1-${n}.`);
   log(
-    '| season | policy | players | safe | wounded | lost | avg peril | avg strikes | picks each |',
+    '| season | policy | players | safe | wounded | lost | avg peril | avg strikes | pinned | fires lit | picks each |',
   );
-  log('| --- | --- | --- | --- | --- | --- | --- | --- | --- |');
+  log('| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |');
   for (const [label, season] of [
     ['dev (12)', { ...DEV_SEASON, ...extra }],
     ['full (40)', extra],
@@ -404,7 +587,7 @@ export const report = (
       for (const players of [3, 6]) {
         const s = summarise(n, policy, players, season);
         log(
-          `| ${label} | ${policy} | ${players} | ${pct(s.safe)} | ${pct(s.wounded)} | ${pct(s.lost)} | ${s.peril.toFixed(1)} | ${s.strikes.toFixed(1)} | ${s.picks.toFixed(2)} |`,
+          `| ${label} | ${policy} | ${players} | ${pct(s.safe)} | ${pct(s.wounded)} | ${pct(s.lost)} | ${s.peril.toFixed(1)} | ${s.strikes.toFixed(1)} | ${s.pinned.toFixed(2)} | ${s.lit.toFixed(2)} | ${s.picks.toFixed(2)} |`,
         );
       }
     }

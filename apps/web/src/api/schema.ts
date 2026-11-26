@@ -60,6 +60,8 @@ const character = v.object({
   /** The stance the spare actions go to at the tick (a content id), and whether the day is ended. */
   stance: id,
   waiting: v.boolean(),
+  /** The day a falling slide pinned them: no moving or acting until dug out or the next tick but one. */
+  pinnedDay: v.exactOptional(count),
 });
 
 const weights = v.object({ left: v.number(), straight: v.number(), right: v.number() });
@@ -89,6 +91,13 @@ const config = v.object({
   stimulusPull: v.number(),
   hungryVeerWeights: weights,
   lightFireCost: count,
+  brazierNights: count,
+  brazierRevealRadius: count,
+  brazierSpacing: count,
+  brazierFirstWithin: count,
+  fireFearRadius: count,
+  slideFallChance: v.number(),
+  digOutCost: count,
   feedCost: count,
   lingerCost: count,
   towThrowCost: count,
@@ -175,7 +184,7 @@ export const GameStateViewSchema = v.object({
   unlocks: v.pipe(v.array(id), v.maxLength(100)),
   /** The one unlock in progress. */
   project: v.nullable(v.object({ unlock: id, work: count })),
-  /** Lit fires (public): each burns through the tick that ends the day it was lit. */
+  /** Lit fires (public): each burns through the tick that ends the day it was lit, or for `nights` nights (a brazier). */
   stimuli: v.pipe(
     v.array(
       v.object({
@@ -184,6 +193,9 @@ export const GameStateViewSchema = v.object({
         litDay: count,
         range: v.exactOptional(count),
         push: v.exactOptional(count),
+        /** A brazier: the nights it burns in all (from `litDay`), and the hexes it shows around it. */
+        nights: v.exactOptional(count),
+        reveal: v.exactOptional(count),
       }),
     ),
     v.maxLength(200),
@@ -324,6 +336,11 @@ const KNOWN_EVENTS = [
   event('unlock-progress', { unlock: id, work: count, needed: count }),
   event('unlock-done', { unlock: id }),
   event('fire-lit', { hex, characterId: id, stimulus: id }),
+  /** A fire burnt a burnable feature away for good. */
+  event('feature-burnt', { hex, characterId: id, feature: id }),
+  /** A falling slide pinned the striker; and a pinned character was freed (`by` null: on their own). */
+  event('pinned', { characterId: id, threat: id }),
+  event('dug-out', { characterId: id, by: v.nullable(id) }),
   event('fed', { characterId: id, material: id }),
   event('linger', { characterId: id }),
   event('tow-thrown', { characterId: id, target: id }),
@@ -519,6 +536,7 @@ export type GameAction =
   | { readonly kind: 'grab-line' }
   | { readonly kind: 'strike'; readonly threat: string }
   | { readonly kind: 'defend' }
+  | { readonly kind: 'dig-out'; readonly target: string }
   | { readonly kind: 'parley' }
   | { readonly kind: 'offer'; readonly material: string }
   | { readonly kind: 'ask-boon'; readonly boon: string }

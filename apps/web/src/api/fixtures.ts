@@ -203,6 +203,8 @@ export interface ChainStage {
    * revealed water temple ringed by lake, sea beyond it and shallows round (for the raft's path mark).
    */
   readonly water?: boolean;
+  /** A revealed brazier on your starting spot: something to burn there (a fire needs it). */
+  readonly brazier?: boolean;
   /** Milestone 4: fires lit today, as offsets from the creature's centre. */
   readonly fires?: readonly Hex[];
   /** The creature's hidden hunger (server only; drives the appetite sign). */
@@ -310,6 +312,9 @@ export function chainScenario(stage: ChainStage = {}): Scenario {
           ...feature('iron', stage.deposit ?? 'iron-deposit', 3),
           ...feature('tomb', 'tomb', 1),
           ...feature('snare', 'snare', 1),
+          ...(stage.brazier
+            ? { [key(CHAIN_SPOTS.start)]: { type: 'brazier', revealed: true, left: 1 } }
+            : {}),
         },
     stores: stage.stores ?? {},
     unlocks: stage.unlocks ?? [],

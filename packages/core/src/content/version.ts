@@ -36,8 +36,10 @@
  * 21: the tow line unlock; the creature carries the day's thrown tow lines (`creature.tows`).
  * 22: the world (docs/design/story.md): creature fate, sound, habit, blessing, tier and route; threats may
  *    have an `ending`; traces and the story (storylets) join the state; the creature has a public kind.
+ * 23: fire needs something to burn: braziers (fire-site) and burnable features, fears-fire threats, the
+ *    rockslide can fall on its striker (pinned characters, dig-out); engineers are sure-footed.
  */
-export const CONTENT_VERSION = 22;
+export const CONTENT_VERSION = 23;
 
 /** Content versions this code can load. */
 export const KNOWN_CONTENT_VERSIONS: readonly number[] = [CONTENT_VERSION];

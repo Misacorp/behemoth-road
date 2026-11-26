@@ -38,14 +38,18 @@ export const takenNodes = (c: Character): SkillNode[] =>
     return n ? [n] : [];
   });
 
-/** The effects of one kind among a character's taken nodes. */
+/**
+ * The effects of one kind a character has: their role's own, then those of their taken nodes (a node's
+ * `effect` and its `extra`).
+ */
 export const effectsOf = <K extends SkillEffect['kind']>(
   c: Character,
   kind: K,
-): Extract<SkillEffect, { kind: K }>[] =>
-  takenNodes(c).flatMap((n) =>
-    n.effect.kind === kind ? [n.effect as Extract<SkillEffect, { kind: K }>] : [],
-  );
+): Extract<SkillEffect, { kind: K }>[] => {
+  const role = ROLES.find((r) => r.id === c.role)?.effects ?? [];
+  const all = [...role, ...takenNodes(c).flatMap((n) => [n.effect, ...(n.extra ?? [])])];
+  return all.filter((e): e is Extract<SkillEffect, { kind: K }> => e.kind === kind);
+};
 
 /** The largest `pick(effect)` over a character's effects of a kind, or null when it has none. */
 export const bestOf = <K extends SkillEffect['kind']>(

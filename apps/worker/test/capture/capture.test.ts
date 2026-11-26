@@ -256,15 +256,25 @@ describe('capture', () => {
         ).toBe(200);
         await refused(robin, { version: await versionNow(), action: { kind: 'linger' } });
 
-        // Place the keeper beside the creature, on a hex that burns, with timber and a berry bush.
+        // Place the keeper beside the creature, on a hex that burns once something burnable is there (a
+        // deadfall, swapped in after the forage), with timber and a berry bush.
         const start = read();
+        const burnable = (state: GameState, h: { q: number; r: number }): GameState => ({
+          ...state,
+          features: {
+            ...state.features,
+            [hexKey(h)]: { type: 'deadfall', revealed: true, left: 1 },
+          },
+        });
         const hex = legalMoves(start, me)
           .flatMap((p) => (p.kind === 'hex' ? [p.hex] : []))
           .find(
             (h) =>
-              checkAction(withMe(start, { at: { kind: 'hex', hex: h }, pack: { timber: 1 } }), me, {
-                kind: 'light-fire',
-              }).ok,
+              checkAction(
+                burnable(withMe(start, { at: { kind: 'hex', hex: h }, pack: { timber: 1 } }), h),
+                me,
+                { kind: 'light-fire' },
+              ).ok,
           );
         if (hex === undefined) throw new Error('the scenario has no hex to light a fire on');
         write({
@@ -278,6 +288,7 @@ describe('capture', () => {
           version: await versionNow(),
           action: { kind: 'gather' },
         });
+        write(burnable(read(), hex));
         await ok('view-fire-lit', misa, 'POST', '/api/game/act', {
           version: await versionNow(),
           action: { kind: 'light-fire' },

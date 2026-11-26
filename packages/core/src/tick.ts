@@ -29,10 +29,17 @@ import {
   firstWithTag,
   nourishment,
   reactionTo,
-  stimulusType,
 } from './care.ts';
 import { chooseCreatureStep } from './creature.ts';
-import { addFeatures, depositPack, type GameEvent, keyToHex, pruneFeatures } from './features.ts';
+import {
+  addFeatures,
+  depositPack,
+  type GameEvent,
+  keyToHex,
+  lightAround,
+  pruneFeatures,
+} from './features.ts';
+import { nightsOf } from './fire.ts';
 import { THREAT_TYPES } from './content/index.ts';
 import { type Hex, hexDistance } from './hex.ts';
 import { hashString, hashToUnit, pickWeighted } from './random.ts';
@@ -47,6 +54,7 @@ import type {
   Stimulus,
   Threat,
 } from './state.ts';
+import { unpinned } from './state.ts';
 import { keepSettlements, placeSettlement, settlementDue } from './settlements.ts';
 import { withXp } from './skills.ts';
 import { ambush, applyStances } from './stances.ts';
@@ -60,6 +68,7 @@ import {
   canAppearOn,
   contactDistance,
   defence,
+  keepsClearOf,
   PURSUER_TAG,
   struckBy,
   threatType,
@@ -120,8 +129,7 @@ const careAfter = (
 };
 
 /** Whether a stimulus still burns after the tick that ends `day - 1`. */
-const burnsOn = (s: Stimulus, day: number): boolean =>
-  s.litDay + stimulusType(s.type).lastsTicks > day;
+const burnsOn = (s: Stimulus, day: number): boolean => s.litDay + nightsOf(s) > day;
 
 /**
  * Threats move toward the creature's (new) centre and strike: at contact the
@@ -130,6 +138,8 @@ const burnsOn = (s: Stimulus, day: number): boolean =>
  */
 const threatsAct = (
   state: GameState,
+  /** The state before the tick: the fires that burned through the night, and the day they burned on. */
+  burning: GameState,
 ): {
   readonly threats: Threat[];
   readonly damage: number;
@@ -144,7 +154,7 @@ const threatsAct = (
   const events: GameEvent[] = [];
   const paths = new Map<string, Hex[]>();
   const walked = state.threats.map((t) => {
-    const path = threatPath(state, t, centre);
+    const path = threatPath(burning, t, centre);
     paths.set(t.id, path);
     const to = path.at(-1);
     if (!to) return t;
@@ -160,7 +170,12 @@ const threatsAct = (
   const hits: PerilPart[] = [];
   const left: Threat[] = [];
   for (const t of moved) {
-    if (hexDistance(t.hex, centre) <= contactDistance(state, threatType(t.type))) {
+    const type = threatType(t.type);
+    // A threat that fears fire strikes from nowhere in a burning fire's ring.
+    if (
+      hexDistance(t.hex, centre) <= contactDistance(state, type) &&
+      !keepsClearOf(burning, type, t.hex)
+    ) {
       const hit = Math.max(0, t.strength - guard);
       damage += hit;
       if (hit > 0) hits.push({ source: perilThreat(t.type), amount: hit });
@@ -175,7 +190,12 @@ const threatsAct = (
   }
   const struck = new Set<string>();
   for (const t of left) {
-    for (const c of struckBy(state, t.hex, threatType(t.type).reach)) {
+    const type = threatType(t.type);
+    if (keepsClearOf(burning, type, t.hex)) continue;
+    const reached = struckBy(state, t.hex, type.reach).filter(
+      (c) => c.at.kind !== 'hex' || !keepsClearOf(burning, type, c.at.hex),
+    );
+    for (const c of reached) {
       struck.add(c.id);
       events.push({ kind: 'struck', characterId: c.id, threat: t.id });
     }
@@ -278,6 +298,7 @@ export const nextDayWithEvents = (
     newHexes,
     state.seed,
     state.config.featureChance,
+    state.brazierPlan,
   );
   const stepped: GameState = {
     ...state,
@@ -294,13 +315,21 @@ export const nextDayWithEvents = (
     ...skilled.events,
     { kind: 'creature-step', from: state.creature.centre, to: creature.centre },
   ];
+  // A brazier that still burns shows the hexes around it, including any that came into view tonight.
+  let lit: GameState = stepped;
+  for (const s of stepped.stimuli) {
+    if (s.reveal === undefined) continue;
+    const shown = lightAround(lit, s.hex, s.reveal);
+    lit = shown.state;
+    events.push(...shown.events);
+  }
   if (ate) events.push({ kind: 'creature-ate', material: ate });
   for (const s of state.stimuli) {
     if (!burnsOn(s, day)) events.push({ kind: 'fire-out', hex: s.hex, stimulus: s.type });
   }
 
   // Threats, peril and the season's end.
-  const fight = threatsAct(stepped);
+  const fight = threatsAct(lit, state);
   events.push(...fight.events);
   const { config } = state;
   const appetite = appetiteOf(stepped);
@@ -328,7 +357,7 @@ export const nextDayWithEvents = (
         : [{ source: PERIL_CALM, amount: peril - state.peril }];
     events.push({ kind: 'peril', from: state.peril, to: peril, sources });
   }
-  let moved: GameState = { ...stepped, threats: fight.threats, peril };
+  let moved: GameState = { ...lit, threats: fight.threats, peril };
   const outcome = seasonEnd(moved);
   if (outcome) {
     moved = { ...moved, season: { status: 'over', outcome, day } };
@@ -357,23 +386,32 @@ export const nextDayWithEvents = (
   const catchUp =
     !step.stay && creature.steps > 0 && creature.steps % config.catchUpEverySteps === 0;
   const lost: GameEvent[] = [];
+  const freed: GameEvent[] = [];
   const characters = state.characters.map((c): Character => {
     if (c.status !== 'active') return { ...c, actionsLeft: 0, waiting: false };
     const struck = fight.struck.has(c.id);
-    const actionsLeft = struck
-      ? Math.min(config.actionsPerDay, config.struckActions)
-      : config.actionsPerDay;
+    // Pinned on the day just ended: still pinned all of the next one. Pinned earlier: free on their own now.
+    const stillPinned = c.pinnedDay !== undefined && c.pinnedDay >= state.day;
+    if (c.pinnedDay !== undefined && !stillPinned) {
+      freed.push({ kind: 'dug-out', characterId: c.id, by: null });
+    }
+    const actionsLeft = stillPinned
+      ? 0
+      : struck
+        ? Math.min(config.actionsPerDay, config.struckActions)
+        : config.actionsPerDay;
     // Catch-up: whenever the route's steps reach a multiple, everyone still in the game earns XP
     // (a stay does not add a step, so it cannot repeat it).
     const boosted = withXp(catchUp ? withXp(c, config.catchUpXp) : c, fight.xp.get(c.id) ?? 0);
     const fresh = {
-      ...boosted,
+      ...(stillPinned ? boosted : unpinned(boosted)),
       waiting: false,
       actionsLeft,
       struckDay: struck ? day : c.struckDay,
     };
     if (c.at.kind === 'creature') return fresh;
-    if (isCreatureHex(moved, c.at.hex)) return { ...fresh, at: ON_CREATURE };
+    // Picked up by the creature: hauled aboard, free.
+    if (isCreatureHex(moved, c.at.hex)) return { ...unpinned(fresh), at: ON_CREATURE };
     if (isReachable(moved, c.at.hex)) return fresh;
     // Lost for good, and the pack with them.
     lost.push({ kind: 'lost', characterId: c.id, hex: c.at.hex });
@@ -386,7 +424,7 @@ export const nextDayWithEvents = (
     settled = deposited.state;
     events.push(...deposited.events);
   }
-  events.push(...lost);
+  events.push(...freed, ...lost);
   if (outcome) events.push({ kind: 'season-over', outcome });
   // Traces of what happened, then the story from the new state; both change nothing else.
   const recorded = recordTraces(

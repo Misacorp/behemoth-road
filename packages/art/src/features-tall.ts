@@ -990,6 +990,39 @@ const berryBushes: FeatureDraw = (c, state) => {
   return { nodes, box: boxOf([...shapes.flat()]) };
 };
 
+/** Old brazier: a stone pillar under a wide bowl with cold coals; the used look is the same (it can be lit again). */
+const brazier: FeatureDraw = (c) => {
+  const { fill, line, blob, pts } = kit(c);
+  const pal = c.palette;
+  const pillar = pts([
+    [-5, 0],
+    [-3.5, -12],
+    [3.5, -12],
+    [5, 0],
+  ]);
+  const bowl = blob(0, -15, 10, 4);
+  const coals = blob(0, -16, 6.5, 2);
+  const nodes: SvgNode[] = [
+    groundShadow(c, 14, 4, 1),
+    fill(poly(pillar), pal.ramps.stone.base),
+    fill(poly(pillar), pal.ramps.stone.shade, 0.35),
+    line(poly(pillar)),
+    fill(smoothClosed(bowl), pal.ramps.stone.light),
+    line(smoothClosed(bowl)),
+    fill(smoothClosed(coals), pal.ink, 0.7),
+  ];
+  return {
+    nodes,
+    box: boxOf([
+      ...pillar,
+      ...pts([
+        [-10, -19],
+        [10, -11],
+      ]),
+    ]),
+  };
+};
+
 export const TALL_DRAWERS: Readonly<Record<string, FeatureDraw>> = {
   ore: ironDeposit,
   stones: riverStones,
@@ -1002,4 +1035,5 @@ export const TALL_DRAWERS: Readonly<Record<string, FeatureDraw>> = {
   deadfall,
   shrine,
   temple,
+  brazier,
 };

@@ -4,6 +4,30 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-26: Striking a rockslide can bury the striker **[Misa]**
+
+ID: `2026-11-26-striking-a-rockslide-can-bury-the` · Status: current · Amends: `2026-11-21-a-rockslide-strikes-only-its-own`
+
+**Decision.** A strike on a threat tagged `falls` (the rockslide) rolls, seeded by the seed, the day, the striker, the threat and its strength, against `slideFallChance` (0.2). The blow still counts. On a fall the striker is **pinned** (`pinnedDay`, public): they lose the rest of the day, cannot move or act (a stance and skill picks still work), and are freed by another character on the same or a neighbouring place with a new `dig-out` action (`digOutCost` 1, target a character id), or on their own at the tick that ends the day after they were pinned (so at worst the rest of today and all of tomorrow). Events `pinned` and `dug-out` are public. `sure-footed` effects (`{ kind: 'sure-footed', tag, factor }`, on a role or a skill node, multiplied together) lower the chance: the Engineer has factor 0.5 as a role effect (new optional `Role.effects`), and Pack mule (engineer, branch a, tier 2, via a new optional `SkillNode.extra`) has factor 0, so an Engineer who has taken it is never caught. Only an active strike rolls; lying in wait does not. Balance sim, careful parties, 150 seeds, full season: see `docs/progress.md`. Content version 23. Contract for the web in `docs/design/fire.md`.
+
+**Reasoning.** Misa's direction: striking a rockslide became the guaranteed way to remove it (three strikes), so it should carry a risk that skill, role and luck reduce, and the cost of a fall (actions lost, a rescuer's action) should be a reason to steer clear with fire instead. Putting the chance in the tuning config and the reductions in role and skill data keeps the rule free of ids: any threat tagged `falls` behaves alike. A pinned character who nobody frees frees themselves, so nobody is stuck for good; a role-level effect (stonework) makes the Engineer the natural striker of rocks without a new role rule.
+
+## 2026-11-26: Threats tagged fears-fire keep clear of burning fires **[Misa]**
+
+ID: `2026-11-26-threats-tagged-fears-fire-keep-clear` · Status: current · Amends: `2026-11-20-threats-are-tagged-data-that-appear`
+
+**Decision.** `fears-fire` is a threat tag, on the swarm and the stampede (beasts), not on people. A threat with it never steps into, stops on or strikes from a hex within `fireFearRadius` (1) of a burning fire (any stimulus tagged `fire`, counted through the night it burns out), and does not strike characters standing in that ring. If its next step would enter the ring it holds where it is (it does not go around: the simplest correct behaviour); one already inside the ring when a fire is lit strikes nothing from there and walks out if its next step leaves the ring. It cannot appear inside the ring. The public outlook (`threatOutlook`, `threatNextPath`) accounts for fires still burning at each tick it looks ahead. Read by tag only; new beasts get the tag in data.
+
+**Reasoning.** Misa liked the tag: fire should make other things react, not only the creature, and a fire between the team and a beast should be worth something. Holding is the simplest rule that is always correct (no path search), and it keeps the stimulus system general: a later scent, call or lure is a new stimulus type with tags plus a small rule reading a threat tag, as this one does. People are not afraid of a fire, so raiders and captors are unaffected. The brazier's first use against threats is protecting the creature's flank for a few nights; steering the creature itself is the first use against a rockslide.
+
+## 2026-11-26: Fire needs something to burn: braziers and burnables
+
+ID: `2026-11-26-fire-needs-something-to-burn-braziers` · Status: current · Amends: `2026-11-20-light-a-fire-shows-on-your`
+
+**Decision.** `light-fire` is valid only on a hex that holds a revealed feature tagged `fire-site` (the **brazier**, content `brazier`, feature kind `hearth`) or `burnable` (deadfall and snare); anywhere else it is refused `nothing-to-burn` (water is still `cannot-burn`, and the other refusals are unchanged). Fuel is still 1 wood and `lightFireCost` actions. A lit brazier is the same fire stimulus as before (same push and range; the Beacon still widens range and push and now adds a night, `nights: 1` on the skill) but burns `brazierNights` (3) ticks, counts the hexes within `brazierRevealRadius` (2) as explored while it burns (when lit and at each tick, for hexes in view), and can be lit again once burnt out. A burnable is burnt away for good and is a one-night fire. A new stimulus field `nights` carries the length, `reveal` the radius; `fire-lit` is followed by `feature-burnt` for a burnable, and a lit brazier leaves the existing `fire` trace. Map generation (`brazierPlan`, seeded, server-only `GameState.brazierPlan`) puts the first brazier within `brazierFirstWithin` (4) hexes along the route from the start and then one about every `brazierSpacing` (6) hexes (jitter of one either way), one or two hexes beside the straight line the creature follows on average (where a rockslide on the line is best steered clear of), never on water, cliff or an island; a brazier is revealed as soon as its hex is seen and is the only feature not hidden until explored. Content version 23. Amends the rule that a fire can be lit anywhere with fuel (the card offered it on any hex when carrying timber; it now shows only on a brazier or burnable). The Engineer's rain-proof brazier in the world notes is a different, later idea (an unlock); this one is an old brazier on the map.
+
+**Reasoning.** Misa's direction: lighting a fire anywhere for one wood and one action crowded the options and did one thing. Making fire need something to burn gives it places and a cost in walking, so steering is a plan (reach a brazier, bring wood) rather than a reflex, and it is worth it when a static threat lies ahead. Putting braziers along the likely route makes the first test of the creature's reaction early and then keeps a choice in reach roughly every six hexes. Burnables give a second, ad hoc way to light a fire from what the party passes. Placement is a pure function of the seed, the start and the heading, so it is reproducible and tested; the plan stays on the server so the map ahead is not revealed. Every number is in the tuning config.
+
 ## 2026-11-25: The tow line is for those outside the window
 
 ID: `2026-11-25-the-tow-line-is-for-those` · Status: current
@@ -454,7 +478,7 @@ ID: `2026-11-21-a-tap-elsewhere-only-closes-an` · Status: current · Amends: `2
 
 ## 2026-11-21: A rockslide strikes only its own hex (threat reach) **[Misa]**
 
-ID: `2026-11-21-a-rockslide-strikes-only-its-own` · Status: current · Amends: `2026-11-20-threats-are-tagged-data-that-appear`
+ID: `2026-11-21-a-rockslide-strikes-only-its-own` · Status: current, amended by `2026-11-26-striking-a-rockslide-can-bury-the` · Amends: `2026-11-20-threats-are-tagged-data-that-appear`
 
 **Decision.** Threat types get a data field `reach`: how far from its hex it strikes. Every type keeps reach 1 (next to it), except the rockslide, reach 0. A threat strikes the creature when it is within `creatureRadius + reach` of its centre (a moving threat stops there) and characters standing within `reach` of it (guardians and the escorted spared, riders never). So a rockslide never strikes its neighbours: it strikes the creature only when the footprint covers its hex (strength as a strike, defence applies), and a character only on its own hex. Walking into a rockslide hex (`hazardAt`) stops the walk and ends the day, like a trap; the tick then strikes whoever still stands there. The interface shows a coral outline and strike badge on a planned path's hex that holds a rockslide, and the creature's arrival mark appears when its straight-on guess covers it. Content version 13. Balance over 200 seeds, full season safe / wounded / lost (3 players; 6 players): version 11 re-run 78/10/12 and 75/11/14; with the new rule and the old careful policy 75/12/14 and 65/9/27; with the careful policy also striking a waiting hazard while it is still ahead (the sim's `careful` change) 80/8/12 and 79/7/14. Careless parties still lose every full season.
 
@@ -861,7 +885,7 @@ ID: `2026-11-20-milestone-5-core-readings-of-the` · Status: current
 
 ## 2026-11-20: Threats are tagged data that appear at the window's edge and walk in openly
 
-ID: `2026-11-20-threats-are-tagged-data-that-appear` · Status: current, amended by `2026-11-20-threats-are-telegraphed-a-wider-window`, `2026-11-21-a-rockslide-strikes-only-its-own`
+ID: `2026-11-20-threats-are-tagged-data-that-appear` · Status: current, amended by `2026-11-20-threats-are-telegraphed-a-wider-window`, `2026-11-21-a-rockslide-strikes-only-its-own`, `2026-11-26-threats-tagged-fears-fire-keep-clear`
 
 **Decision.** Milestone 5's attack system (`docs/design/m5-season.md`): threat types in content with strength, speed, approach and weight (a captor band from behind, a pterodactyl swarm from the flanks, a rockslide on the path ahead, raiders from an angered settlement). Threats are public from the moment they appear; their approach is the forecast. They move after the creature's step, strike the creature at contact (peril rises by strength less defence) and strike unescorted characters within one hex (one action the next day). Appearance chance and strength scale with active players and days, from the tuning config. Terrain does not slow threats yet.
 
@@ -988,7 +1012,7 @@ ID: `2026-11-20-feed-and-linger-sit-in-the` · Status: current
 
 ## 2026-11-20: Light a fire shows on your hex's card only when you carry fuel
 
-ID: `2026-11-20-light-a-fire-shows-on-your` · Status: current, amended by `2026-11-20-light-a-fire-hints-faded-without`
+ID: `2026-11-20-light-a-fire-shows-on-your` · Status: current, amended by `2026-11-20-light-a-fire-hints-faded-without`, `2026-11-26-fire-needs-something-to-burn-braziers`
 
 **Decision.** Your own hex's card offers light-fire (the fire icon, a small timber icon and the action pip) when you stand on a hex with fuel in your pack: enabled when `checkAction` allows it, faded when only actions are short. It is not offered without fuel, on water, on the creature or where a fire already burns. The card now opens on a hex without a revealed feature when an action is offered there.
 

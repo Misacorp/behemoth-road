@@ -34,6 +34,7 @@ const ACTION_KINDS: Readonly<Record<Action['kind'], true>> = {
   'throw-line': true,
   'grab-line': true,
   strike: true,
+  'dig-out': true,
   defend: true,
   parley: true,
   offer: true,

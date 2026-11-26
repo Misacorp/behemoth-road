@@ -57,6 +57,20 @@ export interface TuningConfig {
   readonly hungryVeerWeights: VeerWeights;
   /** Action costs of the creature-care actions. */
   readonly lightFireCost: number;
+  /** Nights a lit brazier burns (a Beacon skill adds more). */
+  readonly brazierNights: number;
+  /** A burning brazier shows the hexes within this distance of it (they count as explored). */
+  readonly brazierRevealRadius: number;
+  /** Mapgen: braziers stand about this many hexes apart along the creature's likely route. */
+  readonly brazierSpacing: number;
+  /** Mapgen: the first brazier stands within this many hexes of the start, along the route. */
+  readonly brazierFirstWithin: number;
+  /** A threat tagged `fears-fire` keeps this far from a burning fire (it will not enter, stop on or strike from the ring). */
+  readonly fireFearRadius: number;
+  /** Chance that a strike on a threat tagged `falls` brings it down on the striker (skills and roles lower it). */
+  readonly slideFallChance: number;
+  /** Actions it costs to dig out a pinned character. */
+  readonly digOutCost: number;
   readonly feedCost: number;
   /** Keepers only: the creature stays put at the next tick. */
   readonly lingerCost: number;
@@ -173,6 +187,13 @@ export const DEFAULT_CONFIG: TuningConfig = {
   stimulusPull: 6,
   hungryVeerWeights: { left: 1, straight: 1, right: 1 },
   lightFireCost: 1,
+  brazierNights: 3,
+  brazierRevealRadius: 2,
+  brazierSpacing: 6,
+  brazierFirstWithin: 4,
+  fireFearRadius: 1,
+  slideFallChance: 0.2,
+  digOutCost: 1,
   feedCost: 1,
   lingerCost: 2,
   towThrowCost: 1,
@@ -261,6 +282,7 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     'threatChancePerDay',
     'threatChanceMax',
     'parleyAngerChanceOther',
+    'slideFallChance',
   ] as const;
   for (const key of chances) {
     const p = config[key];
@@ -278,6 +300,9 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     'catchUpEverySteps',
     'catchUpXp',
     'lightFireCost',
+    'brazierNights',
+    'brazierSpacing',
+    'digOutCost',
     'feedCost',
     'lingerCost',
     'towThrowCost',
@@ -313,6 +338,8 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     'shelterPeril',
     'perilHungry',
     'perilCalm',
+    'brazierRevealRadius',
+    'fireFearRadius',
   ] as const;
   for (const key of counts) if (!isCount(config[key], 0)) problems.push(key);
   // A path threat appears beyond contact (next to the footprint) and inside the window.
@@ -332,6 +359,7 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
   if (!validWeights(config.hungryVeerWeights)) problems.push('hungryVeerWeights');
   if (typeof config.storyOn !== 'boolean') problems.push('storyOn');
   if (!isCount(config.stimulusRange, 0)) problems.push('stimulusRange');
+  if (!isCount(config.brazierFirstWithin, 2)) problems.push('brazierFirstWithin');
   if (!(Number.isFinite(config.stimulusPull) && config.stimulusPull >= 1)) {
     problems.push('stimulusPull');
   }

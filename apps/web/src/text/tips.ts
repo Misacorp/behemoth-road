@@ -145,6 +145,10 @@ export const tips = {
   'action:strike': {
     text: 'Weaken a threat next to you by {strike.other}, or by {strike.warden} as a warden. At 0 it is gone.',
   },
+  'action:dig-out': {
+    title: 'Dig out',
+    text: 'Free someone pinned under a slide, next to you or on your hex.',
+  },
   'action:defend': {
     text: 'Wardens, riding: stand guard over the creature. Every strike on it today lands {defendReduction} weaker, for each warden.',
   },
@@ -291,6 +295,7 @@ export const tips = {
   'feature:berry-bushes': { text: 'Gather food for the creature here, until it runs out.' },
   'feature:tomb': { text: 'An old tomb. Search it for what lies inside.' },
   'feature:deep-tomb': { text: 'Too dark without the lantern. Only scholars can work it.' },
+  'feature:brazier': { text: 'An old brazier. Burn timber here and it burns on for nights.' },
   'feature:snare': { text: 'A snare, found and sprung. Harmless now.' },
   'feature:pitfall': { text: 'A pitfall, found. Harmless now.' },
 

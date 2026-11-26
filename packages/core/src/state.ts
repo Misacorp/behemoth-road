@@ -130,6 +130,13 @@ export interface Stimulus {
   readonly range?: number;
   /** How many times the type's push it counts for when a beacon skill lit it; 1 when absent. */
   readonly push?: number;
+  /**
+   * Nights it burns (a brazier); the type's `lastsTicks` when absent. It acts on the tick that ends the
+   * day it was lit and on `nights - 1` ticks after it.
+   */
+  readonly nights?: number;
+  /** Hexes around it that it shows (counted as explored) while it burns (a brazier); none when absent. */
+  readonly reveal?: number;
 }
 
 /** The creature's hidden nature, rolled from the seed when the game starts. Server only. */
@@ -207,6 +214,12 @@ export interface Character {
   readonly waiting: boolean;
   /** XP earned and skill nodes taken this season. Public. */
   readonly skills: Skills;
+  /**
+   * The day a falling slide pinned them, or absent. Pinned: no moving or acting (but setting the stance and
+   * picking skills) until another character digs them out, or the end of the next tick after the day
+   * they were pinned. Public: others must see it to help.
+   */
+  readonly pinnedDay?: number;
 }
 
 /**
@@ -288,10 +301,23 @@ export interface GameState extends GameStateView {
   readonly nature: Nature;
   /** Never sent to players. */
   readonly care: Care;
+  /**
+   * Where map generation puts the braziers along the creature's likely route (`brazierPlan`), nearest first.
+   * Never sent to players: only a brazier whose hex has been seen shows, as a feature.
+   */
+  readonly brazierPlan: readonly Hex[];
 }
 
 export const hasSeed = (state: GameStateView): state is GameState =>
   isSeed((state as Partial<GameState>).seed);
+
+/** The character, no longer pinned. */
+export const unpinned = <C extends Character>(c: C): C => {
+  if (c.pinnedDay === undefined) return c;
+  const rest: Record<string, unknown> = { ...(c as Character) };
+  delete rest['pinnedDay'];
+  return rest as unknown as C;
+};
 
 export const findCharacter = (state: GameStateView, id: string): Character | undefined =>
   state.characters.find((c) => c.id === id);

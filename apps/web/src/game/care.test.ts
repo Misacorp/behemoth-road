@@ -15,7 +15,7 @@ const tired = (v: ReturnType<typeof staged>['view']) => ({
 
 describe('lighting a fire where you stand', () => {
   it('is offered with its timber and pip when you carry fuel', () => {
-    const { view, me } = staged({ pack: { timber: 1 } });
+    const { view, me } = staged({ pack: { timber: 1 }, brazier: true });
     expect(fireAction(view, me)).toEqual({
       kind: 'light-fire',
       cost: view.config.lightFireCost,
@@ -25,14 +25,20 @@ describe('lighting a fire where you stand', () => {
   });
 
   it('is faded when your actions are spent, and not offered without fuel', () => {
-    const { view, me } = staged({ pack: { timber: 1 } });
+    const { view, me } = staged({ pack: { timber: 1 }, brazier: true });
     expect(fireAction(tired(view), me)).toMatchObject({ enabled: false, uses: 'timber' });
-    const empty = staged({ pack: {} });
+    const empty = staged({ pack: {}, brazier: true });
     expect(fireAction(empty.view, empty.me)).toBeNull();
   });
 
+  it('is not offered on plain ground, where there is nothing to burn', () => {
+    const { view, me } = staged({ pack: { timber: 1 } });
+    expect(fireAction(view, me)).toBeNull();
+    expect(fireAction(view, me, true)).toBeNull();
+  });
+
   it('without fuel, hints faded with the timber faded only when asked to (a card open, a fire seen)', () => {
-    const { view, me } = staged({ pack: {} });
+    const { view, me } = staged({ pack: {}, brazier: true });
     expect(fireAction(view, me, true)).toEqual({
       kind: 'light-fire',
       cost: view.config.lightFireCost,
@@ -45,9 +51,9 @@ describe('lighting a fire where you stand', () => {
   });
 
   it('is not offered where a fire burns, or while riding', () => {
-    const lit = staged({ pack: { timber: 1 }, fires: [{ q: 1, r: 2 }] });
+    const lit = staged({ pack: { timber: 1 }, brazier: true, fires: [{ q: 1, r: 2 }] });
     expect(fireAction(lit.view, lit.me)).toBeNull();
-    const riding = staged({ pack: { timber: 1 }, at: 'creature' });
+    const riding = staged({ pack: { timber: 1 }, brazier: true, at: 'creature' });
     expect(fireAction(riding.view, riding.me)).toBeNull();
   });
 });

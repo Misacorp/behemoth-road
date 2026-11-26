@@ -11,7 +11,7 @@ import {
   pruneTraces,
   type Trace,
 } from '../src/index.ts';
-import { fieldGame, placeCharacter, QUIET, withThreat } from './helpers.ts';
+import { fieldGame, placeCharacter, QUIET, withFeature, withThreat } from './helpers.ts';
 
 const straight = { ...QUIET, veerWeights: { left: 0, right: 0 } };
 const ok = (r: ActResult): GameState => {
@@ -25,7 +25,12 @@ describe('traces', () => {
   });
 
   it('a lit fire leaves a fire scar where it burned, credited to the lighter', () => {
-    const base = placeCharacter(fieldGame(['scout']), 'scout', hex(-2, 0));
+    const base = withFeature(
+      placeCharacter(fieldGame(['scout']), 'scout', hex(-2, 0)),
+      hex(-2, 0),
+      'brazier',
+      true,
+    );
     const state = {
       ...base,
       characters: base.characters.map((c) => ({ ...c, pack: { timber: 1 } })),

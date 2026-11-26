@@ -22,7 +22,9 @@ export type MoveRefusal =
   | 'unreachable'
   | 'impassable'
   | 'not-enough-actions'
-  | 'waiting';
+  | 'waiting'
+  /** Pinned by a falling slide: no moving until freed. */
+  | 'pinned';
 
 export type ActionResult<S extends GameStateView = GameStateView> =
   | {
@@ -115,6 +117,7 @@ export const stepOnly = <S extends GameStateView>(
   if (!isPlaceReachable(state, target)) return { ok: false, reason: 'unreachable' };
   const entry = entryToPlace(state, target);
   if (!entry) return { ok: false, reason: 'impassable' };
+  if (character.pinnedDay !== undefined) return { ok: false, reason: 'pinned' };
   if (character.waiting) return { ok: false, reason: 'waiting' };
   if (character.actionsLeft < entry.cost) return { ok: false, reason: 'not-enough-actions' };
 

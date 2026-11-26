@@ -28,13 +28,15 @@ import {
   type GameEvent,
   isExplored,
   keyToHex,
+  lightAround,
   packSize,
   roleHas,
   unlockTags,
 } from './features.ts';
 import { type Hex, hexDistance, hexesInRange, hexKey, isValidHex } from './hex.ts';
 import { terrainOf } from './map.ts';
-import { arePlacesAdjacent, ON_CREATURE, onHex, placeNeighbours } from './places.ts';
+import { BURNABLE_TAG, FIRE_SITE_TAG } from './fire.ts';
+import { arePlacesAdjacent, ON_CREATURE, onHex, placeEquals, placeNeighbours } from './places.ts';
 import { hashString, hashToUnit } from './random.ts';
 import {
   type Character,
@@ -46,9 +48,10 @@ import {
   type Materials,
   type Settlement,
   type Stimulus,
+  unpinned,
 } from './state.ts';
 import { isCreatureHex, isInWindow } from './window.ts';
-import { DEFEND_TAG, PURSUER_TAG, threatType } from './threats.ts';
+import { DEFEND_TAG, FALLS_TAG, PURSUER_TAG, threatType } from './threats.ts';
 import {
   addFavour,
   anger,
@@ -86,6 +89,8 @@ export type Action =
   | { readonly kind: 'grab-line' }
   | { readonly kind: 'strike'; readonly threat: string }
   | { readonly kind: 'defend' }
+  /** Frees a pinned character on the same or a neighbouring place (see `Character.pinnedDay`). */
+  | { readonly kind: 'dig-out'; readonly target: string }
   | { readonly kind: 'parley' }
   | { readonly kind: 'offer'; readonly material: string }
   | { readonly kind: 'ask-boon'; readonly boon: string }
@@ -118,6 +123,8 @@ export type ActRefusal =
   | 'busy'
   | 'missing-materials'
   | 'cannot-burn'
+  /** Lighting a fire needs a brazier (`fire-site`) or a burnable feature on the hex. */
+  | 'nothing-to-burn'
   | 'fire-here'
   | 'no-fuel'
   | 'no-food'
@@ -141,6 +148,10 @@ export type ActRefusal =
   | 'unknown-stance'
   /** The character ended their day (wait): only the stance and picks can change. */
   | 'waiting'
+  /** The character is pinned by a falling slide: they cannot move or act until freed. */
+  | 'pinned'
+  /** A dig-out on a character who is not pinned. */
+  | 'not-pinned'
   /** Picks: see `PickRefusal` in `skills.ts` (`already-have` is shared). */
   | PickRefusal;
 
@@ -183,16 +194,43 @@ const PARLEY_STREAM = hashString('parley');
 const FIRE = STIMULUS_TYPES.find((t) => t.tags.includes('fire'));
 
 /** A fire as lit by a character: a beacon skill widens its reach and strengthens its push. */
-const litFire = (c: Character, type: string, hex: Hex, litDay: number): Stimulus => {
+const litFire = (
+  c: Character,
+  type: string,
+  hex: Hex,
+  litDay: number,
+  /** A brazier: the nights it burns before a Beacon adds more, and the hexes it shows. */
+  site?: { readonly nights: number; readonly reveal: number },
+): Stimulus => {
   const range = bestOf(c, 'fire-boost', (e) => e.range);
   const push = bestOf(c, 'fire-boost', (e) => e.push);
+  const more = bestOf(c, 'fire-boost', (e) => e.nights ?? 0) ?? 0;
   return {
     type,
     hex,
     litDay,
     ...(range === null ? {} : { range }),
     ...(push === null ? {} : { push }),
+    ...(site ? { nights: site.nights + more, reveal: site.reveal } : {}),
   };
+};
+
+const FALL_STREAM = hashString('slide-fall');
+
+/**
+ * The chance a strike on a threat with these tags brings it down on the striker: the tuning's
+ * `slideFallChance` times each `sure-footed` factor (role and skills) for a tag the threat has. Zero
+ * when the threat does not fall.
+ */
+export const fallChance = (
+  state: GameStateView,
+  c: Character,
+  threatTags: readonly string[],
+): number => {
+  if (!threatTags.includes(FALLS_TAG)) return 0;
+  return effectsOf(c, 'sure-footed')
+    .filter((e) => threatTags.includes(e.tag))
+    .reduce((chance, e) => chance * e.factor, state.config.slideFallChance);
 };
 
 const hexOf = (c: Character): Hex | null => (c.at.kind === 'hex' ? c.at.hex : null);
@@ -328,6 +366,9 @@ export const checkAction = (
   if (!found.ok) return found;
   const c = found.character;
   const { config } = state;
+  if (c.pinnedDay !== undefined && action?.kind !== 'set-stance' && action?.kind !== 'pick-skill') {
+    return { ok: false, reason: 'pinned' };
+  }
   if (c.waiting && action?.kind !== 'set-stance' && action?.kind !== 'pick-skill') {
     return { ok: false, reason: 'waiting' };
   }
@@ -406,6 +447,12 @@ export const checkAction = (
       const terrain = terrainOf(state, h);
       if (!terrain || FIRE.notOn.some((tag) => terrain.tags.includes(tag))) {
         return no('cannot-burn');
+      }
+      // A fire needs something to burn: a brazier, or a feature that burns away.
+      const here = featureHere(state, c);
+      const fuelTags = here ? featureType(here.type).tags : [];
+      if (!fuelTags.includes(FIRE_SITE_TAG) && !fuelTags.includes(BURNABLE_TAG)) {
+        return no('nothing-to-burn');
       }
       if (state.stimuli.some((s) => hexKey(s.hex) === hexKey(h))) return no('fire-here');
       const fuel = firstWithTag(c.pack, FIRE.fuel.tag, FIRE.fuel.amount);
@@ -494,6 +541,19 @@ export const checkAction = (
       if (!roleHas(c, DEFEND_TAG)) return no('needs-warden');
       if (c.at.kind !== 'creature') return no('not-riding');
       if (state.creature.defenders.includes(c.id)) return no('already-have');
+      return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
+    }
+    case 'dig-out': {
+      const cost = config.digOutCost;
+      const no = (reason: ActRefusal): ActCheck => ({ ok: false, reason, cost });
+      if (typeof action.target !== 'string' || action.target === c.id) return no('invalid-action');
+      const target = state.characters.find((x) => x.id === action.target);
+      if (!target) return no('unknown-character');
+      if (target.status !== 'active') return no('character-lost');
+      if (target.pinnedDay === undefined) return no('not-pinned');
+      if (!placeEquals(c.at, target.at) && !arePlacesAdjacent(state, c.at, target.at)) {
+        return no('not-near');
+      }
       return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
     }
     case 'parley': {
@@ -617,14 +677,38 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
 
   if (action.kind === 'light-fire' && FIRE) {
     const h = hexOf(c) as Hex;
+    const key = hexKey(h);
+    const feature = state.features[key] as FeatureState;
+    const tags = featureType(feature.type).tags;
+    const events: GameEvent[] = [{ kind: 'fire-lit', hex: h, characterId, stimulus: FIRE.id }];
+    if (tags.includes(FIRE_SITE_TAG)) {
+      // A brazier burns for nights and shows the hexes around it.
+      const site = { nights: state.config.brazierNights, reveal: state.config.brazierRevealRadius };
+      const lit: GameState = {
+        ...state,
+        stimuli: [...state.stimuli, litFire(c, FIRE.id, h, state.day, site)],
+      };
+      const spent = withCharacter(lit, { pack: subtract(c.pack, check.uses) });
+      const shown = lightAround(spent, h, site.reveal);
+      return { ok: true, state: shown.state, events: [...events, ...shown.events] };
+    }
+    // Something burnable goes up for good, and burns as a one-night fire.
+    const { [key]: burnt, ...features } = state.features;
+    events.push({
+      kind: 'feature-burnt',
+      hex: h,
+      characterId,
+      feature: (burnt as FeatureState).type,
+    });
     const lit: GameState = {
       ...state,
+      features,
       stimuli: [...state.stimuli, litFire(c, FIRE.id, h, state.day)],
     };
     return {
       ok: true,
       state: withCharacter(lit, { pack: subtract(c.pack, check.uses) }),
-      events: [{ kind: 'fire-lit', hex: h, characterId, stimulus: FIRE.id }],
+      events,
     };
   }
 
@@ -706,7 +790,39 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
         ? state.threats.map((t) => (t.id === threat.id ? { ...t, strength } : t))
         : state.threats.filter((t) => t.id !== threat.id);
     if (strength <= 0) events.push({ kind: 'threat-cleared', id: threat.id, characterId });
-    return { ok: true, state: withCharacter({ ...state, threats }, {}), events };
+    // A slide may fall on the striker (after the blow, which still counts): they lose the rest of the day.
+    const roll = hashToUnit(
+      state.seed,
+      FALL_STREAM,
+      state.day,
+      hashString(c.id),
+      hashString(threat.id),
+      threat.strength,
+    );
+    const pinned = roll < fallChance(state, c, tags);
+    if (pinned) events.push({ kind: 'pinned', characterId, threat: threat.id });
+    return {
+      ok: true,
+      state: withCharacter(
+        { ...state, threats },
+        pinned ? { actionsLeft: 0, pinnedDay: state.day } : {},
+      ),
+      events,
+    };
+  }
+
+  if (action.kind === 'dig-out') {
+    return {
+      ok: true,
+      state: withCharacter(
+        {
+          ...state,
+          characters: state.characters.map((x) => (x.id === action.target ? unpinned(x) : x)),
+        },
+        {},
+      ),
+      events: [{ kind: 'dug-out', characterId: action.target, by: characterId }],
+    };
   }
 
   if (action.kind === 'defend') {
@@ -961,6 +1077,9 @@ export const actionsHere = (
       .filter((x) => x.id !== characterId && x.status === 'active' && x.at.kind === 'hex')
       .map((x) => ({ kind: 'throw-line' as const, to: x.id })),
     ...state.threats.map((t) => ({ kind: 'strike' as const, threat: t.id })),
+    ...state.characters
+      .filter((x) => x.id !== characterId && x.pinnedDay !== undefined)
+      .map((x) => ({ kind: 'dig-out' as const, target: x.id })),
     { kind: 'defend' },
     { kind: 'parley' },
     ...TRADE_GOODS.map((m) => ({ kind: 'offer' as const, material: m.id })),

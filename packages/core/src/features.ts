@@ -13,7 +13,20 @@ import {
   ROLES,
   UNLOCKS,
 } from './content/index.ts';
-import { type Hex, hexKey, neighbours } from './hex.ts';
+import { FIRE_SITE_TAG } from './fire.ts';
+import {
+  type Direction,
+  type Hex,
+  directionOffset,
+  hexDistance,
+  hexEquals,
+  hexesInRange,
+  hexKey,
+  neighbour,
+  neighbours,
+  rotate,
+} from './hex.ts';
+import type { TuningConfig } from './config.ts';
 import { terrainAt, terrainById } from './map.ts';
 import { hashString, hashToUnit, type Seed } from './random.ts';
 import { effectsOf } from './skills.ts';
@@ -28,6 +41,7 @@ import type {
 } from './state.ts';
 
 const FEATURE_STREAM = hashString('feature');
+const BRAZIER_STREAM = hashString('brazier');
 
 /** Something that happened, for the interface's short visual moments. */
 export type GameEvent =
@@ -69,6 +83,18 @@ export type GameEvent =
       /** The stimulus's content id. */
       readonly stimulus: string;
     }
+  /** A fire burnt a burnable feature away for good (after its `fire-lit`). */
+  | {
+      readonly kind: 'feature-burnt';
+      readonly hex: Hex;
+      readonly characterId: string;
+      /** The feature's content id. */
+      readonly feature: string;
+    }
+  /** A falling slide pinned a character (the striker): they lose the rest of the day and the next one. */
+  | { readonly kind: 'pinned'; readonly characterId: string; readonly threat: string }
+  /** A pinned character is free: dug out by another (`by`), or after the next tick on their own (`by` null). */
+  | { readonly kind: 'dug-out'; readonly characterId: string; readonly by: string | null }
   | { readonly kind: 'fed'; readonly characterId: string; readonly material: string }
   | { readonly kind: 'linger'; readonly characterId: string }
   /** A rider threw the tow line to a character outside; and that character grabbed it and was hauled aboard. */
@@ -221,9 +247,72 @@ const freshFeature = (type: FeatureType): FeatureState => ({
   left: type.kind === 'node' ? type.charges : 1,
 });
 
+/** The feature type of a brazier: the one tagged `fire-site`. */
+const BRAZIER = FEATURE_TYPES.find((t) => t.tags.includes(FIRE_SITE_TAG));
+
+/** The plan reaches no further than this many hexes from the start (a bound on the state's size). */
+const MAX_PLAN_DISTANCE = 120;
+
+/** Whether a hex can hold a brazier: ground a character can stand on, never water or an island. */
+const holdsBrazier = (seed: Seed, h: Hex): boolean => {
+  const terrain = terrainById(terrainAt(seed, h).id);
+  return terrain.passable && !terrain.tags.includes('water') && !terrain.tags.includes('island');
+};
+
+/**
+ * Where map generation puts the braziers: ahead along the creature's likely route (the straight line
+ * from `start` along `heading`, which its steps follow on average). The first stands within
+ * `brazierFirstWithin` hexes (so a keeper can test the creature's reaction early), then one about every
+ * `brazierSpacing` hexes (a seeded jitter of one either way), up to the season's end and the window
+ * beyond it. Each stands beside the line (one or two hexes off, on a seeded side), where hazards on the
+ * straight-ahead line (a rockslide) are best steered clear of; where that hex is water, cliff or an
+ * island the next nearest fitting hex is used. Pure in its arguments; nearest first.
+ */
+export const brazierPlan = (
+  seed: Seed,
+  start: Hex,
+  heading: Direction,
+  config: Pick<
+    TuningConfig,
+    'brazierFirstWithin' | 'brazierSpacing' | 'routeLength' | 'windowRadius' | 'creatureRadius'
+  >,
+): Hex[] => {
+  const out: Hex[] = [];
+  const step = directionOffset(heading);
+  const along = (d: number): Hex => ({ q: start.q + d * step.q, r: start.r + d * step.r });
+  const beside = (from: Hex, side: -1 | 1, offset: number): Hex => {
+    let h = from;
+    for (let i = 0; i < offset; i++) h = neighbour(h, rotate(heading, side));
+    return h;
+  };
+  const last = Math.min(MAX_PLAN_DISTANCE, config.routeLength + config.windowRadius);
+  const span = config.brazierFirstWithin - 1;
+  let d = 2 + Math.min(span - 1, Math.floor(hashToUnit(seed, BRAZIER_STREAM, 0) * span));
+  for (let i = 1; d <= last; i++) {
+    const side: -1 | 1 = hashToUnit(seed, BRAZIER_STREAM, i, 1) < 0.5 ? -1 : 1;
+    const wide = hashToUnit(seed, BRAZIER_STREAM, i, 2) < 0.7 ? 1 : 2;
+    const tries: Hex[] = [];
+    for (const dd of [d, d + 1, d - 1, d + 2, d - 2]) {
+      const p = along(dd);
+      tries.push(beside(p, side, wide), beside(p, -side as -1 | 1, wide), beside(p, side, 1), p);
+    }
+    const at = tries.find(
+      (h) =>
+        hexDistance(h, start) > config.creatureRadius &&
+        !out.some((o) => hexEquals(o, h)) &&
+        holdsBrazier(seed, h),
+    );
+    if (at) out.push(at);
+    const jitter = Math.floor(hashToUnit(seed, BRAZIER_STREAM, i, 3) * 3) - 1;
+    d += Math.max(1, config.brazierSpacing + jitter);
+  }
+  return out;
+};
+
 /**
  * Adds features for the given hexes that have none recorded yet (hexes newly in
- * view). Server only. Known tiles supply terrain; others are generated.
+ * view). Server only. Known tiles supply terrain; others are generated. A hex on
+ * the `braziers` plan holds a brazier, shown from the start.
  */
 export const addFeatures = (
   features: Readonly<Record<string, FeatureState>>,
@@ -231,12 +320,18 @@ export const addFeatures = (
   hexes: readonly Hex[],
   seed: Seed,
   chance: number,
+  braziers: readonly Hex[] = [],
 ): Record<string, FeatureState> => {
   const next: Record<string, FeatureState> = { ...features };
   const terrainIdOf = (h: Hex) => tiles[hexKey(h)]?.terrain ?? terrainAt(seed, h).id;
+  const planned = new Set(braziers.map(hexKey));
   for (const h of hexes) {
     const key = hexKey(h);
     if (next[key]) continue;
+    if (BRAZIER && planned.has(key)) {
+      next[key] = { ...freshFeature(BRAZIER), revealed: true };
+      continue;
+    }
     const type = generateFeature(seed, h, chance, terrainIdOf);
     if (type) next[key] = freshFeature(type);
   }
@@ -288,6 +383,26 @@ export const exploreHex = <S extends GameStateView>(state: S, h: Hex): ExploreRe
     hiddenTrap = featureType(f.type).kind === 'trap';
   }
   return { state: next, events, hiddenTrap };
+};
+
+/**
+ * Lights the hexes within `radius` of a hex: those in view count as explored (a reveal), in the
+ * order of `hexesInRange`, so it is the same everywhere. Hexes with no tile in view are left alone.
+ */
+export const lightAround = <S extends GameStateView>(
+  state: S,
+  centre: Hex,
+  radius: number,
+): { readonly state: S; readonly events: GameEvent[] } => {
+  let next = state;
+  const events: GameEvent[] = [];
+  for (const h of hexesInRange(centre, radius)) {
+    if (next.tiles[hexKey(h)]?.visibility !== 'seen') continue;
+    const explored = exploreHex(next, h);
+    next = explored.state;
+    events.push(...explored.events);
+  }
+  return { state: next, events };
 };
 
 export interface EnterResult<S extends GameStateView> {

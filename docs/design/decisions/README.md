@@ -123,6 +123,9 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-26 Striking a rockslide can bury the striker \[Misa\]
+- 2026-11-26 Threats tagged fears-fire keep clear of burning fires \[Misa\]
+- 2026-11-26 Fire needs something to burn: braziers and burnables
 - 2026-11-25 The tow line is for those outside the window
 - 2026-11-25 Story core: traces, storylets and endings are public and change no rule
 - 2026-11-25 Blessings become a rule only after the balance sim \[Misa\]
@@ -179,7 +182,7 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-22 The first skill pick in a role's tree closes the other branch \[Misa\]
 - 2026-11-21 Tips have no timer: they stay until the next tap \[Misa\]
 - 2026-11-21 A tap elsewhere only closes an open popover \[Misa\]
-- 2026-11-21 A rockslide strikes only its own hex (threat reach) \[Misa\]
+- 2026-11-21 A rockslide strikes only its own hex (threat reach) \[Misa\] (amended)
 - 2026-11-21 The scripted chain reaches the climbing spikes about twice as fast \[Misa\]
 - 2026-11-21 Hunger drains every day and food restores more \[Misa\]
 - 2026-11-21 Fires steer the creature sideways only, and several fires add up by side \[Misa\]

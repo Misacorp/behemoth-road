@@ -6,7 +6,7 @@ import { type ConfigOverrides, resolveConfig } from './config.ts';
 import { type Direction, DIRECTIONS, type Hex, isValidHex } from './hex.ts';
 import { CONTENT_VERSION, DEFAULT_STANCE } from './content/index.ts';
 import { freshCare, rollNature } from './care.ts';
-import { addFeatures, keyToHex } from './features.ts';
+import { addFeatures, brazierPlan, keyToHex } from './features.ts';
 import { ON_CREATURE } from './places.ts';
 import { hashInts, hashString, newArtSeed, type Seed, toSeed } from './random.ts';
 import { emptyStats } from './stats.ts';
@@ -63,6 +63,7 @@ export const createGame = (
   const day = 1;
   const tiles = updateTiles({}, centre, day, config, seed);
   const nature = rollNature(seed);
+  const braziers = brazierPlan(seed, centre, heading, config);
   const game: GameState = {
     contentVersion: CONTENT_VERSION,
     artSeed,
@@ -91,7 +92,15 @@ export const createGame = (
     traces: [],
     story: emptyStory(),
     tiles,
-    features: addFeatures({}, tiles, Object.keys(tiles).map(keyToHex), seed, config.featureChance),
+    brazierPlan: braziers,
+    features: addFeatures(
+      {},
+      tiles,
+      Object.keys(tiles).map(keyToHex),
+      seed,
+      config.featureChance,
+      braziers,
+    ),
     stores: {},
     unlocks: [],
     project: null,

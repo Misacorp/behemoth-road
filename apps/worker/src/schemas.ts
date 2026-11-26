@@ -113,6 +113,11 @@ export const ActionSchema = v.variant('kind', [
   // (`no-threat`, `no-trade-good`, `unknown-boon`), so the schema only bounds the strings.
   v.strictObject({ kind: v.literal('strike'), threat: contentId }),
   v.strictObject({ kind: v.literal('defend') }),
+  // Frees a pinned character: the target's id (the core refuses an unknown, free or distant one by name).
+  v.strictObject({
+    kind: v.literal('dig-out'),
+    target: v.pipe(v.string(), v.minLength(1), v.maxLength(64)),
+  }),
   v.strictObject({ kind: v.literal('parley') }),
   v.strictObject({ kind: v.literal('offer'), material: contentId }),
   v.strictObject({ kind: v.literal('ask-boon'), boon: contentId }),

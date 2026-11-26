@@ -18,7 +18,10 @@ export type ThreatEnding = 'pursuer';
 export interface ThreatType {
   readonly id: string;
   readonly name: string;
-  /** `ground`: never appears on water. `pursuer`: led away by a mislead. */
+  /**
+   * `ground`: never appears on water. `pursuer`: led away by a mislead. `fears-fire`: keeps clear of
+   * burning fires. `falls`: a strike on it can bring it down on the striker.
+   */
   readonly tags: readonly string[];
   readonly icon: string;
   /** Base strength, before scaling by players and days. */
@@ -60,7 +63,7 @@ export const THREAT_TYPES: readonly ThreatType[] = [
   {
     id: 'swarm',
     name: 'Pterodactyl swarm',
-    tags: ['flying', 'beast'],
+    tags: ['flying', 'beast', 'fears-fire'],
     icon: 'swarm',
     strength: 2,
     speed: 2,
@@ -71,7 +74,7 @@ export const THREAT_TYPES: readonly ThreatType[] = [
   {
     id: 'rockslide',
     name: 'Rockslide',
-    tags: ['terrain', 'stone'],
+    tags: ['terrain', 'stone', 'falls'],
     icon: 'rockslide',
     strength: 3,
     speed: 0,
@@ -95,7 +98,7 @@ export const THREAT_TYPES: readonly ThreatType[] = [
   {
     id: 'stampede',
     name: 'Stampede',
-    tags: ['ground', 'beast', 'herd'],
+    tags: ['ground', 'beast', 'herd', 'fears-fire'],
     icon: 'stampede',
     strength: 1,
     speed: 2,

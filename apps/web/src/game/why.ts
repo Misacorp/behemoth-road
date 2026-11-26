@@ -30,6 +30,7 @@ export const WHY_BY_REFUSAL: Readonly<Record<ActRefusal, TipId>> = {
   busy: 'why:busy',
   'missing-materials': 'why:missing-materials',
   'cannot-burn': 'why:no-fire',
+  'nothing-to-burn': 'why:no-fire',
   'fire-here': 'why:done',
   'no-fuel': 'why:no-fuel',
   'no-food': 'why:no-food',
@@ -50,6 +51,8 @@ export const WHY_BY_REFUSAL: Readonly<Record<ActRefusal, TipId>> = {
   'no-trade-good': 'why:other',
   'unknown-stance': 'why:other',
   waiting: 'why:other',
+  pinned: 'why:other',
+  'not-pinned': 'why:other',
   // Skills (the tree drawer): each refusal has its own reason.
   'unknown-skill': 'why:other',
   'skill-veiled': 'why:veiled',

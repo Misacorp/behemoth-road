@@ -15,6 +15,7 @@ export const verbs = {
   'throw-line': 'Throw',
   'grab-line': 'Grab',
   strike: 'Strike',
+  'dig-out': 'Dig',
   defend: 'Defend',
   parley: 'Parley',
   offer: 'Offer',

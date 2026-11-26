@@ -15,7 +15,7 @@
   },
   "offers": null,
   "game": {
-    "contentVersion": 22,
+    "contentVersion": 23,
     "artSeed": 4242,
     "day": 8,
     "config": {
@@ -51,6 +51,13 @@
         "right": 1
       },
       "lightFireCost": 1,
+      "brazierNights": 3,
+      "brazierRevealRadius": 2,
+      "brazierSpacing": 6,
+      "brazierFirstWithin": 4,
+      "fireFearRadius": 1,
+      "slideFallChance": 0.2,
+      "digOutCost": 1,
       "feedCost": 1,
       "lingerCost": 2,
       "towThrowCost": 1,
@@ -370,19 +377,19 @@
       "-1,-5": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "-1,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "-1,-3": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "-1,-2": {
@@ -439,19 +446,19 @@
       "0,-6": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "0,-5": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "0,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "0,-3": {
@@ -463,7 +470,7 @@
       "0,-2": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "0,-1": {
@@ -532,7 +539,7 @@
       "1,-2": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "1,-1": {
@@ -823,13 +830,13 @@
       "-1,-6": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "0,-7": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "1,-7": {
@@ -870,7 +877,7 @@
       "1,-8": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "2,-8": {
@@ -970,7 +977,7 @@
       "-1,-7": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "0,-8": {
@@ -1252,7 +1259,11 @@
         "role": "warden",
         "joinedDay": 1,
         "at": {
-          "kind": "creature"
+          "kind": "hex",
+          "hex": {
+            "q": 3,
+            "r": -4
+          }
         },
         "actionsLeft": 3,
         "pack": {},
@@ -1300,8 +1311,8 @@
         "at": {
           "kind": "hex",
           "hex": {
-            "q": -1,
-            "r": -7
+            "q": 1,
+            "r": -8
           }
         },
         "actionsLeft": 3,
@@ -1317,6 +1328,11 @@
       }
     ],
     "features": {
+      "-2,-2": {
+        "type": "brazier",
+        "revealed": true,
+        "left": 1
+      },
       "4,-3": {
         "type": "timber-stand",
         "revealed": true,
@@ -1326,6 +1342,11 @@
         "type": "timber-stand",
         "revealed": true,
         "left": 3
+      },
+      "-1,-7": {
+        "type": "brazier",
+        "revealed": true,
+        "left": 1
       }
     },
     "stores": {},
@@ -1359,8 +1380,8 @@
         "id": "s4",
         "type": "hill-folk",
         "hex": {
-          "q": -1,
-          "r": -7
+          "q": 1,
+          "r": -8
         },
         "attitude": "angry",
         "favour": 1,
@@ -1639,6 +1660,19 @@
       "to": {
         "q": 3,
         "r": -4
+      },
+      "version": 22
+    },
+    {
+      "kind": "threat-moves",
+      "id": "ts4",
+      "from": {
+        "q": 1,
+        "r": -7
+      },
+      "to": {
+        "q": 1,
+        "r": -6
       },
       "version": 22
     },

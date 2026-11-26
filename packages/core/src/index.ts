@@ -107,7 +107,17 @@ export type {
   TileKnowledge,
   Visibility,
 } from './state.ts';
-export { emptyStory, findCharacter, hasSeed, isSeasonOver } from './state.ts';
+export { emptyStory, findCharacter, hasSeed, isSeasonOver, unpinned } from './state.ts';
+export {
+  BURNABLE_TAG,
+  FEARS_FIRE_TAG,
+  FIRE_SITE_TAG,
+  FIRE_TAG,
+  firesBurning,
+  inFireRing,
+  nightsLeft,
+  nightsOf,
+} from './fire.ts';
 export { conditionLabel, fireStory, storyletHolds } from './story.ts';
 export { addTraces, pruneTraces, recordTraces } from './traces.ts';
 export { ENDING_TITLES, endingOf, largestPerilSource, type Ending } from './ending.ts';
@@ -117,7 +127,9 @@ export {
   defence,
   DEFEND_TAG,
   ESCORT_TAG,
+  FALLS_TAG,
   GROUND_TAG,
+  keepsClearOf,
   isEscorted,
   escortReach,
   leadingEdge,
@@ -250,6 +262,7 @@ export {
 } from './view.ts';
 export {
   addMaterials,
+  brazierPlan,
   depositPack,
   enterHex,
   exploreHex,
@@ -261,6 +274,7 @@ export {
   generateFeature,
   hiddenFeatureKeys,
   keyToHex,
+  lightAround,
   revealedFeatureAt,
   roleHas,
   type EnterResult,
@@ -270,6 +284,7 @@ export {
   act,
   actionsHere,
   checkAction,
+  fallChance,
   possibleActions,
   packCapacityOf,
   type Action,
