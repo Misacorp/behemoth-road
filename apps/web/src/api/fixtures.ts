@@ -211,6 +211,10 @@ export interface ChainStage {
   readonly burnt?: readonly Hex[];
   /** Pinned under a slide today (no actions left): you, Pip or Ola. */
   readonly pinned?: readonly ('me' | 'pip' | 'ola')[];
+  /** Actions the pinned characters have left (default none). */
+  readonly pinnedActions?: number;
+  /** Failed struggles so far under the pin (the chance grows with each). */
+  readonly struggles?: number;
   /** Milestone 4: fires lit today, as offsets from the creature's centre. */
   readonly fires?: readonly Hex[];
   /** The creature's hidden hunger (server only; drives the appetite sign). */
@@ -369,7 +373,14 @@ export function chainScenario(stage: ChainStage = {}): Scenario {
     state = {
       ...state,
       characters: state.characters.map((ch) =>
-        pinnedUsers.has(ch.userId) ? { ...ch, actionsLeft: 0, pinnedDay: state.day } : ch,
+        pinnedUsers.has(ch.userId)
+          ? {
+              ...ch,
+              actionsLeft: stage.pinnedActions ?? 0,
+              pinnedDay: state.day,
+              ...(stage.struggles ? { struggles: stage.struggles } : {}),
+            }
+          : ch,
       ),
     };
   }

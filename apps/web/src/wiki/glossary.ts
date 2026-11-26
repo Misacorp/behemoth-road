@@ -7,7 +7,8 @@ import {
   ACTION_MOTIFS,
   drawBurnableMark,
   drawFearsFireMark,
-  drawFireRing,
+  drawBlockedHexes,
+  drawOddsMark,
   drawGlyph,
   drawNightsLeft,
   drawIcon,
@@ -101,8 +102,8 @@ export const FIRE_MARKS = [
   'burnable',
   'burnt',
   'fears-fire',
-  'fire-ring',
-  'fall-risk',
+  'blocked',
+  'odds',
   'nights',
   'pinned',
 ] as const;
@@ -118,7 +119,7 @@ export interface GlossaryEntry {
   readonly draw: Draw;
 }
 
-const VALUES = tipValues(DEFAULT_CONFIG);
+const VALUES = { ...tipValues(DEFAULT_CONFIG), note: 'Success 80% · Buried 20%' };
 
 const prettify = (key: string): string => {
   const words = key.replace(/-/g, ' ');
@@ -298,8 +299,8 @@ export function buildGlossary(): readonly GlossaryEntry[] {
     burnable: 'map:burnable',
     burnt: 'map:burnt',
     'fears-fire': 'map:fears-fire',
-    'fire-ring': 'map:fire-ring',
-    'fall-risk': 'map:fall-risk',
+    blocked: 'map:blocked',
+    odds: 'map:odds',
     nights: 'map:nights',
     pinned: 'map:pinned',
   };
@@ -388,24 +389,7 @@ function drawFireMark(mark: FireMark, size: number): SvgNode {
   if (mark === 'burnable') return drawBurnableMark(PALETTE, size);
   if (mark === 'fears-fire') return drawFearsFireMark(PALETTE, size);
   if (mark === 'nights') return drawNightsLeft(PALETTE, 2, size);
-  if (mark === 'fall-risk') {
-    // A row of stones, two of four dark.
-    const rock = (i: number, dark: boolean): SvgNode =>
-      el('path', {
-        d: `M${i * 11 + 1} 10l-1-5 4-4 5 2 1 6z`,
-        fill: dark ? PALETTE.ramps.rock.base : 'none',
-        stroke: dark ? PALETTE.ink : PALETTE.inkSoft,
-        'stroke-width': 1,
-        'stroke-linejoin': 'round',
-        ...(dark ? {} : { 'stroke-dasharray': '2 2', opacity: 0.5 }),
-      });
-    return el('svg', { viewBox: '-2 -1 48 14', width: size * 1.6, height: size * 0.5 }, [
-      rock(0, true),
-      rock(1, true),
-      rock(2, false),
-      rock(3, false),
-    ]);
-  }
+  if (mark === 'odds') return drawOddsMark(PALETTE, 0.8, 'rocks', { size: size * 0.5 });
   const scene = renderScene({
     cells: [
       {
@@ -429,10 +413,10 @@ function drawFireMark(mark: FireMark, size: number): SvgNode {
     idPrefix: `gl-fire-${mark}`,
     frame: 'none',
   });
-  if (mark === 'fire-ring') {
-    // The ring reaches past the one hex the scene frames: widen the frame to take it in.
+  if (mark === 'blocked') {
+    // The stripes reach past the one hex the scene frames: widen the frame to take them in.
     const [x = 0, y = 0, w = 1, h = 1] = String(scene.attrs['viewBox']).split(' ').map(Number);
-    const grow = 1.1;
+    const grow = 0.6;
     return el(
       'svg',
       {
@@ -440,7 +424,21 @@ function drawFireMark(mark: FireMark, size: number): SvgNode {
         width: size * 1.14,
         height: size,
       },
-      [...scene.children, drawFireRing(MINI, { q: 0, r: 0 }, PALETTE, 1)],
+      [
+        ...scene.children,
+        drawBlockedHexes(
+          MINI,
+          [
+            { q: 0, r: 0 },
+            { q: 1, r: 0 },
+            { q: 0, r: 1 },
+          ],
+          PALETTE,
+          {
+            reason: 'fire',
+          },
+        ),
+      ],
     );
   }
   return el('svg', { ...scene.attrs, width: size * 1.14, height: size }, scene.children);

@@ -27,6 +27,8 @@ export interface OpenTip {
   readonly tapped: boolean;
   /** More to show under the text (the pack's contents), drawn by the tip layer. */
   readonly extra?: unknown;
+  /** Numbers for this one thing (an odds mark's percentages), filled into the text's `{note}`. */
+  readonly note?: string;
 }
 
 /**
@@ -38,6 +40,8 @@ export interface TipTarget {
   readonly alive: () => boolean;
   /** Whether a click's target belongs to this thing (only its own next click is swallowed after a hold). */
   readonly owns: (target: unknown) => boolean;
+  /** Numbers particular to this thing (read when the tip opens), for the text's `{note}`. */
+  readonly note?: () => string | null;
 }
 
 export interface TipClock {
@@ -193,12 +197,14 @@ export class TipController {
       this.close();
       return false;
     }
+    const note = target.note?.() ?? null;
     this.current = {
       id,
       anchor: rect,
       alive: target.alive,
       tapped,
       ...(extra === undefined ? {} : { extra }),
+      ...(note === null ? {} : { note }),
     };
     for (const fn of this.listeners) fn(this.current);
     return true;

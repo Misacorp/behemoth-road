@@ -31,15 +31,9 @@ type CreatureAppetiteSign = NonNullable<CreatureSigns['appetite']>;
 import type { JSX } from 'preact';
 import { iconOf } from '../game/chain.ts';
 import type { FireNote } from '../game/fire.ts';
-import {
-  BurnableMark,
-  FALL_ROW_H,
-  FallRisk,
-  FearsFireMark,
-  FIRE_MARK,
-  NightsMark,
-  NIGHTS_W,
-} from './FireMarks.tsx';
+import type { OddsView } from '../game/odds.ts';
+import { Odds, ODDS_H, ODDS_MARK_H, ODDS_RATIO } from './Odds.tsx';
+import { BurnableMark, FearsFireMark, NightsMark, NIGHTS_W } from './FireMarks.tsx';
 import { Pips, TickMark } from '../hud/icons.tsx';
 import type { Identity } from '../game/identity.ts';
 import { QuirkIcon, RoleEmblem, TraitIcon } from '../ui/emblems.tsx';
@@ -189,16 +183,13 @@ function CardIcon({
   x,
   y,
   size,
-  risk = false,
 }: {
   id: string;
   x: number;
   y: number;
   size: number;
-  /** The art kit's risk mark (a cracked triangle) on the icon. */
-  risk?: boolean;
 }): JSX.Element {
-  const icon = drawIcon(id, PALETTE, size, risk ? { risk: true } : {});
+  const icon = drawIcon(id, PALETTE, size);
   return toPreact({ ...icon, attrs: { ...icon.attrs, x, y, width: size, height: size } });
 }
 
@@ -803,8 +794,8 @@ export interface HereAction {
   readonly kind: string;
   /** The art kit icon it shows, when not its kind's own. */
   readonly icon?: string;
-  /** It may go wrong (a parley by a non-warden): a small risk mark on the button. */
-  readonly risk?: boolean;
+  /** Its odds, when it rolls (a parley, working a site, a struggle): drawn by the `Odds` component. */
+  readonly odds?: OddsView | null;
   readonly cost: number;
   readonly enabled: boolean;
   /** A material it takes (a fire's timber), drawn small beside the pips. */
@@ -874,7 +865,8 @@ function ActionButton({
   y,
   uses = null,
   short = false,
-  risk = false,
+  odds = null,
+  tall = false,
   needs = null,
   why = null,
   arm,
@@ -892,8 +884,10 @@ function ActionButton({
   uses?: string | null;
   /** The material is missing: drawn faded. */
   short?: boolean;
-  /** It may go wrong: a small cracked-triangle mark in the corner. */
-  risk?: boolean;
+  /** Its odds, when it rolls: the `Odds` mark in a strip along the button's foot. */
+  odds?: OddsView | null;
+  /** The button is taller by the odds strip (every button of a card with odds, so they line up). */
+  tall?: boolean;
   /** Greyed because this role can: its emblem as a badge on the corner. */
   needs?: string | null;
   /** Why it is greyed, as a tip id: the tap on a greyed button shows it (see `greyedProps`). */
@@ -944,14 +938,12 @@ function ActionButton({
       <g opacity={enabled ? 1 : 0.4}>
         <rect
           width={ACTION_W - 6}
-          height={50 + labelH()}
+          height={50 + labelH() + (tall ? ODDS_H : 0)}
           rx={9}
           fill={PALETTE.paperDeep}
           {...(armed ? { stroke: PALETTE.ink, 'stroke-width': 1.6 } : {})}
         />
-        <g data-risk={risk ? 'true' : undefined}>
-          <CardIcon id={icon} x={(ACTION_W - 6) / 2 - 14} y={3} size={28} risk={risk} />
-        </g>
+        <CardIcon id={icon} x={(ACTION_W - 6) / 2 - 14} y={3} size={28} />
         {armed ? (
           <g transform={`translate(${(ACTION_W - 6) / 2} 39)`} data-mark="armed">
             <TickMark r={10} />
@@ -982,6 +974,14 @@ function ActionButton({
             {verbOf(kind)}
           </text>
         )}
+        {odds && (
+          <Odds
+            odds={odds}
+            x={(ACTION_W - 6 - ODDS_MARK_H * ODDS_RATIO) / 2}
+            y={50 + labelH()}
+            height={ODDS_MARK_H}
+          />
+        )}
       </g>
       {needs && (
         <g data-mark="needs-role">
@@ -1004,10 +1004,13 @@ const ACTION_ICONS: Readonly<Record<string, string>> = { gather: 'hand', 'work-s
 export const actionKey = (a: HereAction): string => `${a.kind}:${a.uses ?? ''}`;
 
 // Compact, so the neighbours up-left and up-right of your figure stay tappable on a phone.
-export const hereSize = (count: number): { width: number; height: number } => ({
+export const hereSize = (count: number, odds = false): { width: number; height: number } => ({
   width: Math.max(58 + count * ACTION_W, 120),
-  height: 62 + TITLE_H + labelH(),
+  height: 62 + TITLE_H + labelH() + (odds ? ODDS_H : 0),
 });
+
+/** Whether any of a card's actions carries odds (its buttons then all grow by the odds strip). */
+export const hasOdds = (actions: readonly HereAction[]): boolean => actions.some((a) => a.odds);
 
 /**
  * Your own hex: the revealed feature there and the actions it offers (gather, work the site, light a fire),
@@ -1039,7 +1042,8 @@ export function HereCard({
   /** The tile picture's tip. */
   tileTip?: TipId | null;
 }): JSX.Element {
-  const size = hereSize(actions.length);
+  const tall = hasOdds(actions);
+  const size = hereSize(actions.length, tall);
   return (
     <g
       data-popover="here"
@@ -1072,7 +1076,8 @@ export function HereCard({
             key={actionKey(a)}
             kind={a.kind}
             icon={a.icon ?? ACTION_ICONS[a.kind] ?? a.kind}
-            risk={a.risk ?? false}
+            odds={a.odds ?? null}
+            tall={tall}
             cost={a.cost}
             enabled={a.enabled}
             x={56 + i * ACTION_W}
@@ -1116,9 +1121,9 @@ export function DistanceMarks({
 }
 
 /** The threat card, wider when it offers a strike. */
-export const threatSize = (strike: boolean, fall = false): { width: number; height: number } => ({
+export const threatSize = (strike: boolean, odds = false): { width: number; height: number } => ({
   width: 206 + (strike ? ACTION_W : 0),
-  height: 76 + (strike ? labelH() : 0) + (strike && fall ? FALL_ROW_H : 0),
+  height: 76 + (strike ? labelH() : 0) + (strike && odds ? ODDS_H : 0),
 });
 
 /**
@@ -1138,7 +1143,7 @@ export function ThreatCard({
   /** Two taps spend the strike. */
   arm?: Arming;
 }): JSX.Element {
-  const size = threatSize(threat.strike !== null, threat.fall !== null);
+  const size = threatSize(threat.strike !== null, threat.odds !== null);
   const marks = Math.min(threat.strength, 10);
   const blocked = Math.min(threat.defence, marks);
   const drawn = drawThreatIcon(threat.icon, PALETTE, 60);
@@ -1179,12 +1184,8 @@ export function ThreatCard({
         )}
       </g>
       <DistanceMarks count={threat.steps} x={72} y={56} />
-      {threat.fears && (
-        <FearsFireMark x={(threat.strike ? 206 : size.width) - FIRE_MARK - 12} y={46} />
-      )}
-      {threat.strike && threat.fall !== null && (
-        <FallRisk chance={threat.fall} x={size.width - ACTION_W + 2} y={62 + labelH()} />
-      )}
+      {/* On the picture's lower corner: clear of the strike button and the screen's round buttons. */}
+      {threat.fears && <FearsFireMark x={46} y={50} />}
       {threat.strike && (
         <ActionButton
           kind="strike"
@@ -1192,7 +1193,8 @@ export function ThreatCard({
           cost={threat.strike.cost}
           enabled={threat.strike.enabled}
           why={threat.strike.why ?? null}
-          risk={threat.fall !== null}
+          odds={threat.odds}
+          tall={threat.odds !== null}
           x={size.width - ACTION_W - 2}
           y={12}
           onRun={onStrike}

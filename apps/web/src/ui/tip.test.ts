@@ -42,6 +42,18 @@ function thing() {
 const at = thing().target;
 
 describe('tips', () => {
+  it('carry the numbers of the one thing they are on (an odds mark)', () => {
+    const { c, advance } = setup();
+    const target = { ...at, note: () => 'Success 80% · Buried 20%' };
+    c.hover('map:odds', target);
+    advance(delays.map);
+    expect(c.open?.note).toBe('Success 80% · Buried 20%');
+    c.close();
+    c.hover('map:odds', { ...at, note: () => null });
+    advance(delays.map);
+    expect(c.open?.note).toBeUndefined();
+  });
+
   it('open on hover after their group delay, and close on leaving', () => {
     const { c, advance } = setup();
     c.hover('role:scout', at);

@@ -66,6 +66,7 @@ import {
   HereCard,
   type HereAction,
   hereSize,
+  hasOdds,
   inspectSize,
   Bubble,
   characterSize,
@@ -286,7 +287,7 @@ function popoverAnchor(
   note: FireNote | null,
   tow: boolean,
   dig: boolean,
-  fall: boolean,
+  odds: boolean,
 ): Anchor | null {
   const tile = 2 * p.size * p.squash;
   const me = state.characters.find((c) => c.id === characterId);
@@ -345,10 +346,10 @@ function popoverAnchor(
     const strike = flow.kind === 'threat' ? threatCard(state, characterId, flow.id)?.strike : null;
     const lift = 0.9 * p.size;
     return {
-      key: `${flow.kind}:${flow.id}:${strike ? String(strike.enabled) : ''}${fall ? ':fall' : ''}`,
+      key: `${flow.kind}:${flow.id}:${strike ? String(strike.enabled) : ''}${odds ? ':odds' : ''}`,
       top: { x: c.x, y: c.y - lift },
       below: lift + tile / 2,
-      size: flow.kind === 'threat' ? threatSize(Boolean(strike), fall) : SETTLEMENT_SIZE,
+      size: flow.kind === 'threat' ? threatSize(Boolean(strike), odds) : SETTLEMENT_SIZE,
       ...clearOf(thing.hex),
       // A threat's card stays off its trail: its hex first, then the hexes it crosses at the next tick.
       ...(flow.kind === 'threat'
@@ -380,10 +381,10 @@ function popoverAnchor(
     if (feet) {
       const head = 0.9 * p.size;
       return {
-        key: `here:${here.feature?.look ?? ''}:${here.settlement?.id ?? ''}:${here.actions.map((a) => a.kind).join(',')}`,
+        key: `here:${here.feature?.look ?? ''}:${here.settlement?.id ?? ''}:${here.actions.map((a) => a.kind).join(',')}${hasOdds(here.actions) ? ':odds' : ''}`,
         top: { x: feet.x, y: feet.y - head },
         below: head,
-        size: hereSize(here.actions.length),
+        size: hereSize(here.actions.length, hasOdds(here.actions)),
         ...clearOf(mine),
       };
     }
@@ -528,7 +529,7 @@ export function MapView(props: MapViewProps): JSX.Element {
 
   const survey = flow.kind === 'inspect' ? (props.surveyAt?.(flow.hex) ?? null) : null;
   const fireNote = flow.kind === 'inspect' ? fireNoteAt(state, flow.hex) : null;
-  const fallCard = flow.kind === 'threat' ? threatCard(state, characterId, flow.id) : null;
+  const oddsCard = flow.kind === 'threat' ? threatCard(state, characterId, flow.id) : null;
   popover.current = popoverAnchor(
     state,
     flow,
@@ -538,7 +539,7 @@ export function MapView(props: MapViewProps): JSX.Element {
     fireNote,
     flow.kind === 'character' && !flow.back && (props.towOf?.(flow.id) ?? null) !== null,
     flow.kind === 'character' && !flow.back && (props.digOf?.(flow.id) ?? null) !== null,
-    Boolean(fallCard?.strike && fallCard.fall !== null),
+    Boolean(oddsCard?.strike && oddsCard.odds !== null),
   );
 
   function apply(): void {

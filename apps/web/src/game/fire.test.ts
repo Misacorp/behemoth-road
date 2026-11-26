@@ -1,16 +1,15 @@
 import { characterOf, hexKey, toPlayerView } from '@behemoth-road/core';
 import { describe, expect, it } from 'vitest';
 import { type SeasonStage, seasonScenario, USERS } from '../api/fixtures.ts';
-import { fireFearedNear, fireRings } from '../map/overlays.ts';
+import { blockedOverlay, blockedSubject, fireGlows } from '../map/overlays.ts';
 import { PALETTE, PROJECTION } from '../map/art.ts';
 import { burntKeys, featureArtAt, isBrazierAt, sceneCells, characterArts } from '../map/cells.ts';
 import { mapTipAt } from '../map/mapTips.ts';
-import { fallPips } from '../map/FireMarks.tsx';
 import { IDLE } from '../map/flow.ts';
 import { momentsFromEvents } from './moments.ts';
 import { rosterRows } from '../roster/model.ts';
 import { tipMarkOf } from '../ui/tipMarks.ts';
-import { digOption, fireNoteAt, greyedForPin, takesFire } from './fire.ts';
+import { digOption, fireNoteAt, greyedForPin, struggleOption, takesFire } from './fire.ts';
 import { threatCard } from './season.ts';
 import { toView } from '../api/fixtures.ts';
 
@@ -84,25 +83,44 @@ describe('burnt ground', () => {
   });
 });
 
-describe('the fire ring', () => {
-  it('shows only while a threat that fears fire is on the map', () => {
-    const none = staged({ brazierLit: 2 });
-    const input = (v: typeof none.view) => ({
-      state: v,
-      projection: PROJECTION,
-      palette: PALETTE,
-      flow: IDLE,
-      characterId: none.me,
-    });
-    expect(fireFearedNear(none.view)).toBe(false);
-    expect(fireRings(input(none.view) as never)).toEqual([]);
-    const swarm = staged({ brazierLit: 2, threats: [{ type: 'swarm', at: { q: 3, r: 4 } }] });
-    expect(fireFearedNear(swarm.view)).toBe(true);
-    const rings = fireRings(input(swarm.view) as never);
-    expect(rings).toHaveLength(1);
-    expect(rings[0]!.attrs['data-fire-ring']).toBe(`${swarm.abs(START).q},${swarm.abs(START).r}`);
+describe('the blocked overlay and the fire glow', () => {
+  const input = (v: ReturnType<typeof staged>['view'], me: string, flow = IDLE as never) => ({
+    state: v,
+    projection: PROJECTION,
+    palette: PALETTE,
+    flow,
+    characterId: me,
+  });
+
+  it('draws a glow for each lit brazier, at its reveal radius, and none when cold', () => {
+    const lit = staged({ brazierLit: 2 });
+    const glows = fireGlows(input(lit.view, lit.me) as never);
+    expect(glows).toHaveLength(1);
+    expect(glows[0]!.attrs['data-fire-glow']).toBe(`${lit.abs(START).q},${lit.abs(START).r}`);
+    const cold = staged({ brazier: true });
+    expect(fireGlows(input(cold.view, cold.me) as never)).toEqual([]);
+  });
+
+  it('shows stripes only for the selected fire-fearing threat, and clears when it is not', () => {
+    const s = staged({ brazierLit: 2, threats: [{ type: 'swarm', at: { q: 3, r: 4 } }] });
+    const id = s.view.threats[0]!.id;
+    expect(blockedOverlay(input(s.view, s.me) as never)).toEqual([]);
+    const flow = { kind: 'threat', id } as never;
+    expect(blockedSubject(input(s.view, s.me, flow) as never)?.tags).toContain('fears-fire');
+    const drawn = blockedOverlay(input(s.view, s.me, flow) as never);
+    expect(drawn).toHaveLength(1);
+    expect(drawn[0]!.attrs['data-blocked']).toBeGreaterThan(0);
+    // Closing the popover (back to no flow) clears it.
+    expect(blockedOverlay(input(s.view, s.me, IDLE as never) as never)).toEqual([]);
+  });
+
+  it('draws nothing for a threat that fears nothing, or with no fire burning', () => {
     const slide = staged({ brazierLit: 2, threats: [{ type: 'rockslide', at: { q: 3, r: 4 } }] });
-    expect(fireRings(input(slide.view) as never)).toEqual([]);
+    const flow = { kind: 'threat', id: slide.view.threats[0]!.id } as never;
+    expect(blockedOverlay(input(slide.view, slide.me, flow) as never)).toEqual([]);
+    const dark = staged({ threats: [{ type: 'swarm', at: { q: 3, r: 4 } }] });
+    const flow2 = { kind: 'threat', id: dark.view.threats[0]!.id } as never;
+    expect(blockedOverlay(input(dark.view, dark.me, flow2) as never)).toEqual([]);
   });
 });
 
@@ -118,17 +136,8 @@ describe('tip marks', () => {
   });
 });
 
-describe('the rockslide risk', () => {
-  it('scales the stone pips to the chance', () => {
-    expect(fallPips(0)).toBe(0);
-    expect(fallPips(0.01)).toBe(1);
-    expect(fallPips(0.25)).toBe(1);
-    expect(fallPips(0.5)).toBe(2);
-    expect(fallPips(1)).toBe(4);
-    expect(fallPips(Number.NaN)).toBe(0);
-  });
-
-  it('the card carries the viewer’s own chance, and the fear mark for a swarm', () => {
+describe('the rockslide odds', () => {
+  it('the card carries the viewer’s own odds, and the fear mark for a swarm', () => {
     const s = staged({
       threats: [
         { type: 'rockslide', at: NEAR },
@@ -137,17 +146,18 @@ describe('the rockslide risk', () => {
     });
     const [slide, swarm] = s.view.threats;
     const card = threatCard(s.view, s.me, slide!.id)!;
-    expect(card.fall).toBe(s.view.config.slideFallChance);
+    expect(card.odds?.success).toBeCloseTo(1 - s.view.config.slideFallChance);
+    expect(card.odds?.art).toBe('rocks');
     expect(card.fears).toBe(false);
     const other = threatCard(s.view, s.me, swarm!.id)!;
-    expect(other.fall).toBeNull();
+    expect(other.odds).toBeNull();
     expect(other.fears).toBe(true);
   });
 
-  it('is smaller for an engineer', () => {
+  it('is better for an engineer', () => {
     const s = staged({ role: 'engineer', threats: [{ type: 'rockslide', at: NEAR }] });
     const card = threatCard(s.view, s.me, s.view.threats[0]!.id)!;
-    expect(card.fall).toBe(s.view.config.slideFallChance * 0.5);
+    expect(card.odds?.success).toBeCloseTo(1 - s.view.config.slideFallChance * 0.5);
   });
 });
 
@@ -186,6 +196,31 @@ describe('pinned characters', () => {
   });
 });
 
+describe('struggling free', () => {
+  it('is offered to the pinned self with odds that grow with each failed try', () => {
+    const chances = [0, 1, 2, 3, 4].map((n) => {
+      const s = staged({ pinned: ['me'], pinnedActions: 2, struggles: n });
+      return struggleOption(s.view, s.me)?.odds?.percent.success;
+    });
+    expect(chances).toEqual([20, 40, 60, 80, undefined]);
+  });
+
+  it('is faded without actions, and not offered when free', () => {
+    const tired = staged({ pinned: ['me'] });
+    expect(struggleOption(tired.view, tired.me)).toMatchObject({
+      enabled: false,
+      why: 'why:not-enough-actions',
+    });
+    const free = staged({});
+    expect(struggleOption(free.view, free.me)).toBeNull();
+  });
+
+  it('drops odds from the actions greyed by the pin', () => {
+    const greyed = greyedForPin([{ kind: 'parley', enabled: true, odds: { success: 0.5 } }]);
+    expect(greyed[0]).not.toHaveProperty('odds');
+  });
+});
+
 describe('moments for pinned and dug-out', () => {
   const where = {
     threat: () => null,
@@ -203,5 +238,15 @@ describe('moments for pinned and dug-out', () => {
     expect(momentsFromEvents([{ kind: 'dug-out', characterId: 'zz' }], centre, 'x', where)).toEqual(
       [],
     );
+  });
+
+  it('plays a failed struggle as the stones heaving, and a freeing one as the dig-out', () => {
+    const ev = (freed: boolean) => [{ kind: 'struggled', characterId: 'c1', freed }];
+    expect(momentsFromEvents(ev(false), centre, 'c1', where)).toEqual([
+      { kind: 'struggled', hex: { q: 2, r: 3 } },
+    ]);
+    expect(momentsFromEvents(ev(true), centre, 'c1', where)).toEqual([
+      { kind: 'dug-out', hex: { q: 2, r: 3 } },
+    ]);
   });
 });

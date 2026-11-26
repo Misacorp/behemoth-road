@@ -12,7 +12,8 @@ import {
   actionArrowNodes,
   drawCharacter,
   drawEscortRing,
-  drawFireRing,
+  drawBlockedHexes,
+  drawFireGlow,
   drawStayMark,
   drawStepHint,
   drawIcon,
@@ -35,9 +36,10 @@ import {
   type PathStep,
   type Place,
   type ReachablePlace,
+  blockedFor,
+  type BlockSubject,
   checkAction,
   creatureHexes,
-  FEARS_FIRE_TAG,
   featureType,
   firesBurning,
   hazardAt,
@@ -774,21 +776,40 @@ function stoneMarks(i: OverlayInput): SvgNode[] {
   });
 }
 
-/** Whether a threat that keeps clear of fire (content tag `fears-fire`) stands on the map. */
-export function fireFearedNear(state: GameStateView): boolean {
-  return state.threats.some((t) =>
-    THREAT_TYPES.find((x) => x.id === t.type)?.tags.includes(FEARS_FIRE_TAG),
-  );
+/**
+ * The subject whose blocked hexes are on show: whatever has its card open (a threat today). Anything with
+ * `tags` can be added here later, and the overlay below draws it with no other change.
+ */
+export function blockedSubject(i: OverlayInput): BlockSubject | null {
+  if (i.flow.kind !== 'threat') return null;
+  const id = i.flow.id;
+  const type = i.state.threats.find((t) => t.id === id)?.type;
+  return THREAT_TYPES.find((t) => t.id === type) ?? null;
 }
 
 /**
- * The reach of every burning fire, over the hexes a fire-fearing threat will not enter, drawn only while
- * such a threat is on the map (otherwise the ring is noise).
+ * The generic blocked overlay: the hexes the selected subject will not enter (the core's `blockedFor`), as
+ * stripes, one group per reason. Nothing is drawn while no subject is selected, so closing its popover
+ * clears it.
  */
-export function fireRings(i: OverlayInput): SvgNode[] {
-  if (!fireFearedNear(i.state)) return [];
-  return firesBurning(i.state).map((s) =>
-    drawFireRing(i.projection, s.hex, i.palette, i.state.config.fireFearRadius),
+export function blockedOverlay(i: OverlayInput): SvgNode[] {
+  const subject = blockedSubject(i);
+  if (!subject) return [];
+  const byReason = new Map<string, Hex[]>();
+  for (const b of blockedFor(i.state, subject)) {
+    const list = byReason.get(b.reason) ?? [];
+    list.push(b.hex);
+    byReason.set(b.reason, list);
+  }
+  return [...byReason].map(([reason, hexes]) =>
+    drawBlockedHexes(i.projection, hexes, i.palette, { reason }),
+  );
+}
+
+/** The warm glow on the ground round every lit brazier, as wide as the hexes it shows (none when unlit). */
+export function fireGlows(i: OverlayInput): SvgNode[] {
+  return firesBurning(i.state).flatMap((s) =>
+    s.reveal === undefined ? [] : [drawFireGlow(i.projection, s.hex, i.palette, s.reveal)],
   );
 }
 
@@ -801,7 +822,8 @@ export function buildOverlays(i: OverlayInput): Overlays {
   const grace = graceHexes(i);
   under.push(...graceTiles(i, grace));
   under.push(...escortRings(i));
-  under.push(...fireRings(i));
+  under.push(...fireGlows(i));
+  under.push(...blockedOverlay(i));
   under.push(...exploredEmpty(i));
   under.push(...traceMarks(i));
   const feet = figureFeet(i.state, i.characterId, i.projection);
