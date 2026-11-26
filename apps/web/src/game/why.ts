@@ -59,15 +59,15 @@ export const WHY_BY_REFUSAL: Readonly<Record<ActRefusal, TipId>> = {
   'seat-taken': 'why:busy',
   'not-hitched': 'why:other',
   'not-aboard': 'why:other',
-  aboard: 'why:other',
-  hitched: 'why:other',
+  aboard: 'why:aboard',
+  hitched: 'why:hitched',
   'cart-full': 'why:pack-full',
   'cart-empty': 'why:nothing',
   'no-material': 'why:nothing',
   'no-room': 'why:wrong-place',
   // Leading a lure: no such lure, no leads left, or nowhere open to lead it.
   'no-lure': 'why:other',
-  settled: 'why:done',
+  settled: 'why:settled',
   blocked: 'why:wrong-place',
   // Skills (the tree drawer): each refusal has its own reason.
   'unknown-skill': 'why:other',

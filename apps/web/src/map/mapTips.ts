@@ -1,6 +1,6 @@
 /**
- * Which tip a spot on the map has: a threat, a settlement, a struck or escorted character, or a fire, in
- * that order. Only what the player can already see; nothing about what is hidden.
+ * Which tip a spot on the map has: a threat, a settlement, a struck or escorted character, a lure animal,
+ * the cart, or a fire, in that order. Only what the player can already see; nothing about what is hidden.
  */
 import {
   FEATURE_TYPES,
@@ -23,6 +23,9 @@ export function mapTipAt(game: GameStateView, h: Hex): TipId | null {
   if (threat) return tipFor('threat', threat.type);
   const settlement = game.settlements.find((s) => same(s.hex, h));
   if (settlement) return tipFor('settlement', settlement.attitude);
+  // A lure animal and the cart: what they are (the figure's own tip; a character standing there wins below).
+  const lure = game.lures.find((l) => same(l.hex, h));
+  const cart = game.carts.find((c) => same(c.hex, h));
   const here = game.characters.filter(
     (c) => c.status === 'active' && c.at.kind === 'hex' && same(c.at.hex, h),
   );
@@ -32,6 +35,8 @@ export function mapTipAt(game: GameStateView, h: Hex): TipId | null {
   if (here.some((c) => stranded(game, c.id))) return 'map:stranded';
   const escorted = escortedIds(game);
   if (here.some((c) => escorted.has(c.id))) return 'map:escort';
+  if (lure) return lure.leadsLeft > 0 ? 'map:lure' : 'map:lure-settled';
+  if (cart) return 'map:cart';
   if (game.stimuli.some((s) => hexKey(s.hex) === hexKey(h))) {
     return isBrazierAt(game, hexKey(h)) ? 'map:fire-brazier' : 'map:fire';
   }

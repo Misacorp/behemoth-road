@@ -26,7 +26,10 @@ import {
   planPath,
 } from '@behemoth-road/core';
 import { revealedFeatureAt } from '@behemoth-road/core';
+import { moveRefusalTip } from '../game/cart.ts';
+import { canLeadTo, lureById } from '../game/lure.ts';
 import { settlementAt, threatAt } from '../game/season.ts';
+import type { TipId } from '../text/tips.ts';
 import type { Target } from './pick.ts';
 
 export type Flow =
@@ -47,6 +50,15 @@ export type Flow =
   | { readonly kind: 'threat'; readonly id: string; readonly back?: Flow }
   /** Looking at a settlement from afar: its card shows its attitude and favour. */
   | { readonly kind: 'settlement'; readonly id: string; readonly back?: Flow }
+  /** Looking at a lure animal: its card shows its leads left and, within reach, the lead button. */
+  | { readonly kind: 'lure'; readonly id: string }
+  /**
+   * Leading a lure: the hexes it can be led onto are lit; a tap on one shows the arrow and the cost (`to`),
+   * the confirm leads it. A tap anywhere else lets go.
+   */
+  | { readonly kind: 'lead'; readonly id: string; readonly to?: Hex }
+  /** Looking at the cart: hitch, board, load and unload. */
+  | { readonly kind: 'cart'; readonly id: string }
   /** Looking at the creature (the hub): its card shows it and its heading. */
   | { readonly kind: 'creature' }
   /**
@@ -60,7 +72,7 @@ export type Flow =
    * Selected, and a hex it cannot reach was tapped: the out-of-reach mark shows there for a moment. The
    * same hex tapped again is looked at.
    */
-  | { readonly kind: 'out-of-reach'; readonly hex: Hex }
+  | { readonly kind: 'out-of-reach'; readonly hex: Hex; readonly why?: TipId }
   /** A path is planned and waits for confirmation. */
   | {
       readonly kind: 'planned';
@@ -79,7 +91,8 @@ export const isSelecting = (flow: Flow): boolean =>
   (flow.kind === 'bubble' && flow.selecting);
 
 /** Whether a popover is open only to be looked at: the next map tap closes it and does nothing more. */
-export const isPopover = (flow: Flow): boolean => flow.kind !== 'idle' && !isSelecting(flow);
+export const isPopover = (flow: Flow): boolean =>
+  flow.kind !== 'idle' && flow.kind !== 'lead' && !isSelecting(flow);
 
 /**
  * Looking at a hex: a settlement's card on a settlement, else the inspect card. The same tap again closes it.
@@ -190,13 +203,44 @@ function shareOf(flow: Flow, state: GameStateView, characterId: string, hex: Hex
   return { kind: 'pick', hex: { q: hex.q, r: hex.r } };
 }
 
+/**
+ * A tap while leading a lure: on a hex it can be led onto, that is the target (the arrow and the cost show,
+ * the confirm leads it); anywhere else lets go.
+ */
+function tapLead(
+  flow: Extract<Flow, { kind: 'lead' }>,
+  state: GameStateView,
+  target: Target,
+): Flow {
+  const lure = lureById(state, flow.id);
+  if (!lure || target.kind !== 'hex' || !canLeadTo(state, lure, target.hex)) return IDLE;
+  return { kind: 'lead', id: flow.id, to: { q: target.hex.q, r: target.hex.r } };
+}
+
+/** The button on a lure's card: lead mode, with the targets lit (a tap on the same button again lets go). */
+export const startLead = (flow: Flow): Flow =>
+  flow.kind === 'lure' ? { kind: 'lead', id: flow.id } : flow;
+
 /** What a tap does. */
 export function tap(flow: Flow, state: GameStateView, characterId: string, target: Target): Flow {
+  if (flow.kind === 'lead') return tapLead(flow, state, target);
   // A popover being looked at: the tap closes it and nothing more (a second tap opens what it lands on).
   if (isPopover(flow)) return IDLE;
   const me = findCharacter(state, characterId);
   const active = me?.status === 'active';
   const mine: Place | null = active ? me.at : null;
+  if (target.kind === 'lure' || target.kind === 'cart') {
+    const thing =
+      target.kind === 'lure'
+        ? state.lures.find((l) => l.id === target.id)
+        : state.carts.find((c) => c.id === target.id);
+    if (!thing) return flow;
+    // Selected, a lure or cart on another hex is a place to walk to, like the hex under it.
+    if (isSelecting(flow) && !(mine?.kind === 'hex' && hexEquals(mine.hex, thing.hex))) {
+      return tap(flow, state, characterId, { kind: 'hex', hex: thing.hex });
+    }
+    return { kind: target.kind, id: target.id };
+  }
   if (target.kind === 'character') {
     // Another player's character on a tile shared with something else: the picker; else its card (you
     // can only move your own). Again closes.
@@ -235,9 +279,11 @@ export function tap(flow: Flow, state: GameStateView, characterId: string, targe
       return { kind: 'planned', to, steps: plan.steps, cost: plan.cost };
     }
     // Out of reach: the mark first (a settlement still opens its card); the same hex again is looked at.
+    // A refusal the cart gives (you sit in it, it cannot roll there) says why, with a tip.
     const again = flow.kind === 'out-of-reach' && hexEquals(flow.hex, to.hex);
+    const why = plan.ok ? null : moveRefusalTip(plan.reason);
     if (!again && settlementAt(state, to.hex) === null)
-      return { kind: 'out-of-reach', hex: to.hex };
+      return { kind: 'out-of-reach', hex: to.hex, ...(why ? { why } : {}) };
   }
   return look(flow, state, to.hex);
 }

@@ -220,6 +220,8 @@ export interface ChainStage {
    * holds the core's `Reaction` (attracted, repelled, indifferent); a keeper reads it as toward, away, unmoved.
    */
   readonly cues?: readonly { readonly at: Hex; readonly reaction: Reaction }[];
+  /** The stimulus id the cues name (default `fire`; a lure's is its type id, `capybara`). */
+  readonly cueStimulus?: string;
   readonly lingering?: boolean;
   readonly lingeredDay?: number | null;
   /** Skills: XP earned, and the nodes already taken (set up, not played). */
@@ -351,7 +353,7 @@ export function chainScenario(stage: ChainStage = {}): Scenario {
         day,
         list: (stage.cues ?? []).map((cue) => ({
           hex: abs(cue.at),
-          stimulus: 'fire',
+          stimulus: stage.cueStimulus ?? 'fire',
           reaction: cue.reaction,
         })),
       },
@@ -399,6 +401,19 @@ export interface SeasonStage extends ChainStage {
     readonly type: string;
     readonly at: Hex;
     readonly strength?: number;
+    /** The scree field that laid it. */
+    readonly patch?: string;
+  }[];
+  /** Ground set to a terrain (explored), as offsets from the centre: a glass waste, a poisoned lake. */
+  readonly terrains?: readonly { readonly at: Hex; readonly terrain: string }[];
+  /** Lure animals, as offsets from the centre; `leadsLeft` 0 is settled (default the content's leads). */
+  readonly lures?: readonly { readonly at: Hex; readonly leadsLeft?: number }[];
+  /** Carts, as offsets from the centre, with what they carry and who pulls or rides (me, Pip or Ola). */
+  readonly carts?: readonly {
+    readonly at: Hex;
+    readonly cargo?: Readonly<Record<string, number>>;
+    readonly puller?: 'me' | 'pip' | 'ola';
+    readonly rider?: 'me' | 'pip' | 'ola';
   }[];
   /** Settlements of the hill folk, as offsets from the centre. */
   readonly settlements?: readonly {
@@ -441,7 +456,33 @@ export function seasonScenario(stage: SeasonStage = {}): Scenario {
       hex: abs(t.at),
       strength: t.strength ?? 3,
       appearedDay: day,
+      ...(t.patch ? { patch: t.patch } : {}),
     })),
+    tiles: Object.fromEntries(
+      Object.entries(s.state.tiles).map(([k, tile]) => {
+        const set = (stage.terrains ?? []).find((x) => `${c.q + x.at.q},${c.r + x.at.r}` === k);
+        return [k, set ? { ...tile, terrain: set.terrain, explored: true } : tile];
+      }),
+    ),
+    lures: (stage.lures ?? []).map((l, i) => ({
+      id: `lure-${String(i + 1)}`,
+      type: 'capybara',
+      hex: abs(l.at),
+      leadsLeft: l.leadsLeft ?? s.state.config.lureLeads,
+    })),
+    carts: (stage.carts ?? []).map((cart, i) => {
+      const who = (w: 'me' | 'pip' | 'ola' | undefined): string | null => {
+        const user = w ? { me: MISA, pip: PIP, ola: OLA }[w] : null;
+        return s.state.characters.find((ch) => ch.userId === user)?.id ?? null;
+      };
+      return {
+        id: `cart-${String(i + 1)}`,
+        hex: abs(cart.at),
+        cargo: { ...cart.cargo },
+        puller: who(cart.puller),
+        rider: who(cart.rider),
+      };
+    }),
     settlements: (stage.settlements ?? []).map((x, i) => ({
       id: `settlement-${String(i + 1)}`,
       type: 'hill-folk',

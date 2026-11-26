@@ -9,7 +9,10 @@
  */
 import {
   ART_TUNING,
+  drawCapybara,
+  drawCart,
   drawCharacter,
+  drawHazardIcon,
   drawIcon,
   drawMoment,
   drawVeilLift,
@@ -288,6 +291,101 @@ export function MomentMark({
             {at(drawMisledMark(PALETTE, icon), c.x, c.y - 0.4 * p.size, icon)}
           </Marked>
         </g>
+      );
+      break;
+    // Hazards and the lure: the harmful ground the creature stepped onto, a lure led, settled, or fled.
+    case 'hazard-step':
+      body = (
+        <g>
+          <Marked kind="snap">{at(drawM5Moment('strike', PALETTE, size), c.x, c.y, size)}</Marked>
+          <Marked kind="rise">
+            {at(drawHazardIcon(moment.terrain, PALETTE, icon), c.x, c.y - 0.5 * p.size, icon)}
+          </Marked>
+        </g>
+      );
+      break;
+    case 'lure-led':
+      body = (
+        <Marked kind="rise">
+          {at(drawIcon('lead', PALETTE, icon), c.x, c.y - 0.7 * p.size, icon)}
+        </Marked>
+      );
+      break;
+    case 'lure-settled':
+      body = (
+        <Marked kind="bloom">{at(drawMoment('linger', PALETTE, size), c.x, c.y, size)}</Marked>
+      );
+      break;
+    case 'lure-fled':
+      body = (
+        <Marked kind="lift">
+          <g>
+            {drawCapybara(PALETTE, 'normal', {
+              origin: { x: c.x, y: c.y + 0.12 * p.size },
+              k: p.size / 64,
+              squash: p.squash,
+              seed: 'fled',
+            }).nodes.map(toPreact)}
+          </g>
+        </Marked>
+      );
+      break;
+    // The cart: built, taken up, let go, loaded, unloaded, lost.
+    case 'cart-built':
+      body = <Marked kind="burst">{at(drawMoment('find', PALETTE, size), c.x, c.y, size)}</Marked>;
+      break;
+    case 'cart-take':
+      body = (
+        <Marked kind="rise">
+          {at(
+            drawIcon(moment.how === 'hitch' ? 'hitch' : 'board-cart', PALETTE, icon),
+            c.x,
+            c.y - 0.7 * p.size,
+            icon,
+          )}
+        </Marked>
+      );
+      break;
+    case 'cart-leave':
+      body = (
+        <Marked kind="lift">
+          {at(
+            drawIcon(moment.how === 'hitch' ? 'hitch' : 'board-cart', PALETTE, icon, {
+              done: true,
+            }),
+            c.x,
+            c.y - 0.7 * p.size,
+            icon,
+          )}
+        </Marked>
+      );
+      break;
+    case 'cart-load':
+      body = (
+        <Marked kind="drop">
+          {at(drawIcon(iconOf(moment.item), PALETTE, icon), c.x, c.y - 0.6 * p.size, icon)}
+        </Marked>
+      );
+      break;
+    case 'cart-unload':
+      body = (
+        <Marked kind="rise">
+          {at(drawIcon(iconOf(moment.item), PALETTE, icon), c.x, c.y - 0.6 * p.size, icon)}
+        </Marked>
+      );
+      break;
+    case 'cart-lost':
+      body = (
+        <Marked kind="lift">
+          <g>
+            {drawCart(PALETTE, 'empty', {
+              origin: { x: c.x - 0.1 * p.size, y: c.y + 0.1 * p.size },
+              k: p.size / 64,
+              squash: p.squash,
+              seed: 'lost',
+            }).nodes.map(toPreact)}
+          </g>
+        </Marked>
       );
       break;
     case 'unlock': {

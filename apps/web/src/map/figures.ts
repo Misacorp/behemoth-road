@@ -10,7 +10,7 @@ import {
   riderAnchor,
   riderSeats,
 } from '@behemoth-road/art';
-import { type GameStateView, hexKey, type Place } from '@behemoth-road/core';
+import { type GameStateView, type Hex, hexKey, type Place } from '@behemoth-road/core';
 import { creatureArt } from './cells.ts';
 import type { OtherFigure, Point } from './pick.ts';
 
@@ -59,6 +59,18 @@ export function placePoint(
     : figureAnchor(p, place.hex);
 }
 
+/** Where a lure animal stands on its hex (its feet), a little in front of the middle. */
+export const lureFeet = (p: Projection, h: Hex): Point => {
+  const c = hexCenter(p, h.q, h.r);
+  return { x: c.x, y: c.y + 0.12 * p.size };
+};
+
+/** Where the cart's wheel stands on its hex: behind and to the right of where a character stands. */
+export const cartFeet = (p: Projection, h: Hex): Point => {
+  const c = hexCenter(p, h.q, h.r);
+  return { x: c.x - 0.1 * p.size, y: c.y + 0.1 * p.size };
+};
+
 /**
  * Figures a tap can land on, for picking: characters standing on hexes. Riders are not tap targets of
  * their own; a tap anywhere on the creature means the creature.
@@ -75,8 +87,12 @@ export function pickableFeet(
   };
   return {
     mine: onHex.some((c) => c.id === characterId) ? (feet(characterId)[0] ?? null) : null,
-    others: onHex
-      .filter((c) => c.id !== characterId)
-      .flatMap((c) => feet(c.id).map((f) => ({ id: c.id, feet: f }))),
+    others: [
+      ...onHex
+        .filter((c) => c.id !== characterId)
+        .flatMap((c) => feet(c.id).map((f): OtherFigure => ({ id: c.id, feet: f }))),
+      ...state.lures.map((l): OtherFigure => ({ id: l.id, feet: lureFeet(p, l.hex), kind: 'lure' })),
+      ...state.carts.map((c): OtherFigure => ({ id: c.id, feet: cartFeet(p, c.hex), kind: 'cart' })),
+    ],
   };
 }

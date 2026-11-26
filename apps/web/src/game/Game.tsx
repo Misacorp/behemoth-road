@@ -37,6 +37,7 @@ import {
   openCharacter,
   openHub,
   rightClick,
+  startLead,
   tap,
 } from '../map/flow.ts';
 import { type FocusTarget, type Here, MapView } from '../map/MapView.tsx';
@@ -337,7 +338,7 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
   useEffect(() => {
     if (planVersion.current !== view.version) {
       planVersion.current = view.version;
-      setFlow((f) => (f.kind === 'planned' ? IDLE : f));
+      setFlow((f) => (f.kind === 'planned' || f.kind === 'lead' ? IDLE : f));
     }
   }, [view.version]);
 
@@ -374,6 +375,21 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
   }
 
   const onConfirm = (): void => {
+    if (flow.kind === 'lead' && flow.to) {
+      // Leading the lure to the chosen hex; with leads and actions left its card stays for the next lead.
+      const { id: lure, to } = flow;
+      void act(
+        () => api.act(view.version, { kind: 'lead', lure, to }),
+        (next) => {
+          const mine = next.game.characters.find((c) => c.id === next.you.characterId);
+          const left = next.game.lures.find((l) => l.id === lure);
+          return left && left.leadsLeft > 0 && mine && mine.actionsLeft > 0
+            ? { kind: 'lure', id: lure }
+            : IDLE;
+        },
+      );
+      return;
+    }
     if (flow.kind !== 'planned') return;
     const path = flow.steps.map((s) => s.place);
     void act(
@@ -471,6 +487,28 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
         stillSelected,
       );
     }
+  };
+  // The lure's lead button: lead mode on (the hexes it can go to light up), or off again.
+  const onLead = (): void =>
+    setFlow((f) =>
+      f.kind === 'lead' ? { kind: 'lure', id: f.id } : f.kind === 'lure' ? startLead(f) : f,
+    );
+  // The cart's card stays open through its actions, so the cart is seen to change.
+  const onCart = (kind: 'hitch' | 'unhitch' | 'board-cart' | 'leave-cart'): void => {
+    if (flow.kind !== 'cart') return;
+    const keep: Flow = { kind: 'cart', id: flow.id };
+    void act(
+      () => api.act(view.version, { kind }),
+      () => keep,
+    );
+  };
+  const onCartMove = (kind: 'load' | 'unload', material: string): void => {
+    if (flow.kind !== 'cart') return;
+    const keep: Flow = { kind: 'cart', id: flow.id };
+    void act(
+      () => api.act(view.version, { kind, material, amount: 1 }),
+      () => keep,
+    );
   };
   // Throwing the line from the target's card: the card closes, and the line shows on their figure.
   const towOf = (id: string) => (me?.status === 'active' ? throwOption(state, me.id, id) : null);
@@ -723,6 +761,9 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
         onThrow={onThrow}
         digOf={digOf}
         onDig={onDig}
+        onLead={onLead}
+        onCart={onCart}
+        onCartMove={onCartMove}
       />
       <PerilEdge peril={state.peril} max={state.config.perilMax} />
       <DayCountdown

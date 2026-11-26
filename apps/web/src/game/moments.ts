@@ -57,7 +57,20 @@ export type Moment =
   /** A falling slide pinned a character: stones come down on their hex. */
   | { readonly kind: 'pinned'; readonly hex: Hex; readonly mine: boolean }
   /** A pinned character was freed: the stones lift away. */
-  | { readonly kind: 'dug-out'; readonly hex: Hex };
+  | { readonly kind: 'dug-out'; readonly hex: Hex }
+  /** The creature's step ended on harmful ground (`terrain`): a snap on its new centre, the hazard rising. */
+  | { readonly kind: 'hazard-step'; readonly hex: Hex; readonly terrain: string }
+  /** A lure animal was led a hex (`hex` is where it went), settled with its last lead, or fled the creature. */
+  | { readonly kind: 'lure-led'; readonly hex: Hex; readonly from: Hex }
+  | { readonly kind: 'lure-settled'; readonly hex: Hex }
+  | { readonly kind: 'lure-fled'; readonly hex: Hex }
+  /** The cart: built, taken up (hitched or boarded), let go (unhitched or left), loaded, unloaded, lost. */
+  | { readonly kind: 'cart-built'; readonly hex: Hex }
+  | { readonly kind: 'cart-take'; readonly hex: Hex; readonly how: 'hitch' | 'board' }
+  | { readonly kind: 'cart-leave'; readonly hex: Hex; readonly how: 'hitch' | 'board' }
+  | { readonly kind: 'cart-load'; readonly hex: Hex; readonly item: string }
+  | { readonly kind: 'cart-unload'; readonly hex: Hex; readonly item: string }
+  | { readonly kind: 'cart-lost'; readonly hex: Hex };
 
 /** How long a moment stays on screen, in ms (its CSS animation is as long). */
 export const MOMENT_MS = 1400;
@@ -87,6 +100,8 @@ export interface EventLike {
   /** A creature step's start and end; peril before and after. */
   readonly from?: Hex | number | undefined;
   readonly to?: Hex | number | undefined;
+  /** A hazard step's terrain. */
+  readonly terrain?: string | undefined;
   /** Why peril changed (signed amounts by source id). */
   readonly sources?: readonly { readonly source: string; readonly amount: number }[] | undefined;
 }
@@ -209,8 +224,26 @@ export function momentsFromEvents(
       });
     } else if (e.kind === 'unlock-done' && e.unlock) {
       out.push({ kind: 'unlock', hex: centre, item: e.unlock });
+    } else if (e.kind === 'lure-led' && typeof e.to === 'object' && typeof e.from === 'object') {
+      out.push({ kind: 'lure-led', hex: e.to, from: e.from });
     } else if (!e.hex) {
       continue;
+    } else if (e.kind === 'hazard-step') {
+      out.push({ kind: 'hazard-step', hex: e.hex, terrain: e.terrain ?? '' });
+    } else if (e.kind === 'lure-settled' || e.kind === 'lure-fled') {
+      out.push({ kind: e.kind, hex: e.hex });
+    } else if (e.kind === 'cart-built' || e.kind === 'cart-lost') {
+      out.push({ kind: e.kind, hex: e.hex });
+    } else if (e.kind === 'hitched' || e.kind === 'boarded-cart') {
+      out.push({ kind: 'cart-take', hex: e.hex, how: e.kind === 'hitched' ? 'hitch' : 'board' });
+    } else if (e.kind === 'unhitched' || e.kind === 'left-cart') {
+      out.push({ kind: 'cart-leave', hex: e.hex, how: e.kind === 'unhitched' ? 'hitch' : 'board' });
+    } else if ((e.kind === 'loaded' || e.kind === 'unloaded') && e.material) {
+      out.push({
+        kind: e.kind === 'loaded' ? 'cart-load' : 'cart-unload',
+        hex: e.hex,
+        item: e.material,
+      });
     } else if (e.kind === 'explore' || e.kind === 'reveal') {
       out.push({ kind: e.kind, hex: e.hex });
     } else if (e.kind === 'trap') {
