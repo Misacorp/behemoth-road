@@ -30,6 +30,7 @@ import {
   nourishment,
   reactionTo,
 } from './care.ts';
+import { cartSpot } from './cart.ts';
 import { chooseCreatureStep } from './creature.ts';
 import {
   addFeatures,
@@ -46,6 +47,7 @@ import { hashString, hashToUnit, pickWeighted } from './random.ts';
 import { ON_CREATURE } from './places.ts';
 import type {
   Care,
+  Cart,
   Character,
   Creature,
   GameState,
@@ -432,14 +434,42 @@ export const nextDayWithEvents = (
     lost.push({ kind: 'lost', characterId: c.id, hex: c.at.hex });
     return { ...unpinned(c), status: 'lost', actionsLeft: 0, waiting: false, pack: {} };
   });
+  // Carts: one under the creature's footprint is pushed to the nearest free rollable hex (its puller and
+  // rider were picked up, so they let go); one left out of reach is lost with its cargo. Nothing else moves it.
+  const carts: Cart[] = [];
+  const cartEvents: GameEvent[] = [];
+  for (const cart of moved.carts) {
+    const spot = isCreatureHex(moved, cart.hex)
+      ? cartSpot(moved, cart.hex)
+      : isReachable(moved, cart.hex)
+        ? cart.hex
+        : null;
+    if (spot === null) {
+      cartEvents.push({ kind: 'cart-lost', cart: cart.id, hex: cart.hex, cargo: cart.cargo });
+      continue;
+    }
+    const still = (id: string | null): string | null => {
+      const c = characters.find((x) => x.id === id);
+      return c && c.status === 'active' && c.at.kind === 'hex' ? c.id : null;
+    };
+    const puller = still(cart.puller);
+    const rider = still(cart.rider);
+    if (cart.puller !== null && puller === null) {
+      cartEvents.push({ kind: 'unhitched', cart: cart.id, characterId: cart.puller, hex: spot });
+    }
+    if (cart.rider !== null && rider === null) {
+      cartEvents.push({ kind: 'left-cart', cart: cart.id, characterId: cart.rider, hex: spot });
+    }
+    carts.push({ ...cart, hex: spot, puller, rider });
+  }
   // Anyone now on the creature (picked up by it today) empties their pack into the stores.
-  let settled: GameState = { ...moved, characters };
+  let settled: GameState = { ...moved, characters, carts };
   for (const c of characters) {
     const deposited = depositPack(settled, c.id);
     settled = deposited.state;
     events.push(...deposited.events);
   }
-  events.push(...freed, ...lost);
+  events.push(...freed, ...lost, ...cartEvents);
   if (outcome) events.push({ kind: 'season-over', outcome });
   // Traces of what happened, then the story from the new state; both change nothing else.
   const recorded = recordTraces(

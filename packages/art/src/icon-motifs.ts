@@ -346,6 +346,14 @@ export const ITEM_MOTIFS: Readonly<Record<string, IconMotif>> = {
     ink(pal, 'M16 24l1 9M30 22l1 9', 1.6, pal.ramps.bark.shade),
     ink(pal, 'M38 10L30 36', 2.2, pal.ramps.bark.shade),
   ],
+  // A hand cart: an open box on one wheel with two shafts out the front.
+  cart: (pal) => [
+    solid(pal, 'M10 20h22l-2 10H12z', pal.ramps.bark.base, 1.6),
+    ink(pal, 'M13 24h16M14 27h14', 1.2, pal.ramps.bark.shade),
+    ink(pal, 'M32 22l10 6M31 27l11 4', 2.2, pal.ramps.bark.shade),
+    solid(pal, ellipsePath(22, 33, 5.5, 5.5), pal.ramps.stone.light, 1.8),
+    ink(pal, 'M22 28.5v9M17.5 33h9', 1.1, pal.ramps.bark.shade),
+  ],
   spikes: (pal) => [
     solid(pal, 'M12 22h24l-2 5H14z', pal.ramps.stone.light),
     ink(pal, 'M15 27l1 7M20 27l.5 7M25 27v7M30 27l-.5 7M34 27l-1 7', 2, pal.ramps.stone.shade),

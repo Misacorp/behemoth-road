@@ -4,6 +4,30 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-26: Cart rules: seat, hitch, load, push and loss
+
+ID: `2026-11-26-cart-rules-seat-hitch-load-push` · Status: current
+
+**Decision.**
+
+- **Seat.** A rider moves with the cart for nothing and cannot move on their own while aboard (`aboard`), but acts on the hex like anyone (gather, strike, build is out as it needs the creature). Leaving is free.
+- **Hitch.** One puller. Hitching costs 1, unhitching is free. Each step costs the puller `cartPullExtra` more, over `open` and `wooded` ground only; the creature, water, swamp, cliff and deep water are refused with `cart-terrain`. A puller or rider hauled aboard the creature (tow line, pick-up at the tick) lets go; the cart stays.
+- **Load.** `load` and `unload` are free, on the cart's hex or next to it (from the creature too), limited by the pack and `cartCargo`. A creature rider's unload goes straight into the stores (the pack is emptied at once), so a cart parked beside the creature is a way to haul goods in.
+- **No cart on the creature.** If the footprint walks onto the cart at the tick, its people are picked up and the cart is pushed to the nearest free rollable hex (rings outward from where it stood, same order every time); with none in the window it is lost.
+- **Loss.** A cart outside the window past the grace days is lost with its cargo, like a character; a rider is lost as a character. A lost cart can be rebuilt at full cost (`cartsMax` 1 counts carts on the map).
+- **A vehicle is not a team unlock.** Finishing the build places the cart (`cart-built`, after `unlock-done` so the tallies still count it); `unlocks` does not hold it.
+- **Stranded.** The flare counts a puller or rider's way home on foot, since letting go is free.
+
+**Reasoning.** The principles of `world/vehicles.md` (a player's own action to enter, no stance drives, the tick never moves a vehicle) fit a cart as they do a sled. Pulling for more and refusing the creature keeps it a trade: more carried, slower, never a free ride home. Pushing instead of destroying avoids a cart lost to a step nobody chose. Free loads keep the cart a tool rather than another action sink.
+
+## 2026-11-26: A cart, the first land vehicle (Misa's ask) **[Misa]**
+
+ID: `2026-11-26-a-cart-the-first-land-vehicle` · Status: current
+
+**Decision.** Misa asked for a cart or similar vehicle that hauls more goods, or a single player if people want that. The cart is built first, before the sled and the tow line's cousins in `world/vehicles.md`: an Engineer project at the hub (2 timber, 3 work, one per party), a hand cart with `cartCargo` 8 units and one seat, hitched to a puller or ridden. The details are in the cart rules decision and `docs/design/cart.md`.
+
+**Reasoning.** It is the simplest land vehicle that does what was asked (more goods per trip, a seat for one) and it exercises the vehicle data shape (`Unlock.vehicle`) the sled and raft can reuse.
+
 ## 2026-11-26: Striking a rockslide can bury the striker **[Misa]**
 
 ID: `2026-11-26-striking-a-rockslide-can-bury-the` · Status: current · Amends: `2026-11-21-a-rockslide-strikes-only-its-own`

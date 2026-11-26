@@ -18,6 +18,17 @@ import {
   type SiteType,
   type Unlock,
 } from './content/index.ts';
+import {
+  cartAtHex,
+  cartPulledBy,
+  cartRiddenBy,
+  cartRoom,
+  cartSpot,
+  finishUnlock,
+  isVehicleUnlock,
+  releaseFromCart,
+  setCart,
+} from './cart.ts';
 import { creatureType, FOOD_TAG, firstWithTag, isKeeper, nourishment } from './care.ts';
 import { activeCharacter, isPlaceReachable } from './actions.ts';
 import {
@@ -39,6 +50,7 @@ import { BURNABLE_TAG, FIRE_SITE_TAG } from './fire.ts';
 import { arePlacesAdjacent, ON_CREATURE, onHex, placeEquals, placeNeighbours } from './places.ts';
 import { hashString, hashToUnit } from './random.ts';
 import {
+  type Cart,
   type Character,
   type FeatureState,
   type GameState,
@@ -96,6 +108,18 @@ export type Action =
   | { readonly kind: 'ask-boon'; readonly boon: string }
   /** Takes a skill node with a pick the character has earned (`docs/design/skill-trees.md`). Free. */
   | { readonly kind: 'pick-skill'; readonly node: string }
+  /** The cart on the character's hex: hitch to it (it then moves with them, for more per step). */
+  | { readonly kind: 'hitch' }
+  /** Lets the hitched cart go where it stands. Free. */
+  | { readonly kind: 'unhitch' }
+  /** Climbs into the seat of the cart on the character's hex. */
+  | { readonly kind: 'board-cart' }
+  /** Climbs out of the cart's seat. Free. */
+  | { readonly kind: 'leave-cart' }
+  /** Moves `amount` units of a material from the pack to a cart on or next to the character's place. Free. */
+  | { readonly kind: 'load'; readonly material: string; readonly amount: number }
+  /** Moves `amount` units of a material from a cart on or next to the character's place to the pack. Free. */
+  | { readonly kind: 'unload'; readonly material: string; readonly amount: number }
   /** Sets the stance the unspent actions go to at the tick (`docs/design/stances.md`). Free, any time. */
   | { readonly kind: 'set-stance'; readonly stance: string }
   /** Ends the character's day: what is left goes to the stance at the tick. Free; no acting or moving after. */
@@ -152,6 +176,26 @@ export type ActRefusal =
   | 'pinned'
   /** A dig-out on a character who is not pinned. */
   | 'not-pinned'
+  /** The cart: none on (or, for load and unload, next to) the character's place. */
+  | 'no-cart'
+  /** Hitching to a cart someone else pulls. */
+  | 'cart-taken'
+  /** Boarding a cart whose seat is taken. */
+  | 'seat-taken'
+  /** Unhitching a cart the character does not pull. */
+  | 'not-hitched'
+  /** Leaving a cart the character does not sit in. */
+  | 'not-aboard'
+  /** Hitching to a cart the character sits in. */
+  | 'aboard'
+  /** Boarding a cart the character pulls. */
+  | 'hitched'
+  | 'cart-full'
+  | 'cart-empty'
+  /** Loading a material the pack lacks. */
+  | 'no-material'
+  /** Building a cart with nowhere to put it. */
+  | 'no-room'
   /** Picks: see `PickRefusal` in `skills.ts` (`already-have` is shared). */
   | PickRefusal;
 
@@ -357,6 +401,16 @@ const gatherYield = (state: GameStateView, c: Character, type: NodeType): number
   );
 };
 
+/** Where a finished cart is put from: the character's hex, or the creature's centre when they ride it. */
+const placeFrom = (state: GameStateView, c: Character): Hex =>
+  c.at.kind === 'hex' ? c.at.hex : state.creature.centre;
+
+/** The cart on the character's place or next to it (load and unload reach this far). */
+const cartNear = (state: GameStateView, c: Character): Cart | undefined =>
+  state.carts.find(
+    (cart) => placeEquals(c.at, onHex(cart.hex)) || arePlacesAdjacent(state, c.at, onHex(cart.hex)),
+  );
+
 const done = (cost: number, uses: Uses = []): ActCheck => ({
   ok: true,
   cost,
@@ -445,9 +499,59 @@ export const checkAction = (
       if (!roleHas(c, 'build')) return no('needs-specialist');
       if (c.at.kind !== 'creature') return no('not-riding');
       if (state.unlocks.includes(unlock.id)) return { ok: false, reason: 'already-have', cost };
+      // A vehicle is not an unlock the team holds: it is one on the map (a lost one can be rebuilt).
+      if (isVehicleUnlock(unlock) && state.carts.length >= config.cartsMax) {
+        return { ok: false, reason: 'already-have', cost };
+      }
       if (project && project.unlock !== unlock.id) return no('busy');
       if (missing.length > 0) return no('missing-materials');
+      if (isVehicleUnlock(unlock) && cartSpot(state, placeFrom(state, c)) === null) {
+        return no('no-room');
+      }
       return c.actionsLeft >= cost ? done(cost, uses) : no('not-enough-actions');
+    }
+    case 'hitch': {
+      const cost = config.cartHitchCost;
+      const no = (reason: ActRefusal): ActCheck => ({ ok: false, reason, cost });
+      const here = hexOf(c);
+      const cart = here ? cartAtHex(state, here) : undefined;
+      if (!cart) return no('no-cart');
+      if (cart.rider === c.id) return no('aboard');
+      if (cart.puller === c.id || cartPulledBy(state, c.id)) return no('already-have');
+      if (cart.puller !== null) return no('cart-taken');
+      return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
+    }
+    case 'unhitch':
+      return cartPulledBy(state, c.id) ? done(0) : { ok: false, reason: 'not-hitched', cost: 0 };
+    case 'board-cart': {
+      const cost = config.cartBoardCost;
+      const no = (reason: ActRefusal): ActCheck => ({ ok: false, reason, cost });
+      const here = hexOf(c);
+      const cart = here ? cartAtHex(state, here) : undefined;
+      if (!cart) return no('no-cart');
+      if (cart.rider === c.id) return no('already-have');
+      if (cart.puller === c.id) return no('hitched');
+      if (cart.rider !== null) return no('seat-taken');
+      return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
+    }
+    case 'leave-cart':
+      return cartRiddenBy(state, c.id) ? done(0) : { ok: false, reason: 'not-aboard', cost: 0 };
+    case 'load':
+    case 'unload': {
+      const no = (reason: ActRefusal): ActCheck => ({ ok: false, reason, cost: 0 });
+      const amount = action.amount;
+      if (!Number.isInteger(amount) || amount < 1) return no('invalid-action');
+      if (!MATERIALS.some((m) => m.id === action.material)) return no('invalid-action');
+      const cart = cartNear(state, c);
+      if (!cart) return no('no-cart');
+      if (action.kind === 'load') {
+        if ((c.pack[action.material] ?? 0) < amount) return no('no-material');
+        if (cartRoom(state, cart) < amount) return no('cart-full');
+      } else {
+        if ((cart.cargo[action.material] ?? 0) < amount) return no('cart-empty');
+        if (free(state, c) < amount) return no('pack-full');
+      }
+      return done(0);
     }
     case 'light-fire': {
       if (!FIRE) return { ok: false, reason: 'invalid-action' };
@@ -654,6 +758,69 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
     };
   }
 
+  if (
+    action.kind === 'hitch' ||
+    action.kind === 'unhitch' ||
+    action.kind === 'board-cart' ||
+    action.kind === 'leave-cart'
+  ) {
+    const cart = (
+      action.kind === 'hitch' || action.kind === 'board-cart'
+        ? cartAtHex(state, hexOf(c) as Hex)
+        : action.kind === 'unhitch'
+          ? cartPulledBy(state, characterId)
+          : cartRiddenBy(state, characterId)
+    ) as Cart;
+    const puller =
+      action.kind === 'hitch' ? characterId : action.kind === 'unhitch' ? null : cart.puller;
+    const rider =
+      action.kind === 'board-cart' ? characterId : action.kind === 'leave-cart' ? null : cart.rider;
+    const kind = {
+      hitch: 'hitched',
+      unhitch: 'unhitched',
+      'board-cart': 'boarded-cart',
+      'leave-cart': 'left-cart',
+    }[action.kind] as 'hitched' | 'unhitched' | 'boarded-cart' | 'left-cart';
+    return {
+      ok: true,
+      state: withCharacter(setCart(state, { ...cart, puller, rider }), {}),
+      events: [{ kind, cart: cart.id, characterId, hex: cart.hex }],
+    };
+  }
+
+  if (action.kind === 'load' || action.kind === 'unload') {
+    const cart = cartNear(state, c) as Cart;
+    const { material, amount } = action;
+    const loading = action.kind === 'load';
+    const sign = loading ? 1 : -1;
+    const shifted = (from: Materials, by: number): Materials => {
+      const out: Record<string, number> = { ...from };
+      const left = (out[material] ?? 0) + by;
+      if (left > 0) out[material] = left;
+      else delete out[material];
+      return out;
+    };
+    const next = setCart(state, { ...cart, cargo: shifted(cart.cargo, sign * amount) });
+    let packed = withCharacter(next, { pack: shifted(c.pack, -sign * amount) });
+    const events: GameEvent[] = [
+      {
+        kind: loading ? 'loaded' : 'unloaded',
+        cart: cart.id,
+        characterId,
+        hex: cart.hex,
+        material,
+        amount,
+      },
+    ];
+    // Someone on the creature has what they unload put straight into the stores.
+    if (!loading) {
+      const deposited = depositPack(packed, characterId);
+      packed = deposited.state;
+      events.push(...deposited.events);
+    }
+    return { ok: true, state: packed, events };
+  }
+
   if (action.kind === 'wait') {
     return {
       ok: true,
@@ -786,7 +953,10 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
       ...state.creature,
       tows: state.creature.tows.filter((t) => t.to !== characterId),
     };
-    const hauled = withCharacter({ ...state, creature }, { at: ON_CREATURE });
+    // Hauled aboard from a cart: out of its seat or off its shafts (it stays where it stands).
+    const hauled = withCharacter(releaseFromCart({ ...state, creature }, characterId), {
+      at: ON_CREATURE,
+    });
     const deposited = depositPack(hauled, characterId);
     return {
       ok: true,
@@ -954,16 +1124,19 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
     );
     const work = (state.project?.work ?? 0) + perBuild;
     const finished = work >= unlock.work;
-    const next: GameState = {
+    let next: GameState = {
       ...state,
       stores: subtracted,
       project: finished ? null : { unlock: unlock.id, work },
-      unlocks: finished ? [...state.unlocks, unlock.id] : state.unlocks,
     };
     const events: GameEvent[] = [
       { kind: 'unlock-progress', unlock: unlock.id, work, needed: unlock.work },
     ];
-    if (finished) events.push({ kind: 'unlock-done', unlock: unlock.id });
+    if (finished) {
+      const built = finishUnlock(next, unlock, placeFrom(state, c), characterId);
+      next = built.state;
+      events.push(...built.events);
+    }
     return { ok: true, state: withCharacter(next, {}), events };
   }
 
@@ -1066,6 +1239,22 @@ export const act = (state: GameState, characterId: string, action: Action): ActR
   return { ...result, state: told.state, events: [...result.events, ...told.events] };
 };
 
+/** Loads and unloads worth offering: each material the pack holds (into the cart), each the cart holds (out), as much as fits. */
+const cartLoads = (state: GameStateView, c: Character): Action[] => {
+  const cart = cartNear(state, c);
+  if (!cart) return [];
+  const out: Action[] = [];
+  for (const [material, n] of Object.entries(c.pack)) {
+    const amount = Math.min(n, cartRoom(state, cart));
+    if (amount >= 1) out.push({ kind: 'load', material, amount });
+  }
+  for (const [material, n] of Object.entries(cart.cargo)) {
+    const amount = Math.min(n, free(state, c));
+    if (amount >= 1) out.push({ kind: 'unload', material, amount });
+  }
+  return out;
+};
+
 /** Boons any people offers, in content order. */
 
 const ALL_BOONS = BOONS.filter((b) => PEOPLE_TYPES.some((p) => p.boons.includes(b)));
@@ -1105,6 +1294,11 @@ export const actionsHere = (
     { kind: 'feed' },
     { kind: 'linger' },
     { kind: 'grab-line' },
+    { kind: 'hitch' },
+    { kind: 'unhitch' },
+    { kind: 'board-cart' },
+    { kind: 'leave-cart' },
+    ...cartLoads(state, c),
     ...state.characters
       .filter((x) => x.id !== characterId && x.status === 'active' && x.at.kind === 'hex')
       .map((x) => ({ kind: 'throw-line' as const, to: x.id })),

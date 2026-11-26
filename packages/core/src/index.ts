@@ -27,6 +27,7 @@ export {
   type Perk,
   type Unlock,
   type UnlockMovement,
+  type VehicleSpec,
   type NodeType,
   type SiteType,
   type TrapType,
@@ -96,6 +97,7 @@ export type {
   Cue,
   Nature,
   Stimulus,
+  Cart,
   Character,
   CharacterStatus,
   Creature,
@@ -217,6 +219,16 @@ export {
   toPlace,
 } from './places.ts';
 export { nextDay, nextDayWithEvents } from './tick.ts';
+export {
+  cartAtHex,
+  cartCanEnter,
+  cartPulledBy,
+  cartRiddenBy,
+  cartRoom,
+  cartSpot,
+  cartUnlock,
+  isVehicleUnlock,
+} from './cart.ts';
 export {
   AMBUSH_TAG,
   effectiveStance,

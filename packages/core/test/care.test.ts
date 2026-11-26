@@ -66,6 +66,7 @@ describe('the hidden nature', () => {
     expect(Object.keys(view0).sort()).toEqual([
       'artSeed',
       'burnt',
+      'carts',
       'characters',
       'config',
       'contentVersion',

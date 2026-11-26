@@ -2,6 +2,8 @@
 
 For Misa to react to. Numbers are starting guesses for the tuning config or content data.
 
+> **Note (2026-11-26):** the cart came first, as Misa's ask, before the sled: a hand cart built like the raft, hauling goods or one rider (`docs/design/cart.md`). It follows the principles below (its own action to board, no stance drives it, the tick never moves it) and gives the sled its data shape: an unlock with `vehicle: { terrainTags, seats }`. The sled and the tow line's rescue role are unchanged and still to come.
+
 ## 1. The problem today
 
 - **The rule.** End each day inside the window (radius 6). A hex that leaves it stays reachable one more day (`graceDays` 1), then is lost, with anyone on it and their pack.

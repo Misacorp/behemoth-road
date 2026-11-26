@@ -123,6 +123,8 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-26 Cart rules: seat, hitch, load, push and loss
+- 2026-11-26 A cart, the first land vehicle (Misa's ask) \[Misa\]
 - 2026-11-26 Striking a rockslide can bury the striker \[Misa\]
 - 2026-11-26 Threats tagged fears-fire keep clear of burning fires \[Misa\]
 - 2026-11-26 Fire needs something to burn: braziers and burnables

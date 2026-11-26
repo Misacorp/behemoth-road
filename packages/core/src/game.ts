@@ -105,6 +105,7 @@ export const createGame = (
     stores: {},
     unlocks: [],
     project: null,
+    carts: [],
     characters: ids.map((id) => ({
       id,
       userId: id,

@@ -103,6 +103,11 @@ const config = v.object({
   towThrowCost: count,
   towGrabCost: count,
   towReach: count,
+  cartsMax: count,
+  cartCargo: count,
+  cartHitchCost: count,
+  cartBoardCost: count,
+  cartPullExtra: count,
   threatsFromDay: count,
   threatChanceBase: v.number(),
   threatChancePerPlayer: v.number(),
@@ -195,6 +200,19 @@ export const GameStateViewSchema = v.object({
   unlocks: v.pipe(v.array(id), v.maxLength(100)),
   /** The one unlock in progress. */
   project: v.nullable(v.object({ unlock: id, work: count })),
+  /** Carts on the map (public): one puller and one rider at most, both standing on its hex. */
+  carts: v.pipe(
+    v.array(
+      v.object({
+        id,
+        hex,
+        cargo: counts,
+        puller: v.nullable(id),
+        rider: v.nullable(id),
+      }),
+    ),
+    v.maxLength(8),
+  ),
   /** Lit fires (public): each burns through the tick that ends the day it was lit, or for `nights` nights (a brazier). */
   stimuli: v.pipe(
     v.array(
@@ -356,6 +374,16 @@ const KNOWN_EVENTS = [
   event('linger', { characterId: id }),
   event('tow-thrown', { characterId: id, target: id }),
   event('tow-grabbed', { characterId: id, thrower: id }),
+  /** The cart: built (`characterId` absent for a self-winding finish); hitched, let go, boarded, left. */
+  event('cart-built', { cart: id, hex, characterId: v.exactOptional(id) }),
+  event('hitched', { cart: id, characterId: id, hex }),
+  event('unhitched', { cart: id, characterId: id, hex }),
+  event('boarded-cart', { cart: id, characterId: id, hex }),
+  event('left-cart', { cart: id, characterId: id, hex }),
+  event('loaded', { cart: id, characterId: id, hex, material: id, amount: count }),
+  event('unloaded', { cart: id, characterId: id, hex, material: id, amount: count }),
+  /** From the tick: a cart left out of reach was lost with its cargo. */
+  event('cart-lost', { cart: id, hex, cargo: counts }),
   /** The creature's step at the tick (a linger: from equals to). */
   event('creature-step', { from: hex, to: hex }),
   event('lost', { characterId: id, hex }),
@@ -545,6 +573,12 @@ export type GameAction =
   | { readonly kind: 'linger' }
   | { readonly kind: 'throw-line'; readonly to: string }
   | { readonly kind: 'grab-line' }
+  | { readonly kind: 'hitch' }
+  | { readonly kind: 'unhitch' }
+  | { readonly kind: 'board-cart' }
+  | { readonly kind: 'leave-cart' }
+  | { readonly kind: 'load'; readonly material: string; readonly amount: number }
+  | { readonly kind: 'unload'; readonly material: string; readonly amount: number }
   | { readonly kind: 'strike'; readonly threat: string }
   | { readonly kind: 'defend' }
   | { readonly kind: 'dig-out'; readonly target: string }

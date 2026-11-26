@@ -240,6 +240,20 @@ export interface FeatureState {
   readonly stocked?: boolean;
 }
 
+/**
+ * A hand cart on the map (`docs/design/cart.md`). Always on a hex (never on the creature). Public.
+ * A `puller` has it hitched: it moves with them. A `rider` sits in its one seat and moves with it.
+ * Both stand on its hex.
+ */
+export interface Cart {
+  readonly id: string;
+  readonly hex: Hex;
+  /** What it carries, up to `config.cartCargo` units. */
+  readonly cargo: Materials;
+  readonly puller: string | null;
+  readonly rider: string | null;
+}
+
 /** The unlock the engineers are working on, and the work done so far. */
 export interface Project {
   readonly unlock: string;
@@ -279,6 +293,8 @@ export interface GameStateView {
   readonly unlocks: readonly string[];
   /** The one unlock in progress, if any. */
   readonly project: Project | null;
+  /** Carts on the map (at most `config.cartsMax`). */
+  readonly carts: readonly Cart[];
   /** Stimuli on the map now (lit fires). */
   readonly stimuli: readonly Stimulus[];
   /** Threats on the map now. */

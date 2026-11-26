@@ -91,6 +91,36 @@ export type GameEvent =
       /** The feature's content id. */
       readonly feature: string;
     }
+  /** A cart was finished and put on the map (after `unlock-done`); `characterId` is absent for a self-winding finish. */
+  | {
+      readonly kind: 'cart-built';
+      readonly cart: string;
+      readonly hex: Hex;
+      readonly characterId?: string;
+    }
+  /** A character hitched to the cart, or let it go; boarded its seat, or left it. All at the cart's hex. */
+  | {
+      readonly kind: 'hitched' | 'unhitched' | 'boarded-cart' | 'left-cart';
+      readonly cart: string;
+      readonly characterId: string;
+      readonly hex: Hex;
+    }
+  /** Materials moved from a pack to the cart (`loaded`) or from the cart to a pack (`unloaded`). */
+  | {
+      readonly kind: 'loaded' | 'unloaded';
+      readonly cart: string;
+      readonly characterId: string;
+      readonly hex: Hex;
+      readonly material: string;
+      readonly amount: number;
+    }
+  /** From the day tick: a cart left out of reach was lost where it stood, with its cargo (and any rider, as a `lost` event). */
+  | {
+      readonly kind: 'cart-lost';
+      readonly cart: string;
+      readonly hex: Hex;
+      readonly cargo: Materials;
+    }
   /** A falling slide pinned a character (the striker): they lose the rest of the day and the next one. */
   | { readonly kind: 'pinned'; readonly characterId: string; readonly threat: string }
   /** A pinned character is free: dug out by another (`by`), or after the next tick on their own (`by` null). */
