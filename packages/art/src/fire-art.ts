@@ -474,7 +474,10 @@ export function drawPinned(
   ink: number,
 ): Drawn {
   const k = (size * ART_TUNING.characterHeight) / HEIGHT_UNITS;
-  const T = mapper(origin, k, 1, k * riseFor(squash));
+  // The heap is drawn well over life size so it reads at the map's zoom: wider than the figure, over its body.
+  const BIG = 1.9;
+  const T0 = mapper(origin, k, 1, k * riseFor(squash));
+  const T = (x: number, y: number): Point => T0(x * BIG, y * BIG);
   const pal = palette;
   const pts = (raw: Raw): Point[] => raw.map(([x, y]) => T(x, y));
   const w = ink * 0.95;
@@ -533,7 +536,7 @@ export function drawPinned(
   nodes.push(
     el('path', {
       d: dust
-        .map(([x, y, r]) => ellipsePath(T(x, y).x, T(x, y).y, r * k, r * 0.62 * k * sq))
+        .map(([x, y, r]) => ellipsePath(T(x, y).x, T(x, y).y, r * k * BIG, r * 0.62 * k * BIG * sq))
         .join(''),
       fill: pal.ramps.earth.light,
       stroke: pal.inkSoft,
@@ -556,7 +559,9 @@ export function drawPinned(
   nodes.push(
     el('path', {
       d: motes
-        .map((m, i) => ellipsePath(m.x, m.y, (1.1 - (i % 2) * 0.3) * k, (1.1 - (i % 2) * 0.3) * k))
+        .map((m, i) =>
+          ellipsePath(m.x, m.y, (1.1 - (i % 2) * 0.3) * k * BIG, (1.1 - (i % 2) * 0.3) * k * BIG),
+        )
         .join(''),
       fill: pal.inkSoft,
       opacity: 0.7,
