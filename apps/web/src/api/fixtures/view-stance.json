@@ -61,6 +61,12 @@
       "struggleCost": 1,
       "struggleChanceBase": 0.2,
       "struggleChanceStep": 0.2,
+      "hazardSpacing": 12,
+      "hazardFirst": 6,
+      "lureSpacing": 7,
+      "lureFirstWithin": 4,
+      "leadCost": 1,
+      "lureLeads": 3,
       "feedCost": 1,
       "lingerCost": 2,
       "towThrowCost": 1,
@@ -114,7 +120,7 @@
     },
     "creature": {
       "centre": {
-        "q": 0,
+        "q": 1,
         "r": -1
       },
       "kind": "mossback",
@@ -131,37 +137,37 @@
         "visibility": "seen",
         "terrain": "river",
         "explored": false,
-        "leftWindowOnDay": null
+        "leftWindowOnDay": 2
       },
       "-6,1": {
         "visibility": "seen",
         "terrain": "river",
         "explored": false,
-        "leftWindowOnDay": null
+        "leftWindowOnDay": 2
       },
       "-6,2": {
         "visibility": "seen",
         "terrain": "forest",
         "explored": false,
-        "leftWindowOnDay": null
+        "leftWindowOnDay": 2
       },
       "-6,3": {
         "visibility": "seen",
         "terrain": "forest",
         "explored": false,
-        "leftWindowOnDay": null
+        "leftWindowOnDay": 2
       },
       "-6,4": {
         "visibility": "seen",
         "terrain": "forest",
         "explored": false,
-        "leftWindowOnDay": null
+        "leftWindowOnDay": 2
       },
       "-6,5": {
         "visibility": "seen",
         "terrain": "plains",
         "explored": false,
-        "leftWindowOnDay": null
+        "leftWindowOnDay": 2
       },
       "-6,6": {
         "visibility": "seen",
@@ -617,7 +623,7 @@
         "visibility": "seen",
         "terrain": "desert",
         "explored": false,
-        "leftWindowOnDay": 2
+        "leftWindowOnDay": null
       },
       "2,-6": {
         "visibility": "seen",
@@ -683,7 +689,7 @@
         "visibility": "seen",
         "terrain": "desert",
         "explored": false,
-        "leftWindowOnDay": 2
+        "leftWindowOnDay": null
       },
       "3,-6": {
         "visibility": "seen",
@@ -743,7 +749,7 @@
         "visibility": "seen",
         "terrain": "desert",
         "explored": false,
-        "leftWindowOnDay": 2
+        "leftWindowOnDay": null
       },
       "4,-6": {
         "visibility": "seen",
@@ -797,7 +803,7 @@
         "visibility": "seen",
         "terrain": "desert",
         "explored": false,
-        "leftWindowOnDay": 2
+        "leftWindowOnDay": null
       },
       "5,-6": {
         "visibility": "seen",
@@ -845,7 +851,7 @@
         "visibility": "seen",
         "terrain": "plains",
         "explored": false,
-        "leftWindowOnDay": 2
+        "leftWindowOnDay": null
       },
       "6,-6": {
         "visibility": "seen",
@@ -887,48 +893,6 @@
         "visibility": "seen",
         "terrain": "plains",
         "explored": false,
-        "leftWindowOnDay": 2
-      },
-      "-6,-1": {
-        "visibility": "seen",
-        "terrain": "forest",
-        "explored": false,
-        "leftWindowOnDay": null
-      },
-      "-5,-2": {
-        "visibility": "seen",
-        "terrain": "forest",
-        "explored": false,
-        "leftWindowOnDay": null
-      },
-      "-4,-3": {
-        "visibility": "seen",
-        "terrain": "forest",
-        "explored": false,
-        "leftWindowOnDay": null
-      },
-      "-3,-4": {
-        "visibility": "seen",
-        "terrain": "river",
-        "explored": false,
-        "leftWindowOnDay": null
-      },
-      "-2,-5": {
-        "visibility": "seen",
-        "terrain": "river",
-        "explored": false,
-        "leftWindowOnDay": null
-      },
-      "-1,-6": {
-        "visibility": "seen",
-        "terrain": "forest",
-        "explored": false,
-        "leftWindowOnDay": null
-      },
-      "0,-7": {
-        "visibility": "seen",
-        "terrain": "forest",
-        "explored": false,
         "leftWindowOnDay": null
       },
       "1,-7": {
@@ -962,6 +926,48 @@
         "leftWindowOnDay": null
       },
       "6,-7": {
+        "visibility": "seen",
+        "terrain": "plains",
+        "explored": false,
+        "leftWindowOnDay": null
+      },
+      "7,-7": {
+        "visibility": "seen",
+        "terrain": "plains",
+        "explored": false,
+        "leftWindowOnDay": null
+      },
+      "7,-6": {
+        "visibility": "seen",
+        "terrain": "forest",
+        "explored": false,
+        "leftWindowOnDay": null
+      },
+      "7,-5": {
+        "visibility": "seen",
+        "terrain": "forest",
+        "explored": false,
+        "leftWindowOnDay": null
+      },
+      "7,-4": {
+        "visibility": "seen",
+        "terrain": "forest",
+        "explored": false,
+        "leftWindowOnDay": null
+      },
+      "7,-3": {
+        "visibility": "seen",
+        "terrain": "forest",
+        "explored": false,
+        "leftWindowOnDay": null
+      },
+      "7,-2": {
+        "visibility": "seen",
+        "terrain": "plains",
+        "explored": false,
+        "leftWindowOnDay": null
+      },
+      "7,-1": {
         "visibility": "seen",
         "terrain": "plains",
         "explored": false,
@@ -1067,11 +1073,22 @@
         "id": "t2",
         "type": "swarm",
         "hex": {
-          "q": 6,
+          "q": 7,
           "r": -7
         },
         "strength": 2,
         "appearedDay": 2
+      }
+    ],
+    "lures": [
+      {
+        "id": "l1",
+        "type": "capybara",
+        "hex": {
+          "q": 1,
+          "r": -4
+        },
+        "leadsLeft": 3
       }
     ],
     "settlements": [],
@@ -1107,6 +1124,14 @@
         "kind": "trail",
         "hex": {
           "q": -1,
+          "r": 0
+        },
+        "step": 1
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": -1,
           "r": 1
         },
         "step": 1
@@ -1116,14 +1141,6 @@
         "hex": {
           "q": 0,
           "r": 1
-        },
-        "step": 1
-      },
-      {
-        "kind": "trail",
-        "hex": {
-          "q": 1,
-          "r": 0
         },
         "step": 1
       }

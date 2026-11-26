@@ -61,6 +61,12 @@
       "struggleCost": 1,
       "struggleChanceBase": 0.2,
       "struggleChanceStep": 0.2,
+      "hazardSpacing": 12,
+      "hazardFirst": 6,
+      "lureSpacing": 7,
+      "lureFirstWithin": 4,
+      "leadCost": 1,
+      "lureLeads": 3,
       "feedCost": 1,
       "lingerCost": 2,
       "towThrowCost": 1,
@@ -999,6 +1005,17 @@
     "carts": [],
     "stimuli": [],
     "threats": [],
+    "lures": [
+      {
+        "id": "l1",
+        "type": "capybara",
+        "hex": {
+          "q": 1,
+          "r": -4
+        },
+        "leadsLeft": 3
+      }
+    ],
     "settlements": [],
     "peril": 0,
     "season": {

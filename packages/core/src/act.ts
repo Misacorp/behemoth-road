@@ -1062,10 +1062,22 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
     );
     const pinned = roll < fallChance(state, c, tags);
     if (pinned) events.push({ kind: 'pinned', characterId, threat: threat.id });
+    // A pinned puller or rider is let go of the cart (it stays where it stands), so the cart is not held fast.
+    const pulled = pinned ? cartPulledBy(state, characterId) : undefined;
+    const ridden = pinned ? cartRiddenBy(state, characterId) : undefined;
+    if (pulled) {
+      events.push({ kind: 'unhitched', cart: pulled.id, characterId, hex: pulled.hex });
+    }
+    if (ridden) {
+      events.push({ kind: 'left-cart', cart: ridden.id, characterId, hex: ridden.hex });
+    }
     // They keep the actions they have left, to struggle with.
     return {
       ok: true,
-      state: withCharacter({ ...state, threats }, pinned ? { pinnedDay: state.day } : {}),
+      state: withCharacter(
+        { ...(pinned ? releaseFromCart(state, characterId) : state), threats },
+        pinned ? { pinnedDay: state.day } : {},
+      ),
       events,
     };
   }

@@ -1,5 +1,5 @@
 {
-  "version": 32,
+  "version": 31,
   "day": 7,
   "pace": "daily",
   "fastTickAt": null,
@@ -61,6 +61,12 @@
       "struggleCost": 1,
       "struggleChanceBase": 0.2,
       "struggleChanceStep": 0.2,
+      "hazardSpacing": 12,
+      "hazardFirst": 6,
+      "lureSpacing": 7,
+      "lureFirstWithin": 4,
+      "leadCost": 1,
+      "lureLeads": 3,
       "feedCost": 1,
       "lingerCost": 2,
       "towThrowCost": 1,
@@ -114,7 +120,7 @@
     },
     "creature": {
       "centre": {
-        "q": 0,
+        "q": 1,
         "r": -4
       },
       "kind": "mossback",
@@ -128,28 +134,24 @@
     },
     "tiles": {
       "-6,0": {
-        "visibility": "seen",
+        "visibility": "lost",
         "terrain": "river",
-        "explored": false,
-        "leftWindowOnDay": null
+        "explored": false
       },
       "-6,1": {
-        "visibility": "seen",
+        "visibility": "lost",
         "terrain": "river",
-        "explored": false,
-        "leftWindowOnDay": null
+        "explored": false
       },
       "-6,2": {
-        "visibility": "seen",
+        "visibility": "lost",
         "terrain": "forest",
-        "explored": false,
-        "leftWindowOnDay": null
+        "explored": false
       },
       "-6,3": {
-        "visibility": "seen",
+        "visibility": "lost",
         "terrain": "forest",
-        "explored": false,
-        "leftWindowOnDay": 7
+        "explored": false
       },
       "-6,4": {
         "visibility": "lost",
@@ -385,19 +387,19 @@
       "-1,-5": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "-1,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "-1,-3": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "-1,-2": {
@@ -529,19 +531,19 @@
       "1,-6": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "1,-5": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "1,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "1,-3": {
@@ -578,12 +580,13 @@
         "visibility": "seen",
         "terrain": "plains",
         "explored": false,
-        "leftWindowOnDay": 7
+        "leftWindowOnDay": null
       },
       "1,3": {
-        "visibility": "lost",
+        "visibility": "seen",
         "terrain": "plains",
-        "explored": false
+        "explored": false,
+        "leftWindowOnDay": 7
       },
       "1,4": {
         "visibility": "lost",
@@ -616,7 +619,7 @@
       "2,-3": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "2,-2": {
@@ -641,12 +644,13 @@
         "visibility": "seen",
         "terrain": "plains",
         "explored": false,
-        "leftWindowOnDay": 7
+        "leftWindowOnDay": null
       },
       "2,2": {
-        "visibility": "lost",
+        "visibility": "seen",
         "terrain": "plains",
-        "explored": false
+        "explored": false,
+        "leftWindowOnDay": 7
       },
       "2,3": {
         "visibility": "lost",
@@ -673,7 +677,7 @@
       "3,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "3,-3": {
@@ -698,12 +702,13 @@
         "visibility": "seen",
         "terrain": "plains",
         "explored": false,
-        "leftWindowOnDay": 7
+        "leftWindowOnDay": null
       },
       "3,1": {
-        "visibility": "lost",
+        "visibility": "seen",
         "terrain": "plains",
-        "explored": false
+        "explored": false,
+        "leftWindowOnDay": 7
       },
       "3,2": {
         "visibility": "lost",
@@ -724,7 +729,7 @@
       "4,-5": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "4,-4": {
@@ -749,12 +754,13 @@
         "visibility": "seen",
         "terrain": "plains",
         "explored": false,
-        "leftWindowOnDay": 7
+        "leftWindowOnDay": null
       },
       "4,0": {
-        "visibility": "lost",
+        "visibility": "seen",
         "terrain": "plains",
-        "explored": false
+        "explored": false,
+        "leftWindowOnDay": 7
       },
       "4,1": {
         "visibility": "lost",
@@ -794,12 +800,13 @@
         "visibility": "seen",
         "terrain": "plains",
         "explored": false,
-        "leftWindowOnDay": 7
+        "leftWindowOnDay": null
       },
       "5,-1": {
-        "visibility": "lost",
+        "visibility": "seen",
         "terrain": "plains",
-        "explored": false
+        "explored": false,
+        "leftWindowOnDay": 7
       },
       "5,0": {
         "visibility": "lost",
@@ -814,7 +821,7 @@
       "6,-6": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "6,-5": {
@@ -833,12 +840,13 @@
         "visibility": "seen",
         "terrain": "forest",
         "explored": false,
-        "leftWindowOnDay": 7
+        "leftWindowOnDay": null
       },
       "6,-2": {
-        "visibility": "lost",
+        "visibility": "seen",
         "terrain": "plains",
-        "explored": false
+        "explored": false,
+        "leftWindowOnDay": 7
       },
       "6,-1": {
         "visibility": "lost",
@@ -850,52 +858,10 @@
         "terrain": "plains",
         "explored": false
       },
-      "-6,-1": {
-        "visibility": "seen",
-        "terrain": "forest",
-        "explored": false,
-        "leftWindowOnDay": null
-      },
-      "-5,-2": {
-        "visibility": "seen",
-        "terrain": "forest",
-        "explored": false,
-        "leftWindowOnDay": null
-      },
-      "-4,-3": {
-        "visibility": "seen",
-        "terrain": "forest",
-        "explored": false,
-        "leftWindowOnDay": null
-      },
-      "-3,-4": {
-        "visibility": "seen",
-        "terrain": "river",
-        "explored": false,
-        "leftWindowOnDay": null
-      },
-      "-2,-5": {
-        "visibility": "seen",
-        "terrain": "river",
-        "explored": false,
-        "leftWindowOnDay": null
-      },
-      "-1,-6": {
-        "visibility": "seen",
-        "terrain": "forest",
-        "explored": true,
-        "leftWindowOnDay": null
-      },
-      "0,-7": {
-        "visibility": "seen",
-        "terrain": "forest",
-        "explored": false,
-        "leftWindowOnDay": null
-      },
       "1,-7": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "2,-7": {
@@ -928,16 +894,50 @@
         "explored": false,
         "leftWindowOnDay": null
       },
-      "1,-8": {
+      "7,-7": {
         "visibility": "seen",
         "terrain": "plains",
         "explored": false,
         "leftWindowOnDay": null
       },
+      "7,-6": {
+        "visibility": "seen",
+        "terrain": "forest",
+        "explored": false,
+        "leftWindowOnDay": null
+      },
+      "7,-5": {
+        "visibility": "seen",
+        "terrain": "forest",
+        "explored": false,
+        "leftWindowOnDay": null
+      },
+      "7,-4": {
+        "visibility": "seen",
+        "terrain": "forest",
+        "explored": false,
+        "leftWindowOnDay": null
+      },
+      "7,-3": {
+        "visibility": "seen",
+        "terrain": "forest",
+        "explored": false,
+        "leftWindowOnDay": 7
+      },
+      "7,-2": {
+        "visibility": "lost",
+        "terrain": "plains",
+        "explored": false
+      },
+      "7,-1": {
+        "visibility": "lost",
+        "terrain": "plains",
+        "explored": false
+      },
       "2,-8": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "3,-8": {
@@ -965,45 +965,97 @@
         "leftWindowOnDay": null
       },
       "7,-8": {
+        "visibility": "seen",
+        "terrain": "plains",
+        "explored": false,
+        "leftWindowOnDay": null
+      },
+      "8,-8": {
+        "visibility": "lost",
+        "terrain": "forest",
+        "explored": false
+      },
+      "8,-7": {
+        "visibility": "lost",
+        "terrain": "forest",
+        "explored": false
+      },
+      "8,-6": {
+        "visibility": "lost",
+        "terrain": "forest",
+        "explored": false
+      },
+      "8,-5": {
+        "visibility": "lost",
+        "terrain": "forest",
+        "explored": false
+      },
+      "8,-4": {
+        "visibility": "lost",
+        "terrain": "forest",
+        "explored": false
+      },
+      "8,-3": {
+        "visibility": "lost",
+        "terrain": "forest",
+        "explored": false
+      },
+      "8,-2": {
         "visibility": "lost",
         "terrain": "plains",
         "explored": false
       },
-      "7,-7": {
-        "visibility": "lost",
-        "terrain": "plains",
-        "explored": false
-      },
-      "7,-6": {
-        "visibility": "lost",
-        "terrain": "forest",
-        "explored": false
-      },
-      "7,-5": {
-        "visibility": "lost",
-        "terrain": "forest",
-        "explored": false
-      },
-      "7,-4": {
-        "visibility": "lost",
-        "terrain": "forest",
-        "explored": false
-      },
-      "7,-3": {
-        "visibility": "lost",
-        "terrain": "forest",
-        "explored": false
-      },
-      "7,-2": {
-        "visibility": "lost",
-        "terrain": "plains",
-        "explored": false
-      },
-      "-6,-2": {
+      "-5,-2": {
         "visibility": "seen",
         "terrain": "forest",
         "explored": false,
         "leftWindowOnDay": null
+      },
+      "-4,-3": {
+        "visibility": "seen",
+        "terrain": "forest",
+        "explored": false,
+        "leftWindowOnDay": null
+      },
+      "-3,-4": {
+        "visibility": "seen",
+        "terrain": "river",
+        "explored": false,
+        "leftWindowOnDay": null
+      },
+      "-2,-5": {
+        "visibility": "seen",
+        "terrain": "river",
+        "explored": false,
+        "leftWindowOnDay": null
+      },
+      "-1,-6": {
+        "visibility": "seen",
+        "terrain": "forest",
+        "explored": false,
+        "leftWindowOnDay": null
+      },
+      "0,-7": {
+        "visibility": "seen",
+        "terrain": "forest",
+        "explored": false,
+        "leftWindowOnDay": null
+      },
+      "1,-8": {
+        "visibility": "seen",
+        "terrain": "plains",
+        "explored": false,
+        "leftWindowOnDay": null
+      },
+      "-6,-2": {
+        "visibility": "lost",
+        "terrain": "forest",
+        "explored": false
+      },
+      "-6,-1": {
+        "visibility": "lost",
+        "terrain": "forest",
+        "explored": false
       },
       "-5,-3": {
         "visibility": "seen",
@@ -1032,87 +1084,10 @@
       "-1,-7": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "0,-8": {
-        "visibility": "seen",
-        "terrain": "forest",
-        "explored": false,
-        "leftWindowOnDay": null
-      },
-      "-7,-2": {
-        "visibility": "lost",
-        "terrain": "plains",
-        "explored": false
-      },
-      "-7,-1": {
-        "visibility": "lost",
-        "terrain": "plains",
-        "explored": false
-      },
-      "-7,0": {
-        "visibility": "lost",
-        "terrain": "forest",
-        "explored": false
-      },
-      "-7,1": {
-        "visibility": "lost",
-        "terrain": "forest",
-        "explored": false
-      },
-      "-7,2": {
-        "visibility": "lost",
-        "terrain": "river",
-        "explored": false
-      },
-      "-7,3": {
-        "visibility": "lost",
-        "terrain": "forest",
-        "explored": false
-      },
-      "-7,4": {
-        "visibility": "lost",
-        "terrain": "forest",
-        "explored": false
-      },
-      "-6,-3": {
-        "visibility": "seen",
-        "terrain": "plains",
-        "explored": false,
-        "leftWindowOnDay": null
-      },
-      "-5,-4": {
-        "visibility": "seen",
-        "terrain": "forest",
-        "explored": false,
-        "leftWindowOnDay": null
-      },
-      "-4,-5": {
-        "visibility": "seen",
-        "terrain": "plains",
-        "explored": false,
-        "leftWindowOnDay": null
-      },
-      "-3,-6": {
-        "visibility": "seen",
-        "terrain": "plains",
-        "explored": false,
-        "leftWindowOnDay": null
-      },
-      "-2,-7": {
-        "visibility": "seen",
-        "terrain": "river",
-        "explored": false,
-        "leftWindowOnDay": null
-      },
-      "-1,-8": {
-        "visibility": "seen",
-        "terrain": "forest",
-        "explored": false,
-        "leftWindowOnDay": null
-      },
-      "0,-9": {
         "visibility": "seen",
         "terrain": "forest",
         "explored": false,
@@ -1154,45 +1129,45 @@
         "explored": false,
         "leftWindowOnDay": null
       },
-      "-6,-4": {
+      "7,-9": {
         "visibility": "seen",
         "terrain": "plains",
         "explored": false,
         "leftWindowOnDay": null
       },
-      "-5,-5": {
-        "visibility": "seen",
-        "terrain": "plains",
-        "explored": false,
-        "leftWindowOnDay": null
-      },
-      "-4,-6": {
-        "visibility": "seen",
-        "terrain": "plains",
-        "explored": false,
-        "leftWindowOnDay": null
-      },
-      "-3,-7": {
-        "visibility": "seen",
-        "terrain": "plains",
-        "explored": false,
-        "leftWindowOnDay": null
-      },
-      "-2,-8": {
-        "visibility": "seen",
-        "terrain": "river",
-        "explored": false,
-        "leftWindowOnDay": null
-      },
-      "-1,-9": {
+      "-5,-4": {
         "visibility": "seen",
         "terrain": "forest",
         "explored": false,
         "leftWindowOnDay": null
       },
-      "0,-10": {
+      "-4,-5": {
         "visibility": "seen",
         "terrain": "plains",
+        "explored": false,
+        "leftWindowOnDay": null
+      },
+      "-3,-6": {
+        "visibility": "seen",
+        "terrain": "plains",
+        "explored": false,
+        "leftWindowOnDay": null
+      },
+      "-2,-7": {
+        "visibility": "seen",
+        "terrain": "river",
+        "explored": false,
+        "leftWindowOnDay": null
+      },
+      "-1,-8": {
+        "visibility": "seen",
+        "terrain": "forest",
+        "explored": false,
+        "leftWindowOnDay": null
+      },
+      "0,-9": {
+        "visibility": "seen",
+        "terrain": "forest",
         "explored": false,
         "leftWindowOnDay": null
       },
@@ -1227,6 +1202,12 @@
         "leftWindowOnDay": null
       },
       "6,-10": {
+        "visibility": "seen",
+        "terrain": "plains",
+        "explored": false,
+        "leftWindowOnDay": null
+      },
+      "7,-10": {
         "visibility": "seen",
         "terrain": "plains",
         "explored": false,
@@ -1269,8 +1250,8 @@
         "at": {
           "kind": "hex",
           "hex": {
-            "q": -1,
-            "r": -7
+            "q": 2,
+            "r": -8
           }
         },
         "actionsLeft": 3,
@@ -1319,18 +1300,18 @@
         "at": {
           "kind": "hex",
           "hex": {
-            "q": 3,
-            "r": -3
+            "q": 6,
+            "r": -6
           }
         },
-        "actionsLeft": 1,
+        "actionsLeft": 3,
         "pack": {},
         "status": "active",
-        "struckDay": 7,
+        "struckDay": 6,
         "stance": "rest",
         "waiting": false,
         "skills": {
-          "xp": 8,
+          "xp": 6,
           "taken": []
         }
       }
@@ -1341,6 +1322,11 @@
         "revealed": true,
         "left": 1,
         "stocked": true
+      },
+      "6,-6": {
+        "type": "timber-stand",
+        "revealed": true,
+        "left": 3
       },
       "2,-9": {
         "type": "brazier",
@@ -1372,11 +1358,22 @@
         "id": "t7",
         "type": "stampede",
         "hex": {
-          "q": 0,
+          "q": 1,
           "r": 2
         },
         "strength": 2,
         "appearedDay": 7
+      }
+    ],
+    "lures": [
+      {
+        "id": "l2",
+        "type": "capybara",
+        "hex": {
+          "q": -1,
+          "r": -7
+        },
+        "leadsLeft": 3
       }
     ],
     "settlements": [
@@ -1384,8 +1381,8 @@
         "id": "s4",
         "type": "hill-folk",
         "hex": {
-          "q": -1,
-          "r": -7
+          "q": 2,
+          "r": -8
         },
         "attitude": "friendly",
         "favour": 4,
@@ -1420,7 +1417,7 @@
           "fed": 3
         },
         "666666666666666666.0": {
-          "explored": 6,
+          "explored": 4,
           "strikes": 2,
           "gathered": 0,
           "fed": 0
@@ -1439,22 +1436,6 @@
         "kind": "trail",
         "hex": {
           "q": -1,
-          "r": 1
-        },
-        "step": 1
-      },
-      {
-        "kind": "trail",
-        "hex": {
-          "q": 0,
-          "r": 1
-        },
-        "step": 1
-      },
-      {
-        "kind": "trail",
-        "hex": {
-          "q": 1,
           "r": 0
         },
         "step": 1
@@ -1463,9 +1444,17 @@
         "kind": "trail",
         "hex": {
           "q": -1,
-          "r": 0
+          "r": 1
         },
-        "step": 2
+        "step": 1
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": 0,
+          "r": 1
+        },
+        "step": 1
       },
       {
         "kind": "trail",
@@ -1479,6 +1468,14 @@
         "kind": "trail",
         "hex": {
           "q": 1,
+          "r": 0
+        },
+        "step": 2
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": 2,
           "r": -1
         },
         "step": 3
@@ -1486,7 +1483,7 @@
       {
         "kind": "trail",
         "hex": {
-          "q": 2,
+          "q": 3,
           "r": -3
         },
         "step": 3
@@ -1494,7 +1491,7 @@
       {
         "kind": "trail",
         "hex": {
-          "q": 2,
+          "q": 3,
           "r": -2
         },
         "step": 3
@@ -1502,15 +1499,15 @@
       {
         "kind": "trail",
         "hex": {
-          "q": 0,
-          "r": -1
-        },
-        "step": 4
-      },
-      {
-        "kind": "trail",
-        "hex": {
           "q": 1,
+          "r": -1
+        },
+        "step": 4
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": 2,
           "r": -2
         },
         "step": 4
@@ -1518,16 +1515,8 @@
       {
         "kind": "trail",
         "hex": {
-          "q": -2,
+          "q": -1,
           "r": -2
-        },
-        "step": 5
-      },
-      {
-        "kind": "trail",
-        "hex": {
-          "q": -2,
-          "r": -1
         },
         "step": 5
       },
@@ -1542,10 +1531,10 @@
       {
         "kind": "trail",
         "hex": {
-          "q": -1,
-          "r": -2
+          "q": 0,
+          "r": -1
         },
-        "step": 6
+        "step": 5
       },
       {
         "kind": "trail",
@@ -1559,6 +1548,14 @@
         "kind": "trail",
         "hex": {
           "q": 1,
+          "r": -2
+        },
+        "step": 6
+      },
+      {
+        "kind": "trail",
+        "hex": {
+          "q": 2,
           "r": -3
         },
         "step": 6
@@ -1568,6 +1565,7 @@
     "story": {
       "fired": [
         "beat.setting-out",
+        "beat.terrain.wooded",
         "beat.first.captors",
         "beat.first.settlement",
         "beat.waymark.quarter",
@@ -1625,53 +1623,53 @@
     {
       "kind": "creature-step",
       "from": {
-        "q": 0,
+        "q": 1,
         "r": -3
       },
       "to": {
-        "q": 0,
+        "q": 1,
         "r": -4
       },
-      "version": 32
+      "version": 31
     },
     {
       "kind": "threat-moves",
       "id": "t3",
       "from": {
-        "q": 4,
-        "r": -3
+        "q": 5,
+        "r": -5
       },
       "to": {
         "q": 4,
         "r": -4
       },
-      "version": 32
+      "version": 31
     },
     {
       "kind": "threat-moves",
       "id": "t4",
       "from": {
-        "q": 0,
+        "q": 1,
         "r": 0
       },
       "to": {
-        "q": 0,
+        "q": 1,
         "r": -2
       },
-      "version": 32
+      "version": 31
     },
     {
       "kind": "threat-moves",
       "id": "t5",
       "from": {
-        "q": 3,
+        "q": 4,
         "r": -6
       },
       "to": {
-        "q": 2,
+        "q": 3,
         "r": -5
       },
-      "version": 32
+      "version": 31
     },
     {
       "kind": "threat-strikes",
@@ -1679,7 +1677,7 @@
       "type": "captors",
       "damage": 2,
       "held": 2,
-      "version": 32
+      "version": 31
     },
     {
       "kind": "threat-strikes",
@@ -1687,13 +1685,7 @@
       "type": "swarm",
       "damage": 1,
       "held": 2,
-      "version": 32
-    },
-    {
-      "kind": "struck",
-      "characterId": "666666666666666666.0",
-      "threat": "t3",
-      "version": 32
+      "version": 31
     },
     {
       "kind": "peril",
@@ -1709,17 +1701,17 @@
           "amount": 1
         }
       ],
-      "version": 32
+      "version": 31
     },
     {
       "kind": "threat-appears",
       "id": "t7",
       "type": "stampede",
       "hex": {
-        "q": 0,
+        "q": 1,
         "r": 2
       },
-      "version": 32
+      "version": 31
     },
     {
       "kind": "story",
@@ -1729,12 +1721,12 @@
         "kind": "creature"
       },
       "when": "route:0.5",
-      "version": 32
+      "version": 31
     },
     {
       "kind": "day",
       "day": 7,
-      "version": 32
+      "version": 31
     }
   ],
   "eventsTruncated": false
