@@ -16,14 +16,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import { characterArts, creatureArt, sceneCells } from './cells.ts';
 import { PALETTE } from './art.ts';
-import {
-  cartFeet,
-  figureFeet,
-  lureFeet,
-  pickableFeet,
-  placePoint,
-  seatSlot,
-} from './figures.ts';
+import { cartFeet, figureFeet, lureFeet, pickableFeet, placePoint, seatSlot } from './figures.ts';
 
 const p = isometric(64, 0.8);
 const game = (ids: string[]): GameState => createGame(20261119, { characterIds: ids });

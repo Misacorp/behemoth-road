@@ -202,7 +202,10 @@ export function CardIcon({
   /** The art kit's sealed look: this is how things stand now (a tap undoes it). */
   done?: boolean;
 }): JSX.Element {
-  const icon = drawIcon(id, PALETTE, size, { ...(risk ? { risk: true } : {}), ...(done ? { done: true } : {}) });
+  const icon = drawIcon(id, PALETTE, size, {
+    ...(risk ? { risk: true } : {}),
+    ...(done ? { done: true } : {}),
+  });
   return toPreact({ ...icon, attrs: { ...icon.attrs, x, y, width: size, height: size } });
 }
 
@@ -529,7 +532,17 @@ export interface BubbleCharacter {
 }
 
 /** A small icon placed with its top-left at (x, y). */
-export function Placed({ node, x, y, size }: { node: SvgNode; x: number; y: number; size: number }) {
+export function Placed({
+  node,
+  x,
+  y,
+  size,
+}: {
+  node: SvgNode;
+  x: number;
+  y: number;
+  size: number;
+}) {
   return toPreact({ ...node, attrs: { ...node.attrs, x, y, width: size, height: size } });
 }
 
@@ -1102,7 +1115,7 @@ export function HereCard({
             needs={a.needs ?? null}
             why={a.why ?? null}
             armKey={actionKey(a)}
-            {...(arm ? { arm } : {})}
+            {...(arm && a.cost > 0 ? { arm } : {})}
             onRun={() => onAct(a.kind)}
             {...(i === 0 ? { buttonRef: firstRef } : {})}
           />

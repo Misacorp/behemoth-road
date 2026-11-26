@@ -19,7 +19,7 @@ import {
 } from '@behemoth-road/art';
 import type { GameStateView, Hex } from '@behemoth-road/core';
 import { accentOf } from '../game/identity.ts';
-import { cargoFill, cartLook } from '../game/cart.ts';
+import { cargoFill, cargoUnits, cartLook } from '../game/cart.ts';
 import { screeFields } from '../game/hazards.ts';
 import { leadTargets, lureById, lureLook } from '../game/lure.ts';
 import { MAP_TUNING } from './config.ts';
@@ -39,12 +39,15 @@ function hexPath(p: Projection, h: Hex, scale: number): string {
 }
 
 /** An art kit `<svg>` (a mark with its own size) centred on (x, y), `size` world px tall. */
-function centred(mark: SvgNode, at: { x: number; y: number }, width: number, height: number): SvgNode {
-  return el(
-    'svg',
-    { ...mark.attrs, x: at.x - width / 2, y: at.y - height / 2, width, height },
-    [...mark.children],
-  );
+function centred(
+  mark: SvgNode,
+  at: { x: number; y: number },
+  width: number,
+  height: number,
+): SvgNode {
+  return el('svg', { ...mark.attrs, x: at.x - width / 2, y: at.y - height / 2, width, height }, [
+    ...mark.children,
+  ]);
 }
 
 /** The lure animal with its leads-left pawprints above it. */
@@ -87,21 +90,29 @@ function cartNodes(i: OverlayInput): SvgNode[] {
       seed: cart.id,
       ...(who ? { accent: accentOf(who, MAP_TUNING.accent) } : {}),
     });
-    const h = atLeast(i.zoom, 0.2 * p.size, 12);
+    const h = atLeast(i.zoom, 0.14 * p.size, 9);
     const slots = Math.max(1, Math.min(8, i.state.config.cartCargo));
     const mark = drawCargoFill(i.palette, cargoFill(i.state, cart), slots, h);
     const w = (h * (slots * 10.5 + 6)) / 16;
     return el('g', { 'data-cart': cart.id, 'data-look': look }, [
       ...drawn.nodes,
-      el('g', { 'data-mark': 'cargo-fill' }, [
-        centred(mark, { x: feet.x + 0.1 * p.size, y: feet.y - 0.78 * p.size }, w, h),
-      ]),
+      // The cargo mark shows only while something rides in it.
+      ...(cargoUnits(cart) > 0
+        ? [
+            el('g', { 'data-mark': 'cargo-fill' }, [
+              centred(mark, { x: feet.x + 0.1 * p.size, y: feet.y - 0.9 * p.size }, w, h),
+            ]),
+          ]
+        : []),
     ]);
   });
 }
 
 /** The hexes the lure being led can go to, and the arrow and ring on the chosen one. */
-function leadMarks(i: OverlayInput, flow: Extract<Flow, { kind: 'lead' }>): {
+function leadMarks(
+  i: OverlayInput,
+  flow: Extract<Flow, { kind: 'lead' }>,
+): {
   under: SvgNode[];
   over: SvgNode[];
 } {

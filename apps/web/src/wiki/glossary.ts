@@ -6,6 +6,11 @@
 import {
   ACTION_MOTIFS,
   drawBurnableMark,
+  drawCapybara,
+  drawCargoFill,
+  drawCart,
+  drawHazardIcon,
+  drawLeadsLeft,
   drawFearsFireMark,
   drawFireRing,
   drawGlyph,
@@ -92,6 +97,8 @@ export type Draw =
   | { readonly kind: 'moment'; readonly moment: string }
   | { readonly kind: 'trace'; readonly trace: string }
   | { readonly kind: 'stone' }
+  /** The lure and cart marks: a capybara (`lure`, `lure-settled`), the `cart`, `leads`, `cargo`, or a hazard icon. */
+  | { readonly kind: 'thing'; readonly id: string }
   | { readonly kind: 'fire'; readonly mark: FireMark }
   | { readonly kind: 'hud'; readonly id: string };
 
@@ -306,6 +313,18 @@ export function buildGlossary(): readonly GlossaryEntry[] {
   for (const mark of FIRE_MARKS)
     out.push(entry('marks', `fire-${mark}`, FIRE_TIPS[mark], { kind: 'fire', mark }));
 
+  // Hazards, the lure animal and the cart.
+  const THINGS: readonly (readonly [string, TipId, string])[] = [
+    ['lure', 'map:lure', 'lure'],
+    ['lure-settled', 'map:lure-settled', 'lure-settled'],
+    ['leads-left', 'map:leads', 'leads'],
+    ['cart', 'map:cart', 'cart'],
+    ['cargo', 'map:cargo', 'cargo'],
+    ['step-harm', 'map:step-harm', 'poisoned-lake'],
+    ['scree-field', 'map:scree-field', 'scree-field'],
+  ];
+  for (const [key, tip, id] of THINGS) out.push(entry('marks', key, tip, { kind: 'thing', id }));
+
   for (const kind of MOMENT_KINDS)
     out.push(entry('marks', kind, null, { kind: 'moment', moment: kind }));
 
@@ -356,6 +375,8 @@ export function drawEntry(d: Draw, size: number): SvgNode | null {
     }
     case 'fire':
       return drawFireMark(d.mark, size);
+    case 'thing':
+      return drawThing(d.id, size);
     case 'tile': {
       const scene = renderScene({
         cells: [
@@ -444,4 +465,36 @@ function drawFireMark(mark: FireMark, size: number): SvgNode {
     );
   }
   return el('svg', { ...scene.attrs, width: size * 1.14, height: size }, scene.children);
+}
+
+/** A fitted `<svg>` square around art kit nodes, like the traces' entries. */
+function fitted(
+  drawn: { nodes: SvgNode[]; box: { x0: number; y0: number; x1: number; y1: number } },
+  size: number,
+): SvgNode {
+  const { x0, y0, x1, y1 } = drawn.box;
+  const pad = 3;
+  const w = x1 - x0 + 2 * pad;
+  const h = y1 - y0 + 2 * pad;
+  const side = Math.max(w, h);
+  return el(
+    'svg',
+    {
+      viewBox: `${x0 - pad - (side - w) / 2} ${y0 - pad - (side - h) / 2} ${side} ${side}`,
+      width: size,
+      height: size,
+    },
+    drawn.nodes,
+  );
+}
+
+/** The lure's and cart's marks. */
+function drawThing(id: string, size: number): SvgNode {
+  const opts = { k: 1, squash: MAP_TUNING.tilt, seed: 1 };
+  if (id === 'lure' || id === 'lure-settled')
+    return fitted(drawCapybara(PALETTE, id === 'lure' ? 'normal' : 'settled', opts), size);
+  if (id === 'cart') return fitted(drawCart(PALETTE, 'loaded', opts), size);
+  if (id === 'leads') return drawLeadsLeft(PALETTE, 2, size * 0.6);
+  if (id === 'cargo') return drawCargoFill(PALETTE, 0.5, 5, size * 0.5);
+  return drawHazardIcon(id, PALETTE, size);
 }

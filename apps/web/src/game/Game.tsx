@@ -77,6 +77,7 @@ import {
 /** The width from which the layout is the desktop one (`styles.css` media queries). */
 const DESKTOP_FROM = 900;
 import { identities, partySeeds, setAccents } from './identity.ts';
+import { cartAt } from './cart.ts';
 import { grabOption, throwOption } from './tow.ts';
 import {
   eventKeys,
@@ -434,8 +435,13 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
     }));
     // A tow line thrown to you: grab it (its own action, never forced).
     const grab = grabOption(state0, me.id);
+    // A cart on your hex: its card (hitch, board, load) is one tap away, free.
+    const cartHere = cartAt(state, me.at.hex);
     const offered = [
       ...(feature ? actionsAt(state0, me.id) : []),
+      ...(cartHere
+        ? [{ kind: 'cart', icon: 'cart', cost: 0, enabled: true } satisfies HereAction]
+        : []),
       ...(fire ? [fire] : []),
       ...settlement,
       ...(grab
@@ -464,7 +470,11 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
     return mine && mine.actionsLeft > 0 ? { kind: 'selected' } : IDLE;
   };
   const onAct = (kind: string): void => {
-    if (kind === 'grab-line') {
+    if (kind === 'cart') {
+      const here =
+        me?.status === 'active' && me.at.kind === 'hex' ? cartAt(state, me.at.hex) : null;
+      if (here) setFlow({ kind: 'cart', id: here.id });
+    } else if (kind === 'grab-line') {
       void act(
         () => api.act(view.version, { kind }),
         () => IDLE,

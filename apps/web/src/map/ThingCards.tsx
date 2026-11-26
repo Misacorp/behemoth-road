@@ -5,7 +5,13 @@
  * board toggles, and two rows of materials: tap one in your pack to load a unit, tap one in the cart to take
  * a unit out (they cost nothing, so one tap each).
  */
-import { drawCapybara, drawCargoFill, drawCart, drawLeadsLeft, type Drawn } from '@behemoth-road/art';
+import {
+  drawCapybara,
+  drawCargoFill,
+  drawCart,
+  drawLeadsLeft,
+  type Drawn,
+} from '@behemoth-road/art';
 import type { Cart, GameStateView, Lure } from '@behemoth-road/core';
 import type { JSX } from 'preact';
 import { iconOf } from '../game/chain.ts';
@@ -72,12 +78,7 @@ export function LureCard({
         <Fitted drawn={lureFigure(look)} x={8} y={6} width={76} height={50} />
       </g>
       <g transform="translate(46 62)" {...tipProps('map:leads')} data-mark="leads-left">
-        <Placed
-          node={drawLeadsLeft(PALETTE, lure.leadsLeft, 14)}
-          x={-17}
-          y={-7}
-          size={14 * 2.4}
-        />
+        <Placed node={drawLeadsLeft(PALETTE, lure.leadsLeft, 14)} x={-17} y={-7} size={14 * 2.4} />
       </g>
       {lead && (
         <ActionButton
@@ -111,7 +112,7 @@ export function cartSize(
   const rows = (loads > 0 ? 1 : 0) + (unloads > 0 ? 1 : 0);
   return {
     width: Math.max(150, 2 * PAD + 30 + chips * CHIP_W, 92 + toggles * ACTION_W),
-    height: 72 + labelH() + (rows > 0 ? 6 + rows * ROW_H : 0),
+    height: 72 + labelH() + (rows > 0 ? 14 + rows * ROW_H : 0),
   };
 }
 
@@ -239,7 +240,7 @@ export function CartCard({
       {rows.map((row, r) => (
         <g
           key={row.kind}
-          transform={`translate(${PAD} ${72 + labelH() + 6 + r * ROW_H})`}
+          transform={`translate(${PAD} ${72 + labelH() + 14 + r * ROW_H})`}
           data-row={row.kind}
         >
           <g {...tipProps(tipFor('action', row.kind))}>

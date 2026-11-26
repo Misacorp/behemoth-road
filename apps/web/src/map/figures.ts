@@ -91,8 +91,16 @@ export function pickableFeet(
       ...onHex
         .filter((c) => c.id !== characterId)
         .flatMap((c) => feet(c.id).map((f): OtherFigure => ({ id: c.id, feet: f }))),
-      ...state.lures.map((l): OtherFigure => ({ id: l.id, feet: lureFeet(p, l.hex), kind: 'lure' })),
-      ...state.carts.map((c): OtherFigure => ({ id: c.id, feet: cartFeet(p, c.hex), kind: 'cart' })),
+      ...state.lures.map((l): OtherFigure => ({
+        id: l.id,
+        feet: lureFeet(p, l.hex),
+        kind: 'lure',
+      })),
+      ...state.carts.map((c): OtherFigure => ({
+        id: c.id,
+        feet: cartFeet(p, c.hex),
+        kind: 'cart',
+      })),
     ],
   };
 }

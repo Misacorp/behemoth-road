@@ -32,9 +32,9 @@ describe('the lure animal', () => {
     for (const t of targets) {
       expect(Math.abs(t.q - lure.hex.q) + Math.abs(t.r - lure.hex.r)).toBeGreaterThan(0);
     }
-    expect(targets.some((t) => t.q === abs({ q: 0, r: 0 }).q && t.r === abs({ q: 0, r: 0 }).r)).toBe(
-      false,
-    );
+    expect(
+      targets.some((t) => t.q === abs({ q: 0, r: 0 }).q && t.r === abs({ q: 0, r: 0 }).r),
+    ).toBe(false);
   });
 
   it('offers leading on or next to it at the core cost, and not from afar', () => {
@@ -181,6 +181,8 @@ describe('hazards', () => {
         { type: 'rockslide', at: { q: 3, r: 3 } },
       ],
     });
-    expect(screeFields(view)).toEqual([{ patch: 'h1', hexes: [abs({ q: 0, r: 4 }), abs({ q: 1, r: 4 })] }]);
+    expect(screeFields(view)).toEqual([
+      { patch: 'h1', hexes: [abs({ q: 0, r: 4 }), abs({ q: 1, r: 4 })] },
+    ]);
   });
 });
