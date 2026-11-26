@@ -63,17 +63,21 @@ describe('braziers', () => {
   });
 });
 
+describe('a spent fire is not lit', () => {
+  it('reads cold once its nights are gone, even if a stale stimulus lingers', () => {
+    const lit = staged({ brazierLit: 1 });
+    const key = hexKey(lit.abs(START));
+    expect(featureArtAt(lit.view, key)).toMatchObject({ lit: true, nightsLeft: 1 });
+    const stale = { ...lit.view, day: lit.view.day + 1 };
+    expect(featureArtAt(stale, key)).toEqual({ look: 'brazier' });
+    expect(fireNoteAt(stale, lit.abs(START))).toBeNull();
+  });
+});
+
 describe('burnt ground', () => {
   it('is a fire scar where no feature stands, and never on a brazier', () => {
-    const base = staged({ burnt: [NEAR], brazier: true });
-    const s = {
-      ...base,
-      view: {
-        ...base.view,
-        traces: [...base.view.traces, { kind: 'fire' as const, hex: base.abs(START), step: 0 }],
-      },
-    };
-    expect([...burntKeys(s.view)]).toEqual([hexKey(s.abs(NEAR))]);
+    const s = staged({ burnt: [NEAR], brazier: true });
+    expect([...burntKeys(s.view)]).toEqual([[hexKey(s.abs(NEAR)), 'deadfall']]);
     const cell = sceneCells(s.view).find((c) => c.q === s.abs(NEAR).q && c.r === s.abs(NEAR).r);
     expect(cell?.burnt).toBe('deadfall');
     expect(mapTipAt(s.view, s.abs(NEAR))).toBe('map:burnt');

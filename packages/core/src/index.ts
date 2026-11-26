@@ -89,6 +89,7 @@ export type {
   StoryQueued,
   StoryState,
   Threat,
+  Burnt,
   Trace,
   TraceKind,
   Care,

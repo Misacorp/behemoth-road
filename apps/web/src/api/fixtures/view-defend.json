@@ -1012,6 +1012,7 @@
     },
     "misleadUntilDay": null,
     "traces": [],
+    "burnt": [],
     "story": {
       "fired": ["beat.setting-out"],
       "queue": [],

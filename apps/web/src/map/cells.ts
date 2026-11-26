@@ -8,6 +8,7 @@ import {
   type CreatureSigns,
   featureType,
   FIRE_SITE_TAG,
+  firesBurning,
   nightsLeft,
   STIMULUS_TYPES,
   directionOffset,
@@ -74,6 +75,7 @@ export function sceneCells(
   const cells: ArtCell[] = [];
   for (const [key, h] of keys) {
     const cellState = cellStateAt(state, key);
+    const burntLook = burnt.get(key);
     const known = terrainKnown(cellState);
     const feature = known ? featureArtAt(state, key) : null;
     const threat = threats.get(key);
@@ -89,7 +91,7 @@ export function sceneCells(
       // A lit fire shows to everyone, also under the veil and on paper never seen.
       // A brazier draws its own flame, so it is not drawn a second fire beside it.
       ...(fires.has(key) && !isBrazierAt(state, key) ? { fire: true } : {}),
-      ...(burnt.has(key) ? { burnt: BURNT_LOOK } : {}),
+      ...(burntLook ? { burnt: burntLook } : {}),
       ...(threat
         ? {
             threat: {
@@ -126,8 +128,8 @@ export function featureArtAt(state: GameStateView, key: string): FeatureArt | nu
     return { look: f.type };
   }
   if (type.tags.includes(FIRE_SITE_TAG)) {
-    // A brazier: lit exactly while a fire burns on its hex, with the nights it has left.
-    const fire = state.stimuli.find((x) => hexKey(x.hex) === key);
+    // A brazier: lit exactly while a fire (a stimulus tagged `fire`, nights left) burns on its hex.
+    const fire = firesBurning(state).find((x) => hexKey(x.hex) === key);
     return fire
       ? { look: type.icon, lit: true, nightsLeft: nightsLeft(state, fire) }
       : {
@@ -151,18 +153,28 @@ export function isBrazierAt(state: GameStateView, key: string): boolean {
   }
 }
 
-/** The look a burnt feature leaves (the view no longer says which it was). */
-export const BURNT_LOOK = 'deadfall';
+/**
+ * The look of a burnt feature's ground: the feature type's own `burntLook` (content data), else its icon.
+ * An unknown type draws the art kit's default.
+ */
+export function burntLookOf(featureId: string): string {
+  try {
+    const type = featureType(featureId);
+    return type.burntLook ?? type.icon;
+  } catch {
+    return featureId;
+  }
+}
 
 /**
- * Hexes where a feature burnt away for good: a fire left its scar (a `fire` trace) on a hex that holds no
- * feature now. A brazier stays (it is lit again), so its hex never counts.
+ * Hexes where a burnable burnt away for good (the view's public `burnt`), by the look each left. Nothing
+ * burnt shows on a hex that holds a feature again.
  */
-export function burntKeys(state: GameStateView): Set<string> {
-  const out = new Set<string>();
-  for (const t of state.traces) {
-    const key = hexKey(t.hex);
-    if (t.kind === 'fire' && !state.features[key]) out.add(key);
+export function burntKeys(state: GameStateView): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const b of state.burnt) {
+    const key = hexKey(b.hex);
+    if (!state.features[key]) out.set(key, burntLookOf(b.feature));
   }
   return out;
 }

@@ -171,8 +171,9 @@ export interface CostedAction {
   readonly why?: TipId;
 }
 
-/** The stimulus a fire is (tagged `fire`), for its fuel tag: content, read by tag. */
-const FIRE = STIMULUS_TYPES.find((t) => t.tags.includes('fire')) ?? null;
+/** The stimulus a plain fire is (tagged `fire`, not a brazier's `fire-site`), for its fuel tag: read by tag. */
+const FIRE =
+  STIMULUS_TYPES.find((t) => t.tags.includes('fire') && !t.tags.includes('fire-site')) ?? null;
 
 /** Materials that nourish the creature (content `nourishes`), in content order. */
 const FOODS: readonly string[] = MATERIALS.filter((m) => (m.nourishes ?? 0) > 0).map((m) => m.id);

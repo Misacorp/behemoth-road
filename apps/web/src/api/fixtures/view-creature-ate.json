@@ -1118,6 +1118,15 @@
         "step": 1
       }
     ],
+    "burnt": [
+      {
+        "hex": {
+          "q": -2,
+          "r": 2
+        },
+        "feature": "deadfall"
+      }
+    ],
     "story": {
       "fired": ["beat.setting-out"],
       "queue": [],

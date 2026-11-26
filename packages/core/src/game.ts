@@ -90,6 +90,7 @@ export const createGame = (
     stats: emptyStats(),
     misleadUntilDay: null,
     traces: [],
+    burnt: [],
     story: emptyStory(),
     tiles,
     brazierPlan: braziers,

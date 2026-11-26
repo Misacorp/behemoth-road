@@ -12,6 +12,7 @@ import {
   type GameStateView,
   type Hex,
   hexKey,
+  firesBurning,
   nightsLeft,
 } from '@behemoth-road/core';
 import type { TipId } from '../text/tips.ts';
@@ -33,7 +34,7 @@ export function fireNoteAt(game: GameStateView, h: Hex): FireNote | null {
   }
   if (tags.includes(BURNABLE_TAG)) return { burnable: true };
   if (tags.includes(FIRE_SITE_TAG)) {
-    const fire = game.stimuli.find((s) => hexKey(s.hex) === key);
+    const fire = firesBurning(game).find((s) => hexKey(s.hex) === key);
     if (fire) return { nights: nightsLeft(game, fire) };
   }
   return null;

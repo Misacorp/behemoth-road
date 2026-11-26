@@ -44,6 +44,7 @@ import {
   UNLOCKS,
 } from '@behemoth-road/core';
 import { PALETTE } from '../map/art.ts';
+import { burntLookOf } from '../map/cells.ts';
 import { MAP_TUNING } from '../map/config.ts';
 import { fillTip, tipValues } from '../text/tipValues.ts';
 import { TIP_TABLE, type TipId } from '../text/tips.ts';
@@ -415,7 +416,7 @@ function drawFireMark(mark: FireMark, size: number): SvgNode {
         ...(mark === 'brazier-lit'
           ? { feature: { look: 'brazier', lit: true, nightsLeft: 2 } }
           : mark === 'burnt'
-            ? { burnt: 'deadfall' }
+            ? { burnt: burntLookOf(FEATURE_TYPES.find((f) => f.burntLook)?.id ?? '') }
             : {}),
       },
     ],

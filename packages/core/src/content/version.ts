@@ -37,7 +37,8 @@
  * 22: the world (docs/design/story.md): creature fate, sound, habit, blessing, tier and route; threats may
  *    have an `ending`; traces and the story (storylets) join the state; the creature has a public kind.
  * 23: fire needs something to burn: braziers (fire-site) and burnable features, fears-fire threats, the
- *    rockslide can fall on its striker (pinned characters, dig-out); engineers are sure-footed.
+ *    rockslide can fall on its striker (pinned characters, dig-out); engineers are sure-footed; burnt
+ *    ground is kept (`burnt`, with the feature's `burntLook`).
  */
 export const CONTENT_VERSION = 23;
 

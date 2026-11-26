@@ -344,10 +344,7 @@ export function chainScenario(stage: ChainStage = {}): Scenario {
           ]
         : []),
     ],
-    traces: [
-      ...state.traces,
-      ...(stage.burnt ?? []).map((h) => ({ kind: 'fire' as const, hex: abs(h), step: 0 })),
-    ],
+    burnt: (stage.burnt ?? []).map((h) => ({ hex: abs(h), feature: 'deadfall' })),
     care: {
       satiety: stage.satiety ?? state.care.satiety,
       cues: {

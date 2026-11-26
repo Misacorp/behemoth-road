@@ -202,13 +202,18 @@ function CardIcon({
   return toPreact({ ...icon, attrs: { ...icon.attrs, x, y, width: size, height: size } });
 }
 
+/** Width the card already leaves beside the picture for a fire note; the embers' mark is wider by the rest. */
+const NIGHTS_ROOM = 24;
+
 /** The inspect card, wider for a survey button and for a lit brazier's embers. */
 export const inspectSize = (
   survey: boolean,
   note: FireNote | null = null,
 ): { width: number; height: number } => ({
   width:
-    INSPECT_SIZE.width + (survey ? ACTION_W : 0) + (note && 'nights' in note ? NIGHTS_W - 24 : 0),
+    INSPECT_SIZE.width +
+    (survey ? ACTION_W : 0) +
+    (note && 'nights' in note ? NIGHTS_W - NIGHTS_ROOM : 0),
   height: INSPECT_SIZE.height + TITLE_H + (survey ? labelH() : 0),
 });
 

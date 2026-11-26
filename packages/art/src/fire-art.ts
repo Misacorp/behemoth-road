@@ -257,8 +257,8 @@ export function drawBrazier(palette: Palette, opts: BrazierOptions): Drawn {
 }
 
 /**
- * The nights-left mark for beside a lit brazier, a centred `<svg>` (`size` px tall, default 24, 2.25 times
- * as wide): three ember slots, the first `nights` (0 to 3) lit, the rest faint outlines. No numbers.
+ * The nights-left mark for beside a lit brazier, a centred `<svg>` (`size` px tall, default 24, 3 times
+ * as wide): four ember slots, the first `nights` (0 to 4) lit, the rest faint outlines. No numbers.
  */
 export function drawNightsLeft(palette: Palette, nights: number, size = 24): SvgNode {
   const n = clampNights(nights);

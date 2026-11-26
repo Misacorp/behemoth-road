@@ -1004,6 +1004,15 @@
         "by": "111111111111111111.0"
       }
     ],
+    "burnt": [
+      {
+        "hex": {
+          "q": -2,
+          "r": 2
+        },
+        "feature": "deadfall"
+      }
+    ],
     "story": {
       "fired": ["beat.setting-out"],
       "queue": [],

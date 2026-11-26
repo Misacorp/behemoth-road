@@ -2,6 +2,7 @@
  * What leaves the server, and what comes back from storage.
  */
 
+import { hexKey } from './hex.ts';
 import { CONTENT_VERSION, KNOWN_CONTENT_VERSIONS } from './content/index.ts';
 import { emptyStats } from './stats.ts';
 import { isSeed } from './random.ts';
@@ -35,6 +36,8 @@ export const toPlayerView = (state: GameState): GameStateView => {
     stats: state.stats,
     misleadUntilDay: state.misleadUntilDay,
     traces: state.traces,
+    // Public where seen: the ground a fire burnt bare.
+    burnt: state.burnt.filter((b) => state.tiles[hexKey(b.hex)]?.visibility === 'seen'),
     story: state.story,
   };
   // A deep copy, so nothing done to the view can reach the server's state.

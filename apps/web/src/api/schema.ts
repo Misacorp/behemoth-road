@@ -187,6 +187,8 @@ export const GameStateViewSchema = v.object({
     ),
     v.check((f) => Object.keys(f).length <= 20_000, 'too many features'),
   ),
+  /** Burnables a fire burnt away for good, where seen (what stood there says how the ground looks). */
+  burnt: v.pipe(v.array(v.object({ hex, feature: id })), v.maxLength(2000)),
   /** The team stores, on the creature. */
   stores: counts,
   /** Unlocks the team has finished. */

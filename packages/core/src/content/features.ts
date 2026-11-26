@@ -25,6 +25,8 @@ interface FeatureBase {
   readonly placement: FeaturePlacement;
   /** Found stocked: its first fire needs no fuel (the state's `stocked` flag clears when it is first lit). */
   readonly stockedFuel?: boolean;
+  /** A burnable: the look its burnt ground has (an art kit `BURNT_LOOKS` id); the icon when absent. */
+  readonly burntLook?: string;
 }
 
 export interface NodeType extends FeatureBase {
@@ -120,6 +122,7 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
     kind: 'trap',
     name: 'Snare',
     tags: ['trap', 'hidden', 'burnable'],
+    burntLook: 'snare',
     icon: 'snare',
     placement: { on: ['wooded', 'open'], weight: 1 },
   },
@@ -174,6 +177,7 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
     kind: 'node',
     name: 'Deadfall',
     tags: ['wood', 'fell', 'burnable'],
+    burntLook: 'deadfall',
     icon: 'deadfall',
     placement: { on: ['open'], weight: 2 },
     charges: 3,

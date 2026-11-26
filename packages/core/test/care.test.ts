@@ -65,6 +65,7 @@ describe('the hidden nature', () => {
     const view0 = JSON.parse(JSON.stringify(toPlayerView(state))) as Record<string, unknown>;
     expect(Object.keys(view0).sort()).toEqual([
       'artSeed',
+      'burnt',
       'characters',
       'config',
       'contentVersion',

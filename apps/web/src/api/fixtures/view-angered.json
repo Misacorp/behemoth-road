@@ -1496,6 +1496,7 @@
         "step": 5
       }
     ],
+    "burnt": [],
     "story": {
       "fired": [
         "beat.setting-out",

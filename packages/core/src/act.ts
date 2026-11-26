@@ -724,6 +724,7 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
     const lit: GameState = {
       ...state,
       features,
+      burnt: [...state.burnt, { hex: h, feature: (burnt as FeatureState).type }],
       stimuli: [...state.stimuli, litFire(c, FIRE.id, h, state.day)],
     };
     return {

@@ -208,6 +208,30 @@ describe('burnable features', () => {
     expect(next.state.stimuli).toEqual([]);
     expect(next.state.features[key(BRAZIER)]).toBeUndefined();
   });
+
+  it.each(['deadfall', 'snare'])(
+    'keeps what burnt, with its burnt look, public where seen',
+    (type) => {
+      let s = giveTimber(placeCharacter(calm(fieldGame(['keeper'])), 'keeper', BRAZIER), 'keeper');
+      s = withFeature(s, BRAZIER, type, true);
+      const lit = ok(act(s, 'keeper', { kind: 'light-fire' }));
+      expect(lit.burnt).toEqual([{ hex: BRAZIER, feature: type }]);
+      expect(featureType(type).burntLook).toBe(type);
+      // It outlasts the fire, and the view carries it for a hex that is seen.
+      const next = nextDayWithEvents(lit).state;
+      expect(next.burnt).toEqual(lit.burnt);
+      const tile = next.tiles[key(BRAZIER)]!;
+      const withTile = (t: typeof tile): typeof next => ({
+        ...next,
+        tiles: { ...next.tiles, [key(BRAZIER)]: t },
+      });
+      expect(
+        toPlayerView(withTile({ ...tile, visibility: 'seen', leftWindowOnDay: null })).burnt,
+      ).toEqual(lit.burnt);
+      const gone = withTile({ visibility: 'lost', terrain: tile.terrain, explored: true });
+      expect(toPlayerView(gone).burnt).toEqual([]);
+    },
+  );
 });
 
 describe('threats that fear fire', () => {

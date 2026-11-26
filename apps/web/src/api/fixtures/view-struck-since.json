@@ -1243,6 +1243,7 @@
         "step": 2
       }
     ],
+    "burnt": [],
     "story": {
       "fired": ["beat.setting-out"],
       "queue": [],

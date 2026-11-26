@@ -27,7 +27,10 @@ export function tipValues(config: TuningConfig): Readonly<Record<string, string>
     brazierNights: String(config.brazierNights),
     slideFall: percent(config.slideFallChance),
     struckActions: String(config.struckActions),
-    fireFuel: String(STIMULUS_TYPES.find((s) => s.id === 'fire')?.fuel.amount ?? 1),
+    fireFuel: String(
+      STIMULUS_TYPES.find((s) => s.tags.includes('fire') && !s.tags.includes('fire-site'))?.fuel
+        .amount ?? 1,
+    ),
   };
   for (const u of UNLOCKS) {
     if (u.movement) values[`climbCost.${u.id}`] = String(u.movement.cost);

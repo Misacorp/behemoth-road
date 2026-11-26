@@ -37,6 +37,12 @@ export type TraceKind = 'fire' | 'trail' | 'cairn' | 'chain' | 'gate';
  * a fire scar, the trail the creature left, a cairn where it lingered, broken chain where captors were
  * cleared, a small open gate where a character was lost. Public.
  */
+export interface Burnt {
+  readonly hex: Hex;
+  /** The feature type id that burnt (its `burntLook` says how the ground looks now). */
+  readonly feature: string;
+}
+
 export interface Trace {
   readonly kind: TraceKind;
   readonly hex: Hex;
@@ -288,6 +294,8 @@ export interface GameStateView {
   readonly misleadUntilDay: number | null;
   /** What the season left on the map (at most `traceCap`). */
   readonly traces: readonly Trace[];
+  /** Burnables a fire burnt away for good, with the feature that stood there (public, shown where seen). */
+  readonly burnt: readonly Burnt[];
   /** The story so far. */
   readonly story: StoryState;
 }
