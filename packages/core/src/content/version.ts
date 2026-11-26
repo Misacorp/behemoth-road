@@ -40,7 +40,9 @@
  *    rockslide can fall on its striker (pinned characters, dig-out); engineers are sure-footed; burnt
  *    ground is kept (`burnt`, with the feature's `burntLook`).
  * 24: pinned characters keep their actions and struggle free (`struggle`, `struggles`); the cart: a hand cart
- *    (unlock with a `vehicle`), `carts` in the state, hitch, board, load and unload.
+ *    (unlock with a `vehicle`), `carts` in the state, hitch, board, load and unload; hazards along the route
+ *    (scree field, poisoned lake, glass waste: `perilOnStep` on terrain) and the lure (a capybara; the `lead`
+ *    action, `lures` in the view, the creature's reaction to `small-beast`).
  */
 export const CONTENT_VERSION = 24;
 

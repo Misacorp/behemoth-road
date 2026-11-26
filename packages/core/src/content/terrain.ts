@@ -12,6 +12,11 @@ export interface TerrainType {
   readonly extraMoveCost: number;
   /** Height for a later isometric view; 0 everywhere for now. */
   readonly elevation: number;
+  /**
+   * Peril the creature takes each time a step ends its centre on this terrain (a hazard: poisoned water,
+   * sharp glass). Absent: none. Defence does not reduce it.
+   */
+  readonly perilOnStep?: number;
 }
 
 export const TERRAIN_TYPES: readonly TerrainType[] = [
@@ -53,4 +58,23 @@ export const TERRAIN_TYPES: readonly TerrainType[] = [
   // A little land inside a lake or the sea: reached by raft, or from the creature as it swims past.
   { id: 'islet', tags: ['open', 'island'], passable: true, extraMoveCost: 0, elevation: 0 },
   { id: 'cliff', tags: ['steep'], passable: false, extraMoveCost: 0, elevation: 0 },
+  // Hazards (`hazards.ts` lays them across the route): the creature stepping onto them takes peril, so
+  // steering round them pays. The poisoned lake is deep water nobody gathers from; the glass waste is
+  // dry, sharp ground that costs a walker an action more.
+  {
+    id: 'poisoned-lake',
+    tags: ['water', 'deep', 'fresh', 'poisoned'],
+    passable: false,
+    extraMoveCost: 0,
+    elevation: 0,
+    perilOnStep: 2,
+  },
+  {
+    id: 'glass-waste',
+    tags: ['dry', 'sharp'],
+    passable: true,
+    extraMoveCost: 1,
+    elevation: 0,
+    perilOnStep: 2,
+  },
 ];

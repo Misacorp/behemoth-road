@@ -19,6 +19,7 @@ import {
 } from '@behemoth-road/core';
 
 export {
+  DIRECTIONS,
   addCharacter,
   addSeen,
   readSeen,

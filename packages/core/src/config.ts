@@ -76,6 +76,18 @@ export interface TuningConfig {
   /** Chance the first struggle frees a pinned character; each earlier failure adds `struggleChanceStep`. */
   readonly struggleChanceBase: number;
   readonly struggleChanceStep: number;
+  /** Mapgen: a hazard patch (scree, poisoned lake, glass waste) lies across the route about every this many hexes. */
+  readonly hazardSpacing: number;
+  /** Mapgen: no hazard lies within this many hexes of the start. */
+  readonly hazardFirst: number;
+  /** Mapgen: a lure (a small animal) stands near the route about every this many hexes. */
+  readonly lureSpacing: number;
+  /** Mapgen: the first lure stands this many hexes along the route from the start. */
+  readonly lureFirstWithin: number;
+  /** Actions it costs to lead a lure one hex. */
+  readonly leadCost: number;
+  /** Times a lure can be led before it settles for good. */
+  readonly lureLeads: number;
   readonly feedCost: number;
   /** Keepers only: the creature stays put at the next tick. */
   readonly lingerCost: number;
@@ -213,6 +225,12 @@ export const DEFAULT_CONFIG: TuningConfig = {
   struggleCost: 1,
   struggleChanceBase: 0.2,
   struggleChanceStep: 0.2,
+  hazardSpacing: 12,
+  hazardFirst: 6,
+  lureSpacing: 7,
+  lureFirstWithin: 4,
+  leadCost: 1,
+  lureLeads: 3,
   feedCost: 1,
   lingerCost: 2,
   towThrowCost: 1,
@@ -330,6 +348,10 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     'brazierSpacing',
     'digOutCost',
     'struggleCost',
+    'hazardSpacing',
+    'lureSpacing',
+    'leadCost',
+    'lureLeads',
     'feedCost',
     'lingerCost',
     'towThrowCost',
@@ -369,6 +391,7 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     'perilHungry',
     'perilCalm',
     'brazierRevealRadius',
+    'hazardFirst',
     'fireFearRadius',
     'cartsMax',
     'cartPullExtra',
@@ -392,6 +415,9 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
   if (typeof config.storyOn !== 'boolean') problems.push('storyOn');
   if (!isCount(config.stimulusRange, 0)) problems.push('stimulusRange');
   if (!isCount(config.brazierFirstWithin, 2)) problems.push('brazierFirstWithin');
+  // Patches are at most five hexes across, so a closer spacing would run them together.
+  if (!isCount(config.hazardSpacing, 6)) problems.push('hazardSpacing');
+  if (!isCount(config.lureFirstWithin, 1)) problems.push('lureFirstWithin');
   if (!(Number.isFinite(config.stimulusPull) && config.stimulusPull >= 1)) {
     problems.push('stimulusPull');
   }

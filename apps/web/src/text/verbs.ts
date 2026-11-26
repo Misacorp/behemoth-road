@@ -23,6 +23,7 @@ export const verbs = {
   strike: 'Strike',
   'dig-out': 'Dig',
   struggle: 'Struggle',
+  lead: 'Lead',
   defend: 'Defend',
   parley: 'Parley',
   offer: 'Offer',

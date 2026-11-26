@@ -196,7 +196,7 @@
     "method": "POST",
     "path": "/api/game/act",
     "body": {
-      "version": 29,
+      "version": 28,
       "action": {
         "kind": "parley"
       }
@@ -206,7 +206,7 @@
     "method": "POST",
     "path": "/api/game/act",
     "body": {
-      "version": 30,
+      "version": 29,
       "action": {
         "kind": "ask-boon",
         "boon": "gift"

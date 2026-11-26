@@ -6,6 +6,7 @@
  */
 
 import {
+  HAZARD_TYPES,
   type FieldCondition,
   type FieldRef,
   TERRAIN_GENERATION,
@@ -16,7 +17,7 @@ import {
 import { type Hex, hexKey, neighbours } from './hex.ts';
 import { noiseAt } from './noise.ts';
 import { hashString, type Seed, toSeed } from './random.ts';
-import { type GameStateView, hasSeed } from './state.ts';
+import { type GameStateView, type HazardPatch, hasSeed } from './state.ts';
 import { waterIdAt } from './waters.ts';
 
 export interface MapContent {
@@ -59,6 +60,24 @@ export const terrainIdAt = (
   return generation.fallback;
 };
 
+/** Terrain laid by hazard plans, per plan (its identity): hex key to terrain id. */
+const overlays = new WeakMap<readonly HazardPatch[], Map<string, string>>();
+
+/** The terrain id a hazard patch lays at a hex (a poisoned lake, a glass waste), or null. */
+export const hazardTerrainAt = (plan: readonly HazardPatch[], h: Hex): string | null => {
+  let map = overlays.get(plan);
+  if (!map) {
+    map = new Map();
+    for (const patch of plan) {
+      const terrain = HAZARD_TYPES.find((t) => t.id === patch.type)?.terrain;
+      if (!terrain) continue;
+      for (const x of patch.hexes) if (!map.has(hexKey(x))) map.set(hexKey(x), terrain);
+    }
+    overlays.set(plan, map);
+  }
+  return map.get(hexKey(h)) ?? null;
+};
+
 /**
  * The terrain of a hex as the state knows it: from its known tiles first, then
  * generated from the seed when the state has one (the server). Null when the
@@ -67,7 +86,9 @@ export const terrainIdAt = (
 export const terrainOf = (state: GameStateView, h: Hex): TerrainType | null => {
   const known = state.tiles[hexKey(h)];
   if (known) return terrainById(known.terrain);
-  return hasSeed(state) ? terrainAt(state.seed, h) : null;
+  if (!hasSeed(state)) return null;
+  const laid = hazardTerrainAt(state.hazardPlan, h);
+  return laid ? terrainById(laid) : terrainAt(state.seed, h);
 };
 
 /** A terrain type from its id. Throws for an id the content does not have. */

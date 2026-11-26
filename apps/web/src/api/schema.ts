@@ -102,6 +102,12 @@ const config = v.object({
   struggleCost: count,
   struggleChanceBase: v.number(),
   struggleChanceStep: v.number(),
+  hazardSpacing: count,
+  hazardFirst: count,
+  lureSpacing: count,
+  lureFirstWithin: count,
+  leadCost: count,
+  lureLeads: count,
   feedCost: count,
   lingerCost: count,
   towThrowCost: count,
@@ -235,9 +241,21 @@ export const GameStateViewSchema = v.object({
   ),
   /** Threats on the map (public). */
   threats: v.pipe(
-    v.array(v.object({ id, type: id, hex, strength: count, appearedDay: count })),
+    v.array(
+      v.object({
+        id,
+        type: id,
+        hex,
+        strength: count,
+        appearedDay: count,
+        /** The id of the scree field that laid it, when one did. */
+        patch: v.exactOptional(id),
+      }),
+    ),
     v.maxLength(200),
   ),
+  /** Lures (small animals) on the map (public): `leadsLeft` 0 means it has settled. */
+  lures: v.pipe(v.array(v.object({ id, type: id, hex, leadsLeft: count })), v.maxLength(200)),
   /** Settlements in reach (public). */
   settlements: v.pipe(
     v.array(
@@ -396,6 +414,12 @@ const KNOWN_EVENTS = [
   event('day', { day: count }),
   event('creature-ate', { material: id }),
   event('fire-out', { hex, stimulus: id }),
+  /** The creature's step ended on hazardous terrain; `damage` is the peril it added. */
+  event('hazard-step', { hex, terrain: id, damage: count }),
+  /** A lure was led a hex (`leadsLeft`: what remains); settled with its last lead; fled when the creature reached it. */
+  event('lure-led', { id, characterId: id, from: hex, to: hex, leadsLeft: count }),
+  event('lure-settled', { id, hex }),
+  event('lure-fled', { id, hex }),
   // Milestone 5.
   event('threat-appears', { id, type: id, hex }),
   event('threat-moves', { id, from: hex, to: hex }),
@@ -589,6 +613,12 @@ export type GameAction =
   | { readonly kind: 'defend' }
   | { readonly kind: 'dig-out'; readonly target: string }
   | { readonly kind: 'struggle' }
+  | {
+      readonly kind: 'lead';
+      readonly lure: string;
+      readonly direction?: 'n' | 'ne' | 'se' | 's' | 'sw' | 'nw';
+      readonly to?: { readonly q: number; readonly r: number };
+    }
   | { readonly kind: 'parley' }
   | { readonly kind: 'offer'; readonly material: string }
   | { readonly kind: 'ask-boon'; readonly boon: string }

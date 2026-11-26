@@ -31,6 +31,7 @@ export const toPlayerView = (state: GameState): GameStateView => {
     carts: state.carts,
     stimuli: state.stimuli,
     threats: state.threats,
+    lures: state.lures,
     settlements: state.settlements,
     peril: state.peril,
     season: state.season,

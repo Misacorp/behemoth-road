@@ -129,6 +129,9 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-26 A pinned character struggles free: each try rolls, the chance grows \[Misa\]
 - 2026-11-26 Cart rules: seat, hitch, load, push and loss
 - 2026-11-26 A cart, the first land vehicle (Misa's ask) \[Misa\]
+- 2026-11-26 Hazard patches are laid lazily across the route, and tuned to 12 hexes apart
+- 2026-11-26 A lure animal is a second steering tool (Misa's ask) \[Misa\]
+- 2026-11-26 Hazards across the route make steering worth it (Misa's ask) \[Misa\]
 - 2026-11-26 Striking a rockslide can bury the striker \[Misa\]
 - 2026-11-26 Threats tagged fears-fire keep clear of burning fires \[Misa\]
 - 2026-11-26 Fire needs something to burn: braziers and burnables

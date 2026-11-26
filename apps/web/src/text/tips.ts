@@ -160,6 +160,10 @@ export const tips = {
     title: 'Struggle',
     text: 'Work yourself out from under a slide. Each try is more likely to work than the last.',
   },
+  'action:lead': {
+    title: 'Lead',
+    text: 'Lead a small animal one hex, from its hex or next to it. It can be led only a few times.',
+  },
   'action:defend': {
     text: 'Wardens, riding: stand guard over the creature. Every strike on it today lands {defendReduction} weaker, for each warden.',
   },
@@ -296,6 +300,8 @@ export const tips = {
   'terrain:lake': { title: 'Deep water', text: 'Too deep to wade. The creature swims it.' },
   'terrain:sea': { title: 'Sea', text: 'Salt water, too deep to wade. The creature swims it.' },
   'terrain:islet': { title: 'Island', text: 'A scrap of land in deep water.' },
+  'terrain:poisoned-lake': { title: 'Sour water', text: 'Deep water gone wrong.' },
+  'terrain:glass-waste': { title: 'Glass waste', text: 'Sharp and bright. Slow going.' },
 
   // What a hex holds, once found.
   'feature:iron-deposit': { text: 'Gather iron here, until it runs out.' },

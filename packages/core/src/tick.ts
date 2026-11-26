@@ -29,6 +29,7 @@ import {
   firstWithTag,
   nourishment,
   reactionTo,
+  reactionToLure,
 } from './care.ts';
 import { cartSpot } from './cart.ts';
 import { chooseCreatureStep } from './creature.ts';
@@ -41,7 +42,9 @@ import {
   pruneFeatures,
 } from './features.ts';
 import { nightsOf, rangeOf } from './fire.ts';
-import { THREAT_TYPES } from './content/index.ts';
+import { extendHazards, spawnClusters, stepPeril } from './hazards.ts';
+import { keepLures, placeLures } from './lures.ts';
+import { LURE_TYPES, THREAT_TYPES } from './content/index.ts';
 import { type Hex, hexDistance } from './hex.ts';
 import { hashString, hashToUnit, pickWeighted } from './random.ts';
 import { ON_CREATURE } from './places.ts';
@@ -50,6 +53,7 @@ import type {
   Cart,
   Character,
   Creature,
+  Cue,
   GameState,
   Materials,
   SeasonOutcome,
@@ -61,7 +65,14 @@ import { keepSettlements, placeSettlement, settlementDue } from './settlements.t
 import { withXp } from './skills.ts';
 import { ambush, applyStances } from './stances.ts';
 import { applySkillTicks, hungerEveryDays } from './skilltick.ts';
-import { PERIL_CALM, PERIL_HUNGER, type PerilPart, perilThreat, recordEvents } from './stats.ts';
+import {
+  PERIL_CALM,
+  PERIL_HUNGER,
+  type PerilPart,
+  perilTerrain,
+  perilThreat,
+  recordEvents,
+} from './stats.ts';
 import { fireStory } from './story.ts';
 import { pruneTraces, recordTraces } from './traces.ts';
 import {
@@ -103,9 +114,16 @@ const careAfter = (
   day: number,
 ): { readonly care: Care; readonly stores: Materials; readonly ate: string | null } => {
   const { hunger } = creatureType(state.nature.type);
-  const list = state.stimuli
+  const list: Cue[] = state.stimuli
     .filter((s) => hexDistance(state.creature.centre, s.hex) <= rangeOf(state, s))
     .map((s) => ({ hex: s.hex, stimulus: s.type, reaction: reactionTo(state.nature, s) }));
+  // A lure in reach shows the same cue, under its own type.
+  for (const l of state.lures) {
+    const range = LURE_TYPES.find((x) => x.id === l.type)?.range ?? 0;
+    if (hexDistance(state.creature.centre, l.hex) <= range) {
+      list.push({ hex: l.hex, stimulus: l.type, reaction: reactionToLure(state.nature, l) });
+    }
+  }
   // Contented: while a keeper with the skill is in the game, hunger drains less often.
   const every = Math.max(hunger.drainEveryDays, hungerEveryDays(state));
   const drains = day % every === 0;
@@ -227,7 +245,9 @@ const seasonEnd = (state: GameState): SeasonOutcome | null => {
  */
 const newThreat = (state: GameState): Threat | null => {
   const { config, day } = state;
-  if (day < config.threatsFromDay || state.threats.length >= config.threatsMax) return null;
+  // A scree field's rockslides are laid with it and do not count against the cap.
+  const rolled = state.threats.filter((t) => t.patch === undefined).length;
+  if (day < config.threatsFromDay || rolled >= config.threatsMax) return null;
   const chance = Math.min(
     config.threatChanceMax,
     config.threatChanceBase +
@@ -286,9 +306,20 @@ export const nextDayWithEvents = (
     steps: state.creature.steps + (step.stay ? 0 : 1),
   };
   const { care, stores, ate } = careAfter(state, day);
+  // Hazard patches now due are laid ahead (beyond the window) before the window moves onto them.
+  const hazardPlan = step.stay
+    ? state.hazardPlan
+    : extendHazards(
+        state.seed,
+        state.config,
+        creature,
+        state.tiles,
+        state.brazierPlan,
+        state.hazardPlan,
+      );
   const tiles = step.stay
     ? holdTiles(state.tiles)
-    : updateTiles(state.tiles, creature.centre, day, state.config, state.seed);
+    : updateTiles(state.tiles, creature.centre, day, state.config, state.seed, hazardPlan);
   const newHexes = Object.keys(tiles)
     .filter((key) => !state.tiles[key])
     .map(keyToHex);
@@ -300,7 +331,9 @@ export const nextDayWithEvents = (
     state.config.featureChance,
     state.brazierPlan,
   );
-  const stepped: GameState = {
+  // Lures the footprint reached run off; those left behind leave the map; new ones come due along the route.
+  const kept = keepLures(state, creature);
+  const stepped0: GameState = {
     ...state,
     day,
     creature,
@@ -308,13 +341,27 @@ export const nextDayWithEvents = (
     features,
     care,
     stores,
+    hazardPlan,
+    lures: kept.lures,
     stimuli: state.stimuli.filter((s) => burnsOn(s, day)),
   };
+  const stepped: GameState = step.stay ? stepped0 : placeLures(stepped0).state;
   const events: GameEvent[] = [
     ...staged.events,
     ...skilled.events,
     { kind: 'creature-step', from: state.creature.centre, to: creature.centre },
+    ...kept.events,
   ];
+  // Hazardous ground under the creature's new centre adds peril (defence does not reduce it).
+  const ground = step.stay ? null : stepPeril(tiles, creature.centre);
+  if (ground) {
+    events.push({
+      kind: 'hazard-step',
+      hex: creature.centre,
+      terrain: ground.terrain,
+      damage: ground.amount,
+    });
+  }
   // A brazier that still burns shows the hexes around it, including any that came into view tonight.
   let lit: GameState = stepped;
   // (Through its last night too: every fire in the state before the tick burns through it.)
@@ -338,15 +385,18 @@ export const nextDayWithEvents = (
     appetite?.kind === 'underfed' && appetite.level >= config.perilHungryLevel
       ? config.perilHungry
       : 0;
-  const rise = fight.damage + hungry;
+  const rise = fight.damage + (ground?.amount ?? 0) + hungry;
   const peril =
     rise > 0
       ? Math.min(config.perilMax, state.peril + rise)
       : Math.max(0, state.peril - config.perilCalm);
   if (peril !== state.peril) {
     // Why it changed: each cause in order, the rise capped by the room left below the maximum.
-    const parts =
-      hungry > 0 ? [...fight.hits, { source: PERIL_HUNGER, amount: hungry }] : fight.hits;
+    const parts: PerilPart[] = [
+      ...fight.hits,
+      ...(ground ? [{ source: perilTerrain(ground.terrain), amount: ground.amount }] : []),
+      ...(hungry > 0 ? [{ source: PERIL_HUNGER, amount: hungry }] : []),
+    ];
     let room = config.perilMax - state.peril;
     const sources: PerilPart[] =
       rise > 0
@@ -370,6 +420,10 @@ export const nextDayWithEvents = (
         events.push({ kind: 'settlement-appears', id: settlement.id, hex: settlement.hex });
       }
     }
+    // A scree field that has come within reach lays its rockslides.
+    const laid = spawnClusters(moved);
+    moved = laid.state;
+    events.push(...laid.events);
     const threat = newThreat(moved);
     if (threat) {
       moved = { ...moved, threats: [...moved.threats, threat] };

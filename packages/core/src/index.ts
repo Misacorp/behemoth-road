@@ -52,6 +52,10 @@ export {
   CREATURE_TYPES,
   REACTIONS,
   STIMULUS_TYPES,
+  HAZARD_TYPES,
+  LURE_TYPES,
+  type HazardType,
+  type LureType,
   type CreatureRoute,
   type CreatureType,
   type Fate,
@@ -79,6 +83,7 @@ export {
   terrainById,
   terrainIdAt,
   terrainOf,
+  hazardTerrainAt,
   type MapContent,
 } from './map.ts';
 export { noiseAt, type NoiseField } from './noise.ts';
@@ -98,6 +103,8 @@ export type {
   Nature,
   Stimulus,
   Cart,
+  Lure,
+  HazardPatch,
   Character,
   CharacterStatus,
   Creature,
@@ -173,7 +180,10 @@ export {
   creatureType,
   isKeeper,
   KEEPER_TAG,
+  lureType,
   reactionTo,
+  reactionToLure,
+  reactionToTags,
   rollNature,
   stimulusType,
   type Appetite,
@@ -245,6 +255,7 @@ export {
   PERIL_CALM,
   PERIL_HUNGER,
   PERIL_SHELTER,
+  perilTerrain,
   perilThreat,
   recordEvents,
   threatOfSource,
@@ -331,3 +342,12 @@ export {
 } from './skills.ts';
 export { emptySkills, type Skills } from './state.ts';
 export { addSeen, isSeenId, readSeen, SEEN_IDS, SEEN_MAX, type SeenId } from './seen.ts';
+export {
+  extendHazards,
+  hazardLookahead,
+  hazardRoutePosition,
+  hazardType,
+  spawnClusters,
+  stepPeril,
+} from './hazards.ts';
+export { canLeadOnto, keepLures, LURE_TAG, lureRoutePosition, placeLures } from './lures.ts';

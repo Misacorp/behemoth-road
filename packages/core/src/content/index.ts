@@ -41,6 +41,8 @@ export {
   type Reaction,
 } from './creatures.ts';
 export { STIMULUS_TYPES, type StimulusType } from './stimuli.ts';
+export { HAZARD_TYPES, type HazardType } from './hazards.ts';
+export { LURE_TYPES, type LureType } from './lures.ts';
 export {
   THREAT_TYPES,
   type ThreatApproach,
