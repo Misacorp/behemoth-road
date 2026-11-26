@@ -24,6 +24,10 @@ export interface FeatureArt {
    * warning pennant on its footing; muted once `spent`). The look ids in `TRAP_LOOKS` count as traps too.
    */
   readonly trap?: boolean;
+  /** A brazier burning (flame and glow); otherwise it stands cold. */
+  readonly lit?: boolean;
+  /** A lit brazier's nights of fuel left (0 to 3), scratched on its face. */
+  readonly nightsLeft?: number;
 }
 
 /** Looks that are traps, for callers that only know the look. */
@@ -34,7 +38,7 @@ export const isTrap = (f: FeatureArt): boolean => f.trap === true || TRAP_LOOKS.
 /** Half-width of a feature's ground footing, in local units at the reference hex size. */
 export const FOOTING_RX = 16;
 
-export type FeatureDraw = (c: PropContext, state: FeatureState) => Drawn;
+export type FeatureDraw = (c: PropContext, state: FeatureState, art?: FeatureArt) => Drawn;
 
 /** Iron: a rocky outcrop with rust-red veins; depleted, chipped hollow and scattered chips. */
 const ironDeposit: FeatureDraw = (c, state) => {

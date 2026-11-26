@@ -5,7 +5,11 @@
  */
 import {
   ACTION_MOTIFS,
+  drawBurnableMark,
+  drawFearsFireMark,
+  drawFireRing,
   drawGlyph,
+  drawNightsLeft,
   drawIcon,
   drawMoment,
   drawPackIcon,
@@ -87,7 +91,21 @@ export type Draw =
   | { readonly kind: 'moment'; readonly moment: string }
   | { readonly kind: 'trace'; readonly trace: string }
   | { readonly kind: 'stone' }
+  | { readonly kind: 'fire'; readonly mark: FireMark }
   | { readonly kind: 'hud'; readonly id: string };
+
+/** The fire rework's marks, as the glossary draws them. */
+export const FIRE_MARKS = [
+  'brazier-lit',
+  'burnable',
+  'burnt',
+  'fears-fire',
+  'fire-ring',
+  'fall-risk',
+  'nights',
+  'pinned',
+] as const;
+export type FireMark = (typeof FIRE_MARKS)[number];
 
 export interface GlossaryEntry {
   readonly key: string;
@@ -273,6 +291,20 @@ export function buildGlossary(): readonly GlossaryEntry[] {
     );
   out.push(entry('marks', 'standing-stone', tipFor('map', 'standing-stone'), { kind: 'stone' }));
 
+  // The fire rework: a lit brazier and its embers, what a fire would take, what keeps clear of it.
+  const FIRE_TIPS: Readonly<Record<FireMark, TipId>> = {
+    'brazier-lit': 'map:fire-brazier',
+    burnable: 'map:burnable',
+    burnt: 'map:burnt',
+    'fears-fire': 'map:fears-fire',
+    'fire-ring': 'map:fire-ring',
+    'fall-risk': 'map:fall-risk',
+    nights: 'map:nights',
+    pinned: 'map:pinned',
+  };
+  for (const mark of FIRE_MARKS)
+    out.push(entry('marks', `fire-${mark}`, FIRE_TIPS[mark], { kind: 'fire', mark }));
+
   for (const kind of MOMENT_KINDS)
     out.push(entry('marks', kind, null, { kind: 'moment', moment: kind }));
 
@@ -321,6 +353,8 @@ export function drawEntry(d: Draw, size: number): SvgNode | null {
         drawn.nodes,
       );
     }
+    case 'fire':
+      return drawFireMark(d.mark, size);
     case 'tile': {
       const scene = renderScene({
         cells: [
@@ -346,4 +380,67 @@ export function drawEntry(d: Draw, size: number): SvgNode | null {
       if (d.id === 'greyfold') return drawRouteDestination(PALETTE, size);
       return null;
   }
+}
+
+/** A fire mark: the art kit's own mark, or a small scene for the ones that sit on the map. */
+function drawFireMark(mark: FireMark, size: number): SvgNode {
+  if (mark === 'burnable') return drawBurnableMark(PALETTE, size);
+  if (mark === 'fears-fire') return drawFearsFireMark(PALETTE, size);
+  if (mark === 'nights') return drawNightsLeft(PALETTE, 2, size);
+  if (mark === 'fall-risk') {
+    // A row of stones, two of four dark.
+    const rock = (i: number, dark: boolean): SvgNode =>
+      el('path', {
+        d: `M${i * 11 + 1} 10l-1-5 4-4 5 2 1 6z`,
+        fill: dark ? PALETTE.ramps.rock.base : 'none',
+        stroke: dark ? PALETTE.ink : PALETTE.inkSoft,
+        'stroke-width': 1,
+        'stroke-linejoin': 'round',
+        ...(dark ? {} : { 'stroke-dasharray': '2 2', opacity: 0.5 }),
+      });
+    return el('svg', { viewBox: '-2 -1 48 14', width: size * 1.6, height: size * 0.5 }, [
+      rock(0, true),
+      rock(1, true),
+      rock(2, false),
+      rock(3, false),
+    ]);
+  }
+  const scene = renderScene({
+    cells: [
+      {
+        q: 0,
+        r: 0,
+        terrain: 'plains',
+        state: 'seen',
+        ...(mark === 'brazier-lit'
+          ? { feature: { look: 'brazier', lit: true, nightsLeft: 2 } }
+          : mark === 'burnt'
+            ? { burnt: 'deadfall' }
+            : {}),
+      },
+    ],
+    ...(mark === 'pinned'
+      ? { characters: [{ id: 'gl', q: 0, r: 0, accent: 'slate', marks: { pinned: true } }] }
+      : {}),
+    projection: MINI,
+    palette: PALETTE,
+    seed: mark,
+    idPrefix: `gl-fire-${mark}`,
+    frame: 'none',
+  });
+  if (mark === 'fire-ring') {
+    // The ring reaches past the one hex the scene frames: widen the frame to take it in.
+    const [x = 0, y = 0, w = 1, h = 1] = String(scene.attrs['viewBox']).split(' ').map(Number);
+    const grow = 1.1;
+    return el(
+      'svg',
+      {
+        viewBox: `${x - w * grow} ${y - h * grow} ${w * (1 + 2 * grow)} ${h * (1 + 2 * grow)}`,
+        width: size * 1.14,
+        height: size,
+      },
+      [...scene.children, drawFireRing(MINI, { q: 0, r: 0 }, PALETTE, 1)],
+    );
+  }
+  return el('svg', { ...scene.attrs, width: size * 1.14, height: size }, scene.children);
 }

@@ -191,6 +191,18 @@ export function MomentMark({
         </Marked>
       );
       break;
+    case 'pinned':
+      // The stones coming down on the hex.
+      body = (
+        <Marked kind="snap">{at(drawMoment('rockslide', PALETTE, size), c.x, c.y, size)}</Marked>
+      );
+      break;
+    case 'dug-out':
+      // The same stones lifting away and fading.
+      body = (
+        <Marked kind="lift">{at(drawMoment('rockslide', PALETTE, size), c.x, c.y, size)}</Marked>
+      );
+      break;
     case 'fire-out':
       // The fire's mark drifting up and fading, like its last smoke.
       body = <Marked kind="lift">{at(drawMoment('fire', PALETTE, size), c.x, c.y, size)}</Marked>;

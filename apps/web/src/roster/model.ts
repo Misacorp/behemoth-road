@@ -29,6 +29,8 @@ export interface RosterRow {
   readonly stance: string | null;
   /** Ended their day: what is left goes to their stance. */
   readonly waiting: boolean;
+  /** Pinned under a falling slide: cannot act until dug out or the stones give. */
+  readonly pinned: boolean;
   /** The row can be tapped to find the character on the map. */
   readonly tappable: boolean;
 }
@@ -63,6 +65,7 @@ export function rosterRows(view: PlayerView, actionsPerDay: number): RosterRow[]
       done: active && left === 0,
       stance: active && c ? effectiveStance(toGameState(view.game), c).id : null,
       waiting: active && c ? c.waiting : false,
+      pinned: active && c ? c.pinnedDay !== undefined : false,
       tappable: active,
     };
   });

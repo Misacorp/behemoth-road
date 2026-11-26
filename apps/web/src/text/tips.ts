@@ -132,7 +132,6 @@ export const tips = {
     title: 'Light a fire',
     text: 'Burn {fireFuel} timber from your pack here. It burns until the day turns; the creature may take notice.',
   },
-  'action:dig-out': { title: 'Dig out', text: 'Free a pinned character from the stones.' },
   'action:feed': {
     text: 'Riding: give the creature food from the stores.',
   },
@@ -272,6 +271,7 @@ export const tips = {
   },
   'why:taken': { title: 'Taken', text: 'You already have it.' },
   'why:veiled': { title: 'Veiled', text: 'Not yet known.' },
+  'why:pinned': { title: 'Pinned', text: 'Under fallen stones. Wait for someone to dig you out.' },
   'why:other': { title: 'Not now', text: 'Not possible just now.' },
 
   // The ground a hex shows (in the cards' tile pictures).
@@ -292,12 +292,14 @@ export const tips = {
   'feature:river-stones': { text: 'Gather stone here, until it runs out.' },
   'feature:fieldstones': { text: 'Gather stone here, until it runs out.' },
   'feature:timber-stand': { text: 'Gather timber here, until it runs out.' },
-  'feature:deadfall': { text: 'Gather timber here, until it runs out.' },
+  'feature:deadfall': { text: 'Gather timber here, until it runs out. A fire would burn it away.' },
   'feature:berry-bushes': { text: 'Gather food for the creature here, until it runs out.' },
   'feature:tomb': { text: 'An old tomb. Search it for what lies inside.' },
   'feature:deep-tomb': { text: 'Too dark without the lantern. Only scholars can work it.' },
-  'feature:brazier': { text: 'An old brazier. Burn timber here and it burns on for nights.' },
-  'feature:snare': { text: 'A snare, found and sprung. Harmless now.' },
+  'feature:brazier': {
+    text: 'An old brazier. Light it with timber and it burns on for nights, showing the land around.',
+  },
+  'feature:snare': { text: 'A snare, found and sprung. Harmless now. A fire would burn it away.' },
   'feature:pitfall': { text: 'A pitfall, found. Harmless now.' },
 
   'feature:sunken-shrine': { text: 'A shrine in the shallows. Search it for what it keeps.' },
@@ -309,16 +311,16 @@ export const tips = {
     text: 'On the creature’s trail. Strong, and gains on it every day. Tap it to see its next step.',
   },
   'threat:swarm': {
-    text: 'Flies in from the side. Fast, but weaker. Tap it to see its next step.',
+    text: 'Flies in from the side. Fast, but weaker. Keeps clear of fire. Tap it to see its next step.',
   },
   'threat:rockslide': {
-    text: 'Loose rock on the way ahead. Best not to walk into it.',
+    text: 'Loose rock on the way ahead. Best not to walk into it. Striking it may bring stones down on you.',
   },
   'threat:ambush': {
     text: 'Lies in wait among the trees. Slow, but close. Tap it to see its next step.',
   },
   'threat:stampede': {
-    text: 'Charges across open ground. Fast and heavy. Tap it to see its next step.',
+    text: 'Charges across open ground. Fast and heavy. Keeps clear of fire. Tap it to see its next step.',
   },
   'threat:raiders': { text: 'Sent by an angered settlement. Tap it to see its next step.' },
 
@@ -334,6 +336,20 @@ export const tips = {
     title: 'Fire',
     text: 'Burns until the day turns. The creature may take notice.',
   },
+  'map:fire-brazier': {
+    title: 'Lit brazier',
+    text: 'Burns {brazierNights} nights, then goes cold. It can be lit again.',
+  },
+  'map:nights': { title: 'Nights left', text: 'Each ember is a night it still burns.' },
+  'map:burnable': { title: 'Burnable', text: 'A fire would take this, for good.' },
+  'map:burnt': { title: 'Burnt', text: 'A fire took what stood here.' },
+  'map:fears-fire': { title: 'Fears fire', text: 'Will not come near a burning fire.' },
+  'map:fire-ring': { title: 'Fire’s reach', text: 'Things that fear fire keep out of this ring.' },
+  'map:fall-risk': {
+    title: 'Falling stones',
+    text: 'A strike may bring them down on you: {slideFall} % for most. Some are surer-footed.',
+  },
+  'map:pinned': { title: 'Pinned', text: 'Under fallen stones. Someone beside them can dig them out.' },
   'map:escort': { title: 'Escorted', text: 'Next to a warden: threats will not strike here.' },
   'map:defended': {
     title: 'Defended',
@@ -448,6 +464,7 @@ export const tips = {
     text: 'Ended their day. Their stance takes the rest.',
     group: 'hud',
   },
+  'roster:pinned': { title: 'Pinned', text: 'Under fallen stones, unable to act.', group: 'hud' },
   'roster:none': { title: 'No character', text: 'Has not joined yet.', group: 'hud' },
 
   // The season's recap, on the ending.

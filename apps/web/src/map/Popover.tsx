@@ -30,12 +30,21 @@ import type { CreatureSigns, GameStateView } from '@behemoth-road/core';
 type CreatureAppetiteSign = NonNullable<CreatureSigns['appetite']>;
 import type { JSX } from 'preact';
 import { iconOf } from '../game/chain.ts';
+import type { FireNote } from '../game/fire.ts';
+import {
+  BurnableMark,
+  FALL_ROW_H,
+  FallRisk,
+  FearsFireMark,
+  FIRE_MARK,
+  NightsMark,
+  NIGHTS_W,
+} from './FireMarks.tsx';
 import { Pips, TickMark } from '../hud/icons.tsx';
 import type { Identity } from '../game/identity.ts';
 import { QuirkIcon, RoleEmblem, TraitIcon } from '../ui/emblems.tsx';
 import type { TipId } from '../text/tips.ts';
 import { defendedBy } from '../game/season.ts';
-import { WHY_ELSEWHERE } from '../game/why.ts';
 import { tipFor } from '../ui/tip.ts';
 import { greyedProps, tipProps } from '../ui/press.ts';
 import { getSettings } from '../settings.ts';
@@ -193,17 +202,20 @@ function CardIcon({
   return toPreact({ ...icon, attrs: { ...icon.attrs, x, y, width: size, height: size } });
 }
 
-/** The inspect card, wider for each button it offers (a survey, a fire hint). */
-export const inspectSize = (survey: boolean, fire = false): { width: number; height: number } => ({
-  width: INSPECT_SIZE.width + ((survey ? 1 : 0) + (fire ? 1 : 0)) * ACTION_W,
-  height: INSPECT_SIZE.height + TITLE_H + (survey || fire ? labelH() : 0),
+/** The inspect card, wider for a survey button and for a lit brazier's embers. */
+export const inspectSize = (
+  survey: boolean,
+  note: FireNote | null = null,
+): { width: number; height: number } => ({
+  width:
+    INSPECT_SIZE.width + (survey ? ACTION_W : 0) + (note && 'nights' in note ? NIGHTS_W - 24 : 0),
+  height: INSPECT_SIZE.height + TITLE_H + (survey ? labelH() : 0),
 });
 
 /**
  * The inspect card: the tile as the map draws it (under its veil while unexplored, with its revealed
- * feature) and its visibility; next to you and unexplored, a survey button (a spyglass and its cost); on a
- * timber stand, a faded fire with its timber, hinting what the wood is for (never a button that does
- * anything: a fire is lit where you stand).
+ * feature) and its visibility; next to you and unexplored, a survey button (a spyglass and its cost). A
+ * feature a fire would burn shows the burnable mark; a lit brazier shows the nights it has left as embers.
  */
 export function InspectCard({
   title = null,
@@ -212,7 +224,7 @@ export function InspectCard({
   state,
   feature = null,
   survey = null,
-  fire = null,
+  note = null,
   onSurvey,
   surveyRef,
   arm,
@@ -222,8 +234,8 @@ export function InspectCard({
   /** A revealed feature on the hex, drawn on the tile. */
   feature?: FeatureArt | null;
   survey?: { readonly cost: number; readonly enabled: boolean; readonly why?: TipId } | null;
-  /** The fire hint on a timber stand: what a fire costs and the fuel it takes. */
-  fire?: { readonly cost: number; readonly uses: string } | null;
+  /** The feature's note about fire: burnable, or the nights a lit brazier has left. */
+  note?: FireNote | null;
   onSurvey?: () => void;
   surveyRef?: (el: SVGGElement | null) => void;
   /** Two taps spend the survey. */
@@ -235,13 +247,15 @@ export function InspectCard({
 }): JSX.Element {
   return (
     <g data-popover="inspect" data-feature={feature?.look} data-state={state}>
-      <Card {...inspectSize(survey !== null, fire !== null)} />
+      <Card {...inspectSize(survey !== null, note)} />
       <Title text={title} />
       <g transform={`translate(0 ${TITLE_H})`}>
         <Miniature terrain={terrain} state={state} x={6} y={8} feature={feature} tip={tileTip} />
         <g transform="translate(84 22)">
           <VisibilityMark state={state} />
         </g>
+        {note && 'burnable' in note && <BurnableMark x={96} y={46} />}
+        {note && 'nights' in note && <NightsMark nights={note.nights} x={90} y={46} />}
         {survey && (
           <ActionButton
             kind="survey"
@@ -249,24 +263,11 @@ export function InspectCard({
             cost={survey.cost}
             enabled={survey.enabled}
             why={survey.why ?? null}
-            x={INSPECT_SIZE.width - 6}
+            x={inspectSize(false, note).width - 6}
             y={12}
             onRun={() => onSurvey?.()}
             {...(arm ? { arm } : {})}
             {...(surveyRef ? { buttonRef: surveyRef } : {})}
-          />
-        )}
-        {fire && (
-          <ActionButton
-            kind="light-fire"
-            icon="light-fire"
-            cost={fire.cost}
-            enabled={false}
-            why={WHY_ELSEWHERE}
-            x={INSPECT_SIZE.width - 6 + (survey ? ACTION_W : 0)}
-            y={12}
-            uses={iconOf(fire.uses)}
-            onRun={() => {}}
           />
         )}
       </g>
@@ -648,8 +649,9 @@ export const characterSize = (
   back: boolean,
   skills = 0,
   tow = false,
+  dig = false,
 ): { width: number; height: number } => ({
-  width: CHARACTER_SIZE.width + (back ? BACK_W : 0) + (tow ? ACTION_W : 0),
+  width: CHARACTER_SIZE.width + (back ? BACK_W : 0) + ((tow ? 1 : 0) + (dig ? 1 : 0)) * ACTION_W,
   height: CHARACTER_SIZE.height + (skills > 0 ? SKILL_ROW_H : 0),
 });
 
@@ -696,9 +698,14 @@ export function CharacterCard({
   backRef,
   tow = null,
   onThrow,
+  dig = null,
+  onDig,
   arm,
 }: {
   who: Identity;
+  /** Digging them out from under a slide (they are pinned and you are on or next to their place), or none. */
+  dig?: { readonly cost: number; readonly enabled: boolean; readonly why?: TipId | null } | null;
+  onDig?: () => void;
   /** The tow line, for a rider: the throw button (its cost and whether it can be done now), or none. */
   tow?: { readonly cost: number; readonly enabled: boolean; readonly why?: TipId | null } | null;
   onThrow?: () => void;
@@ -709,6 +716,8 @@ export function CharacterCard({
   backRef?: (el: SVGGElement | null) => void;
 }): JSX.Element {
   const shift = onBack ? BACK_W : 0;
+  const size = characterSize(Boolean(onBack), who.skills.length, tow !== null, dig !== null);
+  const buttonsLeft = size.width - ((tow ? 1 : 0) + (dig ? 1 : 0)) * ACTION_W - 2;
   // The role, trait and quirk icons each have their tip (hover, or press and hold).
   const tipped = (id: TipId | null, x: number, y: number, icon: JSX.Element) => (
     <g transform={`translate(${x} ${y})`} {...tipProps(id)}>
@@ -717,7 +726,7 @@ export function CharacterCard({
   );
   return (
     <g data-popover="character" data-character={who.id} data-back={onBack ? true : undefined}>
-      <Card {...characterSize(Boolean(onBack), who.skills.length, tow !== null)} />
+      <Card {...size} />
       {tow && (
         <ActionButton
           kind="throw-line"
@@ -725,9 +734,22 @@ export function CharacterCard({
           cost={tow.cost}
           enabled={tow.enabled}
           why={tow.why ?? null}
-          x={characterSize(Boolean(onBack), 0, true).width - ACTION_W - 2}
+          x={buttonsLeft}
           y={12}
           onRun={() => onThrow?.()}
+          {...(arm ? { arm } : {})}
+        />
+      )}
+      {dig && (
+        <ActionButton
+          kind="dig-out"
+          icon="dig-out"
+          cost={dig.cost}
+          enabled={dig.enabled}
+          why={dig.why ?? null}
+          x={buttonsLeft + (tow ? ACTION_W : 0)}
+          y={12}
+          onRun={() => onDig?.()}
           {...(arm ? { arm } : {})}
         />
       )}
@@ -1089,9 +1111,12 @@ export function DistanceMarks({
 }
 
 /** The threat card, wider when it offers a strike. */
-export const threatSize = (strike: boolean): { width: number; height: number } => ({
+export const threatSize = (
+  strike: boolean,
+  fall = false,
+): { width: number; height: number } => ({
   width: 206 + (strike ? ACTION_W : 0),
-  height: 76 + (strike ? labelH() : 0),
+  height: 76 + (strike ? labelH() : 0) + (strike && fall ? FALL_ROW_H : 0),
 });
 
 /**
@@ -1111,7 +1136,7 @@ export function ThreatCard({
   /** Two taps spend the strike. */
   arm?: Arming;
 }): JSX.Element {
-  const size = threatSize(threat.strike !== null);
+  const size = threatSize(threat.strike !== null, threat.fall !== null);
   const marks = Math.min(threat.strength, 10);
   const blocked = Math.min(threat.defence, marks);
   const drawn = drawThreatIcon(threat.icon, PALETTE, 60);
@@ -1152,6 +1177,12 @@ export function ThreatCard({
         )}
       </g>
       <DistanceMarks count={threat.steps} x={72} y={56} />
+      {threat.fears && (
+        <FearsFireMark x={(threat.strike ? 206 : size.width) - FIRE_MARK - 12} y={46} />
+      )}
+      {threat.strike && threat.fall !== null && (
+        <FallRisk chance={threat.fall} x={size.width - ACTION_W + 2} y={62 + labelH()} />
+      )}
       {threat.strike && (
         <ActionButton
           kind="strike"
@@ -1159,6 +1190,7 @@ export function ThreatCard({
           cost={threat.strike.cost}
           enabled={threat.strike.enabled}
           why={threat.strike.why ?? null}
+          risk={threat.fall !== null}
           x={size.width - ACTION_W - 2}
           y={12}
           onRun={onStrike}

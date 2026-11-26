@@ -182,33 +182,11 @@ const heldWith = (tag: string, held: Readonly<Record<string, number>>): string |
   MATERIALS.find((m) => m.tags.includes(tag) && (held[m.id] ?? 0) > 0)?.id ?? null;
 
 /**
- * The material a revealed node on this hex yields when it is fuel for a fire (tagged like the fire's fuel,
- * read by tag): a timber stand. Null for anything else.
- */
-export function fuelNodeAt(game: GameStateView, h: Hex): string | null {
-  const type = featureAt(game, h)?.type;
-  if (!FIRE || type?.kind !== 'node') return null;
-  const material = MATERIALS.find((m) => m.id === type.yields.material);
-  return material?.tags.includes(FIRE.fuel.tag) ? material.id : null;
-}
-
-/**
- * The faded fire hint on the inspect card of a hex holding a fuel node: what a fire costs and the fuel it
- * takes, never actionable from there (a fire is lit where you stand).
- */
-export function fireHintAt(
-  game: GameStateView,
-  h: Hex,
-): { readonly cost: number; readonly uses: string } | null {
-  const fuel = fuelNodeAt(game, h);
-  return fuel ? { cost: game.config.lightFireCost, uses: fuel } : null;
-}
-
-/**
  * Lighting a fire where you stand, for your own hex's card, from the core's check and its refusal cost and
- * missing material. With fuel it is offered (faded when your actions are spent). Without fuel it is
- * offered faded, its timber faded too, only as a hint (`hint`: the card is open for something else and you
- * have seen a fire). Never on water, on the creature or where a fire already burns.
+ * missing material. Only where there is something to burn (a brazier or a burnable feature: the core refuses
+ * anything else with `nothing-to-burn`, which offers nothing). With fuel it is offered (faded when your
+ * actions are spent). Without fuel it is offered faded, its timber faded too, only as a hint (`hint`: the
+ * card is for a brazier or a burnable). Never on water, on the creature or where a fire already burns.
  */
 export function fireAction(
   game: GameStateView,

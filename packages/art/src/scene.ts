@@ -5,6 +5,7 @@ import { drawCreature, inFootprint, moodOf, riderAnchor, type CreatureArt } from
 import { drawCharacterMarks } from './escort.ts';
 import { drawDefended } from './defended.ts';
 import { drawFire } from './fire.ts';
+import { drawBurnt } from './fire-art.ts';
 import {
   drawDangerFlag,
   featureFooting,
@@ -261,6 +262,7 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
     if (cell.feature && !underCreature && state !== 'unexplored') {
       const at = onPlane(p, c, 0, 0.08);
       const draw = featureDrawer(cell.feature.look);
+      const art = cell.feature;
       const fc = ctx(at, rngFor(seed, 'feature', cell.q, cell.r), ART_TUNING.featureScale);
       const fstate = cell.feature.state ?? 'ready';
       const trap = isTrap(cell.feature);
@@ -268,12 +270,27 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
       const rx = FOOTING_RX;
       // A trap's warning pennant stands at the front right of its footing, over the trap itself.
       const flag = tone === 'danger' ? [drawDangerFlag(taller(fc, 1.3), rx)] : [];
-      const drawn = withFooting(fc, draw(fc, fstate), rx, { tone }, flag);
+      const drawn = withFooting(fc, draw(fc, fstate, art), rx, { tone }, flag);
       placed.push({ at, drawn, ...(opacity === undefined ? {} : { opacity }) });
+    }
+    if (cell.burnt && !cell.feature && !underCreature) {
+      // What a fire left of a burnt feature: ash and charred stumps, for good.
+      const at = onPlane(p, c, 0, 0.08);
+      placed.push({
+        at,
+        drawn: drawBurnt(palette, cell.burnt, {
+          origin: at,
+          k: p.size / 64,
+          squash: p.squash,
+          ink,
+          seed: `${cell.q},${cell.r}`,
+        }),
+      });
     }
     if (cell.fire && !underCreature) {
       // A lit fire is the team's own doing: drawn in full even under the veil, beside any feature.
-      const at = cell.feature ? onPlane(p, c, -0.26, 0.2) : onPlane(p, c, 0, 0.12);
+      const at =
+        cell.feature || cell.burnt ? onPlane(p, c, -0.26, 0.2) : onPlane(p, c, 0, 0.12);
       placed.push({
         at,
         drawn: drawFire(ctx(at, rngFor(seed, 'fire', cell.q, cell.r), ART_TUNING.fireScale)),
@@ -448,7 +465,8 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
         marks.defending ||
         marks.stance ||
         marks.waiting ||
-        marks.stranded
+        marks.stranded ||
+        marks.pinned
       )
     )
       return drawn;

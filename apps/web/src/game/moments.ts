@@ -53,7 +53,11 @@ export type Moment =
   /** The creature's daily step: it walks from one hex to the next while the camera holds still. */
   | { readonly kind: 'step'; readonly hex: Hex; readonly from: Hex }
   /** The day's step when it lingered: it stayed where it was. */
-  | { readonly kind: 'stayed'; readonly hex: Hex };
+  | { readonly kind: 'stayed'; readonly hex: Hex }
+  /** A falling slide pinned a character: stones come down on their hex. */
+  | { readonly kind: 'pinned'; readonly hex: Hex; readonly mine: boolean }
+  /** A pinned character was freed: the stones lift away. */
+  | { readonly kind: 'dug-out'; readonly hex: Hex };
 
 /** How long a moment stays on screen, in ms (its CSS animation is as long). */
 export const MOMENT_MS = 1400;
@@ -245,6 +249,17 @@ function seasonMoment(
         kind: 'struck',
         hex,
         mine: e.characterId === me,
+      }));
+    case 'pinned':
+      return at(e.characterId ? where.character(e.characterId) : null, (hex) => ({
+        kind: 'pinned',
+        hex,
+        mine: e.characterId === me,
+      }));
+    case 'dug-out':
+      return at(e.characterId ? where.character(e.characterId) : null, (hex) => ({
+        kind: 'dug-out',
+        hex,
       }));
     case 'threat-hit':
       return at(thing('threat', e.id), (hex) => ({ kind: 'hit', hex }));

@@ -73,6 +73,8 @@ describe('threats as the map reads them', () => {
       steps: threatNextPath(near.view, id).length,
       strike: { cost: near.view.config.strikeCost, enabled: true },
       defence: 0,
+      fears: true,
+      fall: null,
     });
     expect(threatCard(tired(near.view), near.me, id)?.strike).toEqual({
       cost: near.view.config.strikeCost,

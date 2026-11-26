@@ -36,6 +36,15 @@ export const DoneMark = (): JSX.Element => (
   </svg>
 );
 
+/** Pinned: a heap of fallen stones. */
+export const PinnedMark = (): JSX.Element => (
+  <svg viewBox="0 0 32 32" aria-hidden="true">
+    <path d="M4 26l2-8 6-4 7 3 3 9z" {...line} fill={PALETTE.ramps.rock.base} />
+    <path d="M15 26l1-9 6-5 6 5 1 9z" {...line} fill={PALETTE.ramps.rock.light} />
+    <path d="M10 14l1-6 5-3 4 4-1 6" {...line} fill={PALETTE.ramps.stone.light} />
+  </svg>
+);
+
 /** Lost: a torn cross in faded ink. */
 export const LostMark = (): JSX.Element => (
   <svg viewBox="0 0 32 32" aria-hidden="true" opacity={0.55}>

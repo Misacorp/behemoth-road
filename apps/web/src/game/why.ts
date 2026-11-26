@@ -51,7 +51,7 @@ export const WHY_BY_REFUSAL: Readonly<Record<ActRefusal, TipId>> = {
   'no-trade-good': 'why:other',
   'unknown-stance': 'why:other',
   waiting: 'why:other',
-  pinned: 'why:other',
+  pinned: 'why:pinned',
   'not-pinned': 'why:other',
   // Skills (the tree drawer): each refusal has its own reason.
   'unknown-skill': 'why:other',

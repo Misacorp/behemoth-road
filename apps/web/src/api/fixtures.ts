@@ -205,6 +205,12 @@ export interface ChainStage {
   readonly water?: boolean;
   /** A revealed brazier on your starting spot: something to burn there (a fire needs it). */
   readonly brazier?: boolean;
+  /** The brazier on your starting spot burns, with this many nights left (1 to the brazier's nights). */
+  readonly brazierLit?: number;
+  /** Hexes where a burnable was burnt away: no feature, a fire scar on the ground (offsets from the centre). */
+  readonly burnt?: readonly Hex[];
+  /** Pinned under a slide today (no actions left): you, Pip or Ola. */
+  readonly pinned?: readonly ('me' | 'pip' | 'ola')[];
   /** Milestone 4: fires lit today, as offsets from the creature's centre. */
   readonly fires?: readonly Hex[];
   /** The creature's hidden hunger (server only; drives the appetite sign). */
@@ -312,7 +318,7 @@ export function chainScenario(stage: ChainStage = {}): Scenario {
           ...feature('iron', stage.deposit ?? 'iron-deposit', 3),
           ...feature('tomb', 'tomb', 1),
           ...feature('snare', 'snare', 1),
-          ...(stage.brazier
+          ...(stage.brazier || stage.brazierLit !== undefined
             ? { [key(CHAIN_SPOTS.start)]: { type: 'brazier', revealed: true, left: 1 } }
             : {}),
         },
@@ -323,7 +329,24 @@ export function chainScenario(stage: ChainStage = {}): Scenario {
   const day = state.day;
   state = {
     ...state,
-    stimuli: (stage.fires ?? []).map((h) => ({ type: 'fire', hex: abs(h), litDay: day })),
+    stimuli: [
+      ...(stage.fires ?? []).map((h) => ({ type: 'fire', hex: abs(h), litDay: day })),
+      ...(stage.brazierLit !== undefined
+        ? [
+            {
+              type: 'fire',
+              hex: abs(CHAIN_SPOTS.start),
+              litDay: day - (state.config.brazierNights - stage.brazierLit),
+              nights: state.config.brazierNights,
+              reveal: state.config.brazierRevealRadius,
+            },
+          ]
+        : []),
+    ],
+    traces: [
+      ...state.traces,
+      ...(stage.burnt ?? []).map((h) => ({ kind: 'fire' as const, hex: abs(h), step: 0 })),
+    ],
     care: {
       satiety: stage.satiety ?? state.care.satiety,
       cues: {
@@ -341,6 +364,15 @@ export function chainScenario(stage: ChainStage = {}): Scenario {
       lingeredDay: stage.lingeredDay ?? null,
     },
   };
+  const pinnedUsers = new Set((stage.pinned ?? []).map((w) => ({ me: MISA, pip: PIP, ola: OLA })[w]));
+  if (pinnedUsers.size > 0) {
+    state = {
+      ...state,
+      characters: state.characters.map((ch) =>
+        pinnedUsers.has(ch.userId) ? { ...ch, actionsLeft: 0, pinnedDay: state.day } : ch,
+      ),
+    };
+  }
   const at = stage.at ?? 'start';
   if (at !== 'creature') state = place(state, MISA, abs(CHAIN_SPOTS[at]));
   state = {

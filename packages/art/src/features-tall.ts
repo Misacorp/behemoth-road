@@ -7,6 +7,7 @@
 import { boxOf, ellipsePath, poly, smoothClosed, smoothOpen, type Point } from './geom.ts';
 import { kit } from './feature-kit.ts';
 import type { FeatureDraw } from './features.ts';
+import { drawBrazier } from './fire-art.ts';
 import { groundShadow } from './props.ts';
 import { el, type SvgNode } from './svg.ts';
 
@@ -990,38 +991,17 @@ const berryBushes: FeatureDraw = (c, state) => {
   return { nodes, box: boxOf([...shapes.flat()]) };
 };
 
-/** Old brazier: a stone pillar under a wide bowl with cold coals; the used look is the same (it can be lit again). */
-const brazier: FeatureDraw = (c) => {
-  const { fill, line, blob, pts } = kit(c);
-  const pal = c.palette;
-  const pillar = pts([
-    [-5, 0],
-    [-3.5, -12],
-    [3.5, -12],
-    [5, 0],
-  ]);
-  const bowl = blob(0, -15, 10, 4);
-  const coals = blob(0, -16, 6.5, 2);
-  const nodes: SvgNode[] = [
-    groundShadow(c, 14, 4, 1),
-    fill(poly(pillar), pal.ramps.stone.base),
-    fill(poly(pillar), pal.ramps.stone.shade, 0.35),
-    line(poly(pillar)),
-    fill(smoothClosed(bowl), pal.ramps.stone.light),
-    line(smoothClosed(bowl)),
-    fill(smoothClosed(coals), pal.ink, 0.7),
-  ];
-  return {
-    nodes,
-    box: boxOf([
-      ...pillar,
-      ...pts([
-        [-10, -19],
-        [10, -11],
-      ]),
-    ]),
-  };
-};
+/** The brazier: the beacon cairn of `drawBrazier`, cold or lit (with the nights it has left). */
+const brazier: FeatureDraw = (c, _state, art) =>
+  drawBrazier(c.palette, {
+    lit: art?.lit === true,
+    ...(art?.nightsLeft === undefined ? {} : { nightsLeft: art.nightsLeft }),
+    origin: c.origin,
+    k: c.k,
+    squash: c.squash,
+    ink: c.ink,
+    seed: c.rng.int(0, 1_000_000),
+  });
 
 export const TALL_DRAWERS: Readonly<Record<string, FeatureDraw>> = {
   ore: ironDeposit,

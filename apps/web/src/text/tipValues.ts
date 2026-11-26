@@ -24,6 +24,8 @@ export function tipValues(config: TuningConfig): Readonly<Record<string, string>
     offerFavour: String(config.offerFavour),
     shelterPeril: String(config.shelterPeril),
     misleadDays: String(config.misleadDays),
+    brazierNights: String(config.brazierNights),
+    slideFall: percent(config.slideFallChance),
     struckActions: String(config.struckActions),
     fireFuel: String(STIMULUS_TYPES.find((s) => s.id === 'fire')?.fuel.amount ?? 1),
   };

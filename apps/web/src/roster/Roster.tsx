@@ -13,7 +13,7 @@ import { Drawer, type Snap } from '../ui/Drawer.tsx';
 import { RoleEmblem } from '../ui/emblems.tsx';
 import { IconTip } from '../ui/IconTip.tsx';
 import { tipFor } from '../ui/tip.ts';
-import { DoneMark, WhereMark } from './marks.tsx';
+import { DoneMark, PinnedMark, WhereMark } from './marks.tsx';
 import type { RosterRow } from './model.ts';
 
 export interface RosterProps {
@@ -55,6 +55,13 @@ function Row({
               <IconTip id={tipFor('stance', row.stance)}>
                 <span class="roster-mark" data-mark="stance" data-stance={row.stance}>
                   <Glyph name={stanceIcon(row.stance)} size={20} />
+                </span>
+              </IconTip>
+            )}
+            {row.pinned && (
+              <IconTip id="roster:pinned">
+                <span class="roster-mark" data-mark="pinned">
+                  <PinnedMark />
                 </span>
               </IconTip>
             )}

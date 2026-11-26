@@ -12,6 +12,7 @@ import {
   actionArrowNodes,
   drawCharacter,
   drawEscortRing,
+  drawFireRing,
   drawStayMark,
   drawStepHint,
   drawIcon,
@@ -36,12 +37,15 @@ import {
   type ReachablePlace,
   checkAction,
   creatureHexes,
+  FEARS_FIRE_TAG,
   featureType,
+  firesBurning,
   hazardAt,
   hexDistance,
   hexesInRange,
   hexKey,
   placeHex,
+  THREAT_TYPES,
   threatOutlook,
   forecastDays,
 } from '@behemoth-road/core';
@@ -770,6 +774,24 @@ function stoneMarks(i: OverlayInput): SvgNode[] {
   });
 }
 
+/** Whether a threat that keeps clear of fire (content tag `fears-fire`) stands on the map. */
+export function fireFearedNear(state: GameStateView): boolean {
+  return state.threats.some((t) =>
+    THREAT_TYPES.find((x) => x.id === t.type)?.tags.includes(FEARS_FIRE_TAG),
+  );
+}
+
+/**
+ * The reach of every burning fire, over the hexes a fire-fearing threat will not enter, drawn only while
+ * such a threat is on the map (otherwise the ring is noise).
+ */
+export function fireRings(i: OverlayInput): SvgNode[] {
+  if (!fireFearedNear(i.state)) return [];
+  return firesBurning(i.state).map((s) =>
+    drawFireRing(i.projection, s.hex, i.palette, i.state.config.fireFearRadius),
+  );
+}
+
 export function buildOverlays(i: OverlayInput): Overlays {
   const under: SvgNode[] = [];
   const over: SvgNode[] = [];
@@ -779,6 +801,7 @@ export function buildOverlays(i: OverlayInput): Overlays {
   const grace = graceHexes(i);
   under.push(...graceTiles(i, grace));
   under.push(...escortRings(i));
+  under.push(...fireRings(i));
   under.push(...exploredEmpty(i));
   under.push(...traceMarks(i));
   const feet = figureFeet(i.state, i.characterId, i.projection);

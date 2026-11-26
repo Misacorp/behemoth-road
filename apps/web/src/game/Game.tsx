@@ -6,6 +6,7 @@
  */
 import {
   findCharacter,
+  unpinned,
   type Hex,
   hexKey,
   packCapacityOf,
@@ -46,12 +47,12 @@ import { HubDrawer } from '../hub/HubDrawer.tsx';
 import { DayBanner, DayCountdown, PaceToggle } from '../hud/Pace.tsx';
 import { setTipConfig, TipLayer } from '../ui/Tip.tsx';
 import { cellStateAt, featureArtAt } from '../map/cells.ts';
+import { digOption, greyedForPin, takesFire } from './fire.ts';
 import {
   actionsAt,
   careOptions,
   type CostedAction,
   fireAction,
-  fuelNodeAt,
   packUnits,
   stockOf,
   surveyOf,
@@ -393,23 +394,20 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
 
   const drawerOpen = need !== 'none' && offers.length > 0 && !drawerClosed && !fading;
 
-  // Whether you have seen a fire on the map this session (in memory only), for the fire hint below.
-  const [sawFire, setSawFire] = useState(false);
-  useEffect(() => {
-    if (view.game.stimuli.length > 0) setSawFire(true);
-  }, [view]);
-
   // What you can do where you stand (gather, work a site, light a fire), a survey next to you, your pack,
   // and the hub (unlocks, feeding, lingering).
   const here = useMemo((): Here | null => {
     if (me?.status !== 'active' || me.at.kind !== 'hex') return null;
+    const pinned = me.pinnedDay !== undefined;
+    // Pinned, you cannot act: the card shows what you could do unpinned, all greyed with the reason.
+    const state0 = pinned
+      ? { ...state, characters: state.characters.map((c) => (c.id === me.id ? unpinned(c) : c)) }
+      : state;
     const feature = featureArtAt(state, hexKey(me.at.hex));
-    // Without fuel the fire never opens the card by itself. It hints, faded, on a card open for a feature
-    // once you have seen a fire, and always on a timber stand.
-    const hint = (feature !== null && sawFire) || fuelNodeAt(state, me.at.hex) !== null;
-    const fire = fireAction(state, me.id, hint);
+    // Without fuel the fire still hints, faded, on a brazier or a burnable (the only places it can be lit).
+    const fire = fireAction(state0, me.id, takesFire(state, me.at.hex));
     // Milestone 5: what you can do at the settlement you stand on (parley, offer, a boon).
-    const settlement = settlementActions(state, me.id).map((a): HereAction => ({
+    const settlement = settlementActions(state0, me.id).map((a): HereAction => ({
       kind: a.kind === 'offer' ? `offer:${a.uses ?? ''}` : a.kind,
       cost: a.cost,
       enabled: a.enabled,
@@ -419,9 +417,9 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
       ...(a.why ? { why: a.why } : {}),
     }));
     // A tow line thrown to you: grab it (its own action, never forced).
-    const grab = grabOption(state, me.id);
-    const actions = [
-      ...(feature ? actionsAt(state, me.id) : []),
+    const grab = grabOption(state0, me.id);
+    const offered = [
+      ...(feature ? actionsAt(state0, me.id) : []),
       ...(fire ? [fire] : []),
       ...settlement,
       ...(grab
@@ -436,6 +434,7 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
           ]
         : []),
     ];
+    const actions = pinned ? greyedForPin(offered) : offered;
     // A settlement where you stand always opens the card (its attitude and the boon it gave), even with
     // nothing left to do there.
     const sid = settlementAt(state, me.at.hex);
@@ -443,7 +442,7 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
     if (!feature && !place && actions.length === 0) return null;
     const terrain = terrainOf(state, me.at.hex)?.id ?? 'unknown';
     return { terrain, feature, actions, settlement: place };
-  }, [state, me, sawFire]);
+  }, [state, me]);
   const stillSelected = (next: PlayerView): Flow => {
     const mine = next.game.characters.find((c) => c.id === next.you.characterId);
     return mine && mine.actionsLeft > 0 ? { kind: 'selected' } : IDLE;
@@ -478,6 +477,15 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
   const onThrow = (to: string): void => {
     void act(
       () => api.act(view.version, { kind: 'throw-line', to }),
+      () => IDLE,
+    );
+  };
+  // Digging out a pinned character from their card: the card closes, and the stones lift on their hex.
+  const digOf = (target: string) =>
+    me?.status === 'active' ? digOption(state, me.id, target) : null;
+  const onDig = (target: string): void => {
+    void act(
+      () => api.act(view.version, { kind: 'dig-out', target }),
       () => IDLE,
     );
   };
@@ -713,6 +721,8 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
         onStrike={onStrike}
         towOf={towOf}
         onThrow={onThrow}
+        digOf={digOf}
+        onDig={onDig}
       />
       <PerilEdge peril={state.peril} max={state.config.perilMax} />
       <DayCountdown
@@ -727,6 +737,7 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
         planned={flow.kind === 'planned' && isSelecting(flow) ? flow.cost : 0}
         lost={me?.status !== 'active'}
         snapped={shownMoments.some((m) => m.kind === 'trap' && m.mine)}
+        pinned={me?.status === 'active' && me.pinnedDay !== undefined}
         warned={
           me?.status === 'active' &&
           me.at.kind === 'hex' &&

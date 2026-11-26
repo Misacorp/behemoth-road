@@ -14,6 +14,8 @@ import {
   type Hex,
   hexEquals,
   escortReach,
+  fallChance,
+  FEARS_FIRE_TAG,
   isEscorted,
   MATERIALS,
   PEOPLE_TYPES,
@@ -104,6 +106,10 @@ export interface ThreatCardInfo {
   readonly strike: Offered | null;
   /** What the creature's defenders take off this threat's strike on it (the core's `defence`); 0 undefended. */
   readonly defence: number;
+  /** Keeps clear of a burning fire (content tag `fears-fire`): its mark shows. */
+  readonly fears: boolean;
+  /** The chance a strike brings it down on you (`fallChance`, 0 to 1), or null when it does not fall. */
+  readonly fall: number | null;
 }
 
 export function threatCard(
@@ -113,6 +119,9 @@ export function threatCard(
 ): ThreatCardInfo | null {
   const mark = threatMarks(game).find((t) => t.id === threatId);
   if (!mark) return null;
+  const tags = THREAT_TYPES.find((t) => t.id === mark.type)?.tags ?? [];
+  const me = game.characters.find((c) => c.id === characterId);
+  const fall = me ? fallChance(game, me, tags) : 0;
   return {
     id: mark.id,
     type: mark.type,
@@ -122,6 +131,8 @@ export function threatCard(
     steps: threatNextPath(game, threatId).length,
     strike: offered(checkAction(game, characterId, { kind: 'strike', threat: threatId })),
     defence: defence(game),
+    fears: tags.includes(FEARS_FIRE_TAG),
+    fall: fall > 0 ? fall : null,
   };
 }
 

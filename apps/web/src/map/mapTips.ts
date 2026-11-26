@@ -11,6 +11,7 @@ import {
   terrainOf,
 } from '@behemoth-road/core';
 import { escortedIds, struckToday } from '../game/season.ts';
+import { burntKeys, isBrazierAt } from './cells.ts';
 import type { TipId } from '../text/tips.ts';
 import { tipFor } from '../ui/tip.ts';
 import { titleOf } from '../ui/Tip.tsx';
@@ -25,12 +26,16 @@ export function mapTipAt(game: GameStateView, h: Hex): TipId | null {
   const here = game.characters.filter(
     (c) => c.status === 'active' && c.at.kind === 'hex' && same(c.at.hex, h),
   );
+  if (here.some((c) => c.pinnedDay !== undefined)) return 'map:pinned';
   if (here.some((c) => struckToday(c, game.day))) return 'map:struck';
   if (game.creature.tows.some((t) => here.some((c) => c.id === t.to))) return 'map:towline';
   if (here.some((c) => stranded(game, c.id))) return 'map:stranded';
   const escorted = escortedIds(game);
   if (here.some((c) => escorted.has(c.id))) return 'map:escort';
-  if (game.stimuli.some((s) => hexKey(s.hex) === hexKey(h))) return 'map:fire';
+  if (game.stimuli.some((s) => hexKey(s.hex) === hexKey(h))) {
+    return isBrazierAt(game, hexKey(h)) ? 'map:fire-brazier' : 'map:fire';
+  }
+  if (burntKeys(game).has(hexKey(h))) return 'map:burnt';
   return null;
 }
 

@@ -17,7 +17,7 @@ import { setTipExtra, tipProps } from '../ui/press.ts';
 import { PALETTE } from '../map/art.ts';
 import type { FocusTarget } from '../map/MapView.tsx';
 import { toPreact } from '../map/svgToPreact.ts';
-import { PartyIcon } from '../roster/marks.tsx';
+import { PartyIcon, PinnedMark } from '../roster/marks.tsx';
 import {
   StanceControl,
   type StanceControlProps,
@@ -48,6 +48,8 @@ export interface HudProps {
   readonly snapped?: boolean;
   /** Your character stands where the window has left (its grace day): the pips take the warning tint. */
   readonly warned?: boolean;
+  /** Your character is pinned under a slide: a heap of stones beside the pips, and no acting. */
+  readonly pinned?: boolean;
   /** How your character looks (the recentre button shows it); null before joining. */
   readonly me: { readonly accent: string; readonly look: CharacterLook | undefined } | null;
   readonly onFocus: (target: FocusTarget) => void;
@@ -203,6 +205,11 @@ export function Hud(props: HudProps): JSX.Element {
             {...(props.warned ? { tint: PALETTE.hint } : {})}
           />
         </div>
+        {props.pinned && (
+          <span class="hud-pinned" data-mark="pinned" {...tipProps('why:pinned')}>
+            <PinnedMark />
+          </span>
+        )}
         {props.wait && <WaitButton {...props.wait} />}
       </div>
       <div class="hud-focus">

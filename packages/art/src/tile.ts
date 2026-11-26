@@ -44,6 +44,8 @@ export interface ArtCell {
   readonly feature?: FeatureArt;
   /** A fire burns here (lit today); visible to everyone, also under the veil. */
   readonly fire?: boolean;
+  /** A burnable feature stood here and a fire burnt it away (a `BURNT_LOOKS` id): ash and stumps. */
+  readonly burnt?: string;
   /** A threat on the hex (public): drawn in full, also under the veil; it replaces the terrain's props. */
   readonly threat?: ThreatArt;
   /** A people's settlement on the hex (public): drawn in full, also under the veil; it replaces the props. */

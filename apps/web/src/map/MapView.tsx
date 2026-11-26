@@ -42,7 +42,7 @@ import {
   terrainKnown,
 } from './cells.ts';
 import { chevronFor, placeClear, placePopover, splitScene, trailClear } from './compose.ts';
-import { fireHintAt } from '../game/chain.ts';
+import { fireNoteAt, type FireNote } from '../game/fire.ts';
 import { accentOf, type Identity, lookOf } from '../game/identity.ts';
 import { type Moment, STEP_MS } from '../game/moments.ts';
 import { MomentMark } from './MomentMark.tsx';
@@ -150,6 +150,12 @@ export interface MapViewProps {
   ) => { readonly cost: number; readonly enabled: boolean; readonly why?: TipId } | null;
   /** The throw button on a character's card was tapped (the second tap that spends). */
   readonly onThrow?: (id: string) => void;
+  /** Digging a pinned character out: what it offers you from their card, or null. */
+  readonly digOf?: (
+    id: string,
+  ) => { readonly cost: number; readonly enabled: boolean; readonly why?: TipId } | null;
+  /** The dig-out button on a pinned character's card was tapped (the second tap that spends). */
+  readonly onDig?: (id: string) => void;
   /** Short visual beats to play on the map (reveals, finds, a trap); they end by themselves. */
   readonly moments?: readonly Moment[];
   /**
@@ -277,8 +283,10 @@ function popoverAnchor(
   characterId: string,
   here: Here | null,
   survey: boolean,
-  fire: boolean,
+  note: FireNote | null,
   tow: boolean,
+  dig: boolean,
+  fall: boolean,
 ): Anchor | null {
   const tile = 2 * p.size * p.squash;
   const me = state.characters.find((c) => c.id === characterId);
@@ -319,12 +327,12 @@ function popoverAnchor(
     if (!feet) return null;
     const head = 0.9 * p.size;
     return {
-      key: `character:${flow.id}:${flow.back ? 'back' : ''}${tow ? ':tow' : ''}`,
+      key: `character:${flow.id}:${flow.back ? 'back' : ''}${tow ? ':tow' : ''}${dig ? ':dig' : ''}`,
       top: { x: feet.x, y: feet.y - head },
       below: head,
       size: flow.back
         ? characterSize(true, skillsOf(state, flow.id))
-        : characterSize(false, skillsOf(state, flow.id), tow),
+        : characterSize(false, skillsOf(state, flow.id), tow, dig),
     };
   }
   if (flow.kind === 'threat' || flow.kind === 'settlement') {
@@ -337,10 +345,10 @@ function popoverAnchor(
     const strike = flow.kind === 'threat' ? threatCard(state, characterId, flow.id)?.strike : null;
     const lift = 0.9 * p.size;
     return {
-      key: `${flow.kind}:${flow.id}:${strike ? String(strike.enabled) : ''}`,
+      key: `${flow.kind}:${flow.id}:${strike ? String(strike.enabled) : ''}${fall ? ':fall' : ''}`,
       top: { x: c.x, y: c.y - lift },
       below: lift + tile / 2,
-      size: flow.kind === 'threat' ? threatSize(Boolean(strike)) : SETTLEMENT_SIZE,
+      size: flow.kind === 'threat' ? threatSize(Boolean(strike), fall) : SETTLEMENT_SIZE,
       ...clearOf(thing.hex),
       // A threat's card stays off its trail: its hex first, then the hexes it crosses at the next tick.
       ...(flow.kind === 'threat'
@@ -355,10 +363,10 @@ function popoverAnchor(
   if (flow.kind === 'inspect') {
     const c = hexCenter(p, flow.hex.q, flow.hex.r);
     return {
-      key: `inspect:${hexKey(flow.hex)}:${survey ? 'survey' : ''}:${fire ? 'fire' : ''}`,
+      key: `inspect:${hexKey(flow.hex)}:${survey ? 'survey' : ''}:${note ? JSON.stringify(note) : ''}`,
       top: { x: c.x, y: c.y - tile / 2 },
       below: tile,
-      size: inspectSize(survey, fire),
+      size: inspectSize(survey, note),
       ...clearOf(flow.hex),
     };
   }
@@ -519,15 +527,18 @@ export function MapView(props: MapViewProps): JSX.Element {
   }, [state, flow, characterId, inkZoom, stones]);
 
   const survey = flow.kind === 'inspect' ? (props.surveyAt?.(flow.hex) ?? null) : null;
-  const fireHint = flow.kind === 'inspect' ? fireHintAt(state, flow.hex) : null;
+  const fireNote = flow.kind === 'inspect' ? fireNoteAt(state, flow.hex) : null;
+  const fallCard = flow.kind === 'threat' ? threatCard(state, characterId, flow.id) : null;
   popover.current = popoverAnchor(
     state,
     flow,
     characterId,
     props.here ?? null,
     survey !== null,
-    fireHint !== null,
+    fireNote,
     flow.kind === 'character' && !flow.back && (props.towOf?.(flow.id) ?? null) !== null,
+    flow.kind === 'character' && !flow.back && (props.digOf?.(flow.id) ?? null) !== null,
+    Boolean(fallCard?.strike && fallCard.fall !== null),
   );
 
   function apply(): void {
@@ -1026,7 +1037,7 @@ export function MapView(props: MapViewProps): JSX.Element {
         state={cellState}
         feature={known ? featureArtAt(state, hexKey(flow.hex)) : null}
         survey={survey}
-        fire={fireHint}
+        note={fireNote}
         onSurvey={() => props.onSurvey?.(at)}
         arm={arm}
         surveyRef={(el) => {
@@ -1084,6 +1095,8 @@ export function MapView(props: MapViewProps): JSX.Element {
           who={who}
           tow={props.towOf?.(flow.id) ?? null}
           onThrow={() => props.onThrow?.(flow.id)}
+          dig={props.digOf?.(flow.id) ?? null}
+          onDig={() => props.onDig?.(flow.id)}
           arm={arm}
         />
       );

@@ -1,7 +1,7 @@
-import { characterOf, FEATURE_TYPES, toPlayerView } from '@behemoth-road/core';
+import { characterOf, toPlayerView } from '@behemoth-road/core';
 import { describe, expect, it } from 'vitest';
 import { type ChainStage, chainScenario, toView, USERS } from '../api/fixtures.ts';
-import { careOptions, fireAction, fireHintAt, fuelNodeAt } from './chain.ts';
+import { careOptions, fireAction } from './chain.ts';
 
 function staged(stage: ChainStage) {
   const s = chainScenario(stage);
@@ -110,31 +110,5 @@ describe('the scenarios send signs per viewer', () => {
     expect(scout.signs).toEqual({ appetite: null, cues: [] });
     const starving = toView(chainScenario({ role: 'scout', satiety: 4 }));
     expect(starving.signs.appetite).toEqual({ kind: 'underfed', level: 1, faint: true });
-  });
-});
-
-describe('the fire hint on a timber stand', () => {
-  it('reads the node yield by its fuel tag, never by id', () => {
-    const s = chainScenario({ explored: ['iron'] });
-    const view = toPlayerView(s.state);
-    const c = s.state.creature.centre;
-    const iron = { q: c.q + 1, r: c.r + 3 };
-    expect(fuelNodeAt(view, iron)).toBeNull();
-    expect(fireHintAt(view, iron)).toBeNull();
-    const key = `${String(iron.q)},${String(iron.r)}`;
-    const stand = FEATURE_TYPES.find((f) => f.kind === 'node' && f.yields.material === 'timber')!;
-    const wooded = {
-      ...view,
-      features: { ...view.features, [key]: { type: stand.id, revealed: true, left: 2 } },
-    };
-    expect(fuelNodeAt(wooded, iron)).toBe('timber');
-    expect(fireHintAt(wooded, iron)).toEqual({ cost: view.config.lightFireCost, uses: 'timber' });
-    // A stand not yet revealed gives no hint (hidden features never reach the client anyway).
-    const hidden = {
-      ...view,
-      features: { ...view.features, [key]: { type: stand.id, revealed: false, left: 2 } },
-    };
-    expect(fuelNodeAt(hidden, iron)).toBeNull();
-    expect(fireHintAt(hidden, iron)).toBeNull();
   });
 });
