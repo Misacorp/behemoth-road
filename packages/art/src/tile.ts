@@ -368,6 +368,62 @@ export function drawGround(
         dots.push(ellipsePath(o.x, o.y, r * 1.3, r * p.squash));
       }
       marks.add({ fill: palette.ramps.crag.shade, opacity: 0.6 }, dots.join(''));
+    } else if (look.marks === 'shards') {
+      // Glass waste: a scatter of dark slivers lying on the pale ground, each with a pale glint.
+      const slivers: string[] = [];
+      const glints: string[] = [];
+      for (let j = 0, n = rng.int(5, 8); j < n; j += 1) {
+        const o = onPlane(p, c, rng.range(-0.55, 0.5), rng.range(-0.5, 0.5));
+        const len = rng.range(2.4, 4.4) * k;
+        const a = rng.range(-0.5, 0.5);
+        const tip = { x: o.x + Math.cos(a) * len, y: o.y + Math.sin(a) * len * p.squash };
+        slivers.push(
+          poly([
+            { x: o.x - 0.5 * k, y: o.y },
+            { x: o.x + 0.8 * k, y: o.y - 1.1 * k * p.squash },
+            tip,
+          ]),
+        );
+        glints.push(
+          poly(
+            [o, { x: o.x + (tip.x - o.x) * 0.5, y: o.y + (tip.y - o.y) * 0.5 - 0.5 * k }],
+            false,
+          ),
+        );
+      }
+      marks.add({ fill: palette.ramps.crag.shade, opacity: 0.85 }, slivers.join(''));
+      marks.add(inkAttrs(palette.paper, ink * 0.6), glints.join(''));
+    } else if (look.marks === 'murk') {
+      // A poisoned lake: slow violet swirls and a few bubbles rising.
+      const swirls: string[] = [];
+      const bubbles: string[] = [];
+      for (let j = 0, n = rng.int(2, 3); j < n; j += 1) {
+        const o = onPlane(p, c, rng.range(-0.5, 0.3), rng.range(-0.45, 0.45));
+        const s = 4.4 * k;
+        swirls.push(
+          smoothOpen([
+            o,
+            { x: o.x + s, y: o.y - s * 0.4 },
+            { x: o.x + 2 * s, y: o.y + s * 0.1 },
+            { x: o.x + 2.6 * s, y: o.y - s * 0.3 },
+          ]),
+        );
+      }
+      for (let j = 0, n = rng.int(4, 6); j < n; j += 1) {
+        const o = onPlane(p, c, rng.range(-0.55, 0.55), rng.range(-0.5, 0.5));
+        const r = rng.range(0.9, 2.1) * k;
+        bubbles.push(ellipsePath(o.x, o.y, r, r * p.squash));
+      }
+      const tints: string[] = [];
+      for (let j = 0, n = rng.int(2, 3); j < n; j += 1) {
+        const o = onPlane(p, c, rng.range(-0.35, 0.35), rng.range(-0.3, 0.3));
+        const r = rng.range(5, 9) * k;
+        tints.push(ellipsePath(o.x, o.y, r * 1.4, r * p.squash));
+      }
+      marks.add({ fill: palette.accents.plum.base, opacity: 0.42 }, tints.join(''));
+      marks.add(inkAttrs(palette.accents.plum.shade, ink * 0.8), swirls.join(''));
+      marks.add({ fill: palette.accents.plum.light, opacity: 0.85 }, bubbles.join(''));
+      marks.add(inkAttrs(palette.accents.plum.shade, ink * 0.5), bubbles.join(''));
     } else if (look.marks === 'scuffs') {
       // Pressed, scuffed earth: short curved strokes and a few shallow dents.
       const lines: string[] = [];

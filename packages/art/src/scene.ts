@@ -3,6 +3,7 @@ import { DEFAULT_LOOK, drawCharacter, type CharacterArt } from './character.ts';
 import { ART_TUNING } from './config.ts';
 import { drawCreature, inFootprint, moodOf, riderAnchor, type CreatureArt } from './creature.ts';
 import { drawCharacterMarks } from './escort.ts';
+import { liePinned } from './fire-art.ts';
 import { drawDefended } from './defended.ts';
 import { drawFire } from './fire.ts';
 import { drawBurnt } from './fire-art.ts';
@@ -470,7 +471,9 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
     )
       return drawn;
     const m = drawCharacterMarks(palette, at, p.size, p.squash, ink, marks);
-    return { nodes: [...drawn.nodes, ...m.nodes], box: unionBox([drawn.box, m.box]) };
+    // A pinned character lies almost flat under the stones, not standing behind them.
+    const body = marks.pinned ? liePinned(drawn, at, p.size) : drawn;
+    return { nodes: [...body.nodes, ...m.nodes], box: unionBox([body.box, m.box]) };
   }
 
   function ctx(origin: Point, rng: Rng, scale = 1) {

@@ -5,7 +5,17 @@
 import type { Material } from './palette.ts';
 
 export type GroundMark =
-  'flecks' | 'ripples' | 'waves' | 'swell' | 'shoals' | 'scree' | 'scuffs' | 'pools' | 'none';
+  | 'flecks'
+  | 'ripples'
+  | 'waves'
+  | 'swell'
+  | 'shoals'
+  | 'scree'
+  | 'scuffs'
+  | 'pools'
+  | 'shards'
+  | 'murk'
+  | 'none';
 
 export interface PropRule {
   /** A prop kind (`props.ts`). */
@@ -127,18 +137,19 @@ export const TERRAIN_LOOKS: Readonly<Record<string, TerrainLook>> = {
       { kind: 'rock', count: [1, 1], chance: 0.4 },
     ],
   },
-  // Hazards laid across the route (`docs/design/hazards.md`). Placeholders on existing materials until the art lands.
-  'poisoned-lake': {
-    ground: 'mire',
-    side: 'earth',
-    marks: 'pools',
-    props: [],
-  },
+  // Glass waste: pale ground bristling with dark, glinting shards.
   'glass-waste': {
-    ground: 'dune',
+    ground: 'glass',
+    side: 'rock',
+    marks: 'shards',
+    props: [{ kind: 'shards', count: [2, 3] }],
+  },
+  // A poisoned lake: the water gone a sickly green-violet, bubbling, a dead reed or two.
+  'poisoned-lake': {
+    ground: 'toxic',
     side: 'earth',
-    marks: 'scree',
-    props: [],
+    marks: 'murk',
+    props: [{ kind: 'deadreed', count: [1, 2] }],
   },
 };
 

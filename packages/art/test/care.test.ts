@@ -223,6 +223,12 @@ describe('care icons and the stay hint', () => {
       'gift',
       'mislead',
       'shelter',
+      'lead',
+      'hitch',
+      'board-cart',
+      'load',
+      'unload',
+      'struggle',
     ]);
     const drawn = ['forage', 'light-fire', 'feed', 'linger'].map((id) => {
       expect(hasIcon(id), id).toBe(true);

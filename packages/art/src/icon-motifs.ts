@@ -2,6 +2,7 @@
  * The motifs inside trait and quirk icons, on the 48-unit grid (centre 24, 24; within a radius of about
  * 13), keyed by the `icon` names content uses. Ink lines on small washes, like the role emblems.
  */
+import { ACTION_MOTIFS_R13 } from './action-motifs-r13.ts';
 import { ellipsePath, poly, smoothClosed, smoothOpen, type Point } from './geom.ts';
 import type { Palette } from './palette.ts';
 import { el, type SvgNode } from './svg.ts';
@@ -294,6 +295,7 @@ export const ACTION_MOTIFS: Readonly<Record<string, IconMotif>> = {
     ),
     ink(pal, 'M9 35.5h30', 1.3, pal.inkSoft),
   ],
+  ...ACTION_MOTIFS_R13,
 };
 
 /** Item motifs by content icon key: what the team crafts. */
