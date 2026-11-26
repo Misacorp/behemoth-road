@@ -122,6 +122,21 @@ describe('the cart', () => {
     expect(load).toMatchObject({ enabled: false, why: 'why:pack-full' });
   });
 
+  it('refuses load and unload while pinned, though they are free', () => {
+    const { state, me } = staged({
+      pack: { timber: 2 },
+      carts: [{ at: START, cargo: { stone: 1 } }],
+    });
+    const pinned = {
+      ...state,
+      characters: state.characters.map((c) => (c.id === me ? { ...c, pinnedDay: state.day } : c)),
+    };
+    const view = toPlayerView(pinned);
+    const moves = cartMoves(view, me, view.carts[0]!, { timber: 2 });
+    expect(moves.load[0]).toMatchObject({ enabled: false });
+    expect(moves.unload[0]).toMatchObject({ enabled: false });
+  });
+
   it('turns the cart’s move refusals into tips', () => {
     expect(moveRefusalTip('aboard')).toBe('why:aboard');
     expect(moveRefusalTip('cart-terrain')).toBe('why:cart-terrain');

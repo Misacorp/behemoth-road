@@ -122,6 +122,19 @@ describe('the blocked overlay and the fire glow', () => {
     const flow2 = { kind: 'threat', id: dark.view.threats[0]!.id } as never;
     expect(blockedOverlay(input(dark.view, dark.me, flow2) as never)).toEqual([]);
   });
+
+  it('leaves no blocked overlay on screen when a lure animal or the cart is selected', () => {
+    const s = staged({
+      brazierLit: 2,
+      threats: [{ type: 'swarm', at: { q: 3, r: 4 } }],
+      lures: [{ at: START }],
+      carts: [{ at: START }],
+    });
+    const lure = { kind: 'lure', id: s.view.lures[0]!.id } as never;
+    const cart = { kind: 'cart', id: s.view.carts[0]!.id } as never;
+    expect(blockedOverlay(input(s.view, s.me, lure) as never)).toEqual([]);
+    expect(blockedOverlay(input(s.view, s.me, cart) as never)).toEqual([]);
+  });
 });
 
 describe('tip marks', () => {
