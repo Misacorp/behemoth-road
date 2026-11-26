@@ -91,6 +91,8 @@ export type Action =
   | { readonly kind: 'defend' }
   /** Frees a pinned character on the same or a neighbouring place (see `Character.pinnedDay`). */
   | { readonly kind: 'dig-out'; readonly target: string }
+  /** A pinned character struggles to get free: rolls (seeded), the chance growing with each failure. */
+  | { readonly kind: 'struggle' }
   | { readonly kind: 'parley' }
   | { readonly kind: 'offer'; readonly material: string }
   | { readonly kind: 'ask-boon'; readonly boon: string }
@@ -148,7 +150,7 @@ export type ActRefusal =
   | 'unknown-stance'
   /** The character ended their day (wait): only the stance and picks can change. */
   | 'waiting'
-  /** The character is pinned by a falling slide: they cannot move or act until freed. */
+  /** The character is pinned by a falling slide: they can only struggle (or set the stance, pick) until freed. */
   | 'pinned'
   /** A dig-out on a character who is not pinned. */
   | 'not-pinned'
@@ -244,6 +246,18 @@ export const fallChance = (
     .filter((e) => threatTags.includes(e.tag))
     .reduce((chance, e) => chance * e.factor, state.config.slideFallChance);
 };
+
+const STRUGGLE_STREAM = hashString('struggle');
+
+/**
+ * The chance the next struggle frees a pinned character: `struggleChanceBase` plus `struggleChanceStep`
+ * for each failed struggle so far under this pin (capped at 1, so a long enough run always frees).
+ */
+export const struggleChance = (state: GameStateView, c: Character): number =>
+  Math.min(
+    1,
+    state.config.struggleChanceBase + state.config.struggleChanceStep * (c.struggles ?? 0),
+  );
 
 const hexOf = (c: Character): Hex | null => (c.at.kind === 'hex' ? c.at.hex : null);
 
@@ -378,7 +392,12 @@ export const checkAction = (
   if (!found.ok) return found;
   const c = found.character;
   const { config } = state;
-  if (c.pinnedDay !== undefined && action?.kind !== 'set-stance' && action?.kind !== 'pick-skill') {
+  if (
+    c.pinnedDay !== undefined &&
+    action?.kind !== 'set-stance' &&
+    action?.kind !== 'pick-skill' &&
+    action?.kind !== 'struggle'
+  ) {
     return { ok: false, reason: 'pinned' };
   }
   if (c.waiting && action?.kind !== 'set-stance' && action?.kind !== 'pick-skill') {
@@ -571,6 +590,12 @@ export const checkAction = (
         return no('not-near');
       }
       return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
+    }
+    case 'struggle': {
+      const cost = config.struggleCost;
+      if (c.pinnedDay === undefined) return { ok: false, reason: 'not-pinned', cost };
+      if (c.actionsLeft < cost) return { ok: false, reason: 'not-enough-actions', cost };
+      return { ok: true, cost, uses: [], chance: struggleChance(state, c) };
     }
     case 'parley': {
       const cost = config.parleyCost;
@@ -823,13 +848,29 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
     );
     const pinned = roll < fallChance(state, c, tags);
     if (pinned) events.push({ kind: 'pinned', characterId, threat: threat.id });
+    // They keep the actions they have left, to struggle with.
     return {
       ok: true,
-      state: withCharacter(
-        { ...state, threats },
-        pinned ? { actionsLeft: 0, pinnedDay: state.day } : {},
-      ),
+      state: withCharacter({ ...state, threats }, pinned ? { pinnedDay: state.day } : {}),
       events,
+    };
+  }
+
+  if (action.kind === 'struggle') {
+    // Seeded from the day, the character and the try number: refusals change nothing, so no rerolling.
+    const tries = c.struggles ?? 0;
+    const roll = hashToUnit(state.seed, STRUGGLE_STREAM, state.day, hashString(c.id), tries);
+    const freed = roll < check.chance;
+    const base = withCharacter(state, {});
+    return {
+      ok: true,
+      state: {
+        ...base,
+        characters: base.characters.map((x) =>
+          x.id === characterId ? (freed ? unpinned(x) : { ...x, struggles: tries + 1 }) : x,
+        ),
+      },
+      events: [{ kind: 'struggled', characterId, freed }],
     };
   }
 
@@ -839,17 +880,7 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
       state: withCharacter(
         {
           ...state,
-          characters: state.characters.map((x) =>
-            x.id === action.target
-              ? {
-                  ...unpinned(x),
-                  // Dug out the day after the slide: the stones were all that held them, so the day is theirs.
-                  ...(x.pinnedDay !== undefined && x.pinnedDay < state.day
-                    ? { actionsLeft: state.config.actionsPerDay }
-                    : {}),
-                }
-              : x,
-          ),
+          characters: state.characters.map((x) => (x.id === action.target ? unpinned(x) : x)),
         },
         {},
       ),
@@ -1109,6 +1140,7 @@ export const actionsHere = (
       .filter((x) => x.id !== characterId && x.status === 'active' && x.at.kind === 'hex')
       .map((x) => ({ kind: 'throw-line' as const, to: x.id })),
     ...state.threats.map((t) => ({ kind: 'strike' as const, threat: t.id })),
+    ...(c.pinnedDay !== undefined ? [{ kind: 'struggle' as const }] : []),
     ...state.characters
       .filter(
         (x) =>
@@ -1128,3 +1160,60 @@ export const actionsHere = (
 
 /** The same list as `actionsHere`. */
 export const possibleActions = actionsHere;
+
+/** The public chances of an action that rolls, and what a failure means. */
+export interface Odds {
+  /** Chance the roll goes the character's way (0 to 1). */
+  readonly success: number;
+  /** Chance it does not: `1 - success`. */
+  readonly failure: number;
+  /**
+   * What a failure is, as a tag-like word for the interface to turn into a look: `buried` (a strike
+   * that brings the slide down on the striker), `still-pinned` (a struggle), `angered` (a parley),
+   * `site-failed` (a site worked in vain).
+   */
+  readonly failureKind: string;
+}
+
+const oddsFrom = (success: number, failureKind: string): Odds => ({
+  success,
+  failure: 1 - success,
+  failureKind,
+});
+
+/**
+ * The chances of an action that rolls on public data, for any view: striking a threat tagged `falls`,
+ * struggling, a parley with a wary settlement, and working a site here. Null for an action with no
+ * roll, and where the chance would rest on hidden information (a trap, an unrevealed feature): a
+ * chance is never shown for what the player cannot see. It does not check cost or reach; ask
+ * `checkAction` for that.
+ */
+export const oddsOf = (state: GameStateView, characterId: string, action: Action): Odds | null => {
+  const found = activeCharacter(state, characterId);
+  if (!found.ok) return null;
+  const c = found.character;
+  switch (action?.kind) {
+    case 'strike': {
+      const threat = state.threats.find((t) => t.id === action.threat);
+      if (!threat) return null;
+      const tags = threatType(threat.type).tags;
+      if (!tags.includes(FALLS_TAG)) return null;
+      return oddsFrom(1 - fallChance(state, c, tags), 'buried');
+    }
+    case 'struggle':
+      return c.pinnedDay === undefined ? null : oddsFrom(struggleChance(state, c), 'still-pinned');
+    case 'parley': {
+      const here = parleyTarget(state, c);
+      return here?.attitude === 'wary' ? oddsFrom(parleyChance(state, c), 'angered') : null;
+    }
+    case 'work-site': {
+      const f = featureHere(state, c);
+      const type = f ? featureType(f.type) : null;
+      if (!f || type?.kind !== 'site' || f.left <= 0) return null;
+      const chance = siteChance(state, c, type);
+      return chance > 0 ? oddsFrom(chance, 'site-failed') : null;
+    }
+    default:
+      return null;
+  }
+};

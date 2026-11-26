@@ -118,6 +118,8 @@ export const ActionSchema = v.variant('kind', [
     kind: v.literal('dig-out'),
     target: v.pipe(v.string(), v.minLength(1), v.maxLength(64)),
   }),
+  // A pinned character struggles free (rolled by the core from the seed).
+  v.strictObject({ kind: v.literal('struggle') }),
   v.strictObject({ kind: v.literal('parley') }),
   v.strictObject({ kind: v.literal('offer'), material: contentId }),
   v.strictObject({ kind: v.literal('ask-boon'), boon: contentId }),

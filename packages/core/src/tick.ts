@@ -389,7 +389,8 @@ export const nextDayWithEvents = (
   const characters = state.characters.map((c): Character => {
     if (c.status !== 'active') return { ...c, actionsLeft: 0, waiting: false };
     const struck = fight.struck.has(c.id);
-    // Pinned on the day just ended: still pinned all of the next one. Pinned earlier: free on their own now.
+    // Pinned on the day just ended: still pinned the next day, with its actions to struggle with. Pinned
+    // earlier: the backstop, free on their own now.
     const stillPinned = c.pinnedDay !== undefined && c.pinnedDay >= state.day;
     // Free on their own now (unless they are lost below, which clears it with no event).
     const free = (): void => {
@@ -397,11 +398,9 @@ export const nextDayWithEvents = (
         freed.push({ kind: 'dug-out', characterId: c.id, by: null });
       }
     };
-    const actionsLeft = stillPinned
-      ? 0
-      : struck
-        ? Math.min(config.actionsPerDay, config.struckActions)
-        : config.actionsPerDay;
+    const actionsLeft = struck
+      ? Math.min(config.actionsPerDay, config.struckActions)
+      : config.actionsPerDay;
     // Catch-up: whenever the route's steps reach a multiple, everyone still in the game earns XP
     // (a stay does not add a step, so it cannot repeat it).
     const boosted = withXp(catchUp ? withXp(c, config.catchUpXp) : c, fight.xp.get(c.id) ?? 0);

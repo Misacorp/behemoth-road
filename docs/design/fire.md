@@ -1,6 +1,6 @@
 # Fire, braziers and falling slides: contract for the web
 
-Content version 23. The rules are in `packages/core`; nothing here needs the web to compute anything. Decisions: "Fire needs something to burn", "Threats tagged fears-fire keep clear of burning fires" and "Striking a rockslide can bury the striker" in `decisions/product.md`.
+Content version 23; round three (version 24, `odds.md`) changed pinned timing, see below. The rules are in `packages/core`; nothing here needs the web to compute anything. Decisions: "Fire needs something to burn", "Threats tagged fears-fire keep clear of burning fires" and "Striking a rockslide can bury the striker" in `decisions/product.md`.
 
 ## What changed in play
 
@@ -8,7 +8,7 @@ Content version 23. The rules are in `packages/core`; nothing here needs the web
 - A **brazier** burns for `config.brazierNights` (4) nights, shows the hexes around it, and can be lit again once it has burnt out. A Beacon (keeper skill) adds a night, a range and a push.
 - A **burnable** feature is burnt away for good and acts as a one-night fire (the old fire).
 - Threats tagged `fears-fire` (swarm, stampede) keep out of a burning fire's ring.
-- Striking a threat tagged `falls` (rockslide) can pin the striker. Someone next to them digs them out (`dig-out`), or they free themselves.
+- Striking a threat tagged `falls` (rockslide) can pin the striker. Someone next to them digs them out (`dig-out`), or they struggle free (`struggle`, see `odds.md`), or the backstop frees them.
 
 ## View fields (all public; `toPlayerView`)
 
@@ -35,7 +35,7 @@ Content version 23. The rules are in `packages/core`; nothing here needs the web
 
 - `nothing-to-burn`: light-fire on a hex with no brazier or burnable feature.
 - `fire-here`: a fire already burns there (a lit brazier).
-- `pinned`: any act or move by a pinned character (setting a stance and picking a skill still work).
+- `pinned`: any act or move by a pinned character except `struggle`, setting a stance and picking a skill.
 - `not-pinned`: dig-out on a character who is not pinned.
 - Existing and still used by dig-out: `not-near` (not on the same or a neighbouring place), `unknown-character`, `character-lost`, `invalid-action` (digging yourself out), `not-enough-actions`.
 - Existing for light-fire and unchanged: `on-creature`, `cannot-burn` (water), `no-fuel`, `not-enough-actions`.
@@ -53,7 +53,7 @@ Traces: a lit brazier or a burnable fire leaves the existing `fire` trace kind (
 
 ## The rules the web should not copy
 
-- **Pinned timing.** Pinned on day D: no actions for the rest of D and none held over to D + 1, free from D + 2 at the tick. Dug out on D: free at once, with no actions left that day. Dug out on D + 1: free at once and they get that day's full actions back (`actionsPerDay`). If they are lost while pinned, the pin is cleared and there is no `dug-out` event; a pinned character the creature hauls aboard gets a `dug-out` with `by: null` and full actions. A pinned character is not moved by anything: if the creature walks away they can be lost like anyone else, and if the creature's footprint reaches them they are hauled aboard and free.
+- **Pinned timing (changed in version 24).** Pinned on day D mid-day: they keep the actions they have left that day and can spend them on `struggle`; the next tick gives them a full day (still pinned) to struggle with; free at the tick that ends D + 1 at the latest (the backstop, `dug-out` with `by: null`). A struggle that works frees them at once with the actions left. Dug out by someone else on D or D + 1: free at once, actions unchanged (the old rule that a D + 1 dig-out restored the day no longer applies). If they are lost while pinned, the pin is cleared and there is no `dug-out` event; a pinned character the creature hauls aboard gets a `dug-out` with `by: null` and full actions. A pinned character is not moved by anything: if the creature walks away they can be lost like anyone else, and if the creature's footprint reaches them they are hauled aboard and free.
 - **Fear.** A `fears-fire` threat does not step into, stop on or strike from a hex within `fireFearRadius` of a burning fire, and does not strike characters standing in that ring. It holds where it is (it does not go around), and a threat already inside the ring when a fire is lit strikes nothing from there while the fire burns (it holds if its next step is inside the ring too, and walks out of it otherwise). The fire counts through the night it burns out, so a one-night fire protects until the tick that ends its day has run.
 - **Reveal.** A burning brazier counts the hexes within `reveal` as explored (their features show) when it is lit and at every tick it burns through, its last night included, for hexes in view only.
 - **Strikes by stance** (lying in wait) never bring a slide down; only an active `strike` does.

@@ -39,8 +39,9 @@
  * 23: fire needs something to burn: braziers (fire-site) and burnable features, fears-fire threats, the
  *    rockslide can fall on its striker (pinned characters, dig-out); engineers are sure-footed; burnt
  *    ground is kept (`burnt`, with the feature's `burntLook`).
+ * 24: pinned characters keep their actions and struggle free (`struggle`, `struggles`); no content changed.
  */
-export const CONTENT_VERSION = 23;
+export const CONTENT_VERSION = 24;
 
 /** Content versions this code can load. */
 export const KNOWN_CONTENT_VERSIONS: readonly number[] = [CONTENT_VERSION];

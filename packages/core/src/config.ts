@@ -71,6 +71,11 @@ export interface TuningConfig {
   readonly slideFallChance: number;
   /** Actions it costs to dig out a pinned character. */
   readonly digOutCost: number;
+  /** Actions one struggle costs a pinned character. */
+  readonly struggleCost: number;
+  /** Chance the first struggle frees a pinned character; each earlier failure adds `struggleChanceStep`. */
+  readonly struggleChanceBase: number;
+  readonly struggleChanceStep: number;
   readonly feedCost: number;
   /** Keepers only: the creature stays put at the next tick. */
   readonly lingerCost: number;
@@ -194,6 +199,9 @@ export const DEFAULT_CONFIG: TuningConfig = {
   fireFearRadius: 1,
   slideFallChance: 0.2,
   digOutCost: 1,
+  struggleCost: 1,
+  struggleChanceBase: 0.2,
+  struggleChanceStep: 0.2,
   feedCost: 1,
   lingerCost: 2,
   towThrowCost: 1,
@@ -283,6 +291,8 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     'threatChanceMax',
     'parleyAngerChanceOther',
     'slideFallChance',
+    'struggleChanceBase',
+    'struggleChanceStep',
   ] as const;
   for (const key of chances) {
     const p = config[key];
@@ -303,6 +313,7 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     'brazierNights',
     'brazierSpacing',
     'digOutCost',
+    'struggleCost',
     'feedCost',
     'lingerCost',
     'towThrowCost',

@@ -17,6 +17,11 @@ import {
   THREAT_TYPES,
   toPlayerView,
   fallChance,
+  oddsOf,
+  blockedFor,
+  exploreHex,
+  unpinned,
+  struggleChance,
   terrainAt,
   featureType,
   type ActResult,
@@ -30,6 +35,7 @@ import {
   QUIET,
   withCharacter,
   withFeature,
+  withSettlement,
   withThreat,
 } from './helpers.ts';
 
@@ -302,11 +308,11 @@ describe('the rockslide falls on its striker', () => {
       NEXT,
     );
 
-  it('with a sure fall: the blow lands, then the striker is pinned and loses the day', () => {
+  it('with a sure fall: the blow lands, then the striker is pinned and keeps the actions left', () => {
     const r = act(falling(1), 'scout', { kind: 'strike', threat: 'slide' });
     const s = ok(r);
     expect(s.threats[0]?.strength).toBe(5);
-    expect(me(s, 'scout')).toMatchObject({ actionsLeft: 0, pinnedDay: 1 });
+    expect(me(s, 'scout')).toMatchObject({ actionsLeft: 2, pinnedDay: 1 });
     expect(r.ok && plain(r.events).map((e) => e.kind)).toEqual(['threat-hit', 'pinned']);
     expect(toPlayerView(s).characters.find((c) => c.id === 'scout')?.pinnedDay).toBe(1);
   });
@@ -405,12 +411,12 @@ describe('pinned characters', () => {
     });
   });
 
-  it('frees itself at the end of the next tick: the rest of today and all of tomorrow are lost', () => {
+  it('frees itself at the end of the next tick (the backstop), with the next day to struggle in', () => {
     let s = pinned();
     const first = nextDayWithEvents(s);
     s = lingering(first.state);
     expect(s.day).toBe(2);
-    expect(me(s, 'scout')).toMatchObject({ pinnedDay: 1, actionsLeft: 0 });
+    expect(me(s, 'scout')).toMatchObject({ pinnedDay: 1, actionsLeft: 3 });
     expect(plain(first.events).some((e) => e.kind === 'dug-out')).toBe(false);
     const second = nextDayWithEvents(s);
     expect(me(second.state, 'scout').pinnedDay).toBeUndefined();
@@ -422,14 +428,14 @@ describe('pinned characters', () => {
     });
   });
 
-  it('dug out the day after, they get that day back; dug out the same day, nothing is left of it', () => {
+  it('a dig-out frees at once and changes no actions, the same day or the next', () => {
     const same = ok(act(pinned(), 'keeper', { kind: 'dig-out', target: 'scout' }));
-    expect(me(same, 'scout').actionsLeft).toBe(0);
+    expect(me(same, 'scout').actionsLeft).toBe(2);
     const first = lingering(nextDayWithEvents(pinned()).state);
-    expect(me(first, 'scout').actionsLeft).toBe(0);
     const freed = ok(act(first, 'keeper', { kind: 'dig-out', target: 'scout' }));
     expect(me(freed, 'scout')).toMatchObject({ actionsLeft: 3 });
     expect(me(freed, 'scout').pinnedDay).toBeUndefined();
+    expect(me(freed, 'scout').struggles).toBeUndefined();
   });
 
   it('offers dig-out only for active pinned characters within reach', () => {
@@ -555,5 +561,237 @@ describe('what the player view holds', () => {
     const hidden = withFeature(lit, hex(-3, 0), 'iron-deposit');
     expect(toPlayerView(hidden).features[key(hex(-3, 0))]).toBeUndefined();
     expect(keyToHex(key(BRAZIER))).toEqual(BRAZIER);
+  });
+});
+
+describe('struggling free', () => {
+  const SLIDE = hex(4, -2);
+  const pinned = (overrides = {}): GameState => {
+    let s = fieldGame(['scout', 'keeper'], { ...QUIET, slideFallChance: 1, ...overrides });
+    s = lingering(calm(withThreat(s, 'rockslide', SLIDE, 9, 'slide')));
+    s = placeCharacter(s, 'scout', hex(3, -1));
+    return ok(act(s, 'scout', { kind: 'strike', threat: 'slide' }));
+  };
+
+  it('is only for the pinned, costs struggleCost, and the pinned can do nothing else but stance and pick', () => {
+    const s = pinned();
+    expect(checkAction(s, 'keeper', { kind: 'struggle' })).toMatchObject({
+      ok: false,
+      reason: 'not-pinned',
+    });
+    expect(checkAction(s, 'scout', { kind: 'struggle' })).toMatchObject({ ok: true, cost: 1 });
+    expect(actionsHere(s, 'scout').some((a) => a.action.kind === 'struggle')).toBe(true);
+    expect(actionsHere(s, 'keeper').some((a) => a.action.kind === 'struggle')).toBe(false);
+    expect(checkAction(s, 'scout', { kind: 'wait' })).toMatchObject({ reason: 'pinned' });
+    const none = withCharacter(s, { ...me(s, 'scout'), actionsLeft: 0 });
+    expect(checkAction(none, 'scout', { kind: 'struggle' })).toMatchObject({
+      reason: 'not-enough-actions',
+    });
+  });
+
+  it('the chance grows by a step with each failure, and the fifth try always frees', () => {
+    let s = pinned();
+    const chances: number[] = [];
+    for (let i = 0; i < 4; i++) {
+      chances.push(struggleChance(s, me(s, 'scout')));
+      s = withCharacter(s, { ...me(s, 'scout'), struggles: i + 1 });
+    }
+    expect(chances[0]).toBeCloseTo(0.2);
+    expect(chances[1]).toBeCloseTo(0.4);
+    expect(chances[3]).toBeCloseTo(0.8);
+    expect(struggleChance(s, me(s, 'scout'))).toBe(1);
+  });
+
+  it('a failure counts a try and costs an action; success frees and resets the count', () => {
+    // Chance 0: never frees. Chance 1: always.
+    const never = pinned({ struggleChanceBase: 0, struggleChanceStep: 0 });
+    const r = act(never, 'scout', { kind: 'struggle' });
+    const failed = ok(r);
+    expect(me(failed, 'scout')).toMatchObject({ pinnedDay: 1, struggles: 1, actionsLeft: 1 });
+    expect(r.ok && plain(r.events)).toEqual([
+      { kind: 'struggled', characterId: 'scout', freed: false },
+    ]);
+    const always = pinned({ struggleChanceBase: 1 });
+    const r2 = act(withCharacter(always, { ...me(always, 'scout'), struggles: 3 }), 'scout', {
+      kind: 'struggle',
+    });
+    const freed = ok(r2);
+    expect(me(freed, 'scout').pinnedDay).toBeUndefined();
+    expect(me(freed, 'scout').struggles).toBeUndefined();
+    expect(me(freed, 'scout').actionsLeft).toBe(1);
+    expect(r2.ok && plain(r2.events)).toEqual([
+      { kind: 'struggled', characterId: 'scout', freed: true },
+    ]);
+  });
+
+  it('five struggles always free, and the roll is fixed by seed, day, character and try', () => {
+    let s = pinned();
+    s = withCharacter(s, { ...me(s, 'scout'), actionsLeft: 9 });
+    for (let i = 0; i < 5 && me(s, 'scout').pinnedDay !== undefined; i++) {
+      const a = act(s, 'scout', { kind: 'struggle' });
+      expect(act(s, 'scout', { kind: 'struggle' })).toEqual(a);
+      s = ok(a);
+    }
+    expect(me(s, 'scout').pinnedDay).toBeUndefined();
+  });
+
+  it('keeps the count across the night and the backstop still frees on the second tick', () => {
+    const never = pinned({ struggleChanceBase: 0, struggleChanceStep: 0 });
+    const failed = ok(act(never, 'scout', { kind: 'struggle' }));
+    const next = lingering(nextDayWithEvents(failed).state);
+    expect(me(next, 'scout')).toMatchObject({ pinnedDay: 1, struggles: 1, actionsLeft: 3 });
+    const after = nextDayWithEvents(next);
+    expect(me(after.state, 'scout').pinnedDay).toBeUndefined();
+    expect(me(after.state, 'scout').struggles).toBeUndefined();
+  });
+
+  it('a pinned character does not lie in wait at the tick', () => {
+    let s = withThreat(lingering(fieldGame(['scholar', 'keeper'])), 'ambush', hex(0, 4), 3);
+    s = placeCharacter(s, 'scholar', hex(0, 3));
+    s = withCharacter(s, { ...me(s, 'scholar'), stance: 'lie-in-wait', pinnedDay: 1 });
+    const next = nextDayWithEvents(s);
+    expect(plain(next.events).some((e) => e.kind === 'threat-hit')).toBe(false);
+    const free = nextDayWithEvents(withCharacter(s, unpinned(me(s, 'scholar'))));
+    expect(plain(free.events).some((e) => e.kind === 'threat-hit')).toBe(true);
+  });
+});
+
+describe('oddsOf', () => {
+  const SLIDE = hex(4, -2);
+  const base = (roles: readonly string[] = ['scout']): GameState =>
+    placeCharacter(
+      withThreat(
+        fieldGame(roles, { ...QUIET, slideFallChance: 0.4 }),
+        'rockslide',
+        SLIDE,
+        6,
+        'slide',
+      ),
+      roles[0] as string,
+      hex(3, -1),
+    );
+
+  it('strike on a falls threat: failure is being buried; engineers and non-falling threats differ', () => {
+    const s = base(['scout', 'engineer']);
+    expect(oddsOf(s, 'scout', { kind: 'strike', threat: 'slide' })).toEqual({
+      success: 0.6,
+      failure: 0.4,
+      failureKind: 'buried',
+    });
+    expect(oddsOf(s, 'engineer', { kind: 'strike', threat: 'slide' })?.failure).toBeCloseTo(0.2);
+    const swarm = withThreat(s, 'captors', hex(4, -1), 3, 'c');
+    expect(oddsOf(swarm, 'scout', { kind: 'strike', threat: 'c' })).toBeNull();
+    expect(oddsOf(s, 'scout', { kind: 'strike', threat: 'none' })).toBeNull();
+  });
+
+  it('struggle: only when pinned, and it grows with failures', () => {
+    const s = base();
+    expect(oddsOf(s, 'scout', { kind: 'struggle' })).toBeNull();
+    const pinned = withCharacter(s, { ...me(s, 'scout'), pinnedDay: 1, struggles: 2 });
+    const o = oddsOf(pinned, 'scout', { kind: 'struggle' });
+    expect(o?.success).toBeCloseTo(0.6);
+    expect(o?.failure).toBeCloseTo(0.4);
+    expect(o?.failureKind).toBe('still-pinned');
+  });
+
+  it('work-site: by tier and role, only for a revealed site', () => {
+    let s = placeCharacter(fieldGame(['scout', 'scholar'], QUIET), 'scout', hex(3, -1));
+    s = placeCharacter(s, 'scholar', hex(2, -1));
+    s = withFeature(withFeature(s, hex(3, -1), 'tomb', true), hex(2, -1), 'tomb', true);
+    const other = oddsOf(s, 'scout', { kind: 'work-site' });
+    expect(other?.success).toBeCloseTo(s.config.siteChanceOtherTier1);
+    expect(other?.failure).toBeCloseTo(1 - s.config.siteChanceOtherTier1);
+    expect(other?.failureKind).toBe('site-failed');
+    expect(oddsOf(s, 'scholar', { kind: 'work-site' })?.success).toBeCloseTo(
+      s.config.siteChanceSpecialistTier1,
+    );
+    // Tier 2: others cannot work it at all, so there is no roll to show.
+    const deep = withFeature(s, hex(3, -1), 'deep-tomb', true);
+    expect(featureType('deep-tomb').kind).toBe('site');
+    expect(oddsOf(deep, 'scout', { kind: 'work-site' })).toBeNull();
+    // Hidden or absent: nothing is leaked.
+    expect(
+      oddsOf(withFeature(s, hex(3, -1), 'tomb', false), 'scout', { kind: 'work-site' }),
+    ).toBeNull();
+    expect(
+      oddsOf(placeCharacter(s, 'scout', hex(1, -1)), 'scout', { kind: 'work-site' }),
+    ).toBeNull();
+  });
+
+  it('parley: anger chance for anyone but a warden, only with a wary settlement', () => {
+    let s = placeCharacter(fieldGame(['scout', 'warden'], QUIET), 'scout', hex(3, -1));
+    s = placeCharacter(s, 'warden', hex(3, -1));
+    s = withSettlement(s, hex(3, -1));
+    const o = oddsOf(s, 'scout', { kind: 'parley' });
+    expect(o?.failure).toBeCloseTo(s.config.parleyAngerChanceOther);
+    expect(o?.failureKind).toBe('angered');
+    expect(oddsOf(s, 'warden', { kind: 'parley' })?.failure).toBe(0);
+    const friendly = withSettlement(
+      placeCharacter(fieldGame(['scout'], QUIET), 'scout', hex(3, -1)),
+      hex(3, -1),
+      { attitude: 'friendly' },
+    );
+    expect(oddsOf(friendly, 'scout', { kind: 'parley' })).toBeNull();
+  });
+
+  it('no roll, no odds', () => {
+    const s = base();
+    for (const action of [
+      { kind: 'gather' },
+      { kind: 'light-fire' },
+      { kind: 'wait' },
+      { kind: 'defend' },
+    ] as const) {
+      expect(oddsOf(s, 'scout', action)).toBeNull();
+    }
+    expect(oddsOf(s, 'nobody', { kind: 'work-site' })).toBeNull();
+  });
+});
+
+describe('blockedFor', () => {
+  it('lists the ring of every burning fire for a fears-fire subject, once per hex', () => {
+    const s = atBrazier();
+    const lit = ok(act(s, 'keeper', { kind: 'light-fire' }));
+    const radius = lit.config.fireFearRadius;
+    const swarm = THREAT_TYPES.find((t) => t.id === 'swarm')!;
+    const blocked = blockedFor(lit, swarm);
+    expect(blocked.every((b) => b.reason === 'fire')).toBe(true);
+    expect(new Set(blocked.map((b) => key(b.hex))).size).toBe(blocked.length);
+    expect(blocked.length).toBe(1 + 3 * radius * (radius + 1));
+    expect(blocked.every((b) => hexDistance(b.hex, BRAZIER) <= radius)).toBe(true);
+    // A second fire overlaps without duplicating hexes.
+    const two = { ...lit, stimuli: [...lit.stimuli, { ...lit.stimuli[0]!, hex: hex(4, -1) }] };
+    const both = blockedFor(two, swarm);
+    expect(new Set(both.map((b) => key(b.hex))).size).toBe(both.length);
+    expect(both.length).toBeGreaterThan(blocked.length);
+  });
+
+  it('is empty without a fire, for a subject that does not fear fire, and once the fire is out', () => {
+    const swarm = THREAT_TYPES.find((t) => t.id === 'swarm')!;
+    const rockslide = THREAT_TYPES.find((t) => t.id === 'rockslide')!;
+    const lit = ok(act(atBrazier(), 'keeper', { kind: 'light-fire' }));
+    expect(blockedFor(atBrazier(), swarm)).toEqual([]);
+    expect(blockedFor(lit, rockslide)).toEqual([]);
+    expect(blockedFor(lit, { tags: [] })).toEqual([]);
+    expect(blockedFor({ ...lit, stimuli: [] }, swarm)).toEqual([]);
+    // Public data only: the player's view gives the same answer.
+    expect(blockedFor(toPlayerView(lit), swarm)).toEqual(blockedFor(lit, swarm));
+  });
+});
+
+describe("a brazier's reveal stays", () => {
+  it('explores hexes as a player would, and keeps them after the fire burns out', () => {
+    const near = hex(3, -3);
+    let s = withFeature(atBrazier(), near, 'iron-deposit');
+    const byPlayer = exploreHex(s, near).state;
+    s = ok(act(s, 'keeper', { kind: 'light-fire' }));
+    expect(s.tiles[key(near)]).toEqual(byPlayer.tiles[key(near)]);
+    expect(s.features[key(near)]).toEqual(byPlayer.features[key(near)]);
+    for (let i = 0; i < s.config.brazierNights + 1; i++) {
+      s = lingering(nextDayWithEvents(s).state);
+    }
+    expect(s.stimuli).toEqual([]);
+    expect(s.tiles[key(near)]?.explored).toBe(true);
+    expect(s.features[key(near)]?.revealed).toBe(true);
   });
 });

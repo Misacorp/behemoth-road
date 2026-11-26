@@ -281,12 +281,16 @@ export {
   type EnterResult,
   type GameEvent,
 } from './features.ts';
+export { blockedFor, type BlockedHex, type BlockReason, type BlockSubject } from './blocked.ts';
 export {
   act,
   actionsHere,
   checkAction,
   fallChance,
+  oddsOf,
+  struggleChance,
   possibleActions,
+  type Odds,
   packCapacityOf,
   type Action,
   type ActCheck,
