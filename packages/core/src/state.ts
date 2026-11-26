@@ -230,6 +230,8 @@ export interface FeatureState {
   readonly type: string;
   readonly revealed: boolean;
   readonly left: number;
+  /** Old dry fuel lies in the bowl (a brazier not yet lit): the first fire needs no fuel from a pack. Public. */
+  readonly stocked?: boolean;
 }
 
 /** The unlock the engineers are working on, and the work done so far. */

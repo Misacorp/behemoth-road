@@ -322,6 +322,17 @@ const steeringBrazier = (state: GameState, hazard: Hex, id: string): Hex | null 
         hexDistance(h, state.creature.centre) <= 5
       );
     });
+  // A stocked brazier is lit with no wood: preferred when it is a day's walk or two away.
+  const cheap = options.filter((h) => state.features[`${h.q},${h.r}`]?.stocked === true);
+  const near = nearestAny(state, id, cheap);
+  const plan = near ? planPath(state, id, near) : null;
+  if (
+    near &&
+    plan?.ok &&
+    plan.cost + state.config.lightFireCost <= 2 * state.config.actionsPerDay
+  ) {
+    return near;
+  }
   return nearestAny(state, id, options);
 };
 
@@ -372,7 +383,8 @@ const steer = (state: GameState, id: string): GameState => {
   if (!brazier) return state;
   let s = state;
   const holds = () => (character(s, id)?.pack['timber'] ?? 0) > 0;
-  if (!holds()) {
+  const stockedBrazier = s.features[`${brazier.q},${brazier.r}`]?.stocked === true;
+  if (!holds() && !stockedBrazier) {
     const nodes = Object.entries(s.features)
       .filter(([, f]) => {
         const t = featureType(f.type);

@@ -220,6 +220,13 @@ const litFire = (
   };
 };
 
+/** The feature with its stocked flag cleared (its first fire has burnt the old fuel). */
+const unstocked = (f: FeatureState): FeatureState => {
+  const rest: Record<string, unknown> = { ...f };
+  delete rest['stocked'];
+  return rest as unknown as FeatureState;
+};
+
 const FALL_STREAM = hashString('slide-fall');
 
 /**
@@ -460,6 +467,10 @@ export const checkAction = (
         return no('nothing-to-burn');
       }
       if (state.stimuli.some((s) => hexKey(s.hex) === hexKey(h))) return no('fire-here');
+      // A stocked brazier needs no fuel from the pack for its first fire.
+      if (here?.stocked === true) {
+        return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
+      }
       const fuel = firstWithTag(c.pack, FIRE.fuel.tag, FIRE.fuel.amount);
       if (!fuel) {
         const kind = MATERIALS.find((m) => m.tags.includes(FIRE.fuel.tag));
@@ -694,7 +705,11 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
         ...state,
         stimuli: [...state.stimuli, litFire(c, SITE_FIRE.id, h, state.day, site)],
       };
-      const spent = withCharacter(lit, { pack: subtract(c.pack, check.uses) });
+      const cleared: GameState = {
+        ...lit,
+        features: { ...lit.features, [key]: unstocked(feature) },
+      };
+      const spent = withCharacter(cleared, { pack: subtract(c.pack, check.uses) });
       const shown = lightAround(spent, h, site.reveal);
       return { ok: true, state: shown.state, events: [...events, ...shown.events] };
     }

@@ -55,6 +55,63 @@ const atBrazier = (roles: readonly string[] = ['keeper']): GameState => {
   return giveTimber(s, roles[0] as string);
 };
 
+describe('a stocked brazier', () => {
+  const stocked = (): GameState => {
+    const s = atBrazier();
+    const bare = withCharacter(s, { ...me(s, 'keeper'), pack: {} });
+    return {
+      ...bare,
+      features: {
+        ...bare.features,
+        [key(BRAZIER)]: { type: 'brazier', revealed: true, left: 1, stocked: true },
+      },
+    };
+  };
+
+  it('is generated stocked, and shown so in the player view', () => {
+    const g = createGame(2);
+    const first = g.brazierPlan[0] as Hex;
+    expect(g.features[key(first)]?.stocked).toBe(true);
+    expect(toPlayerView(g).features[key(first)]?.stocked).toBe(true);
+    expect(featureType('brazier').stockedFuel).toBe(true);
+  });
+
+  it('is lit the first time with no wood, which clears the flag; a relight needs wood', () => {
+    const s = stocked();
+    expect(checkAction(s, 'keeper', { kind: 'light-fire' })).toEqual({
+      ok: true,
+      cost: 1,
+      uses: [],
+      chance: 1,
+    });
+    const lit = ok(act(s, 'keeper', { kind: 'light-fire' }));
+    expect(me(lit, 'keeper').actionsLeft).toBe(2);
+    expect(lit.features[key(BRAZIER)]?.stocked).toBeUndefined();
+    expect(lit.stimuli[0]?.type).toBe('brazier-fire');
+    let after = lit;
+    for (let i = 0; i < 4; i++) after = nextDayWithEvents(after).state;
+    expect(checkAction(after, 'keeper', { kind: 'light-fire' })).toMatchObject({
+      ok: false,
+      reason: 'no-fuel',
+    });
+    expect(checkAction(giveTimber(after, 'keeper'), 'keeper', { kind: 'light-fire' }).ok).toBe(
+      true,
+    );
+  });
+
+  it('no-fuel only when unstocked; actions are still needed', () => {
+    const unstocked = withCharacter(atBrazier(), { ...me(atBrazier(), 'keeper'), pack: {} });
+    expect(checkAction(unstocked, 'keeper', { kind: 'light-fire' })).toMatchObject({
+      reason: 'no-fuel',
+    });
+    const s = stocked();
+    const tired = withCharacter(s, { ...me(s, 'keeper'), actionsLeft: 0 });
+    expect(checkAction(tired, 'keeper', { kind: 'light-fire' })).toMatchObject({
+      reason: 'not-enough-actions',
+    });
+  });
+});
+
 describe('lighting a brazier', () => {
   it('burns for brazierNights ticks, then can be lit again', () => {
     const lit = ok(act(atBrazier(), 'keeper', { kind: 'light-fire' }));

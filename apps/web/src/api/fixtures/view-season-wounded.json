@@ -51,7 +51,7 @@
         "right": 1
       },
       "lightFireCost": 1,
-      "brazierNights": 3,
+      "brazierNights": 4,
       "brazierRevealRadius": 2,
       "brazierSpacing": 6,
       "brazierFirstWithin": 4,
@@ -1339,25 +1339,22 @@
       }
     ],
     "features": {
-      "-2,-2": {
+      "-3,-2": {
         "type": "brazier",
         "revealed": true,
-        "left": 1
+        "left": 1,
+        "stocked": true
       },
       "2,-2": {
         "type": "ore-outcrop",
         "revealed": true,
         "left": 3
       },
-      "-1,-7": {
+      "2,-9": {
         "type": "brazier",
         "revealed": true,
-        "left": 1
-      },
-      "-1,-12": {
-        "type": "brazier",
-        "revealed": true,
-        "left": 1
+        "left": 1,
+        "stocked": true
       }
     },
     "stores": {
@@ -1403,8 +1400,8 @@
         "id": "s4",
         "type": "hill-folk",
         "hex": {
-          "q": 1,
-          "r": -8
+          "q": -1,
+          "r": -7
         },
         "attitude": "wary",
         "favour": 0,
