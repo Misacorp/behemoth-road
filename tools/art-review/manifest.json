@@ -30,7 +30,8 @@
     "2026-11-26-1",
     "2026-11-26-2",
     "2026-11-26-3",
-    "2026-11-26-4"
+    "2026-11-26-4",
+    "2026-11-26-5"
   ],
   "items": [
     {
@@ -265,10 +266,10 @@
       "id": "icons/sheet",
       "group": "Icons",
       "title": "Every icon, and the fallback",
-      "version": "16250654",
+      "version": "bd45faf6",
       "kind": "glance",
-      "batch": "2026-11-24-2",
-      "file": "art/icons-sheet-16250654.svg"
+      "batch": "2026-11-26-5",
+      "file": "art/icons-sheet-bd45faf6.svg"
     },
     {
       "id": "characters/lineup",
