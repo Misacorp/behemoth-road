@@ -123,6 +123,10 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-26 A brazier's reveal counts as explored for good \[Misa\]
+- 2026-11-26 A blocked-hexes helper lists where a subject will not go \[Misa\]
+- 2026-11-26 Odds are shown for every roll, from one function; hidden chances give none \[Misa\]
+- 2026-11-26 A pinned character struggles free: each try rolls, the chance grows \[Misa\]
 - 2026-11-26 Striking a rockslide can bury the striker \[Misa\]
 - 2026-11-26 Threats tagged fears-fire keep clear of burning fires \[Misa\]
 - 2026-11-26 Fire needs something to burn: braziers and burnables

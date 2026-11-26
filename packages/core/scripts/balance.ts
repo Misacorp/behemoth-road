@@ -14,7 +14,7 @@
  *   Static hazards (a rockslide ahead): a non-warden who can fetch wood and reach a brazier on the side
  *   that bends the creature clear (the sim reads the creature's nature, as a keeper learns it by trying)
  *   lights it instead of striking the hazard down; with no such brazier in reach it is struck down as
- *   before, at the risk of the slide falling on the striker. Anyone near a pinned character digs them out.
+ *   before, at the risk of the slide falling on the striker. Anyone near a pinned character digs them out; a pinned player struggles with their actions.
  *   `BALANCE_STEER=off` turns steering off, so hazards are always struck down.
  * - `careless`: everyone rides; every third day one of them gathers forage within
  *   reach, and the creature is fed only when it is underfed at level 2 or more.
@@ -453,6 +453,12 @@ const carefulDay = (state: GameState, ids: readonly string[]): GameState => {
   for (const id of ids) {
     s = pickSkills(s, id);
     const role = character(s, id)?.role;
+    // A pinned player struggles with what they have; freed, they carry on with the rest.
+    while (character(s, id)?.pinnedDay !== undefined && actionsLeft(s, id) > 0) {
+      const before = s;
+      s = tryAct(s, id, { kind: 'struggle' });
+      if (s === before) break;
+    }
     if (actionsLeft(s, id) === 0) continue;
     s = rescue(s, id);
     // Anyone carrying something comes home first, to put it in the stores.

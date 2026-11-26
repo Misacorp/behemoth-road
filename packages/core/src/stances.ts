@@ -58,7 +58,7 @@ export const applyStances = (
   const events: GameEvent[] = [];
   for (const { id } of state.characters) {
     const c = next.characters.find((x) => x.id === id) as Character;
-    if (c.status !== 'active' || c.actionsLeft <= 0) continue;
+    if (c.status !== 'active' || c.actionsLeft <= 0 || c.pinnedDay !== undefined) continue;
     if (!effectiveStance(next, c).tags.includes(GATHER_TAG)) continue;
     // The stance acts for a waiting character too (waiting only stops them acting by hand).
     next = {
@@ -96,6 +96,7 @@ export const ambush = (
   let left = threats.slice();
   for (const c of state.characters) {
     if (c.status !== 'active' || c.at.kind !== 'hex' || c.actionsLeft <= 0) continue;
+    if (c.pinnedDay !== undefined) continue;
     if (!effectiveStance(state, c).tags.includes(AMBUSH_TAG)) continue;
     const here = hexKey(c.at.hex);
     const power = roleHas(c, DEFEND_TAG)

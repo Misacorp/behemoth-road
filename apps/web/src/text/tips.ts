@@ -149,6 +149,10 @@ export const tips = {
     title: 'Dig out',
     text: 'Free someone pinned under a slide, next to you or on your hex.',
   },
+  'action:struggle': {
+    title: 'Struggle',
+    text: 'Work yourself out from under a slide. Each try is more likely to work than the last.',
+  },
   'action:defend': {
     text: 'Wardens, riding: stand guard over the creature. Every strike on it today lands {defendReduction} weaker, for each warden.',
   },

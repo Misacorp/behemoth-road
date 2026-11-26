@@ -4,6 +4,38 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-26: A brazier's reveal counts as explored for good **[Misa]**
+
+ID: `2026-11-26-a-brazier-s-reveal-counts-as` · Status: current
+
+**Decision.** A brazier's reveal is the same act as a player exploring: `lightAround` calls `exploreHex`, so the tile is `explored` and its feature `revealed`, in the state, and nothing un-explores them when the fire dies. A test proves it after burn-out.
+
+**Reasoning.** Misa asked that what a brazier shows stays shown. Reusing the explore path keeps it one rule.
+
+## 2026-11-26: A blocked-hexes helper lists where a subject will not go **[Misa]**
+
+ID: `2026-11-26-a-blocked-hexes-helper-lists-where` · Status: current
+
+**Decision.** `blockedFor(view, subject)` returns `{ hex, reason }[]` for any subject with tags. It starts with a `fears-fire` subject: every hex in the ring of each burning fire, reason `fire`. `reason` is a tag-like word so later blockers (water, a cart's terrain, a hazard) add entries without a new overlay. Public data only.
+
+**Reasoning.** Misa wants a contextual "can't go here" overlay. One generic helper that reads tags keeps the web from knowing about fire.
+
+## 2026-11-26: Odds are shown for every roll, from one function; hidden chances give none **[Misa]**
+
+ID: `2026-11-26-odds-are-shown-for-every-roll` · Status: current
+
+**Decision.** `oddsOf(view, characterId, action)` returns `{ success, failure, failureKind }` or null. It covers strike on a `falls` threat (failure `buried`), struggle (`still-pinned`), parley with a wary settlement (`angered`) and working a revealed site (`site-failed`). It returns null for actions with no roll, and where the chance rests on hidden information (a trap, an unrevealed feature, a site the character cannot work at all); a hidden chance is never shown.
+
+**Reasoning.** Misa wants the chances of success and failure shown for every roll from one reusable piece. Returning null instead of a guess keeps `toPlayerView` free of leaks. `fallChance` stays exported.
+
+## 2026-11-26: A pinned character struggles free: each try rolls, the chance grows **[Misa]**
+
+ID: `2026-11-26-a-pinned-character-struggles-free-each` · Status: current
+
+**Decision.** A pinned character keeps the actions they have left (and gets a full day the next day) and may spend them only on `struggle` (1 action), `set-stance` and `pick-skill`. A struggle rolls from seed, day, character and try number: the chance is `struggleChanceBase` (0.2) plus `struggleChanceStep` (0.2) per earlier failure under the same pin, so the fifth try always frees. `struggles` counts failures and resets on freeing. A dig-out still frees at once. The backstop stays: still pinned a day after the pin day ends, they free themselves at that tick. Pinned characters do not act on their stance at the tick. Event `struggled { characterId, freed }`.
+
+**Reasoning.** Misa: a buried player should not lose their days. With two or three actions a day they are usually free in one or two days. Deriving the roll from the try number means refusals cannot reroll it.
+
 ## 2026-11-26: Striking a rockslide can bury the striker **[Misa]**
 
 ID: `2026-11-26-striking-a-rockslide-can-bury-the` · Status: current · Amends: `2026-11-21-a-rockslide-strikes-only-its-own`

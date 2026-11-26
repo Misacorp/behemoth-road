@@ -91,10 +91,12 @@ export type GameEvent =
       /** The feature's content id. */
       readonly feature: string;
     }
-  /** A falling slide pinned a character (the striker): they lose the rest of the day and the next one. */
+  /** A falling slide pinned a character (the striker): they keep the actions they have left, but may only struggle. */
   | { readonly kind: 'pinned'; readonly characterId: string; readonly threat: string }
   /** A pinned character is free: dug out by another (`by`), or after the next tick on their own (`by` null). */
   | { readonly kind: 'dug-out'; readonly characterId: string; readonly by: string | null }
+  /** A pinned character struggled: `freed` when it worked (the chance grows with each failure). */
+  | { readonly kind: 'struggled'; readonly characterId: string; readonly freed: boolean }
   | { readonly kind: 'fed'; readonly characterId: string; readonly material: string }
   | { readonly kind: 'linger'; readonly characterId: string }
   /** A rider threw the tow line to a character outside; and that character grabbed it and was hauled aboard. */

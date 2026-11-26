@@ -221,11 +221,13 @@ export interface Character {
   /** XP earned and skill nodes taken this season. Public. */
   readonly skills: Skills;
   /**
-   * The day a falling slide pinned them, or absent. Pinned: no moving or acting (but setting the stance and
-   * picking skills) until another character digs them out, or the end of the next tick after the day
+   * The day a falling slide pinned them, or absent. Pinned: no moving or acting (but struggling, setting the stance and
+   * picking skills) until they struggle free, another character digs them out, or the end of the next tick after the day
    * they were pinned. Public: others must see it to help.
    */
   readonly pinnedDay?: number;
+  /** Failed struggles under the current pin (absent when none); reset when they are freed. Public. */
+  readonly struggles?: number;
 }
 
 /**
@@ -323,9 +325,10 @@ export const hasSeed = (state: GameStateView): state is GameState =>
 
 /** The character, no longer pinned. */
 export const unpinned = <C extends Character>(c: C): C => {
-  if (c.pinnedDay === undefined) return c;
+  if (c.pinnedDay === undefined && c.struggles === undefined) return c;
   const rest: Record<string, unknown> = { ...(c as Character) };
   delete rest['pinnedDay'];
+  delete rest['struggles'];
   return rest as unknown as C;
 };
 

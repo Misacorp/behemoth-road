@@ -62,6 +62,7 @@ const character = v.object({
   waiting: v.boolean(),
   /** The day a falling slide pinned them: no moving or acting until dug out or the next tick but one. */
   pinnedDay: v.exactOptional(count),
+  struggles: v.exactOptional(count),
 });
 
 const weights = v.object({ left: v.number(), straight: v.number(), right: v.number() });
@@ -98,6 +99,9 @@ const config = v.object({
   fireFearRadius: count,
   slideFallChance: v.number(),
   digOutCost: count,
+  struggleCost: count,
+  struggleChanceBase: v.number(),
+  struggleChanceStep: v.number(),
   feedCost: count,
   lingerCost: count,
   towThrowCost: count,
@@ -352,6 +356,8 @@ const KNOWN_EVENTS = [
   /** A falling slide pinned the striker; and a pinned character was freed (`by` null: on their own). */
   event('pinned', { characterId: id, threat: id }),
   event('dug-out', { characterId: id, by: v.nullable(id) }),
+  /** A pinned character struggled; `freed` when it worked. */
+  event('struggled', { characterId: id, freed: v.boolean() }),
   event('fed', { characterId: id, material: id }),
   event('linger', { characterId: id }),
   event('tow-thrown', { characterId: id, target: id }),
@@ -548,6 +554,7 @@ export type GameAction =
   | { readonly kind: 'strike'; readonly threat: string }
   | { readonly kind: 'defend' }
   | { readonly kind: 'dig-out'; readonly target: string }
+  | { readonly kind: 'struggle' }
   | { readonly kind: 'parley' }
   | { readonly kind: 'offer'; readonly material: string }
   | { readonly kind: 'ask-boon'; readonly boon: string }
