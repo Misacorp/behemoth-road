@@ -143,7 +143,7 @@ describe('settlements', () => {
         kind: 'parley',
         cost,
         enabled: true,
-        odds: expect.objectContaining({ art: 'anger', kind: 'angered' }),
+        odds: expect.objectContaining({ art: 'anger', kind: 'angered' }) as unknown,
       },
       { kind: 'offer', cost: scout.view.config.offerCost, enabled: true, uses: 'old-coin' },
     ]);

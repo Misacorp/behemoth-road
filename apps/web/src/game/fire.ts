@@ -87,7 +87,8 @@ export function greyedForPin<T extends { readonly enabled: boolean }>(
 ): (Omit<T, 'enabled' | 'why' | 'odds'> & { readonly enabled: false; readonly why: TipId })[] {
   // A greyed action shows no odds: nothing is rolled while pinned.
   return offered.map((a) => {
-    const { odds: _odds, ...rest } = a as T & { odds?: unknown };
+    const rest: Record<string, unknown> = { ...a };
+    delete rest['odds'];
     return { ...rest, enabled: false as const, why: 'why:pinned' as const } as Omit<
       T,
       'enabled' | 'why' | 'odds'
