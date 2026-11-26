@@ -6,7 +6,7 @@
  * by id. Server only where it needs the hidden features.
  */
 
-import { finishUnlock } from './cart.ts';
+import { cartSpot, finishUnlock, isVehicleUnlock } from './cart.ts';
 import { UNLOCKS } from './content/index.ts';
 import { addMaterials, exploreHex, featureType, type GameEvent, keyToHex } from './features.ts';
 import { hexDistance, hexKey, neighbours } from './hex.ts';
@@ -104,7 +104,9 @@ export const applySkillTicks = (
   const project = state.project;
   const unlock = project ? UNLOCKS.find((u) => u.id === project.unlock) : undefined;
   if (wind > 0 && project && unlock) {
-    const work = project.work + wind;
+    // A cart with no room to put it waits one work short rather than vanishing with its materials.
+    const roomless = isVehicleUnlock(unlock) && cartSpot(state, state.creature.centre) === null;
+    const work = Math.min(project.work + wind, roomless ? unlock.work - 1 : Infinity);
     const finished = work >= unlock.work;
     state = { ...state, project: finished ? null : { unlock: unlock.id, work } };
     events.push({ kind: 'unlock-progress', unlock: unlock.id, work, needed: unlock.work });

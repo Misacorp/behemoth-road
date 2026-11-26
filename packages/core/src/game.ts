@@ -89,6 +89,7 @@ export const createGame = (
     threats: [],
     lures: [],
     lureCount: 0,
+    cartCount: 0,
     hazardPlan,
     settlements: [],
     peril: 0,

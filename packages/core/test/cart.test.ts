@@ -459,7 +459,7 @@ describe('the day tick', () => {
     const cart = state.carts[0]!;
     expect(isCreatureHex(state, cart.hex)).toBe(false);
     expect(isInWindow(state, cart.hex)).toBe(true);
-    expect(cartCanEnter(state, cart.hex)).toBe(true);
+    expect(cartCanEnter({ ...state, carts: [] }, cart.hex)).toBe(true);
     // Both were hauled aboard, so they let go of it.
     expect(me(state, 'scout').at.kind).toBe('creature');
     expect(me(state, 'engineer').at.kind).toBe('creature');

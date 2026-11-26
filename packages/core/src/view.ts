@@ -86,5 +86,10 @@ export const loadGame = (stored: unknown): GameState => {
   }
   if (!isSeed(state.seed)) throw new TypeError('A stored game needs its seed');
   // A game saved before the tallies existed starts them empty.
-  return { ...state, stats: state.stats ?? emptyStats() } as GameState;
+  // A game saved before cart ids were counted resumes from the carts it has.
+  return {
+    ...state,
+    stats: state.stats ?? emptyStats(),
+    cartCount: state.cartCount ?? state.carts?.length ?? 0,
+  } as GameState;
 };
