@@ -181,7 +181,7 @@ export const GameStateViewSchema = v.object({
         type: id,
         revealed: v.boolean(),
         left: count,
-        /** A brazier found stocked: its first lighting needs no wood. */
+        /** Old fuel lies in the bowl (a brazier not yet lit): its first fire needs no wood. */
         stocked: v.exactOptional(v.boolean()),
       }),
     ),

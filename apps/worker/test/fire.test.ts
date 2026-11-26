@@ -117,7 +117,7 @@ describe('fire and slides through the API', () => {
       const lit = await act(ctx, misa, { kind: 'light-fire' });
       expect(lit.status).toBe(200);
       const body = lit.body as Answer;
-      expect(body.game.stimuli.at(-1)).toMatchObject({ hex: spot, nights: 3, reveal: 2 });
+      expect(body.game.stimuli.at(-1)).toMatchObject({ hex: spot, nights: 4, reveal: 2 });
       expect(JSON.stringify(body)).not.toContain('brazierPlan');
       expect(body.events.map((e) => e.kind)).toContain('fire-lit');
     });

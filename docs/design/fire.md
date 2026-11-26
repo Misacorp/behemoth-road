@@ -17,6 +17,7 @@ Content version 23. The rules are in `packages/core`; nothing here needs the web
   - `nights`: nights a brazier burns in all (counted from `litDay`); absent for a burnable's one-night fire (the type's `lastsTicks` is 1).
   - `reveal`: the radius of hexes it shows (a brazier); absent otherwise.
   - Nights left: `nightsLeft(view, stimulus)` (exported) = `litDay + nights - day`. At least 1 for any stimulus still in the list; the stimulus is gone from the list once it is 0. A brazier is **lit** exactly when a stimulus stands on its hex.
+- `features[hexKey].stocked?: boolean` (new): true on a brazier not yet lit, with old fuel in the bowl. While true, `light-fire` there costs actions only (`uses` is empty, no wood needed). It is removed (absent) at the first lighting; a relight needs wood and gives `no-fuel` without it. Content: `stockedFuel: true` on the brazier's `FEATURE_TYPES` entry. Public. Every planned brazier is generated stocked.
 - `characters[].pinnedDay?: number`: set while pinned (the day they were pinned). Absent when free.
 - `config`: `brazierNights`, `brazierRevealRadius`, `brazierSpacing`, `brazierFirstWithin`, `fireFearRadius`, `slideFallChance`, `digOutCost`.
 - Tags the web may read as public content (`THREAT_TYPES`, `FEATURE_TYPES`, from the core package): threat tags `fears-fire` (swarm, stampede) and `falls` (rockslide); feature tags `fire-site` (brazier) and `burnable` (deadfall, snare). The exported tag constants are `FEARS_FIRE_TAG`, `FALLS_TAG`, `FIRE_SITE_TAG`, `BURNABLE_TAG`.

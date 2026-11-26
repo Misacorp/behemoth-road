@@ -23,6 +23,8 @@ interface FeatureBase {
   readonly tags: readonly string[];
   readonly icon: string;
   readonly placement: FeaturePlacement;
+  /** Found stocked: its first fire needs no fuel (the state's `stocked` flag clears when it is first lit). */
+  readonly stockedFuel?: boolean;
 }
 
 export interface NodeType extends FeatureBase {
@@ -224,6 +226,7 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
     name: 'Old brazier',
     tags: ['fire-site'],
     icon: 'brazier',
+    stockedFuel: true,
     placement: { on: [], weight: 0 },
   },
 ];

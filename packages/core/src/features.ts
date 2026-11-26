@@ -245,6 +245,7 @@ const freshFeature = (type: FeatureType): FeatureState => ({
   type: type.id,
   revealed: false,
   left: type.kind === 'node' ? type.charges : 1,
+  ...(type.stockedFuel ? { stocked: true } : {}),
 });
 
 /** The feature type of a brazier: the one tagged `fire-site`. */

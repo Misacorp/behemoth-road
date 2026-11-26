@@ -28,7 +28,7 @@ describe('tuning config', () => {
       stimulusPull: 6,
       hungryVeerWeights: { left: 1, straight: 1, right: 1 },
       lightFireCost: 1,
-      brazierNights: 3,
+      brazierNights: 4,
       brazierRevealRadius: 2,
       brazierSpacing: 6,
       brazierFirstWithin: 4,

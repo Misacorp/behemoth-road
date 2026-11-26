@@ -41,7 +41,7 @@ export const STIMULUS_TYPES: readonly StimulusType[] = [
     id: 'brazier-fire',
     name: 'Brazier fire',
     tags: ['fire', 'fire-site', 'heat', 'light'],
-    icon: 'campfire',
+    icon: 'brazier-fire',
     fuel: { tag: 'wood', amount: 1 },
     lastsTicks: 1,
     push: 2,

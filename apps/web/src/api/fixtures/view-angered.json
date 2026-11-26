@@ -51,7 +51,7 @@
         "right": 1
       },
       "lightFireCost": 1,
-      "brazierNights": 3,
+      "brazierNights": 4,
       "brazierRevealRadius": 2,
       "brazierSpacing": 6,
       "brazierFirstWithin": 4,
@@ -382,19 +382,19 @@
       "-1,-5": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "-1,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "-1,-3": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "-1,-2": {
@@ -452,19 +452,19 @@
       "0,-6": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "0,-5": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "0,-4": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "0,-3": {
@@ -881,13 +881,13 @@
       "-1,-6": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "0,-7": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "1,-7": {
@@ -929,7 +929,7 @@
       "1,-8": {
         "visibility": "seen",
         "terrain": "plains",
-        "explored": true,
+        "explored": false,
         "leftWindowOnDay": null
       },
       "2,-8": {
@@ -1030,7 +1030,7 @@
       "-1,-7": {
         "visibility": "seen",
         "terrain": "forest",
-        "explored": false,
+        "explored": true,
         "leftWindowOnDay": null
       },
       "0,-8": {
@@ -1246,8 +1246,8 @@
         "at": {
           "kind": "hex",
           "hex": {
-            "q": 1,
-            "r": -8
+            "q": -1,
+            "r": -7
           }
         },
         "actionsLeft": 2,
@@ -1263,10 +1263,11 @@
       }
     ],
     "features": {
-      "-2,-2": {
+      "-3,-2": {
         "type": "brazier",
         "revealed": true,
-        "left": 1
+        "left": 1,
+        "stocked": true
       },
       "4,-3": {
         "type": "timber-stand",
@@ -1278,10 +1279,11 @@
         "revealed": true,
         "left": 3
       },
-      "-1,-7": {
+      "2,-9": {
         "type": "brazier",
         "revealed": true,
-        "left": 1
+        "left": 1,
+        "stocked": true
       }
     },
     "stores": {},
@@ -1323,8 +1325,8 @@
         "id": "ts4",
         "type": "raiders",
         "hex": {
-          "q": 1,
-          "r": -8
+          "q": -1,
+          "r": -7
         },
         "strength": 3,
         "appearedDay": 6
@@ -1335,8 +1337,8 @@
         "id": "s4",
         "type": "hill-folk",
         "hex": {
-          "q": 1,
-          "r": -8
+          "q": -1,
+          "r": -7
         },
         "attitude": "angry",
         "favour": 1,
@@ -1556,8 +1558,8 @@
       "id": "ts4",
       "type": "raiders",
       "hex": {
-        "q": 1,
-        "r": -8
+        "q": -1,
+        "r": -7
       },
       "version": 19
     }

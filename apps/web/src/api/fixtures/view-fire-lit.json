@@ -51,7 +51,7 @@
         "right": 1
       },
       "lightFireCost": 1,
-      "brazierNights": 3,
+      "brazierNights": 4,
       "brazierRevealRadius": 2,
       "brazierSpacing": 6,
       "brazierFirstWithin": 4,
@@ -936,10 +936,11 @@
       }
     ],
     "features": {
-      "-2,-2": {
+      "-3,-2": {
         "type": "brazier",
         "revealed": true,
-        "left": 1
+        "left": 1,
+        "stocked": true
       }
     },
     "stores": {},
