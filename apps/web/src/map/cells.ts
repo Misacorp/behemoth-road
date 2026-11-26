@@ -217,8 +217,12 @@ export function characterArts(
 ): CharacterArt[] {
   const escorted = escortedIds(state);
   const defenders = new Set(state.creature.defenders);
+  // Whoever pulls or rides the cart is drawn by the cart itself (its hitched and rider looks).
+  const attached = new Set(
+    state.carts.flatMap((c) => [c.puller, c.rider].filter((x) => x !== null)),
+  );
   return state.characters
-    .filter((c) => c.status === 'active')
+    .filter((c) => c.status === 'active' && !attached.has(c.id))
     .filter((c) => which === 'all' || (c.at.kind === 'creature') === (which === 'riders'))
     .map((c) => {
       const at = placeHex(state, c.at);

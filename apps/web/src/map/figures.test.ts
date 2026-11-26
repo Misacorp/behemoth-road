@@ -16,7 +16,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import { characterArts, creatureArt, sceneCells } from './cells.ts';
 import { PALETTE } from './art.ts';
-import { figureFeet, pickableFeet, placePoint, seatSlot } from './figures.ts';
+import { cartFeet, figureFeet, lureFeet, pickableFeet, placePoint, seatSlot } from './figures.ts';
 
 const p = isometric(64, 0.8);
 const game = (ids: string[]): GameState => createGame(20261119, { characterIds: ids });
@@ -71,7 +71,8 @@ describe('figure positions', () => {
   });
 
   it('makes only characters on hexes tap targets, never riders', () => {
-    const base = game(['a', 'b']);
+    // The seeded game lays lures near the route; this is about characters.
+    const base = { ...game(['a', 'b']), lures: [], carts: [] };
     expect(pickableFeet(base, 'a', p)).toEqual({ mine: null, others: [] });
     const s: GameState = {
       ...base,
@@ -80,5 +81,19 @@ describe('figure positions', () => {
     const feet = pickableFeet(s, 'a', p);
     expect(feet.mine).toEqual(figureFeet(s, 'a', p));
     expect(feet.others).toEqual([{ id: 'b', feet: figureFeet(s, 'b', p) }]);
+  });
+
+  it('makes a lure animal and the cart tap targets of their own kind', () => {
+    const base = game(['a']);
+    const s: GameState = {
+      ...base,
+      lures: [{ id: 'lure-1', type: 'capybara', hex: { q: 3, r: 2 }, leadsLeft: 2 }],
+      carts: [{ id: 'cart-1', hex: { q: 1, r: 4 }, cargo: {}, puller: null, rider: null }],
+    };
+    const others = pickableFeet(s, 'a', p).others;
+    expect(others).toEqual([
+      { id: 'lure-1', feet: lureFeet(p, { q: 3, r: 2 }), kind: 'lure' },
+      { id: 'cart-1', feet: cartFeet(p, { q: 1, r: 4 }), kind: 'cart' },
+    ]);
   });
 });

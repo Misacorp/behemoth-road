@@ -9,6 +9,7 @@ import {
   drawCharacter,
   drawCreature,
   drawAppetiteBadge,
+  drawHazardIcon,
   drawIcon,
   drawSettlementIcon,
   drawSkillNode,
@@ -56,7 +57,7 @@ export const CONFIRM_SIZE = { width: 150, height: 60 } as const;
 
 const MINI = isometric(24, MAP_TUNING.tilt);
 
-function Card({ width, height }: { width: number; height: number }): JSX.Element {
+export function Card({ width, height }: { width: number; height: number }): JSX.Element {
   return (
     <g>
       <rect x={2} y={3} width={width - 2} height={height - 2} rx={12} fill={PALETTE.paperDeep} />
@@ -178,18 +179,27 @@ function VisibilityMark({ state }: { state: CellState }): JSX.Element {
 }
 
 /** An art kit icon (`drawIcon`), placed at (x, y) in a card. */
-function CardIcon({
+export function CardIcon({
   id,
   x,
   y,
   size,
+  risk = false,
+  done = false,
 }: {
   id: string;
   x: number;
   y: number;
   size: number;
+  /** The art kit's risk mark (a cracked triangle) on the icon. */
+  risk?: boolean;
+  /** The art kit's sealed look: this is how things stand now (a tap undoes it). */
+  done?: boolean;
 }): JSX.Element {
-  const icon = drawIcon(id, PALETTE, size);
+  const icon = drawIcon(id, PALETTE, size, {
+    ...(risk ? { risk: true } : {}),
+    ...(done ? { done: true } : {}),
+  });
   return toPreact({ ...icon, attrs: { ...icon.attrs, x, y, width: size, height: size } });
 }
 
@@ -221,11 +231,14 @@ export function InspectCard({
   feature = null,
   survey = null,
   note = null,
+  hazard = null,
   onSurvey,
   surveyRef,
   arm,
 }: {
   terrain: string;
+  /** The hazard icon key when the ground harms a creature stepping on it (a poisoned lake, a glass waste). */
+  hazard?: string | null;
   state: CellState;
   /** A revealed feature on the hex, drawn on the tile. */
   feature?: FeatureArt | null;
@@ -250,6 +263,16 @@ export function InspectCard({
         <g transform="translate(84 22)">
           <VisibilityMark state={state} />
         </g>
+        {hazard && (
+          <g
+            transform="translate(88 38)"
+            data-mark="hazard"
+            data-hazard={hazard}
+            {...tipProps(tipFor('terrain', terrain))}
+          >
+            <Placed node={drawHazardIcon(hazard, PALETTE, 30)} x={0} y={0} size={30} />
+          </g>
+        )}
         {note && 'burnable' in note && <BurnableMark x={96} y={46} />}
         {note && 'nights' in note && <NightsMark nights={note.nights} x={90} y={46} />}
         {survey && (
@@ -421,7 +444,7 @@ export function CreatureCard({
 }
 
 /** A drawing from the art kit, fitted into a box with a little padding. */
-function Fitted({
+export function Fitted({
   drawn,
   x,
   y,
@@ -503,7 +526,17 @@ export interface BubbleCharacter {
 }
 
 /** A small icon placed with its top-left at (x, y). */
-function Placed({ node, x, y, size }: { node: SvgNode; x: number; y: number; size: number }) {
+export function Placed({
+  node,
+  x,
+  y,
+  size,
+}: {
+  node: SvgNode;
+  x: number;
+  y: number;
+  size: number;
+}) {
   return toPreact({ ...node, attrs: { ...node.attrs, x, y, width: size, height: size } });
 }
 
@@ -808,7 +841,7 @@ export interface HereAction {
   readonly why?: TipId | null;
 }
 
-const ACTION_W = 54;
+export const ACTION_W = 54;
 
 /** The row under each action for its verb, when the action labels setting is on. */
 export const labelH = (): number => (getSettings().actionLabels ? 12 : 0);
@@ -816,7 +849,7 @@ export const labelH = (): number => (getSettings().actionLabels ? 12 : 0);
 export const TITLE_H = 18;
 
 /** A card's noun title (what it is about: "Berry bushes", "Plains"), the card's only words besides names. */
-function Title({ text }: { text: string | null }): JSX.Element | null {
+export function Title({ text }: { text: string | null }): JSX.Element | null {
   if (!text) return null;
   return (
     <text
@@ -834,7 +867,7 @@ function Title({ text }: { text: string | null }): JSX.Element | null {
 }
 
 /** The tip of an action button: a boon's own, an offer's, or the action's. */
-function actionTip(kind: string): TipId | null {
+export function actionTip(kind: string): TipId | null {
   if (kind.startsWith('boon:')) return tipFor('boon', kind.slice(5));
   if (kind.startsWith('offer')) return 'action:offer';
   return tipFor('action', kind);
@@ -856,7 +889,7 @@ const BADGE = 20;
  * the emblem of the role that can when the core says so. The first tap arms it (its pips give way to a
  * tick), the second spends.
  */
-function ActionButton({
+export function ActionButton({
   kind,
   icon,
   cost,
@@ -867,8 +900,10 @@ function ActionButton({
   short = false,
   odds = null,
   tall = false,
+  risk = false,
   needs = null,
   why = null,
+  done = false,
   arm,
   armKey = kind,
   onRun,
@@ -888,10 +923,14 @@ function ActionButton({
   odds?: OddsView | null;
   /** The button is taller by the odds strip (every button of a card with odds, so they line up). */
   tall?: boolean;
+  /** It may go wrong (the harm mark on the icon). */
+  risk?: boolean;
   /** Greyed because this role can: its emblem as a badge on the corner. */
   needs?: string | null;
   /** Why it is greyed, as a tip id: the tap on a greyed button shows it (see `greyedProps`). */
   why?: TipId | null;
+  /** How things stand now (you pull the cart, you ride it): the icon is drawn sealed, a tap undoes it. */
+  done?: boolean;
   arm?: Arming;
   /** This button's key among the card's buttons (default its kind). */
   armKey?: string;
@@ -943,7 +982,9 @@ function ActionButton({
           fill={PALETTE.paperDeep}
           {...(armed ? { stroke: PALETTE.ink, 'stroke-width': 1.6 } : {})}
         />
-        <CardIcon id={icon} x={(ACTION_W - 6) / 2 - 14} y={3} size={28} />
+        <g data-risk={risk ? 'true' : undefined}>
+          <CardIcon id={icon} x={(ACTION_W - 6) / 2 - 14} y={3} size={28} risk={risk} done={done} />
+        </g>
         {armed ? (
           <g transform={`translate(${(ACTION_W - 6) / 2} 39)`} data-mark="armed">
             <TickMark r={10} />
@@ -1087,7 +1128,7 @@ export function HereCard({
             needs={a.needs ?? null}
             why={a.why ?? null}
             armKey={actionKey(a)}
-            {...(arm ? { arm } : {})}
+            {...(arm && a.cost > 0 ? { arm } : {})}
             onRun={() => onAct(a.kind)}
             {...(i === 0 ? { buttonRef: firstRef } : {})}
           />

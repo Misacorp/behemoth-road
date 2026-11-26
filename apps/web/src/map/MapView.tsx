@@ -43,6 +43,9 @@ import {
 } from './cells.ts';
 import { chevronFor, placeClear, placePopover, splitScene, trailClear } from './compose.ts';
 import { fireNoteAt, type FireNote } from '../game/fire.ts';
+import { hazardIconAt } from '../game/hazards.ts';
+import { cartById, cartMoves, cartToggles, type CartToggle } from '../game/cart.ts';
+import { leadOption, lureById } from '../game/lure.ts';
 import { accentOf, type Identity, lookOf } from '../game/identity.ts';
 import { type Moment, STEP_MS } from '../game/moments.ts';
 import { MomentMark } from './MomentMark.tsx';
@@ -60,6 +63,7 @@ import { type Flow, entryKey, isSelecting, pickEntries } from './flow.ts';
 import { holdMs } from '../text/tips.ts';
 import { GestureTracker, type Gesture } from './gestures.ts';
 import { buildOverlays } from './overlays.ts';
+import { buildThings } from './things.ts';
 import { figureFeet, pickableFeet, placePoint } from './figures.ts';
 import { pickTarget, type Point, type Target, worldToHex } from './pick.ts';
 import {
@@ -94,6 +98,7 @@ import {
   threatMarks,
   threatNextPath,
 } from '../game/season.ts';
+import { CartCard, cartSize, LureCard, lureSize } from './ThingCards.tsx';
 import { setCssTransform } from './cssTransform.ts';
 import { toPreact } from './svgToPreact.ts';
 import {
@@ -164,6 +169,12 @@ export interface MapViewProps {
    * and its riders out while the moments layer walks them, and the camera follows only afterwards.
    */
   readonly step?: { readonly from: Hex; readonly to: Hex } | null;
+  /** The lead button on a lure's card was tapped: lead mode on, or off again. */
+  readonly onLead?: () => void;
+  /** A hitch, let go, board or leave button on the cart's card was tapped (the second tap that spends). */
+  readonly onCart?: (kind: CartToggle['kind']) => void;
+  /** A material in your pack (load) or in the cart (unload) was tapped: one unit moves. */
+  readonly onCartMove?: (kind: 'load' | 'unload', material: string) => void;
   /** Another player's character in the bubble was tapped. */
   readonly onCharacter: (id: string) => void;
   /** The back button of a card opened inside another popup (a character from the bubble). */
@@ -232,6 +243,14 @@ function targetPoint(state: GameStateView, characterId: string, target: FocusTar
 const ridersOf = (state: GameStateView) =>
   state.characters.filter((c) => c.status === 'active' && c.at.kind === 'creature');
 
+/** What the lure's or the cart's card offers now, for sizing and placing it. */
+interface ThingInfo {
+  readonly lead: boolean;
+  readonly toggles: number;
+  readonly loads: number;
+  readonly unloads: number;
+}
+
 /** Where a popover points: the top of what it is about, and how far below that the thing ends (world px). */
 interface Anchor {
   readonly key: string;
@@ -288,6 +307,7 @@ function popoverAnchor(
   tow: boolean,
   dig: boolean,
   odds: boolean,
+  thing: ThingInfo | null,
 ): Anchor | null {
   const tile = 2 * p.size * p.squash;
   const me = state.characters.find((c) => c.id === characterId);
@@ -359,6 +379,41 @@ function popoverAnchor(
             clearOf(thing.hex).clear,
           )
         : {}),
+    };
+  }
+  if (flow.kind === 'lure' || flow.kind === 'lead') {
+    const lure = state.lures.find((l) => l.id === flow.id);
+    if (!lure) return null;
+    const c = hexCenter(p, lure.hex.q, lure.hex.r);
+    const lift = 0.9 * p.size;
+    if (flow.kind === 'lead' && flow.to) {
+      // The confirm card sits at the hex it would be led to, off the arrow.
+      const to = hexCenter(p, flow.to.q, flow.to.r);
+      return {
+        key: `lead:${flow.id}:${hexKey(flow.to)}`,
+        top: { x: to.x, y: to.y - lift },
+        below: lift + tile / 2,
+        size: CONFIRM_SIZE,
+        prefer: c.y < to.y ? 'below' : 'above',
+      };
+    }
+    return {
+      key: `lure:${flow.id}:${thing?.lead ? 'lead' : ''}:${flow.kind}`,
+      top: { x: c.x, y: c.y - lift },
+      below: lift + tile / 2,
+      size: lureSize(thing?.lead ?? false),
+    };
+  }
+  if (flow.kind === 'cart') {
+    const cart = state.carts.find((x) => x.id === flow.id);
+    if (!cart) return null;
+    const c = hexCenter(p, cart.hex.q, cart.hex.r);
+    const lift = 0.9 * p.size;
+    return {
+      key: `cart:${flow.id}:${thing?.toggles ?? 0}:${thing?.loads ?? 0}:${thing?.unloads ?? 0}`,
+      top: { x: c.x, y: c.y - lift },
+      below: lift + tile / 2,
+      size: cartSize(thing?.toggles ?? 0, thing?.loads ?? 0, thing?.unloads ?? 0),
     };
   }
   if (flow.kind === 'inspect') {
@@ -513,7 +568,7 @@ export function MapView(props: MapViewProps): JSX.Element {
 
   const overlays = useMemo(() => {
     const selecting = isSelecting(flow);
-    const o = buildOverlays({
+    const input = {
       state,
       flow,
       characterId,
@@ -523,13 +578,41 @@ export function MapView(props: MapViewProps): JSX.Element {
       palette: PALETTE,
       zoom: inkZoom,
       stones,
-    });
-    return { under: o.under.map(toPreact), over: o.over.map(toPreact) };
+    };
+    const o = buildOverlays(input);
+    // Scree fields on the ground, the lure and the cart standing on the figures (and the lead marks).
+    const things = buildThings(input);
+    return {
+      under: o.under.map(toPreact),
+      over: o.over.map(toPreact),
+      thingsUnder: things.under.map(toPreact),
+      thingsOver: things.over.map(toPreact),
+    };
   }, [state, flow, characterId, inkZoom, stones]);
 
   const survey = flow.kind === 'inspect' ? (props.surveyAt?.(flow.hex) ?? null) : null;
   const fireNote = flow.kind === 'inspect' ? fireNoteAt(state, flow.hex) : null;
   const oddsCard = flow.kind === 'threat' ? threatCard(state, characterId, flow.id) : null;
+  // The lure's and the cart's cards: what you can do with them from where you stand.
+  const meNow = state.characters.find((c) => c.id === characterId);
+  const lureId = flow.kind === 'lure' || flow.kind === 'lead' ? flow.id : null;
+  const lead = lureId ? leadOption(state, characterId, lureId) : null;
+  const cartNow = flow.kind === 'cart' ? cartById(state, flow.id) : undefined;
+  const toggles = cartNow && meNow?.status === 'active' ? cartToggles(state, characterId) : [];
+  const moves =
+    cartNow && meNow?.status === 'active'
+      ? cartMoves(state, characterId, cartNow, meNow.pack)
+      : { load: [], unload: [] };
+  const thing: ThingInfo | null = lureId
+    ? { lead: lead !== null, toggles: 0, loads: 0, unloads: 0 }
+    : cartNow
+      ? {
+          lead: false,
+          toggles: toggles.length,
+          loads: moves.load.length,
+          unloads: moves.unload.length,
+        }
+      : null;
   popover.current = popoverAnchor(
     state,
     flow,
@@ -540,6 +623,7 @@ export function MapView(props: MapViewProps): JSX.Element {
     flow.kind === 'character' && !flow.back && (props.towOf?.(flow.id) ?? null) !== null,
     flow.kind === 'character' && !flow.back && (props.digOf?.(flow.id) ?? null) !== null,
     Boolean(oddsCard?.strike && oddsCard.odds !== null),
+    thing,
   );
 
   function apply(): void {
@@ -858,7 +942,9 @@ export function MapView(props: MapViewProps): JSX.Element {
         ? props.here.actions.filter((a) => a.enabled).map(actionKey)
         : flow.kind === 'threat' && threatCard(state, characterId, flow.id)?.strike?.enabled
           ? ['strike']
-          : [];
+          : flow.kind === 'cart'
+            ? toggles.filter((t) => t.enabled && t.cost > 0).map((t) => t.kind)
+            : [];
   const enabledSig = enabledKeys.join('|');
   useLayoutEffect(() => {
     setArmed((a) => armedAfter(a, enabledKeys));
@@ -876,6 +962,9 @@ export function MapView(props: MapViewProps): JSX.Element {
         flow.kind === 'pick' ||
         (flow.kind === 'character' && flow.back !== undefined) ||
         flow.kind === 'selected' ||
+        (flow.kind === 'lure' && lead !== null) ||
+        (flow.kind === 'lead' && flow.to !== undefined) ||
+        (flow.kind === 'cart' && toggles.length > 0) ||
         (flow.kind === 'inspect' && survey) ||
         (flow.kind === 'threat' && popKey.endsWith(':true'))
           ? popoverFocusRef.current
@@ -890,6 +979,28 @@ export function MapView(props: MapViewProps): JSX.Element {
       }
     }
   }, [popKey]);
+
+  // A move the cart refuses (you sit in it, it cannot roll there): its reason shows as a tip on the hex, and
+  // stays until the next tap, like a held tip.
+  const refusal = flow.kind === 'out-of-reach' ? (flow.why ?? null) : null;
+  const refusedAt = flow.kind === 'out-of-reach' ? hexKey(flow.hex) : '';
+  useEffect(() => {
+    const svg = svgRef.current;
+    const f = latest.current.flow;
+    if (!refusal || !svg || f.kind !== 'out-of-reach') return;
+    const hex = f.hex;
+    TIPS.tap(refusal, {
+      rect: () => {
+        if (!svg.isConnected) return null;
+        const box = svg.getBoundingClientRect();
+        const c = toScreen(view.current, hexCenter(p, hex.q, hex.r));
+        const s = view.current.scale * p.size;
+        return { x: box.left + c.x - s, y: box.top + c.y - 1.1 * s, width: 2 * s, height: 1.6 * s };
+      },
+      alive: () => svg.isConnected && latest.current.flow.kind === 'out-of-reach',
+      owns: (t) => t instanceof Node && svg.contains(t),
+    });
+  }, [refusal, refusedAt]);
 
   // Tips on the map (a threat, a settlement, a struck or escorted character, a fire): a mouse resting on one,
   // or a finger held on one; a hold never becomes a tap.
@@ -1039,6 +1150,7 @@ export function MapView(props: MapViewProps): JSX.Element {
         feature={known ? featureArtAt(state, hexKey(flow.hex)) : null}
         survey={survey}
         note={fireNote}
+        hazard={known ? hazardIconAt(state, flow.hex) : null}
         onSurvey={() => props.onSurvey?.(at)}
         arm={arm}
         surveyRef={(el) => {
@@ -1080,6 +1192,50 @@ export function MapView(props: MapViewProps): JSX.Element {
   } else if (flow.kind === 'settlement') {
     const settlement = settlementInfo(state, flow.id);
     if (settlement) card = <SettlementCard settlement={settlement} />;
+  } else if ((flow.kind === 'lure' || flow.kind === 'lead') && !(flow.kind === 'lead' && flow.to)) {
+    const lure = lureById(state, flow.id);
+    if (lure) {
+      card = (
+        <LureCard
+          lure={lure}
+          lead={lead}
+          leading={flow.kind === 'lead'}
+          onLead={() => props.onLead?.()}
+          leadRef={(el) => {
+            popoverFocusRef.current = el;
+          }}
+        />
+      );
+    }
+  } else if (flow.kind === 'lead') {
+    // A target is chosen: the cost and the confirm, at the hex it would be led to.
+    card = (
+      <ConfirmCard
+        cost={lead?.cost ?? 0}
+        onConfirm={props.onConfirm}
+        buttonRef={(el) => {
+          popoverFocusRef.current = el;
+        }}
+      />
+    );
+  } else if (flow.kind === 'cart') {
+    if (cartNow) {
+      card = (
+        <CartCard
+          state={state}
+          cart={cartNow}
+          toggles={toggles}
+          load={moves.load}
+          unload={moves.unload}
+          onToggle={(kind) => props.onCart?.(kind)}
+          onMove={(kind, material) => props.onCartMove?.(kind, material)}
+          arm={arm}
+          firstRef={(el) => {
+            popoverFocusRef.current = el;
+          }}
+        />
+      );
+    }
   } else if (flow.kind === 'character') {
     const who = props.identities?.get(flow.id);
     if (who) {
@@ -1176,8 +1332,10 @@ export function MapView(props: MapViewProps): JSX.Element {
           aria-hidden="true"
         >
           <Static nodes={layers.ground} />
+          {overlays.thingsUnder}
           {overlays.under}
           <Static nodes={layers.figures} />
+          {overlays.thingsOver}
           {overlays.over}
           {outOfReach}
           {props.coach && (

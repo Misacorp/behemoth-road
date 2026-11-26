@@ -14,6 +14,7 @@ import {
   drawEscortRing,
   drawBlockedHexes,
   drawFireGlow,
+  drawHazardIcon,
   drawStayMark,
   drawStepHint,
   drawIcon,
@@ -52,6 +53,8 @@ import {
   forecastDays,
 } from '@behemoth-road/core';
 import { drawExploredEmpty, drawMisledMark } from './art.ts';
+import { isPulling } from '../game/cart.ts';
+import { harmfulSteps } from '../game/hazards.ts';
 import { accentOf } from '../game/identity.ts';
 import { escorts, threatAt, threatNextPath } from '../game/season.ts';
 import { cellStateAt } from './cells.ts';
@@ -221,13 +224,39 @@ function creatureHints(i: OverlayInput): SvgNode[] {
   // One hex beyond the front of the footprint it would step into, clear of the creature's body.
   const reach = i.state.config.creatureRadius + 1;
   const from = hexCenter(p, i.state.creature.centre.q, i.state.creature.centre.r);
+  const harm = harmfulSteps(i.state, i.predicted);
   for (const option of i.predicted) {
     const o = directionOffset(option.direction);
     const target = hexCenter(p, option.centre.q + o.q * reach, option.centre.r + o.r * reach);
     const angle = Math.atan2(target.y - from.y, target.x - from.x);
     out.push(stepHint(i, target, angle, option.chance, option.direction));
+    // A step onto harmful ground (a poisoned lake, a glass waste): the harm mark rides on the paw print.
+    const hurt = harm.find((h) => h.direction === option.direction);
+    if (hurt) out.push(stepHarm(i, target, hurt.terrain, option.direction));
   }
   return out;
+}
+
+/**
+ * The harm mark on a creature step hint that lands on a hazard: the hazard's own icon on a coral-ringed
+ * paper disc beside the paw print, so it is seen before the creature walks into it.
+ */
+export function stepHarm(i: OverlayInput, at: Point, terrain: string, direction: string): SvgNode {
+  const p = i.projection;
+  const size = atLeast(i, 0.5 * p.size, 22);
+  const c = { x: at.x + 0.42 * p.size, y: at.y - 0.38 * p.size };
+  const icon = drawHazardIcon(terrain, i.palette, size);
+  return el('g', { 'data-mark': 'step-harm', 'data-terrain': terrain, 'data-step': direction }, [
+    el('path', {
+      d: ellipse(c, size * 0.62, size * 0.62),
+      fill: i.palette.paper,
+      stroke: i.palette.accents.coral.shade,
+      'stroke-width': 2.4 * p.k,
+    }),
+    el('svg', { ...icon.attrs, x: c.x - size / 2, y: c.y - size / 2, width: size, height: size }, [
+      ...icon.children,
+    ]),
+  ]);
 }
 
 /**
@@ -261,7 +290,7 @@ function stepHint(
  * A dashed ink line through `pts` with an arrowhead whose tip lands on the last point: the planned path's
  * arrow, also the threat trail. `inset` pulls the line's start off the first point (off a drawn mark).
  */
-function inkArrow(
+export function inkArrow(
   i: OverlayInput,
   pts: readonly Point[],
   opts: { inset?: number; width?: number; mark?: string } = {},
@@ -310,12 +339,14 @@ function pathArrow(i: OverlayInput, from: Point, steps: readonly PathStep[]): Sv
   // On the creature, the arrow runs to (or from) the seat the character has or would take.
   const pts = [from, ...steps.map((s) => placePoint(i.state, i.characterId, s.place, p))];
   const out = inkArrow(i, pts);
+  // Pulling a cart, every step costs its extra: the pips show what the core charges.
+  const pull = isPulling(i.state, i.characterId) ? i.state.config.cartPullExtra : 0;
   steps.forEach((step, index) => {
     const a = pts[index]!;
     const b = pts[index + 1]!;
     const midpoint = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
     if (step.via) out.push(...viaMark(i, midpoint, step.via));
-    out.push(...pips(i, { x: midpoint.x, y: midpoint.y - 12 * k }, step.cost));
+    out.push(...pips(i, { x: midpoint.x, y: midpoint.y - 12 * k }, step.cost + pull));
   });
   return out;
 }

@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-26: Lure and cart web controls: lead mode and one-tap loading
+
+ID: `2026-11-26-lure-and-cart-web-controls-lead` · Status: current
+
+**Decision.** Leading a capybara: tap it (card), tap its lead button (lead mode, the hexes the core allows light up), tap one (arrow and cost), confirm: one more tap than a move, and the button only changes mode, it spends nothing. The cart: tap its drawing (or the cart button in your own card when you stand on its hex) for its card; hitch and board toggle (the icon shows sealed while on, a tap undoes it), and loading is one tap per unit on a material icon, in your pack row to load and in the cart row to unload (free, so no arming). Whoever pulls or rides is drawn by the cart, not as a second standee. A refused move because of the cart (aboard, terrain it cannot roll over) shows the core's reason as a tip on the tapped hex. Moments are composed from existing art (no new moment kinds in the art kit).
+
+**Reasoning.** Keeps every control a drawn, touch-first tap with no form inputs, and keeps the rules in the core (every button is the core's own `checkAction`). Moving one unit per tap is slower for big hauls but needs no amount picker; the cart holds eight.
+
 ## 2026-11-26: A brazier's reveal counts as explored for good **[Misa]**
 
 ID: `2026-11-26-a-brazier-s-reveal-counts-as` · Status: current

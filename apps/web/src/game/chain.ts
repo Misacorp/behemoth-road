@@ -8,6 +8,7 @@ import {
   checkAction,
   type FeatureType,
   featureType,
+  isVehicleUnlock,
   type GameStateView,
   type Hex,
   hexKey,
@@ -149,7 +150,10 @@ export function unlockOptions(game: GameStateView, characterId: string): UnlockO
     const work = game.project?.unlock === unlock.id ? game.project.work : null;
     return {
       unlock,
-      done: game.unlocks.includes(unlock.id),
+      // A vehicle is not among the unlocks: it stands on the map while it lives (and can be built again once lost).
+      done: isVehicleUnlock(unlock)
+        ? game.carts.length >= game.config.cartsMax
+        : game.unlocks.includes(unlock.id),
       work,
       missing: check.ok ? [] : (check.missing ?? []),
       enabled: check.ok,

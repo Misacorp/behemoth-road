@@ -290,6 +290,13 @@ export const tips = {
     title: 'Pinned',
     text: 'Under fallen stones. Struggle free, or wait for someone to dig you out.',
   },
+  'why:aboard': { title: 'Aboard', text: 'You are sitting in the cart. Climb out to walk.' },
+  'why:hitched': { title: 'Hitched', text: 'You are pulling the cart. Let it go first.' },
+  'why:cart-terrain': {
+    title: 'Too rough',
+    text: 'The cart cannot roll there. Let it go to walk on.',
+  },
+  'why:settled': { title: 'Settled', text: 'It has settled and will not be led any more.' },
   'why:other': { title: 'Not now', text: 'Not possible just now.' },
 
   // The ground a hex shows (in the cards' tile pictures).
@@ -377,6 +384,28 @@ export const tips = {
   },
   'map:towline': { title: 'Tow line', text: 'A line is thrown their way. They can take it.' },
   'map:stranded': { title: 'Cut off', text: 'Out in the fog, with no way back today.' },
+  'map:lure': {
+    title: 'Capybara',
+    text: 'A calm little animal. The creature takes notice of it. Next to it, you can lead it a hex.',
+  },
+  'map:lure-settled': {
+    title: 'Settled',
+    text: 'Lying down for good. It cannot be led, but the creature still takes notice.',
+  },
+  'map:leads': { title: 'Leads left', text: 'Each paw is a time it can still be led.' },
+  'map:cart': {
+    title: 'Hand cart',
+    text: 'Hitch it to pull it, or sit in it. Goods ride in it. Only open ground and woods.',
+  },
+  'map:cargo': { title: 'Cargo', text: 'Each crate is a unit of goods in the cart.' },
+  'map:step-harm': {
+    title: 'Harmful ground',
+    text: 'If the creature steps this way it will be harmed.',
+  },
+  'map:scree-field': {
+    title: 'Scree field',
+    text: 'Loose stones across the way. Each rockslide in it falls on whatever meets it.',
+  },
   'map:struck': { title: 'Struck', text: 'Hit by a threat: only {struckActions} action tomorrow.' },
   // What the walk leaves behind. The tip adds who made it and at which step.
   'map:trace-fire': { title: 'Fire scar', text: 'A fire burned here.' },
