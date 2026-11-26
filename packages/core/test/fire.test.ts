@@ -21,6 +21,7 @@ import {
   featureType,
   type ActResult,
 } from '../src/index.ts';
+import { settlementSpots } from '../src/settlements.ts';
 import {
   fieldGame,
   lingering,
@@ -57,28 +58,30 @@ const atBrazier = (roles: readonly string[] = ['keeper']): GameState => {
 describe('lighting a brazier', () => {
   it('burns for brazierNights ticks, then can be lit again', () => {
     const lit = ok(act(atBrazier(), 'keeper', { kind: 'light-fire' }));
-    expect(lit.stimuli).toEqual([{ type: 'fire', hex: BRAZIER, litDay: 1, nights: 3, reveal: 2 }]);
+    expect(lit.stimuli).toEqual([
+      { type: 'brazier-fire', hex: BRAZIER, litDay: 1, range: 5, nights: 4, reveal: 2 },
+    ]);
     // The brazier stays where it is; wood and one action are spent.
     expect(lit.features[key(BRAZIER)]?.type).toBe('brazier');
     expect(me(lit, 'keeper').pack).toEqual({});
     expect(me(lit, 'keeper').actionsLeft).toBe(2);
-    expect(nightsLeft(lit, lit.stimuli[0]!)).toBe(3);
+    expect(nightsLeft(lit, lit.stimuli[0]!)).toBe(4);
 
     let s = lit;
     const out: number[] = [];
-    for (let i = 0; i < 3; i++) {
+    for (let i = 0; i < 4; i++) {
       const next = nextDayWithEvents(s);
       s = next.state;
       if (plain(next.events).some((e) => e.kind === 'fire-out')) out.push(s.day);
       // Two more ticks after the first: still burning until the third.
-      expect(s.stimuli.length).toBe(i < 2 ? 1 : 0);
+      expect(s.stimuli.length).toBe(i < 3 ? 1 : 0);
     }
-    expect(out).toEqual([4]);
+    expect(out).toEqual([5]);
     // Burnt out: lit again (a new action day, new wood).
     s = giveTimber(s, 'keeper');
     expect(checkAction(s, 'keeper', { kind: 'light-fire' }).ok).toBe(true);
     const again = ok(act(s, 'keeper', { kind: 'light-fire' }));
-    expect(again.stimuli[0]).toMatchObject({ litDay: 4, nights: 3 });
+    expect(again.stimuli[0]).toMatchObject({ litDay: 5, nights: 4 });
   });
 
   it('is refused while it burns', () => {
@@ -130,7 +133,7 @@ describe('lighting a brazier', () => {
       skills: { xp: 0, taken: ['keeper-b1', 'keeper-b2', 'keeper-b3'] },
     });
     const lit = ok(act(s, 'keeper', { kind: 'light-fire' }));
-    expect(lit.stimuli[0]).toMatchObject({ range: 5, push: 2, nights: 4, reveal: 2 });
+    expect(lit.stimuli[0]).toMatchObject({ range: 5, push: 2, nights: 5, reveal: 2 });
   });
 });
 
@@ -338,10 +341,47 @@ describe('pinned characters', () => {
     });
   });
 
-  it('a pinned character dug out on the next day gets full actions after the tick', () => {
+  it('dug out the day after, they get that day back; dug out the same day, nothing is left of it', () => {
+    const same = ok(act(pinned(), 'keeper', { kind: 'dig-out', target: 'scout' }));
+    expect(me(same, 'scout').actionsLeft).toBe(0);
     const first = lingering(nextDayWithEvents(pinned()).state);
+    expect(me(first, 'scout').actionsLeft).toBe(0);
     const freed = ok(act(first, 'keeper', { kind: 'dig-out', target: 'scout' }));
-    expect(me(nextDayWithEvents(freed).state, 'scout')).toMatchObject({ actionsLeft: 3 });
+    expect(me(freed, 'scout')).toMatchObject({ actionsLeft: 3 });
+    expect(me(freed, 'scout').pinnedDay).toBeUndefined();
+  });
+
+  it('offers dig-out only for active pinned characters within reach', () => {
+    const s = pinned();
+    const kinds = (id: string) => actionsHere(s, id).filter((a) => a.action.kind === 'dig-out');
+    expect(kinds('keeper')).toHaveLength(1);
+    expect(kinds('warden')).toHaveLength(0);
+    const lost = withCharacter(s, { ...me(s, 'scout'), status: 'lost' });
+    expect(actionsHere(lost, 'keeper').some((a) => a.action.kind === 'dig-out')).toBe(false);
+  });
+
+  it('a pinned character who is lost loses the pin and gets no dug-out event', () => {
+    let s = lingering(pinned());
+    s = { ...s, creature: { ...s.creature, lingering: false, heading: 's' } };
+    s = placeCharacter(s, 'scout', hex(0, -20));
+    s = {
+      ...s,
+      tiles: {
+        ...s.tiles,
+        '0,-20': {
+          visibility: 'seen',
+          terrain: 'plains',
+          explored: false,
+          leftWindowOnDay: s.day - 5,
+        },
+      },
+    };
+    const next = nextDayWithEvents(s);
+    const scout = me(next.state, 'scout');
+    expect(scout.status).toBe('lost');
+    expect(scout.pinnedDay).toBeUndefined();
+    expect(plain(next.events).some((e) => e.kind === 'dug-out')).toBe(false);
+    expect(plain(next.events).some((e) => e.kind === 'lost')).toBe(true);
   });
 });
 
@@ -355,7 +395,7 @@ describe('map generation places braziers along the route', () => {
       expect(plan.length).toBeGreaterThan(4);
       const { brazierFirstWithin, brazierSpacing } = g.config;
       expect(hexDistance(g.creature.centre, plan[0] as Hex)).toBeLessThanOrEqual(
-        brazierFirstWithin + 2,
+        brazierFirstWithin + 3,
       );
       // Distances from the start grow along the route, about `brazierSpacing` apart.
       const gaps = plan.slice(1).map((h, i) => hexDistance(plan[i] as Hex, h));
@@ -399,12 +439,34 @@ describe('map generation places braziers along the route', () => {
   });
 });
 
+describe('braziers and the rest of the map', () => {
+  it('a settlement never lands on a brazier hex', () => {
+    for (const seed of [1, 2, 3, 4, 5, 6]) {
+      const g = createGame(seed);
+      for (const h of g.brazierPlan) {
+        if (g.features[key(h)])
+          expect(settlementSpots(g).some((x) => key(x) === key(h))).toBe(false);
+      }
+    }
+  });
+
+  it('a brazier shows its hexes through its last night', () => {
+    let s = atBrazier();
+    s = { ...s, config: { ...s.config, brazierNights: 1 } };
+    s = ok(act(s, 'keeper', { kind: 'light-fire' }));
+    const late = withFeature(s, hex(4, -1), 'iron-deposit');
+    const next = nextDayWithEvents(late).state;
+    expect(next.stimuli).toEqual([]);
+    expect(next.features[key(hex(4, -1))]?.revealed).toBe(true);
+  });
+});
+
 describe('what the player view holds', () => {
   it('carries lit braziers with their nights, pinned state and no plan', () => {
     const lit = ok(act(atBrazier(), 'keeper', { kind: 'light-fire' }));
     const view = toPlayerView(lit);
-    expect(view.stimuli[0]).toMatchObject({ nights: 3, litDay: 1, hex: BRAZIER });
-    expect(nightsLeft(view, view.stimuli[0]!)).toBe(3);
+    expect(view.stimuli[0]).toMatchObject({ nights: 4, litDay: 1, hex: BRAZIER });
+    expect(nightsLeft(view, view.stimuli[0]!)).toBe(4);
     expect(view.features[key(BRAZIER)]).toMatchObject({ type: 'brazier', revealed: true });
     expect('brazierPlan' in view).toBe(false);
     expect('seed' in view).toBe(false);

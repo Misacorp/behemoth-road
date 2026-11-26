@@ -39,7 +39,7 @@ import {
   lightAround,
   pruneFeatures,
 } from './features.ts';
-import { nightsOf } from './fire.ts';
+import { nightsOf, rangeOf } from './fire.ts';
 import { THREAT_TYPES } from './content/index.ts';
 import { type Hex, hexDistance } from './hex.ts';
 import { hashString, hashToUnit, pickWeighted } from './random.ts';
@@ -102,9 +102,7 @@ const careAfter = (
 ): { readonly care: Care; readonly stores: Materials; readonly ate: string | null } => {
   const { hunger } = creatureType(state.nature.type);
   const list = state.stimuli
-    .filter(
-      (s) => hexDistance(state.creature.centre, s.hex) <= (s.range ?? state.config.stimulusRange),
-    )
+    .filter((s) => hexDistance(state.creature.centre, s.hex) <= rangeOf(state, s))
     .map((s) => ({ hex: s.hex, stimulus: s.type, reaction: reactionTo(state.nature, s) }));
   // Contented: while a keeper with the skill is in the game, hunger drains less often.
   const every = Math.max(hunger.drainEveryDays, hungerEveryDays(state));
@@ -317,7 +315,8 @@ export const nextDayWithEvents = (
   ];
   // A brazier that still burns shows the hexes around it, including any that came into view tonight.
   let lit: GameState = stepped;
-  for (const s of stepped.stimuli) {
+  // (Through its last night too: every fire in the state before the tick burns through it.)
+  for (const s of state.stimuli) {
     if (s.reveal === undefined) continue;
     const shown = lightAround(lit, s.hex, s.reveal);
     lit = shown.state;
@@ -392,9 +391,12 @@ export const nextDayWithEvents = (
     const struck = fight.struck.has(c.id);
     // Pinned on the day just ended: still pinned all of the next one. Pinned earlier: free on their own now.
     const stillPinned = c.pinnedDay !== undefined && c.pinnedDay >= state.day;
-    if (c.pinnedDay !== undefined && !stillPinned) {
-      freed.push({ kind: 'dug-out', characterId: c.id, by: null });
-    }
+    // Free on their own now (unless they are lost below, which clears it with no event).
+    const free = (): void => {
+      if (c.pinnedDay !== undefined && !stillPinned) {
+        freed.push({ kind: 'dug-out', characterId: c.id, by: null });
+      }
+    };
     const actionsLeft = stillPinned
       ? 0
       : struck
@@ -409,13 +411,26 @@ export const nextDayWithEvents = (
       actionsLeft,
       struckDay: struck ? day : c.struckDay,
     };
-    if (c.at.kind === 'creature') return fresh;
+    if (c.at.kind === 'creature') {
+      free();
+      return fresh;
+    }
     // Picked up by the creature: hauled aboard, free.
-    if (isCreatureHex(moved, c.at.hex)) return { ...unpinned(fresh), at: ON_CREATURE };
-    if (isReachable(moved, c.at.hex)) return fresh;
+    if (isCreatureHex(moved, c.at.hex)) {
+      if (c.pinnedDay !== undefined) freed.push({ kind: 'dug-out', characterId: c.id, by: null });
+      return {
+        ...unpinned(fresh),
+        at: ON_CREATURE,
+        actionsLeft: struck ? actionsLeft : config.actionsPerDay,
+      };
+    }
+    if (isReachable(moved, c.at.hex)) {
+      free();
+      return fresh;
+    }
     // Lost for good, and the pack with them.
     lost.push({ kind: 'lost', characterId: c.id, hex: c.at.hex });
-    return { ...c, status: 'lost', actionsLeft: 0, waiting: false, pack: {} };
+    return { ...unpinned(c), status: 'lost', actionsLeft: 0, waiting: false, pack: {} };
   });
   // Anyone now on the creature (picked up by it today) empties their pack into the stores.
   let settled: GameState = { ...moved, characters };

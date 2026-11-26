@@ -7,6 +7,7 @@
  */
 
 import { appetiteOf, reactionTo, stimulusType } from './care.ts';
+import { rangeOf } from './fire.ts';
 import type { VeerWeights } from './config.ts';
 import {
   type Direction,
@@ -92,7 +93,7 @@ export const sideOf = (state: GameStateView, target: Hex): -1 | 0 | 1 => {
 export const stimulusPush = (state: GameState): number => {
   let push = 0;
   for (const s of state.stimuli) {
-    if (hexDistance(state.creature.centre, s.hex) > (s.range ?? state.config.stimulusRange)) {
+    if (hexDistance(state.creature.centre, s.hex) > rangeOf(state, s)) {
       continue;
     }
     const reaction = reactionTo(state.nature, s);

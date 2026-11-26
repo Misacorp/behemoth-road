@@ -20,6 +20,10 @@ export const BURNABLE_TAG = 'burnable';
 const tagsOf = (s: Stimulus): readonly string[] =>
   STIMULUS_TYPES.find((t) => t.id === s.type)?.tags ?? [];
 
+/** Hexes from the creature's centre within which a stimulus steers it: its own, its type's, or the tuning's. */
+export const rangeOf = (state: GameStateView, s: Stimulus): number =>
+  s.range ?? STIMULUS_TYPES.find((t) => t.id === s.type)?.range ?? state.config.stimulusRange;
+
 /** Nights a stimulus burns in all, from the day it was lit. */
 export const nightsOf = (s: Stimulus): number =>
   s.nights ?? STIMULUS_TYPES.find((t) => t.id === s.type)?.lastsTicks ?? 1;

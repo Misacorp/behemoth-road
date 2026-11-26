@@ -191,7 +191,9 @@ const SITE_STREAM = hashString('site');
 const PARLEY_STREAM = hashString('parley');
 
 /** The stimulus a fire is (the one tagged `fire`): content, read by tag. */
-const FIRE = STIMULUS_TYPES.find((t) => t.tags.includes('fire'));
+const FIRE = STIMULUS_TYPES.find((t) => t.tags.includes('fire') && !t.tags.includes(FIRE_SITE_TAG));
+/** The stimulus lit on a fire-site (a brazier): tagged `fire` and `fire-site`. */
+const SITE_FIRE = STIMULUS_TYPES.find((t) => t.tags.includes(FIRE_SITE_TAG));
 
 /** A fire as lit by a character: a beacon skill widens its reach and strengthens its push. */
 const litFire = (
@@ -202,7 +204,10 @@ const litFire = (
   /** A brazier: the nights it burns before a Beacon adds more, and the hexes it shows. */
   site?: { readonly nights: number; readonly reveal: number },
 ): Stimulus => {
-  const range = bestOf(c, 'fire-boost', (e) => e.range);
+  const boosted = bestOf(c, 'fire-boost', (e) => e.range);
+  // A brazier's own reach (its type's) stands unless a Beacon reaches further.
+  const own = STIMULUS_TYPES.find((t) => t.id === type)?.range;
+  const range = site && own !== undefined ? Math.max(own, boosted ?? 0) : boosted;
   const push = bestOf(c, 'fire-boost', (e) => e.push);
   const more = bestOf(c, 'fire-boost', (e) => e.nights ?? 0) ?? 0;
   return {
@@ -681,12 +686,13 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
     const feature = state.features[key] as FeatureState;
     const tags = featureType(feature.type).tags;
     const events: GameEvent[] = [{ kind: 'fire-lit', hex: h, characterId, stimulus: FIRE.id }];
-    if (tags.includes(FIRE_SITE_TAG)) {
+    if (tags.includes(FIRE_SITE_TAG) && SITE_FIRE) {
+      events[0] = { kind: 'fire-lit', hex: h, characterId, stimulus: SITE_FIRE.id };
       // A brazier burns for nights and shows the hexes around it.
       const site = { nights: state.config.brazierNights, reveal: state.config.brazierRevealRadius };
       const lit: GameState = {
         ...state,
-        stimuli: [...state.stimuli, litFire(c, FIRE.id, h, state.day, site)],
+        stimuli: [...state.stimuli, litFire(c, SITE_FIRE.id, h, state.day, site)],
       };
       const spent = withCharacter(lit, { pack: subtract(c.pack, check.uses) });
       const shown = lightAround(spent, h, site.reveal);
@@ -817,7 +823,17 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
       state: withCharacter(
         {
           ...state,
-          characters: state.characters.map((x) => (x.id === action.target ? unpinned(x) : x)),
+          characters: state.characters.map((x) =>
+            x.id === action.target
+              ? {
+                  ...unpinned(x),
+                  // Dug out the day after the slide: the stones were all that held them, so the day is theirs.
+                  ...(x.pinnedDay !== undefined && x.pinnedDay < state.day
+                    ? { actionsLeft: state.config.actionsPerDay }
+                    : {}),
+                }
+              : x,
+          ),
         },
         {},
       ),
@@ -1078,7 +1094,13 @@ export const actionsHere = (
       .map((x) => ({ kind: 'throw-line' as const, to: x.id })),
     ...state.threats.map((t) => ({ kind: 'strike' as const, threat: t.id })),
     ...state.characters
-      .filter((x) => x.id !== characterId && x.pinnedDay !== undefined)
+      .filter(
+        (x) =>
+          x.id !== characterId &&
+          x.pinnedDay !== undefined &&
+          x.status === 'active' &&
+          (placeEquals(c.at, x.at) || arePlacesAdjacent(state, c.at, x.at)),
+      )
       .map((x) => ({ kind: 'dig-out' as const, target: x.id })),
     { kind: 'defend' },
     { kind: 'parley' },
