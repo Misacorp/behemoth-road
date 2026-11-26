@@ -213,6 +213,7 @@ describe('care icons and the stay hint', () => {
   it('draws forage and the three actions by key, each different, within the palette', () => {
     expect(Object.keys(ACTION_MOTIFS)).toEqual([
       'light-fire',
+      'dig-out',
       'feed',
       'linger',
       'strike',

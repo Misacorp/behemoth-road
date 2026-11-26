@@ -104,6 +104,22 @@ export {
   type FeatureState,
 } from './features.ts';
 export { drawFire } from './fire.ts';
+export {
+  BRAZIER_HEIGHT,
+  BURNT_LOOKS,
+  drawBrazier,
+  drawBurnableMark,
+  drawBurnt,
+  drawFearsFireMark,
+  drawFireRing,
+  drawNightsLeft,
+  drawPinned,
+  FIRE_MOMENT_KINDS,
+  NIGHTS_MAX,
+  type BrazierOptions,
+  type BurntLook,
+  type FireMomentKind,
+} from './fire-art.ts';
 export { DEFENDED_MAX, drawDefended } from './defended.ts';
 export { drawAppetiteBadge } from './signs.ts';
 export {
