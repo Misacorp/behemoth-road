@@ -10,6 +10,42 @@ import { el } from './svg.ts';
 /** How much taller the flame and smoke are drawn than the plain side view. */
 const FLAME_RISE = 1.7;
 
+type Raw = readonly (readonly [number, number])[];
+
+/** The flame, its bright core and the smoke curl in local units (base at 0, 0); `sway` leans the tip. */
+export function flameShapes(sway: number): { flame: Raw; core: Raw; smoke: Raw } {
+  return {
+    flame: [
+      [0, 0],
+      [-5.5, -3],
+      [-5, -9],
+      [-1.5 + sway * 0.4, -13],
+      [0.5 + sway, -19],
+      [3 + sway * 0.6, -12],
+      [5.5, -8],
+      [5, -2.5],
+    ],
+    core: [
+      [0, -1],
+      [-2.6, -3.5],
+      [-1.8, -8],
+      [0.4 + sway * 0.5, -12.5],
+      [2.2, -7.5],
+      [2.6, -3],
+    ],
+    smoke: [
+      [0.5 + sway, -21],
+      [-2.5, -26],
+      [1.5, -31],
+      [-1, -36],
+      [3.5, -40],
+      [6, -44],
+      [3.5, -47],
+      [1.5, -44.5],
+    ],
+  };
+}
+
 export const drawFire: PropDraw = (c) => {
   const pal = c.palette;
   const T = mapper(c.origin, c.k, 1, c.k * c.rise);
@@ -60,34 +96,10 @@ export const drawFire: PropDraw = (c) => {
       [7, -0.2],
     ]),
   ];
-  const flame = tall([
-    [0, 0],
-    [-5.5, -3],
-    [-5, -9],
-    [-1.5 + sway * 0.4, -13],
-    [0.5 + sway, -19],
-    [3 + sway * 0.6, -12],
-    [5.5, -8],
-    [5, -2.5],
-  ]);
-  const core = tall([
-    [0, -1],
-    [-2.6, -3.5],
-    [-1.8, -8],
-    [0.4 + sway * 0.5, -12.5],
-    [2.2, -7.5],
-    [2.6, -3],
-  ]);
-  const smoke = tall([
-    [0.5 + sway, -21],
-    [-2.5, -26],
-    [1.5, -31],
-    [-1, -36],
-    [3.5, -40],
-    [6, -44],
-    [3.5, -47],
-    [1.5, -44.5],
-  ]);
+  const shapes = flameShapes(sway);
+  const flame = tall(shapes.flame);
+  const core = tall(shapes.core);
+  const smoke = tall(shapes.smoke);
   const spark = Tt(6 + sway, -16);
   const puffAt = [Tt(-1.5, -37), Tt(3, -43)];
   const puffs = puffAt

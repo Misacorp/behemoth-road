@@ -167,6 +167,16 @@ export const ACTION_MOTIFS: Readonly<Record<string, IconMotif>> = {
     }),
     solid(pal, ellipsePath(35, 13, 1.4, 1.4), pal.accents.ochre.base, 1.2),
   ],
+  // Dig out: a shovel prised under a fallen boulder, lifting it, with lift ticks above.
+  'dig-out': (pal) => [
+    ink(pal, 'M11 36h26', 1.4, pal.inkSoft),
+    solid(pal, 'M21 25l3-7 6-3 6 4 1 8-6 3-7-1z', pal.ramps.rock.light, 1.8),
+    ink(pal, 'M31 19l5 4 1 4', 1.2, pal.ramps.rock.shade),
+    ink(pal, 'M10 36l12-6', 3.4, pal.ramps.bark.shade),
+    ink(pal, 'M10 36l12-6', 1.3, pal.ramps.bark.light),
+    solid(pal, 'M21 29l5-1 3 4-6 3z', pal.ramps.stone.light, 1.6),
+    ink(pal, 'M30 11V8M24 12l-2-3M36 12l2-3', 1.4, pal.inkSoft),
+  ],
   // Feed: a wooden bowl heaped with berries, offered up (two lift lines).
   feed: (pal) => [
     ...[

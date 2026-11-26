@@ -132,6 +132,7 @@ export const tips = {
     title: 'Light a fire',
     text: 'Burn {fireFuel} timber from your pack here. It burns until the day turns; the creature may take notice.',
   },
+  'action:dig-out': { title: 'Dig out', text: 'Free a pinned character from the stones.' },
   'action:feed': {
     text: 'Riding: give the creature food from the stores.',
   },

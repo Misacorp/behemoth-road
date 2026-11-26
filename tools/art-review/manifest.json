@@ -26,7 +26,9 @@
     "2026-11-23-3",
     "2026-11-24-1",
     "2026-11-24-2",
-    "2026-11-24-3"
+    "2026-11-24-3",
+    "2026-11-26-1",
+    "2026-11-26-2"
   ],
   "items": [
     {
@@ -531,10 +533,10 @@
       "id": "feedback/marks",
       "group": "Playtest feedback",
       "title": "Explored-empty fading; out of reach; misled; greyed actions with the role they need; nothing here, misled and peril relieved moments",
-      "version": "efa3465a",
+      "version": "597ead59",
       "kind": "glance",
-      "batch": "2026-11-24-1",
-      "file": "art/feedback-marks-efa3465a.svg"
+      "batch": "2026-11-26-1",
+      "file": "art/feedback-marks-597ead59.svg"
     },
     {
       "id": "variety/map",
@@ -661,6 +663,42 @@
       "kind": "glance",
       "batch": "2026-11-24-2",
       "file": "art/world-gate-signs-0514c7a7.svg"
+    },
+    {
+      "id": "fire/brazier",
+      "group": "Fire and rockslide",
+      "title": "The old stone brazier in every palette: cold with ash, then lit with three, two, one and no nights left (notches on its face)",
+      "version": "0da4b1bc",
+      "kind": "glance",
+      "batch": "2026-11-26-1",
+      "file": "art/fire-brazier-0da4b1bc.svg"
+    },
+    {
+      "id": "fire/ring",
+      "group": "Fire and rockslide",
+      "title": "A lit brazier with its fire ring (the hexes within one step), a cold brazier beside it and fogged hexes at the edge",
+      "version": "51ea27a0",
+      "kind": "glance",
+      "batch": "2026-11-26-1",
+      "file": "art/fire-ring-51ea27a0.svg"
+    },
+    {
+      "id": "fire/marks",
+      "group": "Fire and rockslide",
+      "title": "Nights left (none to three embers), fears fire, burnable, dig out and light fire icons, and the rockslide moment",
+      "version": "8f04664c",
+      "kind": "glance",
+      "batch": "2026-11-26-2",
+      "file": "art/fire-marks-8f04664c.svg"
+    },
+    {
+      "id": "fire/pinned-burnt",
+      "group": "Fire and rockslide",
+      "title": "Pinned under stones (three looks, a free character beside them); a deadfall and a snare, then burnt",
+      "version": "61cad879",
+      "kind": "glance",
+      "batch": "2026-11-26-1",
+      "file": "art/fire-pinned-burnt-61cad879.svg"
     }
   ]
 }

@@ -24,6 +24,7 @@ import { round2ReviewItems } from './review-round2.ts';
 import { terrainReviewItems } from './review-terrain.ts';
 import { varietyReviewItems } from './review-variety.ts';
 import { skillReviewItems } from './review-skills.ts';
+import { fireReviewItems } from './review-fire.ts';
 import { worldReviewItems } from './review-world.ts';
 
 export interface ReviewDraft {
@@ -694,6 +695,7 @@ export function buildReviewItems(): ReviewDraft[] {
     ...feedbackReviewItems(),
     ...seasonReviewItems(),
     ...worldReviewItems(),
+    ...fireReviewItems(),
     ...terrainReviewItems(),
     ...varietyReviewItems(),
     ...round2ReviewItems(),
