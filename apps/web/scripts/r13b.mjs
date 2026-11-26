@@ -49,8 +49,6 @@ const staged = (stage) => {
 
 // Offsets from the creature's centre (the chain's spots).
 const START = { q: 1, r: 2 };
-const NEAR = { q: 1, r: 3 };
-const OLA = { q: 0, r: 2 };
 
 async function run() {
   mkdirSync(out, { recursive: true });
