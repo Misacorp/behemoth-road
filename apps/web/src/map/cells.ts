@@ -130,7 +130,10 @@ export function featureArtAt(state: GameStateView, key: string): FeatureArt | nu
     const fire = state.stimuli.find((x) => hexKey(x.hex) === key);
     return fire
       ? { look: type.icon, lit: true, nightsLeft: nightsLeft(state, fire) }
-      : { look: type.icon, ...((f as { stocked?: boolean }).stocked === true ? { stocked: true } : {}) };
+      : {
+          look: type.icon,
+          ...((f as { stocked?: boolean }).stocked === true ? { stocked: true } : {}),
+        };
   }
   if (type.kind === 'trap') return { look: type.icon, trap: true };
   if (f.left > 0) return { look: type.icon };

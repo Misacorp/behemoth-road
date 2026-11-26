@@ -43,7 +43,9 @@ describe('braziers', () => {
 
   it('a lit brazier draws no second fire beside it', () => {
     const lit = staged({ brazierLit: 3 });
-    const cell = sceneCells(lit.view).find((c) => c.q === lit.abs(START).q && c.r === lit.abs(START).r);
+    const cell = sceneCells(lit.view).find(
+      (c) => c.q === lit.abs(START).q && c.r === lit.abs(START).r,
+    );
     expect(cell?.fire).toBeUndefined();
     expect(cell?.feature?.lit).toBe(true);
     expect(mapTipAt(lit.view, lit.abs(START))).toBe('map:fire-brazier');
@@ -66,7 +68,10 @@ describe('burnt ground', () => {
     const base = staged({ burnt: [NEAR], brazier: true });
     const s = {
       ...base,
-      view: { ...base.view, traces: [...base.view.traces, { kind: 'fire' as const, hex: base.abs(START), step: 0 }] },
+      view: {
+        ...base.view,
+        traces: [...base.view.traces, { kind: 'fire' as const, hex: base.abs(START), step: 0 }],
+      },
     };
     expect([...burntKeys(s.view)]).toEqual([hexKey(s.abs(NEAR))]);
     const cell = sceneCells(s.view).find((c) => c.q === s.abs(NEAR).q && c.r === s.abs(NEAR).r);
@@ -78,7 +83,13 @@ describe('burnt ground', () => {
 describe('the fire ring', () => {
   it('shows only while a threat that fears fire is on the map', () => {
     const none = staged({ brazierLit: 2 });
-    const input = (v: typeof none.view) => ({ state: v, projection: PROJECTION, palette: PALETTE, flow: IDLE, characterId: none.me });
+    const input = (v: typeof none.view) => ({
+      state: v,
+      projection: PROJECTION,
+      palette: PALETTE,
+      flow: IDLE,
+      characterId: none.me,
+    });
     expect(fireFearedNear(none.view)).toBe(false);
     expect(fireRings(input(none.view) as never)).toEqual([]);
     const swarm = staged({ brazierLit: 2, threats: [{ type: 'swarm', at: { q: 3, r: 4 } }] });
@@ -145,7 +156,10 @@ describe('pinned characters', () => {
       (r) => r.characterId === s.ola,
     );
     expect(row?.pinned).toBe(true);
-    expect(digOption(s.view, s.me, s.ola)).toEqual({ cost: s.view.config.digOutCost, enabled: true });
+    expect(digOption(s.view, s.me, s.ola)).toEqual({
+      cost: s.view.config.digOutCost,
+      enabled: true,
+    });
     expect(digOption(s.view, s.me, s.me)).toBeNull();
   });
 
@@ -176,12 +190,14 @@ describe('moments for pinned and dug-out', () => {
   };
   const centre = { q: 0, r: 0 };
   it('place them on the character', () => {
-    expect(
-      momentsFromEvents([{ kind: 'pinned', characterId: 'c1' }], centre, 'c1', where),
-    ).toEqual([{ kind: 'pinned', hex: { q: 2, r: 3 }, mine: true }]);
-    expect(
-      momentsFromEvents([{ kind: 'dug-out', characterId: 'c1' }], centre, 'x', where),
-    ).toEqual([{ kind: 'dug-out', hex: { q: 2, r: 3 } }]);
-    expect(momentsFromEvents([{ kind: 'dug-out', characterId: 'zz' }], centre, 'x', where)).toEqual([]);
+    expect(momentsFromEvents([{ kind: 'pinned', characterId: 'c1' }], centre, 'c1', where)).toEqual(
+      [{ kind: 'pinned', hex: { q: 2, r: 3 }, mine: true }],
+    );
+    expect(momentsFromEvents([{ kind: 'dug-out', characterId: 'c1' }], centre, 'x', where)).toEqual(
+      [{ kind: 'dug-out', hex: { q: 2, r: 3 } }],
+    );
+    expect(momentsFromEvents([{ kind: 'dug-out', characterId: 'zz' }], centre, 'x', where)).toEqual(
+      [],
+    );
   });
 });

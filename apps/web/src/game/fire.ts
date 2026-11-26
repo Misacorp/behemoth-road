@@ -83,5 +83,5 @@ export const isPinned = (game: GameStateView, characterId: string): boolean =>
 export function greyedForPin<T extends { readonly enabled: boolean }>(
   offered: readonly T[],
 ): (Omit<T, 'enabled' | 'why'> & { readonly enabled: false; readonly why: TipId })[] {
-  return offered.map((a) => ({ ...a, enabled: false as const, why: 'why:pinned' as TipId }));
+  return offered.map((a) => ({ ...a, enabled: false as const, why: 'why:pinned' }));
 }

@@ -1111,10 +1111,7 @@ export function DistanceMarks({
 }
 
 /** The threat card, wider when it offers a strike. */
-export const threatSize = (
-  strike: boolean,
-  fall = false,
-): { width: number; height: number } => ({
+export const threatSize = (strike: boolean, fall = false): { width: number; height: number } => ({
   width: 206 + (strike ? ACTION_W : 0),
   height: 76 + (strike ? labelH() : 0) + (strike && fall ? FALL_ROW_H : 0),
 });

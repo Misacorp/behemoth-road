@@ -289,8 +289,7 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
     }
     if (cell.fire && !underCreature) {
       // A lit fire is the team's own doing: drawn in full even under the veil, beside any feature.
-      const at =
-        cell.feature || cell.burnt ? onPlane(p, c, -0.26, 0.2) : onPlane(p, c, 0, 0.12);
+      const at = cell.feature || cell.burnt ? onPlane(p, c, -0.26, 0.2) : onPlane(p, c, 0, 0.12);
       placed.push({
         at,
         drawn: drawFire(ctx(at, rngFor(seed, 'fire', cell.q, cell.r), ART_TUNING.fireScale)),

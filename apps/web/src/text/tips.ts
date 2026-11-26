@@ -349,7 +349,10 @@ export const tips = {
     title: 'Falling stones',
     text: 'A strike may bring them down on you: {slideFall} % for most. Some are surer-footed.',
   },
-  'map:pinned': { title: 'Pinned', text: 'Under fallen stones. Someone beside them can dig them out.' },
+  'map:pinned': {
+    title: 'Pinned',
+    text: 'Under fallen stones. Someone beside them can dig them out.',
+  },
   'map:escort': { title: 'Escorted', text: 'Next to a warden: threats will not strike here.' },
   'map:defended': {
     title: 'Defended',

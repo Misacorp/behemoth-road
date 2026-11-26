@@ -365,7 +365,9 @@ export function chainScenario(stage: ChainStage = {}): Scenario {
       lingeredDay: stage.lingeredDay ?? null,
     },
   };
-  const pinnedUsers = new Set((stage.pinned ?? []).map((w) => ({ me: MISA, pip: PIP, ola: OLA })[w]));
+  const pinnedUsers = new Set(
+    (stage.pinned ?? []).map((w) => ({ me: MISA, pip: PIP, ola: OLA })[w]),
+  );
   if (pinnedUsers.size > 0) {
     state = {
       ...state,

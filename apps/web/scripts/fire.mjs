@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* global console, process */
+/* global console, process, document */
 /**
  * Screenshots and browser checks for the fire rework: a cold brazier, a lit brazier with its embers, the
  * fire ring with a swarm nearby, the rockslide's strike option with its fall risk, a pinned character with
@@ -164,7 +164,13 @@ async function runViewport(browser, vite, vp) {
   /** The popover and the open tip must lie inside the screen. */
   const onScreen = async (sel, what) => {
     const box = await page.locator(sel).first().boundingBox();
-    if (!box || box.x < -1 || box.y < -1 || box.x + box.width > vp.width + 1 || box.y + box.height > vp.height + 1)
+    if (
+      !box ||
+      box.x < -1 ||
+      box.y < -1 ||
+      box.x + box.width > vp.width + 1 ||
+      box.y + box.height > vp.height + 1
+    )
       fail(`${what} is off screen: ${JSON.stringify(box)}`);
   };
 
@@ -190,7 +196,7 @@ async function runViewport(browser, vite, vp) {
   await holdAll('inspect');
 
   // 3. The fire ring with a swarm nearby; and none without one.
-  await open(staged({ brazierLit: 3, threats: [{ type: 'swarm', at: { q: 3, r: 4 } }] }));
+  await open(staged({ brazierLit: 3, threats: [{ type: 'swarm', at: { q: 2, r: 4 } }] }));
   if (!(await count('[data-fire-ring]'))) fail('no fire ring with a swarm on the map');
   await shot('fire-ring');
   await open(staged({ brazierLit: 3 }));
@@ -217,19 +223,24 @@ async function runViewport(browser, vite, vp) {
   await tapHex(OLA, 8);
   await shot('debug-pinned');
   if (!(await count('[data-action=dig-out]'))) fail('no dig-out on a pinned character');
-  if (await count('[data-popover=character]')) await onScreen('[data-popover=character]', 'the pinned character card');
+  if (await count('[data-popover=character]'))
+    await onScreen('[data-popover=character]', 'the pinned character card');
   await shot('pinned-dig-out');
   await holdAll('character');
   await open(staged({ pinned: ['me'], brazier: true, pack: { timber: 1 } }));
   if (!(await count('.hud-pinned'))) fail('no pinned mark in the HUD');
   await tapHex(START, 8);
-  const grey = await page.locator('[data-popover=here] [data-action=light-fire][aria-disabled=true]').count();
+  const grey = await page
+    .locator('[data-popover=here] [data-action=light-fire][aria-disabled=true]')
+    .count();
   if (!grey) fail('the pinned player’s fire is not greyed');
   await shot('pinned-self');
   await holdAll('here');
 
   // 6. A burnable (deadfall) with its hint, and what a fire left of one.
-  await open(staged({ deposit: 'deadfall', explored: ['iron'], at: 'start', burnt: [{ q: 2, r: 2 }] }));
+  await open(
+    staged({ deposit: 'deadfall', explored: ['iron'], at: 'start', burnt: [{ q: 2, r: 2 }] }),
+  );
   await tapHex(NEAR, 20);
   if (!(await count('[data-mark=burnable]'))) fail('no burnable mark on a deadfall');
   await shot('deadfall-burnable');

@@ -3,7 +3,12 @@
  * brazier's nights left, and the falling stones a strike on a slide risks. Each is drawn by the art kit (or,
  * for the stone pips, a few rocks) and has its tip; none of them carries a word.
  */
-import { drawBurnableMark, drawFearsFireMark, drawNightsLeft, type SvgNode } from '@behemoth-road/art';
+import {
+  drawBurnableMark,
+  drawFearsFireMark,
+  drawNightsLeft,
+  type SvgNode,
+} from '@behemoth-road/art';
 import type { JSX } from 'preact';
 import { tipProps } from '../ui/press.ts';
 import { PALETTE } from './art.ts';

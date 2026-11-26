@@ -3,12 +3,7 @@
  * fire would burn, a threat that keeps clear of fire. Read from the content's tags, never by id, so new
  * content with the tag gets the mark. Pure, so it is tested.
  */
-import {
-  BURNABLE_TAG,
-  FEARS_FIRE_TAG,
-  FEATURE_TYPES,
-  THREAT_TYPES,
-} from '@behemoth-road/core';
+import { BURNABLE_TAG, FEARS_FIRE_TAG, FEATURE_TYPES, THREAT_TYPES } from '@behemoth-road/core';
 import type { TipId } from '../text/tips.ts';
 
 export type TipMark = 'burnable' | 'fears-fire';

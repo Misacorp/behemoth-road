@@ -207,9 +207,18 @@ export function drawBrazier(palette: Palette, opts: BrazierOptions): Drawn {
   } else if (opts.stocked) {
     // Cold but stocked: a few sticks laid crosswise in the bowl, ready to light.
     const sticks = [
-      pts([[-8 + lean, brim - 0.5], [5 + lean, brim - 5.5]]),
-      pts([[8 + lean, brim - 0.5], [-5 + lean, brim - 5.5]]),
-      pts([[-6 + lean, brim - 4], [6 + lean, brim - 3.6]]),
+      pts([
+        [-8 + lean, brim - 0.5],
+        [5 + lean, brim - 5.5],
+      ]),
+      pts([
+        [8 + lean, brim - 0.5],
+        [-5 + lean, brim - 5.5],
+      ]),
+      pts([
+        [-6 + lean, brim - 4],
+        [6 + lean, brim - 3.6],
+      ]),
     ];
     all.push(...sticks.flat());
     nodes.push(
