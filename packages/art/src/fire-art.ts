@@ -251,8 +251,9 @@ export function drawNightsLeft(palette: Palette, nights: number, size = 24): Svg
   return el('svg', { viewBox: '-18 -8 36 16', width: h * 2.25, height: h }, [
     el('path', {
       d: 'M-16 -7h32a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-32a1 1 0 0 1-1-1v-12a1 1 0 0 1 1-1z',
-      fill: pal.paper,
-      opacity: 0.85,
+      fill: pal.paperDeep,
+      stroke: pal.ink,
+      'stroke-width': 0.9,
     }),
     ...nodes,
   ]);
@@ -325,8 +326,8 @@ export function drawFearsFireMark(palette: Palette, size = 24): SvgNode {
       'stroke-width': 1.1,
       'stroke-linejoin': 'round',
     }),
-    el('path', { d: 'M-7 -7L7 7', ...inkAttrs(pal.paper, 4.4) }),
-    el('path', { d: 'M-7 -7L7 7', ...inkAttrs(pal.ink, 1.9) }),
+    el('path', { d: 'M-7 -7L7 7', ...inkAttrs(pal.paper, 2.8) }),
+    el('path', { d: 'M-7 -7L7 7', ...inkAttrs(pal.ink, 1.2) }),
   ]);
 }
 

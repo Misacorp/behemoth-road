@@ -27,7 +27,8 @@
     "2026-11-24-1",
     "2026-11-24-2",
     "2026-11-24-3",
-    "2026-11-26-1"
+    "2026-11-26-1",
+    "2026-11-26-2"
   ],
   "items": [
     {
@@ -685,10 +686,10 @@
       "id": "fire/marks",
       "group": "Fire and rockslide",
       "title": "Nights left (none to three embers), fears fire, burnable, dig out and light fire icons, and the rockslide moment",
-      "version": "72ba65d6",
+      "version": "8f04664c",
       "kind": "glance",
-      "batch": "2026-11-26-1",
-      "file": "art/fire-marks-72ba65d6.svg"
+      "batch": "2026-11-26-2",
+      "file": "art/fire-marks-8f04664c.svg"
     },
     {
       "id": "fire/pinned-burnt",
