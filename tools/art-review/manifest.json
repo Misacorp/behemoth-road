@@ -28,7 +28,8 @@
     "2026-11-24-2",
     "2026-11-24-3",
     "2026-11-26-1",
-    "2026-11-26-2"
+    "2026-11-26-2",
+    "2026-11-26-3"
   ],
   "items": [
     {
@@ -668,37 +669,37 @@
       "id": "fire/brazier",
       "group": "Fire and rockslide",
       "title": "The old stone brazier in every palette: cold with ash, then lit with three, two, one and no nights left (notches on its face)",
-      "version": "0da4b1bc",
+      "version": "656c87e0",
       "kind": "glance",
-      "batch": "2026-11-26-1",
-      "file": "art/fire-brazier-0da4b1bc.svg"
+      "batch": "2026-11-26-3",
+      "file": "art/fire-brazier-656c87e0.svg"
     },
     {
       "id": "fire/ring",
       "group": "Fire and rockslide",
       "title": "A lit brazier with its fire ring (the hexes within one step), a cold brazier beside it and fogged hexes at the edge",
-      "version": "51ea27a0",
+      "version": "ebb24ff4",
       "kind": "glance",
-      "batch": "2026-11-26-1",
-      "file": "art/fire-ring-51ea27a0.svg"
+      "batch": "2026-11-26-3",
+      "file": "art/fire-ring-ebb24ff4.svg"
     },
     {
       "id": "fire/marks",
       "group": "Fire and rockslide",
       "title": "Nights left (none to three embers), fears fire, burnable, dig out and light fire icons, and the rockslide moment",
-      "version": "8f04664c",
+      "version": "453a2ff3",
       "kind": "glance",
-      "batch": "2026-11-26-2",
-      "file": "art/fire-marks-8f04664c.svg"
+      "batch": "2026-11-26-3",
+      "file": "art/fire-marks-453a2ff3.svg"
     },
     {
       "id": "fire/pinned-burnt",
       "group": "Fire and rockslide",
       "title": "Pinned under stones (three looks, a free character beside them); a deadfall and a snare, then burnt",
-      "version": "61cad879",
+      "version": "0f370293",
       "kind": "glance",
-      "batch": "2026-11-26-1",
-      "file": "art/fire-pinned-burnt-61cad879.svg"
+      "batch": "2026-11-26-3",
+      "file": "art/fire-pinned-burnt-0f370293.svg"
     }
   ]
 }
