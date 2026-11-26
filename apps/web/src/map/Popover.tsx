@@ -184,20 +184,16 @@ export function CardIcon({
   x,
   y,
   size,
-  risk = false,
   done = false,
 }: {
   id: string;
   x: number;
   y: number;
   size: number;
-  /** The art kit's risk mark (a cracked triangle) on the icon. */
-  risk?: boolean;
   /** The art kit's sealed look: this is how things stand now (a tap undoes it). */
   done?: boolean;
 }): JSX.Element {
   const icon = drawIcon(id, PALETTE, size, {
-    ...(risk ? { risk: true } : {}),
     ...(done ? { done: true } : {}),
   });
   return toPreact({ ...icon, attrs: { ...icon.attrs, x, y, width: size, height: size } });
@@ -830,6 +826,8 @@ export interface HereAction {
   /** Its odds, when it rolls (a parley, working a site, a struggle): drawn by the `Odds` component. */
   readonly odds?: OddsView | null;
   readonly cost: number;
+  /** One tap runs it: the button opens a card or is free and undone by a tap (never inferred from the cost). */
+  readonly noArm?: boolean;
   readonly enabled: boolean;
   /** A material it takes (a fire's timber), drawn small beside the pips. */
   readonly uses?: string | null;
@@ -900,7 +898,6 @@ export function ActionButton({
   short = false,
   odds = null,
   tall = false,
-  risk = false,
   needs = null,
   why = null,
   done = false,
@@ -982,8 +979,8 @@ export function ActionButton({
           fill={PALETTE.paperDeep}
           {...(armed ? { stroke: PALETTE.ink, 'stroke-width': 1.6 } : {})}
         />
-        <g data-risk={risk ? 'true' : undefined}>
-          <CardIcon id={icon} x={(ACTION_W - 6) / 2 - 14} y={3} size={28} risk={risk} done={done} />
+        <g>
+          <CardIcon id={icon} x={(ACTION_W - 6) / 2 - 14} y={3} size={28} done={done} />
         </g>
         {armed ? (
           <g transform={`translate(${(ACTION_W - 6) / 2} 39)`} data-mark="armed">
@@ -1128,7 +1125,7 @@ export function HereCard({
             needs={a.needs ?? null}
             why={a.why ?? null}
             armKey={actionKey(a)}
-            {...(arm && a.cost > 0 ? { arm } : {})}
+            {...(arm && !a.noArm ? { arm } : {})}
             onRun={() => onAct(a.kind)}
             {...(i === 0 ? { buttonRef: firstRef } : {})}
           />

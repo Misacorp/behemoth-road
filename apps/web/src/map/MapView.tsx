@@ -45,7 +45,7 @@ import { chevronFor, placeClear, placePopover, splitScene, trailClear } from './
 import { fireNoteAt, type FireNote } from '../game/fire.ts';
 import { hazardIconAt } from '../game/hazards.ts';
 import { cartById, cartMoves, cartToggles, type CartToggle } from '../game/cart.ts';
-import { leadOption, lureById } from '../game/lure.ts';
+import { canLeadTo, leadOption, lureById } from '../game/lure.ts';
 import { accentOf, type Identity, lookOf } from '../game/identity.ts';
 import { type Moment, STEP_MS } from '../game/moments.ts';
 import { MomentMark } from './MomentMark.tsx';
@@ -943,7 +943,7 @@ export function MapView(props: MapViewProps): JSX.Element {
         : flow.kind === 'threat' && threatCard(state, characterId, flow.id)?.strike?.enabled
           ? ['strike']
           : flow.kind === 'cart'
-            ? toggles.filter((t) => t.enabled && t.cost > 0).map((t) => t.kind)
+            ? toggles.filter((t) => t.enabled && !t.noArm).map((t) => t.kind)
             : [];
   const enabledSig = enabledKeys.join('|');
   useLayoutEffect(() => {
@@ -1208,8 +1208,11 @@ export function MapView(props: MapViewProps): JSX.Element {
       );
     }
   } else if (flow.kind === 'lead') {
-    // A target is chosen: the cost and the confirm, at the hex it would be led to.
-    card = (
+    // A target is chosen: the cost and the confirm, at the hex it would be led to. A lure that moved or
+    // went since (a live update), or a hex that is no longer open, leaves no confirm to tap.
+    const leading = lureById(state, flow.id);
+    const open = leading && flow.to ? canLeadTo(state, leading, flow.to) : false;
+    card = !open ? null : (
       <ConfirmCard
         cost={lead?.cost ?? 0}
         onConfirm={props.onConfirm}

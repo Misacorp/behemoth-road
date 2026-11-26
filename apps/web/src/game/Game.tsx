@@ -440,7 +440,7 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
     const offered = [
       ...(feature ? actionsAt(state0, me.id) : []),
       ...(cartHere
-        ? [{ kind: 'cart', icon: 'cart', cost: 0, enabled: true } satisfies HereAction]
+        ? [{ kind: 'cart', icon: 'cart', cost: 0, noArm: true, enabled: true } satisfies HereAction]
         : []),
       ...(fire ? [fire] : []),
       ...settlement,

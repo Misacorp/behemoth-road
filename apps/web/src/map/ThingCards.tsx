@@ -233,7 +233,7 @@ export function CartCard({
           x={size.width - (toggles.length - i) * ACTION_W - 2}
           y={8}
           onRun={() => onToggle(t.kind)}
-          {...(t.cost > 0 && arm ? { arm } : {})}
+          {...(!t.noArm && arm ? { arm } : {})}
           {...(i === 0 && firstRef ? { buttonRef: firstRef } : {})}
         />
       ))}

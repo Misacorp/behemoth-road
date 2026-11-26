@@ -386,11 +386,11 @@ export const tips = {
   'map:stranded': { title: 'Cut off', text: 'Out in the fog, with no way back today.' },
   'map:lure': {
     title: 'Capybara',
-    text: 'A calm little animal. The creature takes notice of it. Next to it, you can lead it a hex.',
+    text: 'A calm little animal. Next to it, you can lead it a hex.',
   },
   'map:lure-settled': {
     title: 'Settled',
-    text: 'Lying down for good. It cannot be led, but the creature still takes notice.',
+    text: 'It has settled here and cannot be led any more.',
   },
   'map:leads': { title: 'Leads left', text: 'Each paw is a time it can still be led.' },
   'map:cart': {

@@ -213,8 +213,23 @@ function tapLead(
   target: Target,
 ): Flow {
   const lure = lureById(state, flow.id);
-  if (!lure || target.kind !== 'hex' || !canLeadTo(state, lure, target.hex)) return IDLE;
-  return { kind: 'lead', id: flow.id, to: { q: target.hex.q, r: target.hex.r } };
+  if (!lure) return IDLE;
+  // A character, a cart or another lure drawn on a hex stands for that hex.
+  const hex =
+    target.kind === 'hex'
+      ? target.hex
+      : target.kind === 'character'
+        ? (() => {
+            const at = findCharacter(state, target.id)?.at;
+            return at?.kind === 'hex' ? at.hex : null;
+          })()
+        : target.kind === 'lure'
+          ? (lureById(state, target.id)?.hex ?? null)
+          : target.kind === 'cart'
+            ? (state.carts.find((c) => c.id === target.id)?.hex ?? null)
+            : null;
+  if (!hex || !canLeadTo(state, lure, hex)) return IDLE;
+  return { kind: 'lead', id: flow.id, to: { q: hex.q, r: hex.r } };
 }
 
 /** The button on a lure's card: lead mode, with the targets lit (a tap on the same button again lets go). */

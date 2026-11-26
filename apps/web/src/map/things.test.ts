@@ -14,7 +14,9 @@ import { describe, expect, it } from 'vitest';
 import { type SeasonStage, seasonScenario, USERS } from '../api/fixtures.ts';
 import { momentsFromEvents } from '../game/moments.ts';
 import { PROJECTION } from './art.ts';
-import { cartFeet, lureFeet } from './figures.ts';
+import { cartFeet, lureFeet, pickableFeet } from './figures.ts';
+import { cartToggles } from '../game/cart.ts';
+import { leadTargets as leadTargetsOf } from '../game/lure.ts';
 import { type Flow, IDLE, startLead, tap, tapHex } from './flow.ts';
 import { mapTipAt } from './mapTips.ts';
 import { buildOverlays } from './overlays.ts';
@@ -277,5 +279,53 @@ describe('moments for the new events', () => {
       'cart-unload',
       'cart-lost',
     ]);
+  });
+});
+
+describe('review fixes', () => {
+  it('lead mode takes a tap on a figure standing on a target hex as that hex', () => {
+    const g = staged({ lures: [{ at: NEXT }] });
+    const mode: Flow = { kind: 'lead', id: 'lure-1' };
+    const lure = g.view.lures[0]!;
+    const free = leadTargetsOf(g.view, lure)[0]!;
+    const other = g.view.characters.find((c) => c.id !== g.me)!.id;
+    const moved = {
+      ...g.view,
+      characters: g.view.characters.map((c) =>
+        c.id === other ? { ...c, at: { kind: 'hex' as const, hex: free } } : c,
+      ),
+    };
+    expect(tap(mode, moved, g.me, { kind: 'character', id: other })).toMatchObject({
+      kind: 'lead',
+      to: free,
+    });
+    const withCart = {
+      ...g.view,
+      carts: [{ id: 'cart-9', hex: free, cargo: {}, puller: null, rider: null }],
+    };
+    expect(tap(mode, withCart, g.me, { kind: 'cart', id: 'cart-9' })).toMatchObject({
+      kind: 'lead',
+      to: free,
+    });
+  });
+
+  it('arms every button but the ones flagged to run on one tap', () => {
+    const open = staged({ carts: [{ at: START }] });
+    expect(cartToggles(open.view, open.me).map((t) => t.noArm)).toEqual([undefined, undefined]);
+    const pulling = staged({ carts: [{ at: START, puller: 'me' }] });
+    expect(cartToggles(pulling.view, pulling.me).find((t) => t.kind === 'unhitch')?.noArm).toBe(
+      true,
+    );
+  });
+
+  it('selects you, not the lure or cart, when your figure is tapped on a shared hex', () => {
+    const g = staged({ lures: [{ at: START }], carts: [{ at: START }] });
+    const feet = pickableFeet(g.view, g.me, PROJECTION);
+    expect(feet.others.flatMap((o) => (o.kind ? [o.kind] : []))).toEqual(['lure', 'cart']);
+    const mine = feet.mine!;
+    for (const dy of [-0.5, -0.3, -0.1]) {
+      const at = { x: mine.x, y: mine.y + dy * PROJECTION.size };
+      expect(pickTarget(PROJECTION, at, feet.mine, feet.others)).toEqual({ kind: 'me' });
+    }
   });
 });

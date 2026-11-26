@@ -54,6 +54,8 @@ export interface CartToggle {
   readonly enabled: boolean;
   /** The state is on now: you pull, or you ride (the button undoes it). */
   readonly done: boolean;
+  /** Letting go and leaving are free and undone by a tap: one tap runs them. */
+  readonly noArm?: boolean;
   readonly why?: TipId;
 }
 
@@ -74,9 +76,17 @@ function toggle(
   done: boolean,
 ): CartToggle | null {
   const check = checkAction(game, characterId, { kind });
-  if (check.ok) return { kind, cost: check.cost, enabled: true, done };
+  const noArm = kind === 'unhitch' || kind === 'leave-cart';
+  if (check.ok) return { kind, cost: check.cost, enabled: true, done, ...(noArm ? { noArm } : {}) };
   if (NOT_OFFERED.has(check.reason) || check.cost === undefined) return null;
-  return { kind, cost: check.cost, enabled: false, done, why: whyTip(check.reason) };
+  return {
+    kind,
+    cost: check.cost,
+    enabled: false,
+    done,
+    why: whyTip(check.reason),
+    ...(noArm ? { noArm } : {}),
+  };
 }
 
 /**
