@@ -130,7 +130,8 @@ export function pickEntries(state: GameStateView, characterId: string, hex: Hex)
 function tapMe(flow: Flow, state: GameStateView, characterId: string, hex: Hex): Flow {
   const me = findCharacter(state, characterId);
   if (isSelecting(flow)) return IDLE;
-  if (me && me.actionsLeft > 0) return { kind: 'selected' };
+  // Pinned, you still open your card: its actions show greyed, with why.
+  if (me && (me.actionsLeft > 0 || me.pinnedDay !== undefined)) return { kind: 'selected' };
   return look(flow, state, hex);
 }
 
@@ -218,7 +219,7 @@ export function tap(flow: Flow, state: GameStateView, characterId: string, targe
   if (onMe && active) {
     // Your own character first: select it, or let go of it.
     if (isSelecting(flow)) return IDLE;
-    if (me.actionsLeft > 0) return { kind: 'selected' };
+    if (me.actionsLeft > 0 || me.pinnedDay !== undefined) return { kind: 'selected' };
     return look(flow, state, to.hex);
   }
   // A threat's hex opens its card (its strike, when you are near), even while selected: no one plans a walk

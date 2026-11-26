@@ -68,13 +68,24 @@ describe('brazier', () => {
     expect(count(cold, 'data-fire', 'glow')).toBe(0);
     const nights = (n: number): string =>
       svgOf(drawBrazier(SPRING, { lit: true, nightsLeft: n }).nodes);
-    expect(new Set([0, 1, 2, 3].map(nights)).size).toBe(4);
+    expect(new Set([0, 1, 2, 3, 4].map(nights)).size).toBe(5);
     // Out-of-range and bad values clamp, they never throw.
-    expect(nights(9)).toBe(nights(3));
+    expect(nights(9)).toBe(nights(4));
     expect(nights(Number.NaN)).toBe(nights(0));
     // Cold ignores nights: the same ash whatever is passed.
     expect(svgOf(drawBrazier(SPRING, { lit: false, nightsLeft: 1 }).nodes)).toBe(
       svgOf(drawBrazier(SPRING, { lit: false, nightsLeft: 3 }).nodes),
+    );
+  });
+
+  it('cold and stocked lays sticks in the bowl instead of ash; lit ignores it', () => {
+    const stocked = el('g', {}, drawBrazier(SPRING, { lit: false, stocked: true, seed: 1 }).nodes);
+    const plain = el('g', {}, drawBrazier(SPRING, { lit: false, seed: 1 }).nodes);
+    expect(count(stocked, 'data-stocked', 'true')).toBe(1);
+    expect(count(plain, 'data-stocked', 'true')).toBe(0);
+    within(stocked, SPRING);
+    expect(svgOf(drawBrazier(SPRING, { lit: true, stocked: true, seed: 1 }).nodes)).toBe(
+      svgOf(drawBrazier(SPRING, { lit: true, seed: 1 }).nodes),
     );
   });
 
@@ -88,19 +99,19 @@ describe('brazier', () => {
 });
 
 describe('nights-left mark', () => {
-  it('shows one lit ember per night, three slots, no numbers', () => {
-    for (const n of [0, 1, 2, 3]) {
+  it('shows one lit ember per night, four slots, no numbers', () => {
+    for (const n of [0, 1, 2, 3, 4]) {
       const m = drawNightsLeft(SPRING, n, 30);
       expect(count(m, 'data-ember', 'lit')).toBe(n);
-      expect(count(m, 'data-ember', 'spent')).toBe(3 - n);
+      expect(count(m, 'data-ember', 'spent')).toBe(4 - n);
       within(m);
     }
-    expect(drawNightsLeft(SPRING, 7).children).toEqual(drawNightsLeft(SPRING, 3).children);
+    expect(drawNightsLeft(SPRING, 7).children).toEqual(drawNightsLeft(SPRING, 4).children);
   });
 
   it('sizes itself, falling back on a bad size', () => {
     expect(drawNightsLeft(SPRING, 2, 40).attrs.height).toBe(40);
-    expect(drawNightsLeft(SPRING, 2, 40).attrs.width).toBe(90);
+    expect(drawNightsLeft(SPRING, 2, 40).attrs.width).toBe(120);
     expect(drawNightsLeft(SPRING, 2, Number.NaN).attrs.height).toBe(24);
   });
 });

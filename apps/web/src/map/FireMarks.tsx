@@ -15,7 +15,7 @@ const placed = (node: SvgNode, x: number, y: number): JSX.Element =>
 export const FIRE_MARK = 20;
 const NIGHTS_H = 16;
 /** Width of the nights-left mark. */
-export const NIGHTS_W = NIGHTS_H * 2.25;
+export const NIGHTS_W = NIGHTS_H * 3;
 
 /** The `fears-fire` mark (a flame crossed out) at (x, y). */
 export function FearsFireMark({ x, y }: { x: number; y: number }): JSX.Element {

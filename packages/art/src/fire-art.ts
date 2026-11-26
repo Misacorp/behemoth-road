@@ -25,13 +25,15 @@ type Raw = readonly (readonly [number, number])[];
 /** The brazier's height to its rim in drawing units (a character is about 47 at the same scale). */
 export const BRAZIER_HEIGHT = 46;
 /** Most nights a lit brazier shows (notches and embers). */
-export const NIGHTS_MAX = 3;
+export const NIGHTS_MAX = 4;
 
 export interface BrazierOptions extends TraceOptions {
   /** Burning (flame, glow on its own hex) or cold (ash in the bowl). */
   readonly lit: boolean;
   /** Nights of fuel left, scratched as notches on its face while lit (0 to 3; default none). */
   readonly nightsLeft?: number;
+  /** Cold but stocked (found with wood laid in the bowl): a few sticks laid in it instead of ash. */
+  readonly stocked?: boolean;
 }
 
 const clampNights = (n: number | undefined): number =>
@@ -151,7 +153,7 @@ export function drawBrazier(palette: Palette, opts: BrazierOptions): Drawn {
     // Notches scratched on the second tier: one per night left.
     if (nights > 0) {
       const notches = Array.from({ length: nights }, (_, i) => {
-        const x = -4 + i * 4;
+        const x = -6 + i * 4;
         return poly(
           pts([
             [x, -14],
@@ -202,6 +204,25 @@ export function drawBrazier(palette: Palette, opts: BrazierOptions): Drawn {
       P(g.x - 52 * c.k, g.y - 52 * c.k * c.squash),
       P(g.x + 52 * c.k, g.y + 52 * c.k * c.squash),
     );
+  } else if (opts.stocked) {
+    // Cold but stocked: a few sticks laid crosswise in the bowl, ready to light.
+    const sticks = [
+      pts([[-8 + lean, brim - 0.5], [5 + lean, brim - 5.5]]),
+      pts([[8 + lean, brim - 0.5], [-5 + lean, brim - 5.5]]),
+      pts([[-6 + lean, brim - 4], [6 + lean, brim - 3.6]]),
+    ];
+    all.push(...sticks.flat());
+    nodes.push(
+      fill(smoothClosed(blob(lean, brim - 0.4, 9, 1.8)), pal.ramps.rock.shade, 0.6),
+      el(
+        'g',
+        { 'data-stocked': 'true' },
+        sticks.flatMap((s) => [
+          el('path', { d: poly(s, false), ...inkAttrs(pal.ramps.bark.shade, c.ink * 2.4) }),
+          el('path', { d: poly(s, false), ...inkAttrs(pal.ramps.bark.light, c.ink * 1.1) }),
+        ]),
+      ),
+    );
   } else {
     // Cold: a heap of grey ash and a few charred ends.
     const ash = blob(lean, brim - 0.4, 9, 1.8);
@@ -235,10 +256,10 @@ export function drawNightsLeft(palette: Palette, nights: number, size = 24): Svg
   const pal = palette;
   const ember = (x: number): string =>
     `M${x} 6c-3 0-4.6-2-4.6-4.2 0-2 1.5-3 2-5.8 1.4 1.2 1.8 2.2 1.8 2.2.6-1 1.2-1.8 1.6-2.6.4 2.2 1.8 3.2 1.8 6.2 0 2.4-1.4 4.2-2.6 4.2z`;
-  const nodes = [0, 1, 2].map((i) => {
+  const nodes = [0, 1, 2, 3].map((i) => {
     const lit = i < n;
     return el('path', {
-      d: ember((i - 1) * 11),
+      d: ember((i - 1.5) * 11),
       fill: lit ? pal.accents.coral.base : 'none',
       stroke: lit ? pal.accents.coral.shade : pal.inkSoft,
       'stroke-width': lit ? 1.3 : 1,
@@ -248,9 +269,9 @@ export function drawNightsLeft(palette: Palette, nights: number, size = 24): Svg
     });
   });
   const h = px(size, 24);
-  return el('svg', { viewBox: '-18 -8 36 16', width: h * 2.25, height: h }, [
+  return el('svg', { viewBox: '-24 -8 48 16', width: h * 3, height: h }, [
     el('path', {
-      d: 'M-16 -7h32a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-32a1 1 0 0 1-1-1v-12a1 1 0 0 1 1-1z',
+      d: 'M-22 -7h44a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1h-44a1 1 0 0 1-1-1v-12a1 1 0 0 1 1-1z',
       fill: pal.paperDeep,
       stroke: pal.ink,
       'stroke-width': 0.9,

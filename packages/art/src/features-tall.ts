@@ -995,6 +995,7 @@ const berryBushes: FeatureDraw = (c, state) => {
 const brazier: FeatureDraw = (c, _state, art) =>
   drawBrazier(c.palette, {
     lit: art?.lit === true,
+    ...(art?.stocked ? { stocked: true } : {}),
     ...(art?.nightsLeft === undefined ? {} : { nightsLeft: art.nightsLeft }),
     origin: c.origin,
     k: c.k,

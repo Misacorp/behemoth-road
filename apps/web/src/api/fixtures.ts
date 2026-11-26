@@ -334,7 +334,8 @@ export function chainScenario(stage: ChainStage = {}): Scenario {
       ...(stage.brazierLit !== undefined
         ? [
             {
-              type: 'fire',
+              type: 'brazier-fire',
+              range: 5,
               hex: abs(CHAIN_SPOTS.start),
               litDay: day - (state.config.brazierNights - stage.brazierLit),
               nights: state.config.brazierNights,

@@ -175,7 +175,16 @@ export const GameStateViewSchema = v.object({
   characters: v.pipe(v.array(character), v.maxLength(64)),
   /** Revealed features only (the server leaves hidden ones out). */
   features: v.pipe(
-    v.record(hexKeyString, v.object({ type: id, revealed: v.boolean(), left: count })),
+    v.record(
+      hexKeyString,
+      v.object({
+        type: id,
+        revealed: v.boolean(),
+        left: count,
+        /** A brazier found stocked: its first lighting needs no wood. */
+        stocked: v.exactOptional(v.boolean()),
+      }),
+    ),
     v.check((f) => Object.keys(f).length <= 20_000, 'too many features'),
   ),
   /** The team stores, on the creature. */

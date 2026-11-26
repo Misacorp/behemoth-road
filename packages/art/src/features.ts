@@ -28,6 +28,8 @@ export interface FeatureArt {
   readonly lit?: boolean;
   /** A lit brazier's nights of fuel left (0 to 3), scratched on its face. */
   readonly nightsLeft?: number;
+  /** A cold brazier found stocked: sticks laid in the bowl. */
+  readonly stocked?: boolean;
 }
 
 /** Looks that are traps, for callers that only know the look. */
