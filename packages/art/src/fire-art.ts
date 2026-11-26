@@ -1,5 +1,5 @@
 /**
- * The fire rework's art: the brazier (a tall stone beacon cairn, cold or lit), the nights-left mark, the
+ * The fire rework's art: the brazier (a low stone bowl under a tall flame, cold or lit), the nights-left mark, the
  * fire ring over the hexes a burning fire guards, the `fears-fire` and `burnable` marks, the burnt deadfall
  * and snare, a pinned character under fallen stones, and the rockslide moment. Upright things draw like the
  * other features (rising from a soft footing, no pedestal); marks are self-contained `<svg>`s.
@@ -22,8 +22,8 @@ const px = (size: number, fallback: number): number =>
 
 type Raw = readonly (readonly [number, number])[];
 
-/** The brazier's height to its rim in drawing units (a character is about 47 at the same scale). */
-export const BRAZIER_HEIGHT = 46;
+/** The brazier's height to its rim in drawing units (a character is about 47 at the same scale): a low stone bowl. */
+export const BRAZIER_HEIGHT = 16;
 /** Most nights a lit brazier shows (notches and embers). */
 export const NIGHTS_MAX = 4;
 
@@ -98,12 +98,14 @@ export function drawBrazier(palette: Palette, opts: BrazierOptions): Drawn {
     }),
   );
 
-  // Four tapering tiers, each a little off line, the right face shaded.
-  const tierH = 10;
-  for (let i = 0; i < 4; i += 1) {
-    const w = 15 - i * 2.2;
-    const y0 = -i * tierH;
-    const y1 = y0 - tierH - 0.6;
+  // Two squat tiers, each a little off line, the right face shaded: the stone is low so the flame leads.
+  const tiers: readonly [number, number][] = [
+    [15, 7.4],
+    [12.6, 5.6],
+  ];
+  let y0 = 0;
+  tiers.forEach(([w, h], i) => {
+    const y1 = y0 - h;
     const off = lean * i * 0.5 + (i % 2 ? 0.8 : -0.6);
     const body = pts([
       [off - w, y0],
@@ -123,22 +125,23 @@ export function drawBrazier(palette: Palette, opts: BrazierOptions): Drawn {
       fill(poly(face), pal.ramps.rock.shade, 0.35),
       line(poly(body), 0.9),
     );
-  }
+    y0 = y1;
+  });
   // The bowl: a flared stone cup, dark inside.
-  const top = -4 * tierH;
+  const top = y0;
   const bowl = pts([
-    [-8 + lean, top - 0.4],
-    [-12.5 + lean, top - 5.4],
-    [12.5 + lean, top - 5.4],
-    [8 + lean, top - 0.4],
+    [-9 + lean, top - 0.4],
+    [-13.5 + lean, top - 3.6],
+    [13.5 + lean, top - 3.6],
+    [9 + lean, top - 0.4],
   ]);
   const bowlFace = pts([
     [3 + lean, top - 0.4],
-    [4 + lean, top - 5],
-    [12.5 + lean, top - 5.4],
-    [8 + lean, top - 0.4],
+    [4 + lean, top - 3.4],
+    [13.5 + lean, top - 3.6],
+    [9 + lean, top - 0.4],
   ]);
-  const rim = blob(lean, top - 5.4, 12.5, 2.8);
+  const rim = blob(lean, top - 3.6, 13.5, 2.8);
   all.push(...bowl, ...rim);
   nodes.push(
     fill(poly(bowl), pal.ramps.stone.base),
@@ -147,17 +150,17 @@ export function drawBrazier(palette: Palette, opts: BrazierOptions): Drawn {
     fill(smoothClosed(rim), pal.ramps.rock.shade),
     line(smoothClosed(rim), 0.9),
   );
-  const brim = top - 5.4;
+  const brim = top - 3.6;
 
   if (opts.lit) {
-    // Notches scratched on the second tier: one per night left.
+    // Notches scratched on the foot tier: one per night left.
     if (nights > 0) {
       const notches = Array.from({ length: nights }, (_, i) => {
         const x = -6 + i * 4;
         return poly(
           pts([
-            [x, -14],
-            [x - 0.4, -18.5],
+            [x, -1.6],
+            [x - 0.4, -5.6],
           ]),
           false,
         );
@@ -169,18 +172,18 @@ export function drawBrazier(palette: Palette, opts: BrazierOptions): Drawn {
     // Embers glow on the rim, then the flame stands in the bowl and rises past it.
     const Tf = mapper(
       { x: c.origin.x + lean * c.k, y: c.origin.y + (brim + 1) * c.k * c.rise },
-      c.k * 1.15,
+      c.k * 2.7,
       1,
-      c.k * c.rise * 1.45,
+      c.k * c.rise * 2.4,
     );
     const tall = (raw: Raw): Point[] => raw.map(([x, y]) => Tf(x, y));
     const flame = tall(shapes.flame);
     const core = tall(shapes.core);
-    const smoke = tall(shapes.smoke.slice(0, 5));
-    const spark = Tf(6 + sway, -16);
+    const smoke = tall(shapes.smoke.slice(0, 4));
+    const spark = Tf(4.5 + sway, -17);
     all.push(...flame, ...smoke);
     nodes.push(
-      fill(smoothClosed(blob(lean, brim, 10, 2)), pal.accents.ochre.light, 0.9),
+      fill(smoothClosed(blob(lean, brim, 11, 2)), pal.accents.ochre.light, 0.9),
       el('path', { d: smoothClosed(flame), fill: pal.accents.coral.base, 'data-fire': 'flame' }),
       el('path', { d: smoothClosed(core), fill: pal.accents.ochre.light, 'data-fire': 'flame' }),
       el('path', {
@@ -331,9 +334,49 @@ export function drawFireRing(p: Projection, hex: Hex, palette: Palette, radius =
   ]);
 }
 
-/** The flame of `drawFire`, shrunk to sit in a 24-unit mark. */
-const markFlame = (): string =>
-  smoothClosed(flameShapes(0).flame.map(([x, y]) => P(x * 0.62, y * 0.62 + 5.5)));
+/**
+ * A jagged, multi-tongue flame (three pointed tongues with sharp notches between) from its base centre
+ * (`cx`, `by`), `w` wide and `h` tall, as a polygon. Used by the small marks so no one reads them as a drop.
+ */
+export function jaggedFlame(cx: number, by: number, w: number, h: number): Point[] {
+  const raw: Raw = [
+    [-0.92, 0],
+    [-1, -0.38],
+    [-0.64, -0.66],
+    [-0.46, -0.34],
+    [-0.2, -0.58],
+    [0.02, -1],
+    [0.22, -0.56],
+    [0.36, -0.34],
+    [0.64, -0.78],
+    [0.82, -0.42],
+    [1, -0.3],
+    [0.92, 0],
+  ];
+  return raw.map(([x, y]) => P(cx + x * w * 0.5, by + y * h));
+}
+
+/** The pale inner flame of `jaggedFlame`: the same shape, small and low. */
+const jaggedCore = (cx: number, by: number, w: number, h: number): Point[] =>
+  jaggedFlame(cx, by - h * 0.04, w * 0.5, h * 0.55);
+
+/** The two-tone jagged flame as nodes: coral body with an ink-soft edge, pale core. */
+export const jaggedFlameNodes = (
+  pal: Palette,
+  cx: number,
+  by: number,
+  w: number,
+  h: number,
+): SvgNode[] => [
+  el('path', {
+    d: poly(jaggedFlame(cx, by, w, h)),
+    fill: pal.accents.coral.base,
+    stroke: pal.accents.coral.shade,
+    'stroke-width': 1,
+    'stroke-linejoin': 'round',
+  }),
+  el('path', { d: poly(jaggedCore(cx, by, w, h)), fill: pal.accents.ochre.light }),
+];
 
 const disc = (pal: Palette): SvgNode =>
   el('path', {
@@ -343,38 +386,119 @@ const disc = (pal: Palette): SvgNode =>
     'stroke-width': 1.4,
   });
 
-/** The `fears-fire` mark for a threat, tips and the glossary: a small flame crossed by a slash, on a paper disc. */
+/**
+ * The `fears-fire` mark for a threat, tips and the glossary: a small beast rearing back from a flame, its
+ * forelegs up and speed lines behind it, on a paper disc.
+ */
 export function drawFearsFireMark(palette: Palette, size = 24): SvgNode {
   const pal = palette;
   const s = px(size, 24);
-  return el('svg', { viewBox: '-12 -12 24 24', width: s, height: s }, [
+  const line = (d: string, width: number, colour: string): SvgNode =>
+    el('path', { d, ...inkAttrs(colour, width) });
+  const hide = pal.ramps.hide;
+  return el('svg', { viewBox: '-12 -12 24 24', width: s, height: s, 'data-mark': 'fears-fire' }, [
     disc(pal),
+    // The flame, low at the left.
+    ...jaggedFlameNodes(pal, -6.2, 8, 6.6, 9.5),
+    // Speed lines trailing the beast.
+    line('M6.2 -5.6L9.4 -5.6M7.2 -3.2L10.2 -3.2M8 -0.8L10.4 -0.8', 1, pal.inkSoft),
+    // Raised forelegs, hind legs braced, a curled tail.
+    line('M0.8 3.6L-1.8 1.2M2.6 4.6L0.6 6.6', 1.4, pal.ink),
+    line('M3.6 6.2L3 8.8M6.6 6.2L7.2 8.8', 1.4, pal.ink),
+    line('M7.8 2.6C10.2 2.8 10.4 -0.4 8.6 -0.8', 1.3, pal.ink),
+    // Body leaning back, head thrown up with an ear, a snout and a wide eye.
     el('path', {
-      d: markFlame(),
-      fill: pal.accents.coral.base,
-      stroke: pal.accents.coral.shade,
+      d: 'M1.6 3.4C1.8 0.8 5.2 -0.4 7.4 1.2C8.8 2.6 8.2 5.6 5.4 6.2C3 6.6 1.4 5.6 1.6 3.4Z',
+      fill: hide.base,
+      stroke: pal.ink,
       'stroke-width': 1.1,
       'stroke-linejoin': 'round',
     }),
-    el('path', { d: 'M-7 -7L7 7', ...inkAttrs(pal.paper, 2.8) }),
-    el('path', { d: 'M-7 -7L7 7', ...inkAttrs(pal.ink, 1.2) }),
+    el('path', {
+      d: 'M0.8 -3.6L2.2 -5.8L3.6 -3.4Z',
+      fill: hide.shade,
+      stroke: pal.ink,
+      'stroke-width': 0.9,
+      'stroke-linejoin': 'round',
+    }),
+    el('path', {
+      d: ellipsePath(1.6, -1.6, 2.9, 2.6),
+      fill: hide.light,
+      stroke: pal.ink,
+      'stroke-width': 1.1,
+    }),
+    el('path', { d: ellipsePath(1, -2, 0.75, 0.75), fill: pal.ink }),
   ]);
 }
 
-/** The `burnable` hint for tips: a flame in dashed outline only (it could take fire), on a paper disc. */
+/**
+ * The `burnable` hint for tips: a log with a twig and a small jagged flame licking up from it (it could
+ * take fire), on a paper disc.
+ */
 export function drawBurnableMark(palette: Palette, size = 24): SvgNode {
   const pal = palette;
   const s = px(size, 24);
-  return el('svg', { viewBox: '-12 -12 24 24', width: s, height: s }, [
+  const bark = pal.ramps.bark;
+  const log = 'M-8.4 6.6L7.6 6.6';
+  return el('svg', { viewBox: '-12 -12 24 24', width: s, height: s, 'data-mark': 'burnable' }, [
     disc(pal),
+    el('path', { d: 'M3.4 6L7.2 2.2M2 6L-1 2.4', ...inkAttrs(bark.shade, 1.4) }),
+    el('path', { d: log, ...inkAttrs(bark.shade, 5) }),
+    el('path', { d: log, ...inkAttrs(bark.base, 3.2) }),
     el('path', {
-      d: markFlame(),
+      d: ellipsePath(-8.4, 6.6, 1.5, 2.4),
+      fill: pal.ramps.sand.light,
+      stroke: bark.shade,
+      'stroke-width': 0.8,
+    }),
+    ...jaggedFlameNodes(pal, -0.4, 5, 9.6, 12),
+  ]);
+}
+
+/**
+ * The fire glow: a clear warm orange wash laid on the ground of a lit brazier's own hex and the hexes within
+ * `radius` (default 1) of it, strongest at the brazier and fading out, with the hex edges faintly lit.
+ * Draw it on the ground plane under the props (drawing coordinates, like `drawFireRing`). A cold brazier
+ * has none. Carries `data-fire-glow="q,r"`.
+ */
+export function drawFireGlow(p: Projection, hex: Hex, palette: Palette, radius = 1): SvgNode {
+  const reach = Number.isFinite(radius) ? Math.max(0, Math.min(4, Math.round(radius))) : 1;
+  const c = hexCenter(p, hex.q, hex.r);
+  const fillD: string[] = [];
+  for (let dq = -reach; dq <= reach; dq += 1)
+    for (let dr = -reach; dr <= reach; dr += 1)
+      if (hexDistance({ q: 0, r: 0 }, { q: dq, r: dr }) <= reach)
+        fillD.push(poly(hexCorners(p, hexCenter(p, hex.q + dq, hex.r + dr))));
+  const id = `fire_glow_${palette.id}_${hex.q}_${hex.r}_${reach}`.replaceAll('-', 'm');
+  const rx = p.size * (Math.sqrt(3) * reach + 1);
+  const stop = (offset: string, colour: string, opacity: number): SvgNode =>
+    el('stop', { offset, 'stop-color': colour, 'stop-opacity': opacity });
+  return el('g', { 'data-fire-glow': `${hex.q},${hex.r}` }, [
+    el('defs', {}, [
+      el(
+        'radialGradient',
+        {
+          id,
+          gradientUnits: 'userSpaceOnUse',
+          cx: c.x,
+          cy: c.y,
+          r: rx,
+          gradientTransform: `translate(${c.x.toFixed(2)} ${c.y.toFixed(2)}) scale(1 ${p.squash.toFixed(3)}) translate(${(-c.x).toFixed(2)} ${(-c.y).toFixed(2)})`,
+        },
+        [
+          stop('0%', palette.accents.coral.base, 0.85),
+          stop('45%', palette.accents.coral.base, 0.55),
+          stop('100%', palette.accents.ochre.base, 0.3),
+        ],
+      ),
+    ]),
+    el('path', { d: fillD.join(''), fill: `url(#${id})` }),
+    el('path', {
+      d: fillD.join(''),
       fill: 'none',
-      stroke: pal.accents.coral.shade,
-      'stroke-width': 1.5,
-      'stroke-dasharray': '2.6 2',
-      'stroke-linejoin': 'round',
-      'stroke-linecap': 'round',
+      stroke: palette.accents.coral.base,
+      'stroke-width': Math.max(1, 1.2 * p.k),
+      opacity: 0.35,
     }),
   ]);
 }
@@ -460,11 +584,47 @@ export function drawBurnt(palette: Palette, look: string, opts: TraceOptions = {
 
 /** The character standee's height in its own units (`drawCharacter`). */
 const HEIGHT_UNITS = 50;
+/** How far a pinned character is laid over from upright, in degrees (90 is flat). */
+const LIE_DEGREES = 84;
+/** The parts `drawCharacter` draws first: a soft shadow, the footing disc and its outline. A test pins this. */
+export const FOOTING_NODES = 3;
 
 /**
- * Pinned: fallen stones heaped over a character's legs, a dust puff at their feet and motes in the air,
- * drawn over a standee at `origin` (its feet) with the same arguments as `drawCharacter`, so it sits on
- * any look. Parts carry `data-mark="pinned"`.
+ * A character pinned under a slide lies almost flat: the standee `drawn` at `origin` (its feet, same
+ * arguments as `drawCharacter`) turned onto its side, head to the left, resting on the ground. The standee's
+ * footing disc (its first `FOOTING_NODES` parts) stays out, since a lying figure has no stand.
+ * `drawPinned` then heaps the stones over it.
+ */
+export function liePinned(drawn: Drawn, origin: Point, size: number): Drawn {
+  const k = (size * ART_TUNING.characterHeight) / HEIGHT_UNITS;
+  const body = drawn.nodes.slice(FOOTING_NODES);
+  const lift = 9 * k;
+  const length = HEIGHT_UNITS * k;
+  return {
+    nodes: [
+      el(
+        'g',
+        {
+          transform: `translate(0 ${(-lift).toFixed(2)}) rotate(${-LIE_DEGREES} ${origin.x.toFixed(2)} ${origin.y.toFixed(2)})`,
+          'data-mark': 'pinned-body',
+        },
+        body,
+      ),
+    ],
+    box: {
+      x0: origin.x - length - 12 * k,
+      x1: origin.x + 14 * k,
+      y0: origin.y - lift - 14 * k,
+      y1: origin.y + 4 * k,
+    },
+  };
+}
+
+/**
+ * Pinned: fallen stones heaped over the middle of a character who lies almost flat on the ground (see
+ * `liePinned`, which lays the standee down), their head and one arm reaching out past the stones, a dust
+ * puff at the feet and motes in the air. `origin` is the standee's feet, with the same arguments as
+ * `drawCharacter`. Parts carry `data-mark="pinned"`.
  */
 export function drawPinned(
   palette: Palette,
@@ -474,10 +634,8 @@ export function drawPinned(
   ink: number,
 ): Drawn {
   const k = (size * ART_TUNING.characterHeight) / HEIGHT_UNITS;
-  // The heap is drawn well over life size so it reads at the map's zoom: wider than the figure, over its body.
-  const BIG = 1.9;
-  const T0 = mapper(origin, k, 1, k * riseFor(squash));
-  const T = (x: number, y: number): Point => T0(x * BIG, y * BIG);
+  // Local units run along the lying body: x is minus towards the head, y is up (negative).
+  const T = mapper(origin, k, 1, k * riseFor(squash));
   const pal = palette;
   const pts = (raw: Raw): Point[] => raw.map(([x, y]) => T(x, y));
   const w = ink * 0.95;
@@ -485,58 +643,62 @@ export function drawPinned(
   const all: Point[] = [];
   const sq = squash / 0.6;
   const rocks: readonly { raw: Raw; tone: 'light' | 'base' }[] = [
-    {
-      raw: [
-        [-12, 0.5],
-        [-13, -6],
-        [-8, -10],
-        [-2, -8],
-        [-1, 0.5],
-      ],
-      tone: 'base',
-    },
+    // The low back stone over the feet.
     {
       raw: [
         [-3, 0.5],
-        [-4, -9],
-        [1, -15.5],
-        [8, -13],
-        [9.5, -6],
-        [8, 0.5],
-      ],
-      tone: 'light',
-    },
-    {
-      raw: [
-        [5, 0.5],
-        [6, -5],
-        [11.5, -7.5],
-        [14, -2],
-        [13, 0.5],
+        [-3.6, -8],
+        [2, -13],
+        [10, -10.5],
+        [12, 0.5],
       ],
       tone: 'base',
     },
+    // The big boulder across the hips and belly.
     {
       raw: [
-        [-9, -6],
-        [-7.5, -12.5],
-        [-1, -13.5],
-        [0.6, -8.5],
-        [-4, -6],
+        [-24, 0.5],
+        [-25.5, -10],
+        [-19, -19],
+        [-8.5, -21],
+        [-1.5, -14],
+        [-1, 0.5],
+      ],
+      tone: 'light',
+    },
+    // A stone against the chest.
+    {
+      raw: [
+        [-35, 0.5],
+        [-34.5, -9],
+        [-29.5, -13.5],
+        [-24, -9.5],
+        [-23, 0.5],
+      ],
+      tone: 'base',
+    },
+    // One resting on the big boulder.
+    {
+      raw: [
+        [-18, -15],
+        [-16, -23.5],
+        [-9, -25],
+        [-6.5, -18],
+        [-11, -14],
       ],
       tone: 'light',
     },
   ];
   const dust = [
-    [-15, 1, 3.6],
-    [-8, 3.4, 3],
-    [10, 3, 3.4],
-    [16, 0.8, 2.8],
+    [14, 1, 3.6],
+    [9, 3.2, 3],
+    [-37, 3, 3],
+    [-27, 3.4, 3.4],
   ] as const;
   nodes.push(
     el('path', {
       d: dust
-        .map(([x, y, r]) => ellipsePath(T(x, y).x, T(x, y).y, r * k * BIG, r * 0.62 * k * BIG * sq))
+        .map(([x, y, r]) => ellipsePath(T(x, y).x, T(x, y).y, r * k, r * 0.62 * k * sq))
         .join(''),
       fill: pal.ramps.earth.light,
       stroke: pal.inkSoft,
@@ -545,7 +707,36 @@ export function drawPinned(
       'data-mark': 'pinned',
     }),
   );
-  all.push(T(-19, 4), T(19, 4));
+  all.push(T(-62, -12), T(17, 5));
+  // The arm reaching out past the head: a sleeve, then a hand with fingers.
+  const shoulder = T(-37, -3.4);
+  const wrist = T(-58, -2.6);
+  const hand = T(-61, -3);
+  nodes.push(
+    el('path', {
+      d: poly([shoulder, T(-48, -5.4), wrist], false),
+      ...inkAttrs(pal.ink, w * 1.1 + 5.4 * k),
+      'data-mark': 'pinned',
+    }),
+    el('path', {
+      d: poly([shoulder, T(-48, -5.4), wrist], false),
+      ...inkAttrs(pal.ramps.hide.base, 5.4 * k),
+      'data-mark': 'pinned',
+    }),
+    el('path', {
+      d: ellipsePath(hand.x, hand.y, 3.2 * k, 2.4 * k * sq),
+      fill: pal.skin,
+      stroke: pal.ink,
+      'stroke-width': w * 0.9,
+      'data-mark': 'pinned',
+    }),
+    el('path', {
+      d: poly([T(-63, -4.6), T(-66, -6)], false) + poly([T(-63.5, -2.4), T(-66.5, -2.6)], false),
+      ...inkAttrs(pal.ink, w * 0.8),
+      'data-mark': 'pinned',
+    }),
+  );
+  all.push(T(-67, -7), T(-67, 2));
   for (const r of rocks) {
     const body = pts(r.raw);
     all.push(...body);
@@ -554,13 +745,13 @@ export function drawPinned(
       el('path', { ...inkAttrs(pal.ink, w), d: poly(body), 'data-mark': 'pinned' }),
     );
   }
-  const motes = [T(-13, -17), T(-6, -22), T(12, -16), T(15, -10)];
+  const motes = [T(-30, -22), T(-14, -29), T(8, -17), T(13, -10)];
   all.push(...motes);
   nodes.push(
     el('path', {
       d: motes
         .map((m, i) =>
-          ellipsePath(m.x, m.y, (1.1 - (i % 2) * 0.3) * k * BIG, (1.1 - (i % 2) * 0.3) * k * BIG),
+          ellipsePath(m.x, m.y, (1.1 - (i % 2) * 0.3) * k * 1.4, (1.1 - (i % 2) * 0.3) * k * 1.4),
         )
         .join(''),
       fill: pal.inkSoft,

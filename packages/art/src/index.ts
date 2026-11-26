@@ -111,9 +111,13 @@ export {
   drawBurnableMark,
   drawBurnt,
   drawFearsFireMark,
+  drawFireGlow,
   drawFireRing,
   drawNightsLeft,
   drawPinned,
+  jaggedFlame,
+  jaggedFlameNodes,
+  liePinned,
   FIRE_MOMENT_KINDS,
   NIGHTS_MAX,
   type BrazierOptions,
@@ -205,3 +209,26 @@ export {
   type GateSignKind,
   type StoryVignetteId,
 } from './story-art.ts';
+export {
+  BLOCKED_REASONS,
+  drawBlockedHexes,
+  type BlockedOptions,
+  type BlockedReason,
+} from './blocked.ts';
+export { drawHazardIcon, drawScreeField, HAZARD_ICON_KEYS, type HazardIconKey } from './hazards.ts';
+export {
+  CAPYBARA_STATES,
+  drawCapybara,
+  drawLeadsLeft,
+  LEADS_MAX,
+  type CapybaraState,
+} from './lure-art.ts';
+export {
+  CARGO_SLOTS_MAX,
+  CART_STATES,
+  drawCargoFill,
+  drawCart,
+  type CartOptions,
+  type CartState,
+} from './cart-art.ts';
+export { drawOddsMark, ODDS_FAILURES, type OddsFailure, type OddsOptions } from './odds.ts';

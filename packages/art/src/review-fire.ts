@@ -10,7 +10,9 @@ import {
   drawBurnableMark,
   drawBurnt,
   drawFearsFireMark,
+  drawFireGlow,
   drawFireRing,
+  liePinned,
   drawNightsLeft,
   drawPinned,
   FIRE_MOMENT_KINDS,
@@ -18,7 +20,7 @@ import {
 import { hexCorners } from './projection.ts';
 import { drawIcon } from './icons.ts';
 import { drawMoment } from './marks.ts';
-import { PALETTES, SPRING, type Palette } from './palette.ts';
+import { SPRING, type Palette } from './palette.ts';
 import { hexCenter, isometric } from './projection.ts';
 import { inkWidth, riseFor, type PropContext } from './props.ts';
 import { rngFor } from './rng.ts';
@@ -44,26 +46,23 @@ const placed = (node: SvgNode, x: number, y: number): SvgNode =>
 
 const wrap = (nodes: SvgNode[]): SvgNode => el('g', {}, nodes);
 
-/** The brazier cold, then lit with three, two, one and no nights left, in every palette (one row each). */
+/** The brazier cold, stocked, then lit with three, two, one and no nights left (Spring, the chosen palette). */
 function brazierSheet(): string {
-  const k = 1.5;
+  const k = 1.8;
   const nodes: SvgNode[] = [];
-  PALETTES.forEach((pal, row) => {
-    const y = 175 + row * 230;
-    nodes.push(el('rect', { x: 0, y: row * 230, width: 720, height: 230, fill: pal.paper }));
-    [
-      { lit: false },
-      { lit: true, nightsLeft: 3 },
-      { lit: true, nightsLeft: 2 },
-      { lit: true, nightsLeft: 1 },
-      { lit: true, nightsLeft: 0 },
-    ].forEach((o, i) => {
-      nodes.push(
-        wrap(drawBrazier(pal, { ...o, origin: { x: 70 + i * 135, y }, k, seed: i }).nodes),
-      );
-    });
+  [
+    { lit: false },
+    { lit: false, stocked: true },
+    { lit: true, nightsLeft: 3 },
+    { lit: true, nightsLeft: 2 },
+    { lit: true, nightsLeft: 1 },
+    { lit: true, nightsLeft: 0 },
+  ].forEach((o, i) => {
+    nodes.push(
+      wrap(drawBrazier(PALETTE, { ...o, origin: { x: 70 + i * 115, y: 190 }, k, seed: i }).nodes),
+    );
   });
-  return sheet(720, PALETTES.length * 230, nodes);
+  return sheet(720, 240, nodes);
 }
 
 /** A patch of ground with a lit brazier, its fire ring (radius 1) and fogged hexes, beside a cold one. */
@@ -100,6 +99,7 @@ function ringSheet(): string {
     el('svg', { viewBox: `${vb.x} ${vb.y} ${vb.width} ${vb.height}`, width: w, height: h }, [
       el('rect', { x: vb.x, y: vb.y, width: vb.width, height: vb.height, fill: PALETTE.paper }),
       ...scene.svg.children,
+      drawFireGlow(p, brazier, PALETTE),
       drawFireRing(p, brazier, PALETTE),
       wrap(
         drawBrazier(PALETTE, {
@@ -151,10 +151,11 @@ function pinnedBurntSheet(): string {
   const ink = ART_TUNING.inkWidth * 1.6;
   const tilt = ART_TUNING.tilt;
   looks.forEach(({ accent, look }, i) => {
-    const origin = { x: 80 + i * 150, y: 170 };
+    const origin = { x: 210 + i * 0, y: 90 + i * 100 };
     nodes.push(
       wrap([
-        ...drawCharacter(PALETTE, accent, origin, 150, tilt, ink, look).nodes,
+        ...liePinned(drawCharacter(PALETTE, accent, origin, 150, tilt, ink, look), origin, 150)
+          .nodes,
         ...drawPinned(PALETTE, origin, 150, tilt, ink).nodes,
       ]),
     );
@@ -162,7 +163,7 @@ function pinnedBurntSheet(): string {
   // A free character beside them, for scale.
   const free = looks[0]!;
   nodes.push(
-    wrap(drawCharacter(PALETTE, free.accent, { x: 530, y: 170 }, 150, tilt, ink, free.look).nodes),
+    wrap(drawCharacter(PALETTE, free.accent, { x: 560, y: 110 }, 150, tilt, ink, free.look).nodes),
   );
   const ctx = (x: number, y: number, seed: string): PropContext => ({
     palette: PALETTE,
@@ -174,12 +175,12 @@ function pinnedBurntSheet(): string {
     rise: riseFor(tilt),
   });
   nodes.push(
-    wrap(featureDrawer('deadfall')(ctx(80, 330, 'a'), 'ready').nodes),
-    wrap(drawBurnt(PALETTE, 'deadfall', { origin: { x: 240, y: 330 }, k: 1.5, seed: 1 }).nodes),
-    wrap(featureDrawer('snare')(ctx(400, 330, 'b'), 'ready').nodes),
-    wrap(drawBurnt(PALETTE, 'snare', { origin: { x: 540, y: 330 }, k: 1.5, seed: 2 }).nodes),
+    wrap(featureDrawer('deadfall')(ctx(80, 430, 'a'), 'ready').nodes),
+    wrap(drawBurnt(PALETTE, 'deadfall', { origin: { x: 240, y: 430 }, k: 1.5, seed: 1 }).nodes),
+    wrap(featureDrawer('snare')(ctx(400, 430, 'b'), 'ready').nodes),
+    wrap(drawBurnt(PALETTE, 'snare', { origin: { x: 540, y: 430 }, k: 1.5, seed: 2 }).nodes),
   );
-  return sheet(640, 370, nodes);
+  return sheet(640, 470, nodes);
 }
 
 export function fireReviewItems(): ReviewDraft[] {
@@ -190,7 +191,7 @@ export function fireReviewItems(): ReviewDraft[] {
       id: 'fire/brazier',
       group,
       title:
-        'The old stone brazier in every palette: cold with ash, then lit with three, two, one and no nights left (notches on its face)',
+        'The low stone brazier with its tall flame: cold with ash, cold and stocked, then lit with three, two, one and no nights left (notches on its foot)',
       file: 'fire-brazier.svg',
       ...glance,
       svg: brazierSheet(),
@@ -199,7 +200,7 @@ export function fireReviewItems(): ReviewDraft[] {
       id: 'fire/ring',
       group,
       title:
-        'A lit brazier with its fire ring (the hexes within one step), a cold brazier beside it and fogged hexes at the edge',
+        'A lit brazier glowing orange on its own hex and the hexes within one step, with the fire ring round them, a cold brazier (no glow) beside it and fogged hexes at the edge',
       file: 'fire-ring.svg',
       ...glance,
       svg: ringSheet(),
@@ -208,7 +209,7 @@ export function fireReviewItems(): ReviewDraft[] {
       id: 'fire/marks',
       group,
       title:
-        'Nights left (none to three embers), fears fire, burnable, dig out and light fire icons, and the rockslide moment',
+        'Nights left (none to three embers), fears fire (a beast rearing from a flame), burnable (a log with a flame), dig out and light fire icons, and the rockslide moment',
       file: 'fire-marks.svg',
       ...glance,
       svg: marksSheet(),
@@ -217,7 +218,7 @@ export function fireReviewItems(): ReviewDraft[] {
       id: 'fire/pinned-burnt',
       group,
       title:
-        'Pinned under stones (three looks, a free character beside them); a deadfall and a snare, then burnt',
+        'Pinned: lying almost flat under stones, head and an arm out (three looks, a free character beside them); a deadfall and a snare, then burnt',
       file: 'fire-pinned-burnt.svg',
       ...glance,
       svg: pinnedBurntSheet(),

@@ -619,6 +619,113 @@ export const hintMark: PropDraw = (c) => {
 };
 
 /** Prop drawers by kind. Hand-drawn overrides can replace any entry (`renderScene`'s `overrides`). */
+/** Glass waste: a cluster of tall, dark, glassy spikes leaning from a pale skirt of splinters, each with a glint. */
+const shards: PropDraw = (c) => {
+  const { rng, palette } = c;
+  const T = mapper(c.origin, c.k, 1, c.k * c.rise);
+  const P = (x: number, y: number): Point => T(x, y);
+  const n = rng.int(3, 5);
+  const nodes: SvgNode[] = [groundShadow(c, 15, 3.4, 1)];
+  const all: Point[] = [P(-15, 1), P(15, 1)];
+  const glints: string[] = [];
+  const stars: string[] = [];
+  for (let i = 0; i < n; i += 1) {
+    const x = (i - (n - 1) / 2) * 6.2 + rng.range(-1.4, 1.4);
+    const h = (i === Math.floor(n / 2) ? 1 : rng.range(0.55, 0.85)) * rng.range(30, 38);
+    const w = rng.range(3.4, 5.2);
+    const lean = rng.range(-5, 5);
+    const body = [
+      P(x - w, 0),
+      P(x - w * 0.55 + lean * 0.3, -h * 0.55),
+      P(x + lean, -h),
+      P(x + w * 0.6 + lean * 0.4, -h * 0.5),
+      P(x + w, 0),
+    ];
+    const facet = [
+      P(x + w * 0.1, 0),
+      P(x + lean * 0.5 + w * 0.05, -h * 0.55),
+      P(x + lean, -h),
+      P(x + w * 0.6 + lean * 0.4, -h * 0.5),
+      P(x + w, 0),
+    ];
+    all.push(...body);
+    nodes.push(
+      wash(poly(body), palette.ramps.crag.shade),
+      wash(poly(facet), palette.ink, 0.55),
+      ink(c, poly(body), 0.9),
+    );
+    glints.push(poly([P(x - w * 0.55, -h * 0.12), P(x - w * 0.3 + lean * 0.25, -h * 0.52)], false));
+    if (i % 2 === 0) {
+      const t = P(x + lean * 0.9, -h * 0.82);
+      const r = 2.4 * c.k;
+      stars.push(
+        `M${f(t.x)} ${f(t.y - r)}L${f(t.x + r * 0.28)} ${f(t.y - r * 0.28)}L${f(t.x + r)} ${f(t.y)}L${f(t.x + r * 0.28)} ${f(t.y + r * 0.28)}L${f(t.x)} ${f(t.y + r)}L${f(t.x - r * 0.28)} ${f(t.y + r * 0.28)}L${f(t.x - r)} ${f(t.y)}L${f(t.x - r * 0.28)} ${f(t.y - r * 0.28)}Z`,
+      );
+    }
+  }
+  // Splinters at the foot.
+  const bits = [-13, -9, 8, 12].map((x, i) => {
+    const b = P(x + rng.range(-1, 1), 0.4);
+    return poly([b, P(x + 1.6, -1 - (i % 2)), P(x + 3.4, 0.4)]);
+  });
+  nodes.push(
+    wash(bits.join(''), palette.ramps.crag.shade, 0.9),
+    ink(c, glints.join(''), 0.7, palette.paper),
+    wash(stars.join(''), palette.paper),
+  );
+  return { nodes, box: boxOf(all) };
+};
+
+/** A dead reed or two standing in murk: bare stems, snapped and hooked at the tip, with bubbles at the foot. */
+const deadreed: PropDraw = (c) => {
+  const { rng, palette } = c;
+  const T = mapper(c.origin, c.k, 1, c.k * c.rise);
+  const P = (x: number, y: number): Point => T(x, y);
+  const stems = rng.int(3, 4);
+  const parts: string[] = [];
+  const pts: Point[] = [];
+  for (let i = 0; i < stems; i += 1) {
+    const x = (i - (stems - 1) / 2) * 3.2 + rng.range(-0.6, 0.6);
+    const len = rng.range(15, 24);
+    const lean = (i - (stems - 1) / 2) * rng.range(0.7, 1.4);
+    const hook = i % 2 ? 1 : -1;
+    const a = P(x, 0);
+    const m = P(x + lean * 0.5, -len * 0.6);
+    const b = P(x + lean, -len);
+    const hookEnd = P(x + lean + hook * 3.6, -len + 3.4);
+    parts.push(smoothOpen([a, m, b, hookEnd]));
+    pts.push(a, b, hookEnd);
+  }
+  const pool = P(0, 0.8);
+  const bubbles = [
+    [-8, 0.2, 1.7],
+    [6, 1.2, 1.3],
+    [9.5, -0.4, 0.9],
+  ] as const;
+  return {
+    nodes: [
+      el('path', {
+        d: ellipsePath(pool.x, pool.y, 11 * c.k, 2.4 * c.k * c.rise),
+        fill: palette.ramps.toxic.shade,
+        opacity: 0.8,
+      }),
+      el('path', { d: parts.join(''), ...inkAttrs(palette.ramps.bark.shade, c.ink * 1.1) }),
+      el('path', {
+        d: bubbles
+          .map(([x, y, r]) => {
+            const b = P(x, y);
+            return ellipsePath(b.x, b.y, r * c.k, r * c.k);
+          })
+          .join(''),
+        fill: palette.accents.plum.light,
+        stroke: palette.accents.plum.shade,
+        'stroke-width': c.ink * 0.6,
+      }),
+    ],
+    box: boxOf([...pts, P(-11, 1), P(11, 1)]),
+  };
+};
+
 export const PROP_DRAWERS: Readonly<Record<string, PropDraw>> = {
   conifer,
   broadleaf,
@@ -629,6 +736,8 @@ export const PROP_DRAWERS: Readonly<Record<string, PropDraw>> = {
   cliff,
   hill,
   ruin,
+  shards,
+  deadreed,
 };
 
 /** How much ground a prop needs around its base, in hex sizes (keeps props from piling up). */
@@ -642,4 +751,6 @@ export const PROP_SPACING: Readonly<Record<string, number>> = {
   cliff: 0.9,
   hill: 0.44,
   ruin: 0.6,
+  shards: 0.5,
+  deadreed: 0.34,
 };

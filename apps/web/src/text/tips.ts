@@ -149,6 +149,30 @@ export const tips = {
     title: 'Dig out',
     text: 'Free someone pinned under a slide, next to you or on your hex.',
   },
+  'action:lead': {
+    title: 'Lead',
+    text: 'Lead the animal one step along a short leash. Each lead uses one of its leads.',
+  },
+  'action:hitch': {
+    title: 'Hitch',
+    text: 'Take the cart by its shafts, so it moves with you.',
+  },
+  'action:board-cart': {
+    title: 'Board',
+    text: 'Climb into the cart and ride it.',
+  },
+  'action:load': {
+    title: 'Load',
+    text: 'Put what you carry into the cart.',
+  },
+  'action:unload': {
+    title: 'Unload',
+    text: 'Take what the cart carries out of it.',
+  },
+  'action:struggle': {
+    title: 'Struggle',
+    text: 'Push at the stones over you. You might shift them, and you might not.',
+  },
   'action:defend': {
     text: 'Wardens, riding: stand guard over the creature. Every strike on it today lands {defendReduction} weaker, for each warden.',
   },

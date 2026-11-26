@@ -89,11 +89,16 @@ describe('brazier', () => {
     );
   });
 
-  it('is tall: its box rises well above a hex-wide footing, and scales with k', () => {
+  it('is a low stone bowl under a tall flame, and scales with k', () => {
     const one = drawBrazier(SPRING, { lit: false, k: 1 });
-    expect(one.box.y1 - one.box.y0).toBeGreaterThan(BRAZIER_HEIGHT * 0.8);
+    const stone = one.box.y1 - one.box.y0;
+    expect(stone).toBeGreaterThan(BRAZIER_HEIGHT * 0.8);
+    expect(stone).toBeLessThan(BRAZIER_HEIGHT * 1.6);
+    const lit = drawBrazier(SPRING, { lit: true, k: 1 });
+    // The flame stands well above the stone: the lit drawing is more than twice as tall as the cold one.
+    expect(lit.box.y1 - lit.box.y0).toBeGreaterThan(stone * 2.2);
     const two = drawBrazier(SPRING, { lit: false, k: 2 });
-    expect(two.box.y1 - two.box.y0).toBeGreaterThan((one.box.y1 - one.box.y0) * 1.7);
+    expect(two.box.y1 - two.box.y0).toBeGreaterThan(stone * 1.7);
     for (const v of Object.values(one.box)) expect(Number.isFinite(v)).toBe(true);
   });
 });

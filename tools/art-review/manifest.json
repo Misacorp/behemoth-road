@@ -29,7 +29,8 @@
     "2026-11-24-3",
     "2026-11-26-1",
     "2026-11-26-2",
-    "2026-11-26-3"
+    "2026-11-26-3",
+    "2026-11-26-4"
   ],
   "items": [
     {
@@ -108,10 +109,10 @@
       "id": "sheet/terrain",
       "group": "Sheets",
       "title": "Terrain tiles",
-      "version": "adfd2574",
+      "version": "7875a6cc",
       "kind": "glance",
-      "batch": "2026-11-24-3",
-      "file": "art/sheet-terrain-adfd2574.svg"
+      "batch": "2026-11-26-4",
+      "file": "art/sheet-terrain-7875a6cc.svg"
     },
     {
       "id": "sheet/props",
@@ -668,38 +669,83 @@
     {
       "id": "fire/brazier",
       "group": "Fire and rockslide",
-      "title": "The old stone brazier in every palette: cold with ash, then lit with three, two, one and no nights left (notches on its face)",
-      "version": "656c87e0",
+      "title": "The low stone brazier with its tall flame: cold with ash, cold and stocked, then lit with three, two, one and no nights left (notches on its foot)",
+      "version": "917d8b15",
       "kind": "glance",
-      "batch": "2026-11-26-3",
-      "file": "art/fire-brazier-656c87e0.svg"
+      "batch": "2026-11-26-4",
+      "file": "art/fire-brazier-917d8b15.svg"
     },
     {
       "id": "fire/ring",
       "group": "Fire and rockslide",
-      "title": "A lit brazier with its fire ring (the hexes within one step), a cold brazier beside it and fogged hexes at the edge",
-      "version": "ebb24ff4",
+      "title": "A lit brazier glowing orange on its own hex and the hexes within one step, with the fire ring round them, a cold brazier (no glow) beside it and fogged hexes at the edge",
+      "version": "ef7b43bb",
       "kind": "glance",
-      "batch": "2026-11-26-3",
-      "file": "art/fire-ring-ebb24ff4.svg"
+      "batch": "2026-11-26-4",
+      "file": "art/fire-ring-ef7b43bb.svg"
     },
     {
       "id": "fire/marks",
       "group": "Fire and rockslide",
-      "title": "Nights left (none to three embers), fears fire, burnable, dig out and light fire icons, and the rockslide moment",
-      "version": "453a2ff3",
+      "title": "Nights left (none to three embers), fears fire (a beast rearing from a flame), burnable (a log with a flame), dig out and light fire icons, and the rockslide moment",
+      "version": "579b13f5",
       "kind": "glance",
-      "batch": "2026-11-26-3",
-      "file": "art/fire-marks-453a2ff3.svg"
+      "batch": "2026-11-26-4",
+      "file": "art/fire-marks-579b13f5.svg"
     },
     {
       "id": "fire/pinned-burnt",
       "group": "Fire and rockslide",
-      "title": "Pinned under stones (three looks, a free character beside them); a deadfall and a snare, then burnt",
-      "version": "0f370293",
+      "title": "Pinned: lying almost flat under stones, head and an arm out (three looks, a free character beside them); a deadfall and a snare, then burnt",
+      "version": "4f14a873",
       "kind": "glance",
-      "batch": "2026-11-26-3",
-      "file": "art/fire-pinned-burnt-0f370293.svg"
+      "batch": "2026-11-26-4",
+      "file": "art/fire-pinned-burnt-4f14a873.svg"
+    },
+    {
+      "id": "r13/blocked",
+      "group": "Round 13: blocked, hazards, lure, cart, odds",
+      "title": "Blocked hexes: diagonal stripes with a thin edge over every ground, a fire cluster with its flame mark and a plain one",
+      "version": "28c999b1",
+      "kind": "glance",
+      "batch": "2026-11-26-4",
+      "file": "art/r13-blocked-28c999b1.svg"
+    },
+    {
+      "id": "r13/hazards",
+      "group": "Round 13: blocked, hazards, lure, cart, odds",
+      "title": "Hazard terrains: glass waste, a poisoned lake and a scree field under rockslide threats, with their icons",
+      "version": "c0611409",
+      "kind": "glance",
+      "batch": "2026-11-26-4",
+      "file": "art/r13-hazards-c0611409.svg"
+    },
+    {
+      "id": "r13/capybara",
+      "group": "Round 13: blocked, hazards, lure, cart, odds",
+      "title": "The capybara, normal and settled, the lead action icon and the leads-left pawprints (3 to 0)",
+      "version": "14724036",
+      "kind": "glance",
+      "batch": "2026-11-26-4",
+      "file": "art/r13-capybara-14724036.svg"
+    },
+    {
+      "id": "r13/cart",
+      "group": "Round 13: blocked, hazards, lure, cart, odds",
+      "title": "The hand cart: empty, loaded, with a rider and hitched with a puller; hitch, board, load, unload and struggle icons; cargo fill",
+      "version": "a03cfd68",
+      "kind": "glance",
+      "batch": "2026-11-26-4",
+      "file": "art/r13-cart-a03cfd68.svg"
+    },
+    {
+      "id": "r13/odds",
+      "group": "Round 13: blocked, hazards, lure, cart, odds",
+      "title": "The odds mark: bars from no chance to certain (failure shown as rocks, anger or harm), a row of pips, and the struggle icon",
+      "version": "c14e2e8e",
+      "kind": "glance",
+      "batch": "2026-11-26-4",
+      "file": "art/r13-odds-c14e2e8e.svg"
     }
   ]
 }

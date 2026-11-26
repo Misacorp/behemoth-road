@@ -31,6 +31,8 @@ export const MATERIALS = [
   'dune',
   'crag',
   'upland',
+  'glass',
+  'toxic',
 ] as const;
 export type Material = (typeof MATERIALS)[number];
 
@@ -99,6 +101,8 @@ export const MORNING: Palette = {
     dune: r('#f8ecd0', '#f2dfb6', '#d6bc8a'),
     wood: r('#88ae8a', '#66936f', '#4b7455'),
     plain: r('#dce3a8', '#c6d084', '#a3ad66'),
+    glass: r('#f4eded', '#e6dadb', '#c2b0b3'),
+    toxic: r('#c4c08c', '#a3a064', '#7a7747'),
   },
   accents: {
     rose: r('#ecc8c3', '#d9a3a0', '#b48280'),
@@ -151,6 +155,8 @@ export const MIST: Palette = {
     dune: r('#f3e9d2', '#ece0c4', '#cdbf9f'),
     wood: r('#80ae9a', '#5f927f', '#46745f'),
     plain: r('#d4e0b0', '#bccd94', '#9aab74'),
+    glass: r('#f4eef0', '#ece1e5', '#c3b4bc'),
+    toxic: r('#bcc592', '#9ba66a', '#737e4c'),
   },
   accents: {
     rose: r('#ead0d3', '#d6a7ad', '#b4878e'),
@@ -203,6 +209,8 @@ export const SPRING: Palette = {
     dune: r('#f8ebca', '#f1ddb0', '#d5b983'),
     wood: r('#82b296', '#5f9577', '#467555'),
     plain: r('#d9e4a0', '#c1d07f', '#9eb062'),
+    glass: r('#f2ecee', '#e3d9dc', '#bfb0b6'),
+    toxic: r('#c0bd88', '#a0a060', '#767744'),
   },
   accents: {
     rose: r('#efcdc4', '#e0a99e', '#bc887e'),
