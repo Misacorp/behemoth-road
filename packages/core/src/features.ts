@@ -264,7 +264,7 @@ const holdsBrazier = (seed: Seed, h: Hex): boolean => {
  * from `start` along `heading`, which its steps follow on average). The first stands within
  * `brazierFirstWithin` hexes (so a keeper can test the creature's reaction early), then one about every
  * `brazierSpacing` hexes (a seeded jitter of one either way), up to the season's end and the window
- * beyond it. Each stands beside the line (one or two hexes off, on a seeded side), where hazards on the
+ * beyond it. Each stands beside the line (two or three hexes off (the further a hazard on the line is steered from the better), on a seeded side), where hazards on the
  * straight-ahead line (a rockslide) are best steered clear of; where that hex is water, cliff or an
  * island the next nearest fitting hex is used. Pure in its arguments; nearest first.
  */
@@ -290,7 +290,7 @@ export const brazierPlan = (
   let d = 2 + Math.min(span - 1, Math.floor(hashToUnit(seed, BRAZIER_STREAM, 0) * span));
   for (let i = 1; d <= last; i++) {
     const side: -1 | 1 = hashToUnit(seed, BRAZIER_STREAM, i, 1) < 0.5 ? -1 : 1;
-    const wide = hashToUnit(seed, BRAZIER_STREAM, i, 2) < 0.7 ? 1 : 2;
+    const wide = hashToUnit(seed, BRAZIER_STREAM, i, 2) < 0.7 ? 2 : 3;
     const tries: Hex[] = [];
     for (const dd of [d, d + 1, d - 1, d + 2, d - 2]) {
       const p = along(dd);

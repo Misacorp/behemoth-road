@@ -291,6 +291,8 @@ const staticHazard = (state: GameState) =>
   state.threats.find(
     (t) =>
       threatType(t.type).speed === 0 &&
+      // On the line ahead (a hazard well off it needs no steering).
+      Math.abs(t.hex.q - state.creature.centre.q) <= 1 &&
       hexDistance(t.hex, state.creature.centre) <= state.config.stimulusRange + 2,
   );
 
@@ -311,10 +313,13 @@ const steeringBrazier = (state: GameState, hazard: Hex, id: string): Hex | null 
     .map(([key]) => keyToHex(key))
     .filter((h) => {
       const push = sign * sideOf(state, h);
+      // A creature drawn to a fire settles beside it, so for it the brazier must stand two or more off the line.
+      const wide = reaction !== 'attracted' || Math.abs(h.q - state.creature.centre.q) >= 2;
       return (
+        wide &&
         push !== 0 &&
         Math.sign(push) !== slideSide &&
-        hexDistance(h, state.creature.centre) <= state.config.stimulusRange + 2
+        hexDistance(h, state.creature.centre) <= 5
       );
     });
   return nearestAny(state, id, options);
