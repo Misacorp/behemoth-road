@@ -21,6 +21,17 @@ export interface UnlockMovement {
   readonly cost: number;
 }
 
+/**
+ * A land vehicle an unlock makes: finishing it places a vehicle on the map instead of adding the
+ * unlock to the team's list (`docs/design/world/vehicles.md`). Rules read these properties, never ids.
+ */
+export interface VehicleSpec {
+  /** The terrain tags it can roll on (a hex needs at least one). Never water, cliff, swamp. */
+  readonly terrainTags: readonly string[];
+  /** Seats for riders (the puller is not seated). */
+  readonly seats: number;
+}
+
 export interface Unlock {
   readonly id: string;
   readonly name: string;
@@ -31,6 +42,8 @@ export interface Unlock {
   /** Work to finish it: one engineer action is one work. */
   readonly work: number;
   readonly movement?: UnlockMovement;
+  /** Set for a vehicle: finishing it places one on the map (see `cart.ts`). */
+  readonly vehicle?: VehicleSpec;
 }
 
 export const MATERIALS: readonly Material[] = [
@@ -115,5 +128,16 @@ export const UNLOCKS: readonly Unlock[] = [
     cost: [{ material: 'timber', amount: 3 }],
     work: 4,
     movement: { terrainTags: ['deep'], cost: 2 },
+  },
+  // A hand cart, the first land vehicle (Misa's ask): it carries goods and one rider, hitched to a
+  // puller who pays more per step. Built like the raft; finishing it places the cart on the map.
+  {
+    id: 'cart',
+    name: 'Cart',
+    tags: ['vehicle', 'wheeled'],
+    icon: 'cart',
+    cost: [{ material: 'timber', amount: 2 }],
+    work: 3,
+    vehicle: { terrainTags: ['open', 'wooded'], seats: 1 },
   },
 ];

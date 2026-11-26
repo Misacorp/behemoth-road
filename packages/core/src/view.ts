@@ -28,6 +28,7 @@ export const toPlayerView = (state: GameState): GameStateView => {
     stores: state.stores,
     unlocks: state.unlocks,
     project: state.project,
+    carts: state.carts,
     stimuli: state.stimuli,
     threats: state.threats,
     settlements: state.settlements,

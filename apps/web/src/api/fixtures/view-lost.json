@@ -91,6 +91,11 @@
       "towThrowCost": 1,
       "towGrabCost": 1,
       "towReach": 1,
+      "cartsMax": 1,
+      "cartCargo": 8,
+      "cartHitchCost": 1,
+      "cartBoardCost": 1,
+      "cartPullExtra": 1,
       "threatsFromDay": 1,
       "threatChanceBase": 0.6,
       "threatChancePerPlayer": 0.05,
@@ -1057,6 +1062,7 @@
       "unlock": "grappling-hook",
       "work": 1
     },
+    "carts": [],
     "stimuli": [],
     "threats": [
       {

@@ -39,7 +39,8 @@
  * 23: fire needs something to burn: braziers (fire-site) and burnable features, fears-fire threats, the
  *    rockslide can fall on its striker (pinned characters, dig-out); engineers are sure-footed; burnt
  *    ground is kept (`burnt`, with the feature's `burntLook`).
- * 24: pinned characters keep their actions and struggle free (`struggle`, `struggles`); no content changed.
+ * 24: pinned characters keep their actions and struggle free (`struggle`, `struggles`); the cart: a hand cart
+ *    (unlock with a `vehicle`), `carts` in the state, hitch, board, load and unload.
  */
 export const CONTENT_VERSION = 24;
 

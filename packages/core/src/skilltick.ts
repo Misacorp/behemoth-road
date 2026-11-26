@@ -6,6 +6,7 @@
  * by id. Server only where it needs the hidden features.
  */
 
+import { finishUnlock } from './cart.ts';
 import { UNLOCKS } from './content/index.ts';
 import { addMaterials, exploreHex, featureType, type GameEvent, keyToHex } from './features.ts';
 import { hexDistance, hexKey, neighbours } from './hex.ts';
@@ -105,13 +106,13 @@ export const applySkillTicks = (
   if (wind > 0 && project && unlock) {
     const work = project.work + wind;
     const finished = work >= unlock.work;
-    state = {
-      ...state,
-      project: finished ? null : { unlock: unlock.id, work },
-      unlocks: finished ? [...state.unlocks, unlock.id] : state.unlocks,
-    };
+    state = { ...state, project: finished ? null : { unlock: unlock.id, work } };
     events.push({ kind: 'unlock-progress', unlock: unlock.id, work, needed: unlock.work });
-    if (finished) events.push({ kind: 'unlock-done', unlock: unlock.id });
+    if (finished) {
+      const built = finishUnlock(state, unlock, state.creature.centre, null);
+      state = built.state;
+      events.push(...built.events);
+    }
   }
   return { state, events };
 };

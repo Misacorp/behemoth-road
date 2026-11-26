@@ -109,6 +109,22 @@ export const ActionSchema = v.variant('kind', [
     to: v.pipe(v.string(), v.minLength(1), v.maxLength(64)),
   }),
   v.strictObject({ kind: v.literal('grab-line') }),
+  // The cart (docs/design/cart.md): hitch, board and their opposites take nothing; load and unload name a
+  // material and a count (the core refuses an unknown material, or a count that does not fit, by name).
+  v.strictObject({ kind: v.literal('hitch') }),
+  v.strictObject({ kind: v.literal('unhitch') }),
+  v.strictObject({ kind: v.literal('board-cart') }),
+  v.strictObject({ kind: v.literal('leave-cart') }),
+  v.strictObject({
+    kind: v.literal('load'),
+    material: contentId,
+    amount: v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(99)),
+  }),
+  v.strictObject({
+    kind: v.literal('unload'),
+    material: contentId,
+    amount: v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(99)),
+  }),
   // Milestone 5: threats and settlements. The core refuses an unknown threat, material or boon by name
   // (`no-threat`, `no-trade-good`, `unknown-boon`), so the schema only bounds the strings.
   v.strictObject({ kind: v.literal('strike'), threat: contentId }),

@@ -115,6 +115,7 @@ export const tips = {
   'unlock:lantern': { text: 'Light for deep tombs, so a scholar can work them.' },
   'unlock:climbing-spikes': { text: 'Cliffs cost only {climbCost.climbing-spikes} action a step.' },
   'unlock:marsh-boards': { text: 'Swamp costs only {climbCost.marsh-boards} action a step.' },
+  'unlock:cart': { text: 'A hand cart. Hauls goods, or one rider, but only over open ground.' },
   'unlock:raft': { text: 'Lets everyone cross deep water, for {climbCost.raft} actions a step.' },
 
   // Actions (buttons in the cards and the hub).
@@ -142,6 +143,12 @@ export const tips = {
     text: 'Throw the line to someone left behind. They choose to take it.',
   },
   'action:grab-line': { text: 'Take the line and be pulled aboard.' },
+  'action:hitch': { text: 'Take the shafts. The cart follows you, and every step costs more.' },
+  'action:unhitch': { text: 'Let the cart go where it stands.' },
+  'action:board-cart': { text: 'Sit in the cart. It carries you, and you cannot walk.' },
+  'action:leave-cart': { text: 'Climb out of the cart.' },
+  'action:load': { text: 'Put goods from your pack into the cart.' },
+  'action:unload': { text: 'Take goods from the cart into your pack.' },
   'action:strike': {
     text: 'Weaken a threat next to you by {strike.other}, or by {strike.warden} as a warden. At 0 it is gone.',
   },

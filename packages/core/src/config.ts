@@ -84,6 +84,17 @@ export interface TuningConfig {
   readonly towGrabCost: number;
   readonly towReach: number;
 
+  // The cart (docs/design/cart.md): one party-owned hand cart, hitched to a puller or ridden by one.
+  /** Carts the party may have at once (a lost cart can be rebuilt). */
+  readonly cartsMax: number;
+  /** Material units a cart holds. */
+  readonly cartCargo: number;
+  /** Actions it costs to hitch to the cart, and to climb aboard it (unhitching and leaving are free). */
+  readonly cartHitchCost: number;
+  readonly cartBoardCost: number;
+  /** Actions added to every step of a puller with the cart hitched. */
+  readonly cartPullExtra: number;
+
   // Threats (docs/design/m5-season.md).
   /** The first day (after a tick) on which a threat may appear. */
   readonly threatsFromDay: number;
@@ -207,6 +218,11 @@ export const DEFAULT_CONFIG: TuningConfig = {
   towThrowCost: 1,
   towGrabCost: 1,
   towReach: 1,
+  cartsMax: 1,
+  cartCargo: 8,
+  cartHitchCost: 1,
+  cartBoardCost: 1,
+  cartPullExtra: 1,
   threatsFromDay: 3,
   threatChanceBase: 0.25,
   threatChancePerPlayer: 0.05,
@@ -318,6 +334,9 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     'lingerCost',
     'towThrowCost',
     'towGrabCost',
+    'cartCargo',
+    'cartHitchCost',
+    'cartBoardCost',
     'strikeCost',
     'defendCost',
     'parleyCost',
@@ -351,6 +370,8 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     'perilCalm',
     'brazierRevealRadius',
     'fireFearRadius',
+    'cartsMax',
+    'cartPullExtra',
   ] as const;
   for (const key of counts) if (!isCount(config[key], 0)) problems.push(key);
   // A path threat appears beyond contact (next to the footprint) and inside the window.

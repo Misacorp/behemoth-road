@@ -21,7 +21,14 @@ export {
   type SiteType,
   type TrapType,
 } from './features.ts';
-export { MATERIALS, UNLOCKS, type Material, type Unlock, type UnlockMovement } from './items.ts';
+export {
+  MATERIALS,
+  UNLOCKS,
+  type Material,
+  type Unlock,
+  type UnlockMovement,
+  type VehicleSpec,
+} from './items.ts';
 export {
   CREATURE_TYPES,
   REACTIONS,
