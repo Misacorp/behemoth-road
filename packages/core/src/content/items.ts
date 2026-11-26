@@ -28,6 +28,8 @@ export interface UnlockMovement {
 export interface VehicleSpec {
   /** The terrain tags it can roll on (a hex needs at least one). Never water, cliff, swamp. */
   readonly terrainTags: readonly string[];
+  /** Terrain tags it never rolls on, even where a tag above matches (an islet is open ground, but cut off). */
+  readonly terrainNotTags?: readonly string[];
   /** Seats for riders (the puller is not seated). */
   readonly seats: number;
 }
@@ -138,6 +140,6 @@ export const UNLOCKS: readonly Unlock[] = [
     icon: 'cart',
     cost: [{ material: 'timber', amount: 2 }],
     work: 3,
-    vehicle: { terrainTags: ['open', 'wooded'], seats: 1 },
+    vehicle: { terrainTags: ['open', 'wooded'], terrainNotTags: ['island'], seats: 1 },
   },
 ];

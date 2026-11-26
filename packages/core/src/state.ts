@@ -372,6 +372,8 @@ export interface GameState extends GameStateView {
   readonly hazardPlan: readonly HazardPatch[];
   /** Lures placed so far (the next lure's index, for its id and its place along the route). Never sent. */
   readonly lureCount: number;
+  /** Carts built so far (the next cart's id), so an id is never reused after one is lost. Never sent. */
+  readonly cartCount: number;
 }
 
 export const hasSeed = (state: GameStateView): state is GameState =>

@@ -491,9 +491,11 @@ export const nextDayWithEvents = (
   // rider were picked up, so they let go); one left out of reach is lost with its cargo. Nothing else moves it.
   const carts: Cart[] = [];
   const cartEvents: GameEvent[] = [];
-  for (const cart of moved.carts) {
+  for (const [i, cart] of moved.carts.entries()) {
+    // A pushed cart avoids every other cart: those already settled and those still to be checked.
+    const others = { ...moved, carts: [...carts, ...moved.carts.slice(i + 1)] };
     const spot = isCreatureHex(moved, cart.hex)
-      ? cartSpot(moved, cart.hex)
+      ? cartSpot(others, cart.hex)
       : isReachable(moved, cart.hex)
         ? cart.hex
         : null;

@@ -30,9 +30,6 @@ import { threatStrength, threatType } from './threats.ts';
 
 const HAZARD_STREAM = hashString('hazard');
 
-/** Hexes beyond the window's edge at which a patch is laid (so none of it has been in view yet). */
-const LOOKAHEAD_BEYOND_WINDOW = 3;
-
 /** Terrain tags a hazard never replaces (water, cliffs and the islands inside lakes). */
 const KEEP_TAGS = ['water', 'steep', 'island'];
 
@@ -43,21 +40,26 @@ export const hazardType = (id: string): HazardType => {
 };
 
 /** How far ahead of the creature's centre a patch is laid. */
-export const hazardLookahead = (config: Pick<TuningConfig, 'windowRadius'>): number =>
-  config.windowRadius + LOOKAHEAD_BEYOND_WINDOW;
+export const hazardLookahead = (
+  config: Pick<TuningConfig, 'windowRadius' | 'hazardLookaheadBeyond'>,
+): number => config.windowRadius + config.hazardLookaheadBeyond;
 
 /**
  * How many hexes along the route from the start the centre of patch `k` lies: the first
- * `hazardFirst + 3` out (its edge, up to two hexes off its centre, is then past `hazardFirst`), then
+ * `hazardFirst + hazardFirstOffset` out (its edge, up to two hexes off its centre, is then past `hazardFirst`), then
  * about `hazardSpacing` further each, a seeded hex either way.
  */
 export const hazardRoutePosition = (
   seed: Seed,
-  config: Pick<TuningConfig, 'hazardFirst' | 'hazardSpacing'>,
+  config: Pick<
+    TuningConfig,
+    'hazardFirst' | 'hazardSpacing' | 'hazardFirstOffset' | 'hazardJitter'
+  >,
   k: number,
 ): number => {
-  const jitter = Math.floor(hashToUnit(seed, HAZARD_STREAM, k, 0) * 3) - 1;
-  const base = config.hazardFirst + 3 + k * config.hazardSpacing;
+  const j = config.hazardJitter;
+  const jitter = Math.floor(hashToUnit(seed, HAZARD_STREAM, k, 0) * (2 * j + 1)) - j;
+  const base = config.hazardFirst + config.hazardFirstOffset + k * config.hazardSpacing;
   return base + (k === 0 ? Math.max(0, jitter) : jitter);
 };
 
@@ -127,7 +129,7 @@ export const extendHazards = (
     let centre = creature.centre;
     for (let i = 0; i < ahead; i++) centre = neighbour(centre, creature.heading);
     // Across the line: now and then a hex to one side, so a patch is not always dead centre.
-    if (hashToUnit(seed, HAZARD_STREAM, k, 6) < 0.4) {
+    if (hashToUnit(seed, HAZARD_STREAM, k, 6) < config.hazardSideChance) {
       const side = hashToUnit(seed, HAZARD_STREAM, k, 7) < 0.5 ? -1 : 1;
       centre = neighbour(centre, rotate(creature.heading, side));
     }
