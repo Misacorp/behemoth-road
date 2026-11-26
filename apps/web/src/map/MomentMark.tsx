@@ -197,6 +197,12 @@ export function MomentMark({
         <Marked kind="snap">{at(drawMoment('rockslide', PALETTE, size), c.x, c.y, size)}</Marked>
       );
       break;
+    case 'struggled':
+      // The stones heave and settle: the try that did not work.
+      body = (
+        <Marked kind="heave">{at(drawMoment('rockslide', PALETTE, size), c.x, c.y, size)}</Marked>
+      );
+      break;
     case 'dug-out':
       // The same stones lifting away and fading.
       body = (

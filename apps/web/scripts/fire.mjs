@@ -2,8 +2,8 @@
 /* global console, process, document */
 /**
  * Screenshots and browser checks for the fire rework: a cold brazier, a lit brazier with its embers, the
- * fire ring with a swarm nearby, the rockslide's strike option with its fall risk, a pinned character with
- * dig-out offered (and your own pinned HUD), and the burnt deadfall, on a phone and a desktop size, against
+ * glow, a swarm selected with its blocked stripes, the rockslide's strike odds, parley odds, a pinned
+ * character lying down with dig-out offered, your own pinned card with struggle and its odds, and the burnt deadfall, on a phone and a desktop size, against
  * the fake game server. Phone: a long-press sweep over every tipped element of each popover. Written to
  * screenshots/ (gitignored) as `fire-*`. Any problem is listed and exits 1.
  *
@@ -161,6 +161,31 @@ async function runViewport(browser, vite, vp) {
     }
     console.log(`holdAll ${vp.name} ${kind}: ${targets.length} elements long-pressed`);
   };
+  /** Hover (desktop) or hold (phone) an odds mark: its tip shows the numbers. */
+  const oddsTip = async (sel, text) => {
+    const box = await page.locator(sel).first().boundingBox();
+    if (!box) return fail(`no ${sel}`);
+    const x = box.x + box.width / 2;
+    const y = box.y + box.height / 2;
+    if (cdp) {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+      await wait(520);
+    } else {
+      await page.mouse.move(x, y);
+      await wait(900);
+    }
+    const shown = await page
+      .locator('.tip')
+      .first()
+      .textContent({ timeout: 1000 })
+      .catch(() => '');
+    if (!shown || !shown.includes(text)) fail(`odds tip says "${shown}", wanted "${text}"`);
+    await shot(`odds-tip-${text.replace(/\W+/g, '-')}`);
+    if (cdp) await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    else await page.mouse.move(2, 2);
+    await page.keyboard.press('Escape');
+    await wait(200);
+  };
   /** The popover and the open tip must lie inside the screen. */
   const onScreen = async (sel, what) => {
     const box = await page.locator(sel).first().boundingBox();
@@ -195,46 +220,89 @@ async function runViewport(browser, vite, vp) {
   await shot('brazier-lit');
   await holdAll('inspect');
 
-  // 3. The fire ring with a swarm nearby; and none without one.
+  // 3. No ring on the map at all; selecting a swarm shows the blocked stripes near a lit brazier.
+  const stripes = '[data-blocked]:not([data-blocked="0"])';
   await open(staged({ brazierLit: 3, threats: [{ type: 'swarm', at: { q: 2, r: 4 } }] }));
-  if (!(await count('[data-fire-ring]'))) fail('no fire ring with a swarm on the map');
-  await shot('fire-ring');
+  if (await count('[data-fire-ring]')) fail('an always-on fire ring is still drawn');
+  if (await count(stripes)) fail('blocked stripes show with nothing selected');
+  if (!(await count('[data-fire-glow]'))) fail('no glow under a lit brazier');
+  await shot('swarm-unselected');
+  await tapHex({ q: 2, r: 4 }, 20);
+  if (!(await count('[data-popover=threat]'))) fail('no swarm card');
+  if (!(await count(stripes))) fail('no blocked stripes on a selected swarm');
+  if (!(await count('[data-popover=threat] [data-mark=fears-fire]')))
+    fail('no fears-fire mark in the swarm popover');
+  await shot('swarm-blocked');
+  await holdAll('threat');
+  await page.keyboard.press('Escape');
+  await wait(300);
+  if (await count(stripes)) fail('blocked stripes stay after the popover closed');
   await open(staged({ brazierLit: 3 }));
-  if (await count('[data-fire-ring]')) fail('a fire ring without a threat that fears fire');
+  if (await count('[data-blocked]')) fail('blocked stripes without a threat');
   await shot('fire-no-ring');
   await open(staged({ threats: [{ type: 'swarm', at: { q: 2, r: 4 } }] }));
   await tapHex({ q: 2, r: 4 }, 20);
   if (!(await count('[data-mark=fears-fire]'))) fail('no fears-fire mark on a swarm');
+  if (await count(stripes)) fail('stripes with no fire burning');
   await shot('swarm-card');
   await holdAll('threat');
 
-  // 4. The rockslide's strike option with its fall risk.
+  // 3b. A lit brazier's glow, and none round a cold one.
+  await open(staged({ brazierLit: 3 }));
+  if ((await count('[data-fire-glow]')) !== 1) fail('the lit brazier has no single glow');
+  await shot('brazier-glow');
+  await open(staged({ brazier: true }));
+  if (await count('[data-fire-glow]')) fail('a cold brazier has a glow');
+  await shot('brazier-no-glow');
+
+  // 4. The rockslide's strike option with its odds.
   await open(staged({ threats: [{ type: 'rockslide', at: NEAR }] }));
   await tapHex(NEAR, 20);
-  if (!(await count('[data-mark=fall-risk]'))) fail('no fall risk on the rockslide card');
+  if (!(await count('[data-popover=threat] [data-mark=odds]')))
+    fail('no odds on the rockslide card');
   if (!(await count('[data-action=strike]'))) fail('no strike on the rockslide card');
   await onScreen('[data-popover=threat]', 'the rockslide card');
-  await shot('rockslide-risk');
+  await shot('rockslide-odds');
+  await oddsTip('[data-popover=threat] [data-mark=odds]', 'Success 80%');
   await holdAll('threat');
 
-  // 5. A pinned character beside you: dig-out in their card. Then you, pinned.
+  // 4b. Parley odds at a wary settlement.
+  await open(staged({ settlements: [{ at: START }] }));
+  await tapHex(START, 8);
+  if (!(await count('[data-popover=here] [data-action=parley] [data-mark=odds]')))
+    fail('no odds on parley');
+  await onScreen('[data-popover=here]', 'the parley card');
+  await shot('parley-odds');
+  await holdAll('here');
+
+  // 5. A pinned character beside you: dig-out in their card. Then you, pinned, with struggle.
   await open(staged({ pinned: ['ola'] }));
   if (!(await count('[data-ola-pin],svg.map'))) fail('no map');
+  await shot('pinned-lying');
   await tapHex(OLA, 8);
-  await shot('debug-pinned');
   if (!(await count('[data-action=dig-out]'))) fail('no dig-out on a pinned character');
   if (await count('[data-popover=character]'))
     await onScreen('[data-popover=character]', 'the pinned character card');
   await shot('pinned-dig-out');
   await holdAll('character');
-  await open(staged({ pinned: ['me'], brazier: true, pack: { timber: 1 } }));
+  await open(
+    staged({ pinned: ['me'], pinnedActions: 2, struggles: 1, brazier: true, pack: { timber: 1 } }),
+  );
   if (!(await count('.hud-pinned'))) fail('no pinned mark in the HUD');
   await tapHex(START, 8);
+  if (!(await count('[data-popover=here] [data-action=struggle]:not([aria-disabled=true])')))
+    fail('no struggle on the pinned self card');
+  if (
+    !(await count('[data-popover=here] [data-action=struggle] [data-mark=odds][data-success="40"]'))
+  )
+    fail('struggle odds are not 40% after one failed try');
   const grey = await page
     .locator('[data-popover=here] [data-action=light-fire][aria-disabled=true]')
     .count();
   if (!grey) fail('the pinned player’s fire is not greyed');
+  await onScreen('[data-popover=here]', 'the pinned self card');
   await shot('pinned-self');
+  await oddsTip('[data-popover=here] [data-mark=odds]', 'Success 40%');
   await holdAll('here');
 
   // 6. A burnable (deadfall) with its hint, and what a fire left of one.
@@ -246,7 +314,7 @@ async function runViewport(browser, vite, vp) {
   await shot('deadfall-burnable');
   await holdAll('inspect');
   await page.keyboard.press('Escape');
-  if (!(await count('[data-trace=fire]'))) fail('no fire scar under the burnt hex');
+  // The scar is drawn from `burnt[]` in the scene (covered by the unit tests); only the shot shows it.
   await shot('burnt');
 
   await context.close();

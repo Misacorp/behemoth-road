@@ -26,6 +26,8 @@ export function tipValues(config: TuningConfig): Readonly<Record<string, string>
     misleadDays: String(config.misleadDays),
     brazierNights: String(config.brazierNights),
     slideFall: percent(config.slideFallChance),
+    // Filled per thing when its tip opens (an odds mark's numbers); empty until then.
+    note: '',
     struckActions: String(config.struckActions),
     fireFuel: String(
       STIMULUS_TYPES.find((s) => s.tags.includes('fire') && !s.tags.includes('fire-site'))?.fuel

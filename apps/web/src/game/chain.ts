@@ -18,6 +18,7 @@ import {
   type Unlock,
 } from '@behemoth-road/core';
 import type { TipId } from '../text/tips.ts';
+import { type OddsView, oddsFor } from './odds.ts';
 import { neededRole } from './roles.ts';
 import { whyOfCheck, whyTip } from './why.ts';
 
@@ -77,6 +78,8 @@ export interface PossibleAction {
   readonly needs?: string;
   /** Why it is greyed (the core's refusal, as a tip): a tap on it shows this and never acts. */
   readonly why?: TipId;
+  /** Its odds, when it rolls (working a site): the core's `oddsOf`. */
+  readonly odds?: OddsView;
 }
 
 /** Refusals that mean "this exists here but cannot be done now": offered faded rather than hidden. */
@@ -92,7 +95,9 @@ export function actionsAt(game: GameStateView, characterId: string): PossibleAct
   const out: PossibleAction[] = [];
   for (const { action, check } of actionsHere(game, characterId)) {
     if (action.kind !== 'gather' && action.kind !== 'work-site') continue;
-    if (check.ok) out.push({ kind: action.kind, cost: check.cost, enabled: true });
+    const odds = action.kind === 'work-site' ? oddsFor(game, characterId, action) : null;
+    const roll = odds ? { odds } : {};
+    if (check.ok) out.push({ kind: action.kind, cost: check.cost, enabled: true, ...roll });
     else if (NOT_NOW.has(check.reason) && check.cost !== undefined) {
       const needs = neededRole(game, characterId, action, check);
       out.push({
@@ -101,6 +106,7 @@ export function actionsAt(game: GameStateView, characterId: string): PossibleAct
         enabled: false,
         ...(needs ? { needs } : {}),
         why: whyTip(check.reason, needs),
+        ...roll,
       });
     }
   }

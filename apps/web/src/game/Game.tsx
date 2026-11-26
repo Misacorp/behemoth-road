@@ -47,7 +47,7 @@ import { HubDrawer } from '../hub/HubDrawer.tsx';
 import { DayBanner, DayCountdown, PaceToggle } from '../hud/Pace.tsx';
 import { setTipConfig, TipLayer } from '../ui/Tip.tsx';
 import { cellStateAt, featureArtAt } from '../map/cells.ts';
-import { digOption, greyedForPin, takesFire } from './fire.ts';
+import { digOption, greyedForPin, struggleOption, takesFire } from './fire.ts';
 import {
   actionsAt,
   careOptions,
@@ -413,7 +413,7 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
       enabled: a.enabled,
       ...(a.kind === 'offer' ? { icon: 'offer', uses: a.uses ?? null } : {}),
       ...(a.kind.startsWith('boon:') ? { icon: a.kind.slice(5) } : {}),
-      ...(a.risk ? { risk: true } : {}),
+      ...(a.odds ? { odds: a.odds } : {}),
       ...(a.why ? { why: a.why } : {}),
     }));
     // A tow line thrown to you: grab it (its own action, never forced).
@@ -434,7 +434,24 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
           ]
         : []),
     ];
-    const actions = pinned ? greyedForPin(offered) : offered;
+    // Pinned, the one thing you can do is struggle: first on the card, with its odds.
+    const struggle = pinned ? struggleOption(state, me.id) : null;
+    const actions: HereAction[] = pinned
+      ? [
+          ...(struggle
+            ? [
+                {
+                  kind: 'struggle',
+                  cost: struggle.cost,
+                  enabled: struggle.enabled,
+                  ...(struggle.odds ? { odds: struggle.odds } : {}),
+                  ...(struggle.why ? { why: struggle.why } : {}),
+                } satisfies HereAction,
+              ]
+            : []),
+          ...greyedForPin(offered),
+        ]
+      : offered;
     // A settlement where you stand always opens the card (its attitude and the boon it gave), even with
     // nothing left to do there.
     const sid = settlementAt(state, me.at.hex);
@@ -459,6 +476,8 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
       kind === 'light-fire' ||
       kind === 'parley'
     ) {
+      void act(() => api.act(view.version, { kind }), stillSelected);
+    } else if (kind === 'struggle') {
       void act(() => api.act(view.version, { kind }), stillSelected);
     } else if (kind.startsWith('offer:')) {
       void act(

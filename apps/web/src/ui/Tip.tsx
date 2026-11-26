@@ -121,7 +121,7 @@ export function TipLayer(): JSX.Element | null {
   return (
     <div ref={box} class="tip" role="tooltip" data-tip-open={open.id}>
       <strong class="tip-title">{titleOf(open.id)}</strong>
-      <span class="tip-text">{fillTip(tip.text, values)}</span>
+      <span class="tip-text">{fillTip(tip.text, { ...values, note: open.note ?? '' })}</span>
       {mark !== null && (
         <span class="tip-mark" data-tip-mark={mark}>
           {toPreact(

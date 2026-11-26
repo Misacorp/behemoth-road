@@ -14,7 +14,6 @@ import {
   type Hex,
   hexEquals,
   escortReach,
-  fallChance,
   FEARS_FIRE_TAG,
   isEscorted,
   MATERIALS,
@@ -27,6 +26,7 @@ import {
 } from '@behemoth-road/core';
 import type { CostedAction } from './chain.ts';
 import type { TipId } from '../text/tips.ts';
+import { type OddsView, oddsFor } from './odds.ts';
 import { neededRole } from './roles.ts';
 import { whyTip } from './why.ts';
 
@@ -108,8 +108,8 @@ export interface ThreatCardInfo {
   readonly defence: number;
   /** Keeps clear of a burning fire (content tag `fears-fire`): its mark shows. */
   readonly fears: boolean;
-  /** The chance a strike brings it down on you (`fallChance`, 0 to 1), or null when it does not fall. */
-  readonly fall: number | null;
+  /** The odds of a strike on it (the core's `oddsOf`: a slide may bury the striker), or null when it rolls nothing. */
+  readonly odds: OddsView | null;
 }
 
 export function threatCard(
@@ -120,8 +120,6 @@ export function threatCard(
   const mark = threatMarks(game).find((t) => t.id === threatId);
   if (!mark) return null;
   const tags = THREAT_TYPES.find((t) => t.id === mark.type)?.tags ?? [];
-  const me = game.characters.find((c) => c.id === characterId);
-  const fall = me ? fallChance(game, me, tags) : 0;
   return {
     id: mark.id,
     type: mark.type,
@@ -132,7 +130,7 @@ export function threatCard(
     strike: offered(checkAction(game, characterId, { kind: 'strike', threat: threatId })),
     defence: defence(game),
     fears: tags.includes(FEARS_FIRE_TAG),
-    fall: fall > 0 ? fall : null,
+    odds: oddsFor(game, characterId, { kind: 'strike', threat: threatId }),
   };
 }
 
@@ -206,8 +204,8 @@ export interface SettlementAction {
   readonly enabled: boolean;
   /** A trade good it takes from your pack (offer). */
   readonly uses?: string | null;
-  /** Parley may anger it (the core's published chance is below 1). */
-  readonly risk?: boolean;
+  /** Parley may anger it: its odds (the core's `oddsOf`). */
+  readonly odds?: OddsView;
   /** Why it is greyed (the core's refusal, as a tip), when it is. */
   readonly why?: TipId;
 }
@@ -215,7 +213,7 @@ export interface SettlementAction {
 const TRADE_GOODS = MATERIALS.filter((m) => m.tags.includes(TRADE_TAG)).map((m) => m.id);
 
 /**
- * What you can do at the settlement you stand on: parley (with its risk) and offer each trade good you
+ * What you can do at the settlement you stand on: parley (with its odds) and offer each trade good you
  * carry while it is wary; once friendly, its boons until one is taken. Faded when your actions are spent;
  * nothing anywhere else.
  */
@@ -223,7 +221,8 @@ export function settlementActions(game: GameStateView, characterId: string): Set
   const out: SettlementAction[] = [];
   const parley = checkAction(game, characterId, { kind: 'parley' });
   const p = offered(parley);
-  if (p) out.push({ kind: 'parley', ...p, risk: parley.ok ? parley.chance < 1 : false });
+  const parleyOdds = oddsFor(game, characterId, { kind: 'parley' });
+  if (p) out.push({ kind: 'parley', ...p, ...(parleyOdds ? { odds: parleyOdds } : {}) });
   for (const material of TRADE_GOODS) {
     const o = offered(checkAction(game, characterId, { kind: 'offer', material }));
     if (o) out.push({ kind: 'offer', ...o, uses: material });

@@ -286,7 +286,10 @@ export const tips = {
   },
   'why:taken': { title: 'Taken', text: 'You already have it.' },
   'why:veiled': { title: 'Veiled', text: 'Not yet known.' },
-  'why:pinned': { title: 'Pinned', text: 'Under fallen stones. Wait for someone to dig you out.' },
+  'why:pinned': {
+    title: 'Pinned',
+    text: 'Under fallen stones. Struggle free, or wait for someone to dig you out.',
+  },
   'why:other': { title: 'Not now', text: 'Not possible just now.' },
 
   // The ground a hex shows (in the cards' tile pictures).
@@ -361,14 +364,11 @@ export const tips = {
   'map:burnable': { title: 'Burnable', text: 'A fire would take this, for good.' },
   'map:burnt': { title: 'Burnt', text: 'A fire took what stood here.' },
   'map:fears-fire': { title: 'Fears fire', text: 'Will not come near a burning fire.' },
-  'map:fire-ring': { title: 'Fire’s reach', text: 'Things that fear fire keep out of this ring.' },
-  'map:fall-risk': {
-    title: 'Falling stones',
-    text: 'A strike may bring them down on you: {slideFall} % for most. Some are surer-footed.',
-  },
+  'map:blocked': { title: 'Kept out', text: 'It will not go onto the striped hexes.' },
+  'map:odds': { title: 'Odds', text: '{note}' },
   'map:pinned': {
     title: 'Pinned',
-    text: 'Under fallen stones. Someone beside them can dig them out.',
+    text: 'Under fallen stones. Someone beside them can dig them out, or they can struggle free.',
   },
   'map:escort': { title: 'Escorted', text: 'Next to a warden: threats will not strike here.' },
   'map:defended': {

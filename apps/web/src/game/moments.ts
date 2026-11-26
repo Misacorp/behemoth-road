@@ -57,7 +57,9 @@ export type Moment =
   /** A falling slide pinned a character: stones come down on their hex. */
   | { readonly kind: 'pinned'; readonly hex: Hex; readonly mine: boolean }
   /** A pinned character was freed: the stones lift away. */
-  | { readonly kind: 'dug-out'; readonly hex: Hex };
+  | { readonly kind: 'dug-out'; readonly hex: Hex }
+  /** A pinned character struggled and stayed pinned: the stones heave and settle. (A struggle that frees plays `dug-out`.) */
+  | { readonly kind: 'struggled'; readonly hex: Hex };
 
 /** How long a moment stays on screen, in ms (its CSS animation is as long). */
 export const MOMENT_MS = 1400;
@@ -84,6 +86,8 @@ export interface EventLike {
   /** Milestone 5: the threat or settlement it is about, and a boon. */
   readonly id?: string | undefined;
   readonly boon?: string | undefined;
+  /** A struggle: whether it worked. */
+  readonly freed?: boolean | undefined;
   /** A creature step's start and end; peril before and after. */
   readonly from?: Hex | number | undefined;
   readonly to?: Hex | number | undefined;
@@ -261,6 +265,10 @@ function seasonMoment(
         kind: 'dug-out',
         hex,
       }));
+    case 'struggled':
+      return at(e.characterId ? where.character(e.characterId) : null, (hex) =>
+        e.freed ? { kind: 'dug-out', hex } : { kind: 'struggled', hex },
+      );
     case 'threat-hit':
       return at(thing('threat', e.id), (hex) => ({ kind: 'hit', hex }));
     case 'threat-cleared':

@@ -16,6 +16,7 @@ import {
   nightsLeft,
 } from '@behemoth-road/core';
 import type { TipId } from '../text/tips.ts';
+import { type OddsView, oddsFor } from './odds.ts';
 import { whyTip } from './why.ts';
 
 /** What a feature's card says about fire: it would burn (`burnable`), or burns this many nights more. */
@@ -83,6 +84,33 @@ export const isPinned = (game: GameStateView, characterId: string): boolean =>
  */
 export function greyedForPin<T extends { readonly enabled: boolean }>(
   offered: readonly T[],
-): (Omit<T, 'enabled' | 'why'> & { readonly enabled: false; readonly why: TipId })[] {
-  return offered.map((a) => ({ ...a, enabled: false as const, why: 'why:pinned' }));
+): (Omit<T, 'enabled' | 'why' | 'odds'> & { readonly enabled: false; readonly why: TipId })[] {
+  // A greyed action shows no odds: nothing is rolled while pinned.
+  return offered.map((a) => {
+    const rest: Record<string, unknown> = { ...a };
+    delete rest['odds'];
+    return { ...rest, enabled: false as const, why: 'why:pinned' as const } as Omit<
+      T,
+      'enabled' | 'why' | 'odds'
+    > & { readonly enabled: false; readonly why: TipId };
+  });
+}
+
+/**
+ * Struggling free, for a pinned character's own card: its cost and the core's odds (the chance grows with
+ * each failed try), enabled when the core allows it, faded without the actions; null when not pinned.
+ */
+export interface StruggleOption {
+  readonly cost: number;
+  readonly enabled: boolean;
+  readonly why?: TipId;
+  readonly odds: OddsView | null;
+}
+
+export function struggleOption(game: GameStateView, characterId: string): StruggleOption | null {
+  const check = checkAction(game, characterId, { kind: 'struggle' });
+  const odds = oddsFor(game, characterId, { kind: 'struggle' });
+  if (check.ok) return { cost: check.cost, enabled: true, odds };
+  if (check.reason !== 'not-enough-actions' || check.cost === undefined) return null;
+  return { cost: check.cost, enabled: false, why: whyTip(check.reason), odds };
 }

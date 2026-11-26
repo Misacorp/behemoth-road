@@ -74,7 +74,7 @@ describe('threats as the map reads them', () => {
       strike: { cost: near.view.config.strikeCost, enabled: true },
       defence: 0,
       fears: true,
-      fall: null,
+      odds: null,
     });
     expect(threatCard(tired(near.view), near.me, id)?.strike).toEqual({
       cost: near.view.config.strikeCost,
@@ -135,19 +135,24 @@ describe('defending the creature in the hub', () => {
 });
 
 describe('settlements', () => {
-  it('a wary one offers parley, with the risk mark for a non-warden, and an offer for each trade good carried', () => {
+  it('a wary one offers parley, with its odds for a non-warden, and an offer for each trade good carried', () => {
     const scout = staged({ settlements: [{ at: START }], pack: { 'old-coin': 1 } });
     const cost = scout.view.config.parleyCost;
     expect(settlementActions(scout.view, scout.me)).toEqual([
-      { kind: 'parley', cost, enabled: true, risk: true },
+      {
+        kind: 'parley',
+        cost,
+        enabled: true,
+        odds: expect.objectContaining({ art: 'anger', kind: 'angered' }) as unknown,
+      },
       { kind: 'offer', cost: scout.view.config.offerCost, enabled: true, uses: 'old-coin' },
     ]);
     const warden = staged({ role: 'warden', settlements: [{ at: START }] });
     expect(settlementActions(warden.view, warden.me)).toEqual([
-      { kind: 'parley', cost, enabled: true, risk: false },
+      { kind: 'parley', cost, enabled: true },
     ]);
     expect(settlementActions(tired(warden.view), warden.me)).toEqual([
-      { kind: 'parley', cost, enabled: false, risk: false, why: 'why:not-enough-actions' },
+      { kind: 'parley', cost, enabled: false, why: 'why:not-enough-actions' },
     ]);
   });
 
