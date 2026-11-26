@@ -32,12 +32,14 @@ import {
  * lantern is done and brings the alloy home.
  */
 
-/** A season that never ends and brings no threats: the chain is about roles, not peril. */
+/** A season that never ends and brings no threats or hazards: the chain is about roles, not peril. */
 const CALM: ConfigOverrides = {
   routeLength: 100_000,
   threatsFromDay: 100_000,
   settlementFirst: 100_000,
   perilHungry: 0,
+  hazardFirst: 100_000,
+  lureFirstWithin: 100_000,
 };
 
 const ORDER = ['lantern', 'climbing-spikes', 'grappling-hook'] as const;

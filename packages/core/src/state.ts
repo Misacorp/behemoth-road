@@ -102,6 +102,35 @@ export interface Threat {
   /** What it does to the creature (less any defence); strikes on it lower it. */
   readonly strength: number;
   readonly appearedDay: number;
+  /** The id of the hazard patch (a scree field) that laid it, when one did. Such threats do not count toward `threatsMax`. */
+  readonly patch?: string;
+}
+
+/** A small animal on the map that draws or drives off the creature like a fire (content `LURE_TYPES`). Public. */
+export interface Lure {
+  readonly id: string;
+  /** Content id. */
+  readonly type: string;
+  readonly hex: Hex;
+  /** Times it can still be led; at 0 it has settled: it stays put and still acts on the creature. */
+  readonly leadsLeft: number;
+}
+
+/**
+ * A hazard patch laid across the route ahead (content `HAZARD_TYPES`). Server only: its terrain shows as
+ * the tiles come into view, its threats (a scree field's rockslides) appear once the patch is near.
+ */
+export interface HazardPatch {
+  readonly id: string;
+  /** Content id. */
+  readonly type: string;
+  readonly centre: Hex;
+  /** The hexes whose terrain it replaces (terrain patches); none for a cluster. */
+  readonly hexes: readonly Hex[];
+  /** Where a cluster's threats stand (none for a terrain patch). */
+  readonly threats: readonly Hex[];
+  /** The cluster's threats are on the map now (they are laid once, when the patch comes within reach). */
+  readonly spawned: boolean;
 }
 
 export type Attitude = 'wary' | 'friendly' | 'angry';
@@ -283,6 +312,8 @@ export interface GameStateView {
   readonly stimuli: readonly Stimulus[];
   /** Threats on the map now. */
   readonly threats: readonly Threat[];
+  /** Lures (small animals) on the map now. */
+  readonly lures: readonly Lure[];
   /** Settlements in reach (each stays until its hex is lost to the fog). */
   readonly settlements: readonly Settlement[];
   /** The creature's peril: 0 to `perilMax`. At the max the season is lost. */
@@ -316,6 +347,13 @@ export interface GameState extends GameStateView {
    * Never sent to players: only a brazier whose hex has been seen shows, as a feature.
    */
   readonly brazierPlan: readonly Hex[];
+  /**
+   * Hazard patches laid so far across the route ahead (`hazards.ts`), oldest first. Never sent to players:
+   * the terrain shows as tiles do, and a cluster's threats are public once on the map.
+   */
+  readonly hazardPlan: readonly HazardPatch[];
+  /** Lures placed so far (the next lure's index, for its id and its place along the route). Never sent. */
+  readonly lureCount: number;
 }
 
 export const hasSeed = (state: GameStateView): state is GameState =>

@@ -33,7 +33,17 @@ import {
   roleHas,
   unlockTags,
 } from './features.ts';
-import { type Hex, hexDistance, hexesInRange, hexKey, isValidHex } from './hex.ts';
+import {
+  type Direction,
+  DIRECTIONS,
+  type Hex,
+  hexDistance,
+  hexesInRange,
+  hexKey,
+  isValidHex,
+  neighbour,
+} from './hex.ts';
+import { canLeadOnto } from './lures.ts';
 import { terrainOf } from './map.ts';
 import { BURNABLE_TAG, FIRE_SITE_TAG } from './fire.ts';
 import { arePlacesAdjacent, ON_CREATURE, onHex, placeEquals, placeNeighbours } from './places.ts';
@@ -91,6 +101,16 @@ export type Action =
   | { readonly kind: 'defend' }
   /** Frees a pinned character on the same or a neighbouring place (see `Character.pinnedDay`). */
   | { readonly kind: 'dig-out'; readonly target: string }
+  /**
+   * Leads a lure (a small animal) one hex: to the neighbouring hex in `direction`, or to `to` (a neighbour of
+   * the lure's hex). The character must stand on the lure's hex or beside it. Give exactly one of the two.
+   */
+  | {
+      readonly kind: 'lead';
+      readonly lure: string;
+      readonly direction?: Direction;
+      readonly to?: Hex;
+    }
   | { readonly kind: 'parley' }
   | { readonly kind: 'offer'; readonly material: string }
   | { readonly kind: 'ask-boon'; readonly boon: string }
@@ -152,6 +172,10 @@ export type ActRefusal =
   | 'pinned'
   /** A dig-out on a character who is not pinned. */
   | 'not-pinned'
+  /** Leading a lure: there is no lure with that id; it has no leads left; the hex it would go to is not open to it. */
+  | 'no-lure'
+  | 'settled'
+  | 'blocked'
   /** Picks: see `PickRefusal` in `skills.ts` (`already-have` is shared). */
   | PickRefusal;
 
@@ -572,6 +596,26 @@ export const checkAction = (
       }
       return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
     }
+    case 'lead': {
+      const cost = config.leadCost;
+      const no = (reason: ActRefusal): ActCheck => ({ ok: false, reason, cost });
+      if (typeof action.lure !== 'string') return no('invalid-action');
+      const hasDirection = action.direction !== undefined;
+      if (hasDirection === (action.to !== undefined)) return no('invalid-action');
+      if (action.direction !== undefined && !DIRECTIONS.includes(action.direction)) {
+        return no('invalid-action');
+      }
+      if (action.to !== undefined && !isValidHex(action.to)) return no('invalid-hex');
+      const lure = state.lures.find((l) => l.id === action.lure);
+      if (!lure) return no('no-lure');
+      const here = hexOf(c);
+      if (!here || hexDistance(here, lure.hex) > 1) return no('not-near');
+      if (lure.leadsLeft <= 0) return no('settled');
+      const target = action.direction ? neighbour(lure.hex, action.direction) : (action.to as Hex);
+      if (hexDistance(target, lure.hex) !== 1) return no('not-adjacent');
+      if (!canLeadOnto(state, lure, target)) return no('blocked');
+      return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
+    }
     case 'parley': {
       const cost = config.parleyCost;
       const no = (reason: ActRefusal): ActCheck => ({ ok: false, reason, cost });
@@ -857,6 +901,28 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
     };
   }
 
+  if (action.kind === 'lead') {
+    const lure = state.lures.find((l) => l.id === action.lure);
+    if (!lure) return { ok: false, reason: 'no-lure' };
+    const to = action.direction ? neighbour(lure.hex, action.direction) : (action.to as Hex);
+    const leadsLeft = lure.leadsLeft - 1;
+    const events: GameEvent[] = [
+      { kind: 'lure-led', id: lure.id, characterId, from: lure.hex, to, leadsLeft },
+    ];
+    if (leadsLeft <= 0) events.push({ kind: 'lure-settled', id: lure.id, hex: to });
+    return {
+      ok: true,
+      state: withCharacter(
+        {
+          ...state,
+          lures: state.lures.map((l) => (l.id === lure.id ? { ...l, hex: to, leadsLeft } : l)),
+        },
+        {},
+      ),
+      events,
+    };
+  }
+
   if (action.kind === 'defend') {
     const creature = { ...state.creature, defenders: [...state.creature.defenders, characterId] };
     return {
@@ -1109,6 +1175,12 @@ export const actionsHere = (
       .filter((x) => x.id !== characterId && x.status === 'active' && x.at.kind === 'hex')
       .map((x) => ({ kind: 'throw-line' as const, to: x.id })),
     ...state.threats.map((t) => ({ kind: 'strike' as const, threat: t.id })),
+    // Leading a lure: each lure at hand, each way it could be led.
+    ...state.lures
+      .filter((l) => c.at.kind === 'hex' && hexDistance(c.at.hex, l.hex) <= 1)
+      .flatMap((l) =>
+        DIRECTIONS.map((direction) => ({ kind: 'lead' as const, lure: l.id, direction })),
+      ),
     ...state.characters
       .filter(
         (x) =>

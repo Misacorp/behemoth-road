@@ -123,6 +123,9 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-26 Hazard patches are laid lazily across the route, and tuned to 12 hexes apart
+- 2026-11-26 A lure animal is a second steering tool (Misa's ask) \[Misa\]
+- 2026-11-26 Hazards across the route make steering worth it (Misa's ask) \[Misa\]
 - 2026-11-26 Striking a rockslide can bury the striker \[Misa\]
 - 2026-11-26 Threats tagged fears-fire keep clear of burning fires \[Misa\]
 - 2026-11-26 Fire needs something to burn: braziers and burnables

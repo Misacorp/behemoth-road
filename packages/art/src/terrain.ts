@@ -127,6 +127,19 @@ export const TERRAIN_LOOKS: Readonly<Record<string, TerrainLook>> = {
       { kind: 'rock', count: [1, 1], chance: 0.4 },
     ],
   },
+  // Hazards laid across the route (`docs/design/hazards.md`). Placeholders on existing materials until the art lands.
+  'poisoned-lake': {
+    ground: 'mire',
+    side: 'earth',
+    marks: 'pools',
+    props: [],
+  },
+  'glass-waste': {
+    ground: 'dune',
+    side: 'earth',
+    marks: 'scree',
+    props: [],
+  },
 };
 
 export const FALLBACK_LOOK: TerrainLook = {

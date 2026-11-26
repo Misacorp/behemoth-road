@@ -4,9 +4,9 @@
 
 import type { TuningConfig } from './config.ts';
 import { type Hex, hexDistance, hexesInRange, hexKey } from './hex.ts';
-import { terrainIdAt } from './map.ts';
+import { hazardTerrainAt, terrainIdAt } from './map.ts';
 import type { Seed } from './random.ts';
-import type { GameStateView, TileKnowledge, Visibility } from './state.ts';
+import type { GameStateView, HazardPatch, TileKnowledge, Visibility } from './state.ts';
 
 /** The hexes the creature stands on. */
 export const creatureHexes = (state: GameStateView): Hex[] =>
@@ -34,7 +34,7 @@ export const isReachable = (state: GameStateView, h: Hex): boolean =>
  * Hexes in the window are seen (even ones lost earlier: the window is always in play),
  * and a hex seen for the first time records its terrain, generated from `seed`.
  * A seen hex outside it records the day it left, and is lost once `graceDays` have passed.
- * Server only: it needs the seed.
+ * A hex a hazard patch covers records the terrain the patch lays (`plan`). Server only: it needs the seed.
  */
 export const updateTiles = (
   tiles: Readonly<Record<string, TileKnowledge>>,
@@ -42,6 +42,7 @@ export const updateTiles = (
   day: number,
   config: TuningConfig,
   seed: Seed,
+  plan: readonly HazardPatch[] = [],
 ): Record<string, TileKnowledge> => {
   const next: Record<string, TileKnowledge> = {};
   for (const [key, tile] of Object.entries(tiles)) {
@@ -63,7 +64,7 @@ export const updateTiles = (
   for (const h of hexesInRange(centre, config.windowRadius)) {
     const key = hexKey(h);
     const known = next[key];
-    const terrain = known?.terrain ?? terrainIdAt(seed, h);
+    const terrain = known?.terrain ?? hazardTerrainAt(plan, h) ?? terrainIdAt(seed, h);
     next[key] = {
       visibility: 'seen',
       terrain,

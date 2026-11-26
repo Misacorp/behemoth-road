@@ -4,6 +4,30 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-26: Hazard patches are laid lazily across the route, and tuned to 12 hexes apart
+
+ID: `2026-11-26-hazard-patches-are-laid-lazily-across` · Status: current
+
+**Decision.** Map generation lays hazard patches lazily as the creature walks, not all at game start. Patch `k` is laid `windowRadius + 3` hexes ahead along the creature's heading (a hex to one side now and then) once its steps bring the patch's route position (`hazardFirst + 3 + k * hazardSpacing`, a hex either way) within that, so it always lies across the straight line the creature is on. The plan is server only (`hazardPlan`); the terrain shows as tiles come into view and a scree field's rockslides appear (public, tagged with their patch, outside the `threatsMax` cap) once the patch is within `windowRadius - 1`. Lures are placed the same way. `hazardSpacing` is 12 (the brief's start was 8). `perilOnStep` is 2 on both terrain hazards, the lure's range 6 and the glass waste a disc of radius 1.
+
+**Reasoning.** A fixed plan from the start would drift out of the creature's way within a few steps (its route wanders, as the brazier plan's does), so most patches would never be met. Laying them ahead of where it really is keeps each one a real choice. In the balance sim (150 seeds, careful, full season) spacing 8 pushed careful losses from 13 % to about 25 %, and radius-2 glass waste and a range-4 lure made steering too weak to pay; at spacing 12 a steering party loses 17 % (3 players) and 14 % (6) against 13 % and 9 % before the hazards, and a party that does not steer loses 26 % and 15 % (numbers in `docs/progress.md`).
+
+## 2026-11-26: A lure animal is a second steering tool (Misa's ask) **[Misa]**
+
+ID: `2026-11-26-a-lure-animal-is-a-second` · Status: current
+
+**Decision.** A small animal, the capybara, is a second steering tool. Lures are content (`LURE_TYPES`, tags `small-beast` and `lure`, a push and a range as data). Each acts on the creature's step like a fire for as long as it is on the map, by the creature's hidden reaction to the tag `small-beast`, which the Mossback rolls at creation as attracted or repelled, never indifferent, and the Keeper reads the way they read fire (the same cues). A character on the lure's hex or next to it can `lead` it one hex (cost `leadCost`, 1; `lureLeads`, 3, leads in all); at 0 it settles: it stays and still acts but cannot be led. A lure the creature's footprint reaches flees (removed, `lure-fled`); one left out of the window drops off quietly. Lures are placed near the route about every `lureSpacing` (7) hexes, never on water.
+
+**Reasoning.** Misa's idea (an elephant and a mouse: a big creature drawn to or afraid of a small one). It gives steering a tool that needs no wood and no brazier on the right side, but it is bounded: three leads, and it is gone once the creature reaches it, so it cannot be reused for ever.
+
+## 2026-11-26: Hazards across the route make steering worth it (Misa's ask) **[Misa]**
+
+ID: `2026-11-26-hazards-across-the-route-make-steering` · Status: current
+
+**Decision.** Hazards lie along the way: scree fields (3 to 5 rockslides laid together, tag `falls`), poisoned lakes (terrain tagged `water` and `poisoned`) and glass waste (terrain tagged `sharp` and `dry`). A creature step ending on terrain with `perilOnStep` adds that peril (2 for both; defence does not reduce it); the glass waste also costs a walker one more action to enter (`extraMoveCost`, the existing field the brief called `moveExtra`); nothing is found or gathered on poisoned ground. The creature does not avoid them by itself: steering is the players' job. None lies within `hazardFirst` (6) hexes of the start.
+
+**Reasoning.** Misa wants steering the creature to be worth it. Steering round a single rockslide did not clearly beat striking it down; terrain and clusters cannot be cleared by hand, so walking straight in costs peril and a hex or two sideways avoids it.
+
 ## 2026-11-26: Striking a rockslide can bury the striker **[Misa]**
 
 ID: `2026-11-26-striking-a-rockslide-can-bury-the` · Status: current · Amends: `2026-11-21-a-rockslide-strikes-only-its-own`

@@ -7,6 +7,8 @@ import { type Direction, DIRECTIONS, type Hex, isValidHex } from './hex.ts';
 import { CONTENT_VERSION, DEFAULT_STANCE } from './content/index.ts';
 import { freshCare, rollNature } from './care.ts';
 import { addFeatures, brazierPlan, keyToHex } from './features.ts';
+import { extendHazards, spawnClusters } from './hazards.ts';
+import { placeLures } from './lures.ts';
 import { ON_CREATURE } from './places.ts';
 import { hashInts, hashString, newArtSeed, type Seed, toSeed } from './random.ts';
 import { emptyStats } from './stats.ts';
@@ -61,9 +63,10 @@ export const createGame = (
   }
 
   const day = 1;
-  const tiles = updateTiles({}, centre, day, config, seed);
   const nature = rollNature(seed);
   const braziers = brazierPlan(seed, centre, heading, config);
+  const hazardPlan = extendHazards(seed, config, { centre, heading, steps: 0 }, {}, braziers, []);
+  const tiles = updateTiles({}, centre, day, config, seed, hazardPlan);
   const game: GameState = {
     contentVersion: CONTENT_VERSION,
     artSeed,
@@ -84,6 +87,9 @@ export const createGame = (
     care: freshCare(nature, day),
     stimuli: [],
     threats: [],
+    lures: [],
+    lureCount: 0,
+    hazardPlan,
     settlements: [],
     peril: 0,
     season: { status: 'on' },
@@ -124,7 +130,8 @@ export const createGame = (
       skills: emptySkills(),
     })),
   };
+  const spawned = spawnClusters(placeLures(game).state).state;
   // What is true at the start (setting out; terrain under the first footprint) fires now, with no event
   // (a new game has no event stream): `story.fired` is the record.
-  return fireStory(game).state;
+  return fireStory(spawned).state;
 };

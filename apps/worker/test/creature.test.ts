@@ -205,9 +205,12 @@ describe('the done criterion through the API', () => {
 
         const next = await ctx.call(misa, 'POST', '/api/dev/next-day', {});
         expect(next.status).toBe(200);
-        expect((next.body as PlayerView).signs.cues).toEqual([
-          { hex: fire?.hex, stimulus: 'fire', reaction: expect.any(String) as string },
-        ]);
+        // The fire's cue (a lure in reach, if there is one, leaves its own).
+        expect((next.body as PlayerView).signs.cues).toContainEqual({
+          hex: fire?.hex,
+          stimulus: 'fire',
+          reaction: expect.any(String) as string,
+        });
         const other = (await ctx.call(robin, 'GET', '/api/game')).body as PlayerView;
         expect(other.version).toBe((next.body as PlayerView).version);
         expect(other.signs.cues).toEqual([]);
@@ -237,7 +240,7 @@ describe('signs in the player view', () => {
         expect(keeperSigns.cues).toEqual(
           stored.care.cues.list.map((c) => ({
             hex: c.hex,
-            stimulus: 'fire',
+            stimulus: c.stimulus,
             reaction: expect.stringMatching(/^(toward|away|unmoved)$/) as string,
           })),
         );

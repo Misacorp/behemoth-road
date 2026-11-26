@@ -72,6 +72,7 @@ describe('the hidden nature', () => {
       'creature',
       'day',
       'features',
+      'lures',
       'misleadUntilDay',
       'peril',
       'project',

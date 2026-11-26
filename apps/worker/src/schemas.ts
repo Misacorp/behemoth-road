@@ -1,5 +1,6 @@
 import * as v from 'valibot';
 import {
+  DIRECTIONS,
   ROLE_IDS,
   SEEN_IDS,
   SEEN_MAX,
@@ -118,6 +119,17 @@ export const ActionSchema = v.variant('kind', [
     kind: v.literal('dig-out'),
     target: v.pipe(v.string(), v.minLength(1), v.maxLength(64)),
   }),
+  // Leads a lure (a small animal) one hex: its id, and exactly one of a direction or a target hex beside it.
+  // The core refuses the rest by name (`no-lure`, `not-near`, `settled`, `blocked`, `pinned`, ...).
+  v.pipe(
+    v.strictObject({
+      kind: v.literal('lead'),
+      lure: contentId,
+      direction: v.exactOptional(v.picklist(DIRECTIONS)),
+      to: v.exactOptional(v.strictObject({ q: coordinate, r: coordinate })),
+    }),
+    v.check((a) => (a.direction === undefined) !== (a.to === undefined)),
+  ),
   v.strictObject({ kind: v.literal('parley') }),
   v.strictObject({ kind: v.literal('offer'), material: contentId }),
   v.strictObject({ kind: v.literal('ask-boon'), boon: contentId }),

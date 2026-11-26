@@ -54,7 +54,10 @@ describe('map generation', () => {
       const plains = (counts.get('plains') ?? 0) / area.length;
       expect(plains).toBeGreaterThan(0.58);
       expect(plains).toBeLessThan(0.78);
-      for (const t of TERRAIN_TYPES) expect(counts.get(t.id) ?? 0).toBeGreaterThan(0);
+      // Hazard terrain is laid across the route as the creature walks, not by the generation rules.
+      for (const t of TERRAIN_TYPES.filter((x) => x.perilOnStep === undefined)) {
+        expect(counts.get(t.id) ?? 0).toBeGreaterThan(0);
+      }
     }
   });
 

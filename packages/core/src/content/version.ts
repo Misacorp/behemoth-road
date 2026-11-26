@@ -39,8 +39,10 @@
  * 23: fire needs something to burn: braziers (fire-site) and burnable features, fears-fire threats, the
  *    rockslide can fall on its striker (pinned characters, dig-out); engineers are sure-footed; burnt
  *    ground is kept (`burnt`, with the feature's `burntLook`).
+ * 24: hazards along the route (scree field, poisoned lake, glass waste: `perilOnStep` on terrain) and the
+ *    lure (a capybara; the `lead` action, `lures` in the view, the creature's reaction to `small-beast`).
  */
-export const CONTENT_VERSION = 23;
+export const CONTENT_VERSION = 24;
 
 /** Content versions this code can load. */
 export const KNOWN_CONTENT_VERSIONS: readonly number[] = [CONTENT_VERSION];

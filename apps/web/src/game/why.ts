@@ -53,6 +53,10 @@ export const WHY_BY_REFUSAL: Readonly<Record<ActRefusal, TipId>> = {
   waiting: 'why:other',
   pinned: 'why:pinned',
   'not-pinned': 'why:other',
+  // Leading a lure: no such lure, no leads left, or nowhere open to lead it.
+  'no-lure': 'why:other',
+  settled: 'why:done',
+  blocked: 'why:wrong-place',
   // Skills (the tree drawer): each refusal has its own reason.
   'unknown-skill': 'why:other',
   'skill-veiled': 'why:veiled',

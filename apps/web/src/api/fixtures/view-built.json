@@ -15,7 +15,7 @@
   },
   "offers": null,
   "game": {
-    "contentVersion": 23,
+    "contentVersion": 24,
     "artSeed": 4242,
     "day": 1,
     "config": {
@@ -58,6 +58,12 @@
       "fireFearRadius": 1,
       "slideFallChance": 0.2,
       "digOutCost": 1,
+      "hazardSpacing": 12,
+      "hazardFirst": 6,
+      "lureSpacing": 7,
+      "lureFirstWithin": 4,
+      "leadCost": 1,
+      "lureLeads": 3,
       "feedCost": 1,
       "lingerCost": 2,
       "towThrowCost": 1,
@@ -948,6 +954,17 @@
     },
     "stimuli": [],
     "threats": [],
+    "lures": [
+      {
+        "id": "l1",
+        "type": "capybara",
+        "hex": {
+          "q": 1,
+          "r": -4
+        },
+        "leadsLeft": 3
+      }
+    ],
     "settlements": [],
     "peril": 0,
     "season": {

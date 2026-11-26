@@ -503,7 +503,8 @@ describe('map generation places braziers along the route', () => {
   });
 
   it('shows the first brazier from the start, and the others as their hexes come into view', () => {
-    const g = createGame(2);
+    // No hazards or lures on the way: a long walk would end the season on peril, or turn the creature aside.
+    const g = createGame(2, { config: { hazardFirst: 100_000, lureFirstWithin: 100_000 } });
     const first = g.brazierPlan[0] as Hex;
     expect(g.features[key(first)]).toMatchObject({ type: 'brazier', revealed: true });
     expect(toPlayerView(g).features[key(first)]?.type).toBe('brazier');

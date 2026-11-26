@@ -94,7 +94,7 @@ export const CREATURE_TYPES: readonly CreatureType[] = [
       max: 20,
       levelStep: 2,
     },
-    // Never indifferent to fire: the first creature must be steerable by it.
-    reactions: { fire: ['attracted', 'repelled'] },
+    // Never indifferent to fire or to a small beast: the first creature must be steerable by both.
+    reactions: { fire: ['attracted', 'repelled'], 'small-beast': ['attracted', 'repelled'] },
   },
 ];

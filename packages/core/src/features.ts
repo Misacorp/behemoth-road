@@ -108,6 +108,26 @@ export type GameEvent =
   | { readonly kind: 'day'; readonly day: number }
   /** From the day tick: a starving creature ate one unit from the (public) stores. */
   | { readonly kind: 'creature-ate'; readonly material: string }
+  /** From the day tick: the creature's step ended on hazardous terrain (`terrain` id); `damage` is the peril it added. */
+  | {
+      readonly kind: 'hazard-step';
+      readonly hex: Hex;
+      readonly terrain: string;
+      readonly damage: number;
+    }
+  /** A character led a lure a hex (`leadsLeft` is what remains). */
+  | {
+      readonly kind: 'lure-led';
+      readonly id: string;
+      readonly characterId: string;
+      readonly from: Hex;
+      readonly to: Hex;
+      readonly leadsLeft: number;
+    }
+  /** A lure has no leads left: it stays where it is (after the `lure-led` that used the last). */
+  | { readonly kind: 'lure-settled'; readonly id: string; readonly hex: Hex }
+  /** From the day tick: the creature's footprint reached a lure and it ran off. */
+  | { readonly kind: 'lure-fled'; readonly id: string; readonly hex: Hex }
   /** From the day tick: a stimulus (a fire) burnt out. */
   | { readonly kind: 'fire-out'; readonly hex: Hex; readonly stimulus: string }
   /** A threat appeared (from the tick, or sent by an angered settlement). */
@@ -223,6 +243,8 @@ export const generateFeature = (
   if (roll >= most) return null;
   const terrain = terrainById(terrainIdOf(h));
   if (!terrain.passable) return null;
+  // Nothing is gathered or found on poisoned ground.
+  if (terrain.tags.includes('poisoned')) return null;
   let nearTags: Set<string> | null = null;
   const fits = FEATURE_TYPES.filter((t) => {
     if (t.placement.on.some((tag) => terrain.tags.includes(tag))) return true;

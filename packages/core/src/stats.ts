@@ -47,6 +47,8 @@ export const PERIL_CALM = 'calm';
 export const PERIL_SHELTER = 'shelter';
 /** A strike on the creature by a threat of this type (a content id). */
 export const perilThreat = (type: string): string => `threat:${type}`;
+/** The source of peril from the creature stepping onto hazardous terrain. */
+export const perilTerrain = (terrain: string): string => `terrain:${terrain}`;
 /** The threat type a source id names, or null for the other sources. */
 export const threatOfSource = (source: string): string | null =>
   source.startsWith('threat:') ? source.slice('threat:'.length) : null;
