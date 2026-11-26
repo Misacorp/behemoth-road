@@ -19,7 +19,7 @@ Content version 24. The rules are in `packages/core` (`hazards.ts`, `lures.ts`);
 - `threats[].patch?: string`: the scree field that laid it; absent for every other threat. These threats do not count toward `threatsMax`.
 - `tiles[hexKey].terrain` is `poisoned-lake` or `glass-waste` for hazard hexes once seen: draw them from the terrain, like any other. Hazard terrain data (`TERRAIN_TYPES`): `perilOnStep` (number, absent on other terrain), `extraMoveCost`.
 - `config`: `hazardSpacing`, `hazardFirst`, `lureSpacing`, `lureFirstWithin`, `leadCost`, `lureLeads`.
-- Never sent: the hazard plan (`hazardPlan`), the lure counter (`lureCount`), the creature's reaction to `small-beast`.
+- Never sent: the hazard plan (`hazardPlan`), the lure counter (`lureCount`), the cart counter (`cartCount`), the creature's reaction to `small-beast`.
 - Keeper cues (`creatureSigns(state, characterId).cues`, only for a Keeper, only the day after the tick): a lure in the creature's reach at the tick gives `{ hex, stimulus: <lure type id>, reaction: 'toward' | 'away' }`, the same shape as for a fire. `stimulus` is a lure type id (`capybara`), so look the art up in `LURE_TYPES` as well as `STIMULUS_TYPES`.
 
 ## The action

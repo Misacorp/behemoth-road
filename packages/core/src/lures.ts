@@ -33,11 +33,12 @@ export const LURE_TAG = 'lure';
 /** How many hexes along the route from the start lure `k` stands: the first within `lureFirstWithin`, then about `lureSpacing` apart. */
 export const lureRoutePosition = (
   seed: Seed,
-  config: Pick<TuningConfig, 'lureFirstWithin' | 'lureSpacing'>,
+  config: Pick<TuningConfig, 'lureFirstWithin' | 'lureSpacing' | 'lureJitter'>,
   k: number,
 ): number => {
   if (k === 0) return config.lureFirstWithin;
-  const jitter = Math.floor(hashToUnit(seed, LURE_STREAM, k, 0) * 3) - 1;
+  const j = config.lureJitter;
+  const jitter = Math.floor(hashToUnit(seed, LURE_STREAM, k, 0) * (2 * j + 1)) - j;
   return config.lureFirstWithin + k * config.lureSpacing + jitter;
 };
 
@@ -51,7 +52,11 @@ const holdsLure = (
   const terrain = terrainOf(state, h);
   if (!terrain || !terrain.passable || !isReachable(state, h)) return false;
   if (tags.some((tag) => terrain.tags.includes(tag))) return false;
-  if (hexDistance(h, state.creature.centre) <= state.config.creatureRadius + 1) return false;
+  if (
+    hexDistance(h, state.creature.centre) <=
+    state.config.creatureRadius + state.config.lureKeepOut
+  )
+    return false;
   return (
     !state.lures.some((l) => hexEquals(l.hex, h)) &&
     !state.threats.some((t) => hexEquals(t.hex, h)) &&
@@ -81,9 +86,10 @@ export const placeLures = (
     count++;
     const type = LURE_TYPES[Math.floor(hashToUnit(seed, LURE_STREAM, k, 3) * LURE_TYPES.length)];
     if (!type) break;
-    const d = Math.max(config.creatureRadius + 2, ahead);
+    const d = Math.max(config.creatureRadius + config.lureAheadMin, ahead);
     const side: -1 | 1 = hashToUnit(seed, LURE_STREAM, k, 1) < 0.5 ? -1 : 1;
-    const wide = 1 + Math.floor(hashToUnit(seed, LURE_STREAM, k, 2) * 3);
+    const span = config.lureWideMax - config.lureWideMin + 1;
+    const wide = config.lureWideMin + Math.floor(hashToUnit(seed, LURE_STREAM, k, 2) * span);
     const tries: Hex[] = [];
     // A hex to one side of the line `d` ahead, or a hex nearer or further along it, or on it.
     for (const dd of [d, d + 1, d - 1]) {
@@ -144,6 +150,7 @@ export const canLeadOnto = (state: GameStateView, lure: Lure, h: Hex): boolean =
   return (
     !state.lures.some((l) => hexEquals(l.hex, h)) &&
     !state.threats.some((t) => hexEquals(t.hex, h)) &&
-    !state.settlements.some((s) => hexEquals(s.hex, h))
+    !state.settlements.some((s) => hexEquals(s.hex, h)) &&
+    !(state.features[hexKey(h)]?.revealed ?? false)
   );
 };

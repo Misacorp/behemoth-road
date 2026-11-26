@@ -80,10 +80,27 @@ export interface TuningConfig {
   readonly hazardSpacing: number;
   /** Mapgen: no hazard lies within this many hexes of the start. */
   readonly hazardFirst: number;
+  /** Mapgen: a hazard patch is laid this many hexes beyond the window's edge (so none of it has been in view). */
+  readonly hazardLookaheadBeyond: number;
+  /** Mapgen: the first patch's centre lies this many hexes past `hazardFirst` (its edge is then past it too). */
+  readonly hazardFirstOffset: number;
+  /** Mapgen: chance a patch is laid a hex to one side of the heading's line. */
+  readonly hazardSideChance: number;
+  /** Mapgen: a patch's place along the route varies by up to this many hexes either way. */
+  readonly hazardJitter: number;
   /** Mapgen: a lure (a small animal) stands near the route about every this many hexes. */
   readonly lureSpacing: number;
   /** Mapgen: the first lure stands this many hexes along the route from the start. */
   readonly lureFirstWithin: number;
+  /** Mapgen: a lure's place along the route varies by up to this many hexes either way. */
+  readonly lureJitter: number;
+  /** Mapgen: no lure is placed within this many hexes beyond the creature's footprint. */
+  readonly lureKeepOut: number;
+  /** Mapgen: a lure is aimed at least this many hexes beyond the footprint along the heading. */
+  readonly lureAheadMin: number;
+  /** Mapgen: a lure stands this many hexes (at least, at most) beside the heading's line. */
+  readonly lureWideMin: number;
+  readonly lureWideMax: number;
   /** Actions it costs to lead a lure one hex. */
   readonly leadCost: number;
   /** Times a lure can be led before it settles for good. */
@@ -227,8 +244,17 @@ export const DEFAULT_CONFIG: TuningConfig = {
   struggleChanceStep: 0.2,
   hazardSpacing: 12,
   hazardFirst: 6,
+  hazardLookaheadBeyond: 3,
+  hazardFirstOffset: 3,
+  hazardSideChance: 0.4,
+  hazardJitter: 1,
   lureSpacing: 7,
   lureFirstWithin: 4,
+  lureJitter: 1,
+  lureKeepOut: 1,
+  lureAheadMin: 2,
+  lureWideMin: 1,
+  lureWideMax: 3,
   leadCost: 1,
   lureLeads: 3,
   feedCost: 1,
@@ -327,6 +353,7 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     'slideFallChance',
     'struggleChanceBase',
     'struggleChanceStep',
+    'hazardSideChance',
   ] as const;
   for (const key of chances) {
     const p = config[key];
@@ -395,6 +422,10 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     'fireFearRadius',
     'cartsMax',
     'cartPullExtra',
+    'hazardJitter',
+    'lureJitter',
+    'lureKeepOut',
+    'hazardFirstOffset',
   ] as const;
   for (const key of counts) if (!isCount(config[key], 0)) problems.push(key);
   // A path threat appears beyond contact (next to the footprint) and inside the window.
@@ -418,6 +449,10 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
   // Patches are at most five hexes across, so a closer spacing would run them together.
   if (!isCount(config.hazardSpacing, 6)) problems.push('hazardSpacing');
   if (!isCount(config.lureFirstWithin, 1)) problems.push('lureFirstWithin');
+  if (!isCount(config.hazardLookaheadBeyond, 1)) problems.push('hazardLookaheadBeyond');
+  if (!isCount(config.lureAheadMin, 1)) problems.push('lureAheadMin');
+  if (!isCount(config.lureWideMin, 1)) problems.push('lureWideMin');
+  if (!isCount(config.lureWideMax, config.lureWideMin)) problems.push('lureWideMax');
   if (!(Number.isFinite(config.stimulusPull) && config.stimulusPull >= 1)) {
     problems.push('stimulusPull');
   }

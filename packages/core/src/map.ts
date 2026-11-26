@@ -60,7 +60,11 @@ export const terrainIdAt = (
   return generation.fallback;
 };
 
-/** Terrain laid by hazard plans, per plan (its identity): hex key to terrain id. */
+/**
+ * Terrain laid by hazard plans, per plan (its identity): hex key to terrain id. Safe only because a plan
+ * is never mutated in place: `extendHazards` and `spawnClusters` return new arrays and new patches, so a
+ * cached overlay always matches the plan it is keyed by. Keep it that way, or drop the cache.
+ */
 const overlays = new WeakMap<readonly HazardPatch[], Map<string, string>>();
 
 /** The terrain id a hazard patch lays at a hex (a poisoned lake, a glass waste), or null. */

@@ -8,7 +8,7 @@ import { type Unlock, UNLOCKS } from './content/index.ts';
 import type { GameEvent } from './features.ts';
 import { type Hex, hexEquals, hexRing } from './hex.ts';
 import { terrainOf } from './map.ts';
-import type { Cart, Character, GameStateView } from './state.ts';
+import type { Cart, Character, GameState, GameStateView } from './state.ts';
 import { isCreatureHex, isReachable } from './window.ts';
 
 /** The unlock that makes a cart: the one with `vehicle` data. */
@@ -17,13 +17,18 @@ export const cartUnlock = (): Unlock | undefined => UNLOCKS.find((u) => u.vehicl
 /** Whether an unlock builds a vehicle (finishing it places one instead of joining the team's unlocks). */
 export const isVehicleUnlock = (unlock: Unlock): boolean => unlock.vehicle !== undefined;
 
-/** Whether a cart can roll onto a hex: its terrain has a tag the vehicle allows, and it is not under the creature. */
+/**
+ * Whether a cart can roll onto a hex: its terrain has a tag the vehicle allows and none it refuses
+ * (islets), and it is not under the creature or on a hex another cart holds.
+ */
 export const cartCanEnter = (state: GameStateView, h: Hex): boolean => {
   const spec = cartUnlock()?.vehicle;
   if (!spec || isCreatureHex(state, h)) return false;
   const terrain = terrainOf(state, h);
+  if (!terrain || !terrain.passable) return false;
+  if (spec.terrainNotTags?.some((t) => terrain.tags.includes(t))) return false;
   return (
-    terrain !== null && terrain.passable && spec.terrainTags.some((t) => terrain.tags.includes(t))
+    spec.terrainTags.some((t) => terrain.tags.includes(t)) && cartAtHex(state, h) === undefined
   );
 };
 
@@ -95,16 +100,17 @@ export const releaseFromCart = <S extends GameStateView>(state: S, characterId: 
  * or the creature's centre when they ride it, which puts it beside the footprint). Returns the state
  * unchanged when there is no room (the build is refused beforehand, so this is a guard).
  */
-export const placeCart = <S extends GameStateView>(
-  state: S,
+export const placeCart = (
+  state: GameState,
   from: Hex,
   characterId: string | null,
-): { readonly state: S; readonly events: GameEvent[] } => {
+): { readonly state: GameState; readonly events: GameEvent[] } => {
   const hex = cartSpot(state, from);
   if (!hex) return { state, events: [] };
-  const cart: Cart = { id: `cart${state.day}`, hex, cargo: {}, puller: null, rider: null };
+  const count = state.cartCount + 1;
+  const cart: Cart = { id: `cart${count}`, hex, cargo: {}, puller: null, rider: null };
   return {
-    state: { ...state, carts: [...state.carts, cart] },
+    state: { ...state, carts: [...state.carts, cart], cartCount: count },
     events: [
       { kind: 'cart-built', cart: cart.id, hex, ...(characterId === null ? {} : { characterId }) },
     ],
@@ -115,12 +121,12 @@ export const placeCart = <S extends GameStateView>(
  * Finishes an unlock: a vehicle is placed on the map (and counts as `unlock-done`, so the tallies and the
  * celebration still work); anything else joins the team's unlocks.
  */
-export const finishUnlock = <S extends GameStateView>(
-  state: S,
+export const finishUnlock = (
+  state: GameState,
   unlock: Unlock,
   from: Hex,
   characterId: string | null,
-): { readonly state: S; readonly events: GameEvent[] } => {
+): { readonly state: GameState; readonly events: GameEvent[] } => {
   const done: GameEvent = { kind: 'unlock-done', unlock: unlock.id };
   if (!isVehicleUnlock(unlock)) {
     return { state: { ...state, unlocks: [...state.unlocks, unlock.id] }, events: [done] };
