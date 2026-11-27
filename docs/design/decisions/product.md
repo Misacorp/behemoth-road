@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-27: One registry of tappable things feeds the picker and the tap resolver
+
+ID: `2026-11-27-one-registry-of-tappable-things-feeds` · Status: current
+
+**Decision.** <!-- TODO: decision and reasoning -->
+
+**Reasoning.**
+
 ## 2026-11-26: Lure and cart web controls: lead mode and one-tap loading
 
 ID: `2026-11-26-lure-and-cart-web-controls-lead` · Status: current

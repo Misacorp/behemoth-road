@@ -17,7 +17,7 @@ import { PROJECTION } from './art.ts';
 import { cartFeet, lureFeet, pickableFeet } from './figures.ts';
 import { cartToggles } from '../game/cart.ts';
 import { leadTargets as leadTargetsOf } from '../game/lure.ts';
-import { type Flow, IDLE, startLead, tap, tapHex } from './flow.ts';
+import { choose, type Flow, IDLE, startLead, tap, tapHex } from './flow.ts';
 import { mapTipAt } from './mapTips.ts';
 import { buildOverlays } from './overlays.ts';
 import { buildThings } from './things.ts';
@@ -94,9 +94,13 @@ describe('taps on the lure and the cart', () => {
     const walk = tap({ kind: 'selected' }, g.view, g.me, { kind: 'cart', id: 'cart-1' });
     expect(walk.kind).toBe('planned');
     const own = staged({ carts: [{ at: START }] });
-    expect(tap({ kind: 'selected' }, own.view, own.me, { kind: 'cart', id: 'cart-1' })).toEqual({
+    // On your own hex the cart is one of several things there: the picker, then its card with a back.
+    const shared = tap({ kind: 'selected' }, own.view, own.me, { kind: 'cart', id: 'cart-1' });
+    expect(shared.kind).toBe('pick');
+    expect(choose(own.view, own.me, shared, { kind: 'cart', id: 'cart-1' })).toMatchObject({
       kind: 'cart',
       id: 'cart-1',
+      back: shared,
     });
   });
 
@@ -318,14 +322,15 @@ describe('review fixes', () => {
     );
   });
 
-  it('selects you, not the lure or cart, when your figure is tapped on a shared hex', () => {
+  it('takes a tap on a shared hex to the picker, whichever figure is hit', () => {
     const g = staged({ lures: [{ at: START }], carts: [{ at: START }] });
     const feet = pickableFeet(g.view, g.me, PROJECTION);
     expect(feet.others.flatMap((o) => (o.kind ? [o.kind] : []))).toEqual(['lure', 'cart']);
     const mine = feet.mine!;
     for (const dy of [-0.5, -0.3, -0.1]) {
       const at = { x: mine.x, y: mine.y + dy * PROJECTION.size };
-      expect(pickTarget(PROJECTION, at, feet.mine, feet.others)).toEqual({ kind: 'me' });
+      const target = pickTarget(PROJECTION, at, feet.mine, feet.others);
+      expect(tap(IDLE, g.view, g.me, target)).toMatchObject({ kind: 'pick' });
     }
   });
 });

@@ -337,6 +337,42 @@ async function runViewport(browser, vite, vp) {
   await shot('cart-popover-hitched');
   await holdAll('cart');
 
+  // 12. You and a capybara on one hex: a tap shows the bubbles, the capybara's bubble opens its card and
+  // Lead works from your own hex; the cart on your hex is reachable the same way.
+  await open(staged({ lures: [{ at: START }] }));
+  await tapMe();
+  if (!(await count('[data-popover=pick]'))) fail('no picker for you and a capybara');
+  if ((await count('[data-popover=pick] [data-pick]')) !== 2) fail('the picker needs two bubbles');
+  await onScreen('[data-popover=pick]', 'the picker');
+  await shot('picker-you-capybara');
+  await page.locator('[data-popover=pick] [data-pick^="lure:"]').first().click();
+  await wait(300);
+  if (!(await count('[data-popover=lure]'))) fail('the capybara bubble did not open its card');
+  if (!(await count('[data-popover=lure] [data-action=lead]')))
+    fail('no Lead on the capybara standing on your hex');
+  await shot('picker-capybara-card');
+  await page.locator('[data-popover=lure] [data-action=lead]').first().click();
+  await wait(300);
+  if (!(await count('[data-mark=lead-targets]'))) fail('no lead targets from your own hex');
+  const own = fake.scenario.state.lures[0];
+  const toward = { q: START.q + 1, r: START.r };
+  await tapHex(toward);
+  if (!(await count('[data-popover=confirm]'))) fail('no lead confirm from your own hex');
+  await shot('picker-lead-confirm');
+  await page.locator('[aria-label=Confirm]').first().click();
+  await wait(600);
+  const led = fake.scenario.state.lures[0];
+  if (led.hex.q === own.hex.q && led.hex.r === own.hex.r) fail('the capybara was not led');
+  if (led.leadsLeft !== own.leadsLeft - 1) fail('leading from your hex did not spend a lead');
+
+  await open(staged({ carts: [{ at: START }] }));
+  await tapMe();
+  if ((await count('[data-popover=pick] [data-pick]')) !== 2) fail('no picker for you and a cart');
+  await page.locator('[data-popover=pick] [data-pick^="cart:"]').first().click();
+  await wait(300);
+  if (!(await count('[data-popover=cart]'))) fail('the cart bubble did not open its card');
+  await shot('picker-cart-card');
+
   await context.close();
 }
 

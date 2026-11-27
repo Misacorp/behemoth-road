@@ -12,6 +12,8 @@ import {
   drawHazardIcon,
   drawIcon,
   drawSettlementIcon,
+  drawCapybara,
+  drawCart,
   drawSkillNode,
   drawThreatIcon,
   type CharacterLook,
@@ -1320,7 +1322,9 @@ export function SettlementCard({ settlement }: { settlement: SettlementInfo }): 
 export interface PickBubble {
   /** Its key among the bubbles (`me`, `character:id`, `threat:id`, `tile`). */
   readonly key: string;
-  readonly kind: 'character' | 'threat' | 'tile';
+  readonly kind: 'character' | 'threat' | 'tile' | 'lure' | 'cart';
+  /** The lure's or the cart's look (its drawing's state), and the cart's rider or puller accent. */
+  readonly thing?: { readonly look: string; readonly accent?: string };
   /** A character's accent and look. */
   readonly accent?: string;
   readonly look?: CharacterLook | undefined;
@@ -1393,6 +1397,18 @@ export function Picker({
             {b.kind === 'character' && b.accent && (
               <Fitted drawn={bubbleFigure(b.accent, b.look)} x={9} y={3} width={26} height={38} />
             )}
+            {b.kind === 'lure' && b.thing && (
+              <Fitted drawn={lureBubble(b.thing.look)} x={4} y={9} width={36} height={26} />
+            )}
+            {b.kind === 'cart' && b.thing && (
+              <Fitted
+                drawn={cartBubble(b.thing.look, b.thing.accent)}
+                x={4}
+                y={9}
+                width={36}
+                height={26}
+              />
+            )}
             {b.kind === 'threat' && b.threat && <g>{toPreact(pickThreat(b.threat.icon))}</g>}
             {b.kind === 'tile' &&
               (b.settlement ? (
@@ -1412,6 +1428,37 @@ export function Picker({
       })}
     </g>
   );
+}
+
+const thingDrawn = new Map<string, Drawn>();
+/** The capybara's bubble drawing (normal or settled), cached. */
+function lureBubble(look: string): Drawn {
+  const key = `lure|${look}`;
+  let d = thingDrawn.get(key);
+  if (!d) {
+    d = drawCapybara(PALETTE, look === 'settled' ? 'settled' : 'normal', {
+      k: 1,
+      squash: MAP_TUNING.tilt,
+      seed: 'bubble',
+    });
+    thingDrawn.set(key, d);
+  }
+  return d;
+}
+/** The cart's bubble drawing in its state, cached. */
+function cartBubble(look: string, accent?: string): Drawn {
+  const key = `cart|${look}|${accent ?? ''}`;
+  let d = thingDrawn.get(key);
+  if (!d) {
+    d = drawCart(PALETTE, look as 'empty' | 'loaded' | 'rider' | 'hitched', {
+      k: 1,
+      squash: MAP_TUNING.tilt,
+      seed: 'bubble',
+      ...(accent ? { accent } : {}),
+    });
+    thingDrawn.set(key, d);
+  }
+  return d;
 }
 
 const pickThreat = (icon: string) => {

@@ -123,6 +123,7 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-27 One registry of tappable things feeds the picker and the tap resolver
 - 2026-11-26 Lure and cart web controls: lead mode and one-tap loading
 - 2026-11-26 A brazier's reveal counts as explored for good \[Misa\]
 - 2026-11-26 A blocked-hexes helper lists where a subject will not go \[Misa\]
