@@ -94,7 +94,9 @@ describe('scout', () => {
 
   it('A3 sweep runs after the creature steps: a scout at the window edge sees the new hexes', () => {
     const base = chainGame(['scout']);
-    const old = new Set(Object.keys(base.tiles).filter((k) => base.tiles[k]?.visibility === 'seen'));
+    const old = new Set(
+      Object.keys(base.tiles).filter((k) => base.tiles[k]?.visibility === 'seen'),
+    );
     const moved = nextDay(base);
     const fresh = Object.keys(moved.tiles).filter(
       (k) => moved.tiles[k]?.visibility === 'seen' && !old.has(k),

@@ -553,7 +553,9 @@ describe('braziers and the rest of the map', () => {
 describe('what the player view holds', () => {
   it('a brazier at the window edge explores the hexes that come into view as the creature steps', () => {
     const base = calm(fieldGame(['keeper']));
-    const old = new Set(Object.keys(base.tiles).filter((k) => base.tiles[k]?.visibility === 'seen'));
+    const old = new Set(
+      Object.keys(base.tiles).filter((k) => base.tiles[k]?.visibility === 'seen'),
+    );
     const moved = nextDay(base);
     const fresh = Object.keys(moved.tiles).filter(
       (k) => moved.tiles[k]?.visibility === 'seen' && !old.has(k),
