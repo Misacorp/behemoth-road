@@ -1450,7 +1450,7 @@ function cartBubble(look: string, accent?: string): Drawn {
   const key = `cart|${look}|${accent ?? ''}`;
   let d = thingDrawn.get(key);
   if (!d) {
-    d = drawCart(PALETTE, look as 'empty' | 'loaded' | 'rider' | 'hitched', {
+    d = drawCart(PALETTE, look, {
       k: 1,
       squash: MAP_TUNING.tilt,
       seed: 'bubble',
