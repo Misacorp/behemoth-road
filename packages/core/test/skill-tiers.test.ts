@@ -124,6 +124,51 @@ describe('scout', () => {
     expect(nextDayWithEvents(s)).toEqual(next);
   });
 
+  it('A3 sweep skips a scout lost this tick', () => {
+    const start = chainGame(['scout']);
+    const base = { ...start, config: { ...start.config, graceDays: 0 } };
+    const moved = nextDay(base);
+    const gone = Object.keys(base.tiles)
+      .filter((k) => base.tiles[k]?.visibility === 'seen' && moved.tiles[k]?.visibility !== 'seen')
+      .map(keyToHex)
+      // With unexplored hexes in view next to it, so a sweep would have something to do.
+      .find((h) => neighbours(h).some((n) => moved.tiles[hexKey(n)]?.visibility === 'seen'));
+    expect(gone).toBeDefined();
+    const s = take(
+      placeCharacter(base, 'scout', gone!),
+      'scout',
+      'scout-a1',
+      'scout-a2',
+      'scout-a3',
+    );
+    const next = nextDayWithEvents(s);
+    expect(me(next.state, 'scout').status).toBe('lost');
+    expect(ofKind(next.events, 'explore')).toHaveLength(0);
+  });
+
+  it('A3 sweep skips a scout hauled aboard by the creature', () => {
+    const base = chainGame(['scout']);
+    const moved = nextDay(base);
+    const under = Object.keys(base.tiles)
+      .map(keyToHex)
+      .find(
+        (h) =>
+          hexDistance(h, base.creature.centre) > base.config.creatureRadius &&
+          hexDistance(h, moved.creature.centre) <= base.config.creatureRadius,
+      );
+    expect(under).toBeDefined();
+    const s = take(
+      placeCharacter(base, 'scout', under!),
+      'scout',
+      'scout-a1',
+      'scout-a2',
+      'scout-a3',
+    );
+    const next = nextDayWithEvents(s);
+    expect(me(next.state, 'scout').at).toEqual({ kind: 'creature' });
+    expect(ofKind(next.events, 'explore')).toHaveLength(0);
+  });
+
   it('B2 far sight: glints reach four hexes', () => {
     let s = placeCharacter(chainGame(['scout']), 'scout', P);
     s = withFeature(s, hex(5, -1), 'pitfall'); // 2 away
