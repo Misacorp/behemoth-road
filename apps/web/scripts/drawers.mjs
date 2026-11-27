@@ -232,6 +232,80 @@ async function runViewport(browser, vite, vp) {
       }
     }
   }
+  // Focus moves into each drawer (never onto the close cross) and back to the control that opened it.
+  const OPENERS = { skills: '.hud-skills', roster: '.hud-roster' };
+  for (const c of cases) {
+    const tag = `${c.name} drawer, focus`;
+    try {
+      await open(c.scenario());
+      await c.show();
+      await wait(300);
+      const where = await page.evaluate(() => {
+        const a = document.activeElement;
+        return a?.closest('.drawer') ? (a.closest('.drawer-close') ? 'cross' : 'in') : 'out';
+      });
+      if (where !== 'in')
+        fail(`${tag}: focus is ${where === 'cross' ? 'on the cross' : 'outside'}`);
+      const opener = OPENERS[c.name];
+      if (opener) {
+        if (!vp.touch) await page.mouse.move(...(await emptyMapPoint()));
+        await page.keyboard.press('Escape');
+        await wait(300);
+        const back = await page.evaluate(
+          (q) => document.activeElement?.matches(q) ?? false,
+          opener,
+        );
+        if (!back) fail(`${tag}: focus did not return to the opener ${opener}`);
+      }
+    } catch (e) {
+      fail(`${tag}: ${e.message.split('\n')[0]}`);
+    }
+  }
+  if (!vp.touch) {
+    // A drag that starts on the map outside the drawer closes it and still pans the map.
+    try {
+      await open(staged());
+      await page.locator('.hud-skills').click();
+      await page.locator('.drawer[aria-label=Skills]').waitFor();
+      const view = () => page.locator('svg.map').getAttribute('data-view');
+      const before = await view();
+      const [x, y] = await emptyMapPoint();
+      await page.mouse.move(x, y);
+      await page.mouse.down();
+      await page.mouse.move(x + 60, y + 40, { steps: 8 });
+      await page.mouse.up();
+      await wait(400);
+      if (await drawers()) fail('drag outside: the drawer is still open');
+      if ((await view()) === before) fail('drag outside: the map did not pan');
+    } catch (e) {
+      fail(`drag outside: ${e.message.split('\n')[0]}`);
+    }
+    // A click on a control outside the map acts as usual and does not close and swallow: Story if it is
+    // there, else the dev "Next day" button (a request goes out).
+    try {
+      const base = staged();
+      await open({ ...base, storyRead: [] });
+      // The roster drawer is at the left, clear of the dev buttons at the top right.
+      await page.locator('.hud-roster').click();
+      await page.locator('.drawer[aria-label=Players]').waitFor();
+      const story = page.locator('.hud-story');
+      const next = page.locator('[aria-label="Next day"]');
+      const control = (await story.count()) ? story : next;
+      const hasStory = (await story.count()) > 0;
+      const day = () => page.locator('.hud-day span').first().textContent();
+      const dayBefore = await day();
+      await control.first().click();
+      await wait(600);
+      const acted = hasStory ? (await story.count()) === 0 : (await day()) !== dayBefore;
+      if (!acted)
+        fail(`a click on ${hasStory ? 'Story' : 'Next day'} with a drawer open did not act`);
+      console.log(
+        `drawers ${vp.name}: ${hasStory ? 'Story' : 'Next day'} clicked with a drawer open`,
+      );
+    } catch (e) {
+      fail(`control click: ${e.message.split('\n')[0]}`);
+    }
+  }
   for (const c of cases) {
     await open(c.scenario());
     try {

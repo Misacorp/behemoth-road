@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-27: A drawer closes only on a mouse press on the map, and focus returns to its opener
+
+ID: `2026-11-27-a-drawer-closes-only-on-a` · Status: current
+
+**Decision.** Amends `2026-11-27-desktop-drawers-close-by-escape-a`. On desktop only a mouse press on the map surface itself closes a drawer (not a popover over it, the HUD, the dev buttons or the drawer). A click with no movement closes it and is swallowed (its pointer-up and its own click, matched to that press, with no timer); a drag that starts there closes it at once and still pans. A press on any control outside the map acts as usual and leaves the drawer open. Touch and pen keep their old behaviour. Focus goes into a drawer on `[data-autofocus]`, else its first body control (never the close cross), and returns to the element that had focus at open, on every way of closing, with no ring.
+
+**Reasoning.** Swallowing every outside press ate real controls such as Story, so the rule is narrowed to the map, the only thing a "tap elsewhere" should mean. Gating to the mouse and matching the same pointer avoids eating a later tap, and not swallowing drags keeps panning. Returning focus regardless of how focus got there matches the focus rule, since the stylesheet draws no outline.
+
 ## 2026-11-27: One registry of tappable things feeds the picker and the tap resolver
 
 ID: `2026-11-27-one-registry-of-tappable-things-feeds` · Status: current

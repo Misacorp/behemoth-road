@@ -1,32 +1,62 @@
 import { describe, expect, it } from 'vitest';
-import { closesDrawer, closesOnRightClick } from './dismiss.ts';
+import { closesOnRightClick, DRAG_SLOP, onMapSurface, OutsidePress } from './dismiss.ts';
 
-describe('closesDrawer', () => {
-  it('closes on a primary press on the map', () => {
-    expect(closesDrawer({ button: 0, insideDrawer: false, onKept: false })).toBe(true);
+const el = (inside: readonly string[]): { closest(s: string): unknown } => ({
+  closest: (s: string) => (inside.includes(s) ? {} : null),
+});
+const mouse = { pointerType: 'mouse', button: 0, id: 1, x: 100, y: 100, onMap: true };
+
+describe('onMapSurface', () => {
+  it('is the map but not its popover, the HUD or nothing', () => {
+    expect(onMapSurface(el(['svg.map']))).toBe(true);
+    expect(onMapSurface(el(['svg.map', '.popover']))).toBe(false);
+    expect(onMapSurface(el([]))).toBe(false);
+    expect(onMapSurface(null)).toBe(false);
   });
-  it('stays open for a press inside the drawer', () => {
-    expect(closesDrawer({ button: 0, insideDrawer: true, onKept: false })).toBe(false);
+});
+
+describe('OutsidePress', () => {
+  it('a click with no movement closes and swallows', () => {
+    const o = new OutsidePress();
+    o.down(mouse);
+    expect(o.move(1, 100 + DRAG_SLOP, 100)).toBeNull();
+    expect(o.up(1)).toBe('close-and-swallow');
+    expect(o.tracking).toBe(false);
   });
-  it('stays open for a HUD button, a popover or a tip', () => {
-    expect(closesDrawer({ button: 0, insideDrawer: false, onKept: true })).toBe(false);
+  it('a drag closes at once and is not swallowed', () => {
+    const o = new OutsidePress();
+    o.down(mouse);
+    expect(o.move(1, 100 + DRAG_SLOP + 1, 100)).toBe('close');
+    expect(o.up(1)).toBeNull();
   });
-  it('leaves a right or middle press to the right-click rule', () => {
-    expect(closesDrawer({ button: 2, insideDrawer: false, onKept: false })).toBe(false);
-    expect(closesDrawer({ button: 1, insideDrawer: false, onKept: false })).toBe(false);
+  it('a cancel does nothing', () => {
+    const o = new OutsidePress();
+    o.down(mouse);
+    o.cancel(1);
+    expect(o.up(1)).toBeNull();
+  });
+  it('ignores touch, pen, other buttons, other pointers and presses off the map', () => {
+    for (const p of [
+      { ...mouse, pointerType: 'touch' },
+      { ...mouse, pointerType: 'pen' },
+      { ...mouse, button: 2 },
+      { ...mouse, onMap: false },
+    ]) {
+      const o = new OutsidePress();
+      o.down(p);
+      expect(o.up(1)).toBeNull();
+    }
+    const o = new OutsidePress();
+    o.down(mouse);
+    expect(o.up(2)).toBeNull();
+    expect(o.move(2, 500, 500)).toBeNull();
   });
 });
 
 describe('closesOnRightClick', () => {
-  const on = { closeOnRightClick: true };
   it('closes on the map when the setting allows', () => {
-    expect(closesOnRightClick({ insideDrawer: false, onKept: false }, on)).toBe(true);
-  });
-  it('does nothing when the setting is off, inside the drawer or on a popover', () => {
-    expect(
-      closesOnRightClick({ insideDrawer: false, onKept: false }, { closeOnRightClick: false }),
-    ).toBe(false);
-    expect(closesOnRightClick({ insideDrawer: true, onKept: false }, on)).toBe(false);
-    expect(closesOnRightClick({ insideDrawer: false, onKept: true }, on)).toBe(false);
+    expect(closesOnRightClick(true, { closeOnRightClick: true })).toBe(true);
+    expect(closesOnRightClick(true, { closeOnRightClick: false })).toBe(false);
+    expect(closesOnRightClick(false, { closeOnRightClick: true })).toBe(false);
   });
 });
