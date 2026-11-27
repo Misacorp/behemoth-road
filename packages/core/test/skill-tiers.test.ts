@@ -19,7 +19,7 @@ import {
   threatNextPath,
 } from '../src/index.ts';
 import { exploreHex, keyToHex } from '../src/features.ts';
-import { hexKey, neighbours } from '../src/hex.ts';
+import { hexDistance, hexKey, neighbours } from '../src/hex.ts';
 import {
   chainGame,
   fieldGame,
@@ -71,7 +71,7 @@ describe('scout', () => {
     expect(offered.length).toBeGreaterThan(6);
   });
 
-  it('A3 sweep: at each tick up to two hexes next to a scout are explored, for no XP', () => {
+  it('A3 sweep: at each tick every hex next to a scout is explored, for no XP', () => {
     const base = take(
       placeCharacter(chainGame(['scout']), 'scout', P),
       'scout',
@@ -82,10 +82,9 @@ describe('scout', () => {
     const before = Object.values(base.tiles).filter((t) => t.explored).length;
     const next = nextDayWithEvents(base);
     const explored = ofKind(next.events, 'explore');
-    expect(explored).toHaveLength(2);
-    for (const e of explored)
-      expect(Math.abs(e.hex.q - P.q) + Math.abs(e.hex.r - P.r)).toBeLessThan(3);
-    expect(Object.values(next.state.tiles).filter((t) => t.explored).length).toBe(before + 2);
+    expect(explored).toHaveLength(6);
+    for (const e of explored) expect(hexDistance(e.hex, P)).toBe(1);
+    expect(Object.values(next.state.tiles).filter((t) => t.explored).length).toBe(before + 6);
     expect(me(next.state, 'scout').skills.xp).toBe(0);
     // Without the node nothing is explored.
     const plain = nextDayWithEvents(take(base, 'scout', 'scout-a1'));
@@ -114,7 +113,7 @@ describe('scout', () => {
     const next = nextDayWithEvents(s);
     const around = neighbours(edge).filter((n) => fresh.includes(hexKey(n)));
     expect(around.length).toBeGreaterThan(0);
-    for (const n of around.slice(0, 2)) {
+    for (const n of around) {
       expect(next.state.tiles[hexKey(n)]).toMatchObject({ visibility: 'seen', explored: true });
     }
     // The reveals come after the creature's step in the log.

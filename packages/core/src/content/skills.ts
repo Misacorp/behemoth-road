@@ -25,7 +25,7 @@ export type SkillEffect =
   | { readonly kind: 'site-chance'; readonly tag?: string; readonly bonus: number }
   /** Surveying reaches known hexes up to `range` away (not only the next ones). */
   | { readonly kind: 'survey-range'; readonly range: number }
-  /** At each tick, up to `count` unexplored known hexes next to this character are explored for everyone (no XP). */
+  /** At each tick, up to `count` unexplored hexes in view next to this character are explored for everyone (no XP); 6 is all of them. */
   | { readonly kind: 'sweep'; readonly count: number }
   /** A site this character opens gives `amount` more of its find (within the pack's room). */
   | { readonly kind: 'site-finds'; readonly amount: number }
@@ -120,7 +120,7 @@ const node = (
 export const SKILL_NODES: readonly SkillNode[] = [
   node('scout', 'a', 1, 'Trap sense', { kind: 'trap-sense' }),
   node('scout', 'a', 2, 'Long survey', { kind: 'survey-range', range: 2 }),
-  node('scout', 'a', 3, 'Sweep', { kind: 'sweep', count: 2 }),
+  node('scout', 'a', 3, 'Sweep', { kind: 'sweep', count: 6 }),
   node('scout', 'b', 1, 'Glints', { kind: 'glints', range: 2 }),
   node('scout', 'b', 2, 'Far sight', { kind: 'glints', range: 4 }),
   node('scout', 'b', 3, 'Forecast', { kind: 'forecast', days: 2 }),
