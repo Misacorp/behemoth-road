@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* global console, process */
+/* global console, process, document */
 /**
  * Screenshots and browser checks for the season-one story: the passing card on load (one, oldest first),
  * the badge that plays the rest one tap at a time, reads posted in batches and never again, traces and a
