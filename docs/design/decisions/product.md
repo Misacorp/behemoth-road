@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-27: One registry of tappable things feeds the picker and the tap resolver
+
+ID: `2026-11-27-one-registry-of-tappable-things-feeds` · Status: current
+
+**Decision.** `pickEntries` (`map/flow.ts`) is the one list of what can be tapped on a hex: you, other characters, the capybara, the cart (unless you pull or ride it: then it is part of your own card), threats and the tile's settlement or feature. The tap resolver and the picker's bubbles both read it; a tap on any figure of a hex with two or more entries opens the picker, and your own figure no longer wins a shared hex. The capybara and cart cards opened from a bubble carry a back button; Lead from your own hex goes through the capybara's bubble. Amends the picker decision of 2026-11-21.
+
+**Reasoning.** Misa's staging playtest: you and a capybara on one hex never showed the picker, because the lure and cart were separate tap targets that the picker did not list. One registry means a new kind of thing cannot bypass the picker.
+
 ## 2026-11-26: Lure and cart web controls: lead mode and one-tap loading
 
 ID: `2026-11-26-lure-and-cart-web-controls-lead` · Status: current

@@ -520,12 +520,16 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
   // The lure's lead button: lead mode on (the hexes it can go to light up), or off again.
   const onLead = (): void =>
     setFlow((f) =>
-      f.kind === 'lead' ? { kind: 'lure', id: f.id } : f.kind === 'lure' ? startLead(f) : f,
+      f.kind === 'lead'
+        ? { kind: 'lure', id: f.id, ...(f.back ? { back: f.back } : {}) }
+        : f.kind === 'lure'
+          ? startLead(f)
+          : f,
     );
   // The cart's card stays open through its actions, so the cart is seen to change.
   const onCart = (kind: 'hitch' | 'unhitch' | 'board-cart' | 'leave-cart'): void => {
     if (flow.kind !== 'cart') return;
-    const keep: Flow = { kind: 'cart', id: flow.id };
+    const keep: Flow = flow;
     void act(
       () => api.act(view.version, { kind }),
       () => keep,
@@ -533,7 +537,7 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
   };
   const onCartMove = (kind: 'load' | 'unload', material: string): void => {
     if (flow.kind !== 'cart') return;
-    const keep: Flow = { kind: 'cart', id: flow.id };
+    const keep: Flow = flow;
     void act(
       () => api.act(view.version, { kind, material, amount: 1 }),
       () => keep,

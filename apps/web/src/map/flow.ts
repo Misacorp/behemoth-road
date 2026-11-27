@@ -51,14 +51,14 @@ export type Flow =
   /** Looking at a settlement from afar: its card shows its attitude and favour. */
   | { readonly kind: 'settlement'; readonly id: string; readonly back?: Flow }
   /** Looking at a lure animal: its card shows its leads left and, within reach, the lead button. */
-  | { readonly kind: 'lure'; readonly id: string }
+  | { readonly kind: 'lure'; readonly id: string; readonly back?: Flow }
   /**
    * Leading a lure: the hexes it can be led onto are lit; a tap on one shows the arrow and the cost (`to`),
    * the confirm leads it. A tap anywhere else lets go.
    */
-  | { readonly kind: 'lead'; readonly id: string; readonly to?: Hex }
+  | { readonly kind: 'lead'; readonly id: string; readonly to?: Hex; readonly back?: Flow }
   /** Looking at the cart: hitch, board, load and unload. */
-  | { readonly kind: 'cart'; readonly id: string }
+  | { readonly kind: 'cart'; readonly id: string; readonly back?: Flow }
   /** Looking at the creature (the hub): its card shows it and its heading. */
   | { readonly kind: 'creature' }
   /**
@@ -113,6 +113,9 @@ export type PickEntry =
   | { readonly kind: 'me' }
   | { readonly kind: 'character'; readonly id: string }
   | { readonly kind: 'threat'; readonly id: string }
+  /** A lure animal or the cart standing there (the cart apart from you only when you are not hitched to or in it). */
+  | { readonly kind: 'lure'; readonly id: string }
+  | { readonly kind: 'cart'; readonly id: string }
   /** The tile's own settlement or revealed feature (when you are not standing there: then it is part of you). */
   | { readonly kind: 'tile' };
 
@@ -121,14 +124,22 @@ export const entryKey = (e: PickEntry): string =>
   e.kind === 'me' ? 'me' : e.kind === 'tile' ? 'tile' : `${e.kind}:${e.id}`;
 
 /**
- * What can be tapped on a hex: your character, other active characters, the threats, and the settlement or
- * revealed feature (which belongs to your own entry when you stand there: the here card).
+ * THE registry of what can be tapped on a hex: your character, other active characters, a lure animal, the
+ * cart, the threats (a rockslide is one), and the settlement or revealed feature (which belongs to your own
+ * entry when you stand there: the here card). A cart you pull or ride is part of you too (its button is in
+ * your own card). The tap resolver (`tap`), the picker and its bubbles all read this one list, so a new kind
+ * of thing added here is reachable by the picker and cannot be tapped past it.
  */
 export function pickEntries(state: GameStateView, characterId: string, hex: Hex): PickEntry[] {
   const out: PickEntry[] = [];
   for (const c of state.characters) {
     if (c.status !== 'active' || c.at.kind !== 'hex' || !hexEquals(c.at.hex, hex)) continue;
     out.push(c.id === characterId ? { kind: 'me' } : { kind: 'character', id: c.id });
+  }
+  for (const l of state.lures) if (hexEquals(l.hex, hex)) out.push({ kind: 'lure', id: l.id });
+  for (const c of state.carts) {
+    const mine = c.puller === characterId || c.rider === characterId;
+    if (hexEquals(c.hex, hex) && !mine) out.push({ kind: 'cart', id: c.id });
   }
   for (const t of state.threats) if (hexEquals(t.hex, hex)) out.push({ kind: 'threat', id: t.id });
   if (!out.some((e) => e.kind === 'me')) {
@@ -163,6 +174,10 @@ export function choose(
       return openCharacter(entry.id, pick);
     case 'threat':
       return { kind: 'threat', id: entry.id, back: pick };
+    case 'lure':
+      return { kind: 'lure', id: entry.id, back: pick };
+    case 'cart':
+      return { kind: 'cart', id: entry.id, back: pick };
     case 'tile': {
       const settlement = settlementAt(state, pick.hex);
       return settlement !== null
@@ -198,8 +213,11 @@ function tapCreature(flow: Flow, state: GameStateView, characterId: string): Flo
 function shareOf(flow: Flow, state: GameStateView, characterId: string, hex: Hex): Flow | null {
   if (flow.kind === 'pick' && hexEquals(flow.hex, hex)) return IDLE;
   if (pickEntries(state, characterId, hex).length < 2) return null;
-  // Walking onto a tile with characters is a plan, unless a threat stands on it (no one walks onto one).
-  if (isSelecting(flow) && threatAt(state, hex) === null) return null;
+  // Walking onto another tile with things on it is a plan, unless a threat stands on it (no one walks onto
+  // one). Your own tile is never walked to: its things are chosen from the picker.
+  const own = findCharacter(state, characterId)?.at;
+  const onOwn = own?.kind === 'hex' && hexEquals(own.hex, hex);
+  if (isSelecting(flow) && !onOwn && threatAt(state, hex) === null) return null;
   return { kind: 'pick', hex: { q: hex.q, r: hex.r } };
 }
 
@@ -234,7 +252,9 @@ function tapLead(
 
 /** The button on a lure's card: lead mode, with the targets lit (a tap on the same button again lets go). */
 export const startLead = (flow: Flow): Flow =>
-  flow.kind === 'lure' ? { kind: 'lead', id: flow.id } : flow;
+  flow.kind === 'lure'
+    ? { kind: 'lead', id: flow.id, ...(flow.back ? { back: flow.back } : {}) }
+    : flow;
 
 /** What a tap does. */
 export function tap(flow: Flow, state: GameStateView, characterId: string, target: Target): Flow {
@@ -250,7 +270,10 @@ export function tap(flow: Flow, state: GameStateView, characterId: string, targe
         ? state.lures.find((l) => l.id === target.id)
         : state.carts.find((c) => c.id === target.id);
     if (!thing) return flow;
-    // Selected, a lure or cart on another hex is a place to walk to, like the hex under it.
+    // A hex with more than one thing on it (you and the capybara, say): the picker, never one of them
+    // chosen for you. Selected, a lone lure or cart on another hex is a place to walk to.
+    const shared = shareOf(flow, state, characterId, thing.hex);
+    if (shared) return shared;
     if (isSelecting(flow) && !(mine?.kind === 'hex' && hexEquals(mine.hex, thing.hex))) {
       return tap(flow, state, characterId, { kind: 'hex', hex: thing.hex });
     }

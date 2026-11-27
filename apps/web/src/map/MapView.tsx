@@ -44,8 +44,8 @@ import {
 import { chevronFor, placeClear, placePopover, splitScene, trailClear } from './compose.ts';
 import { fireNoteAt, type FireNote } from '../game/fire.ts';
 import { hazardIconAt } from '../game/hazards.ts';
-import { cartById, cartMoves, cartToggles, type CartToggle } from '../game/cart.ts';
-import { canLeadTo, leadOption, lureById } from '../game/lure.ts';
+import { cartById, cartLook, cartMoves, cartToggles, type CartToggle } from '../game/cart.ts';
+import { canLeadTo, leadOption, lureById, lureLook } from '../game/lure.ts';
 import { accentOf, type Identity, lookOf } from '../game/identity.ts';
 import { type Moment, STEP_MS } from '../game/moments.ts';
 import { MomentMark } from './MomentMark.tsx';
@@ -277,6 +277,22 @@ function pickBubbles(state: GameStateView, characterId: string, hex: Hex): PickB
         ...(e.kind === 'me' ? { mine: true } : {}),
       };
     }
+    if (e.kind === 'lure') {
+      const l = state.lures.find((x) => x.id === e.id);
+      return { key, kind: 'lure', thing: { look: l ? lureLook(l) : 'normal' } };
+    }
+    if (e.kind === 'cart') {
+      const c = state.carts.find((x) => x.id === e.id);
+      const who = c ? (c.rider ?? c.puller) : null;
+      return {
+        key,
+        kind: 'cart',
+        thing: {
+          look: c ? cartLook(c) : 'empty',
+          ...(who ? { accent: accentOf(who, MAP_TUNING.accent) } : {}),
+        },
+      };
+    }
     if (e.kind === 'threat') {
       const t = state.threats.find((x) => x.id === e.id);
       const mark = threatMarks(state).find((x) => x.id === e.id);
@@ -398,7 +414,7 @@ function popoverAnchor(
       };
     }
     return {
-      key: `lure:${flow.id}:${thing?.lead ? 'lead' : ''}:${flow.kind}`,
+      key: `lure:${flow.id}:${thing?.lead ? 'lead' : ''}:${flow.kind}${flow.back ? ':back' : ''}`,
       top: { x: c.x, y: c.y - lift },
       below: lift + tile / 2,
       size: lureSize(thing?.lead ?? false),
@@ -410,7 +426,7 @@ function popoverAnchor(
     const c = hexCenter(p, cart.hex.q, cart.hex.r);
     const lift = 0.9 * p.size;
     return {
-      key: `cart:${flow.id}:${thing?.toggles ?? 0}:${thing?.loads ?? 0}:${thing?.unloads ?? 0}`,
+      key: `cart:${flow.id}:${thing?.toggles ?? 0}:${thing?.loads ?? 0}:${thing?.unloads ?? 0}${flow.back ? ':back' : ''}`,
       top: { x: c.x, y: c.y - lift },
       below: lift + tile / 2,
       size: cartSize(thing?.toggles ?? 0, thing?.loads ?? 0, thing?.unloads ?? 0),
@@ -1304,7 +1320,12 @@ export function MapView(props: MapViewProps): JSX.Element {
     );
   } else if (
     card &&
-    (flow.kind === 'inspect' || flow.kind === 'threat' || flow.kind === 'settlement')
+    (flow.kind === 'inspect' ||
+      flow.kind === 'threat' ||
+      flow.kind === 'settlement' ||
+      flow.kind === 'lure' ||
+      (flow.kind === 'lead' && !flow.to) ||
+      flow.kind === 'cart')
   ) {
     card = withBack(card);
   }
