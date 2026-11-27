@@ -63,7 +63,7 @@ import { type Flow, entryKey, isSelecting, pickEntries } from './flow.ts';
 import { holdMs } from '../text/tips.ts';
 import { GestureTracker, type Gesture } from './gestures.ts';
 import { buildOverlays } from './overlays.ts';
-import { buildThings } from './things.ts';
+import { buildThings, sceneExtras } from './things.ts';
 import { figureFeet, pickableFeet, placePoint } from './figures.ts';
 import { pickTarget, type Point, type Target, worldToHex } from './pick.ts';
 import {
@@ -548,11 +548,25 @@ export function MapView(props: MapViewProps): JSX.Element {
 
   // The scene depends on the game state only; overlays also on the flow.
   const walking = props.step != null;
+  const stoneMemory = useRef(newStoneMemory());
+  const stones = useMemo(() => standingStones(state, stoneMemory.current), [state]);
   const layers = useMemo(() => {
     const { svg: scene, viewBox } = renderSceneFramed({
       cells: sceneCells(state, glints),
       ...(walking ? {} : { creature: creatureArt(state, signs) }),
       characters: characterArts(state, walking ? 'walkers' : 'all'),
+      // Standing stones, the capybara and the cart sort in with the figures, so none draws over a figure in front.
+      extras: sceneExtras({
+        state,
+        flow: { kind: 'idle' },
+        characterId,
+        reachable: [],
+        predicted: [],
+        projection: p,
+        palette: PALETTE,
+        zoom: inkZoom,
+        stones,
+      }),
       projection: p,
       palette: PALETTE,
       seed: state.artSeed,
@@ -576,9 +590,7 @@ export function MapView(props: MapViewProps): JSX.Element {
       box,
       raster: layerRaster(inkZoom, box, window.devicePixelRatio, MAP_TUNING.layer),
     };
-  }, [state, signs, glints, inkZoom, walking]);
-  const stoneMemory = useRef(newStoneMemory());
-  const stones = useMemo(() => standingStones(state, stoneMemory.current), [state]);
+  }, [state, signs, glints, inkZoom, walking, stones, characterId]);
   const layerRef = useRef(layers);
   layerRef.current = layers;
 

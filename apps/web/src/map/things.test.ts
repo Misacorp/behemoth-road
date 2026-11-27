@@ -20,7 +20,7 @@ import { leadTargets as leadTargetsOf } from '../game/lure.ts';
 import { choose, type Flow, IDLE, startLead, tap, tapHex } from './flow.ts';
 import { mapTipAt } from './mapTips.ts';
 import { buildOverlays } from './overlays.ts';
-import { buildThings } from './things.ts';
+import { buildThings, sceneExtras } from './things.ts';
 import { pickTarget } from './pick.ts';
 
 const START = { q: 1, r: 2 };
@@ -157,10 +157,11 @@ describe('what is drawn', () => {
       carts: [{ at: NEXT, cargo: { timber: 3 } }],
     });
     const things = buildThings(input(g, IDLE));
+    const extras = sceneExtras(input(g, IDLE)).flatMap((x) => x.drawn.nodes);
     expect(marks(things.under, 'data-scree', 'h1')).toHaveLength(1);
-    expect(marks(things.over, 'data-lure').map((n) => n.attrs['data-leads'])).toContain(0);
-    expect(marks(things.over, 'data-cart')[0]!.attrs['data-look']).toBe('loaded');
-    expect(marks(things.over, 'data-mark', 'cargo-fill')).toHaveLength(1);
+    expect(marks(extras, 'data-lure').map((n) => n.attrs['data-leads'])).toContain(0);
+    expect(marks(extras, 'data-cart')[0]!.attrs['data-look']).toBe('loaded');
+    expect(marks(extras, 'data-mark', 'cargo-fill')).toHaveLength(1);
     for (const look of ['empty', 'rider', 'hitched']) {
       const s = staged({
         carts: [
@@ -171,9 +172,8 @@ describe('what is drawn', () => {
           },
         ],
       });
-      expect(marks(buildThings(input(s, IDLE)).over, 'data-cart')[0]!.attrs['data-look']).toBe(
-        look,
-      );
+      const nodes = sceneExtras(input(s, IDLE)).flatMap((x) => x.drawn.nodes);
+      expect(marks(nodes, 'data-cart')[0]!.attrs['data-look']).toBe(look);
     }
   });
 
@@ -181,7 +181,10 @@ describe('what is drawn', () => {
     const g = staged({ lures: [{ at: NEXT }], carts: [{ at: START, cargo: { timber: 2 } }] });
     const t = buildThings(input(g, { kind: 'lead', id: 'lure-1' }));
     const palette = paletteColours(MORNING);
-    for (const n of [...t.under, ...t.over]) {
+    const extras = sceneExtras(input(g, { kind: 'lead', id: 'lure-1' })).flatMap(
+      (x) => x.drawn.nodes,
+    );
+    for (const n of [...t.under, ...t.over, ...extras]) {
       walk(n, (x) => {
         for (const k of ['fill', 'stroke']) {
           const v = x.attrs[k];

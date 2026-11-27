@@ -1,5 +1,7 @@
 export { ART_TUNING } from './config.ts';
 export { figureAnchor, type FigureContext } from './figure.ts';
+export { unionBox, type Box } from './geom.ts';
+export { ENTITY_FRONT, entityDepth, type EntityKind } from './depth.ts';
 export {
   assignLooks,
   characterLookFor,
@@ -77,6 +79,7 @@ export {
   riderSeats,
   type FramedScene,
   type SceneFrame,
+  type SceneExtra,
   type SceneInput,
 } from './scene.ts';
 export {

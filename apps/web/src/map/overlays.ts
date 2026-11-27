@@ -26,6 +26,7 @@ import {
   hexCorners,
   type Palette,
   type Projection,
+  type SceneExtra,
   type SvgNode,
 } from '@behemoth-road/art';
 import {
@@ -791,19 +792,28 @@ function traceMarks(i: OverlayInput): SvgNode[] {
   return out;
 }
 
-/** The standing stones, upright like the other things on the map. */
-function stoneMarks(i: OverlayInput): SvgNode[] {
+/**
+ * The standing stones, as scene extras so they sort back to front with the figures. A stone stands at the back
+ * right of its hex, so a figure standing at the front is never behind it.
+ */
+export function stoneExtras(i: OverlayInput): SceneExtra[] {
   const p = i.projection;
   return (i.stones ?? []).map((s) => {
     const c = hexCenter(p, s.hex.q, s.hex.r);
+    const at = { x: c.x + 0.3 * p.size, y: c.y - 0.06 * p.size };
     const drawn = drawStandingStone(i.palette, {
-      origin: { x: c.x, y: c.y + 0.1 * p.size },
+      origin: at,
       k: p.size / 64,
       squash: p.squash,
       seed: s.id,
       ticks: s.ticks,
     });
-    return el('g', { 'data-stone': s.id }, drawn.nodes);
+    return {
+      kind: 'stone',
+      hex: s.hex,
+      at,
+      drawn: { nodes: [el('g', { 'data-stone': s.id }, drawn.nodes)], box: drawn.box },
+    };
   });
 }
 
@@ -887,7 +897,6 @@ export function buildOverlays(i: OverlayInput): Overlays {
         ? threatAt(i.state, me.at.hex)
         : null;
   if (looked) over.push(...threatTrail(i, looked));
-  over.push(...stoneMarks(i));
   over.push(...lostCharacters(i));
   if (staysPut(i.predicted)) over.push(stayHint(i));
   over.push(...actionHints(i));
