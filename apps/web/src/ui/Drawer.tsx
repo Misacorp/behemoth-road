@@ -2,11 +2,16 @@
  * The drawer, the app's larger view. On phones it is one bottom drawer with two heights (half and full):
  * drag its handle up or down to move between them, and down from half to close. On desktop it slides in
  * from the left or right and scrolls where its content is tall. Focus moves into it when it opens and
- * back to the control that opened it when it closes, without outlines. Only one drawer is open at a time.
+ * back to the control that opened it when it closes, without outlines. On desktop it also closes by a press
+ * on the map outside it and by a small cross in its top corner. Only one drawer is open at a time.
  */
 import type { ComponentChildren, JSX } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { setCssTransform } from '../map/cssTransform.ts';
+import { PALETTE } from '../map/art.ts';
+import { onRightClick } from './press.ts';
+import { getSettings } from '../settings.ts';
+import { closesDrawer, closesOnRightClick, DESKTOP_QUERY, KEEPS_DRAWER_OPEN } from './dismiss.ts';
 
 export type Snap = 'peek' | 'half' | 'full';
 
@@ -78,6 +83,46 @@ export function Drawer(props: DrawerProps): JSX.Element | null {
     return () => window.removeEventListener('keydown', onKey);
   }, [props.open, props.onClose]);
 
+  // Desktop: a press on the map outside the drawer closes it and does nothing else (the press and the click
+  // that ends it are swallowed, so no tile is picked and no popover opens).
+  useEffect(() => {
+    if (!props.open || !props.onClose) return;
+    const close = props.onClose;
+    const onDown = (e: PointerEvent): void => {
+      if (!window.matchMedia(DESKTOP_QUERY).matches) return;
+      const target = e.target instanceof Element ? e.target : null;
+      const press = {
+        button: e.button,
+        insideDrawer: target ? ref.current?.contains(target) === true : false,
+        onKept: target ? target.closest(KEEPS_DRAWER_OPEN) !== null : false,
+      };
+      if (!closesDrawer(press)) return;
+      e.stopPropagation();
+      const swallow = (c: MouseEvent): void => {
+        c.stopPropagation();
+        c.preventDefault();
+      };
+      window.addEventListener('click', swallow, { capture: true, once: true });
+      window.setTimeout(() => window.removeEventListener('click', swallow, true), 400);
+      close();
+    };
+    document.addEventListener('pointerdown', onDown, true);
+    // A mouse right-click outside closes it too, when the settings allow (the press module announces it).
+    const offRight = onRightClick((e) => {
+      if (!window.matchMedia(DESKTOP_QUERY).matches) return;
+      const target = e.target instanceof Element ? e.target : null;
+      const press = {
+        insideDrawer: target ? ref.current?.contains(target) === true : false,
+        onKept: target ? target.closest(KEEPS_DRAWER_OPEN) !== null : false,
+      };
+      if (closesOnRightClick(press, getSettings())) close();
+    });
+    return () => {
+      document.removeEventListener('pointerdown', onDown, true);
+      offRight();
+    };
+  }, [props.open, props.onClose]);
+
   if (!props.open) return null;
 
   const onPointerDown = (e: PointerEvent): void => {
@@ -119,6 +164,19 @@ export function Drawer(props: DrawerProps): JSX.Element | null {
       >
         <span />
       </div>
+      {props.onClose && (
+        <button type="button" class="drawer-close" aria-label="Close" onClick={props.onClose}>
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path
+              d="M6 6l12 12M18 6L6 18"
+              fill="none"
+              stroke={PALETTE.ink}
+              stroke-width={2}
+              stroke-linecap="round"
+            />
+          </svg>
+        </button>
+      )}
       <div class="drawer-body">{props.children}</div>
     </div>
   );
