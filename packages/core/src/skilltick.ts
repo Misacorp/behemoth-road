@@ -14,6 +14,7 @@ import { addMaterials, exploreHex, featureType, type GameEvent, keyToHex } from 
 import { hexDistance, hexKey, neighbours } from './hex.ts';
 import { bestOf, effectsOf } from './skills.ts';
 import type { Character, GameState, GameStateView } from './state.ts';
+import { isCreatureHex, isReachable } from './window.ts';
 
 /** Days between hunger drains the team's best hunger skill sets (1 when none). */
 export const hungerEveryDays = (state: GameStateView): number =>
@@ -118,6 +119,8 @@ export const applySweep = (
   for (const c of active(state)) {
     const count = bestOf(c, 'sweep', (e) => e.count);
     if (count === null || c.at.kind !== 'hex') continue;
+    // Only a scout who stays on the map: not one lost this tick, nor one hauled aboard by the creature.
+    if (!isReachable(state, c.at.hex) || isCreatureHex(state, c.at.hex)) continue;
     const around = neighbours(c.at.hex).filter((h) => {
       const tile = state.tiles[hexKey(h)];
       return tile !== undefined && tile.visibility === 'seen' && !tile.explored;
