@@ -64,7 +64,7 @@ import { unpinned } from './state.ts';
 import { keepSettlements, placeSettlement, settlementDue } from './settlements.ts';
 import { withXp } from './skills.ts';
 import { ambush, applyStances } from './stances.ts';
-import { applySkillTicks, hungerEveryDays } from './skilltick.ts';
+import { applySkillTicks, applySweep, hungerEveryDays } from './skilltick.ts';
 import {
   PERIL_CALM,
   PERIL_HUNGER,
@@ -371,6 +371,11 @@ export const nextDayWithEvents = (
     lit = shown.state;
     events.push(...shown.events);
   }
+  // End-of-day sweeps come last, so a scout starts the day with their surroundings explored, even
+  // hexes that only came into view with the creature's step.
+  const swept = applySweep(lit);
+  lit = swept.state;
+  events.push(...swept.events);
   if (ate) events.push({ kind: 'creature-ate', material: ate });
   for (const s of state.stimuli) {
     if (!burnsOn(s, day)) events.push({ kind: 'fire-out', hex: s.hex, stimulus: s.type });
