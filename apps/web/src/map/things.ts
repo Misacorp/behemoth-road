@@ -1,8 +1,8 @@
 /**
  * What the lure and cart rework adds to the map, as `SvgNode` trees in world px: a scree field's loose stones
  * on the ground under its rockslides, the capybara (normal or settled, with its leads-left pawprints), the
- * cart in its four states with its cargo mark, and, while a lure is being led, the hexes it can go to and the
- * arrow to the one chosen. `under` is ground; `over` stands on top of the figures.
+ * cart in its four states with its cargo mark (both scene extras, sorted in with the figures), and, while a lure is being led, the hexes it can go to and the
+ * arrow to the one chosen. `under` is ground; `over` stands on top of the figures (the lead arrow).
  */
 import {
   drawCapybara,
@@ -11,11 +11,13 @@ import {
   drawLeadsLeft,
   drawScreeField,
   el,
+  type SceneExtra,
   hexCenter,
   hexCorners,
   type Palette,
   type Projection,
   type SvgNode,
+  unionBox,
 } from '@behemoth-road/art';
 import type { GameStateView, Hex } from '@behemoth-road/core';
 import { accentOf } from '../game/identity.ts';
@@ -25,7 +27,7 @@ import { leadTargets, lureById, lureLook } from '../game/lure.ts';
 import { MAP_TUNING } from './config.ts';
 import { cartFeet, lureFeet } from './figures.ts';
 import type { Flow } from './flow.ts';
-import { inkArrow, type OverlayInput } from './overlays.ts';
+import { inkArrow, type OverlayInput, stoneExtras } from './overlays.ts';
 
 const n = (v: number): string => (Math.round(v * 10) / 10).toString();
 
@@ -50,8 +52,8 @@ function centred(
   ]);
 }
 
-/** The lure animal with its leads-left pawprints above it. */
-function lureNodes(i: OverlayInput): SvgNode[] {
+/** The lure animal with its leads-left pawprints above it, to sort in with the scene's figures. */
+function lureNodes(i: OverlayInput): SceneExtra[] {
   const p = i.projection;
   return i.state.lures.map((lure) => {
     const feet = lureFeet(p, lure.hex);
@@ -62,7 +64,7 @@ function lureNodes(i: OverlayInput): SvgNode[] {
       seed: lure.id,
     });
     const h = atLeast(i.zoom, 0.22 * p.size, 13);
-    return el('g', { 'data-lure': lure.id, 'data-leads': lure.leadsLeft }, [
+    const node = el('g', { 'data-lure': lure.id, 'data-leads': lure.leadsLeft }, [
       ...drawn.nodes,
       el('g', { 'data-mark': 'leads-left' }, [
         centred(
@@ -73,11 +75,23 @@ function lureNodes(i: OverlayInput): SvgNode[] {
         ),
       ]),
     ]);
+    const mark = {
+      x0: feet.x - h * 1.2,
+      y0: feet.y - 0.62 * p.size - h / 2,
+      x1: feet.x + h * 1.2,
+      y1: feet.y,
+    };
+    return {
+      kind: 'lure',
+      hex: lure.hex,
+      at: feet,
+      drawn: { nodes: [node], box: unionBox([drawn.box, mark]) },
+    };
   });
 }
 
 /** The cart in its state, with its cargo-fill mark above it. */
-function cartNodes(i: OverlayInput): SvgNode[] {
+function cartNodes(i: OverlayInput): SceneExtra[] {
   const p = i.projection;
   return i.state.carts.map((cart) => {
     const feet = cartFeet(p, cart.hex);
@@ -94,7 +108,7 @@ function cartNodes(i: OverlayInput): SvgNode[] {
     const slots = Math.max(1, Math.min(8, i.state.config.cartCargo));
     const mark = drawCargoFill(i.palette, cargoFill(i.state, cart), slots, h);
     const w = (h * (slots * 10.5 + 6)) / 16;
-    return el('g', { 'data-cart': cart.id, 'data-look': look }, [
+    const node = el('g', { 'data-cart': cart.id, 'data-look': look }, [
       ...drawn.nodes,
       // The cargo mark shows only while something rides in it.
       ...(cargoUnits(cart) > 0
@@ -105,6 +119,21 @@ function cartNodes(i: OverlayInput): SvgNode[] {
           ]
         : []),
     ]);
+    const markBox = {
+      x0: feet.x + 0.1 * p.size - w / 2,
+      y0: feet.y - 0.9 * p.size - h / 2,
+      x1: feet.x + 0.1 * p.size + w / 2,
+      y1: feet.y - 0.9 * p.size + h / 2,
+    };
+    return {
+      kind: 'cart',
+      hex: cart.hex,
+      at: feet,
+      drawn: {
+        nodes: [node],
+        box: unionBox(cargoUnits(cart) > 0 ? [drawn.box, markBox] : [drawn.box]),
+      },
+    };
   });
 }
 
@@ -177,9 +206,19 @@ function screeNodes(state: GameStateView, p: Projection, palette: Palette): SvgN
   );
 }
 
+/**
+ * What the scene sorts in with its own figures: the standing stones, the capybara and the cart. The capybara and
+ * the cart draw in front of their hex's features (see `entityDepth`).
+ */
+export const sceneExtras = (i: OverlayInput): SceneExtra[] => [
+  ...stoneExtras(i),
+  ...lureNodes(i),
+  ...cartNodes(i),
+];
+
 export function buildThings(i: OverlayInput): { under: SvgNode[]; over: SvgNode[] } {
   const under = screeNodes(i.state, i.projection, i.palette);
-  const over = [...lureNodes(i), ...cartNodes(i)];
+  const over: SvgNode[] = [];
   if (i.flow.kind === 'lead') {
     const marks = leadMarks(i, i.flow);
     under.push(...marks.under);

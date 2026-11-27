@@ -1,6 +1,7 @@
 /** A map patch as one SVG: paper, the ground under the wash filter, then every upright thing back to front. */
 import { DEFAULT_LOOK, drawCharacter, type CharacterArt } from './character.ts';
 import { ART_TUNING } from './config.ts';
+import { entityDepth } from './depth.ts';
 import { drawCreature, inFootprint, moodOf, riderAnchor, type CreatureArt } from './creature.ts';
 import { drawCharacterMarks } from './escort.ts';
 import { liePinned } from './fire-art.ts';
@@ -71,6 +72,17 @@ export interface SceneInput {
   readonly frame?: 'page' | 'none';
   /** More hexes drawn as trodden ground, as if a creature stood there (review sheets). */
   readonly occupied?: readonly Hex[];
+  /** Upright things the host draws (stones, the lure, the cart), sorted in with the rest by depth. */
+  readonly extras?: readonly SceneExtra[];
+}
+
+/** A drawing the host adds to the scene's depth order: a standing stone, the capybara or the cart. */
+export interface SceneExtra {
+  readonly kind: 'stone' | 'lure' | 'cart';
+  readonly hex: Hex;
+  /** Its feet (the drawing's origin). */
+  readonly at: Point;
+  readonly drawn: Drawn;
 }
 
 interface Placed {
@@ -310,6 +322,7 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
       const at = cell.settlement ? onPlane(p, c, -0.22, 0.22) : onPlane(p, c, 0, 0.1);
       placed.push({
         at,
+        after: entityDepth(p, cell, at),
         drawn: drawThreat(
           ctx(at, rngFor(seed, 'threat', cell.q, cell.r), ART_TUNING.threatScale),
           cell.threat,
@@ -356,6 +369,7 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
     }
   }
   const sites = new Set(cells.filter((c) => c.site).map((c) => `${c.q},${c.r}`));
+  const tall = new Set(cells.filter((c) => c.feature).map((c) => `${c.q},${c.r}`));
   const perTile = new Map<string, number>();
   const seats = creature
     ? riderSeats(input.characters ?? [], (ch) => inFootprint(creature, ch))
@@ -406,15 +420,29 @@ export function renderSceneFramed(input: SceneInput): FramedScene {
     const key = `${ch.q},${ch.r}`;
     const index = perTile.get(key) ?? 0;
     perTile.set(key, index + 1);
-    const c = figureAnchor(p, ch, index, { site: sites.has(key) });
+    const c = figureAnchor(p, ch, index, { site: sites.has(key), tall: tall.has(key) });
     figures.set(ch.id, c);
     placed.push({
       at: c,
+      after: entityDepth(p, ch, c),
       drawn: withMarks(
         drawCharacter(palette, ch.accent, c, p.size, p.squash, ink, ch.look ?? DEFAULT_LOOK),
         c,
         ch.marks,
       ),
+    });
+  }
+
+  for (const x of input.extras ?? []) {
+    const wrapped = {
+      nodes: [el('g', { 'data-entity': x.kind }, x.drawn.nodes)],
+      box: x.drawn.box,
+    };
+    placed.push({
+      at: x.at,
+      drawn: wrapped,
+      // A stone stands like a feature; the capybara and the cart are entities in front of their hex's features.
+      ...(x.kind === 'stone' ? {} : { after: entityDepth(p, x.hex, x.at) }),
     });
   }
 

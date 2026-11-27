@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* global console, process */
+/* global console, process, document */
 /**
  * Screenshots and browser checks for the season-one story: the passing card on load (one, oldest first),
  * the badge that plays the rest one tap at a time, reads posted in batches and never again, traces and a
@@ -37,6 +37,7 @@ const { chromium } = require('playwright');
 const VIEWPORTS = [
   { name: 'phone', width: 390, height: 844, touch: true },
   { name: 'desktop', width: 1440, height: 900, touch: false },
+  { name: 'laptop', width: 1280, height: 720, touch: false, endingsOnly: true },
 ];
 const problems = [];
 const veteran = [...SEEN_IDS];
@@ -127,6 +128,113 @@ async function runViewport(browser, vite, vp) {
     }
     await wait(150);
   };
+
+  /** The recap players: `n` characters (the scenario's own, then clones), each with a few tallies. */
+  const withPlayers = (scenario, n) => {
+    const base = scenario.state.characters;
+    const roles = ['scout', 'scholar', 'keeper', 'engineer', 'warden'];
+    const characters = Array.from({ length: n }, (_, i) =>
+      i < base.length
+        ? base[i]
+        : {
+            ...base[i % base.length],
+            id: `extra-${i}`,
+            userId: `user-extra-${i}`,
+            name: `Player ${i + 1}`,
+            role: roles[i % roles.length],
+          },
+    );
+    const byCharacter = Object.fromEntries(
+      characters.map((c, i) => [
+        c.id,
+        { explored: (i * 7) % 20, strikes: (i * 3) % 7, gathered: i % 4, fed: 0 },
+      ]),
+    );
+    const state = {
+      ...scenario.state,
+      characters,
+      stats: { ...scenario.state.stats, byCharacter },
+    };
+    return { ...scenario, state, you: characters[0].userId };
+  };
+  /** The ending layout: the title and story card never overlap the recap, and everything is on screen. */
+  const checkEndingLayout = async (name) => {
+    const box = async (sel) =>
+      (await count(sel)) ? page.locator(sel).first().boundingBox() : null;
+    const story = await box('.ending-story');
+    const recap = await box('.recap');
+    const title = await box('.ending-title');
+    const foot = await box('.ending-foot');
+    const hit = (a, b) =>
+      a &&
+      b &&
+      a.x < b.x + b.width &&
+      b.x < a.x + a.width &&
+      a.y < b.y + b.height &&
+      b.y < a.y + a.height;
+    if (hit(story, recap)) fail(`ending ${name}: the story card overlaps the recap`);
+    if (hit(title, recap)) fail(`ending ${name}: the title overlaps the recap`);
+    if (hit(recap, foot)) fail(`ending ${name}: the recap overlaps the foot`);
+    if (hit(story, foot)) fail(`ending ${name}: the story card overlaps the foot`);
+    if (hit(title, story)) fail(`ending ${name}: the title overlaps the story card`);
+    for (const [what, b] of [
+      ['title', title],
+      ['story card', story],
+      ['recap', recap],
+      ['foot', foot],
+    ]) {
+      if (
+        b &&
+        (b.x < -0.5 ||
+          b.y < -0.5 ||
+          b.x + b.width > vp.width + 0.5 ||
+          b.y + b.height > vp.height + 0.5)
+      )
+        fail(`ending ${name}: the ${what} is off screen`);
+    }
+    const clipped = await page.evaluate(() => {
+      const r = document.querySelector('.recap');
+      return r ? r.scrollWidth > r.clientWidth + 1 : false;
+    });
+    if (clipped) fail(`ending ${name}: the recap clips sideways`);
+  };
+  const endings = async () => {
+    const lostBy = (added) => ({
+      season: { status: 'over', outcome: 'lost', day: 9 },
+      stats: { peril: { added, eased: {}, held: 0 } },
+    });
+    const lostHunger = lostBy({ hunger: 4 });
+    // As Misa's screenshot: captors the biggest source, then hunger and a swarm.
+    const lostPursuer = lostBy({ hunger: 3, 'threat:captors': 6, 'threat:swarm': 1 });
+    const over = (outcome) => ({ season: { status: 'over', outcome, day: 9 } });
+    const variants = [
+      ['safe', over('safe'), 'mossback.safe', 3],
+      ['wounded', over('wounded'), 'mossback.wounded', 3],
+      ['lost-hunger', lostHunger, 'ending.lost.hunger', 3],
+      ['lost-plain', over('lost'), null, 3],
+      ['lost-pursuer', lostPursuer, 'ending.lost.pursuer', 3],
+      ['lost-pursuer-1', lostPursuer, 'ending.lost.pursuer', 1],
+      ['lost-pursuer-8', lostPursuer, 'ending.lost.pursuer', 8],
+      ['safe-8', over('safe'), 'mossback.safe', 8],
+    ];
+    for (const [name, stage, line, players] of variants) {
+      await open(withPlayers({ ...seasonScenario(stage), seen: veteran, storyRead: [] }, players));
+      if ((await count('.story-card')) !== 0) fail(`a card over the ending (${name})`);
+      const got = (await count('.ending-story'))
+        ? await page.locator('.ending-story').getAttribute('data-line')
+        : null;
+      if (got !== line) fail(`ending ${name} shows line ${got}, wanted ${line}`);
+      if ((await count('.recap-section')) !== 3) fail(`ending ${name}: the recap has no sections`);
+      await checkEndingLayout(name);
+      await shot(`ending-${name}`);
+    }
+  };
+
+  if (vp.endingsOnly) {
+    await endings();
+    await context.close();
+    return;
+  }
 
   // 1. A new game: its opening beat (fired at creation, no event) plays once on load, and is read once.
   await open({ ...joinedScenario(), seen: veteran, storyRead: [] });
@@ -240,28 +348,8 @@ async function runViewport(browser, vite, vp) {
   await tapAt(vp.width / 2, vp.height * 0.8);
   if ((await count('.tip')) !== 0) fail('a tap did not close the tip');
 
-  // 5. Endings with their lines.
-  for (const [name, stage, line] of [
-    ['safe', { season: { status: 'over', outcome: 'safe', day: 9 } }, 'mossback.safe'],
-    ['wounded', { season: { status: 'over', outcome: 'wounded', day: 9 } }, 'mossback.wounded'],
-    [
-      'lost-hunger',
-      {
-        season: { status: 'over', outcome: 'lost', day: 9 },
-        stats: { peril: { added: { hunger: 4 }, eased: {}, held: 0 } },
-      },
-      'ending.lost.hunger',
-    ],
-    ['lost-plain', { season: { status: 'over', outcome: 'lost', day: 9 } }, null],
-  ]) {
-    await open({ ...seasonScenario(stage), seen: veteran, storyRead: [] });
-    if ((await count('.story-card')) !== 0) fail(`a card over the ending (${name})`);
-    const got = (await count('.ending-story'))
-      ? await page.locator('.ending-story').getAttribute('data-line')
-      : null;
-    if (got !== line) fail(`ending ${name} shows line ${got}, wanted ${line}`);
-    await shot(`ending-${name}`);
-  }
+  // 5. Endings with their lines, and the layout of every variant.
+  await endings();
   await context.close();
 }
 

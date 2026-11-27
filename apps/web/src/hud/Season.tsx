@@ -82,6 +82,8 @@ export function PerilGauge({
 const SLOTS: readonly Accent[] = ['coral', 'ochre', 'plum', 'sky', 'sage', 'rose'];
 const slotFill = (i: number): string => PALETTE.accents[SLOTS[i % SLOTS.length] as Accent].base;
 const BAR = { width: 150, height: 12 } as const;
+/** The recap's wider bar, so the legend under it has room in a row. */
+const RECAP_BAR = 200;
 
 /** A row's picture: the icon of the answer (feed, rest, shelter, defend) or the threat's own figure. */
 function RowArt({ row }: { row: PerilRow }) {
@@ -123,28 +125,39 @@ function PerilRowView({ row, slot }: { row: PerilRow; slot: number | null }) {
  * biggest first, then what took it off (quiet days, shelters) and what defence held off. Visual only; the
  * rows' tips hint at what to do.
  */
-export function PerilBreakdownView({ breakdown }: { breakdown: PerilBreakdown }) {
+export function PerilBreakdownView({
+  breakdown,
+  barWidth = BAR.width,
+}: {
+  breakdown: PerilBreakdown;
+  /** The bar's width in px (the legend under it is as wide), default 150. */
+  barWidth?: number;
+}) {
   if (breakdown.empty && breakdown.held === null) return null;
   let at = 0;
   return (
-    <div class="peril-breakdown" data-total={breakdown.total}>
+    <div
+      // The legend takes the bar's width (a class, as the CSP allows no inline styles).
+      class={barWidth === RECAP_BAR ? 'peril-breakdown is-wide' : 'peril-breakdown'}
+      data-total={breakdown.total}
+    >
       {breakdown.total > 0 && (
         <svg
           class="peril-bar"
-          width={BAR.width}
+          width={barWidth}
           height={BAR.height}
-          viewBox={`0 0 ${String(BAR.width)} ${String(BAR.height)}`}
+          viewBox={`0 0 ${String(barWidth)} ${String(BAR.height)}`}
           aria-hidden="true"
         >
           <rect
-            width={BAR.width}
+            width={barWidth}
             height={BAR.height}
             rx={BAR.height / 2}
             fill={PALETTE.paperDeep}
             stroke={PALETTE.inkSoft}
           />
           {breakdown.added.map((r, i) => {
-            const w = (r.amount / breakdown.total) * (BAR.width - 2);
+            const w = (r.amount / breakdown.total) * (barWidth - 2);
             const x = 1 + at;
             at += w;
             return (
@@ -265,26 +278,41 @@ export function RecapPanel(props: {
   const { recap } = props;
   return (
     <div class="recap" aria-label="Recap">
-      <div class="recap-shared">
-        {recap.shared.map((s) => (
-          <Stat key={s.id} id={s.id} value={s.value} />
-        ))}
-        <PerilGauge peril={recap.peakPeril} max={props.perilMax} woundedAt={props.perilWoundedAt} />
-      </div>
-      <PerilBreakdownView breakdown={recap.perilSources} />
-      <ul class="recap-players">
-        {recap.players.map((p) => (
-          <li key={p.characterId} class="recap-player" data-character={p.characterId}>
-            <RoleEmblem role={p.role} size={32} />
-            <span class="recap-name">{p.name}</span>
-            <span class="recap-stats">
-              {p.stats.map((s) => (
-                <Stat key={s.id} id={s.id} value={s.value} top={s.top} />
-              ))}
-            </span>
-          </li>
-        ))}
-      </ul>
+      <section class="recap-section" data-section="together">
+        <h3 class="recap-sub">Together</h3>
+        <div class="recap-shared">
+          {recap.shared.map((s) => (
+            <Stat key={s.id} id={s.id} value={s.value} />
+          ))}
+        </div>
+      </section>
+      <section class="recap-section" data-section="peril">
+        <h3 class="recap-sub">Peril</h3>
+        <div class="recap-peril">
+          <PerilGauge
+            peril={recap.peakPeril}
+            max={props.perilMax}
+            woundedAt={props.perilWoundedAt}
+          />
+          <PerilBreakdownView breakdown={recap.perilSources} barWidth={RECAP_BAR} />
+        </div>
+      </section>
+      <section class="recap-section recap-party" data-section="party">
+        <h3 class="recap-sub">The party</h3>
+        <ul class="recap-players">
+          {recap.players.map((p) => (
+            <li key={p.characterId} class="recap-player" data-character={p.characterId}>
+              <RoleEmblem role={p.role} size={32} />
+              <span class="recap-name">{p.name}</span>
+              <span class="recap-stats">
+                {p.stats.map((s) => (
+                  <Stat key={s.id} id={s.id} value={s.value} top={s.top} />
+                ))}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
   );
 }
@@ -342,7 +370,14 @@ export function Ending(props: EndingProps): JSX.Element {
     if (failed > 0) button.current?.focus({ preventScroll: true });
   }, [failed]);
   return (
-    <div ref={root} class="ending" data-outcome={props.outcome} tabindex={-1} role="dialog">
+    <div
+      ref={root}
+      class="ending"
+      data-outcome={props.outcome}
+      data-recap={recapOpen ? 'open' : 'closed'}
+      tabindex={-1}
+      role="dialog"
+    >
       <div ref={scene} class="ending-scene" aria-hidden="true">
         {toPreact(
           drawEnding(props.outcome, PALETTE, box.width, box.height, {
@@ -351,15 +386,17 @@ export function Ending(props: EndingProps): JSX.Element {
           }),
         )}
       </div>
-      <h1 class="ending-title">{props.title}</h1>
-      {text !== null && props.line && (
-        <div class="ending-story" data-line={props.line}>
-          <span class="ending-line-art" aria-hidden="true">
-            {toPreact(drawStoryVignette(PALETTE, endingVignetteOf(props.line), 150))}
-          </span>
-          <p class="ending-line">{text}</p>
-        </div>
-      )}
+      <div class="ending-head">
+        <h1 class="ending-title">{props.title}</h1>
+        {text !== null && props.line && (
+          <div class="ending-story" data-line={props.line}>
+            <span class="ending-line-art" aria-hidden="true">
+              {toPreact(drawStoryVignette(PALETTE, endingVignetteOf(props.line), 150))}
+            </span>
+            <p class="ending-line">{text}</p>
+          </div>
+        )}
+      </div>
       {recapOpen && (
         <RecapPanel
           recap={props.recap}
