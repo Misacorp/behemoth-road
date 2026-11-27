@@ -38,6 +38,8 @@ const VIEWPORTS = [
   { name: 'phone', width: 390, height: 844, touch: true },
   { name: 'desktop', width: 1440, height: 900, touch: false },
   { name: 'laptop', width: 1280, height: 720, touch: false, endingsOnly: true },
+  { name: 'narrow', width: 360, height: 740, touch: true, endingsOnly: true },
+  { name: 'tablet', width: 1024, height: 768, touch: false, endingsOnly: true },
 ];
 const problems = [];
 const veteran = [...SEEN_IDS];
@@ -192,11 +194,21 @@ async function runViewport(browser, vite, vp) {
       )
         fail(`ending ${name}: the ${what} is off screen`);
     }
+    // Nothing inside the recap may stick out of its card sideways (the card hides what overflows).
     const clipped = await page.evaluate(() => {
       const r = document.querySelector('.recap');
-      return r ? r.scrollWidth > r.clientWidth + 1 : false;
+      if (!r) return [];
+      const card = r.getBoundingClientRect();
+      return [
+        ...r.querySelectorAll('.peril-bar, .peril-rows, .hud-peril, .recap-player, .recap-shared'),
+      ]
+        .filter((e) => {
+          const b = e.getBoundingClientRect();
+          return b.left < card.left - 0.5 || b.right > card.right + 0.5;
+        })
+        .map((e) => e.className.baseVal ?? e.className);
     });
-    if (clipped) fail(`ending ${name}: the recap clips sideways`);
+    if (clipped.length) fail(`ending ${name}: the recap clips ${clipped.join(', ')}`);
   };
   const endings = async () => {
     const lostBy = (added) => ({
