@@ -127,18 +127,19 @@ function PerilRowView({ row, slot }: { row: PerilRow; slot: number | null }) {
  */
 export function PerilBreakdownView({
   breakdown,
-  barWidth = BAR.width,
+  wide = false,
 }: {
   breakdown: PerilBreakdown;
-  /** The bar's width in px (the legend under it is as wide), default 150. */
-  barWidth?: number;
+  /** The recap's wider bar (200 px, not 150); the legend under it is as wide. */
+  wide?: boolean;
 }) {
   if (breakdown.empty && breakdown.held === null) return null;
   let at = 0;
+  const barWidth = wide ? RECAP_BAR : BAR.width;
   return (
     <div
       // The legend takes the bar's width (a class, as the CSP allows no inline styles).
-      class={barWidth === RECAP_BAR ? 'peril-breakdown is-wide' : 'peril-breakdown'}
+      class={wide ? 'peril-breakdown is-wide' : 'peril-breakdown'}
       data-total={breakdown.total}
     >
       {breakdown.total > 0 && (
@@ -294,7 +295,7 @@ export function RecapPanel(props: {
             max={props.perilMax}
             woundedAt={props.perilWoundedAt}
           />
-          <PerilBreakdownView breakdown={recap.perilSources} barWidth={RECAP_BAR} />
+          <PerilBreakdownView breakdown={recap.perilSources} wide />
         </div>
       </section>
       <section class="recap-section recap-party" data-section="party">
