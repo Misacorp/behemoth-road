@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-27: End-of-day reveals happen after the creature moves **[Misa]**
+
+ID: `2026-11-27-end-of-day-reveals-happen-after` · Status: current
+
+**Decision.** Reveals that happen by themselves at the day tick run after the creature's step and the window update, so a character starts the next day with their surroundings revealed, even at the old edge of the window. The Scout's Sweep (`applySweep` in `skilltick.ts`, no longer part of `applySkillTicks`) explores every unexplored hex in view next to each scout, for no XP (it is data: `count: 6` in the node, restoring the original design and matching the tip "the hexes around you are explored as the day turns"; it was 2); the log lists its `explore` and `reveal` events after `creature-step`. A burning brazier's per-night reveal already ran after the step and still does (tested at the window edge). Glints and Far sight are view-only, computed from the state, so they follow the new window with no change. The stance reveals stay before the step on purpose, since a watcher's reveals count for today's step. Saved games keep working: no state shape or content changed, so the content version stays.
+
+**Reasoning.** Misa, a Scout with Sweep at the leading edge of the map, saw the creature step away and the hexes beyond them stay hidden, because the reveal had run on the old window first. Revealing last matches what a player expects of "when the day ends": see the result of the night, then the sweep. Nothing reads explored state when the creature chooses its step, so the reorder does not change where it goes; the sim shows the same seasons (150 seeds, careful and careless, 3 and 6 players).
+
 ## 2026-11-27: A drawer closes only on a mouse press on the map, and focus returns to its opener
 
 ID: `2026-11-27-a-drawer-closes-only-on-a` · Status: current

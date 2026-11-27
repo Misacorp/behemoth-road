@@ -1,9 +1,11 @@
 /**
- * What taken skills do by themselves at the day tick, before the creature steps: a sweep explores
- * the hexes next to a scout, a drone gathers beside the creature, self-winding gives the unlock in
- * progress a little work, a standing guard defends. None costs an action, so each is held below what
- * the same character could do by hand (docs/design/skill-trees.md). Skills are read by effect, never
- * by id. Server only where it needs the hidden features.
+ * What taken skills do by themselves at the day tick, before the creature steps: a drone gathers
+ * beside the creature, self-winding gives the unlock in progress a little work, a standing guard
+ * defends. None costs an action, so each is held below what the same character could do by hand
+ * (docs/design/skill-trees.md). Skills are read by effect, never by id. Server only where it needs
+ * the hidden features. A sweep is the exception: it runs after the creature's step and the window
+ * update (`applySweep`), so a scout starts the next day with their surroundings explored, including
+ * hexes that only came into view tonight.
  */
 
 import { cartSpot, finishUnlock, isVehicleUnlock } from './cart.ts';
@@ -53,21 +55,6 @@ export const applySkillTicks = (
     for (const characterId of guards) events.push({ kind: 'defend', characterId });
   }
 
-  // Sweep: hexes next to a scout are explored for everyone (no XP: it is not an action).
-  for (const c of active(state)) {
-    const count = bestOf(c, 'sweep', (e) => e.count);
-    if (count === null || c.at.kind !== 'hex') continue;
-    const around = neighbours(c.at.hex).filter((h) => {
-      const tile = state.tiles[hexKey(h)];
-      return tile !== undefined && !tile.explored;
-    });
-    for (const h of around.slice(0, count)) {
-      const shown = exploreHex(state, h);
-      state = shown.state;
-      events.push(...shown.events);
-    }
-  }
-
   // Monkey drone: one unit a day from a revealed node beside the creature into the stores.
   for (const c of active(state)) {
     const amount = bestOf(c, 'drone', (e) => e.amount);
@@ -114,6 +101,31 @@ export const applySkillTicks = (
       const built = finishUnlock(state, unlock, state.creature.centre, null);
       state = built.state;
       events.push(...built.events);
+    }
+  }
+  return { state, events };
+};
+
+/**
+ * End-of-day sweep, run after the creature's step and the window update: up to `count` unexplored hexes
+ * in view next to each scout with the skill are explored for everyone (no XP: it is not an action).
+ */
+export const applySweep = (
+  before: GameState,
+): { readonly state: GameState; readonly events: GameEvent[] } => {
+  let state = before;
+  const events: GameEvent[] = [];
+  for (const c of active(state)) {
+    const count = bestOf(c, 'sweep', (e) => e.count);
+    if (count === null || c.at.kind !== 'hex') continue;
+    const around = neighbours(c.at.hex).filter((h) => {
+      const tile = state.tiles[hexKey(h)];
+      return tile !== undefined && tile.visibility === 'seen' && !tile.explored;
+    });
+    for (const h of around.slice(0, count)) {
+      const shown = exploreHex(state, h);
+      state = shown.state;
+      events.push(...shown.events);
     }
   }
   return { state, events };

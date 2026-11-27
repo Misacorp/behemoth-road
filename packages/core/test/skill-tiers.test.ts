@@ -18,7 +18,8 @@ import {
   stimulusPush,
   threatNextPath,
 } from '../src/index.ts';
-import { exploreHex } from '../src/features.ts';
+import { exploreHex, keyToHex } from '../src/features.ts';
+import { hexDistance, hexKey, neighbours } from '../src/hex.ts';
 import {
   chainGame,
   fieldGame,
@@ -70,7 +71,7 @@ describe('scout', () => {
     expect(offered.length).toBeGreaterThan(6);
   });
 
-  it('A3 sweep: at each tick up to two hexes next to a scout are explored, for no XP', () => {
+  it('A3 sweep: at each tick every hex next to a scout is explored, for no XP', () => {
     const base = take(
       placeCharacter(chainGame(['scout']), 'scout', P),
       'scout',
@@ -81,14 +82,46 @@ describe('scout', () => {
     const before = Object.values(base.tiles).filter((t) => t.explored).length;
     const next = nextDayWithEvents(base);
     const explored = ofKind(next.events, 'explore');
-    expect(explored).toHaveLength(2);
-    for (const e of explored)
-      expect(Math.abs(e.hex.q - P.q) + Math.abs(e.hex.r - P.r)).toBeLessThan(3);
-    expect(Object.values(next.state.tiles).filter((t) => t.explored).length).toBe(before + 2);
+    expect(explored).toHaveLength(6);
+    for (const e of explored) expect(hexDistance(e.hex, P)).toBe(1);
+    expect(Object.values(next.state.tiles).filter((t) => t.explored).length).toBe(before + 6);
     expect(me(next.state, 'scout').skills.xp).toBe(0);
     // Without the node nothing is explored.
     const plain = nextDayWithEvents(take(base, 'scout', 'scout-a1'));
     expect(ofKind(plain.events, 'explore')).toHaveLength(0);
+  });
+
+  it('A3 sweep runs after the creature steps: a scout at the window edge sees the new hexes', () => {
+    const base = chainGame(['scout']);
+    const old = new Set(
+      Object.keys(base.tiles).filter((k) => base.tiles[k]?.visibility === 'seen'),
+    );
+    const moved = nextDay(base);
+    const fresh = Object.keys(moved.tiles).filter(
+      (k) => moved.tiles[k]?.visibility === 'seen' && !old.has(k),
+    );
+    expect(fresh.length).toBeGreaterThan(0);
+    // An old hex next to a new one, on the creature's leading edge.
+    const edge = [...old]
+      .map(keyToHex)
+      .find((h) => neighbours(h).some((n) => fresh.includes(hexKey(n))))!;
+    expect(edge).toBeDefined();
+    let s = placeCharacter(base, 'scout', edge);
+    // Everything else around them is already explored, so only the new hexes are left to sweep.
+    for (const n of neighbours(edge)) if (!fresh.includes(hexKey(n))) s = exploreHex(s, n).state;
+    s = take(s, 'scout', 'scout-a1', 'scout-a2', 'scout-a3');
+    const next = nextDayWithEvents(s);
+    const around = neighbours(edge).filter((n) => fresh.includes(hexKey(n)));
+    expect(around.length).toBeGreaterThan(0);
+    for (const n of around) {
+      expect(next.state.tiles[hexKey(n)]).toMatchObject({ visibility: 'seen', explored: true });
+    }
+    // The reveals come after the creature's step in the log.
+    const kinds = next.events.map((e) => e.kind);
+    expect(kinds.indexOf('explore')).toBeGreaterThan(kinds.indexOf('creature-step'));
+    expect(me(next.state, 'scout').skills.xp).toBe(0);
+    // The same tick twice gives the same result.
+    expect(nextDayWithEvents(s)).toEqual(next);
   });
 
   it('B2 far sight: glints reach four hexes', () => {

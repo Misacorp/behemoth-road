@@ -11,6 +11,7 @@ import {
   hexDistance,
   keyToHex,
   move,
+  nextDay,
   nextDayWithEvents,
   nightsLeft,
   threatOutlook,
@@ -550,6 +551,30 @@ describe('braziers and the rest of the map', () => {
 });
 
 describe('what the player view holds', () => {
+  it('a brazier at the window edge explores the hexes that come into view as the creature steps', () => {
+    const base = calm(fieldGame(['keeper']));
+    const old = new Set(
+      Object.keys(base.tiles).filter((k) => base.tiles[k]?.visibility === 'seen'),
+    );
+    const moved = nextDay(base);
+    const fresh = Object.keys(moved.tiles).filter(
+      (k) => moved.tiles[k]?.visibility === 'seen' && !old.has(k),
+    );
+    const edge = [...old]
+      .map(keyToHex)
+      .find((h) => fresh.some((k) => hexDistance(h, keyToHex(k)) === 1))!;
+    let s = withFeature(base, edge, 'brazier', true);
+    s = placeCharacter(s, 'keeper', edge);
+    s = giveTimber(s, 'keeper');
+    s = ok(act(s, 'keeper', { kind: 'light-fire' }));
+    const next = nextDayWithEvents(s);
+    const shown = fresh.filter((k) => hexDistance(edge, keyToHex(k)) <= 2);
+    expect(shown.length).toBeGreaterThan(0);
+    for (const k of shown) expect(next.state.tiles[k]).toMatchObject({ explored: true });
+    const kinds = next.events.map((e) => e.kind);
+    expect(kinds.indexOf('explore')).toBeGreaterThan(kinds.indexOf('creature-step'));
+  });
+
   it('carries lit braziers with their nights, pinned state and no plan', () => {
     const lit = ok(act(atBrazier(), 'keeper', { kind: 'light-fire' }));
     const view = toPlayerView(lit);
