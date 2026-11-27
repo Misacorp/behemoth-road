@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-27: Desktop drawers close by Escape, a press outside, a right-click and a small cross
+
+ID: `2026-11-27-desktop-drawers-close-by-escape-a` · Status: current
+
+**Decision.** On desktop every drawer closes by Escape, by a primary press on the map outside it, by a mouse right-click outside it (when the setting allows, as for popovers) and by a small icon-only cross in its top corner. The outside press only closes: it and its click are swallowed, so no tile is picked and no popover opens. Round HUD buttons, popovers and tips over a drawer do not close it. The skills button toggles its tree. Phones keep the handle (drag down) and stay as they were. On desktop the join drawer's role cards stack as a list inside the drawer instead of a swipe strip.
+
+**Reasoning.** A drawer had no close affordance but Escape (which a hover tip on the opening button takes first), so Misa could not close the skill tree with the mouse. The role strip was a horizontal swipe with its scrollbar hidden, which a mouse cannot use and which overflowed the 360 px drawer.
+
 ## 2026-11-26: Lure and cart web controls: lead mode and one-tap loading
 
 ID: `2026-11-26-lure-and-cart-web-controls-lead` · Status: current

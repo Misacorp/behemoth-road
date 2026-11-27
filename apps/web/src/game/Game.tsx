@@ -823,8 +823,9 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
                 ...ringOf(state, me),
                 ready: pickReady(state, me),
                 onOpen: () => {
+                  // The button that opened the tree closes it again.
                   setFlow(IDLE);
-                  setSkillsOpen(true);
+                  setSkillsOpen((o) => !o);
                 },
               }
             : null
