@@ -202,11 +202,6 @@ export const GameStateViewSchema = v.object({
     defenders: v.pipe(v.array(id), v.maxLength(64)),
     tows: v.pipe(v.array(v.strictObject({ from: id, to: id })), v.maxLength(64)),
   }),
-  /**
-   * The area the creature needs to reach (known from the start, so it shows over fog). Absent from a server
-   * that does not send one yet.
-   */
-  destination: v.exactOptional(v.object({ hexes: v.pipe(v.array(hex), v.maxLength(64)) })),
   tiles: v.pipe(
     v.record(v.pipe(v.string(), v.regex(/^-?\d+,-?\d+$/), v.maxLength(24)), tile),
     v.check((t) => Object.keys(t).length <= 20_000, 'too many tiles'),

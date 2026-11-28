@@ -309,17 +309,21 @@ async function runViewport(browser, vite, vp) {
   await shot('hub-cart');
 
   // 9. The path arrow while pulling: each step's cost carries the pull extra.
+  const MOVE = '[data-popover=inspect] [data-action=move]';
   await open(staged({ carts: [{ at: START, puller: 'me' }] }));
-  await tapMe();
   await tapHex({ q: 0, r: 3 });
-  if (!(await count('[data-popover=confirm]'))) fail('no plan while pulling');
+  await page.locator(MOVE).first().click(); // the first tap plans the walk: the route shows
+  await wait(300);
+  if (!(await count(`${MOVE}[data-armed]`))) fail('no plan while pulling');
   if ((await count('[data-mark=cost]')) < 1) fail('no cost strip on the pulled path');
   await shot('pull-arrow');
 
-  // 10. A rider cannot walk: its tap on another hex gives the aboard tip.
+  // 10. A rider cannot walk: Move on another hex gives the aboard tip.
   await open(staged({ carts: [{ at: START, rider: 'me' }] }));
-  await tapMe();
   await tapHex({ q: 2, r: 3 });
+  const greyed = await page.locator(MOVE).first().boundingBox(); // a greyed Move still answers a tap
+  if (!greyed) fail('no Move for the rider');
+  else await tapAt(greyed.x + greyed.width / 2, greyed.y + greyed.height / 2);
   await wait(300);
   if (!(await hasTip())) fail('no aboard tip for the rider');
   await shot('rider-refusal');

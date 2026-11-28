@@ -114,6 +114,17 @@ describe('the blocked overlay and the fire glow', () => {
     expect(blockedOverlay(input(s.view, s.me, IDLE as never) as never)).toEqual([]);
   });
 
+  it('leaves the destination band out of the stripes (it already glows)', () => {
+    const s = staged({
+      brazierLit: 2,
+      destinationAhead: 2,
+      threats: [{ type: 'swarm', at: { q: 3, r: 4 } }],
+    });
+    const flow = { kind: 'threat', id: s.view.threats[0]!.id } as never;
+    const drawn = blockedOverlay(input(s.view, s.me, flow) as never);
+    expect(drawn.map((n) => n.attrs['data-reason'])).not.toContain('sanctuary');
+  });
+
   it('draws nothing for a threat that fears nothing, or with no fire burning', () => {
     const slide = staged({ brazierLit: 2, threats: [{ type: 'rockslide', at: { q: 3, r: 4 } }] });
     const flow = { kind: 'threat', id: slide.view.threats[0]!.id } as never;

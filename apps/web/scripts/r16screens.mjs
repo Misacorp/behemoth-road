@@ -236,23 +236,13 @@ async function runViewport(browser, vite, vp) {
   }
 
   // 4. Fog and the destination's glow on the map.
-  const glowStage = {
-    role: 'scout',
-    destination: [
-      { q: 0, r: 4 },
-      { q: 1, r: 3 },
-      { q: -1, r: 4 },
-      { q: 0, r: 3 },
-      { q: 0, r: 5 },
-      { q: 1, r: 4 },
-    ],
-  };
+  // The band's near edge three rows ahead of the creature: the core's `inDestination` decides the hexes.
+  const glowStage = { role: 'scout', destinationAhead: 3 };
   await open(joinedScenario());
   await shot('fog');
   await open(chainScenario(glowStage));
   if (!(await count('[data-destination-glow]'))) fail('map: no destination glow');
-  if ((await count('[data-destination]')) !== glowStage.destination.length)
-    fail('map: not every destination hex glows');
+  if (!(await count('[data-destination]'))) fail('map: no destination hex glows');
   await shot('glow');
   if (!(await count('.hud-greyfold [data-destination-badge]'))) fail('route strip: no badge');
   await context.close();

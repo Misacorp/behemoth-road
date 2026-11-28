@@ -65,7 +65,7 @@ import { MAP_TUNING } from './config.ts';
 import { type Flow, entryKey, isSelecting, pickEntries, shownFlow } from './flow.ts';
 import { holdMs } from '../text/tips.ts';
 import { GestureTracker, type Gesture } from './gestures.ts';
-import { destinationHexes } from './destination.ts';
+import { destinationHexesOn } from './destination.ts';
 import { buildOverlays } from './overlays.ts';
 import { buildThings, sceneExtras } from './things.ts';
 import { figureFeet, pickableFeet } from './figures.ts';
@@ -591,16 +591,11 @@ export function MapView(props: MapViewProps): JSX.Element {
       raster: layerRaster(inkZoom, box, window.devicePixelRatio, MAP_TUNING.layer),
     };
   }, [state, signs, glints, inkZoom, walking, stones, characterId]);
-  // The destination's glow: on every hex of the area, over fog too (the destination is known).
-  const destination = destinationHexes(state);
-  const destinationKey = destination.map((h) => `${h.q},${h.r}`).join(' ');
-  const glow = useMemo(
-    () =>
-      destination.length > 0
-        ? toPreact(drawDestinationGlow(PALETTE, p, destination, 'dest'))
-        : null,
-    [destinationKey],
-  );
+  // The destination's glow: on every hex of the band the layer covers, over fog too (the destination is public).
+  const glow = useMemo(() => {
+    const hexes = destinationHexesOn(state.destination, layers.box, p);
+    return hexes.length > 0 ? toPreact(drawDestinationGlow(PALETTE, p, hexes, 'dest')) : null;
+  }, [state.destination, layers.box]);
   const layerRef = useRef(layers);
   layerRef.current = layers;
 

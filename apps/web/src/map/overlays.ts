@@ -831,13 +831,15 @@ export function blockedSubject(i: OverlayInput): BlockSubject | null {
 /**
  * The generic blocked overlay: the hexes the selected subject will not enter (the core's `blockedFor`), as
  * stripes, one group per reason. Nothing is drawn while no subject is selected, so closing its popover
- * clears it.
+ * clears it. The destination's `sanctuary` hexes are left out: the band already glows, and stripes on only
+ * its explored hexes would read as patchy noise over the glow.
  */
 export function blockedOverlay(i: OverlayInput): SvgNode[] {
   const subject = blockedSubject(i);
   if (!subject) return [];
   const byReason = new Map<string, Hex[]>();
   for (const b of blockedFor(i.state, subject)) {
+    if (b.reason === 'sanctuary') continue;
     const list = byReason.get(b.reason) ?? [];
     list.push(b.hex);
     byReason.set(b.reason, list);
