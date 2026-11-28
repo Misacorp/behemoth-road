@@ -45,32 +45,32 @@ export function artDefs(palette: Palette, prefix: string, k: number, effects = t
       el('stop', { offset: '100%', 'stop-color': palette.paperDeep, 'stop-opacity': 0.75 }),
     ],
   );
-  // The unexplored veil: paper with a fine slanted hatch, one pattern for every veiled hex.
+  // The unexplored veil: a dark, dusky base with thick slanted stripes, one pattern for every veiled hex. The
+  // base is drawn over the terrain at a share that leaves its hue faintly readable; the stripes are wide so an
+  // unexplored hex reads as unknown at a glance, without any mark on it.
   const veil = el(
     'pattern',
     {
       id: refId(prefix, 'veil'),
       patternUnits: 'userSpaceOnUse',
-      width: 7 * k,
-      height: 7 * k,
+      width: ART_TUNING.veilPeriod * k,
+      height: ART_TUNING.veilPeriod * k,
       patternTransform: 'rotate(32)',
     },
     [
-      // A dusky base (darker than any explored ground), so unexplored hexes inside the window stand out at a glance.
       el('rect', {
         x: 0,
         y: 0,
-        width: 7 * k,
-        height: 7 * k,
-        fill: palette.paperDeep,
-        opacity: 0.74,
+        width: ART_TUNING.veilPeriod * k,
+        height: ART_TUNING.veilPeriod * k,
+        fill: palette.shadow,
+        opacity: ART_TUNING.veilBase,
       }),
-      el('rect', { x: 0, y: 0, width: 7 * k, height: 7 * k, fill: palette.shadow, opacity: 0.14 }),
       el('path', {
-        d: `M${(1.5 * k).toFixed(2)} 0V${(7 * k).toFixed(2)}`,
-        stroke: palette.inkSoft,
-        'stroke-width': 0.7 * k,
-        opacity: 0.45,
+        d: `M${(ART_TUNING.veilStripe * 0.5 * k).toFixed(2)} 0V${(ART_TUNING.veilPeriod * k).toFixed(2)}`,
+        stroke: palette.ink,
+        'stroke-width': ART_TUNING.veilStripe * k,
+        opacity: ART_TUNING.veilStripeOpacity,
       }),
     ],
   );

@@ -5,11 +5,15 @@ import { joined, joinedScenario, seasonScenario } from '../api/fixtures.ts';
 import {
   BEAT_TEXT,
   beatText,
+  daysLine,
   ENDING_TEXT,
   endingText,
   endingVignetteOf,
+  RECAP_TEXT,
+  recapText,
   vignetteOf,
 } from '../text/story.ts';
+import { MARK_KINDS } from '../onboarding/welcomeBack.ts';
 import { dateOf } from '../hud/Season.tsx';
 import {
   anchorsOf,
@@ -323,5 +327,37 @@ describe('trail tips are for a bare hex', () => {
       expect(bare(s0, { q, r })).toBe(false);
     }
     expect(bare(s0, { q: c.q + 5, r: c.r - 9 })).toBe(true);
+  });
+});
+
+describe('the recap lines', () => {
+  it('has a line for every mark kind, once and many times, with no numbers', () => {
+    for (const kind of Object.keys(RECAP_TEXT)) {
+      expect(recapText(kind, 1), kind).toBe(RECAP_TEXT[kind as keyof typeof RECAP_TEXT].one);
+      const many = recapText(kind, 2)!;
+      expect(many, kind).not.toContain('{');
+      expect(`${recapText(kind, 1)} ${many}`, kind).not.toMatch(/\d/);
+    }
+  });
+
+  it('counts in words, and says a long count plainly', () => {
+    expect(recapText('strike', 2)).toBe('Something struck the creature twice.');
+    expect(recapText('strike', 3)).toBe('Something struck the creature three times.');
+    expect(recapText('strike', 40)).toBe('Something struck the creature many times.');
+  });
+
+  it('has no line for a kind it does not know', () => {
+    expect(recapText('unheard-of', 1)).toBeNull();
+  });
+
+  it('tells how many days turned, at least one', () => {
+    expect(daysLine(1)).toBe('A day turned while you were away.');
+    expect(daysLine(3)).toBe('Three days turned while you were away.');
+    expect(daysLine(0)).toBe('A day turned while you were away.');
+    expect(daysLine(12)).toBe('Many days turned while you were away.');
+  });
+
+  it('covers every mark the recap can show', () => {
+    for (const kind of MARK_KINDS) expect(recapText(kind, 1), kind).not.toBeNull();
   });
 });

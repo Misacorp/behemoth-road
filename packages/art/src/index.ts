@@ -197,6 +197,7 @@ export {
   type SkillState,
 } from './skills.ts';
 export { drawNotchRing, drawPickGlow } from './notch-ring.ts';
+export { DESTINATION_GLOW, drawDestinationBadge, drawDestinationGlow } from './destination.ts';
 export { boxAround, drawTrace, TRACE_KINDS, type TraceKind, type TraceOptions } from './traces.ts';
 export {
   drawRouteDestination,

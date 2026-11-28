@@ -9,6 +9,7 @@ import {
   type FeatureArt,
   hexCenter,
   hexCorners,
+  drawDestinationGlow,
   drawStoryVignette,
   paperGrain,
   renderSceneFramed,
@@ -62,6 +63,7 @@ import { MAP_TUNING } from './config.ts';
 import { type Flow, entryKey, isSelecting, pickEntries } from './flow.ts';
 import { holdMs } from '../text/tips.ts';
 import { GestureTracker, type Gesture } from './gestures.ts';
+import { destinationHexes } from './destination.ts';
 import { buildOverlays } from './overlays.ts';
 import { buildThings, sceneExtras } from './things.ts';
 import { figureFeet, pickableFeet, placePoint } from './figures.ts';
@@ -591,6 +593,16 @@ export function MapView(props: MapViewProps): JSX.Element {
       raster: layerRaster(inkZoom, box, window.devicePixelRatio, MAP_TUNING.layer),
     };
   }, [state, signs, glints, inkZoom, walking, stones, characterId]);
+  // The destination's glow: on every hex of the area, over fog too (the destination is known).
+  const destination = destinationHexes(state);
+  const destinationKey = destination.map((h) => `${h.q},${h.r}`).join(' ');
+  const glow = useMemo(
+    () =>
+      destination.length > 0
+        ? toPreact(drawDestinationGlow(PALETTE, p, destination, 'dest'))
+        : null,
+    [destinationKey],
+  );
   const layerRef = useRef(layers);
   layerRef.current = layers;
 
@@ -1368,6 +1380,7 @@ export function MapView(props: MapViewProps): JSX.Element {
           aria-hidden="true"
         >
           <Static nodes={layers.ground} />
+          {glow}
           {overlays.thingsUnder}
           {overlays.under}
           <Static nodes={layers.figures} />

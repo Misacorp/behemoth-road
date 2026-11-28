@@ -47,13 +47,19 @@ describe('veil and draw order', () => {
     expect(behind).toBeLessThanOrEqual(bottom + 0.01 + p.depth * 0);
   });
 
-  it('draws the unexplored veil darker than paper, with its stripes', () => {
+  it('draws the unexplored veil dark, with thick stripes and the terrain still under it', () => {
     const svg = scene([{ q: 0, r: 0, terrain: 'plains', state: 'unexplored', props: [] }]);
     const pattern = find(svg, 'patternTransform', 'rotate(32)')!;
-    const fills = pattern.children.map((c) => c.attrs.fill).filter(Boolean);
-    expect(fills).toContain(SPRING.paperDeep);
-    expect(fills).not.toContain(SPRING.paper);
-    expect(pattern.children.some((c) => c.tag === 'path')).toBe(true);
+    const base = pattern.children.find((c) => c.tag === 'rect')!;
+    const stripe = pattern.children.find((c) => c.tag === 'path')!;
+    // Darker than the old paper-deep base, and not opaque: the terrain's hue stays faintly readable.
+    expect(base.attrs.fill).toBe(SPRING.shadow);
+    expect(Number(base.attrs.opacity)).toBeGreaterThan(0.6);
+    expect(Number(base.attrs.opacity)).toBeLessThan(0.85);
+    // Thick stripes (the old hatch was 0.7 wide) on a longer period.
+    expect(Number(stripe.attrs['stroke-width'])).toBeCloseTo(ART_TUNING.veilStripe * p.k);
+    expect(ART_TUNING.veilStripe).toBeGreaterThanOrEqual(4);
+    expect(Number(pattern.attrs.width)).toBeCloseTo(ART_TUNING.veilPeriod * p.k);
   });
 });
 

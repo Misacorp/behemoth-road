@@ -236,8 +236,16 @@ async function runViewport(browser, vite, vp) {
         ? await page.locator('.ending-story').getAttribute('data-line')
         : null;
       if (got !== line) fail(`ending ${name} shows line ${got}, wanted ${line}`);
-      if ((await count('.recap-section')) !== 3) fail(`ending ${name}: the recap has no sections`);
+      // Wide screens keep the recap in a right drawer behind the recap button; the page itself stays calm.
+      const wide = vp.width >= 900;
+      if (wide && (await count('.recap')))
+        fail(`ending ${name}: the recap is on the page, not in a drawer`);
       await checkEndingLayout(name);
+      if (wide) {
+        await page.locator('.ending-recap-toggle').click();
+        await page.locator('.drawer .recap-section').first().waitFor();
+      }
+      if ((await count('.recap-section')) !== 3) fail(`ending ${name}: the recap has no sections`);
       await shot(`ending-${name}`);
     }
   };

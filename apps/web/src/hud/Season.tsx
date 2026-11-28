@@ -15,7 +15,7 @@ import {
   drawEnding,
   drawPerilGauge,
   drawPerilVignette,
-  drawRouteDestination,
+  drawDestinationBadge,
   drawRouteStrip,
   drawStoryVignette,
   drawThreatIcon,
@@ -25,6 +25,8 @@ import { PALETTE } from '../map/art.ts';
 import { toPreact } from '../map/svgToPreact.ts';
 import { type PerilBreakdown, perilBreakdown, type PerilRow } from '../game/perilBreakdown.ts';
 import { type Recap, STAT_ICONS, STAT_TIPS } from '../game/recap.ts';
+import { Drawer } from '../ui/Drawer.tsx';
+import { DESKTOP_QUERY } from '../ui/dismiss.ts';
 import { setTipExtra } from '../ui/press.ts';
 import { RoleEmblem } from '../ui/emblems.tsx';
 import { NewSeasonIcon, RecapIcon, SunIcon, TopMark } from './icons.tsx';
@@ -216,7 +218,7 @@ export function RouteStrip({
         {toPreact(drawRouteStrip(PALETTE, width, steps, length))}
       </span>
       <span class="hud-greyfold" aria-label="Greyfold" {...tipProps('hud:greyfold')}>
-        {toPreact(drawRouteDestination(PALETTE, 20))}
+        {toPreact(drawDestinationBadge(PALETTE, 24))}
       </span>
       {date && (
         <span
@@ -339,6 +341,18 @@ export interface EndingProps {
   readonly party?: readonly { readonly accent: string; readonly look?: CharacterLook }[];
 }
 
+/** Whether the screen is a desktop one (the ending then keeps its recap in a drawer), following a resize. */
+function useDesktop(): boolean {
+  const [wide, setWide] = useState(() => window.matchMedia(DESKTOP_QUERY).matches);
+  useEffect(() => {
+    const q = window.matchMedia(DESKTOP_QUERY);
+    const on = (): void => setWide(q.matches);
+    q.addEventListener('change', on);
+    return () => q.removeEventListener('change', on);
+  }, []);
+  return wide;
+}
+
 /** The season's end, over everything: focus moves into it when it opens (and back to its button after a failed new season). */
 export function Ending(props: EndingProps): JSX.Element {
   const root = useRef<HTMLDivElement>(null);
@@ -346,8 +360,15 @@ export function Ending(props: EndingProps): JSX.Element {
   const scene = useRef<HTMLDivElement>(null);
   const failed = props.failed ?? 0;
   const text = endingText(props.line);
-  // The recap is part of the ending and open with it; its button hides it to see the whole scene.
-  const [recapOpen, setRecapOpen] = useState(true);
+  // Phone: the recap is part of the ending and open with it; its button hides it to see the whole scene.
+  // Desktop: the ending stays calm and the recap opens in a right drawer from the same button.
+  const wide = useDesktop();
+  const [recapOpen, setRecapOpen] = useState(!wide);
+  const wasWide = useRef(wide);
+  useEffect(() => {
+    if (wasWide.current !== wide) setRecapOpen(!wide);
+    wasWide.current = wide;
+  }, [wide]);
   // The scene is drawn at the size of its box (the screen above the foot's strip), measured once laid out.
   const [box, setBox] = useState({ width: window.innerWidth, height: window.innerHeight });
   useLayoutEffect(() => {
@@ -398,12 +419,22 @@ export function Ending(props: EndingProps): JSX.Element {
           </div>
         )}
       </div>
-      {recapOpen && (
-        <RecapPanel
-          recap={props.recap}
-          perilMax={props.perilMax}
-          perilWoundedAt={props.perilWoundedAt}
-        />
+      {wide ? (
+        <Drawer open={recapOpen} onClose={() => setRecapOpen(false)} side="right" label="Recap">
+          <RecapPanel
+            recap={props.recap}
+            perilMax={props.perilMax}
+            perilWoundedAt={props.perilWoundedAt}
+          />
+        </Drawer>
+      ) : (
+        recapOpen && (
+          <RecapPanel
+            recap={props.recap}
+            perilMax={props.perilMax}
+            perilWoundedAt={props.perilWoundedAt}
+          />
+        )
       )}
       <div class="ending-foot">
         <div class="ending-route">

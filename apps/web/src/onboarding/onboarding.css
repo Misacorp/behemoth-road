@@ -619,21 +619,33 @@
 }
 
 .onb-marks {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--space-3);
+  display: grid;
+  width: 100%;
+  gap: var(--space-2);
   min-height: 76px;
 }
 
 .onb-mark {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
   border-radius: 16px;
   border: 1.5px solid #e1ddc3;
   animation: onb-pop-in 0.35s ease-out both;
+}
+
+/* A line of story under the days, or beside a mark. */
+.onb-line {
+  margin: 0;
+  font-size: 1rem;
+  font-style: italic;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.onb-mark .onb-line {
+  text-align: left;
 }
 
 .onb-mark:nth-child(2) {

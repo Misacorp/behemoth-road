@@ -20,7 +20,6 @@ import {
   type Drawn,
   GENTLE_AMBLER,
   el,
-  hexCenter,
   isometric,
   moodOf,
   renderScene,
@@ -54,7 +53,7 @@ import { MAP_TUNING } from './config.ts';
 import { toPreact } from './svgToPreact.ts';
 
 export const INSPECT_SIZE = { width: 132, height: 76 } as const;
-export const CREATURE_SIZE = { width: 140, height: 76 } as const;
+export const CREATURE_SIZE = { width: 100, height: 76 } as const;
 export const CONFIRM_SIZE = { width: 150, height: 60 } as const;
 
 const MINI = isometric(24, MAP_TUNING.tilt);
@@ -119,67 +118,6 @@ function Miniature({
   );
 }
 
-const eyeLine = {
-  fill: 'none',
-  stroke: PALETTE.ink,
-  'stroke-width': 1.8,
-  'stroke-linecap': 'round',
-  'stroke-linejoin': 'round',
-} as const;
-
-/**
- * Visibility as a mark: open eye (in play), closed eye (not yet explored), half-lidded (fading), mist (lost),
- * dotted lid (never seen).
- */
-function VisibilityMark({ state }: { state: CellState }): JSX.Element {
-  switch (state) {
-    case 'seen':
-      return (
-        <g>
-          <path d="M2 16Q18 2 34 16Q18 30 2 16Z" {...eyeLine} fill={PALETTE.paper} />
-          <circle cx={18} cy={16} r={5} fill={PALETTE.ramps.water.shade} stroke={PALETTE.ink} />
-        </g>
-      );
-    case 'fading':
-      return (
-        <g>
-          <path d="M2 16Q18 30 34 16" {...eyeLine} />
-          <path d="M2 16Q18 9 34 16" {...eyeLine} />
-          <path d="M12 17.5a6 4 0 0 0 12 0Z" fill={PALETTE.ramps.water.shade} />
-        </g>
-      );
-    case 'lost':
-      return (
-        <g>
-          <path
-            d="M3 13q5-5 10 0t10 0t10 0M3 21q5-5 10 0t10 0t10 0"
-            {...eyeLine}
-            stroke={PALETTE.inkSoft}
-          />
-        </g>
-      );
-    case 'unexplored':
-      // A closed eye: the terrain is known, but no one has looked yet.
-      return (
-        <g>
-          <path d="M2 16Q18 30 34 16" {...eyeLine} />
-          <path d="M10 21.5l-1.5 3M18 23v3.4M26 21.5l1.5 3" {...eyeLine} stroke-width={1.4} />
-        </g>
-      );
-    case 'unseen':
-      return (
-        <g>
-          <path
-            d="M2 16Q18 30 34 16"
-            {...eyeLine}
-            stroke-dasharray="2 3.5"
-            stroke={PALETTE.inkSoft}
-          />
-        </g>
-      );
-  }
-}
-
 /** An art kit icon (`drawIcon`), placed at (x, y) in a card. */
 export function CardIcon({
   id,
@@ -218,7 +156,7 @@ export const inspectSize = (
 
 /**
  * The inspect card: the tile as the map draws it (under its veil while unexplored, with its revealed
- * feature) and its visibility; next to you and unexplored, a survey button (a spyglass and its cost). A
+ * feature); next to you and unexplored, a survey button (a spyglass and its cost). A
  * feature a fire would burn shows the burnable mark; a lit brazier shows the nights it has left as embers.
  */
 export function InspectCard({
@@ -258,9 +196,6 @@ export function InspectCard({
       <Title text={title} />
       <g transform={`translate(0 ${TITLE_H})`}>
         <Miniature terrain={terrain} state={state} x={6} y={8} feature={feature} tip={tileTip} />
-        <g transform="translate(84 22)">
-          <VisibilityMark state={state} />
-        </g>
         {hazard && (
           <g
             transform="translate(88 38)"
@@ -331,32 +266,6 @@ export function ConfirmCard({
   );
 }
 
-/**
- * The creature's heading: an ink arrow pointing the way it walks on the map. No ring around it, so it does
- * not read as a button.
- */
-function HeadingMark({ heading }: { heading: { q: number; r: number } }): JSX.Element {
-  const d = hexCenter(MINI, heading.q, heading.r);
-  const len = Math.hypot(d.x, d.y) || 1;
-  const ux = d.x / len;
-  const uy = d.y / len;
-  const r = 14;
-  const tip = { x: ux * r * 0.8, y: uy * r * 0.8 };
-  const tail = { x: -ux * r * 0.6, y: -uy * r * 0.6 };
-  const side = (s: number) => ({
-    x: tip.x - ux * 6 + -uy * 4.5 * s,
-    y: tip.y - uy * 6 + ux * 4.5 * s,
-  });
-  const a = side(1);
-  const b = side(-1);
-  return (
-    <g>
-      <path d={`M${tail.x} ${tail.y}L${tip.x} ${tip.y}`} {...eyeLine} stroke-width={2.2} />
-      <path d={`M${a.x} ${a.y}L${tip.x} ${tip.y}L${b.x} ${b.y}`} {...eyeLine} stroke-width={2.2} />
-    </g>
-  );
-}
-
 /** A small shield, its top-left corner at the origin (the defence mark, as one warden's or one point's). */
 function Shield({ x, y, w = 10 }: { x: number; y: number; w?: number }): JSX.Element {
   const h = w * 1.2;
@@ -401,8 +310,9 @@ function DefendedMark({
 }
 
 /**
- * The creature: a small drawing of it, turned to its heading (lying down while it lingers, with your signs:
- * its appetite as you see it), and the heading as a compass mark.
+ * The creature: a small drawing of it, turned to the way it walks (lying down while it lingers, with your
+ * signs: its appetite as you see it). No heading arrow: the drawing already faces it, so an arrow beside it
+ * only asked "what is this?".
  */
 export function CreatureCard({
   state,
@@ -430,12 +340,9 @@ export function CreatureCard({
   return (
     <g data-popover="creature">
       <Card {...CREATURE_SIZE} />
-      <svg x={8} y={8} width={80} height={58} viewBox={viewBox} aria-hidden="true">
+      <svg x={10} y={8} width={80} height={58} viewBox={viewBox} aria-hidden="true">
         {drawn.nodes.map(toPreact)}
       </svg>
-      <g transform="translate(110 37)">
-        <HeadingMark heading={art.heading} />
-      </g>
       <DefendedMark wardens={defended.wardens} reduction={defended.reduction} />
     </g>
   );
