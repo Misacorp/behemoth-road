@@ -44,6 +44,14 @@ ID: `2026-11-28-staging-plays-the-full-season` · Status: current · Supersedes:
 
 **Reasoning.** Misa asked for it after the playtest. The 12-step season with 5 XP a pick gave a scout the whole tree in under a week (4.8 picks by day 4 and 12.7 by day 12, measured in the sim), so staging said little about how the real game paces. Testing the real season is the point of staging.
 
+## 2026-11-28: Player text follows one glossary **[Misa]**
+
+ID: `2026-11-28-player-text-follows-one-glossary` · Status: current
+
+**Decision.** Every string a player reads follows `docs/design/glossary.md`: one noun or verb per concept, short plain words, no metaphors or idioms, and effects said in what the player can see (actions, hexes, peril, a foe's strength). Foes attack the creature (peril), characters Strike foes, and a character a foe attacks is Hurt; the tick is "when the day turns"; "Pinned" (never "buried"); "Search" (never "work") a site; "gear" for built things. `docs/design/text-audit.md` lists every string that breaks it with a rewrite; the rewrites are applied after the parallel UI work merges. Picks awaiting Misa's confirmation are listed at the end of the glossary.
+
+**Reasoning.** In playtest the Bulwark text, "Standing guard turns more of each blow", could not be read without knowing the game: "Standing guard" is a skill name, an action's verb and a lookalike of the Lie in wait stance, and "blow" was a fourth word for a strike. Misa asked for one glossary every text adheres to. The code ids stay as they are (threat, unlock, work-site); only what the player reads changes.
+
 ## 2026-11-27: End-of-day reveals happen after the creature moves **[Misa]**
 
 ID: `2026-11-27-end-of-day-reveals-happen-after` · Status: current
