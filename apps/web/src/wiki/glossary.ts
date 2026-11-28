@@ -147,14 +147,25 @@ function entry(
     key: `${group}:${key}`,
     group,
     name: shown,
-    text: tip === null ? null : fillTip(TIP_TABLE[tip].text, VALUES),
+    // Only the odds mark's tip carries numbers; an action's are drawn from the roll, so the wiki leaves them out.
+    text:
+      tip === null
+        ? null
+        : fillTip(
+            TIP_TABLE[tip].text,
+            tip === 'map:odds' ? VALUES : { ...VALUES, note: '' },
+          ).trim(),
     tip,
     draw,
   };
 }
 
 /** The icon each action tip is drawn with in the game (others have none and draw the neutral mark). */
-const ACTION_ICON: Readonly<Record<string, string>> = { survey: 'spyglass', build: 'hammer' };
+const ACTION_ICON: Readonly<Record<string, string>> = {
+  survey: 'spyglass',
+  build: 'hammer',
+  move: 'feet',
+};
 
 const BOON_IDS: ReadonlySet<string> = new Set(BOONS);
 

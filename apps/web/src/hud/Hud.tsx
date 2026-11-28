@@ -77,7 +77,7 @@ export interface HudProps {
     readonly ready: boolean;
     readonly onOpen: () => void;
   } | null;
-  /** Your stance (a control by your character button) and the wait button beside the action arrows. */
+  /** Your stance (a control by the wait button) and the wait button beside the action arrows. */
   readonly stance?: StanceControlProps | null;
   readonly wait?: WaitButtonProps | null;
   /** The day readout opens the replay menu when held (the real game's guides). */
@@ -211,6 +211,8 @@ export function Hud(props: HudProps): JSX.Element {
           </span>
         )}
         {props.wait && <WaitButton {...props.wait} />}
+        {/* The stance sits by the hourglass: what the spare actions do is set where the day is ended. */}
+        {props.stance && <StanceControl {...props.stance} />}
       </div>
       <div class="hud-focus">
         {props.onRoster && (
@@ -225,7 +227,6 @@ export function Hud(props: HudProps): JSX.Element {
           </button>
         )}
         {props.skills && <SkillsButton skills={props.skills} />}
-        {props.stance && <StanceControl {...props.stance} />}
         <button
           type="button"
           class="round"

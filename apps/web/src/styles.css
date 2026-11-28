@@ -1191,10 +1191,16 @@ button svg,
   display: inline-flex;
 }
 
-/* Stances (docs/design/stances.md): the control by your character button, its popover of bubbles, and the
+/* Stances (docs/design/stances.md): the control by the hourglass, its fan of bubbles above it, and the
    wait button beside the action arrows. */
 .hud-stance-root {
   position: relative;
+  pointer-events: auto;
+}
+
+/* By the hourglass the stance button matches it in size. */
+.hud-turn .hud-stance {
+  --round: 40px;
 }
 
 .hud-stance,
@@ -1229,9 +1235,8 @@ button svg,
 
 .stance-pop {
   position: absolute;
-  right: calc(100% + var(--space-2));
-  top: 50%;
-  transform: translateY(-50%);
+  bottom: calc(100% + var(--space-2));
+  right: 0;
   display: flex;
   gap: var(--space-2);
   padding: var(--space-2);
@@ -1254,7 +1259,7 @@ button svg,
 @keyframes stance-pop-in {
   from {
     opacity: 0;
-    transform: translateY(-50%) scale(0.92);
+    transform: translateY(6px) scale(0.92);
   }
 }
 

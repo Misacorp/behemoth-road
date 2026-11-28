@@ -1,7 +1,8 @@
-import { characterOf, threatOutlook, toPlayerView } from '@behemoth-road/core';
+import { characterOf, placeAt, threatOutlook, toPlayerView } from '@behemoth-road/core';
 import { describe, expect, it } from 'vitest';
 import { type SeasonStage, seasonScenario, USERS } from '../api/fixtures.ts';
-import { IDLE, tap, tapHex } from '../map/flow.ts';
+import { IDLE, planMove, tap, tapHex } from '../map/flow.ts';
+import { moveOption } from './move.ts';
 import {
   defendOption,
   ENDING_TITLES,
@@ -188,8 +189,11 @@ describe('settlements', () => {
     const card = tapHex(IDLE, view, me, abs(NEAR));
     expect(card).toEqual({ kind: 'settlement', id });
     expect(tapHex(card, view, me, abs(NEAR))).toEqual(IDLE);
-    const planned = tapHex({ kind: 'selected' }, view, me, abs(NEAR));
-    expect(planned.kind).toBe('planned');
+    // Move is on its card too: a settlement's hex can be walked onto.
+    const settlement = view.settlements.find((s) => s.id === id)!;
+    const place = placeAt(view, settlement.hex);
+    expect(moveOption(view, me, place)?.enabled).toBe(true);
+    expect(planMove(view, me, place, card)?.kind).toBe('planned');
   });
 });
 

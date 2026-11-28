@@ -56,6 +56,7 @@ import {
 import { drawExploredEmpty, drawMisledMark } from './art.ts';
 import { isPulling } from '../game/cart.ts';
 import { harmfulSteps } from '../game/hazards.ts';
+import { surveyHexes } from '../game/survey.ts';
 import { accentOf } from '../game/identity.ts';
 import { escorts, threatAt, threatNextPath } from '../game/season.ts';
 import { cellStateAt } from './cells.ts';
@@ -635,9 +636,8 @@ function actionHints(i: OverlayInput): SvgNode[] {
     out.push(el('g', { 'data-mark': `action:${glyph}` }, [iconAt(i, glyph, at, size)]));
   }
   if (i.flow.kind === 'selected') {
-    for (const h of hexesInRange(here, 1)) {
-      if (hexDistance(h, here) !== 1) continue;
-      if (!checkAction(i.state, me.id, { kind: 'survey', hex: h }).ok) continue;
+    // Every hex the core says you can survey (a skill reaches further than the neighbours).
+    for (const h of surveyHexes(i.state, me.id)) {
       const c = hexCenter(p, h.q, h.r);
       out.push(el('g', { 'data-mark': 'survey-hint' }, [iconAt(i, 'spyglass', c, size, 0.45)]));
     }

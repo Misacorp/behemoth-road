@@ -130,6 +130,8 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-28 Staging plays the full season \[Misa\]
 - 2026-11-28 Player text follows one glossary \[Misa\]
 - 2026-11-28 Round 16 screens: locked skills show their text, ending recap in a drawer, darker fog, destination glow \[Misa\]
+- 2026-11-28 An armed action shows what it does; stances sit by the hourglass \[Misa\]
+- 2026-11-28 Moving: tap a tile, tap its Move to see the route, tap Move again \[Misa\]
 - 2026-11-27 End-of-day reveals happen after the creature moves \[Misa\]
 - 2026-11-27 A drawer closes only on a mouse press on the map, and focus returns to its opener
 - 2026-11-27 One registry of tappable things feeds the picker and the tap resolver
@@ -304,7 +306,6 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-19 The creature is drawn from above, at the map's view angle \[Misa\]
 - 2026-11-19 Spring palette and a high view: tilt 0.8 \[Misa\]
 - 2026-11-19 Map popovers are drawn in SVG; the view follows the creature each day
-- 2026-11-19 Moving: tap your character, tap a tile, see the arrow, confirm \[Misa\] (amended)
 - 2026-11-19 No focus outlines or other visible accessibility aids in the game \[Misa\]
 - 2026-11-19 Touch first: drag to pan, pinch or wheel to zoom, tap or click to act \[Misa\] (amended)
 - 2026-11-19 The map starts isometric, with flat ground first and heights later \[Misa\]
@@ -332,4 +333,4 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-19 Drag and drop always has a tap and keyboard alternative
 - 2026-11-19 Counts read "1 / 3", and terms explain themselves without "?" icons
 
-Superseded: 10 entries (see the topic file).
+Superseded: 11 entries (see the topic file).

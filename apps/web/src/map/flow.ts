@@ -1,17 +1,17 @@
 /**
- * The move flow. A tap on a place picks your own character first (you can only move your own): tap your
- * character or its hex to select it, tap a lit place to plan, confirm to walk. The creature's seven
- * footprint hexes are one place and the party's hub: tapping it opens a bubble with the characters riding
- * it and a way into the hub (the creature card in Milestone 1); if you ride, the same tap also selects you.
- * Tapping elsewhere changes or cancels the plan before anything is spent; a tap on a hex it cannot reach
- * shows the out-of-reach mark, and a second tap there looks at it. Every rule check goes through the core.
+ * The move flow. A tap on any tile opens its popover with the actions it has, and Move is one of them when
+ * you can stand there (`game/move.ts`): the first tap on Move plans the walk (the route arrow shows, and the
+ * button is armed), the second walks it. A tile too far away has Move greyed, with a tip that says so. Your
+ * own character's tap opens your own card (the actions where you stand). The creature's seven footprint
+ * hexes are one place and the party's hub: tapping it opens a bubble with the characters riding it, a way
+ * into the hub and, from beside it, the Move that boards it; if you ride, the same tap also selects you.
+ * Every rule check goes through the core.
  *
- * Two kinds of open state. A popover (`isPopover`: a hex's inspect card, the picker, a character, threat,
- * settlement or creature card, the bubble when it is only a look) is looked at: a tap anywhere else on the
- * map just closes it, and a second tap opens whatever it lands on. A selection in progress (`isSelecting`:
- * selected, planned, out-of-reach, and the bubble that also selected you) is a mode: the next tap goes on
- * through it (plan a destination, change it, let go). Taps inside a popover (its bubbles, back, buttons)
- * and the HUD and drawers never reach `tap`.
+ * Two kinds of open state. A popover (`isPopover`: a hex's card, the picker, a character, threat, settlement
+ * or creature card, a planned move, the bubble when it is only a look) is looked at: a tap anywhere else on
+ * the map just closes it, and a second tap opens whatever it lands on. A selection (`isSelecting`: your own
+ * card, and the bubble that also selected you) lights what you can reach: the next tap goes on through it.
+ * Taps inside a popover (its bubbles, back, buttons) and the HUD and drawers never reach `tap`.
  */
 import {
   findCharacter,
@@ -26,10 +26,9 @@ import {
   planPath,
 } from '@behemoth-road/core';
 import { revealedFeatureAt } from '@behemoth-road/core';
-import { moveRefusalTip } from '../game/cart.ts';
+import { moveOption } from '../game/move.ts';
 import { canLeadTo, lureById } from '../game/lure.ts';
 import { settlementAt, threatAt } from '../game/season.ts';
-import type { TipId } from '../text/tips.ts';
 import type { Target } from './pick.ts';
 
 export type Flow =
@@ -66,29 +65,26 @@ export type Flow =
    * the hub. `selecting` when it also selected your character (you ride, with actions left).
    */
   | { readonly kind: 'bubble'; readonly selecting: boolean }
-  /** Your character is selected: the places it can reach are lit. */
+  /** Your own card is open (the actions where you stand): the places you can reach are lit. */
   | { readonly kind: 'selected' }
   /**
-   * Selected, and a hex it cannot reach was tapped: the out-of-reach mark shows there for a moment. The
-   * same hex tapped again is looked at.
+   * A move is planned and waits for its second tap: the tile's card stays open with Move armed, and the
+   * route arrow shows.
    */
-  | { readonly kind: 'out-of-reach'; readonly hex: Hex; readonly why?: TipId }
-  /** A path is planned and waits for confirmation. */
   | {
       readonly kind: 'planned';
       readonly to: Place;
       readonly steps: readonly PathStep[];
       readonly cost: number;
+      /** The picker the card was opened from (its back button), kept while the move is planned. */
+      readonly back?: Flow;
     };
 
 export const IDLE: Flow = { kind: 'idle' };
 
-/** Whether your character is selected, so reachable places are lit and a tap on one plans a move. */
+/** Whether your own card is open, so reachable places are lit. */
 export const isSelecting = (flow: Flow): boolean =>
-  flow.kind === 'selected' ||
-  flow.kind === 'planned' ||
-  flow.kind === 'out-of-reach' ||
-  (flow.kind === 'bubble' && flow.selecting);
+  flow.kind === 'selected' || (flow.kind === 'bubble' && flow.selecting);
 
 /** Whether a popover is open only to be looked at: the next map tap closes it and does nothing more. */
 export const isPopover = (flow: Flow): boolean =>
@@ -197,14 +193,6 @@ function tapCreature(flow: Flow, state: GameStateView, characterId: string): Flo
     if (flow.kind === 'bubble' || flow.kind === 'creature') return IDLE;
     return { kind: 'bubble', selecting: me.actionsLeft > 0 };
   }
-  if (active && isSelecting(flow)) {
-    // You stand beside it, selected: the tap plans boarding.
-    if (flow.kind === 'planned' && flow.to.kind === 'creature') return flow;
-    const plan = planPath(state, characterId, { kind: 'creature' });
-    if (plan.ok && plan.steps.length > 0) {
-      return { kind: 'planned', to: { kind: 'creature' }, steps: plan.steps, cost: plan.cost };
-    }
-  }
   if (flow.kind === 'bubble' || flow.kind === 'creature') return IDLE;
   return { kind: 'bubble', selecting: false };
 }
@@ -213,11 +201,6 @@ function tapCreature(flow: Flow, state: GameStateView, characterId: string): Flo
 function shareOf(flow: Flow, state: GameStateView, characterId: string, hex: Hex): Flow | null {
   if (flow.kind === 'pick' && hexEquals(flow.hex, hex)) return IDLE;
   if (pickEntries(state, characterId, hex).length < 2) return null;
-  // Walking onto another tile with things on it is a plan, unless a threat stands on it (no one walks onto
-  // one). Your own tile is never walked to: its things are chosen from the picker.
-  const own = findCharacter(state, characterId)?.at;
-  const onOwn = own?.kind === 'hex' && hexEquals(own.hex, hex);
-  if (isSelecting(flow) && !onOwn && threatAt(state, hex) === null) return null;
   return { kind: 'pick', hex: { q: hex.q, r: hex.r } };
 }
 
@@ -271,12 +254,9 @@ export function tap(flow: Flow, state: GameStateView, characterId: string, targe
         : state.carts.find((c) => c.id === target.id);
     if (!thing) return flow;
     // A hex with more than one thing on it (you and the capybara, say): the picker, never one of them
-    // chosen for you. Selected, a lone lure or cart on another hex is a place to walk to.
+    // chosen for you.
     const shared = shareOf(flow, state, characterId, thing.hex);
     if (shared) return shared;
-    if (isSelecting(flow) && !(mine?.kind === 'hex' && hexEquals(mine.hex, thing.hex))) {
-      return tap(flow, state, characterId, { kind: 'hex', hex: thing.hex });
-    }
     return { kind: target.kind, id: target.id };
   }
   if (target.kind === 'character') {
@@ -293,8 +273,7 @@ export function tap(flow: Flow, state: GameStateView, characterId: string, targe
   const to = hex ? placeAt(state, hex) : mine;
   if (!to) return flow;
   if (to.kind === 'creature') return tapCreature(flow, state, characterId);
-  // A tile with several things to tap: the picker (a plan in progress still plans a walk to a tile that
-  // holds no threat; the same tile again closes it).
+  // A tile with several things to tap: the picker (the same tile again closes it).
   const shared = shareOf(flow, state, characterId, to.hex);
   if (shared) return shared;
   const onMe = mine !== null && placeEquals(mine, to);
@@ -310,25 +289,43 @@ export function tap(flow: Flow, state: GameStateView, characterId: string, targe
   if (threat !== null) {
     return flow.kind === 'threat' && flow.id === threat ? IDLE : { kind: 'threat', id: threat };
   }
-  if (isSelecting(flow)) {
-    if (flow.kind === 'planned' && placeEquals(flow.to, to)) return flow;
-    const plan = planPath(state, characterId, to);
-    if (plan.ok && plan.steps.length > 0) {
-      return { kind: 'planned', to, steps: plan.steps, cost: plan.cost };
-    }
-    // Out of reach: the mark first (a settlement still opens its card); the same hex again is looked at.
-    // A refusal the cart gives (you sit in it, it cannot roll there) says why, with a tip.
-    const again = flow.kind === 'out-of-reach' && hexEquals(flow.hex, to.hex);
-    const why = plan.ok ? null : moveRefusalTip(plan.reason);
-    if (!again && settlementAt(state, to.hex) === null)
-      return { kind: 'out-of-reach', hex: to.hex, ...(why ? { why } : {}) };
-  }
   return look(flow, state, to.hex);
 }
 
 /** Tapping a hex (a shorthand for tests and callers without picking). */
 export const tapHex = (flow: Flow, state: GameStateView, characterId: string, hex: Hex): Flow =>
   tap(flow, state, characterId, { kind: 'hex', hex });
+
+/**
+ * The first tap on a card's Move: the walk to `to` is planned (the route arrow shows, Move is armed), or
+ * null when it cannot be done now (greyed: too far, no actions, pinned). The second tap confirms it.
+ */
+export function planMove(
+  state: GameStateView,
+  characterId: string,
+  to: Place,
+  from: Flow = IDLE,
+): Flow | null {
+  if (!moveOption(state, characterId, to)?.enabled) return null;
+  const plan = planPath(state, characterId, to);
+  if (!plan.ok || plan.steps.length === 0) return null;
+  const back = 'back' in from && from.back ? { back: from.back } : {};
+  return { kind: 'planned', to, steps: plan.steps, cost: plan.cost, ...back };
+}
+
+/**
+ * What a planned move shows: the card it was planned from, still open (its Move armed): a place on the
+ * creature the bubble, a settlement its card, any other hex its inspect card. Other flows show themselves.
+ */
+export function shownFlow(state: GameStateView, flow: Flow): Flow {
+  if (flow.kind !== 'planned') return flow;
+  const back = flow.back ? { back: flow.back } : {};
+  if (flow.to.kind === 'creature') return { kind: 'bubble', selecting: false };
+  const settlement = settlementAt(state, flow.to.hex);
+  return settlement !== null
+    ? { kind: 'settlement', id: settlement, ...back }
+    : { kind: 'inspect', hex: flow.to.hex, ...back };
+}
 
 /** Another player's character card (from its figure or from the bubble). */
 export const openCharacter = (id: string, back?: Flow): Flow =>

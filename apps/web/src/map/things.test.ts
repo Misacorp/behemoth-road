@@ -5,6 +5,7 @@
 import { MORNING, paletteColours, walk, type SvgNode } from '@behemoth-road/art';
 import {
   characterOf,
+  onHex,
   planPath,
   predictCreature,
   reachablePlaces,
@@ -18,6 +19,7 @@ import { cartFeet, lureFeet, pickableFeet } from './figures.ts';
 import { cartToggles } from '../game/cart.ts';
 import { leadTargets as leadTargetsOf } from '../game/lure.ts';
 import { choose, type Flow, IDLE, startLead, tap, tapHex } from './flow.ts';
+import { moveOption } from '../game/move.ts';
 import { mapTipAt } from './mapTips.ts';
 import { buildOverlays } from './overlays.ts';
 import { buildThings, sceneExtras } from './things.ts';
@@ -89,10 +91,10 @@ describe('taps on the lure and the cart', () => {
     expect(tapHex(mode, g.view, g.me, { q: g.abs(NEXT).q + 3, r: g.abs(NEXT).r })).toEqual(IDLE);
   });
 
-  it('selected, a cart on another hex is a place to walk to; on your own hex it opens its card', () => {
+  it('a cart on another hex opens its card, even selected; on your own hex it is one of several things', () => {
     const g = staged({ carts: [{ at: NEXT }] });
-    const walk = tap({ kind: 'selected' }, g.view, g.me, { kind: 'cart', id: 'cart-1' });
-    expect(walk.kind).toBe('planned');
+    const open = tap({ kind: 'selected' }, g.view, g.me, { kind: 'cart', id: 'cart-1' });
+    expect(open).toEqual({ kind: 'cart', id: 'cart-1' });
     const own = staged({ carts: [{ at: START }] });
     // On your own hex the cart is one of several things there: the picker, then its card with a back.
     const shared = tap({ kind: 'selected' }, own.view, own.me, { kind: 'cart', id: 'cart-1' });
@@ -123,16 +125,20 @@ describe('taps on the lure and the cart', () => {
 
   it('gives the aboard tip when a rider taps another hex, and the cart-terrain tip for ground it cannot roll', () => {
     const rider = staged({ carts: [{ at: START, rider: 'me' }] });
-    const f = tapHex({ kind: 'selected' }, rider.view, rider.me, rider.abs(NEXT));
-    expect(f).toMatchObject({ kind: 'out-of-reach', why: 'why:aboard' });
+    expect(moveOption(rider.view, rider.me, onHex(rider.abs(NEXT)))).toMatchObject({
+      enabled: false,
+      why: 'why:aboard',
+    });
     const puller = staged({
       carts: [{ at: START, puller: 'me' }],
       terrains: [{ at: NEXT, terrain: 'swamp' }],
     });
     const plan = planPath(puller.view, puller.me, puller.abs(NEXT));
     expect(plan).toEqual({ ok: false, reason: 'cart-terrain' });
-    const g = tapHex({ kind: 'selected' }, puller.view, puller.me, puller.abs(NEXT));
-    expect(g).toMatchObject({ kind: 'out-of-reach', why: 'why:cart-terrain' });
+    expect(moveOption(puller.view, puller.me, onHex(puller.abs(NEXT)))).toMatchObject({
+      enabled: false,
+      why: 'why:cart-terrain',
+    });
   });
 
   it('has tips for the lure and the cart on the map', () => {

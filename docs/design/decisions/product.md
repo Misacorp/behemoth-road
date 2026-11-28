@@ -60,6 +60,22 @@ ID: `2026-11-28-round-16-screens-locked-skills-show` · Status: current
 
 **Reasoning.** Misa's playtest asks: players felt out of control when locked nodes said only "Not yet"; the arrow beside the creature asked what it was; the recap had icons but no story; the desktop ending was crowded; fog was too light to read as unknown; and the goal should be visible on the map.
 
+## 2026-11-28: An armed action shows what it does; stances sit by the hourglass **[Misa]**
+
+ID: `2026-11-28-an-armed-action-shows-what-it` · Status: current
+
+**Decision.** An action's first tap shows a passing tip anchored to its button (it may cover the popover); on desktop the same tip shows on hover. Each action has one line, the verb as the tip's title and one plain sentence ("Lead. Move the capybara to a neighbouring tile."); an action that rolls adds its odds from `oddsOf` ("Success 70% · Angered 30%") through the tip's `{note}`. The small odds bar stays on the button: it reads at a glance and the tip sits above the button, not over the bar. The role picker's tips no longer give odds, only plain words ("Better at working tombs", "Better at parley and strikes"). The stance chooser moves from beside the character button to beside the hourglass: a round stance button right of the wait button, whose tap opens a fan of the three stances above it (a hold or hover shows each one's tip). Long survey: the survey icon shows on every hex the core lets you survey, not only the neighbours.
+
+**Reasoning.** Misa's playtest: players did not know what an action did before spending it, could not tell parley's risk, and took long to find stances for ambushes. Putting the odds in the tip keeps numbers out of the UI until asked for, and one line per action keeps the verbs consistent with the buttons.
+
+## 2026-11-28: Moving: tap a tile, tap its Move to see the route, tap Move again **[Misa]**
+
+ID: `2026-11-28-moving-tap-a-tile-tap-its` · Status: current · Supersedes: `2026-11-19-moving-tap-your-character-tap-a`
+
+**Decision.** Supersedes "tap your character, tap a tile". Tapping any tile opens its popover; Move is one of its actions whenever you can stand there (the core's `planPath` gives the pips). The first tap on Move draws the route arrow (as a threat's route shows) and arms it, the second walks. A tile that costs more than a day's actions has Move greyed with the day's pips and a plus ("●●●+"), and a tap says "Too far"; one you can reach in a day but not with the actions left shows its real cost greyed. A tile with no way there has no Move. Boarding, stepping off, crossing the creature, the raft, the cart's extra cost and the cart's refusals all go through the same button: the creature's bubble carries the Move that boards it; a settlement's card carries the Move onto it. Tapping your own character still opens your own card with the here actions and lights what you can reach. A tap on a lone lure or cart opens its card (no longer a walk there). The practice map's guide teaches tap tile, Move, Move again.
+
+**Reasoning.** Misa's playtest: players felt lost having to select their character before they could move. Moving through one button on the tile's own card puts it beside the other actions there (a neighbour often shows Move and Survey) and reuses the arm-then-spend pattern of every other action.
+
 ## 2026-11-27: End-of-day reveals happen after the creature moves **[Misa]**
 
 ID: `2026-11-27-end-of-day-reveals-happen-after` · Status: current
@@ -1586,20 +1602,6 @@ ID: `2026-11-19-map-popovers-are-drawn-in-svg` · Status: current
 
 **Reasoning.** The CSP forbids inline styles, so an HTML popover could not be positioned without CSSOM tricks; an SVG group takes a `transform` attribute instead and shares the map's ink look. Keeping the selection makes walking several single steps quick. Following the creature is what makes the map visibly move day by day.
 
-## 2026-11-19: Moving: tap your character, tap a tile, see the arrow, confirm **[Misa]**
-
-ID: `2026-11-19-moving-tap-your-character-tap-a` · Status: current, amended by `2026-11-19-the-creature-is-the-party-s` · Amends: `2026-11-19-touch-first-drag-to-pan-pinch`
-
-**Decision.** Moving a character takes three taps:
-
-1. Tap your character. The tiles it can reach with the actions it has left light up.
-2. Tap one of those tiles. An arrow, drawn as a dashed ink line, runs along the path to it, with the cost shown as action pips. Where the path relies on something special, such as a rope over a cliff, a tunnel or a boat across a river, the arrow shows it with a small mark on that stretch, so the means of travel is visible in the arrow itself.
-3. Confirm the move in a small popover by the destination.
-
-Tapping elsewhere, or another reachable tile, changes or cancels the plan before anything is spent. This replaces the "Acting" bullet of the touch-first decision for movement; other actions still use tap-to-select and confirm in the popover.
-
-**Reasoning.** Misa's design: selecting the character first makes its range visible at a glance, and the arrow makes both the cost and the tools of travel readable without text, which suits later gear and vehicles (grappling hook, boats).
-
 ## 2026-11-19: No focus outlines or other visible accessibility aids in the game **[Misa]**
 
 ID: `2026-11-19-no-focus-outlines-or-other-visible` · Status: current · Amends: `2026-11-19-accessibility-is-not-traded-away`
@@ -1867,6 +1869,20 @@ ID: `2026-11-20-milestone-3-rules-the-calls-the` · Status: superseded by `2026-
 - Glints belong to the team: one scout's sensing shows for everyone.
 
 **Reasoning.** The plan fixed the chain and the perks but left these open. Each is the simplest choice that keeps the chain intact and leaves room to change it. The old coin is the one addition to the content list: without it, a tier-1 tomb would make the lantern pointless.
+
+## 2026-11-19: Moving: tap your character, tap a tile, see the arrow, confirm **[Misa]**
+
+ID: `2026-11-19-moving-tap-your-character-tap-a` · Status: superseded by `2026-11-28-moving-tap-a-tile-tap-its` · Amends: `2026-11-19-touch-first-drag-to-pan-pinch`
+
+**Decision.** Moving a character takes three taps:
+
+1. Tap your character. The tiles it can reach with the actions it has left light up.
+2. Tap one of those tiles. An arrow, drawn as a dashed ink line, runs along the path to it, with the cost shown as action pips. Where the path relies on something special, such as a rope over a cliff, a tunnel or a boat across a river, the arrow shows it with a small mark on that stretch, so the means of travel is visible in the arrow itself.
+3. Confirm the move in a small popover by the destination.
+
+Tapping elsewhere, or another reachable tile, changes or cancels the plan before anything is spent. This replaces the "Acting" bullet of the touch-first decision for movement; other actions still use tap-to-select and confirm in the popover.
+
+**Reasoning.** Misa's design: selecting the character first makes its range visible at a glance, and the arrow makes both the cost and the tools of travel readable without text, which suits later gear and vehicles (grappling hook, boats).
 
 ## 2026-11-19: Characters start on a free hex next to the creature **[Misa]**
 
