@@ -1,8 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { CONTENT_VERSION, type GameState, type Seed } from '../src/game-core.ts';
 import { seasonConfig, type PlayerView } from '../src/guild-game.ts';
-import { SERVER_CONFIG } from '../src/server-config.ts';
-import { DEV_SEASON } from '../../../packages/core/scripts/balance.ts';
 import {
   DiscordError,
   MISA,
@@ -145,14 +143,12 @@ describe('the five Milestone 5 actions', () => {
 });
 
 describe('the season config', () => {
-  it('is the short dev season only with the dev tools on', async () => {
-    expect(seasonConfig(true)).toEqual(SERVER_CONFIG.devSeason);
+  it('is the full season with the dev tools on or off', async () => {
+    expect(seasonConfig(true)).toEqual({});
     expect(seasonConfig(false)).toEqual({});
-    // The core's balance simulation plays the same dev season.
-    expect(DEV_SEASON).toEqual(SERVER_CONFIG.devSeason);
     await runGame(async (ctx) => {
       const view = asView((await ctx.call(await ctx.signIn(MISA), 'GET', '/api/game')).body);
-      expect(view.game.config).toMatchObject(SERVER_CONFIG.devSeason);
+      expect(view.game.config).toMatchObject({ routeLength: 40, threatsFromDay: 3 });
     });
     await runGame(
       async (ctx) => {
@@ -174,7 +170,7 @@ describe('the season config', () => {
       ctx.game.migrate();
       const fresh = storedState(ctx.sql);
       expect(fresh.contentVersion).toBe(CONTENT_VERSION);
-      expect(fresh.config).toMatchObject(SERVER_CONFIG.devSeason);
+      expect(fresh.config).toMatchObject({ routeLength: 40 });
     });
   });
 
@@ -251,7 +247,7 @@ describe('POST /api/dev/new-season', () => {
         expect(view.offers?.length).toBeGreaterThan(0);
         expect(view.players).toEqual([]);
         expect(storedState(ctx.sql).seed).toEqual(next);
-        expect(storedState(ctx.sql).config).toMatchObject(SERVER_CONFIG.devSeason);
+        expect(storedState(ctx.sql).config).toMatchObject({ routeLength: 40 });
         // The old game's events are gone: a client that saw it is told to reload.
         const since = asView(
           (await ctx.call(token, 'GET', `/api/game?since=${String(ended.version)}`)).body,

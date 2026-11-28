@@ -2,6 +2,7 @@
  * Player actions. Each returns a new state or the reason it was refused.
  */
 
+import { cartCanEnter, cartPulledBy, cartRiddenBy, moveCart } from './cart.ts';
 import { UNLOCKS } from './content/index.ts';
 import { depositPack, enterHex, type GameEvent } from './features.ts';
 import type { Hex } from './hex.ts';
@@ -22,7 +23,13 @@ export type MoveRefusal =
   | 'unreachable'
   | 'impassable'
   | 'not-enough-actions'
-  | 'waiting';
+  | 'waiting'
+  /** Pinned by a falling slide: no moving until freed. */
+  | 'pinned'
+  /** Sitting in the cart: it moves, they do not (leave it first). */
+  | 'aboard'
+  /** Pulling the cart: it cannot make this step (not rollable ground, or the creature). */
+  | 'cart-terrain';
 
 export type ActionResult<S extends GameStateView = GameStateView> =
   | {
@@ -115,12 +122,25 @@ export const stepOnly = <S extends GameStateView>(
   if (!isPlaceReachable(state, target)) return { ok: false, reason: 'unreachable' };
   const entry = entryToPlace(state, target);
   if (!entry) return { ok: false, reason: 'impassable' };
+  if (character.pinnedDay !== undefined) return { ok: false, reason: 'pinned' };
   if (character.waiting) return { ok: false, reason: 'waiting' };
-  if (character.actionsLeft < entry.cost) return { ok: false, reason: 'not-enough-actions' };
+  if (cartRiddenBy(state, characterId)) return { ok: false, reason: 'aboard' };
+  // A hitched cart goes where the puller goes, for more: it cannot board the creature or roll over bad ground.
+  const cart = cartPulledBy(state, characterId);
+  if (cart && (target.kind !== 'hex' || !cartCanEnter(state, target.hex))) {
+    return { ok: false, reason: 'cart-terrain' };
+  }
+  const cost = entry.cost + (cart ? state.config.cartPullExtra : 0);
+  if (character.actionsLeft < cost) return { ok: false, reason: 'not-enough-actions' };
 
   const characters = state.characters.slice();
-  characters[index] = { ...character, at: target, actionsLeft: character.actionsLeft - entry.cost };
-  return { ok: true, state: { ...state, characters }, to: target };
+  characters[index] = { ...character, at: target, actionsLeft: character.actionsLeft - cost };
+  const stepped = { ...state, characters };
+  return {
+    ok: true,
+    state: cart && target.kind === 'hex' ? moveCart(stepped, cart, target.hex) : stepped,
+    to: target,
+  };
 };
 
 /**

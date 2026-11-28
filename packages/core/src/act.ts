@@ -18,6 +18,17 @@ import {
   type SiteType,
   type Unlock,
 } from './content/index.ts';
+import {
+  cartAtHex,
+  cartPulledBy,
+  cartRiddenBy,
+  cartRoom,
+  cartSpot,
+  finishUnlock,
+  isVehicleUnlock,
+  releaseFromCart,
+  setCart,
+} from './cart.ts';
 import { creatureType, FOOD_TAG, firstWithTag, isKeeper, nourishment } from './care.ts';
 import { activeCharacter, isPlaceReachable } from './actions.ts';
 import {
@@ -28,15 +39,28 @@ import {
   type GameEvent,
   isExplored,
   keyToHex,
+  lightAround,
   packSize,
   roleHas,
   unlockTags,
 } from './features.ts';
-import { type Hex, hexDistance, hexesInRange, hexKey, isValidHex } from './hex.ts';
+import {
+  type Direction,
+  DIRECTIONS,
+  type Hex,
+  hexDistance,
+  hexesInRange,
+  hexKey,
+  isValidHex,
+  neighbour,
+} from './hex.ts';
+import { canLeadOnto } from './lures.ts';
 import { terrainOf } from './map.ts';
-import { arePlacesAdjacent, ON_CREATURE, onHex, placeNeighbours } from './places.ts';
+import { BURNABLE_TAG, FIRE_SITE_TAG } from './fire.ts';
+import { arePlacesAdjacent, ON_CREATURE, onHex, placeEquals, placeNeighbours } from './places.ts';
 import { hashString, hashToUnit } from './random.ts';
 import {
+  type Cart,
   type Character,
   type FeatureState,
   type GameState,
@@ -46,9 +70,10 @@ import {
   type Materials,
   type Settlement,
   type Stimulus,
+  unpinned,
 } from './state.ts';
-import { isCreatureHex } from './window.ts';
-import { DEFEND_TAG, PURSUER_TAG, threatType } from './threats.ts';
+import { isCreatureHex, isInWindow } from './window.ts';
+import { DEFEND_TAG, FALLS_TAG, PURSUER_TAG, threatType } from './threats.ts';
 import {
   addFavour,
   anger,
@@ -60,6 +85,8 @@ import {
 
 import { isStance } from './stances.ts';
 import { PERIL_CALM, PERIL_SHELTER, recordEvents } from './stats.ts';
+import { fireStory } from './story.ts';
+import { recordTraces } from './traces.ts';
 import {
   bestOf,
   distanceFrom,
@@ -84,11 +111,37 @@ export type Action =
   | { readonly kind: 'grab-line' }
   | { readonly kind: 'strike'; readonly threat: string }
   | { readonly kind: 'defend' }
+  /** Frees a pinned character on the same or a neighbouring place (see `Character.pinnedDay`). */
+  | { readonly kind: 'dig-out'; readonly target: string }
+  /** A pinned character struggles to get free: rolls (seeded), the chance growing with each failure. */
+  | { readonly kind: 'struggle' }
+  /**
+   * Leads a lure (a small animal) one hex: to the neighbouring hex in `direction`, or to `to` (a neighbour of
+   * the lure's hex). The character must stand on the lure's hex or beside it. Give exactly one of the two.
+   */
+  | {
+      readonly kind: 'lead';
+      readonly lure: string;
+      readonly direction?: Direction;
+      readonly to?: Hex;
+    }
   | { readonly kind: 'parley' }
   | { readonly kind: 'offer'; readonly material: string }
   | { readonly kind: 'ask-boon'; readonly boon: string }
   /** Takes a skill node with a pick the character has earned (`docs/design/skill-trees.md`). Free. */
   | { readonly kind: 'pick-skill'; readonly node: string }
+  /** The cart on the character's hex: hitch to it (it then moves with them, for more per step). */
+  | { readonly kind: 'hitch' }
+  /** Lets the hitched cart go where it stands. Free. */
+  | { readonly kind: 'unhitch' }
+  /** Climbs into the seat of the cart on the character's hex. */
+  | { readonly kind: 'board-cart' }
+  /** Climbs out of the cart's seat. Free. */
+  | { readonly kind: 'leave-cart' }
+  /** Moves `amount` units of a material from the pack to a cart on or next to the character's place. Free. */
+  | { readonly kind: 'load'; readonly material: string; readonly amount: number }
+  /** Moves `amount` units of a material from a cart on or next to the character's place to the pack. Free. */
+  | { readonly kind: 'unload'; readonly material: string; readonly amount: number }
   /** Sets the stance the unspent actions go to at the tick (`docs/design/stances.md`). Free, any time. */
   | { readonly kind: 'set-stance'; readonly stance: string }
   /** Ends the character's day: what is left goes to the stance at the tick. Free; no acting or moving after. */
@@ -116,6 +169,8 @@ export type ActRefusal =
   | 'busy'
   | 'missing-materials'
   | 'cannot-burn'
+  /** Lighting a fire needs a brazier (`fire-site`) or a burnable feature on the hex. */
+  | 'nothing-to-burn'
   | 'fire-here'
   | 'no-fuel'
   | 'no-food'
@@ -127,6 +182,8 @@ export type ActRefusal =
   | 'season-over'
   | 'no-threat'
   | 'not-near'
+  /** A tow line to someone inside the window: they can walk. */
+  | 'in-window'
   | 'needs-warden'
   | 'no-settlement'
   | 'not-wary'
@@ -137,6 +194,34 @@ export type ActRefusal =
   | 'unknown-stance'
   /** The character ended their day (wait): only the stance and picks can change. */
   | 'waiting'
+  /** The character is pinned by a falling slide: they can only struggle (or set the stance, pick) until freed. */
+  | 'pinned'
+  /** A dig-out on a character who is not pinned. */
+  | 'not-pinned'
+  /** The cart: none on (or, for load and unload, next to) the character's place. */
+  | 'no-cart'
+  /** Hitching to a cart someone else pulls. */
+  | 'cart-taken'
+  /** Boarding a cart whose seat is taken. */
+  | 'seat-taken'
+  /** Unhitching a cart the character does not pull. */
+  | 'not-hitched'
+  /** Leaving a cart the character does not sit in. */
+  | 'not-aboard'
+  /** Hitching to a cart the character sits in. */
+  | 'aboard'
+  /** Boarding a cart the character pulls. */
+  | 'hitched'
+  | 'cart-full'
+  | 'cart-empty'
+  /** Loading a material the pack lacks. */
+  | 'no-material'
+  /** Building a cart with nowhere to put it. */
+  | 'no-room'
+  /** Leading a lure: there is no lure with that id; it has no leads left; the hex it would go to is not open to it. */
+  | 'no-lure'
+  | 'settled'
+  | 'blocked'
   /** Picks: see `PickRefusal` in `skills.ts` (`already-have` is shared). */
   | PickRefusal;
 
@@ -176,20 +261,71 @@ const SITE_STREAM = hashString('site');
 const PARLEY_STREAM = hashString('parley');
 
 /** The stimulus a fire is (the one tagged `fire`): content, read by tag. */
-const FIRE = STIMULUS_TYPES.find((t) => t.tags.includes('fire'));
+const FIRE = STIMULUS_TYPES.find((t) => t.tags.includes('fire') && !t.tags.includes(FIRE_SITE_TAG));
+/** The stimulus lit on a fire-site (a brazier): tagged `fire` and `fire-site`. */
+const SITE_FIRE = STIMULUS_TYPES.find((t) => t.tags.includes(FIRE_SITE_TAG));
 
 /** A fire as lit by a character: a beacon skill widens its reach and strengthens its push. */
-const litFire = (c: Character, type: string, hex: Hex, litDay: number): Stimulus => {
-  const range = bestOf(c, 'fire-boost', (e) => e.range);
+const litFire = (
+  c: Character,
+  type: string,
+  hex: Hex,
+  litDay: number,
+  /** A brazier: the nights it burns before a Beacon adds more, and the hexes it shows. */
+  site?: { readonly nights: number; readonly reveal: number },
+): Stimulus => {
+  const boosted = bestOf(c, 'fire-boost', (e) => e.range);
+  // A brazier's own reach (its type's) stands unless a Beacon reaches further.
+  const own = STIMULUS_TYPES.find((t) => t.id === type)?.range;
+  const range = site && own !== undefined ? Math.max(own, boosted ?? 0) : boosted;
   const push = bestOf(c, 'fire-boost', (e) => e.push);
+  const more = bestOf(c, 'fire-boost', (e) => e.nights ?? 0) ?? 0;
   return {
     type,
     hex,
     litDay,
     ...(range === null ? {} : { range }),
     ...(push === null ? {} : { push }),
+    ...(site ? { nights: site.nights + more, reveal: site.reveal } : {}),
   };
 };
+
+/** The feature with its stocked flag cleared (its first fire has burnt the old fuel). */
+const unstocked = (f: FeatureState): FeatureState => {
+  const rest: Record<string, unknown> = { ...f };
+  delete rest['stocked'];
+  return rest as unknown as FeatureState;
+};
+
+const FALL_STREAM = hashString('slide-fall');
+
+/**
+ * The chance a strike on a threat with these tags brings it down on the striker: the tuning's
+ * `slideFallChance` times each `sure-footed` factor (role and skills) for a tag the threat has. Zero
+ * when the threat does not fall.
+ */
+export const fallChance = (
+  state: GameStateView,
+  c: Character,
+  threatTags: readonly string[],
+): number => {
+  if (!threatTags.includes(FALLS_TAG)) return 0;
+  return effectsOf(c, 'sure-footed')
+    .filter((e) => threatTags.includes(e.tag))
+    .reduce((chance, e) => chance * e.factor, state.config.slideFallChance);
+};
+
+const STRUGGLE_STREAM = hashString('struggle');
+
+/**
+ * The chance the next struggle frees a pinned character: `struggleChanceBase` plus `struggleChanceStep`
+ * for each failed struggle so far under this pin (capped at 1, so a long enough run always frees).
+ */
+export const struggleChance = (state: GameStateView, c: Character): number =>
+  Math.min(
+    1,
+    state.config.struggleChanceBase + state.config.struggleChanceStep * (c.struggles ?? 0),
+  );
 
 const hexOf = (c: Character): Hex | null => (c.at.kind === 'hex' ? c.at.hex : null);
 
@@ -303,6 +439,16 @@ const gatherYield = (state: GameStateView, c: Character, type: NodeType): number
   );
 };
 
+/** Where a finished cart is put from: the character's hex, or the creature's centre when they ride it. */
+const placeFrom = (state: GameStateView, c: Character): Hex =>
+  c.at.kind === 'hex' ? c.at.hex : state.creature.centre;
+
+/** The cart on the character's place or next to it (load and unload reach this far). */
+const cartNear = (state: GameStateView, c: Character): Cart | undefined =>
+  state.carts.find(
+    (cart) => placeEquals(c.at, onHex(cart.hex)) || arePlacesAdjacent(state, c.at, onHex(cart.hex)),
+  );
+
 const done = (cost: number, uses: Uses = []): ActCheck => ({
   ok: true,
   cost,
@@ -324,6 +470,14 @@ export const checkAction = (
   if (!found.ok) return found;
   const c = found.character;
   const { config } = state;
+  if (
+    c.pinnedDay !== undefined &&
+    action?.kind !== 'set-stance' &&
+    action?.kind !== 'pick-skill' &&
+    action?.kind !== 'struggle'
+  ) {
+    return { ok: false, reason: 'pinned' };
+  }
   if (c.waiting && action?.kind !== 'set-stance' && action?.kind !== 'pick-skill') {
     return { ok: false, reason: 'waiting' };
   }
@@ -388,9 +542,59 @@ export const checkAction = (
       if (!roleHas(c, 'build')) return no('needs-specialist');
       if (c.at.kind !== 'creature') return no('not-riding');
       if (state.unlocks.includes(unlock.id)) return { ok: false, reason: 'already-have', cost };
+      // A vehicle is not an unlock the team holds: it is one on the map (a lost one can be rebuilt).
+      if (isVehicleUnlock(unlock) && state.carts.length >= config.cartsMax) {
+        return { ok: false, reason: 'already-have', cost };
+      }
       if (project && project.unlock !== unlock.id) return no('busy');
       if (missing.length > 0) return no('missing-materials');
+      if (isVehicleUnlock(unlock) && cartSpot(state, placeFrom(state, c)) === null) {
+        return no('no-room');
+      }
       return c.actionsLeft >= cost ? done(cost, uses) : no('not-enough-actions');
+    }
+    case 'hitch': {
+      const cost = config.cartHitchCost;
+      const no = (reason: ActRefusal): ActCheck => ({ ok: false, reason, cost });
+      const here = hexOf(c);
+      const cart = here ? cartAtHex(state, here) : undefined;
+      if (!cart) return no('no-cart');
+      if (cart.rider === c.id) return no('aboard');
+      if (cart.puller === c.id || cartPulledBy(state, c.id)) return no('already-have');
+      if (cart.puller !== null) return no('cart-taken');
+      return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
+    }
+    case 'unhitch':
+      return cartPulledBy(state, c.id) ? done(0) : { ok: false, reason: 'not-hitched', cost: 0 };
+    case 'board-cart': {
+      const cost = config.cartBoardCost;
+      const no = (reason: ActRefusal): ActCheck => ({ ok: false, reason, cost });
+      const here = hexOf(c);
+      const cart = here ? cartAtHex(state, here) : undefined;
+      if (!cart) return no('no-cart');
+      if (cart.rider === c.id) return no('already-have');
+      if (cart.puller === c.id) return no('hitched');
+      if (cart.rider !== null) return no('seat-taken');
+      return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
+    }
+    case 'leave-cart':
+      return cartRiddenBy(state, c.id) ? done(0) : { ok: false, reason: 'not-aboard', cost: 0 };
+    case 'load':
+    case 'unload': {
+      const no = (reason: ActRefusal): ActCheck => ({ ok: false, reason, cost: 0 });
+      const amount = action.amount;
+      if (!Number.isInteger(amount) || amount < 1) return no('invalid-action');
+      if (!MATERIALS.some((m) => m.id === action.material)) return no('invalid-action');
+      const cart = cartNear(state, c);
+      if (!cart) return no('no-cart');
+      if (action.kind === 'load') {
+        if ((c.pack[action.material] ?? 0) < amount) return no('no-material');
+        if (cartRoom(state, cart) < amount) return no('cart-full');
+      } else {
+        if ((cart.cargo[action.material] ?? 0) < amount) return no('cart-empty');
+        if (free(state, c) < amount) return no('pack-full');
+      }
+      return done(0);
     }
     case 'light-fire': {
       if (!FIRE) return { ok: false, reason: 'invalid-action' };
@@ -403,7 +607,17 @@ export const checkAction = (
       if (!terrain || FIRE.notOn.some((tag) => terrain.tags.includes(tag))) {
         return no('cannot-burn');
       }
+      // A fire needs something to burn: a brazier, or a feature that burns away.
+      const here = featureHere(state, c);
+      const fuelTags = here ? featureType(here.type).tags : [];
+      if (!fuelTags.includes(FIRE_SITE_TAG) && !fuelTags.includes(BURNABLE_TAG)) {
+        return no('nothing-to-burn');
+      }
       if (state.stimuli.some((s) => hexKey(s.hex) === hexKey(h))) return no('fire-here');
+      // A stocked brazier needs no fuel from the pack for its first fire.
+      if (here?.stocked === true) {
+        return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
+      }
       const fuel = firstWithTag(c.pack, FIRE.fuel.tag, FIRE.fuel.amount);
       if (!fuel) {
         const kind = MATERIALS.find((m) => m.tags.includes(FIRE.fuel.tag));
@@ -464,6 +678,8 @@ export const checkAction = (
         return no('not-near');
       }
       if (isCreatureHex(state, target.at.hex)) return no('on-creature');
+      // Someone inside the window can walk to the creature: the line is for those cut off outside it.
+      if (isInWindow(state, target.at.hex)) return no('in-window');
       return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
     }
     case 'grab-line': {
@@ -488,6 +704,45 @@ export const checkAction = (
       if (!roleHas(c, DEFEND_TAG)) return no('needs-warden');
       if (c.at.kind !== 'creature') return no('not-riding');
       if (state.creature.defenders.includes(c.id)) return no('already-have');
+      return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
+    }
+    case 'dig-out': {
+      const cost = config.digOutCost;
+      const no = (reason: ActRefusal): ActCheck => ({ ok: false, reason, cost });
+      if (typeof action.target !== 'string' || action.target === c.id) return no('invalid-action');
+      const target = state.characters.find((x) => x.id === action.target);
+      if (!target) return no('unknown-character');
+      if (target.status !== 'active') return no('character-lost');
+      if (target.pinnedDay === undefined) return no('not-pinned');
+      if (!placeEquals(c.at, target.at) && !arePlacesAdjacent(state, c.at, target.at)) {
+        return no('not-near');
+      }
+      return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
+    }
+    case 'struggle': {
+      const cost = config.struggleCost;
+      if (c.pinnedDay === undefined) return { ok: false, reason: 'not-pinned', cost };
+      if (c.actionsLeft < cost) return { ok: false, reason: 'not-enough-actions', cost };
+      return { ok: true, cost, uses: [], chance: struggleChance(state, c) };
+    }
+    case 'lead': {
+      const cost = config.leadCost;
+      const no = (reason: ActRefusal): ActCheck => ({ ok: false, reason, cost });
+      if (typeof action.lure !== 'string') return no('invalid-action');
+      const hasDirection = action.direction !== undefined;
+      if (hasDirection === (action.to !== undefined)) return no('invalid-action');
+      if (action.direction !== undefined && !DIRECTIONS.includes(action.direction)) {
+        return no('invalid-action');
+      }
+      if (action.to !== undefined && !isValidHex(action.to)) return no('invalid-hex');
+      const lure = state.lures.find((l) => l.id === action.lure);
+      if (!lure) return no('no-lure');
+      const here = hexOf(c);
+      if (!here || hexDistance(here, lure.hex) > 1) return no('not-near');
+      if (lure.leadsLeft <= 0) return no('settled');
+      const target = action.direction ? neighbour(lure.hex, action.direction) : (action.to as Hex);
+      if (hexDistance(target, lure.hex) !== 1) return no('not-adjacent');
+      if (!canLeadOnto(state, lure, target)) return no('blocked');
       return c.actionsLeft >= cost ? done(cost) : no('not-enough-actions');
     }
     case 'parley': {
@@ -572,6 +827,69 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
     };
   }
 
+  if (
+    action.kind === 'hitch' ||
+    action.kind === 'unhitch' ||
+    action.kind === 'board-cart' ||
+    action.kind === 'leave-cart'
+  ) {
+    const cart = (
+      action.kind === 'hitch' || action.kind === 'board-cart'
+        ? cartAtHex(state, hexOf(c) as Hex)
+        : action.kind === 'unhitch'
+          ? cartPulledBy(state, characterId)
+          : cartRiddenBy(state, characterId)
+    ) as Cart;
+    const puller =
+      action.kind === 'hitch' ? characterId : action.kind === 'unhitch' ? null : cart.puller;
+    const rider =
+      action.kind === 'board-cart' ? characterId : action.kind === 'leave-cart' ? null : cart.rider;
+    const kind = {
+      hitch: 'hitched',
+      unhitch: 'unhitched',
+      'board-cart': 'boarded-cart',
+      'leave-cart': 'left-cart',
+    }[action.kind] as 'hitched' | 'unhitched' | 'boarded-cart' | 'left-cart';
+    return {
+      ok: true,
+      state: withCharacter(setCart(state, { ...cart, puller, rider }), {}),
+      events: [{ kind, cart: cart.id, characterId, hex: cart.hex }],
+    };
+  }
+
+  if (action.kind === 'load' || action.kind === 'unload') {
+    const cart = cartNear(state, c) as Cart;
+    const { material, amount } = action;
+    const loading = action.kind === 'load';
+    const sign = loading ? 1 : -1;
+    const shifted = (from: Materials, by: number): Materials => {
+      const out: Record<string, number> = { ...from };
+      const left = (out[material] ?? 0) + by;
+      if (left > 0) out[material] = left;
+      else delete out[material];
+      return out;
+    };
+    const next = setCart(state, { ...cart, cargo: shifted(cart.cargo, sign * amount) });
+    let packed = withCharacter(next, { pack: shifted(c.pack, -sign * amount) });
+    const events: GameEvent[] = [
+      {
+        kind: loading ? 'loaded' : 'unloaded',
+        cart: cart.id,
+        characterId,
+        hex: cart.hex,
+        material,
+        amount,
+      },
+    ];
+    // Someone on the creature has what they unload put straight into the stores.
+    if (!loading) {
+      const deposited = depositPack(packed, characterId);
+      packed = deposited.state;
+      events.push(...deposited.events);
+    }
+    return { ok: true, state: packed, events };
+  }
+
   if (action.kind === 'wait') {
     return {
       ok: true,
@@ -611,14 +929,44 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
 
   if (action.kind === 'light-fire' && FIRE) {
     const h = hexOf(c) as Hex;
+    const key = hexKey(h);
+    const feature = state.features[key] as FeatureState;
+    const tags = featureType(feature.type).tags;
+    const events: GameEvent[] = [{ kind: 'fire-lit', hex: h, characterId, stimulus: FIRE.id }];
+    if (tags.includes(FIRE_SITE_TAG) && SITE_FIRE) {
+      events[0] = { kind: 'fire-lit', hex: h, characterId, stimulus: SITE_FIRE.id };
+      // A brazier burns for nights and shows the hexes around it.
+      const site = { nights: state.config.brazierNights, reveal: state.config.brazierRevealRadius };
+      const lit: GameState = {
+        ...state,
+        stimuli: [...state.stimuli, litFire(c, SITE_FIRE.id, h, state.day, site)],
+      };
+      const cleared: GameState = {
+        ...lit,
+        features: { ...lit.features, [key]: unstocked(feature) },
+      };
+      const spent = withCharacter(cleared, { pack: subtract(c.pack, check.uses) });
+      const shown = lightAround(spent, h, site.reveal);
+      return { ok: true, state: shown.state, events: [...events, ...shown.events] };
+    }
+    // Something burnable goes up for good, and burns as a one-night fire.
+    const { [key]: burnt, ...features } = state.features;
+    events.push({
+      kind: 'feature-burnt',
+      hex: h,
+      characterId,
+      feature: (burnt as FeatureState).type,
+    });
     const lit: GameState = {
       ...state,
+      features,
+      burnt: [...state.burnt, { hex: h, feature: (burnt as FeatureState).type }],
       stimuli: [...state.stimuli, litFire(c, FIRE.id, h, state.day)],
     };
     return {
       ok: true,
       state: withCharacter(lit, { pack: subtract(c.pack, check.uses) }),
-      events: [{ kind: 'fire-lit', hex: h, characterId, stimulus: FIRE.id }],
+      events,
     };
   }
 
@@ -674,7 +1022,10 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
       ...state.creature,
       tows: state.creature.tows.filter((t) => t.to !== characterId),
     };
-    const hauled = withCharacter({ ...state, creature }, { at: ON_CREATURE });
+    // Hauled aboard from a cart: out of its seat or off its shafts (it stays where it stands).
+    const hauled = withCharacter(releaseFromCart({ ...state, creature }, characterId), {
+      at: ON_CREATURE,
+    });
     const deposited = depositPack(hauled, characterId);
     return {
       ok: true,
@@ -700,7 +1051,89 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
         ? state.threats.map((t) => (t.id === threat.id ? { ...t, strength } : t))
         : state.threats.filter((t) => t.id !== threat.id);
     if (strength <= 0) events.push({ kind: 'threat-cleared', id: threat.id, characterId });
-    return { ok: true, state: withCharacter({ ...state, threats }, {}), events };
+    // A slide may fall on the striker (after the blow, which still counts): they lose the rest of the day.
+    const roll = hashToUnit(
+      state.seed,
+      FALL_STREAM,
+      state.day,
+      hashString(c.id),
+      hashString(threat.id),
+      threat.strength,
+    );
+    const pinned = roll < fallChance(state, c, tags);
+    if (pinned) events.push({ kind: 'pinned', characterId, threat: threat.id });
+    // A pinned puller or rider is let go of the cart (it stays where it stands), so the cart is not held fast.
+    const pulled = pinned ? cartPulledBy(state, characterId) : undefined;
+    const ridden = pinned ? cartRiddenBy(state, characterId) : undefined;
+    if (pulled) {
+      events.push({ kind: 'unhitched', cart: pulled.id, characterId, hex: pulled.hex });
+    }
+    if (ridden) {
+      events.push({ kind: 'left-cart', cart: ridden.id, characterId, hex: ridden.hex });
+    }
+    // They keep the actions they have left, to struggle with.
+    return {
+      ok: true,
+      state: withCharacter(
+        { ...(pinned ? releaseFromCart(state, characterId) : state), threats },
+        pinned ? { pinnedDay: state.day } : {},
+      ),
+      events,
+    };
+  }
+
+  if (action.kind === 'struggle') {
+    // Seeded from the day, the character and the try number: refusals change nothing, so no rerolling.
+    const tries = c.struggles ?? 0;
+    const roll = hashToUnit(state.seed, STRUGGLE_STREAM, state.day, hashString(c.id), tries);
+    const freed = roll < check.chance;
+    const base = withCharacter(state, {});
+    return {
+      ok: true,
+      state: {
+        ...base,
+        characters: base.characters.map((x) =>
+          x.id === characterId ? (freed ? unpinned(x) : { ...x, struggles: tries + 1 }) : x,
+        ),
+      },
+      events: [{ kind: 'struggled', characterId, freed }],
+    };
+  }
+
+  if (action.kind === 'dig-out') {
+    return {
+      ok: true,
+      state: withCharacter(
+        {
+          ...state,
+          characters: state.characters.map((x) => (x.id === action.target ? unpinned(x) : x)),
+        },
+        {},
+      ),
+      events: [{ kind: 'dug-out', characterId: action.target, by: characterId }],
+    };
+  }
+
+  if (action.kind === 'lead') {
+    const lure = state.lures.find((l) => l.id === action.lure);
+    if (!lure) return { ok: false, reason: 'no-lure' };
+    const to = action.direction ? neighbour(lure.hex, action.direction) : (action.to as Hex);
+    const leadsLeft = lure.leadsLeft - 1;
+    const events: GameEvent[] = [
+      { kind: 'lure-led', id: lure.id, characterId, from: lure.hex, to, leadsLeft },
+    ];
+    if (leadsLeft <= 0) events.push({ kind: 'lure-settled', id: lure.id, hex: to });
+    return {
+      ok: true,
+      state: withCharacter(
+        {
+          ...state,
+          lures: state.lures.map((l) => (l.id === lure.id ? { ...l, hex: to, leadsLeft } : l)),
+        },
+        {},
+      ),
+      events,
+    };
   }
 
   if (action.kind === 'defend') {
@@ -800,16 +1233,19 @@ const actCore = (state: GameState, characterId: string, action: Action): ActResu
     );
     const work = (state.project?.work ?? 0) + perBuild;
     const finished = work >= unlock.work;
-    const next: GameState = {
+    let next: GameState = {
       ...state,
       stores: subtracted,
       project: finished ? null : { unlock: unlock.id, work },
-      unlocks: finished ? [...state.unlocks, unlock.id] : state.unlocks,
     };
     const events: GameEvent[] = [
       { kind: 'unlock-progress', unlock: unlock.id, work, needed: unlock.work },
     ];
-    if (finished) events.push({ kind: 'unlock-done', unlock: unlock.id });
+    if (finished) {
+      const built = finishUnlock(next, unlock, placeFrom(state, c), characterId);
+      next = built.state;
+      events.push(...built.events);
+    }
     return { ok: true, state: withCharacter(next, {}), events };
   }
 
@@ -903,7 +1339,29 @@ export const act = (state: GameState, characterId: string, action: Action): ActR
   const result = actCore(state, characterId, action);
   if (!result.ok) return result;
   const earned = earnXp(result.state, characterId, action.kind, result.events);
-  return { ...result, state: recordEvents(earned, result.events, characterId) };
+  const recorded = recordTraces(
+    state,
+    recordEvents(earned, result.events, characterId),
+    result.events,
+  );
+  const told = fireStory(recorded);
+  return { ...result, state: told.state, events: [...result.events, ...told.events] };
+};
+
+/** Loads and unloads worth offering: each material the pack holds (into the cart), each the cart holds (out), as much as fits. */
+const cartLoads = (state: GameStateView, c: Character): Action[] => {
+  const cart = cartNear(state, c);
+  if (!cart) return [];
+  const out: Action[] = [];
+  for (const [material, n] of Object.entries(c.pack)) {
+    const amount = Math.min(n, cartRoom(state, cart));
+    if (amount >= 1) out.push({ kind: 'load', material, amount });
+  }
+  for (const [material, n] of Object.entries(cart.cargo)) {
+    const amount = Math.min(n, free(state, c));
+    if (amount >= 1) out.push({ kind: 'unload', material, amount });
+  }
+  return out;
 };
 
 /** Boons any people offers, in content order. */
@@ -912,9 +1370,34 @@ const ALL_BOONS = BOONS.filter((b) => PEOPLE_TYPES.some((p) => p.boons.includes(
 /** Materials a settlement takes as an offering. */
 const TRADE_GOODS = MATERIALS.filter((m) => m.tags.includes(TRADE_TAG));
 
+/** Hexes within a character's survey reach that are on the map and not yet explored (cost and the rest unchecked). */
+const surveyCandidates = (state: GameStateView, c: Character): Hex[] => {
+  const reach = surveyReach(c);
+  const near: Hex[] =
+    reach <= 1
+      ? placeNeighbours(state, c.at).flatMap((p) => (p.kind === 'hex' ? [p.hex] : []))
+      : hexesInRange(
+          c.at.kind === 'hex' ? c.at.hex : state.creature.centre,
+          reach + state.config.creatureRadius,
+        ).filter((h) => withinSurvey(state, c, h));
+  return near.filter((h) => state.tiles[hexKey(h)] && !isExplored(state, h));
+};
+
+/**
+ * The hexes this character could survey now (in reach, reachable, unexplored, and the actions to pay):
+ * the next hexes, or every hex within the range a survey skill gives (Long survey: 2). For the survey marks.
+ */
+export const surveyableHexes = (state: GameStateView, characterId: string): Hex[] => {
+  const c = state.characters.find((x) => x.id === characterId);
+  if (!c) return [];
+  return surveyCandidates(state, c).filter(
+    (h) => checkAction(state, characterId, { kind: 'survey', hex: h }).ok,
+  );
+};
+
 /**
  * Every action a character could take now, with its check, for the interface:
- * surveying each adjacent unexplored hex, gathering and working a site here,
+ * surveying each unexplored hex in survey reach, gathering and working a site here,
  * building each unlock, lighting a fire, feeding and lingering, striking each
  * threat, defending, parleying, offering each trade good and asking each boon.
  * Runs on a view.
@@ -925,17 +1408,10 @@ export const actionsHere = (
 ): { readonly action: Action; readonly check: ActCheck }[] => {
   const c = state.characters.find((x) => x.id === characterId);
   if (!c) return [];
-  const reach = surveyReach(c);
-  const near: Hex[] =
-    reach <= 1
-      ? placeNeighbours(state, c.at).flatMap((p) => (p.kind === 'hex' ? [p.hex] : []))
-      : hexesInRange(
-          c.at.kind === 'hex' ? c.at.hex : state.creature.centre,
-          reach + state.config.creatureRadius,
-        ).filter((h) => withinSurvey(state, c, h));
-  const surveys: Action[] = near.flatMap((h) =>
-    state.tiles[hexKey(h)] && !isExplored(state, h) ? [{ kind: 'survey' as const, hex: h }] : [],
-  );
+  const surveys: Action[] = surveyCandidates(state, c).map((h) => ({
+    kind: 'survey' as const,
+    hex: h,
+  }));
   const options: Action[] = [
     ...surveys,
     { kind: 'gather' },
@@ -945,10 +1421,31 @@ export const actionsHere = (
     { kind: 'feed' },
     { kind: 'linger' },
     { kind: 'grab-line' },
+    { kind: 'hitch' },
+    { kind: 'unhitch' },
+    { kind: 'board-cart' },
+    { kind: 'leave-cart' },
+    ...cartLoads(state, c),
     ...state.characters
       .filter((x) => x.id !== characterId && x.status === 'active' && x.at.kind === 'hex')
       .map((x) => ({ kind: 'throw-line' as const, to: x.id })),
     ...state.threats.map((t) => ({ kind: 'strike' as const, threat: t.id })),
+    ...(c.pinnedDay !== undefined ? [{ kind: 'struggle' as const }] : []),
+    // Leading a lure: each lure at hand, each way it could be led.
+    ...state.lures
+      .filter((l) => c.at.kind === 'hex' && hexDistance(c.at.hex, l.hex) <= 1)
+      .flatMap((l) =>
+        DIRECTIONS.map((direction) => ({ kind: 'lead' as const, lure: l.id, direction })),
+      ),
+    ...state.characters
+      .filter(
+        (x) =>
+          x.id !== characterId &&
+          x.pinnedDay !== undefined &&
+          x.status === 'active' &&
+          (placeEquals(c.at, x.at) || arePlacesAdjacent(state, c.at, x.at)),
+      )
+      .map((x) => ({ kind: 'dig-out' as const, target: x.id })),
     { kind: 'defend' },
     { kind: 'parley' },
     ...TRADE_GOODS.map((m) => ({ kind: 'offer' as const, material: m.id })),
@@ -959,3 +1456,60 @@ export const actionsHere = (
 
 /** The same list as `actionsHere`. */
 export const possibleActions = actionsHere;
+
+/** The public chances of an action that rolls, and what a failure means. */
+export interface Odds {
+  /** Chance the roll goes the character's way (0 to 1). */
+  readonly success: number;
+  /** Chance it does not: `1 - success`. */
+  readonly failure: number;
+  /**
+   * What a failure is, as a tag-like word for the interface to turn into a look: `buried` (a strike
+   * that brings the slide down on the striker), `still-pinned` (a struggle), `angered` (a parley),
+   * `site-failed` (a site worked in vain).
+   */
+  readonly failureKind: string;
+}
+
+const oddsFrom = (success: number, failureKind: string): Odds => ({
+  success,
+  failure: 1 - success,
+  failureKind,
+});
+
+/**
+ * The chances of an action that rolls on public data, for any view: striking a threat tagged `falls`,
+ * struggling, a parley with a wary settlement, and working a site here. Null for an action with no
+ * roll, and where the chance would rest on hidden information (a trap, an unrevealed feature): a
+ * chance is never shown for what the player cannot see. It does not check cost or reach; ask
+ * `checkAction` for that.
+ */
+export const oddsOf = (state: GameStateView, characterId: string, action: Action): Odds | null => {
+  const found = activeCharacter(state, characterId);
+  if (!found.ok) return null;
+  const c = found.character;
+  switch (action?.kind) {
+    case 'strike': {
+      const threat = state.threats.find((t) => t.id === action.threat);
+      if (!threat) return null;
+      const tags = threatType(threat.type).tags;
+      if (!tags.includes(FALLS_TAG)) return null;
+      return oddsFrom(1 - fallChance(state, c, tags), 'buried');
+    }
+    case 'struggle':
+      return c.pinnedDay === undefined ? null : oddsFrom(struggleChance(state, c), 'still-pinned');
+    case 'parley': {
+      const here = parleyTarget(state, c);
+      return here?.attitude === 'wary' ? oddsFrom(parleyChance(state, c), 'angered') : null;
+    }
+    case 'work-site': {
+      const f = featureHere(state, c);
+      const type = f ? featureType(f.type) : null;
+      if (!f || type?.kind !== 'site' || f.left <= 0) return null;
+      const chance = siteChance(state, c, type);
+      return chance > 0 ? oddsFrom(chance, 'site-failed') : null;
+    }
+    default:
+      return null;
+  }
+};

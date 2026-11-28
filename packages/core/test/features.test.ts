@@ -48,7 +48,8 @@ describe('feature generation', () => {
   it('adds hidden features as hexes come into view, and keeps them', () => {
     let state = createGame(5);
     expect(Object.keys(state.features).length).toBeGreaterThan(0);
-    for (const f of Object.values(state.features)) expect(f.revealed).toBe(false);
+    // Everything is hidden until explored, except a brazier, which shows as soon as its hex is seen.
+    for (const f of Object.values(state.features)) expect(f.revealed).toBe(f.type === 'brazier');
     for (let d = 0; d < 10; d++) {
       const before = state.features;
       state = nextDay(state);

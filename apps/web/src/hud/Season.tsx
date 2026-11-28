@@ -2,12 +2,12 @@
  * Milestone 5 on the HUD: the peril gauge beside the day (its marks jolt when a threat strikes the
  * creature), the route strip toward home, a light darkening of the map's edges as peril rises, and the
  * ending that fills the screen once the season is over (a title, the outcome's scene, the route and the days
- * taken; admins on staging get a new-season button). No prose: the three ending titles are the only words.
+ * taken; admins on staging get a new-season button). The only prose is the ending's line of story.
  */
 import { tipProps } from '../ui/press.ts';
 import type { JSX } from 'preact';
 import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
-import { ENDING_TITLES } from '../game/season.ts';
+import { endingText, endingVignetteOf } from '../text/story.ts';
 import {
   type Accent,
   type CharacterLook,
@@ -15,7 +15,9 @@ import {
   drawEnding,
   drawPerilGauge,
   drawPerilVignette,
+  drawDestinationBadge,
   drawRouteStrip,
+  drawStoryVignette,
   drawThreatIcon,
 } from '@behemoth-road/art';
 import type { PerilLog } from '@behemoth-road/core';
@@ -23,6 +25,8 @@ import { PALETTE } from '../map/art.ts';
 import { toPreact } from '../map/svgToPreact.ts';
 import { type PerilBreakdown, perilBreakdown, type PerilRow } from '../game/perilBreakdown.ts';
 import { type Recap, STAT_ICONS, STAT_TIPS } from '../game/recap.ts';
+import { Drawer } from '../ui/Drawer.tsx';
+import { DESKTOP_QUERY } from '../ui/dismiss.ts';
 import { setTipExtra } from '../ui/press.ts';
 import { RoleEmblem } from '../ui/emblems.tsx';
 import { NewSeasonIcon, RecapIcon, SunIcon, TopMark } from './icons.tsx';
@@ -36,8 +40,11 @@ export interface PerilProps {
 }
 
 export interface RouteProps {
+  /** The day counter: steps walked (the date reads "steps of length"). */
   readonly steps: number;
   readonly length: number;
+  /** How far along the way to the destination band, 0..1: the strip is full exactly when the season ends. */
+  readonly progress: number;
 }
 
 /** The peril gauge: `max` marks, the wounded threshold notched; it jolts on a strike, swells on relief. */
@@ -80,6 +87,8 @@ export function PerilGauge({
 const SLOTS: readonly Accent[] = ['coral', 'ochre', 'plum', 'sky', 'sage', 'rose'];
 const slotFill = (i: number): string => PALETTE.accents[SLOTS[i % SLOTS.length] as Accent].base;
 const BAR = { width: 150, height: 12 } as const;
+/** The recap's wider bar, so the legend under it has room in a row. */
+const RECAP_BAR = 200;
 
 /** A row's picture: the icon of the answer (feed, rest, shelter, defend) or the threat's own figure. */
 function RowArt({ row }: { row: PerilRow }) {
@@ -121,28 +130,40 @@ function PerilRowView({ row, slot }: { row: PerilRow; slot: number | null }) {
  * biggest first, then what took it off (quiet days, shelters) and what defence held off. Visual only; the
  * rows' tips hint at what to do.
  */
-export function PerilBreakdownView({ breakdown }: { breakdown: PerilBreakdown }) {
+export function PerilBreakdownView({
+  breakdown,
+  wide = false,
+}: {
+  breakdown: PerilBreakdown;
+  /** The recap's wider bar (200 px, not 150); the legend under it is as wide. */
+  wide?: boolean;
+}) {
   if (breakdown.empty && breakdown.held === null) return null;
   let at = 0;
+  const barWidth = wide ? RECAP_BAR : BAR.width;
   return (
-    <div class="peril-breakdown" data-total={breakdown.total}>
+    <div
+      // The legend takes the bar's width (a class, as the CSP allows no inline styles).
+      class={wide ? 'peril-breakdown is-wide' : 'peril-breakdown'}
+      data-total={breakdown.total}
+    >
       {breakdown.total > 0 && (
         <svg
           class="peril-bar"
-          width={BAR.width}
+          width={barWidth}
           height={BAR.height}
-          viewBox={`0 0 ${String(BAR.width)} ${String(BAR.height)}`}
+          viewBox={`0 0 ${String(barWidth)} ${String(BAR.height)}`}
           aria-hidden="true"
         >
           <rect
-            width={BAR.width}
+            width={barWidth}
             height={BAR.height}
             rx={BAR.height / 2}
             fill={PALETTE.paperDeep}
             stroke={PALETTE.inkSoft}
           />
           {breakdown.added.map((r, i) => {
-            const w = (r.amount / breakdown.total) * (BAR.width - 2);
+            const w = (r.amount / breakdown.total) * (barWidth - 2);
             const x = 1 + at;
             at += w;
             return (
@@ -177,17 +198,45 @@ export function PerilBreakdownView({ breakdown }: { breakdown: PerilBreakdown })
   );
 }
 
-/** The route: steps walked of the season's length, home at the end. */
-export function RouteStrip({ steps, length, width = 160 }: RouteProps & { width?: number }) {
+/** The date: the step walked of the route's length ("9 of 40"). A linger keeps its step. */
+export const dateOf = (steps: number, length: number): string =>
+  `${String(Math.min(Math.max(steps, 0), length))} of ${String(length)}`;
+
+/** The route: steps walked of the season's length, the Greyfold's mark at its end, the date beside it. */
+export function RouteStrip({
+  steps,
+  length,
+  progress,
+  width = 160,
+  date = true,
+}: RouteProps & { width?: number; date?: boolean }) {
   return (
-    <span
-      class="hud-route"
-      aria-label="Route"
-      data-steps={steps}
-      data-length={length}
-      {...tipProps('hud:route')}
-    >
-      {toPreact(drawRouteStrip(PALETTE, width, steps, length))}
+    <span class="hud-routeline">
+      <span
+        class="hud-route"
+        aria-label="Route"
+        data-steps={steps}
+        data-length={length}
+        data-progress={progress.toFixed(3)}
+        {...tipProps('hud:route')}
+      >
+        {toPreact(
+          drawRouteStrip(PALETTE, width, Math.min(1, Math.max(0, progress)) * length, length),
+        )}
+      </span>
+      <span class="hud-greyfold" aria-label="Greyfold" {...tipProps('hud:greyfold')}>
+        {toPreact(drawDestinationBadge(PALETTE, 24))}
+      </span>
+      {date && (
+        <span
+          class="hud-date"
+          aria-label="Step"
+          data-date={dateOf(steps, length)}
+          {...tipProps('hud:date')}
+        >
+          {dateOf(steps, length)}
+        </span>
+      )}
     </span>
   );
 }
@@ -239,26 +288,41 @@ export function RecapPanel(props: {
   const { recap } = props;
   return (
     <div class="recap" aria-label="Recap">
-      <div class="recap-shared">
-        {recap.shared.map((s) => (
-          <Stat key={s.id} id={s.id} value={s.value} />
-        ))}
-        <PerilGauge peril={recap.peakPeril} max={props.perilMax} woundedAt={props.perilWoundedAt} />
-      </div>
-      <PerilBreakdownView breakdown={recap.perilSources} />
-      <ul class="recap-players">
-        {recap.players.map((p) => (
-          <li key={p.characterId} class="recap-player" data-character={p.characterId}>
-            <RoleEmblem role={p.role} size={32} />
-            <span class="recap-name">{p.name}</span>
-            <span class="recap-stats">
-              {p.stats.map((s) => (
-                <Stat key={s.id} id={s.id} value={s.value} top={s.top} />
-              ))}
-            </span>
-          </li>
-        ))}
-      </ul>
+      <section class="recap-section" data-section="together">
+        <h3 class="recap-sub">The season</h3>
+        <div class="recap-shared">
+          {recap.shared.map((s) => (
+            <Stat key={s.id} id={s.id} value={s.value} />
+          ))}
+        </div>
+      </section>
+      <section class="recap-section" data-section="peril">
+        <h3 class="recap-sub">Peril</h3>
+        <div class="recap-peril">
+          <PerilGauge
+            peril={recap.peakPeril}
+            max={props.perilMax}
+            woundedAt={props.perilWoundedAt}
+          />
+          <PerilBreakdownView breakdown={recap.perilSources} wide />
+        </div>
+      </section>
+      <section class="recap-section recap-party" data-section="party">
+        <h3 class="recap-sub">The party</h3>
+        <ul class="recap-players">
+          {recap.players.map((p) => (
+            <li key={p.characterId} class="recap-player" data-character={p.characterId}>
+              <RoleEmblem role={p.role} size={32} />
+              <span class="recap-name">{p.name}</span>
+              <span class="recap-stats">
+                {p.stats.map((s) => (
+                  <Stat key={s.id} id={s.id} value={s.value} top={s.top} />
+                ))}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
   );
 }
@@ -269,6 +333,9 @@ export interface EndingProps {
   readonly perilMax: number;
   readonly perilWoundedAt: number;
   readonly outcome: 'safe' | 'wounded' | 'lost';
+  /** The core's title for how it ended, and the key of its line of story (null: the plain title). */
+  readonly title: string;
+  readonly line: string | null;
   /** Days the season took (the day it ended). */
   readonly days: number;
   readonly route: RouteProps;
@@ -281,14 +348,34 @@ export interface EndingProps {
   readonly party?: readonly { readonly accent: string; readonly look?: CharacterLook }[];
 }
 
+/** Whether the screen is a desktop one (the ending then keeps its recap in a drawer), following a resize. */
+function useDesktop(): boolean {
+  const [wide, setWide] = useState(() => window.matchMedia(DESKTOP_QUERY).matches);
+  useEffect(() => {
+    const q = window.matchMedia(DESKTOP_QUERY);
+    const on = (): void => setWide(q.matches);
+    q.addEventListener('change', on);
+    return () => q.removeEventListener('change', on);
+  }, []);
+  return wide;
+}
+
 /** The season's end, over everything: focus moves into it when it opens (and back to its button after a failed new season). */
 export function Ending(props: EndingProps): JSX.Element {
   const root = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const scene = useRef<HTMLDivElement>(null);
   const failed = props.failed ?? 0;
-  // The recap is part of the ending and open with it; its button hides it to see the whole scene.
-  const [recapOpen, setRecapOpen] = useState(true);
+  const text = endingText(props.line);
+  // Phone: the recap is part of the ending and open with it; its button hides it to see the whole scene.
+  // Desktop: the ending stays calm and the recap opens in a right drawer from the same button.
+  const wide = useDesktop();
+  const [recapOpen, setRecapOpen] = useState(!wide);
+  const wasWide = useRef(wide);
+  useEffect(() => {
+    if (wasWide.current !== wide) setRecapOpen(!wide);
+    wasWide.current = wide;
+  }, [wide]);
   // The scene is drawn at the size of its box (the screen above the foot's strip), measured once laid out.
   const [box, setBox] = useState({ width: window.innerWidth, height: window.innerHeight });
   useLayoutEffect(() => {
@@ -312,7 +399,14 @@ export function Ending(props: EndingProps): JSX.Element {
     if (failed > 0) button.current?.focus({ preventScroll: true });
   }, [failed]);
   return (
-    <div ref={root} class="ending" data-outcome={props.outcome} tabindex={-1} role="dialog">
+    <div
+      ref={root}
+      class="ending"
+      data-outcome={props.outcome}
+      data-recap={recapOpen ? 'open' : 'closed'}
+      tabindex={-1}
+      role="dialog"
+    >
       <div ref={scene} class="ending-scene" aria-hidden="true">
         {toPreact(
           drawEnding(props.outcome, PALETTE, box.width, box.height, {
@@ -321,17 +415,37 @@ export function Ending(props: EndingProps): JSX.Element {
           }),
         )}
       </div>
-      <h1 class="ending-title">{ENDING_TITLES[props.outcome]}</h1>
-      {recapOpen && (
-        <RecapPanel
-          recap={props.recap}
-          perilMax={props.perilMax}
-          perilWoundedAt={props.perilWoundedAt}
-        />
+      <div class="ending-head">
+        <h1 class="ending-title">{props.title}</h1>
+        {text !== null && props.line && (
+          <div class="ending-story" data-line={props.line}>
+            <span class="ending-line-art" aria-hidden="true">
+              {toPreact(drawStoryVignette(PALETTE, endingVignetteOf(props.line), 150))}
+            </span>
+            <p class="ending-line">{text}</p>
+          </div>
+        )}
+      </div>
+      {wide ? (
+        <Drawer open={recapOpen} onClose={() => setRecapOpen(false)} side="right" label="Recap">
+          <RecapPanel
+            recap={props.recap}
+            perilMax={props.perilMax}
+            perilWoundedAt={props.perilWoundedAt}
+          />
+        </Drawer>
+      ) : (
+        recapOpen && (
+          <RecapPanel
+            recap={props.recap}
+            perilMax={props.perilMax}
+            perilWoundedAt={props.perilWoundedAt}
+          />
+        )
       )}
       <div class="ending-foot">
         <div class="ending-route">
-          <RouteStrip {...props.route} width={240} />
+          <RouteStrip {...props.route} width={240} date={false} />
           <span class="ending-days" aria-label="Days">
             <SunIcon />
             <span>{props.days}</span>

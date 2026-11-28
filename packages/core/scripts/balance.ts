@@ -11,6 +11,15 @@
  *   gathers forage within reach and brings it back.
  *   A careful player also spends every pick it earns, at once, on the next node it can take from
  *   its list in `SKILL_PREFERENCE` (its own branch of three tiers, then other roles' tier 1).
+ *   Static hazards (a rockslide ahead): a non-warden who can fetch wood and reach a brazier on the side
+ *   that bends the creature clear (the sim reads the creature's nature, as a keeper learns it by trying)
+ *   lights it instead of striking the hazard down; with no such brazier in reach it is struck down as
+ *   before, at the risk of the slide falling on the striker. Anyone near a pinned character digs them out; a pinned player struggles with their actions.
+ *   Hazard patches ahead (poisoned lake, glass waste, scree field; terrain the creature takes peril from
+ *   when it steps on it) are steered clear of the same way: the careful party reads the creature's nature
+ *   and either leads a lure (a capybara) to the side that bends the creature clear (a few leads, a few
+ *   actions) or lights a brazier on that side, whichever is in reach.
+ *   `BALANCE_STEER=off` turns steering off, so hazards are always struck down (or walked into).
  * - `careless`: everyone rides; every third day one of them gathers forage within
  *   reach, and the creature is fed only when it is underfed at level 2 or more.
  *
@@ -23,6 +32,7 @@ import {
   type Action,
   appetiteOf,
   type ConfigOverrides,
+  DEFAULT_CONFIG,
   createGame,
   featureType,
   hazardAt,
@@ -33,11 +43,20 @@ import {
   moveAlong,
   neighbours,
   nextDayWithEvents,
+  nightsLeft,
   type GameEvent,
   ON_CREATURE,
   type Place,
   planPath,
   reachablePlaces,
+  surveyableHexes,
+  reactionTo,
+  reactionToLure,
+  LURE_TYPES,
+  STIMULUS_TYPES,
+  TERRAIN_TYPES,
+  type Lure,
+  sideOf,
   type SeasonOutcome,
   threatOutlook,
   threatType,
@@ -46,7 +65,7 @@ import { FOOD_TAG } from '../src/care.ts';
 
 export type Policy = 'careful' | 'careless';
 
-/** The staging and local season: mirrors `SERVER_CONFIG.devSeason` in apps/worker/src/server-config.ts. */
+/** A short season (12 steps) for quick runs and tests. Staging no longer plays it (it plays the full season); the sim keeps it as a second scenario. */
 export const DEV_SEASON: ConfigOverrides = {
   routeLength: 12,
   settlementFirst: 3,
@@ -65,8 +84,20 @@ export interface SeasonResult {
   readonly days: number;
   /** Strikes on the creature over the season. */
   readonly strikes: number;
+  /** Characters pinned by a falling slide over the season. */
+  readonly pinned: number;
+  /** Fires lit over the season. */
+  readonly lit: number;
   /** Picks earned per character over the season (XP / `xpPerPick`, spent or not). */
   readonly picks: number;
+  /** Hazard hexes the creature walked into: steps onto hazard terrain, and strikes by a scree field's rockslides. */
+  readonly hazardHexes: number;
+  /** Peril those added. */
+  readonly hazardPeril: number;
+  /** Lures led a hex over the season. */
+  readonly led: number;
+  /** Braziers lit over the season (fires on a fire-site). */
+  readonly braziers: number;
 }
 
 const character = (state: GameState, id: string) => state.characters.find((c) => c.id === id);
@@ -76,9 +107,31 @@ const actionsLeft = (state: GameState, id: string): number => {
   return c?.status === 'active' ? c.actionsLeft : 0;
 };
 
+/** Characters pinned by a falling slide in the season being played (counted as they are struck). */
+let pinnedCount = 0;
+/** Fires lit (braziers, steering) in the season being played. */
+let litCount = 0;
+
+/** Lures led in the season being played. */
+let ledCount = 0;
+/** Braziers lit in the season being played. */
+let brazierCount = 0;
+/** The stimulus types that are lit on a fire-site (a brazier). */
+const BRAZIER_STIMULI = new Set(
+  STIMULUS_TYPES.filter((t) => t.tags.includes('fire-site')).map((t) => t.id),
+);
+
 /** Does an action; returns the state unchanged when it is refused. */
 const tryAct = (state: GameState, id: string, action: Action): GameState => {
   const result = act(state, id, action);
+  if (result.ok) {
+    pinnedCount += result.events.filter((e) => e.kind === 'pinned').length;
+    litCount += result.events.filter((e) => e.kind === 'fire-lit').length;
+    ledCount += result.events.filter((e) => e.kind === 'lure-led').length;
+    brazierCount += result.events.filter(
+      (e) => e.kind === 'fire-lit' && BRAZIER_STIMULI.has(e.stimulus),
+    ).length;
+  }
   return result.ok ? result.state : state;
 };
 
@@ -203,6 +256,19 @@ const forage = (state: GameState, id: string): GameState => {
   return goHome(s, id);
 };
 
+/** Surveys the nearest unexplored hexes in reach until the actions run out. */
+const surveyDay = (state: GameState, id: string): GameState => {
+  let s = state;
+  while (actionsLeft(s, id) > 0) {
+    const [next] = surveyableHexes(s, id);
+    if (!next) break;
+    const after = tryAct(s, id, { kind: 'survey', hex: next });
+    if (after === s) break;
+    s = after;
+  }
+  return s;
+};
+
 /** The warden's diplomacy: parley with a wary settlement, or ask a friendly one for a boon. */
 const parleyDay = (state: GameState, id: string): GameState => {
   for (const settlement of state.settlements) {
@@ -262,17 +328,327 @@ const pickSkills = (state: GameState, id: string): GameState => {
   return s;
 };
 
+/** Nights of fire still burning anywhere on the map. */
+const burning = (state: GameState): boolean => state.stimuli.some((s) => nightsLeft(state, s) >= 1);
+
+/** Hazard terrain: terrain the creature takes peril from stepping onto. */
+const HAZARD_TERRAIN = new Set(
+  TERRAIN_TYPES.filter((t) => (t.perilOnStep ?? 0) > 0).map((t) => t.id),
+);
+
+/** What steering must do: move the creature toward `want` (1 left, -1 right) to clear the hazard ahead. */
+interface SteerGoal {
+  readonly want: 1 | -1;
+}
+
+/**
+ * The hazard ahead that steering could clear: the hazard terrain and the static threats (a rockslide, a
+ * scree field) lying across the line ahead (the creature heads north, so across is its q, within three
+ * either side). The creature must clear all of it, so it goes whichever way needs the smaller shift
+ * (left is a lower q). Null when nothing lies across the line within reach.
+ */
+const hazardGoal = (state: GameState): SteerGoal | null => {
+  const c = state.creature.centre;
+  const across = (h: Hex): boolean =>
+    Math.abs(h.q - c.q) <= 3 &&
+    // Ahead: further north (plane y falls northward).
+    h.r + h.q / 2 < c.r + c.q / 2 - 1 &&
+    hexDistance(h, c) <= state.config.stimulusRange + 5;
+  const found: Hex[] = [];
+  for (const [key, tile] of Object.entries(state.tiles)) {
+    if (tile.visibility === 'seen' && HAZARD_TERRAIN.has(tile.terrain)) {
+      const h = keyToHex(key);
+      if (across(h)) found.push(h);
+    }
+  }
+  for (const t of state.threats) {
+    if (threatType(t.type).speed === 0 && across(t.hex) && hexDistance(t.hex, c) >= 2) {
+      found.push(t.hex);
+    }
+  }
+  if (found.length === 0) return null;
+  const dqs = found.map((h) => h.q - c.q);
+  // Clear by two hexes (the footprint is one wide, the centre is what steps).
+  const leftShift = 2 - Math.min(...dqs);
+  const rightShift = Math.max(...dqs) + 2;
+  return { want: leftShift <= rightShift ? 1 : -1 };
+};
+
+/** A lure's effect on the creature: the side it moves toward (1 left, -1 right, 0 none), from the nature. */
+const lureMove = (state: GameState, lure: Lure): number => {
+  const reaction = reactionToLure(state.nature, lure);
+  const sign = reaction === 'attracted' ? 1 : reaction === 'repelled' ? -1 : 0;
+  return sign * sideOf(state, lure.hex);
+};
+
+/** The net way the lures in reach bend the creature: 1 left, -1 right, 0 none or cancelled. */
+const lureDrift = (state: GameState): number =>
+  Math.sign(
+    state.lures.reduce((net, l) => {
+      const type = LURE_TYPES.find((t) => t.id === l.type);
+      const inReach = hexDistance(l.hex, state.creature.centre) <= (type?.range ?? 0);
+      return inReach ? net + lureMove(state, l) * (type?.push ?? 0) : net;
+    }, 0),
+  );
+
+/**
+ * Leads the nearest lure so the creature is bent toward `want` (the sim reads the creature's nature, as a
+ * keeper learns it by trying): walks beside it and leads it a hex at a time, to a hex about two off the
+ * line on the side that does it, as far as leads and actions allow today. Returns the state and whether
+ * the lures now bend the creature the right way, so nothing needs striking.
+ */
+const steerWithLure = (
+  state: GameState,
+  id: string,
+  goal: SteerGoal,
+): { readonly state: GameState; readonly steering: boolean } => {
+  if (lureDrift(state) === goal.want) return { state, steering: true };
+  const c = state.creature.centre;
+  const candidates = state.lures
+    // Only lures at hand and not behind the creature (a character sent back there is left behind and lost).
+    .filter(
+      (l) =>
+        l.leadsLeft > 0 && hexDistance(l.hex, c) <= 7 && l.hex.r + l.hex.q / 2 <= c.r + c.q / 2 + 1,
+    )
+    .sort((a, b) => hexDistance(a.hex, c) - hexDistance(b.hex, c));
+  for (const lure of candidates) {
+    const sign = reactionToLure(state.nature, lure) === 'attracted' ? 1 : -1;
+    // The side the lure must be on for the creature to move toward `want`.
+    const wantSide = sign * goal.want;
+    // Leads needed: greedy, each to the neighbour closest to two hexes off the line on that side.
+    const targetQ = c.q - wantSide * 2;
+    const settled = (h: Hex): boolean => sideOf(state, h) === wantSide && Math.abs(h.q - c.q) >= 2;
+    const toward = (from: Hex): Hex[] =>
+      neighbours(from)
+        .filter((h) => hexDistance(h, c) > state.config.creatureRadius + 1)
+        .sort((a, b) => Math.abs(a.q - targetQ) - Math.abs(b.q - targetQ));
+    let at = lure.hex;
+    let leads = 0;
+    while (leads < lure.leadsLeft && !settled(at)) {
+      const next = toward(at)[0];
+      if (!next) break;
+      at = next;
+      leads++;
+    }
+    if (sideOf(state, at) !== wantSide) continue;
+    // Walk beside it, then lead while actions last.
+    const here = hexOf(state, id);
+    const budget = actionsLeft(state, id) - state.config.leadCost;
+    const target =
+      here && hexDistance(here, lure.hex) <= 1
+        ? { hex: here, cost: 0 }
+        : nearest(state, id, [lure.hex, ...neighbours(lure.hex)], budget);
+    if (!target) continue;
+    let s = target.cost > 0 ? walk(state, id, target.hex, target.cost) : state;
+    for (let i = 0; i < leads; i++) {
+      const now = s.lures.find((l) => l.id === lure.id);
+      if (!now || now.leadsLeft <= 0 || settled(now.hex)) break;
+      let led = s;
+      for (const to of toward(now.hex)) {
+        led = tryAct(s, id, { kind: 'lead', lure: lure.id, to });
+        if (led !== s) break;
+      }
+      if (led === s) break;
+      s = led;
+    }
+    return { state: s, steering: lureDrift(s) === goal.want };
+  }
+  return { state, steering: false };
+};
+
+/**
+ * The unlit brazier whose fire bends the creature's step away from the hazard's side (or either way
+ * when the hazard lies straight ahead), within reach of the creature's range, nearest first.
+ */
+const steeringBrazier = (state: GameState, goal: SteerGoal, id: string): Hex | null => {
+  const reaction = reactionTo(state.nature, {
+    type: 'fire',
+    hex: state.creature.centre,
+    litDay: state.day,
+  });
+  const sign = reaction === 'attracted' ? 1 : reaction === 'repelled' ? -1 : 0;
+  const lit = new Set(state.stimuli.map((x) => `${x.hex.q},${x.hex.r}`));
+  const options = Object.entries(state.features)
+    .filter(([key, f]) => {
+      const t = featureType(f.type);
+      return f.revealed && t.tags.includes('fire-site') && !lit.has(key);
+    })
+    .map(([key]) => keyToHex(key))
+    .filter((h) => {
+      const push = sign * sideOf(state, h);
+      // A creature drawn to a fire settles beside it, so for it the brazier must stand two or more off the line.
+      const wide = reaction !== 'attracted' || Math.abs(h.q - state.creature.centre.q) >= 2;
+      return (
+        wide &&
+        push !== 0 &&
+        Math.sign(push) === goal.want &&
+        hexDistance(h, state.creature.centre) <= 5
+      );
+    });
+  // A stocked brazier is lit with no wood: preferred when it is a day's walk or two away.
+  const cheap = options.filter((h) => state.features[`${h.q},${h.r}`]?.stocked === true);
+  const near = nearestAny(state, id, cheap);
+  const plan = near ? planPath(state, id, near) : null;
+  if (
+    near &&
+    plan?.ok &&
+    plan.cost + state.config.lightFireCost <= 2 * state.config.actionsPerDay
+  ) {
+    return near;
+  }
+  return nearestAny(state, id, options);
+};
+
+/** The cheapest of these hexes to walk to, however far (null when none can be reached). */
+const nearestAny = (state: GameState, id: string, targets: readonly Hex[]): Hex | null => {
+  let best: { hex: Hex; cost: number } | null = null;
+  for (const h of targets) {
+    const plan = planPath(state, id, h);
+    if (plan.ok && (!best || plan.cost < best.cost)) best = { hex: h, cost: plan.cost };
+  }
+  return best?.hex ?? null;
+};
+
+/** Walks toward a hex as far as `budget` actions allow, staying out when it is not reached today. */
+const approach = (state: GameState, id: string, to: Hex, budget: number): GameState => {
+  const plan = planPath(state, id, to);
+  if (!plan.ok) return state;
+  const steps: (typeof plan.steps)[number][] = [];
+  let spent = 0;
+  for (const step of plan.steps) {
+    if (spent + step.cost > budget) break;
+    spent += step.cost;
+    steps.push(step);
+  }
+  if (steps.length === 0) return state;
+  const walked = moveAlong(state, id, steps);
+  return walked.ok ? walked.state : state;
+};
+
+/** With `BALANCE_STEER=off` the party never steers: it strikes hazards down (for before and after runs). */
+const NO_STEERING =
+  (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env[
+    'BALANCE_STEER'
+  ] === 'off';
+
+/**
+ * With `BALANCE_SCOUT=survey` the scout spends its spare actions surveying, as a player scouting does (the
+ * XP measurement runs this way); otherwise it forages like the rest, so the outcome table stays comparable.
+ */
+const SCOUT_SURVEYS =
+  (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env[
+    'BALANCE_SCOUT'
+  ] === 'survey';
+
+/** The character on a steering errand (out fetching wood or walking to a brazier), if any, today. */
+let errand: string | null = null;
+/** A lure already bends the creature clear of the hazard ahead, today. */
+let lureSteering = false;
+
+/**
+ * Steers around a static hazard, possibly over days: fetches wood (staying out where it was gathered),
+ * walks to the brazier that bends the creature clear and lights it. Sets `errand` while it is under way.
+ */
+const steer = (state: GameState, id: string): GameState => {
+  if (NO_STEERING) return state;
+  const hazard = hazardGoal(state);
+  if (!hazard || burning(state)) return state;
+  // A lure in reach is the cheaper way: a few leads, no wood.
+  const viaLure = steerWithLure(state, id, hazard);
+  if (viaLure.steering) {
+    lureSteering = true;
+    return viaLure.state;
+  }
+  const brazier = steeringBrazier(viaLure.state, hazard, id);
+  if (!brazier) return viaLure.state;
+  let s = viaLure.state;
+  const holds = () => (character(s, id)?.pack['timber'] ?? 0) > 0;
+  const stockedBrazier = s.features[`${brazier.q},${brazier.r}`]?.stocked === true;
+  if (!holds() && !stockedBrazier) {
+    const nodes = Object.entries(s.features)
+      .filter(([, f]) => {
+        const t = featureType(f.type);
+        return f.left > 0 && t.kind === 'node' && t.tags.includes('wood');
+      })
+      .map(([key]) => keyToHex(key))
+      .filter((h) => hexDistance(h, s.creature.centre) < s.config.windowRadius);
+    const node = nearestAny(s, id, nodes);
+    if (!node) return s;
+    // Only an errand that fits in two days is worth it: the walk, the gather, the walk on and the light.
+    const there = planPath(s, id, node);
+    const rest = hexDistance(node, brazier);
+    if (
+      !there.ok ||
+      there.cost + s.config.gatherCost + rest + s.config.lightFireCost > 2 * s.config.actionsPerDay
+    ) {
+      return s;
+    }
+    errand = id;
+    const reserve = s.config.gatherCost;
+    s = approach(s, id, node, actionsLeft(s, id) - reserve);
+    const here = hexOf(s, id);
+    if (here && hexDistance(here, node) === 0) s = tryAct(s, id, { kind: 'gather' });
+    if (!holds()) return s;
+  }
+  errand = id;
+  s = approach(s, id, brazier, actionsLeft(s, id) - s.config.lightFireCost);
+  const there = hexOf(s, id);
+  if (there && hexDistance(there, brazier) === 0) {
+    s = tryAct(s, id, { kind: 'light-fire' });
+    if (burning(s)) errand = null;
+  }
+  return s;
+};
+
+/** Digs out a pinned character who is within reach this day. */
+const rescue = (state: GameState, id: string): GameState => {
+  const pinnedOne = state.characters.find((c) => c.id !== id && c.pinnedDay !== undefined);
+  const where = pinnedOne && hexOf(state, pinnedOne.id);
+  if (!pinnedOne || !where) return state;
+  const here = hexOf(state, id);
+  const target =
+    here && hexDistance(here, where) <= 1
+      ? { hex: here, cost: 0 }
+      : nearest(
+          state,
+          id,
+          [where, ...neighbours(where)],
+          actionsLeft(state, id) - state.config.digOutCost,
+        );
+  if (!target) return state;
+  const s = target.cost > 0 ? walk(state, id, target.hex, target.cost) : state;
+  return tryAct(s, id, { kind: 'dig-out', target: pinnedOne.id });
+};
+
 const carefulDay = (state: GameState, ids: readonly string[]): GameState => {
   let s = state;
+  // Steering is set up first (by the first non-warden with actions), so nobody strikes the hazard needlessly.
+  errand = null;
+  lureSteering = false;
+  const steerer =
+    ids.find(
+      (id) => character(s, id)?.role !== 'warden' && actionsLeft(s, id) > 0 && !isRiding(s, id),
+    ) ?? ids.find((id) => character(s, id)?.role !== 'warden' && actionsLeft(s, id) > 0);
+  if (steerer) s = steer(s, steerer);
+  const underway = (): boolean => burning(s) || errand !== null || lureSteering;
   for (const id of ids) {
     s = pickSkills(s, id);
     const role = character(s, id)?.role;
+    // A pinned player struggles with what they have; freed, they carry on with the rest.
+    while (character(s, id)?.pinnedDay !== undefined && actionsLeft(s, id) > 0) {
+      const before = s;
+      s = tryAct(s, id, { kind: 'struggle' });
+      if (s === before) break;
+    }
     if (actionsLeft(s, id) === 0) continue;
+    s = rescue(s, id);
     // Anyone carrying something comes home first, to put it in the stores.
-    if (Object.keys(character(s, id)?.pack ?? {}).length > 0) s = goHome(s, id);
+    if (id !== errand && Object.keys(character(s, id)?.pack ?? {}).length > 0) s = goHome(s, id);
     if (role === 'warden') {
       for (const t of byUrgency(s)) {
         if (actionsLeft(s, id) === 0) break;
+        // A hazard being steered clear of is left alone, unless it will still arrive tomorrow.
+        if (underway() && t.speed === 0 && t.arrives !== 'tomorrow') continue;
         s = intercept(s, id, t.id);
       }
       if (byUrgency(s).some((t) => t.arrives === 'tomorrow')) {
@@ -280,8 +656,10 @@ const carefulDay = (state: GameState, ids: readonly string[]): GameState => {
         s = tryAct(s, id, { kind: 'defend' });
       }
     } else {
-      // A hazard that waits (a rockslide ahead) is struck down while it is still ahead, not only on the day it is reached.
+      // A hazard that waits (a rockslide ahead) is steered clear of when a brazier allows, else struck
+      // down while it is still ahead, not only on the day it is reached.
       for (const t of byUrgency(s)) {
+        if (underway() && t.speed === 0 && t.arrives !== 'tomorrow') continue;
         if (t.arrives === 'tomorrow' || (t.speed === 0 && t.arrives === 'later')) {
           s = intercept(s, id, t.id);
         }
@@ -289,8 +667,11 @@ const carefulDay = (state: GameState, ids: readonly string[]): GameState => {
     }
     if (role === 'warden') s = parleyDay(s, id);
     s = feed(s, id, 1);
+    if (id === errand) continue;
+    // With the survey policy a scout spends what is left on surveying, before foraging.
+    if (role === 'scout' && SCOUT_SURVEYS) s = surveyDay(s, id);
     if (role !== 'warden' && actionsLeft(s, id) >= 2) s = forage(s, id);
-    // Never left behind: everyone ends the day as close to the creature as they can.
+    // Never left behind: everyone ends the day as close to the creature as they can (but for an errand).
     s = goHome(s, id);
     s = feed(s, id, 1);
   }
@@ -324,12 +705,28 @@ export const playSeason = (
     })),
   };
   let strikes = 0;
+  pinnedCount = 0;
+  litCount = 0;
+  ledCount = 0;
+  brazierCount = 0;
+  let hazardHexes = 0;
+  let hazardPeril = 0;
   // A season ends by its route; the bound only guards against a creature that never steps.
   for (let guard = 0; guard < 400 && state.season.status === 'on'; guard++) {
     state = policy === 'careful' ? carefulDay(state, ids) : carelessDay(state, ids);
     const before = new Set(state.threats.map((t) => t.id));
     const { state: next, events } = nextDayWithEvents(state);
     onDay?.(state, events);
+    // Hazards walked into: steps onto hazard terrain, and strikes by a scree field's rockslides.
+    for (const e of events) {
+      if (e.kind === 'hazard-step') {
+        hazardHexes++;
+        hazardPeril += e.damage;
+      } else if (e.kind === 'threat-strikes' && /^h\d+-\d+$/.test(e.id)) {
+        hazardHexes++;
+        hazardPeril += e.damage;
+      }
+    }
     // A threat gone without being out of the window or cleared struck the creature.
     for (const id of before) {
       const t = state.threats.find((x) => x.id === id);
@@ -349,9 +746,15 @@ export const playSeason = (
     peril: state.peril,
     days: state.day,
     strikes,
+    pinned: pinnedCount,
+    lit: litCount,
     picks:
       state.characters.reduce((n, c) => n + Math.floor(c.skills.xp / state.config.xpPerPick), 0) /
       players,
+    hazardHexes,
+    hazardPeril,
+    led: ledCount,
+    braziers: brazierCount,
   };
 };
 
@@ -361,7 +764,13 @@ export interface Summary {
   readonly lost: number;
   readonly peril: number;
   readonly strikes: number;
+  readonly pinned: number;
+  readonly lit: number;
   readonly picks: number;
+  readonly hazardHexes: number;
+  readonly hazardPeril: number;
+  readonly led: number;
+  readonly braziers: number;
 }
 
 /** Outcome rates (0..1) and average final peril and strikes over seeds 1..n. */
@@ -380,8 +789,62 @@ export const summarise = (
     lost: rate('lost'),
     peril: mean((r) => r.peril),
     strikes: mean((r) => r.strikes),
+    pinned: mean((r) => r.pinned),
+    lit: mean((r) => r.lit),
     picks: mean((r) => r.picks),
+    hazardHexes: mean((r) => r.hazardHexes),
+    hazardPeril: mean((r) => r.hazardPeril),
+    led: mean((r) => r.led),
+    braziers: mean((r) => r.braziers),
   };
+};
+
+export interface XpRow {
+  readonly role: string;
+  /** Mean XP per day over the season up to the last checkpoint, and mean picks earned (XP / `xpPerPick`) by each checkpoint day. */
+  readonly perDay: number;
+  readonly picksBy: readonly number[];
+}
+
+/**
+ * XP by role: for seeds 1..n, each character's XP is read at the end of each checkpoint day (after the
+ * party acted, before that day's tick), and averaged per role. A season that ends before a checkpoint
+ * counts its final XP there.
+ */
+export const xpProfile = (
+  n: number,
+  policy: Policy,
+  players: number,
+  config: ConfigOverrides,
+  checkpoints: readonly number[],
+): XpRow[] => {
+  const sums = new Map<string, { count: number; xp: number[] }>();
+  for (let seed = 1; seed <= n; seed++) {
+    const snaps = new Map<number, GameState>();
+    let last: GameState | null = null;
+    playSeason(seed, policy, players, config, (planned) => {
+      last = planned;
+      if (checkpoints.includes(planned.day)) snaps.set(planned.day, planned);
+    });
+    const final = last as GameState | null;
+    if (!final) continue;
+    for (const [i, c] of final.characters.entries()) {
+      const entry = sums.get(c.role) ?? { count: 0, xp: checkpoints.map(() => 0) };
+      entry.count++;
+      checkpoints.forEach((day, k) => {
+        const at = snaps.get(day) ?? final;
+        entry.xp[k] = (entry.xp[k] ?? 0) + (at.characters[i]?.skills.xp ?? 0);
+      });
+      sums.set(c.role, entry);
+    }
+  }
+  const per = config.xpPerPick ?? DEFAULT_CONFIG.xpPerPick;
+  const lastDay = checkpoints[checkpoints.length - 1] ?? 1;
+  return [...sums.entries()].map(([role, e]) => ({
+    role,
+    perDay: (e.xp[e.xp.length - 1] ?? 0) / e.count / lastDay,
+    picksBy: e.xp.map((x) => x / e.count / per),
+  }));
 };
 
 /** Prints a Markdown table for seeds 1..n (default 200). */
@@ -393,9 +856,11 @@ export const report = (
   const pct = (x: number) => `${Math.round(x * 100)} %`;
   log(`Seeds 1-${n}.`);
   log(
-    '| season | policy | players | safe | wounded | lost | avg peril | avg strikes | picks each |',
+    '| season | policy | players | safe | wounded | lost | avg peril | avg strikes | pinned | fires lit | picks each | hazard hexes | hazard peril | braziers lit | lures led |',
   );
-  log('| --- | --- | --- | --- | --- | --- | --- | --- | --- |');
+  log(
+    '| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |',
+  );
   for (const [label, season] of [
     ['dev (12)', { ...DEV_SEASON, ...extra }],
     ['full (40)', extra],
@@ -404,7 +869,7 @@ export const report = (
       for (const players of [3, 6]) {
         const s = summarise(n, policy, players, season);
         log(
-          `| ${label} | ${policy} | ${players} | ${pct(s.safe)} | ${pct(s.wounded)} | ${pct(s.lost)} | ${s.peril.toFixed(1)} | ${s.strikes.toFixed(1)} | ${s.picks.toFixed(2)} |`,
+          `| ${label} | ${policy} | ${players} | ${pct(s.safe)} | ${pct(s.wounded)} | ${pct(s.lost)} | ${s.peril.toFixed(1)} | ${s.strikes.toFixed(1)} | ${s.pinned.toFixed(2)} | ${s.lit.toFixed(2)} | ${s.picks.toFixed(2)} | ${s.hazardHexes.toFixed(2)} | ${s.hazardPeril.toFixed(2)} | ${s.braziers.toFixed(2)} | ${s.led.toFixed(2)} |`,
         );
       }
     }

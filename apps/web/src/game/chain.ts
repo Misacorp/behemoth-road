@@ -8,6 +8,7 @@ import {
   checkAction,
   type FeatureType,
   featureType,
+  isVehicleUnlock,
   type GameStateView,
   type Hex,
   hexKey,
@@ -18,6 +19,7 @@ import {
   type Unlock,
 } from '@behemoth-road/core';
 import type { TipId } from '../text/tips.ts';
+import { type OddsView, oddsFor } from './odds.ts';
 import { neededRole } from './roles.ts';
 import { whyOfCheck, whyTip } from './why.ts';
 
@@ -77,6 +79,8 @@ export interface PossibleAction {
   readonly needs?: string;
   /** Why it is greyed (the core's refusal, as a tip): a tap on it shows this and never acts. */
   readonly why?: TipId;
+  /** Its odds, when it rolls (working a site): the core's `oddsOf`. */
+  readonly odds?: OddsView;
 }
 
 /** Refusals that mean "this exists here but cannot be done now": offered faded rather than hidden. */
@@ -92,7 +96,9 @@ export function actionsAt(game: GameStateView, characterId: string): PossibleAct
   const out: PossibleAction[] = [];
   for (const { action, check } of actionsHere(game, characterId)) {
     if (action.kind !== 'gather' && action.kind !== 'work-site') continue;
-    if (check.ok) out.push({ kind: action.kind, cost: check.cost, enabled: true });
+    const odds = action.kind === 'work-site' ? oddsFor(game, characterId, action) : null;
+    const roll = odds ? { odds } : {};
+    if (check.ok) out.push({ kind: action.kind, cost: check.cost, enabled: true, ...roll });
     else if (NOT_NOW.has(check.reason) && check.cost !== undefined) {
       const needs = neededRole(game, characterId, action, check);
       out.push({
@@ -101,6 +107,7 @@ export function actionsAt(game: GameStateView, characterId: string): PossibleAct
         enabled: false,
         ...(needs ? { needs } : {}),
         why: whyTip(check.reason, needs),
+        ...roll,
       });
     }
   }
@@ -143,7 +150,10 @@ export function unlockOptions(game: GameStateView, characterId: string): UnlockO
     const work = game.project?.unlock === unlock.id ? game.project.work : null;
     return {
       unlock,
-      done: game.unlocks.includes(unlock.id),
+      // A vehicle is not among the unlocks: it stands on the map while it lives (and can be built again once lost).
+      done: isVehicleUnlock(unlock)
+        ? game.carts.length >= game.config.cartsMax
+        : game.unlocks.includes(unlock.id),
       work,
       missing: check.ok ? [] : (check.missing ?? []),
       enabled: check.ok,
@@ -171,8 +181,9 @@ export interface CostedAction {
   readonly why?: TipId;
 }
 
-/** The stimulus a fire is (tagged `fire`), for its fuel tag: content, read by tag. */
-const FIRE = STIMULUS_TYPES.find((t) => t.tags.includes('fire')) ?? null;
+/** The stimulus a plain fire is (tagged `fire`, not a brazier's `fire-site`), for its fuel tag: read by tag. */
+const FIRE =
+  STIMULUS_TYPES.find((t) => t.tags.includes('fire') && !t.tags.includes('fire-site')) ?? null;
 
 /** Materials that nourish the creature (content `nourishes`), in content order. */
 const FOODS: readonly string[] = MATERIALS.filter((m) => (m.nourishes ?? 0) > 0).map((m) => m.id);
@@ -182,33 +193,11 @@ const heldWith = (tag: string, held: Readonly<Record<string, number>>): string |
   MATERIALS.find((m) => m.tags.includes(tag) && (held[m.id] ?? 0) > 0)?.id ?? null;
 
 /**
- * The material a revealed node on this hex yields when it is fuel for a fire (tagged like the fire's fuel,
- * read by tag): a timber stand. Null for anything else.
- */
-export function fuelNodeAt(game: GameStateView, h: Hex): string | null {
-  const type = featureAt(game, h)?.type;
-  if (!FIRE || type?.kind !== 'node') return null;
-  const material = MATERIALS.find((m) => m.id === type.yields.material);
-  return material?.tags.includes(FIRE.fuel.tag) ? material.id : null;
-}
-
-/**
- * The faded fire hint on the inspect card of a hex holding a fuel node: what a fire costs and the fuel it
- * takes, never actionable from there (a fire is lit where you stand).
- */
-export function fireHintAt(
-  game: GameStateView,
-  h: Hex,
-): { readonly cost: number; readonly uses: string } | null {
-  const fuel = fuelNodeAt(game, h);
-  return fuel ? { cost: game.config.lightFireCost, uses: fuel } : null;
-}
-
-/**
  * Lighting a fire where you stand, for your own hex's card, from the core's check and its refusal cost and
- * missing material. With fuel it is offered (faded when your actions are spent). Without fuel it is
- * offered faded, its timber faded too, only as a hint (`hint`: the card is open for something else and you
- * have seen a fire). Never on water, on the creature or where a fire already burns.
+ * missing material. Only where there is something to burn (a brazier or a burnable feature: the core refuses
+ * anything else with `nothing-to-burn`, which offers nothing). With fuel it is offered (faded when your
+ * actions are spent). Without fuel it is offered faded, its timber faded too, only as a hint (`hint`: the
+ * card is for a brazier or a burnable). Never on water, on the creature or where a fire already burns.
  */
 export function fireAction(
   game: GameStateView,

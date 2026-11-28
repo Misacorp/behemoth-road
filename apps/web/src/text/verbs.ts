@@ -7,14 +7,23 @@ import type { Action } from '@behemoth-road/core';
 export const verbs = {
   survey: 'Survey',
   gather: 'Gather',
-  'work-site': 'Work',
+  'work-site': 'Search',
   build: 'Build',
   'light-fire': 'Light',
   feed: 'Feed',
   linger: 'Linger',
   'throw-line': 'Throw',
   'grab-line': 'Grab',
+  hitch: 'Hitch',
+  unhitch: 'Unhitch',
+  'board-cart': 'Sit',
+  'leave-cart': 'Climb out',
+  load: 'Load',
+  unload: 'Unload',
   strike: 'Strike',
+  'dig-out': 'Dig out',
+  struggle: 'Struggle',
+  lead: 'Lead',
   defend: 'Defend',
   parley: 'Parley',
   offer: 'Offer',
@@ -26,6 +35,7 @@ export const verbs = {
 
 /** The verb for a button's kind (`offer:<material>` is an offer, `boon:<id>` asks for a boon), or null. */
 export function verbOf(kind: string): string | null {
+  if (kind === 'move') return 'Move';
   if (kind.startsWith('offer')) return verbs.offer;
   if (kind.startsWith('boon:')) return verbs['ask-boon'];
   return Object.hasOwn(verbs, kind) ? verbs[kind as keyof typeof verbs] : null;

@@ -9,6 +9,8 @@
 import {
   CREATURE_TYPES,
   type CreatureType,
+  LURE_TYPES,
+  type LureType,
   MATERIALS,
   type Reaction,
   STIMULUS_TYPES,
@@ -17,7 +19,7 @@ import {
 import { roleHas } from './features.ts';
 import type { Hex } from './hex.ts';
 import { hashString, hashToUnit, type Seed } from './random.ts';
-import type { Care, GameState, GameStateView, Materials, Nature, Stimulus } from './state.ts';
+import type { Care, GameState, GameStateView, Lure, Materials, Nature, Stimulus } from './state.ts';
 
 const NATURE_STREAM = hashString('creature-nature');
 
@@ -35,6 +37,12 @@ export const creatureType = (id: string): CreatureType => {
 export const stimulusType = (id: string): StimulusType => {
   const type = STIMULUS_TYPES.find((t) => t.id === id);
   if (!type) throw new Error(`Unknown stimulus: ${id}`);
+  return type;
+};
+
+export const lureType = (id: string): LureType => {
+  const type = LURE_TYPES.find((t) => t.id === id);
+  if (!type) throw new Error(`Unknown lure: ${id}`);
   return type;
 };
 
@@ -56,14 +64,22 @@ export const freshCare = (nature: Nature, day: number): Care => ({
   cues: { day, list: [] },
 });
 
-/** How the creature reacts to a stimulus: by the first of its tags the nature lists. */
-export const reactionTo = (nature: Nature, stimulus: Stimulus): Reaction => {
-  for (const tag of stimulusType(stimulus.type).tags) {
+/** How the creature reacts to something with these tags: by the first of them the nature lists. */
+export const reactionToTags = (nature: Nature, tags: readonly string[]): Reaction => {
+  for (const tag of tags) {
     const reaction = nature.reactions[tag];
     if (reaction) return reaction;
   }
   return 'indifferent';
 };
+
+/** How the creature reacts to a stimulus: by the first of its tags the nature lists. */
+export const reactionTo = (nature: Nature, stimulus: Stimulus): Reaction =>
+  reactionToTags(nature, stimulusType(stimulus.type).tags);
+
+/** How the creature reacts to a lure, by the lure type's tags (`small-beast`). */
+export const reactionToLure = (nature: Nature, lure: Lure): Reaction =>
+  reactionToTags(nature, lureType(lure.type).tags);
 
 export type AppetiteKind = 'underfed' | 'overfed';
 export type SignLevel = 1 | 2 | 3;

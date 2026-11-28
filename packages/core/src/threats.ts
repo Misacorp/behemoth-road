@@ -7,7 +7,9 @@
  */
 
 import { THREAT_TYPES, type ThreatType } from './content/index.ts';
+import { isSanctuary } from './destination.ts';
 import { roleHas } from './features.ts';
+import { FEARS_FIRE_TAG, inFireRing } from './fire.ts';
 import { bestOf, effectsOf } from './skills.ts';
 import {
   type Direction,
@@ -27,6 +29,8 @@ import { isCreatureHex } from './window.ts';
 export const GROUND_TAG = 'ground';
 /** The threat tag a mislead leads away. */
 export const PURSUER_TAG = 'pursuer';
+/** The threat tag of threats a strike can bring down on the striker (a rockslide). */
+export const FALLS_TAG = 'falls';
 /** The role tag of a warden's strength in a fight, and of defending the creature. */
 export const DEFEND_TAG = 'defend';
 /** The role tag of a warden's escort: no one near them is struck, nor are they. */
@@ -46,6 +50,13 @@ export const threatType = (id: string): ThreatType => {
  */
 export const contactDistance = (state: GameStateView, type: ThreatType): number =>
   state.config.creatureRadius + type.reach;
+
+/**
+ * Whether a threat of a type keeps off a hex because a fire burns there or next to it: only types
+ * tagged `fears-fire`, and only while the fire burns `ahead` ticks from now.
+ */
+export const keepsClearOf = (state: GameStateView, type: ThreatType, h: Hex, ahead = 1): boolean =>
+  type.tags.includes(FEARS_FIRE_TAG) && inFireRing(state, h, ahead);
 
 export const activeCount = (state: GameStateView): number =>
   state.characters.filter((c) => c.status === 'active').length;
@@ -72,16 +83,21 @@ export const stepToward = (from: Hex, to: Hex): Hex => {
 
 /**
  * The hexes a threat walks through at one tick toward `centre`: up to its speed,
- * stopping at contact. Empty when it does not move.
+ * stopping at contact. Empty when it does not move. A threat that fears fire holds where it is rather
+ * than step into the ring of a fire burning `ahead` ticks from now (it does not go around).
  */
-export const threatPath = (state: GameStateView, threat: Threat, centre: Hex): Hex[] => {
+export const threatPath = (state: GameStateView, threat: Threat, centre: Hex, ahead = 1): Hex[] => {
   const type = threatType(threat.type);
   const contact = contactDistance(state, type);
   const path: Hex[] = [];
   let at = threat.hex;
   for (let i = 0; i < type.speed; i++) {
     if (hexDistance(at, centre) <= contact) break;
-    at = stepToward(at, centre);
+    const next = stepToward(at, centre);
+    if (keepsClearOf(state, type, next, ahead)) break;
+    // The destination is a sanctuary: no threat walks into it.
+    if (isSanctuary(state, next)) break;
+    at = next;
     path.push(at);
   }
   return path;
@@ -145,6 +161,8 @@ export const approachHexes = (state: GameStateView, type: ThreatType, side: -1 |
 export const canAppearOn = (state: GameStateView, h: Hex, type?: ThreatType): boolean => {
   const terrain = terrainOf(state, h);
   if (!terrain || isCreatureHex(state, h)) return false;
+  if (isSanctuary(state, h)) return false;
+  if (type && keepsClearOf(state, type, h)) return false;
   if (type?.on && !type.on.some((tag) => terrain.tags.includes(tag))) return false;
   if (OFF_LIMITS_TAGS.some((tag) => terrain.tags.includes(tag))) return false;
   if (state.settlements.some((s) => hexEquals(s.hex, h))) return false;
@@ -223,7 +241,7 @@ export const threatNextPath = (state: GameStateView, threatId: string, days = 1)
   let centre = nextCentreGuess(state);
   let at = threat.hex;
   for (let tick = 1; tick <= Math.max(1, days); tick++) {
-    const path = threatPath(state, { ...threat, hex: at }, centre);
+    const path = threatPath(state, { ...threat, hex: at }, centre, tick);
     out.push(...path);
     at = path.at(-1) ?? at;
     centre = neighbour(centre, state.creature.heading);
@@ -260,16 +278,17 @@ export const threatOutlook = (state: GameStateView): ThreatOutlook[] => {
   // Far enough to settle any threat: it either closes in, falls out of the window or stalls.
   const horizon = 4 * (state.config.windowRadius + 1);
   return state.threats.map((threat) => {
-    const contact = contactDistance(state, threatType(threat.type));
+    const type = threatType(threat.type);
+    const contact = contactDistance(state, type);
     let centre = nextCentreGuess(state);
     let at = threat.hex;
     let next: Hex | null = null;
     let arrives: Arrival = 'never';
     for (let tick = 1; tick <= horizon; tick++) {
-      const path = threatPath(state, { ...threat, hex: at }, centre);
+      const path = threatPath(state, { ...threat, hex: at }, centre, tick);
       if (tick === 1) next = path[0] ?? null;
       at = path.at(-1) ?? at;
-      if (hexDistance(at, centre) <= contact) {
+      if (hexDistance(at, centre) <= contact && !keepsClearOf(state, type, at, tick)) {
         arrives = tick === 1 ? 'tomorrow' : 'later';
         break;
       }

@@ -4,7 +4,7 @@ This is the design as of 19 November 2026. It records what is decided, what is a
 
 ## 1. Concept
 
-An invite-only group of friends escorts a mythical creature back to its habitat, having freed it from captivity. The creature walks one step per day. Players act in the hex area around it: exploring, gathering, meeting locals, and dealing with whatever threatens it.
+An invite-only group of friends escorts a mythical creature to where it is going, having freed it from captivity. The creature walks one step per day. Players act in the hex area around it: exploring, gathering, meeting locals, and dealing with whatever threatens it.
 
 Play is asynchronous and takes a few minutes a day. Each player runs one character with a clear role. Each season brings a new creature with its own nature, and a season can fail.
 
@@ -99,7 +99,7 @@ Five working roles (Guardian and Envoy merged into the Warden on 2026-11-23). Ea
 
 Notes:
 
-- **Keeper.** Reading the creature is a puzzle of symptoms and causes. It starts as intuition. The keeper hypothesises and experiments: lighting a fire next to the creature shows whether it lingers, flees or ignores it. An underfed creature shows one symptom, an overfed one another. The team must trust the keeper's reading until a finding is confirmed. For now the team discusses this on Discord. A later option is a keeper's log of hypotheses with blanks to fill through experiments.
+- **Keeper.** Reading the creature is a puzzle of symptoms and causes. It starts as intuition. The keeper hypothesises and experiments: lighting a fire next to the creature shows whether it lingers, flees or ignores it. A fire needs something to burn: an old brazier along the route (it burns for several nights) or a feature that burns away (a deadfall, a snare); it cannot be lit on bare ground. An underfed creature shows one symptom, an overfed one another. The team must trust the keeper's reading until a finding is confirmed. For now the team discusses this on Discord. A later option is a keeper's log of hypotheses with blanks to fill through experiments.
 - **Engineer.** Crafting should be fun in itself. Hypothesis: its own gathering loop, risk and reward in crafting, and a technology tree where one path leads away from another. The creature can change the tree, so runs differ. Keeper and engineer may share the work of outfitting the creature with defences, weapons or modules.
 - **Warden.** The Guardian and the Envoy are one role since 2026-11-23: both struggled to find things to do when nothing was scouted, and one role that protects and deals with peoples makes better choices. A warden can accompany others and help significantly, and the map should hold targets of its own, such as a hostile settlement at the far edge that rewards the team when dealt with. Its skill tree forks by style, not by half the role: stand fast (act on the spot) or range out (act at a distance), each with protection and diplomacy.
 - **Scout.** If scouting becomes trivial, add variety: fog of war that shifts, plateaus, valleys, gorges, caves.

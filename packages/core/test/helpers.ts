@@ -10,7 +10,7 @@ import {
 } from '../src/index.ts';
 
 /**
- * A season that never ends and brings no threats, settlements or hunger peril:
+ * A season that never ends and brings no threats, settlements, hazards, lures or hunger peril:
  * for tests of earlier rules that walk the creature a long way.
  */
 export const CALM: ConfigOverrides = {
@@ -18,6 +18,11 @@ export const CALM: ConfigOverrides = {
   threatsFromDay: 100_000,
   settlementFirst: 100_000,
   perilHungry: 0,
+  // No hazard patches or lures along the way (they are laid by steps; this puts the first beyond any walk).
+  hazardFirst: 100_000,
+  hazardSpacing: 100_000,
+  lureFirstWithin: 100_000,
+  lureSpacing: 100_000,
 };
 
 /** Returns a copy of the state with one character replaced. */
@@ -159,3 +164,7 @@ export const withStance = (state: GameState, id: string, stance: string): GameSt
   ...state,
   characters: state.characters.map((c) => (c.id === id ? { ...c, stance } : c)),
 });
+
+/** Events without the story's (a beat can fire on any act once its conditions hold). */
+export const plain = <E extends { readonly kind: string }>(events: readonly E[]): E[] =>
+  events.filter((e) => e.kind !== 'story');

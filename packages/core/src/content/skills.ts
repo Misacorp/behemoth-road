@@ -25,7 +25,7 @@ export type SkillEffect =
   | { readonly kind: 'site-chance'; readonly tag?: string; readonly bonus: number }
   /** Surveying reaches known hexes up to `range` away (not only the next ones). */
   | { readonly kind: 'survey-range'; readonly range: number }
-  /** At each tick, up to `count` unexplored known hexes next to this character are explored for everyone (no XP). */
+  /** At each tick, up to `count` unexplored hexes in view next to this character are explored for everyone (no XP); 6 is all of them. */
   | { readonly kind: 'sweep'; readonly count: number }
   /** A site this character opens gives `amount` more of its find (within the pack's room). */
   | { readonly kind: 'site-finds'; readonly amount: number }
@@ -40,7 +40,15 @@ export type SkillEffect =
   /** The day-after cooldown on lingering does not apply to this character. */
   | { readonly kind: 'linger-chain' }
   /** Fires this character lights reach `range` hexes and push `push` times as hard. */
-  | { readonly kind: 'fire-boost'; readonly range: number; readonly push: number }
+  | {
+      readonly kind: 'fire-boost';
+      readonly range: number;
+      readonly push: number;
+      /** Extra nights a brazier lit by this character burns. */
+      readonly nights?: number;
+    }
+  /** A strike on a threat with this tag is `factor` times as likely to bring it down on the striker (0: never). */
+  | { readonly kind: 'sure-footed'; readonly tag: string; readonly factor: number }
   /** While this character is in the game, threat trails show `days` ticks ahead, for everyone. */
   | { readonly kind: 'forecast'; readonly days: number }
   /** This character's pack holds `capacity` units (never fewer than the base). */
@@ -86,6 +94,8 @@ export interface SkillNode {
   /** False: not pickable (drawn veiled). */
   readonly active: boolean;
   readonly effect: SkillEffect;
+  /** Further effects the node has besides `effect`. */
+  readonly extra?: readonly SkillEffect[];
 }
 
 const node = (
@@ -94,6 +104,7 @@ const node = (
   tier: SkillTier,
   name: string,
   effect: SkillEffect = { kind: 'veiled' },
+  extra?: readonly SkillEffect[],
 ): SkillNode => ({
   id: `${role}-${branch}${tier}`,
   name,
@@ -103,32 +114,36 @@ const node = (
   icon: `skill:${role}-${branch}${tier}`,
   active: effect.kind !== 'veiled',
   effect,
+  ...(extra ? { extra } : {}),
 });
 
 export const SKILL_NODES: readonly SkillNode[] = [
   node('scout', 'a', 1, 'Trap sense', { kind: 'trap-sense' }),
   node('scout', 'a', 2, 'Long survey', { kind: 'survey-range', range: 2 }),
-  node('scout', 'a', 3, 'Sweep', { kind: 'sweep', count: 2 }),
+  node('scout', 'a', 3, 'Sweep', { kind: 'sweep', count: 6 }),
   node('scout', 'b', 1, 'Glints', { kind: 'glints', range: 2 }),
   node('scout', 'b', 2, 'Far sight', { kind: 'glints', range: 4 }),
   node('scout', 'b', 3, 'Forecast', { kind: 'forecast', days: 2 }),
 
   node('scholar', 'a', 1, 'Field kit', { kind: 'action-cost', action: 'work-site', cost: 1 }),
   node('scholar', 'a', 2, 'Steady hands', { kind: 'site-chance', bonus: 0.15 }),
-  node('scholar', 'a', 3, 'Second chamber', { kind: 'site-finds', amount: 1 }),
+  node('scholar', 'a', 3, 'Extra find', { kind: 'site-finds', amount: 1 }),
   node('scholar', 'b', 1, 'Lamplight', { kind: 'site-chance', tag: 'dark', bonus: 0.2 }),
   node('scholar', 'b', 2, 'Relic sense', { kind: 'find-bonus', tag: 'rare', chance: 1 / 3 }),
   node('scholar', 'b', 3, 'Old maps', { kind: 'reveal-site', range: 4 }),
 
-  node('keeper', 'a', 1, 'Good forage', { kind: 'gather-yield', amount: 2, tag: 'food' }),
+  node('keeper', 'a', 1, 'More food', { kind: 'gather-yield', amount: 2, tag: 'food' }),
   node('keeper', 'a', 2, 'Soothing herbs', { kind: 'feed-calm', amount: 1 }),
   node('keeper', 'a', 3, 'Contented', { kind: 'hunger-slow', everyDays: 2 }),
   node('keeper', 'b', 1, 'Quiet linger', { kind: 'action-cost', action: 'linger', cost: 1 }),
-  node('keeper', 'b', 2, 'Long rest', { kind: 'linger-chain' }),
-  node('keeper', 'b', 3, 'Beacon', { kind: 'fire-boost', range: 5, push: 2 }),
+  node('keeper', 'b', 2, 'Linger again', { kind: 'linger-chain' }),
+  node('keeper', 'b', 3, 'Beacon', { kind: 'fire-boost', range: 5, push: 2, nights: 1 }),
 
   node('engineer', 'a', 1, 'Double yield', { kind: 'gather-yield', amount: 2 }),
-  node('engineer', 'a', 2, 'Pack mule', { kind: 'pack-size', capacity: 10 }),
+  // Sure-footed on the rocks: a slide never falls on a pack mule's driver.
+  node('engineer', 'a', 2, 'Pack mule', { kind: 'pack-size', capacity: 10 }, [
+    { kind: 'sure-footed', tag: 'falls', factor: 0 },
+  ]),
   node('engineer', 'a', 3, 'Monkey drone', { kind: 'drone', amount: 1 }),
   node('engineer', 'b', 1, 'Quick hands', { kind: 'build-work', amount: 2 }),
   node('engineer', 'b', 2, 'Thrift', { kind: 'build-discount', amount: 1 }),
@@ -138,10 +153,10 @@ export const SKILL_NODES: readonly SkillNode[] = [
   // protection and diplomacy, so the fork is a style, not half the role. (Merged from guardian and envoy.)
   node('warden', 'a', 1, 'Bulwark', { kind: 'defend-reduction', amount: 3 }),
   node('warden', 'a', 2, 'Silver tongue', { kind: 'parley-favour', bonus: 1 }),
-  node('warden', 'a', 3, 'Standing guard', { kind: 'defend-tick' }),
+  node('warden', 'a', 3, 'Auto-defend', { kind: 'defend-tick' }),
   node('warden', 'b', 1, 'Ravens', { kind: 'parley-range', range: 3 }),
   node('warden', 'b', 2, 'Long reach', { kind: 'strike-range', range: 2 }),
-  node('warden', 'b', 3, 'Wide guard', { kind: 'escort-range', range: 2 }),
+  node('warden', 'b', 3, 'Wide escort', { kind: 'escort-range', range: 2 }),
 ];
 
 /**
@@ -158,6 +173,7 @@ export const ACTION_XP: Readonly<Record<string, number>> = {
   linger: 1,
   'throw-line': 1,
   'light-fire': 1,
+  'dig-out': 1,
   strike: 1,
   defend: 1,
   parley: 1,

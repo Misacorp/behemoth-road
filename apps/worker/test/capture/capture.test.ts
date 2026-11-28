@@ -1,4 +1,5 @@
 import {
+  destinationFor,
   checkAction,
   hexDistance,
   hexKey,
@@ -256,15 +257,25 @@ describe('capture', () => {
         ).toBe(200);
         await refused(robin, { version: await versionNow(), action: { kind: 'linger' } });
 
-        // Place the keeper beside the creature, on a hex that burns, with timber and a berry bush.
+        // Place the keeper beside the creature, on a hex that burns once something burnable is there (a
+        // deadfall, swapped in after the forage), with timber and a berry bush.
         const start = read();
+        const burnable = (state: GameState, h: { q: number; r: number }): GameState => ({
+          ...state,
+          features: {
+            ...state.features,
+            [hexKey(h)]: { type: 'deadfall', revealed: true, left: 1 },
+          },
+        });
         const hex = legalMoves(start, me)
           .flatMap((p) => (p.kind === 'hex' ? [p.hex] : []))
           .find(
             (h) =>
-              checkAction(withMe(start, { at: { kind: 'hex', hex: h }, pack: { timber: 1 } }), me, {
-                kind: 'light-fire',
-              }).ok,
+              checkAction(
+                burnable(withMe(start, { at: { kind: 'hex', hex: h }, pack: { timber: 1 } }), h),
+                me,
+                { kind: 'light-fire' },
+              ).ok,
           );
         if (hex === undefined) throw new Error('the scenario has no hex to light a fire on');
         write({
@@ -278,6 +289,7 @@ describe('capture', () => {
           version: await versionNow(),
           action: { kind: 'gather' },
         });
+        write(burnable(read(), hex));
         await ok('view-fire-lit', misa, 'POST', '/api/game/act', {
           version: await versionNow(),
           action: { kind: 'light-fire' },
@@ -427,7 +439,21 @@ describe('capture', () => {
 });
 
 /**
- * One short dev season to `outcome`, played through the API with Misa (warden), Robin (warden), Kai
+ * The short season the captured plays use: about 12 steps (a band 7 rows out; the old dev season staging had
+ * ended after exactly 12), so the three outcomes are quick to play through the API.
+ */
+const SHORT_SEASON = {
+  routeLength: 9,
+  destinationRowsPerStep: 0.75,
+  settlementFirst: 3,
+  settlementEvery: 6,
+  threatsFromDay: 1,
+  threatChanceBase: 0.6,
+  xpPerPick: 5,
+};
+
+/**
+ * One short season to `outcome`, played through the API with Misa (warden), Robin (warden), Kai
  * (keeper) and Ash (scout). Each day the plan's actions run, then an admin's next day. Two things are
  * placed as setup, as in the scenarios above: forage in the stores for the keeper, and a coin in the
  * warden's pack when they reach the settlement. Everything else is the core's play from the seed.
@@ -494,6 +520,16 @@ async function season(outcome: SeasonOutcome, plan: SeasonPlan, out: Captured): 
         expect(res.status, 'walk').toBe(200);
       };
 
+      // The captured plays are short: the game is set to a short season (staging itself plays the full one).
+      {
+        const game = read();
+        const config = { ...game.config, ...SHORT_SEASON };
+        write({
+          ...game,
+          config,
+          destination: destinationFor(config, game.creature.centre, game.creature.heading),
+        });
+      }
       for (const [user, role] of [
         [MISA, 'warden'],
         [ROBIN, 'warden'],

@@ -31,6 +31,7 @@ export function elementTarget(el: Element): TipTarget {
     },
     alive: () => el.isConnected,
     owns: (t) => t instanceof Node && el.contains(t),
+    note: () => el.getAttribute('data-tip-note'),
   };
 }
 

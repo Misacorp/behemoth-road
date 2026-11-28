@@ -24,6 +24,10 @@ import { round2ReviewItems } from './review-round2.ts';
 import { terrainReviewItems } from './review-terrain.ts';
 import { varietyReviewItems } from './review-variety.ts';
 import { skillReviewItems } from './review-skills.ts';
+import { fireReviewItems } from './review-fire.ts';
+import { round13ReviewItems } from './review-round13.ts';
+import { worldReviewItems } from './review-world.ts';
+import { destinationReviewItems } from './review-destination.ts';
 
 export interface ReviewDraft {
   readonly id: string;
@@ -692,10 +696,14 @@ export function buildReviewItems(): ReviewDraft[] {
   return [
     ...feedbackReviewItems(),
     ...seasonReviewItems(),
+    ...worldReviewItems(),
+    ...fireReviewItems(),
     ...terrainReviewItems(),
     ...varietyReviewItems(),
     ...round2ReviewItems(),
     ...skillReviewItems(),
+    ...round13ReviewItems(),
+    ...destinationReviewItems(),
     {
       id: 'creature/underfed',
       group: 'Creature care',

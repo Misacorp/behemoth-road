@@ -3,7 +3,14 @@
  * Drawings go through the allowlisted SvgNode mapper; the screen's own icons are the game's components.
  */
 import type { JSX } from 'preact';
-import { CharacterIcon, CreatureIcon, JoinIcon, RecapIcon, SunIcon } from '../hud/icons.tsx';
+import {
+  CharacterIcon,
+  CreatureIcon,
+  JoinIcon,
+  RecapIcon,
+  StoryIcon,
+  SunIcon,
+} from '../hud/icons.tsx';
 import { toPreact } from '../map/svgToPreact.ts';
 import { buildGlossary, drawEntry, type GlossaryEntry, GROUPS } from './glossary.ts';
 
@@ -15,6 +22,8 @@ const HUD_COMPONENTS: Readonly<Record<string, () => JSX.Element>> = {
   'recentre-creature': CreatureIcon,
   recap: RecapIcon,
   join: JoinIcon,
+  story: StoryIcon,
+  date: SunIcon,
 };
 
 function Picture({ e }: { e: GlossaryEntry }): JSX.Element {

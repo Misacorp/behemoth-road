@@ -6,11 +6,15 @@ import { type ConfigOverrides, resolveConfig } from './config.ts';
 import { type Direction, DIRECTIONS, type Hex, isValidHex } from './hex.ts';
 import { CONTENT_VERSION, DEFAULT_STANCE } from './content/index.ts';
 import { freshCare, rollNature } from './care.ts';
-import { addFeatures, keyToHex } from './features.ts';
+import { destinationFor } from './destination.ts';
+import { addFeatures, brazierPlan, keyToHex } from './features.ts';
+import { extendHazards, spawnClusters } from './hazards.ts';
+import { placeLures } from './lures.ts';
 import { ON_CREATURE } from './places.ts';
 import { hashInts, hashString, newArtSeed, type Seed, toSeed } from './random.ts';
 import { emptyStats } from './stats.ts';
-import { emptySkills, type GameState } from './state.ts';
+import { fireStory } from './story.ts';
+import { emptySkills, emptyStory, type GameState } from './state.ts';
 import { updateTiles } from './window.ts';
 
 export interface CreateGameOptions {
@@ -60,16 +64,29 @@ export const createGame = (
   }
 
   const day = 1;
-  const tiles = updateTiles({}, centre, day, config, seed);
   const nature = rollNature(seed);
-  return {
+  const braziers = brazierPlan(seed, centre, heading, config);
+  const destination = destinationFor(config, centre, heading);
+  const hazardPlan = extendHazards(
+    seed,
+    config,
+    { centre, heading, steps: 0 },
+    {},
+    braziers,
+    [],
+    destination,
+  );
+  const tiles = updateTiles({}, centre, day, config, seed, hazardPlan);
+  const game: GameState = {
     contentVersion: CONTENT_VERSION,
     artSeed,
     seed,
     day,
     config,
+    destination,
     creature: {
       centre,
+      kind: nature.type,
       heading,
       lingering: false,
       lingeredDay: null,
@@ -81,16 +98,32 @@ export const createGame = (
     care: freshCare(nature, day),
     stimuli: [],
     threats: [],
+    lures: [],
+    lureCount: 0,
+    cartCount: 0,
+    hazardPlan,
     settlements: [],
     peril: 0,
     season: { status: 'on' },
     stats: emptyStats(),
     misleadUntilDay: null,
+    traces: [],
+    burnt: [],
+    story: emptyStory(),
     tiles,
-    features: addFeatures({}, tiles, Object.keys(tiles).map(keyToHex), seed, config.featureChance),
+    brazierPlan: braziers,
+    features: addFeatures(
+      {},
+      tiles,
+      Object.keys(tiles).map(keyToHex),
+      seed,
+      config.featureChance,
+      braziers,
+    ),
     stores: {},
     unlocks: [],
     project: null,
+    carts: [],
     characters: ids.map((id) => ({
       id,
       userId: id,
@@ -110,4 +143,8 @@ export const createGame = (
       skills: emptySkills(),
     })),
   };
+  const spawned = spawnClusters(placeLures(game).state).state;
+  // What is true at the start (setting out; terrain under the first footprint) fires now, with no event
+  // (a new game has no event stream): `story.fired` is the record.
+  return fireStory(spawned).state;
 };

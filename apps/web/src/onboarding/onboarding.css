@@ -281,6 +281,50 @@
   color: #9a9776;
 }
 
+/* Desktop: a mouse can't swipe, so the cards stack as a list that fits the drawer and scrolls with it. */
+@media (min-width: 900px) {
+  .role-strip {
+    flex-direction: column;
+    overflow: visible;
+    scroll-snap-type: none;
+    gap: var(--space-2);
+    padding: 0;
+  }
+
+  .role-strip .role {
+    flex: none;
+    width: 100%;
+    min-width: 0;
+    grid-template-columns: auto 1fr;
+    justify-items: start;
+    align-items: center;
+    column-gap: var(--space-3);
+    row-gap: var(--space-1);
+    padding: var(--space-2) var(--space-3);
+    scroll-snap-align: none;
+  }
+
+  .role-strip .role .role-emblem {
+    grid-area: 1 / 1 / 3 / 2;
+  }
+
+  .role-strip .role .role-name {
+    grid-area: 1 / 2;
+    align-self: end;
+  }
+
+  .role-strip .role .role-line {
+    grid-area: 2 / 2;
+    align-self: start;
+  }
+
+  .role-strip .role .role-chain {
+    grid-area: 3 / 1 / 4 / 3;
+    justify-self: stretch;
+    justify-content: center;
+  }
+}
+
 .join-wiki {
   display: flex;
   align-items: center;
@@ -439,7 +483,8 @@
 }
 
 /* The arrow's tick and the role's action button pulse when they are the thing to tap. */
-.map-root[data-coach='confirm'] [data-popover='confirm'] .svg-button,
+.map-root[data-coach='move'] [data-action='move']:not(.is-off),
+.map-root[data-coach='confirm'] [data-action='move']:not(.is-off),
 .map-root[data-coach='act'] [data-action]:not(.is-off),
 .map-root[data-coach='hub'] [data-popover='bubble'] [aria-label='Behemoth'],
 .game[data-coach='act'][data-coach-do='feed'] [data-care='feed']:not(.is-off),
@@ -575,21 +620,33 @@
 }
 
 .onb-marks {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--space-3);
+  display: grid;
+  width: 100%;
+  gap: var(--space-2);
   min-height: 76px;
 }
 
 .onb-mark {
   display: flex;
   align-items: center;
-  gap: var(--space-1);
+  gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
   border-radius: 16px;
   border: 1.5px solid #e1ddc3;
   animation: onb-pop-in 0.35s ease-out both;
+}
+
+/* A line of story under the days, or beside a mark. */
+.onb-line {
+  margin: 0;
+  font-size: 1rem;
+  font-style: italic;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.onb-mark .onb-line {
+  text-align: left;
 }
 
 .onb-mark:nth-child(2) {

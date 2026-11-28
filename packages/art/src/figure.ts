@@ -5,6 +5,8 @@ import { hexCenter, onPlane, type Hex, type Projection } from './projection.ts';
 export interface FigureContext {
   /** The hex holds a site (a ruin), so figures stand to its front left. */
   readonly site?: boolean;
+  /** The hex holds a tall feature, so figures stand to its front left, clear of its base. */
+  readonly tall?: boolean;
 }
 
 /**
@@ -18,6 +20,7 @@ export function figureAnchor(
   context: FigureContext = {},
 ): Point {
   const s = Number.isFinite(slot) && slot > 0 ? Math.floor(slot) : 0;
-  const dx = (context.site ? -0.5 : -0.05) + s * 0.32;
-  return onPlane(p, hexCenter(p, hex.q, hex.r), dx, 0.3 - s * 0.06);
+  const tall = context.tall && !context.site;
+  const dx = (context.site ? -0.5 : tall ? -0.36 : -0.05) + s * 0.32;
+  return onPlane(p, hexCenter(p, hex.q, hex.r), dx, (tall ? 0.36 : 0.3) - s * 0.06);
 }

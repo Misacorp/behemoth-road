@@ -21,7 +21,7 @@ import {
 import { describe, expect, it } from 'vitest';
 import { PROJECTION } from './art.ts';
 import { cellStateAt } from './cells.ts';
-import { confirmMove, type Flow, IDLE, tap, tapHex } from './flow.ts';
+import { confirmMove, type Flow, IDLE, planMove, tapHex } from './flow.ts';
 import { buildOverlays } from './overlays.ts';
 
 const ID = 'you';
@@ -71,14 +71,15 @@ describe('the grace day', () => {
     expect(marks(dayD)).toContain('grace');
     expect(marks(dayD)).toContain('grace-warning');
 
-    // One more move is allowed: select yourself and step onto a hex still in the window.
-    const selected = tap(IDLE, dayD, ID, { kind: 'me' });
-    expect(selected).toEqual({ kind: 'selected' });
+    // One more move is allowed: tap a hex still in the window, and its Move.
     const safe = reachablePlaces(dayD, ID).find(
       (r) => r.place.kind === 'creature' || isInWindow(dayD, r.place.hex),
     )!;
     const target = safe.place.kind === 'hex' ? safe.place.hex : dayD.creature.centre;
-    const done = confirmMove(tapHex(selected, dayD, ID, target), dayD, ID);
+    const card = tapHex(IDLE, dayD, ID, target);
+    const plan = planMove(dayD, ID, safe.place, card);
+    expect(plan?.kind).toBe('planned');
+    const done = confirmMove(plan!, dayD, ID);
     expect(me(done.state).at).not.toEqual(onHex(hex));
     const next = nextDay(done.state);
     expect(me(next).status).toBe('active');

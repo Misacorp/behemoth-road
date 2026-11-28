@@ -48,11 +48,19 @@ async function team(ctx: GameContext, role: string) {
   return { misa, robin };
 }
 
-/** Puts Misa beside the creature on a hex that burns, with timber in the pack. */
+/** Puts Misa beside the creature on a hex with something to burn (a deadfall), with timber in the pack. */
 function besideWithTimber(ctx: GameContext): void {
   const state = storedState(ctx.sql);
-  const placed = (hex: { q: number; r: number }) =>
-    withCharacter(state, ME, { at: { kind: 'hex', hex }, pack: { timber: 1 } });
+  const placed = (hex: { q: number; r: number }) => {
+    const there = withCharacter(state, ME, { at: { kind: 'hex', hex }, pack: { timber: 1 } });
+    return {
+      ...there,
+      features: {
+        ...there.features,
+        [`${hex.q},${hex.r}`]: { type: 'deadfall', revealed: true, left: 1 },
+      },
+    };
+  };
   const hex = legalMoves(state, ME)
     .flatMap((p) => (p.kind === 'hex' ? [p.hex] : []))
     .find((h) => checkAction(placed(h), ME, { kind: 'light-fire' }).ok);
@@ -190,16 +198,19 @@ describe('the done criterion through the API', () => {
         const lit = await act(ctx, misa, { kind: 'light-fire' });
         expect(lit.status).toBe(200);
         const answer = lit.body as Answer;
-        expect(answer.events.map((e) => e.kind)).toEqual(['fire-lit']);
+        expect(answer.events.map((e) => e.kind)).toEqual(['fire-lit', 'feature-burnt']);
         expect(answer.game.stimuli).toHaveLength(1);
         expect(answer.game.characters.find((c) => c.id === ME)?.pack['timber'] ?? 0).toBe(0);
         const fire = answer.game.stimuli[0];
 
         const next = await ctx.call(misa, 'POST', '/api/dev/next-day', {});
         expect(next.status).toBe(200);
-        expect((next.body as PlayerView).signs.cues).toEqual([
-          { hex: fire?.hex, stimulus: 'fire', reaction: expect.any(String) as string },
-        ]);
+        // The fire's cue (a lure in reach, if there is one, leaves its own).
+        expect((next.body as PlayerView).signs.cues).toContainEqual({
+          hex: fire?.hex,
+          stimulus: 'fire',
+          reaction: expect.any(String) as string,
+        });
         const other = (await ctx.call(robin, 'GET', '/api/game')).body as PlayerView;
         expect(other.version).toBe((next.body as PlayerView).version);
         expect(other.signs.cues).toEqual([]);
@@ -229,7 +240,7 @@ describe('signs in the player view', () => {
         expect(keeperSigns.cues).toEqual(
           stored.care.cues.list.map((c) => ({
             hex: c.hex,
-            stimulus: 'fire',
+            stimulus: c.stimulus,
             reaction: expect.stringMatching(/^(toward|away|unmoved)$/) as string,
           })),
         );

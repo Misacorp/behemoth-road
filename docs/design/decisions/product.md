@@ -4,6 +4,306 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-28: Player text follows the glossary: foe, Strike, gear, food, when the day turns
+
+ID: `2026-11-28-player-text-follows-the-glossary-foe` · Status: current
+
+**Decision.** The glossary rewrites are applied to the code. The open choices are picked: "foe", never "threat", in player text; the verb stays "Strike" and foes "attack"; "gear", not "unlock"; "food", not "forage" (the item is renamed Food); "when the day turns", not "dusk". Two skills and two stances are renamed in player text only (ids stay): Standing guard is "Auto-defend", Wide guard is "Wide escort". Skill texts take their numbers from the content through `tipValues.ts`.
+
+**Reasoning.** One word per concept is the glossary's point; leaving the picks open kept the old words in half the texts. These are the lead's picks, not Misa's, and each is one edit to undo. Code ids (`threat`, `unlock`, `work-site`) do not change.
+
+## 2026-11-28: Threat stripes leave out the destination band
+
+ID: `2026-11-28-threat-stripes-leave-out-the-destination` · Status: current
+
+**Decision.** A selected threat's striped overlay draws only the `fire` reasons from `blockedFor`; the `sanctuary` hexes are left out.
+
+**Reasoning.** The destination band already glows gold, fog included. Stripes on only its explored hexes would look patchy over the glow and add noise.
+
+## 2026-11-28: surveyableHexes lists what a survey can reach
+
+ID: `2026-11-28-surveyablehexes-lists-what-a-survey-can` · Status: current
+
+**Decision.** `surveyableHexes(view, characterId)` returns the hexes the character could survey now: unexplored, within its survey reach (the next hexes, or two with Long survey), reachable, with the actions to pay. `actionsHere` already offered the further hexes; the web was only marking the adjacent ones. The helper is for the survey marks.
+
+**Reasoning.** Misa: with Long survey the survey icon only showed on adjacent hexes. The core allowed it already (`withinSurvey` reads the `survey-range` effect), so the fix is in the web; the helper gives it one call that cannot disagree with the rule.
+
+## 2026-11-28: Rivers run into lakes, ponds and seas **[Misa]**
+
+ID: `2026-11-28-rivers-run-into-lakes-ponds-and` · Status: current
+
+**Decision.** Bodies of water (sea, lake, pond) are set on a river where the cell has one: with chance `onRiver` (1 for all three kinds) a body is centred on a seeded river hex of its cell, so the river runs into it and out of it. Lake chance 0.35 to 0.4 and pond 0.15 to 0.2 so there are more bodies on rivers; the sea is unchanged. The cap on deep water is untouched (a body's radius bounds a crossing at 4). Over 20 seeds within 25 hexes of the start, the share of river hexes with water within 10 steps along the river went from 41 % to 63 % (within 20 steps 66 % to 86 %), at 6 % more deep hexes. Content version 25 (maps change).
+
+**Reasoning.** Misa: "Rivers feel dull when they don't lead to lakes or oceans." Rivers are contour lines of a noise field and water bodies sit on their own grid, so most rivers met water by chance. The terrain stays a pure function of the seed and the hex: the water code takes a test for river hexes from the terrain rules and picks the anchor hex by seeded hash. Rivers do not end at a lake: they pass through it, which reads as a river fed by a lake.
+
+## 2026-11-28: Scouts earn XP like everyone else, 18 XP a pick **[Misa]**
+
+ID: `2026-11-28-scouts-earn-xp-like-everyone-else` · Status: current · Amends: `2026-11-22-skill-xp-comes-from-any-contribution`
+
+**Decision.** Scouts no longer earn XP for exploring: `exploreXp` is 0 on every role (the mechanism and the number stay as role data). Every role earns 1 XP an act, at most 3 a day. `xpPerPick` goes from 14 to 18. Measured in the balance sim (careful, a scout that spends spare actions surveying, `BALANCE_SCOUT=survey`, 60 seeds, full season): before, the scout earned 4.9 XP a day (4.2 picks by day 10, 7.7 by day 20, 14.0 by day 40) against 0.8 for the warden (0.3, 0.9, 2.3) and 0.6 for the keeper (0.3, 0.8, 1.8); after, the scout earns 2.3 a day (1.6, 3.0, 5.2), the warden 0.7 (0.2, 0.7, 1.6) and the keeper 0.5 (0.2, 0.6, 1.2). The sim's non-scouts spend few actions on XP acts; a player who spends all 3 a day earns about 3.3 picks by day 20 and the tree (7 picks) at the very end of 40 days. The old 12-step season with 5 XP a pick (scout 5.3 XP a day, 4.8 picks by day 4, 12.7 by day 12) was most of why the scout maxed out in 10 days on staging; staging now plays the full season.
+
+**Reasoning.** Misa: "Scouts get EXP REALLY FAST ... I had maxed everything in just 10 days." A scout earned 1 XP for each survey and 1 for each hex it explored, so up to about 5 a day against 3 for anyone else, and a tree holds only 7 picks (three of its own, four other roles' tier 1). With the explore XP gone every role is capped by its actions, so all fill their trees at the same pace; 18 a pick puts half the tree at about day 20 of 40 for a player who acts all day and leaves it unfinished until the end. Tuned by config and data only. Careful parties earn fewer picks (0.9 each at 3 players, from 1.5), which costs a little: full season careful losses are 23 % at 3 players and 15 % at 6 (150 seeds), inside the goal of 30 %.
+
+## 2026-11-28: The season ends on a destination band, a sanctuary the map shows **[Misa]**
+
+ID: `2026-11-28-the-season-ends-on-a-destination` · Status: current
+
+**Decision.** The season ends when the creature's centre steps onto a band of hexes across the whole map, perpendicular to its heading, `destinationRowsPerStep` x `routeLength` rows out (24 rows for 40 steps) and `destinationDepth` (3) rows thick. It replaces "ends after `routeLength` steps". The view carries it from the first day as `game.destination: { origin, heading, from, depth }`; the core exports `inDestination`, `rowsAlong`, `destinationHexesNear`, `rowsToDestination`, `destinationProgress`, `isSanctuary` and `regionTagsAt` for the web. The band is a `sanctuary` region: threats never appear in it (`canAppearOn`), never walk into it (`threatPath` stops at the edge), `blockedFor` lists its known hexes with reason `sanctuary`, and hazards and lures are never laid in it or led into it. Contract in `docs/design/destination.md`. Content version 25.
+
+**Reasoning.** Misa: the destination was not visible and the game just ended; wanted a glowing area, free of foes. A step is a row straight on and half a row to either side, so a band of 1 row or more cannot be stepped over, and a line across the whole map cannot be missed by veering; it is stored as an origin, a direction and two numbers rather than a hex list because it is unbounded. Rows per step is a config number because play bends the path: left alone the creature averages 0.75 row a step, but fires, lures and hunger bring a careful party's creature to 0.59, and 0.6 puts the median arrival at day 41 of 40 (days 34 to 47, 150 seeds). So "9 of 40" can read a step or two over; the web clamps it or uses `destinationProgress`. The story's route beats read steps or the way to the band, whichever is further.
+
+## 2026-11-28: Staging plays the full season **[Misa]**
+
+ID: `2026-11-28-staging-plays-the-full-season` · Status: current · Supersedes: `2026-11-20-dev-season-brings-threats-from-the` · Amends: `2026-11-20-the-short-dev-season-follows-the`
+
+**Decision.** Staging (and local play) no longer gets a short season: `SERVER_CONFIG.devSeason` is empty, so a new game there uses the core defaults, the same as production (40-step route, `xpPerPick` 18, threats from day 3). The dev tools stay on there (skip to next day, fast rounds, new season); only the tuning overrides are gone. The capture test for fixtures sets its own 12-step season on the stored game so the captured plays stay short. The balance sim keeps `DEV_SEASON` as a second, short scenario.
+
+**Reasoning.** Misa asked for it after the playtest. The 12-step season with 5 XP a pick gave a scout the whole tree in under a week (4.8 picks by day 4 and 12.7 by day 12, measured in the sim), so staging said little about how the real game paces. Testing the real season is the point of staging.
+
+## 2026-11-28: Player text follows one glossary **[Misa]**
+
+ID: `2026-11-28-player-text-follows-one-glossary` · Status: current
+
+**Decision.** Every string a player reads follows `docs/design/glossary.md`: one noun or verb per concept, short plain words, no metaphors or idioms, and effects said in what the player can see (actions, hexes, peril, a foe's strength). Foes attack the creature (peril), characters Strike foes, and a character a foe attacks is Hurt; the tick is "when the day turns"; "Pinned" (never "buried"); "Search" (never "work") a site; "gear" for built things. `docs/design/text-audit.md` lists every string that breaks it with a rewrite; the rewrites are applied after the parallel UI work merges. Picks awaiting Misa's confirmation are listed at the end of the glossary.
+
+**Reasoning.** In playtest the Bulwark text, "Standing guard turns more of each blow", could not be read without knowing the game: "Standing guard" is a skill name, an action's verb and a lookalike of the Lie in wait stance, and "blow" was a fourth word for a strike. Misa asked for one glossary every text adheres to. The code ids stay as they are (threat, unlock, work-site); only what the player reads changes.
+
+## 2026-11-28: Round 16 screens: locked skills show their text, ending recap in a drawer, darker fog, destination glow **[Misa]**
+
+ID: `2026-11-28-round-16-screens-locked-skills-show` · Status: current
+
+**Decision.** (1) Every skill node shows its title and line in the tree, locked or not; a small mark says why it is out of reach (padlock: an earlier step first; cross: the other branch was chosen; dashed ring: not enough XP). (2) The creature menu's card drops the heading arrow (the drawing already faces the way it walks) and each care action shows its verb under its icon. (3) The welcome-back recap gives each card a short line of story (`RECAP_TEXT` in `text/story.ts`) and each icon opens its tip. (4) On desktop the ending stays calm and the recap opens in a right drawer from the recap button; phones keep the inline recap. (5) The eye mark for discovered or undiscovered is removed; the unexplored veil is darker with thick stripes (`ART_TUNING.veil*`). (6) The destination area (`game.destination.hexes`, assumed until the core's contract lands) glows gold-green on the map, over fog, and the route strip's Greyfold mark carries the same light.
+
+**Reasoning.** Misa's playtest asks: players felt out of control when locked nodes said only "Not yet"; the arrow beside the creature asked what it was; the recap had icons but no story; the desktop ending was crowded; fog was too light to read as unknown; and the goal should be visible on the map.
+
+## 2026-11-28: An armed action shows what it does; stances sit by the hourglass **[Misa]**
+
+ID: `2026-11-28-an-armed-action-shows-what-it` · Status: current
+
+**Decision.** An action's first tap shows a passing tip anchored to its button (it may cover the popover); on desktop the same tip shows on hover. Each action has one line, the verb as the tip's title and one plain sentence ("Lead. Move the capybara to a neighbouring tile."); an action that rolls adds its odds from `oddsOf` ("Success 70% · Angered 30%") through the tip's `{note}`. The small odds bar stays on the button: it reads at a glance and the tip sits above the button, not over the bar. The role picker's tips no longer give odds, only plain words ("Better at working tombs", "Better at parley and strikes"). The stance chooser moves from beside the character button to beside the hourglass: a round stance button right of the wait button, whose tap opens a fan of the three stances above it (a hold or hover shows each one's tip). Long survey: the survey icon shows on every hex the core lets you survey, not only the neighbours.
+
+**Reasoning.** Misa's playtest: players did not know what an action did before spending it, could not tell parley's risk, and took long to find stances for ambushes. Putting the odds in the tip keeps numbers out of the UI until asked for, and one line per action keeps the verbs consistent with the buttons.
+
+## 2026-11-28: Moving: tap a tile, tap its Move to see the route, tap Move again **[Misa]**
+
+ID: `2026-11-28-moving-tap-a-tile-tap-its` · Status: current · Supersedes: `2026-11-19-moving-tap-your-character-tap-a`
+
+**Decision.** Supersedes "tap your character, tap a tile". Tapping any tile opens its popover; Move is one of its actions whenever you can stand there (the core's `planPath` gives the pips). The first tap on Move draws the route arrow (as a threat's route shows) and arms it, the second walks. A tile that costs more than a day's actions has Move greyed with the day's pips and a plus ("●●●+"), and a tap says "Too far"; one you can reach in a day but not with the actions left shows its real cost greyed. A tile with no way there has no Move. Boarding, stepping off, crossing the creature, the raft, the cart's extra cost and the cart's refusals all go through the same button: the creature's bubble carries the Move that boards it; a settlement's card carries the Move onto it. Tapping your own character still opens your own card with the here actions and lights what you can reach. A tap on a lone lure or cart opens its card (no longer a walk there). The practice map's guide teaches tap tile, Move, Move again.
+
+**Reasoning.** Misa's playtest: players felt lost having to select their character before they could move. Moving through one button on the tile's own card puts it beside the other actions there (a neighbour often shows Move and Survey) and reuses the arm-then-spend pattern of every other action.
+
+## 2026-11-27: End-of-day reveals happen after the creature moves **[Misa]**
+
+ID: `2026-11-27-end-of-day-reveals-happen-after` · Status: current
+
+**Decision.** Reveals that happen by themselves at the day tick run after the creature's step and the window update, so a character starts the next day with their surroundings revealed, even at the old edge of the window. The Scout's Sweep (`applySweep` in `skilltick.ts`, no longer part of `applySkillTicks`) explores every unexplored hex in view next to each scout, for no XP (it is data: `count: 6` in the node, restoring the original design and matching the tip "the hexes around you are explored as the day turns"; it was 2); the log lists its `explore` and `reveal` events after `creature-step`. A burning brazier's per-night reveal already ran after the step and still does (tested at the window edge). Glints and Far sight are view-only, computed from the state, so they follow the new window with no change. The stance reveals stay before the step on purpose, since a watcher's reveals count for today's step. Saved games keep working: no state shape or content changed, so the content version stays.
+
+**Reasoning.** Misa, a Scout with Sweep at the leading edge of the map, saw the creature step away and the hexes beyond them stay hidden, because the reveal had run on the old window first. Revealing last matches what a player expects of "when the day ends": see the result of the night, then the sweep. Nothing reads explored state when the creature chooses its step, so the reorder does not change where it goes; the sim shows the same seasons (150 seeds, careful and careless, 3 and 6 players).
+
+## 2026-11-27: A drawer closes only on a mouse press on the map, and focus returns to its opener
+
+ID: `2026-11-27-a-drawer-closes-only-on-a` · Status: current
+
+**Decision.** Amends `2026-11-27-desktop-drawers-close-by-escape-a`. On desktop only a mouse press on the map surface itself closes a drawer (not a popover over it, the HUD, the dev buttons or the drawer). A click with no movement closes it and is swallowed (its pointer-up and its own click, matched to that press, with no timer); a drag that starts there closes it at once and still pans. A press on any control outside the map acts as usual and leaves the drawer open. Touch and pen keep their old behaviour. Focus goes into a drawer on `[data-autofocus]`, else its first body control (never the close cross), and returns to the element that had focus at open, on every way of closing, with no ring.
+
+**Reasoning.** Swallowing every outside press ate real controls such as Story, so the rule is narrowed to the map, the only thing a "tap elsewhere" should mean. Gating to the mouse and matching the same pointer avoids eating a later tap, and not swallowing drags keeps panning. Returning focus regardless of how focus got there matches the focus rule, since the stylesheet draws no outline.
+
+## 2026-11-27: One registry of tappable things feeds the picker and the tap resolver
+
+ID: `2026-11-27-one-registry-of-tappable-things-feeds` · Status: current
+
+**Decision.** `pickEntries` (`map/flow.ts`) is the one list of what can be tapped on a hex: you, other characters, the capybara, the cart (unless you pull or ride it: then it is part of your own card), threats and the tile's settlement or feature. The tap resolver and the picker's bubbles both read it; a tap on any figure of a hex with two or more entries opens the picker, and your own figure no longer wins a shared hex. The capybara and cart cards opened from a bubble carry a back button; Lead from your own hex goes through the capybara's bubble. Amends the picker decision of 2026-11-21.
+
+**Reasoning.** Misa's staging playtest: you and a capybara on one hex never showed the picker, because the lure and cart were separate tap targets that the picker did not list. One registry means a new kind of thing cannot bypass the picker.
+
+## 2026-11-27: Desktop drawers close by Escape, a press outside, a right-click and a small cross
+
+ID: `2026-11-27-desktop-drawers-close-by-escape-a` · Status: current
+
+**Decision.** On desktop every drawer closes by Escape, by a primary press on the map outside it, by a mouse right-click outside it (when the setting allows, as for popovers) and by a small icon-only cross in its top corner. The outside press only closes: it and its click are swallowed, so no tile is picked and no popover opens. Round HUD buttons, popovers and tips over a drawer do not close it. The skills button toggles its tree. Phones keep the handle (drag down) and stay as they were. On desktop the join drawer's role cards stack as a list inside the drawer instead of a swipe strip.
+
+**Reasoning.** A drawer had no close affordance but Escape (which a hover tip on the opening button takes first), so Misa could not close the skill tree with the mouse. The role strip was a horizontal swipe with its scrollbar hidden, which a mouse cannot use and which overflowed the 360 px drawer.
+
+## 2026-11-26: Lure and cart web controls: lead mode and one-tap loading
+
+ID: `2026-11-26-lure-and-cart-web-controls-lead` · Status: current
+
+**Decision.** Leading a capybara: tap it (card), tap its lead button (lead mode, the hexes the core allows light up), tap one (arrow and cost), confirm: one more tap than a move, and the button only changes mode, it spends nothing. The cart: tap its drawing (or the cart button in your own card when you stand on its hex) for its card; hitch and board toggle (the icon shows sealed while on, a tap undoes it), and loading is one tap per unit on a material icon, in your pack row to load and in the cart row to unload (free, so no arming). Whoever pulls or rides is drawn by the cart, not as a second standee. A refused move because of the cart (aboard, terrain it cannot roll over) shows the core's reason as a tip on the tapped hex. Moments are composed from existing art (no new moment kinds in the art kit).
+
+**Reasoning.** Keeps every control a drawn, touch-first tap with no form inputs, and keeps the rules in the core (every button is the core's own `checkAction`). Moving one unit per tap is slower for big hauls but needs no amount picker; the cart holds eight.
+
+## 2026-11-26: A brazier's reveal counts as explored for good **[Misa]**
+
+ID: `2026-11-26-a-brazier-s-reveal-counts-as` · Status: current
+
+**Decision.** A brazier's reveal is the same act as a player exploring: `lightAround` calls `exploreHex`, so the tile is `explored` and its feature `revealed`, in the state, and nothing un-explores them when the fire dies. A test proves it after burn-out.
+
+**Reasoning.** Misa asked that what a brazier shows stays shown. Reusing the explore path keeps it one rule.
+
+## 2026-11-26: A blocked-hexes helper lists where a subject will not go **[Misa]**
+
+ID: `2026-11-26-a-blocked-hexes-helper-lists-where` · Status: current
+
+**Decision.** `blockedFor(view, subject)` returns `{ hex, reason }[]` for any subject with tags. It starts with a `fears-fire` subject: every hex in the ring of each burning fire, reason `fire`. `reason` is a tag-like word so later blockers (water, a cart's terrain, a hazard) add entries without a new overlay. Public data only.
+
+**Reasoning.** Misa wants a contextual "can't go here" overlay. One generic helper that reads tags keeps the web from knowing about fire.
+
+## 2026-11-26: Odds are shown for every roll, from one function; hidden chances give none **[Misa]**
+
+ID: `2026-11-26-odds-are-shown-for-every-roll` · Status: current
+
+**Decision.** `oddsOf(view, characterId, action)` returns `{ success, failure, failureKind }` or null. It covers strike on a `falls` threat (failure `buried`), struggle (`still-pinned`), parley with a wary settlement (`angered`) and working a revealed site (`site-failed`). It returns null for actions with no roll, and where the chance rests on hidden information (a trap, an unrevealed feature, a site the character cannot work at all); a hidden chance is never shown.
+
+**Reasoning.** Misa wants the chances of success and failure shown for every roll from one reusable piece. Returning null instead of a guess keeps `toPlayerView` free of leaks. `fallChance` stays exported.
+
+## 2026-11-26: A pinned character struggles free: each try rolls, the chance grows **[Misa]**
+
+ID: `2026-11-26-a-pinned-character-struggles-free-each` · Status: current
+
+**Decision.** A pinned character keeps the actions they have left (and gets a full day the next day) and may spend them only on `struggle` (1 action), `set-stance` and `pick-skill`. A struggle rolls from seed, day, character and try number: the chance is `struggleChanceBase` (0.2) plus `struggleChanceStep` (0.2) per earlier failure under the same pin, so the fifth try always frees. `struggles` counts failures and resets on freeing. A dig-out still frees at once. The backstop stays: still pinned a day after the pin day ends, they free themselves at that tick. Pinned characters do not act on their stance at the tick. Event `struggled { characterId, freed }`.
+
+**Reasoning.** Misa: a buried player should not lose their days. With two or three actions a day they are usually free in one or two days. Deriving the roll from the try number means refusals cannot reroll it.
+
+## 2026-11-26: Cart rules: seat, hitch, load, push and loss
+
+ID: `2026-11-26-cart-rules-seat-hitch-load-push` · Status: current
+
+**Decision.**
+
+- **Seat.** A rider moves with the cart for nothing and cannot move on their own while aboard (`aboard`), but acts on the hex like anyone (gather, strike, build is out as it needs the creature). Leaving is free.
+- **Hitch.** One puller. Hitching costs 1, unhitching is free. Each step costs the puller `cartPullExtra` more, over `open` and `wooded` ground only; the creature, water, swamp, cliff and deep water are refused with `cart-terrain`. A puller or rider hauled aboard the creature (tow line, pick-up at the tick) lets go; the cart stays.
+- **Load.** `load` and `unload` are free, on the cart's hex or next to it (from the creature too), limited by the pack and `cartCargo`. A creature rider's unload goes straight into the stores (the pack is emptied at once), so a cart parked beside the creature is a way to haul goods in.
+- **No cart on the creature.** If the footprint walks onto the cart at the tick, its people are picked up and the cart is pushed to the nearest free rollable hex (rings outward from where it stood, same order every time); with none in the window it is lost.
+- **Loss.** A cart outside the window past the grace days is lost with its cargo, like a character; a rider is lost as a character. A lost cart can be rebuilt at full cost (`cartsMax` 1 counts carts on the map).
+- **A vehicle is not a team unlock.** Finishing the build places the cart (`cart-built`, after `unlock-done` so the tallies still count it); `unlocks` does not hold it.
+- **Stranded.** The flare counts a puller or rider's way home on foot, since letting go is free.
+
+**Reasoning.** The principles of `world/vehicles.md` (a player's own action to enter, no stance drives, the tick never moves a vehicle) fit a cart as they do a sled. Pulling for more and refusing the creature keeps it a trade: more carried, slower, never a free ride home. Pushing instead of destroying avoids a cart lost to a step nobody chose. Free loads keep the cart a tool rather than another action sink.
+
+## 2026-11-26: A cart, the first land vehicle (Misa's ask) **[Misa]**
+
+ID: `2026-11-26-a-cart-the-first-land-vehicle` · Status: current
+
+**Decision.** Misa asked for a cart or similar vehicle that hauls more goods, or a single player if people want that. The cart is built first, before the sled and the tow line's cousins in `world/vehicles.md`: an Engineer project at the hub (2 timber, 3 work, one per party), a hand cart with `cartCargo` 8 units and one seat, hitched to a puller or ridden. The details are in the cart rules decision and `docs/design/cart.md`.
+
+**Reasoning.** It is the simplest land vehicle that does what was asked (more goods per trip, a seat for one) and it exercises the vehicle data shape (`Unlock.vehicle`) the sled and raft can reuse.
+
+## 2026-11-26: Hazard patches are laid lazily across the route, and tuned to 12 hexes apart
+
+ID: `2026-11-26-hazard-patches-are-laid-lazily-across` · Status: current
+
+**Decision.** Map generation lays hazard patches lazily as the creature walks, not all at game start. Patch `k` is laid `windowRadius + 3` hexes ahead along the creature's heading (a hex to one side now and then) once its steps bring the patch's route position (`hazardFirst + 3 + k * hazardSpacing`, a hex either way) within that, so it always lies across the straight line the creature is on. The plan is server only (`hazardPlan`); the terrain shows as tiles come into view and a scree field's rockslides appear (public, tagged with their patch, outside the `threatsMax` cap) once the patch is within `windowRadius - 1`. Lures are placed the same way. `hazardSpacing` is 12 (the brief's start was 8). `perilOnStep` is 2 on both terrain hazards, the lure's range 6 and the glass waste a disc of radius 1.
+
+**Reasoning.** A fixed plan from the start would drift out of the creature's way within a few steps (its route wanders, as the brazier plan's does), so most patches would never be met. Laying them ahead of where it really is keeps each one a real choice. In the balance sim (150 seeds, careful, full season) spacing 8 pushed careful losses from 13 % to about 25 %, and radius-2 glass waste and a range-4 lure made steering too weak to pay; at spacing 12 a steering party loses 17 % (3 players) and 14 % (6) against 13 % and 9 % before the hazards, and a party that does not steer loses 26 % and 15 % (numbers in `docs/progress.md`).
+
+## 2026-11-26: A lure animal is a second steering tool (Misa's ask) **[Misa]**
+
+ID: `2026-11-26-a-lure-animal-is-a-second` · Status: current
+
+**Decision.** A small animal, the capybara, is a second steering tool. Lures are content (`LURE_TYPES`, tags `small-beast` and `lure`, a push and a range as data). Each acts on the creature's step like a fire for as long as it is on the map, by the creature's hidden reaction to the tag `small-beast`, which the Mossback rolls at creation as attracted or repelled, never indifferent, and the Keeper reads the way they read fire (the same cues). A character on the lure's hex or next to it can `lead` it one hex (cost `leadCost`, 1; `lureLeads`, 3, leads in all); at 0 it settles: it stays and still acts but cannot be led. A lure the creature's footprint reaches flees (removed, `lure-fled`); one left out of the window drops off quietly. Lures are placed near the route about every `lureSpacing` (7) hexes, never on water.
+
+**Reasoning.** Misa's idea (an elephant and a mouse: a big creature drawn to or afraid of a small one). It gives steering a tool that needs no wood and no brazier on the right side, but it is bounded: three leads, and it is gone once the creature reaches it, so it cannot be reused for ever.
+
+## 2026-11-26: Hazards across the route make steering worth it (Misa's ask) **[Misa]**
+
+ID: `2026-11-26-hazards-across-the-route-make-steering` · Status: current
+
+**Decision.** Hazards lie along the way: scree fields (3 to 5 rockslides laid together, tag `falls`), poisoned lakes (terrain tagged `water` and `poisoned`) and glass waste (terrain tagged `sharp` and `dry`). A creature step ending on terrain with `perilOnStep` adds that peril (2 for both; defence does not reduce it); the glass waste also costs a walker one more action to enter (`extraMoveCost`, the existing field the brief called `moveExtra`); nothing is found or gathered on poisoned ground. The creature does not avoid them by itself: steering is the players' job. None lies within `hazardFirst` (6) hexes of the start.
+
+**Reasoning.** Misa wants steering the creature to be worth it. Steering round a single rockslide did not clearly beat striking it down; terrain and clusters cannot be cleared by hand, so walking straight in costs peril and a hex or two sideways avoids it.
+
+## 2026-11-26: Striking a rockslide can bury the striker **[Misa]**
+
+ID: `2026-11-26-striking-a-rockslide-can-bury-the` · Status: current · Amends: `2026-11-21-a-rockslide-strikes-only-its-own`
+
+**Decision.** A strike on a threat tagged `falls` (the rockslide) rolls, seeded by the seed, the day, the striker, the threat and its strength, against `slideFallChance` (0.2). The blow still counts. On a fall the striker is **pinned** (`pinnedDay`, public): they lose the rest of the day, cannot move or act (a stance and skill picks still work), and are freed by another character on the same or a neighbouring place with a new `dig-out` action (`digOutCost` 1, target a character id), or on their own at the tick that ends the day after they were pinned (so at worst the rest of today and all of tomorrow). Events `pinned` and `dug-out` are public. `sure-footed` effects (`{ kind: 'sure-footed', tag, factor }`, on a role or a skill node, multiplied together) lower the chance: the Engineer has factor 0.5 as a role effect (new optional `Role.effects`), and Pack mule (engineer, branch a, tier 2, via a new optional `SkillNode.extra`) has factor 0, so an Engineer who has taken it is never caught. Only an active strike rolls; lying in wait does not. Balance sim, careful parties, 150 seeds, full season: see `docs/progress.md`. Content version 23. Contract for the web in `docs/design/fire.md`.
+
+**Reasoning.** Misa's direction: striking a rockslide became the guaranteed way to remove it (three strikes), so it should carry a risk that skill, role and luck reduce, and the cost of a fall (actions lost, a rescuer's action) should be a reason to steer clear with fire instead. Putting the chance in the tuning config and the reductions in role and skill data keeps the rule free of ids: any threat tagged `falls` behaves alike. A pinned character who nobody frees frees themselves, so nobody is stuck for good; a role-level effect (stonework) makes the Engineer the natural striker of rocks without a new role rule.
+
+## 2026-11-26: Threats tagged fears-fire keep clear of burning fires **[Misa]**
+
+ID: `2026-11-26-threats-tagged-fears-fire-keep-clear` · Status: current · Amends: `2026-11-20-threats-are-tagged-data-that-appear`
+
+**Decision.** `fears-fire` is a threat tag, on the swarm and the stampede (beasts), not on people. A threat with it never steps into, stops on or strikes from a hex within `fireFearRadius` (1) of a burning fire (any stimulus tagged `fire`, counted through the night it burns out), and does not strike characters standing in that ring. If its next step would enter the ring it holds where it is (it does not go around: the simplest correct behaviour); one already inside the ring when a fire is lit strikes nothing from there and walks out if its next step leaves the ring. It cannot appear inside the ring. The public outlook (`threatOutlook`, `threatNextPath`) accounts for fires still burning at each tick it looks ahead. Read by tag only; new beasts get the tag in data.
+
+**Reasoning.** Misa liked the tag: fire should make other things react, not only the creature, and a fire between the team and a beast should be worth something. Holding is the simplest rule that is always correct (no path search), and it keeps the stimulus system general: a later scent, call or lure is a new stimulus type with tags plus a small rule reading a threat tag, as this one does. People are not afraid of a fire, so raiders and captors are unaffected. The brazier's first use against threats is protecting the creature's flank for a few nights; steering the creature itself is the first use against a rockslide.
+
+## 2026-11-26: Fire needs something to burn: braziers and burnables
+
+ID: `2026-11-26-fire-needs-something-to-burn-braziers` · Status: current · Amends: `2026-11-20-light-a-fire-shows-on-your`
+
+**Decision.** `light-fire` is valid only on a hex that holds a revealed feature tagged `fire-site` (the **brazier**, content `brazier`, feature kind `hearth`) or `burnable` (deadfall and snare); anywhere else it is refused `nothing-to-burn` (water is still `cannot-burn`, and the other refusals are unchanged). Fuel is still 1 wood and `lightFireCost` actions. A lit brazier is its own stimulus type, `brazier-fire` (tags `fire`, `fire-site`, `heat`, `light`, so the creature reacts by the same `fire` tag), with its own `push` 2 and `range` 5 in the stimulus data (`content/stimuli.ts`; a burnable still lights the plain `fire`: push 1, range 3, one night); the Beacon still widens range and push on top and adds a night (`nights: 1` on the skill). It but burns `brazierNights` (4) ticks, counts the hexes within `brazierRevealRadius` (2) as explored while it burns (when lit and at each tick through its last night, for hexes in view), and can be lit again once burnt out. A burnable is burnt away for good and is a one-night fire. A new stimulus field `nights` carries the length, `reveal` the radius; `fire-lit` is followed by `feature-burnt` for a burnable, and a lit brazier leaves the existing `fire` trace. Map generation (`brazierPlan`, seeded, server-only `GameState.brazierPlan`) puts the first brazier within `brazierFirstWithin` (4) hexes along the route from the start and then one about every `brazierSpacing` (6) hexes (jitter of one either way), two or three hexes beside the straight line the creature follows on average (where a rockslide on the line is best steered clear of), never on water, cliff or an island; a brazier is revealed as soon as its hex is seen and is the only feature not hidden until explored. Content version 23. Amends the rule that a fire can be lit anywhere with fuel (the card offered it on any hex when carrying timber; it now shows only on a brazier or burnable). The Engineer's rain-proof brazier in the world notes is a different, later idea (an unlock); this one is an old brazier on the map.
+
+**Reasoning.** Misa's direction: lighting a fire anywhere for one wood and one action crowded the options and did one thing. Making fire need something to burn gives it places and a cost in walking, so steering is a plan (reach a brazier, bring wood) rather than a reflex, and it is worth it when a static threat lies ahead. Putting braziers along the likely route makes the first test of the creature's reaction early and then keeps a choice in reach roughly every six hexes. Burnables give a second, ad hoc way to light a fire from what the party passes. Placement is a pure function of the seed, the start and the heading, so it is reproducible and tested; the plan stays on the server so the map ahead is not revealed. Every number is in the tuning config or the stimulus data.
+
+Tuning (amended 2026-11-26). Misa's goal is that steering beats striking. Staged test (rockslide on the line, creature at rest, a lit brazier beside the route, 300 seeds, hit chance on the creature from 66 % with no fire): the first spec (push 1, range 3, 3 nights) only got to 35-54 %; push 2, range 4, 3 nights to 16-70 % depending on where the brazier stood; push 2, range 5, 4 nights to 2-45 % (mostly 3-30 %), and about 25 % or less for a repelled creature or a brazier two or more hexes off the line for an attracted one (a creature drawn to a fire settles beside it, so a brazier one hex off the line cannot clear it). Hence push 2, range 5, nights 4, and braziers placed two or three hexes off the line. Push 3 added little. Balance sim, careful party, 150 seeds, full season, rockslides that struck the creature per season (of about 5.4 at 3 players, 7 at 6): before 0.20 / 0.08; striking only 0.33 / 0.09; with steering 0.45 / 0.24. Losses at 3 / 6 players: 11 / 10 % before, 11 / 9 % striking only, 12 / 8 % with steering; fires lit per season 0.23 / 0.27 (wood must be fetched into the lighter's own pack, and only a brazier within reach this day or the next is used). Stocked braziers (amended again 2026-11-26, Misa's pick): a brazier is found stocked, old dry fuel in the bowl, so its first lighting needs no wood (data `stockedFuel: true` on the feature type; the public per-feature flag `stocked` clears at the first lighting); a relight needs 1 wood as before, and `no-fuel` is only for an unstocked one. Sim with this, 150 seeds, 3 / 6 players: fires lit 1.5 / 1.6 a season (from 0.23 / 0.27), pinned 2.1 / 4.1 (from 2.9 / 4.6 striking only), rockslides hitting the creature 0.41 / 0.29 (striking only 0.33 / 0.09), losses 13 / 9 % (striking only 11 / 9 %; before 11 / 10 %), mean peril 2.73 / 1.61 (2.45 / 1.64). Steering is now used and spares strikers and rescuers, but at 3 players it still costs a little in losses and hits.
+
+Before stocking, steering was not better than striking in the sim: striking is about 94 % effective and costs 2 to 3 actions, a fall (20 % a strike) pins about 2.7 / 4.3 characters a season. Making steering pay needs wood that can be carried ahead or a firmer brazier; not tuned further here, and `slideFallChance` is unchanged.
+
+## 2026-11-25: The tow line is for those outside the window
+
+ID: `2026-11-25-the-tow-line-is-for-those` · Status: current
+
+**Decision.** A thrown tow line is refused (`in-window`) when the target is already inside the window: they can walk to the creature. It remains for characters cut off outside it, up to the first ring.
+
+**Reasoning.** Review of #19: a line to someone who can simply walk is a wasted action and a way to skip the walk cost.
+
+## 2026-11-25: Story core: traces, storylets and endings are public and change no rule
+
+ID: `2026-11-25-story-core-traces-storylets-and-endings` · Status: current
+
+**Decision.** The core keeps public `traces` (fire, trail, cairn, chain, gate; at most `traceCap` 60, written when the event happens, dropped with their hex) and a thin storylet engine: content `STORYLETS` with conditions over a closed union of public facts, at most `storyPerDay` (2) fired a game day, the rest queued, each firing a public `story` event naming the condition. The first beats (setting out, terrain under the first footprint) fire at game creation with no event. A tuning flag `storyOn` exists so a test can prove that nothing else changes. The creature's kind is public (`creature.kind`). The Worker keeps per-player reads in `story_read`, set by `POST /api/me/story-read`, and returns `you.storyRead` and `ending`. Content version 22. Details in `docs/design/story.md`.
+
+**Reasoning.** The world proposal's season one cut. Conditions take a `GameStateView`, so they cannot read the seed, nature, care or hidden features, and the balance simulation plays identically with the story on and off. A read table per player keeps cards from repeating across devices, and a memory copy keeps an unchanged or changed poll at zero extra rows.
+
+## 2026-11-25: Blessings become a rule only after the balance sim **[Misa]**
+
+ID: `2026-11-25-blessings-become-a-rule-only-after` · Status: current
+
+**Decision.** A creature kind's `blessing` is public data (tags for art and lines) until the balance simulation has been run with it. Then one generic rule may read the tag and public peril: low peril for five steps makes the blessing appear ahead. Hunger is never read.
+
+**Reasoning.** Misa's pick on question 5. A blessing is a free gain; it must be tuned against peril before it can change play.
+
+## 2026-11-25: The Reckoners arrive in season two with their own threat **[Misa]**
+
+ID: `2026-11-25-the-reckoners-arrive-in-season-two` · Status: current
+
+**Decision.** The Reckoners, a grieving order that ends creatures, arrive in season two with their own threat type and a loss ending, and never strike riders. Season one has only the faceless captors. The havoc-driven rise of v4 is cut.
+
+**Reasoning.** Misa's pick on question 4. It keeps the first season simple and the ambush faceless, and the threat's `ending` field already has room for a second kind.
+
+## 2026-11-25: Ending titles follow fate: Arrived, Gone on, Lost **[Misa]**
+
+ID: `2026-11-25-ending-titles-follow-fate-arrived-gone` · Status: current · Amends: `2026-11-24-endings-get-a-line-each-varied`
+
+**Decision.** The ending title follows the creature's fate and the outcome: stays: 'Arrived' or 'Arrived, wounded'; goes on: 'Gone on' or 'Gone on, wounded'; lost: 'Lost'. This replaces 'Home safe' and 'Home, wounded'. The line under it is `${creature}.${outcome}` for safe and wounded; for lost it follows the largest `stats.peril.added` source (a tie goes to the latest strike): `ending.lost.hunger`; `ending.lost.pursuer` for a threat type with `ending: 'pursuer'`; no line otherwise. Built as core `endingOf` (`docs/design/story.md`).
+
+**Reasoning.** Misa's pick on question 3. The words 'home' and the in-world road are retired, and a creature that goes on never arrives home. The explicit `ending` field on threat content keeps rules reading data, not ids.
+
+## 2026-11-25: At a go-on ending the party watches rather than rides off **[Misa]**
+
+ID: `2026-11-25-at-a-go-on-ending-the` · Status: current
+
+**Decision.** When an old creature goes on, the party watches from where its tracks stop; nobody rides off with it. A young creature is left to live in its place. Either way the characters leave play as now.
+
+**Reasoning.** Misa's pick on question 2. Fate must not decide who could come back as a veteran, and watching keeps the party in every ending line.
+
+## 2026-11-25: Young creatures stay and old ones go on; old kinds from tier two **[Misa]**
+
+ID: `2026-11-25-young-creatures-stay-and-old-ones` · Status: current
+
+**Decision.** Each creature kind has a `fate`: `stays` (young: it lives where it is going and the place comes alive) or `goes-on` (old: it leaves the world by its own way out, stopping on the way to do last things). The Mossback is young. Old kinds come from tier two. Fate is story only: no rule reads it, and it never touches the roster, veterans or the sanctuary.
+
+**Reasoning.** Misa's pick on question 1 of the world proposal. One premise explains both, and fate staying out of the rules keeps every later kind cheap to add.
+
+## 2026-11-25: The world: creatures are living beings everyone knows **[Misa]**
+
+ID: `2026-11-25-the-world-creatures-are-living-beings-2` · Status: current
+
+**Decision.** The world follows the v4.1 proposal (`docs/design/world/world.md`). Creatures are living beings that everyone has seen or heard of, not terrain. The Open Gate, a company drawn from all peoples, helps them: it opens what holds a creature and walks beside it. The Wheelhouse harnesses creatures. The Reckoners end them. Peoples read the same five facts differently. The five facts: a young one is first seen grown and old as trees; it walks toward one place; things grow on it; where a young one stays, the land changes; an old one walks to the edge of what anyone knows and is not seen again.
+
+**Reasoning.** Misa's call on the world's foundation. It keeps the creature the centre of play and gives every people, threat and ending one frame, with the keeper's puzzle protected (no sound, habit or blessing names a stimulus or shows hunger). The season one cut is built from it (`docs/design/story.md`).
+
 ## 2026-11-24: Lakes, ponds and seas: the creature swims, a raft lets everyone else cross **[Misa]**
 
 ID: `2026-11-24-lakes-ponds-and-seas-the-creature` · Status: current
@@ -158,7 +458,7 @@ ID: `2026-11-24-madness-far-eyed-is-parked` · Status: current
 
 ## 2026-11-24: Endings get a line each, varied by the largest peril source **[Misa]**
 
-ID: `2026-11-24-endings-get-a-line-each-varied` · Status: current · Amends: `2026-11-20-peril-is-a-public-track-the`
+ID: `2026-11-24-endings-get-a-line-each-varied` · Status: current, amended by `2026-11-25-ending-titles-follow-fate-arrived-gone` · Amends: `2026-11-20-peril-is-a-public-track-the`
 
 **Decision.** Each ending shows a short line (amends 'a title only'). The line varies by the tag of the largest source of peril in the season.
 
@@ -310,7 +610,7 @@ ID: `2026-11-22-the-catch-up-is-1-xp` · Status: current · Amends: `2026-11-22-
 
 ## 2026-11-22: Skill XP comes from any contribution, one pool per character **[Misa]**
 
-ID: `2026-11-22-skill-xp-comes-from-any-contribution` · Status: current · Supersedes: `2026-11-22-skill-picks-are-earned-by-working`
+ID: `2026-11-22-skill-xp-comes-from-any-contribution` · Status: current, amended by `2026-11-28-scouts-earn-xp-like-everyone-else` · Supersedes: `2026-11-22-skill-picks-are-earned-by-working`
 
 **Decision.** Each character has one XP pool (`skills.xp`, replacing role notches). Every action that contributes earns 1 XP: survey, gather, work a site, build, feed, linger, light a fire, strike, defend, parley, offer, ask a boon (data: `ACTION_XP`). Moving and picking earn nothing; a refused action earns none. A scout also earns 1 XP for each newly explored hex, whether walked into or surveyed (data on the role: `exploreXp`). A pick costs `xpPerPick` (14 on a full season, 5 on the dev season) and buys a node of your own role's tree (tier order; the first pick closes the other branch) or another role's tier 1, whatever role you earned the XP in. `picksAvailable(state, character)` is floor(xp / xpPerPick) less the nodes taken. Balance sim, careful parties, 40 seeds: 1.4 picks each per full season at 3 players and 1.0 at 6 (before: 1.6 and 1.0); dev season 1.2 and 0.9 (before 1.3 and 0.7). Content version 15.
 
@@ -390,7 +690,7 @@ ID: `2026-11-21-a-tap-elsewhere-only-closes-an` · Status: current · Amends: `2
 
 ## 2026-11-21: A rockslide strikes only its own hex (threat reach) **[Misa]**
 
-ID: `2026-11-21-a-rockslide-strikes-only-its-own` · Status: current · Amends: `2026-11-20-threats-are-tagged-data-that-appear`
+ID: `2026-11-21-a-rockslide-strikes-only-its-own` · Status: current, amended by `2026-11-26-striking-a-rockslide-can-bury-the` · Amends: `2026-11-20-threats-are-tagged-data-that-appear`
 
 **Decision.** Threat types get a data field `reach`: how far from its hex it strikes. Every type keeps reach 1 (next to it), except the rockslide, reach 0. A threat strikes the creature when it is within `creatureRadius + reach` of its centre (a moving threat stops there) and characters standing within `reach` of it (guardians and the escorted spared, riders never). So a rockslide never strikes its neighbours: it strikes the creature only when the footprint covers its hex (strength as a strike, defence applies), and a character only on its own hex. Walking into a rockslide hex (`hazardAt`) stops the walk and ends the day, like a trap; the tick then strikes whoever still stands there. The interface shows a coral outline and strike badge on a planned path's hex that holds a rockslide, and the creature's arrival mark appears when its straight-on guess covers it. Content version 13. Balance over 200 seeds, full season safe / wounded / lost (3 players; 6 players): version 11 re-run 78/10/12 and 75/11/14; with the new rule and the old careful policy 75/12/14 and 65/9/27; with the careful policy also striking a waiting hazard while it is still ahead (the sim's `careful` change) 80/8/12 and 79/7/14. Careless parties still lose every full season.
 
@@ -714,14 +1014,6 @@ ID: `2026-11-20-a-survey-of-an-empty-hex` · Status: current
 
 **Reasoning.** The fresh-eyes playtest surveyed about ten hexes and could not tell an empty hex from a failed look. The web could infer emptiness from a missing `reveal`, but one explicit event is simpler to show as a "nothing here" moment. It is public: once explored, a hex's feature (or its absence) is visible to everyone.
 
-## 2026-11-20: Dev season brings threats from the first tick
-
-ID: `2026-11-20-dev-season-brings-threats-from-the` · Status: current
-
-**Decision.** The dev season (staging and local only) sets `threatsFromDay: 1` and `threatChanceBase: 0.6` on top of its short route. Production keeps the core defaults (from day 3, base 0.25). In the capture's "wounded" season the guardian now also defends, so it still ends wounded rather than lost.
-
-**Reasoning.** The playtest's first season had no peril until day 13. Simulated through the core over 30 seeds of the 12-step dev season with 2 and 3 idle players: before, the first threat was out by day 2 in 15–17 of 30 and by day 3 in 22–23; after, 23–25 and 27–29. Strikes raise peril by day 5 in 22–24 of 30 (was 19–20) and by day 6 in 27–29. The first tick makes day 2, so `threatsFromDay: 1` and `2` behave the same; 1 says "from the start".
-
 ## 2026-11-20: Stone, iron and timber also lie on open ground
 
 ID: `2026-11-20-stone-iron-and-timber-also-lie` · Status: current
@@ -797,7 +1089,7 @@ ID: `2026-11-20-milestone-5-core-readings-of-the` · Status: current
 
 ## 2026-11-20: Threats are tagged data that appear at the window's edge and walk in openly
 
-ID: `2026-11-20-threats-are-tagged-data-that-appear` · Status: current, amended by `2026-11-20-threats-are-telegraphed-a-wider-window`, `2026-11-21-a-rockslide-strikes-only-its-own`
+ID: `2026-11-20-threats-are-tagged-data-that-appear` · Status: current, amended by `2026-11-20-threats-are-telegraphed-a-wider-window`, `2026-11-21-a-rockslide-strikes-only-its-own`, `2026-11-26-threats-tagged-fears-fire-keep-clear`
 
 **Decision.** Milestone 5's attack system (`docs/design/m5-season.md`): threat types in content with strength, speed, approach and weight (a captor band from behind, a pterodactyl swarm from the flanks, a rockslide on the path ahead, raiders from an angered settlement). Threats are public from the moment they appear; their approach is the forecast. They move after the creature's step, strike the creature at contact (peril rises by strength less defence) and strike unescorted characters within one hex (one action the next day). Appearance chance and strength scale with active players and days, from the tuning config. Terrain does not slow threats yet.
 
@@ -924,7 +1216,7 @@ ID: `2026-11-20-feed-and-linger-sit-in-the` · Status: current
 
 ## 2026-11-20: Light a fire shows on your hex's card only when you carry fuel
 
-ID: `2026-11-20-light-a-fire-shows-on-your` · Status: current, amended by `2026-11-20-light-a-fire-hints-faded-without`
+ID: `2026-11-20-light-a-fire-shows-on-your` · Status: current, amended by `2026-11-20-light-a-fire-hints-faded-without`, `2026-11-26-fire-needs-something-to-burn-braziers`
 
 **Decision.** Your own hex's card offers light-fire (the fire icon, a small timber icon and the action pip) when you stand on a hex with fuel in your pack: enabled when `checkAction` allows it, faded when only actions are short. It is not offered without fuel, on water, on the creature or where a fire already burns. The card now opens on a hex without a revealed feature when an action is offered there.
 
@@ -1326,20 +1618,6 @@ ID: `2026-11-19-map-popovers-are-drawn-in-svg` · Status: current
 
 **Reasoning.** The CSP forbids inline styles, so an HTML popover could not be positioned without CSSOM tricks; an SVG group takes a `transform` attribute instead and shares the map's ink look. Keeping the selection makes walking several single steps quick. Following the creature is what makes the map visibly move day by day.
 
-## 2026-11-19: Moving: tap your character, tap a tile, see the arrow, confirm **[Misa]**
-
-ID: `2026-11-19-moving-tap-your-character-tap-a` · Status: current, amended by `2026-11-19-the-creature-is-the-party-s` · Amends: `2026-11-19-touch-first-drag-to-pan-pinch`
-
-**Decision.** Moving a character takes three taps:
-
-1. Tap your character. The tiles it can reach with the actions it has left light up.
-2. Tap one of those tiles. An arrow, drawn as a dashed ink line, runs along the path to it, with the cost shown as action pips. Where the path relies on something special, such as a rope over a cliff, a tunnel or a boat across a river, the arrow shows it with a small mark on that stretch, so the means of travel is visible in the arrow itself.
-3. Confirm the move in a small popover by the destination.
-
-Tapping elsewhere, or another reachable tile, changes or cancels the plan before anything is spent. This replaces the "Acting" bullet of the touch-first decision for movement; other actions still use tap-to-select and confirm in the popover.
-
-**Reasoning.** Misa's design: selecting the character first makes its range visible at a glance, and the arrow makes both the cost and the tools of travel readable without text, which suits later gear and vehicles (grappling hook, boats).
-
 ## 2026-11-19: No focus outlines or other visible accessibility aids in the game **[Misa]**
 
 ID: `2026-11-19-no-focus-outlines-or-other-visible` · Status: current · Amends: `2026-11-19-accessibility-is-not-traded-away`
@@ -1567,6 +1845,14 @@ ID: `2026-11-22-skill-picks-are-earned-by-working` · Status: superseded by `202
 
 **Reasoning.** Misa chose work over a pick per route step: it rewards investment. The catch-up notch (own entry) keeps absent players from falling far behind.
 
+## 2026-11-20: Dev season brings threats from the first tick
+
+ID: `2026-11-20-dev-season-brings-threats-from-the` · Status: superseded by `2026-11-28-staging-plays-the-full-season`
+
+**Decision.** The dev season (staging and local only) sets `threatsFromDay: 1` and `threatChanceBase: 0.6` on top of its short route. Production keeps the core defaults (from day 3, base 0.25). In the capture's "wounded" season the guardian now also defends, so it still ends wounded rather than lost.
+
+**Reasoning.** The playtest's first season had no peril until day 13. Simulated through the core over 30 seeds of the 12-step dev season with 2 and 3 idle players: before, the first threat was out by day 2 in 15–17 of 30 and by day 3 in 22–23; after, 23–25 and 27–29. Strikes raise peril by day 5 in 22–24 of 30 (was 19–20) and by day 6 in 27–29. The first tick makes day 2, so `threatsFromDay: 1` and `2` behave the same; 1 says "from the start".
+
 ## 2026-11-20: The step ghost walks for one second, then the creature itself returns
 
 ID: `2026-11-20-the-step-ghost-walks-for-one` · Status: superseded by `2026-11-20-the-day-s-step-uses-milestone` · Amends: `2026-11-20-step-hints-scale-with-chance-the`
@@ -1599,6 +1885,20 @@ ID: `2026-11-20-milestone-3-rules-the-calls-the` · Status: superseded by `2026-
 - Glints belong to the team: one scout's sensing shows for everyone.
 
 **Reasoning.** The plan fixed the chain and the perks but left these open. Each is the simplest choice that keeps the chain intact and leaves room to change it. The old coin is the one addition to the content list: without it, a tier-1 tomb would make the lantern pointless.
+
+## 2026-11-19: Moving: tap your character, tap a tile, see the arrow, confirm **[Misa]**
+
+ID: `2026-11-19-moving-tap-your-character-tap-a` · Status: superseded by `2026-11-28-moving-tap-a-tile-tap-its` · Amends: `2026-11-19-touch-first-drag-to-pan-pinch`
+
+**Decision.** Moving a character takes three taps:
+
+1. Tap your character. The tiles it can reach with the actions it has left light up.
+2. Tap one of those tiles. An arrow, drawn as a dashed ink line, runs along the path to it, with the cost shown as action pips. Where the path relies on something special, such as a rope over a cliff, a tunnel or a boat across a river, the arrow shows it with a small mark on that stretch, so the means of travel is visible in the arrow itself.
+3. Confirm the move in a small popover by the destination.
+
+Tapping elsewhere, or another reachable tile, changes or cancels the plan before anything is spent. This replaces the "Acting" bullet of the touch-first decision for movement; other actions still use tap-to-select and confirm in the popover.
+
+**Reasoning.** Misa's design: selecting the character first makes its range visible at a glance, and the arrow makes both the cost and the tools of travel readable without text, which suits later gear and vehicles (grappling hook, boats).
 
 ## 2026-11-19: Characters start on a free hex next to the creature **[Misa]**
 

@@ -7,6 +7,9 @@ import { GENTLE_AMBLER } from '@behemoth-road/art';
 import {
   type CreatureSigns,
   featureType,
+  FIRE_SITE_TAG,
+  firesBurning,
+  nightsLeft,
   STIMULUS_TYPES,
   directionOffset,
   type GameStateView,
@@ -68,9 +71,11 @@ export function sceneCells(
   // The viewer's own glints (the scout's skill): a hint mark on hexes that hold something, never what.
   const glinting = new Set(glints.map(hexKey));
   for (const g of glints) keys.set(hexKey(g), g);
+  const burnt = burntKeys(state);
   const cells: ArtCell[] = [];
   for (const [key, h] of keys) {
     const cellState = cellStateAt(state, key);
+    const burntLook = burnt.get(key);
     const known = terrainKnown(cellState);
     const feature = known ? featureArtAt(state, key) : null;
     const threat = threats.get(key);
@@ -84,7 +89,9 @@ export function sceneCells(
       ...(feature ? { feature } : {}),
       ...(glinting.has(key) ? { hint: true } : {}),
       // A lit fire shows to everyone, also under the veil and on paper never seen.
-      ...(fires.has(key) ? { fire: true } : {}),
+      // A brazier draws its own flame, so it is not drawn a second fire beside it.
+      ...(fires.has(key) && !isBrazierAt(state, key) ? { fire: true } : {}),
+      ...(burntLook ? { burnt: burntLook } : {}),
       ...(threat
         ? {
             threat: {
@@ -120,9 +127,56 @@ export function featureArtAt(state: GameStateView, key: string): FeatureArt | nu
   } catch {
     return { look: f.type };
   }
+  if (type.tags.includes(FIRE_SITE_TAG)) {
+    // A brazier: lit exactly while a fire (a stimulus tagged `fire`, nights left) burns on its hex.
+    const fire = firesBurning(state).find((x) => hexKey(x.hex) === key);
+    return fire
+      ? { look: type.icon, lit: true, nightsLeft: nightsLeft(state, fire) }
+      : {
+          look: type.icon,
+          ...((f as { stocked?: boolean }).stocked === true ? { stocked: true } : {}),
+        };
+  }
   if (type.kind === 'trap') return { look: type.icon, trap: true };
   if (f.left > 0) return { look: type.icon };
   return { look: type.icon, state: type.kind === 'node' ? 'depleted' : 'spent' };
+}
+
+/** Whether a revealed brazier (a feature tagged `fire-site`) stands on this hex. */
+export function isBrazierAt(state: GameStateView, key: string): boolean {
+  const f = state.features[key];
+  if (!f?.revealed) return false;
+  try {
+    return featureType(f.type).tags.includes(FIRE_SITE_TAG);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The look of a burnt feature's ground: the feature type's own `burntLook` (content data), else its icon.
+ * An unknown type draws the art kit's default.
+ */
+export function burntLookOf(featureId: string): string {
+  try {
+    const type = featureType(featureId);
+    return type.burntLook ?? type.icon;
+  } catch {
+    return featureId;
+  }
+}
+
+/**
+ * Hexes where a burnable burnt away for good (the view's public `burnt`), by the look each left. Nothing
+ * burnt shows on a hex that holds a feature again.
+ */
+export function burntKeys(state: GameStateView): Map<string, string> {
+  const out = new Map<string, string>();
+  for (const b of state.burnt) {
+    const key = hexKey(b.hex);
+    if (!state.features[key]) out.set(key, burntLookOf(b.feature));
+  }
+  return out;
 }
 
 /** Stimulus content ids that draw as a fire: read by the `fire` tag, never by id. */
@@ -163,8 +217,12 @@ export function characterArts(
 ): CharacterArt[] {
   const escorted = escortedIds(state);
   const defenders = new Set(state.creature.defenders);
+  // Whoever pulls or rides the cart is drawn by the cart itself (its hitched and rider looks).
+  const attached = new Set(
+    state.carts.flatMap((c) => [c.puller, c.rider].filter((x) => x !== null)),
+  );
   return state.characters
-    .filter((c) => c.status === 'active')
+    .filter((c) => c.status === 'active' && !attached.has(c.id))
     .filter((c) => which === 'all' || (c.at.kind === 'creature') === (which === 'riders'))
     .map((c) => {
       const at = placeHex(state, c.at);
@@ -178,6 +236,7 @@ export function characterArts(
         // The stance doing something with the spare actions (never rest), and an ended day.
         ...(acting ? { stance: stanceIcon(acting) } : {}),
         ...(c.waiting ? { waiting: true } : {}),
+        ...(c.pinnedDay !== undefined ? { pinned: true } : {}),
         // The rescue flare, for everyone: public state only.
         ...(stranded(state, c.id) ? { stranded: true } : {}),
       };

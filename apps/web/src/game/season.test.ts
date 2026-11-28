@@ -1,7 +1,8 @@
-import { characterOf, threatOutlook, toPlayerView } from '@behemoth-road/core';
+import { characterOf, placeAt, threatOutlook, toPlayerView } from '@behemoth-road/core';
 import { describe, expect, it } from 'vitest';
 import { type SeasonStage, seasonScenario, USERS } from '../api/fixtures.ts';
-import { IDLE, tap, tapHex } from '../map/flow.ts';
+import { IDLE, planMove, tap, tapHex } from '../map/flow.ts';
+import { moveOption } from './move.ts';
 import {
   defendOption,
   ENDING_TITLES,
@@ -73,6 +74,8 @@ describe('threats as the map reads them', () => {
       steps: threatNextPath(near.view, id).length,
       strike: { cost: near.view.config.strikeCost, enabled: true },
       defence: 0,
+      fears: true,
+      odds: null,
     });
     expect(threatCard(tired(near.view), near.me, id)?.strike).toEqual({
       cost: near.view.config.strikeCost,
@@ -133,19 +136,24 @@ describe('defending the creature in the hub', () => {
 });
 
 describe('settlements', () => {
-  it('a wary one offers parley, with the risk mark for a non-warden, and an offer for each trade good carried', () => {
+  it('a wary one offers parley, with its odds for a non-warden, and an offer for each trade good carried', () => {
     const scout = staged({ settlements: [{ at: START }], pack: { 'old-coin': 1 } });
     const cost = scout.view.config.parleyCost;
     expect(settlementActions(scout.view, scout.me)).toEqual([
-      { kind: 'parley', cost, enabled: true, risk: true },
+      {
+        kind: 'parley',
+        cost,
+        enabled: true,
+        odds: expect.objectContaining({ art: 'anger', kind: 'angered' }) as unknown,
+      },
       { kind: 'offer', cost: scout.view.config.offerCost, enabled: true, uses: 'old-coin' },
     ]);
     const warden = staged({ role: 'warden', settlements: [{ at: START }] });
     expect(settlementActions(warden.view, warden.me)).toEqual([
-      { kind: 'parley', cost, enabled: true, risk: false },
+      { kind: 'parley', cost, enabled: true },
     ]);
     expect(settlementActions(tired(warden.view), warden.me)).toEqual([
-      { kind: 'parley', cost, enabled: false, risk: false, why: 'why:not-enough-actions' },
+      { kind: 'parley', cost, enabled: false, why: 'why:not-enough-actions' },
     ]);
   });
 
@@ -181,8 +189,11 @@ describe('settlements', () => {
     const card = tapHex(IDLE, view, me, abs(NEAR));
     expect(card).toEqual({ kind: 'settlement', id });
     expect(tapHex(card, view, me, abs(NEAR))).toEqual(IDLE);
-    const planned = tapHex({ kind: 'selected' }, view, me, abs(NEAR));
-    expect(planned.kind).toBe('planned');
+    // Move is on its card too: a settlement's hex can be walked onto.
+    const settlement = view.settlements.find((s) => s.id === id)!;
+    const place = placeAt(view, settlement.hex);
+    expect(moveOption(view, me, place)?.enabled).toBe(true);
+    expect(planMove(view, me, place, card)?.kind).toBe('planned');
   });
 });
 
@@ -206,6 +217,6 @@ describe('escort, struck and the season', () => {
     expect(seasonEnd(staged({}).view)).toBeNull();
     const over = staged({ season: { status: 'over', outcome: 'wounded', day: 9 } });
     expect(seasonEnd(over.view)).toEqual({ outcome: 'wounded', day: 9 });
-    expect(ENDING_TITLES).toEqual({ safe: 'Home safe', wounded: 'Home, wounded', lost: 'Lost' });
+    expect(ENDING_TITLES).toEqual({ safe: 'Arrived', wounded: 'Arrived, wounded', lost: 'Lost' });
   });
 });

@@ -3,12 +3,13 @@
  * stand, what is planned, how many actions you have left. The coach never acts for you and never blocks
  * a tap (mistakes are free); it only says which step you are on and what to light.
  *
- * Steps: select yourself, tap the glowing tile, confirm the arrow (its cost shows with it), then one
- * action of your role (C1 to C5, C6 for the roles). Skipping is the player's, any time; there is no
+ * Steps: tap the glowing tile, tap its Move (the route shows), tap Move again to walk, then one action
+ * of your role (C1 to C5, C6 for the roles). Skipping is the player's, any time; there is no
  * failing: with no actions left and the day's step undone, the coach offers starting over.
  */
 import {
   creatureHexes,
+  hexEquals,
   type GameStateView,
   type Hex,
   onHex,
@@ -16,13 +17,14 @@ import {
   type Place,
   placeEquals,
 } from '@behemoth-road/core';
-import { type Flow, isSelecting } from '../map/flow.ts';
+import type { Flow } from '../map/flow.ts';
+import { settlementAt } from '../game/season.ts';
 import { hexAt, type SpotName } from './sandbox.ts';
 
 export type PracticeAction = 'survey' | 'gather' | 'work-site' | 'feed' | 'defend';
 
 /** The five steps in order, as the dots show them (the first four are the same for everyone). */
-export const STEPS = ['select', 'tile', 'confirm', 'act'] as const;
+export const STEPS = ['tile', 'move', 'confirm', 'act'] as const;
 export type Step = (typeof STEPS)[number] | 'done' | 'stuck';
 
 export interface PracticePlan {
@@ -90,9 +92,17 @@ export function coachStep(plan: PracticePlan, i: CoachInput): Step {
   if (here && i.arrivalActions !== null && me.actionsLeft < i.arrivalActions) return 'done';
   if (me.actionsLeft === 0) return 'stuck';
   if (here) return 'act';
-  if (!isSelecting(i.flow)) return 'select';
-  const planned = i.flow.kind === 'planned' && placeEquals(i.flow.to, plan.target);
-  return planned ? 'confirm' : 'tile';
+  if (i.flow.kind === 'planned' && placeEquals(i.flow.to, plan.target)) return 'confirm';
+  return cardOpenOn(plan, i) ? 'move' : 'tile';
+}
+
+/** Whether the glowing tile's card (the creature's bubble, a settlement's card, a tile's) is open: its Move is next. */
+function cardOpenOn(plan: PracticePlan, i: CoachInput): boolean {
+  if (plan.target.kind === 'creature') return i.flow.kind === 'bubble';
+  const hex = plan.target.hex;
+  if (i.flow.kind === 'inspect') return hexEquals(i.flow.hex, hex);
+  if (i.flow.kind === 'settlement') return settlementAt(i.state, hex) === i.flow.id;
+  return false;
 }
 
 /** What the map lights for a step. */
@@ -107,7 +117,7 @@ export interface CoachMap {
   /** Where the ghost hand taps, if anywhere. */
   readonly hand: Hex | null;
   /** The part of the interface to pulse: the arrow's confirm tick, the creature's button in its bubble (the way into the hub), or your action's button. */
-  readonly mark: 'confirm' | 'act' | 'hub' | null;
+  readonly mark: 'move' | 'confirm' | 'act' | 'hub' | null;
 }
 
 const centreOf = (hexes: readonly Hex[]): Hex => {
@@ -131,19 +141,16 @@ export function coachMap(plan: PracticePlan, i: CoachInput): CoachMap {
     mark: null,
   };
   switch (step) {
-    case 'select':
-      return { ...none, ringMe: true, hand: myHex ?? centreOf(creatureHexes(i.state)) };
     case 'tile':
       return { ...none, glow: targetHexes, hand: centreOf(targetHexes) };
+    case 'move':
+      return { ...none, glow: targetHexes, mark: 'move' };
     case 'confirm':
       return { ...none, glow: targetHexes, mark: 'confirm' };
     case 'act': {
       if (plan.look) {
         const looked = i.state.tiles[`${String(plan.look.q)},${String(plan.look.r)}`]?.explored;
         if (looked !== true) {
-          // A tap on a hex while you are selected plans a walk onto it: let go of yourself first, then
-          // tap the veiled hex to look at it.
-          if (isSelecting(i.flow)) return { ...none, ringMe: true, hand: myHex };
           const card = i.flow.kind === 'inspect';
           return { ...none, glow: [plan.look], hand: card ? null : plan.look, mark: 'act' };
         }
@@ -167,12 +174,12 @@ export function coachMap(plan: PracticePlan, i: CoachInput): CoachMap {
 /** The short line for a step (the storyboard's copy), or null. */
 export function captionFor(step: Step, plan: PracticePlan): string | null {
   switch (step) {
-    case 'select':
-      return 'Tap yourself';
     case 'tile':
-      return 'Tap the glowing tile';
+      return 'Tap the glowing hex';
+    case 'move':
+      return 'Tap Move';
     case 'confirm':
-      return 'Tap ✓';
+      return 'Tap Move again';
     case 'act':
       return ACTION_LINES[plan.action];
     default:
@@ -181,11 +188,11 @@ export function captionFor(step: Step, plan: PracticePlan): string | null {
 }
 
 export const ACTION_LINES: Readonly<Record<PracticeAction, string>> = {
-  survey: 'Look around',
+  survey: 'Survey',
   gather: 'Gather',
-  'work-site': 'Study it',
-  feed: 'Feed it',
-  defend: 'Stand guard',
+  'work-site': 'Search',
+  feed: 'Feed',
+  defend: 'Defend',
 };
 
 /** The dot (0-based) a step lights, or all of them once done. */

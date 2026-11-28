@@ -17,7 +17,7 @@ import { setTipExtra, tipProps } from '../ui/press.ts';
 import { PALETTE } from '../map/art.ts';
 import type { FocusTarget } from '../map/MapView.tsx';
 import { toPreact } from '../map/svgToPreact.ts';
-import { PartyIcon } from '../roster/marks.tsx';
+import { PartyIcon, PinnedMark } from '../roster/marks.tsx';
 import {
   StanceControl,
   type StanceControlProps,
@@ -33,6 +33,7 @@ import {
   NextDayIcon,
   Pips,
   Slots,
+  StoryIcon,
   SunIcon,
 } from './icons.tsx';
 
@@ -47,6 +48,8 @@ export interface HudProps {
   readonly snapped?: boolean;
   /** Your character stands where the window has left (its grace day): the pips take the warning tint. */
   readonly warned?: boolean;
+  /** Your character is pinned under a slide: a heap of stones beside the pips, and no acting. */
+  readonly pinned?: boolean;
   /** How your character looks (the recentre button shows it); null before joining. */
   readonly me: { readonly accent: string; readonly look: CharacterLook | undefined } | null;
   readonly onFocus: (target: FocusTarget) => void;
@@ -63,6 +66,8 @@ export interface HudProps {
   /** Milestone 5: the creature's peril (the gauge beside the day) and the route toward home. */
   readonly peril?: PerilProps;
   readonly route?: RouteProps;
+  /** Story cards waiting: a small ribbon by the route; a tap plays the next. Null when none wait. */
+  readonly story?: { readonly onTap: () => void } | null;
   /** Your role's emblem with the notch ring toward the next pick; a tap opens the skill tree. */
   readonly skills?: {
     readonly role: string;
@@ -72,7 +77,7 @@ export interface HudProps {
     readonly ready: boolean;
     readonly onOpen: () => void;
   } | null;
-  /** Your stance (a control by your character button) and the wait button beside the action arrows. */
+  /** Your stance (a control by the wait button) and the wait button beside the action arrows. */
   readonly stance?: StanceControlProps | null;
   readonly wait?: WaitButtonProps | null;
   /** The day readout opens the replay menu when held (the real game's guides). */
@@ -169,7 +174,20 @@ export function Hud(props: HudProps): JSX.Element {
             />
           )}
         </div>
-        {props.route && <RouteStrip {...props.route} />}
+        <div class="hud-routerow">
+          {props.route && <RouteStrip {...props.route} />}
+          {props.story && (
+            <button
+              type="button"
+              class="hud-story"
+              aria-label="Story"
+              {...tipProps('hud:story')}
+              onClick={props.story.onTap}
+            >
+              <StoryIcon />
+            </button>
+          )}
+        </div>
       </div>
       <div class="hud-turn">
         <div
@@ -187,7 +205,14 @@ export function Hud(props: HudProps): JSX.Element {
             {...(props.warned ? { tint: PALETTE.hint } : {})}
           />
         </div>
+        {props.pinned && (
+          <span class="hud-pinned" data-mark="pinned" {...tipProps('why:pinned')}>
+            <PinnedMark />
+          </span>
+        )}
         {props.wait && <WaitButton {...props.wait} />}
+        {/* The stance sits by the hourglass: what the spare actions do is set where the day is ended. */}
+        {props.stance && <StanceControl {...props.stance} />}
       </div>
       <div class="hud-focus">
         {props.onRoster && (
@@ -202,7 +227,6 @@ export function Hud(props: HudProps): JSX.Element {
           </button>
         )}
         {props.skills && <SkillsButton skills={props.skills} />}
-        {props.stance && <StanceControl {...props.stance} />}
         <button
           type="button"
           class="round"

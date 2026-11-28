@@ -192,6 +192,7 @@ async function run() {
 
     // 2. The game, on the Vite dev server with its fake session and a fake game server.
     for (const vp of VIEWPORTS) {
+      if (process.env.ONLY && vp.name !== process.env.ONLY) continue;
       const context = await browser.newContext({
         viewport: { width: vp.width, height: vp.height },
         deviceScaleFactor: 2,
@@ -209,6 +210,8 @@ async function run() {
       });
       page.on('pageerror', (e) => problems.push(`${vp.name}: ${e.message}`));
       const shot = (name) => page.screenshot({ path: join(out, `m2-${vp.name}-${name}.png`) });
+      /** Any card's Move: the first tap plans the walk (the route shows), the second walks. */
+      const MOVE = '[data-popover] [data-action=move]';
       const has = async (kind) => (await page.locator(`[data-popover=${kind}]`).count()) > 0;
       const tap = async (x, y) => {
         if (vp.touch) await page.touchscreen.tap(x, y);
@@ -626,16 +629,22 @@ async function run() {
       ];
       let off = null;
       for (const [dq, dr] of ring) {
+        // Bare ground only: a hex with a feature would give the stance check a node to gather.
+        if (fake.scenario.state.features[`${q0 + dq},${r0 + dr}`]) continue;
         await tap(...(await hexOnScreen(q0 + dq, r0 + dr)));
-        if (await has('confirm')) {
-          off = [q0 + dq, r0 + dr];
-          break;
+        // Tap the tile, then its Move: the first tap plans the walk, the second walks.
+        if (await page.locator(`${MOVE}:not([aria-disabled=true])`).count()) {
+          await press(MOVE);
+          if (await page.locator(`${MOVE}[data-armed]`).count()) {
+            off = [q0 + dq, r0 + dr];
+            break;
+          }
         }
         await tapCreature();
       }
       if (!off) problems.push(`${vp.name}: no hex to step off to`);
       await shot('plan-step-off');
-      if (off) await press('[aria-label=Confirm]');
+      if (off) await press(MOVE);
       await page.waitForTimeout(300);
       const mine = charOf(USERS.MISA);
       if (off && mine?.at.kind !== 'hex')
@@ -727,9 +736,14 @@ async function run() {
         if (!(await page.locator(`${mineRow} [data-mark=waiting]`).count()))
           problems.push(`${vp.name}: the roster shows no waiting mark`);
         await shotS('roster');
+        // Off the party button first so its tip is gone: Escape closes an open tip before anything else, and
+        // would leave the roster open under the next tap.
+        await page.mouse.move(2, vp.height - 2);
+        await page.waitForTimeout(250);
         await page.keyboard.press('Escape');
         await page.waitForTimeout(250);
-        await page.mouse.move(2, vp.height - 2);
+        if (await page.locator('.drawer[aria-label=Players]').count())
+          problems.push(`${vp.name}: Escape did not close the roster`);
       }
 
       // Next day (dev tools and admin): the server ticks and the map follows the creature.
@@ -770,7 +784,12 @@ async function run() {
 
       // The hub entry opens the creature card; right-click (desktop) and Escape close.
       const [q1, r1] = await creature();
+      // Off the pace button, so its tip is gone and the tap goes to the map.
+      await page.mouse.move(2, vp.height - 2);
+      await page.waitForTimeout(300);
       await tap(...(await hexOnScreen(q1, r1)));
+      await page.waitForTimeout(300);
+      if (!(await has('bubble'))) problems.push(`${vp.name}: no bubble on the creature tap`);
       await press('[data-popover=bubble] [aria-label=Behemoth]');
       if (!(await has('creature'))) problems.push(`${vp.name}: no creature card`);
       await holdAll('creature');
@@ -829,9 +848,10 @@ async function run() {
         };
         const plan = async (to) => {
           await idle();
-          await tap(...(await meAt()));
           await tap(...to);
-          return has('confirm');
+          if (!(await page.locator(`${MOVE}:not([aria-disabled=true])`).count())) return false;
+          await press(MOVE); // the first tap plans the walk: the route shows
+          return (await page.locator(`${MOVE}[data-armed]`).count()) > 0;
         };
         const walkTo = async (name) => {
           if (!(await plan(await spot(name)))) {
@@ -839,7 +859,7 @@ async function run() {
             await shot3(`x-no-plan-${name}`);
             return;
           }
-          await press('[aria-label=Confirm]');
+          await press(MOVE); // the second tap walks
         };
         const expectMoment = async (kind) => {
           if (!(await page.locator(`[data-moment=${kind}]`).count()))
@@ -922,7 +942,7 @@ async function run() {
         const c0 = fake.scenario.state.creature.centre;
         if (!(await plan(await hexOnScreen(c0.q, c0.r))))
           problems.push(`${vp.name}: no plan onto the creature`);
-        else await press('[aria-label=Confirm]');
+        else await press(MOVE);
         await page.waitForTimeout(450);
         await expectMoment('deposit');
         if (!(fake.scenario.state.stores.iron > 0))
@@ -1004,7 +1024,7 @@ async function run() {
         const cueAt = { at: { q: 3, r: -1 }, reaction: 'attracted' };
 
         // Carrying timber, your own hex offers a fire (its timber and pip); lighting it draws it on the map.
-        await stage({ pack: { timber: 1 } });
+        await stage({ pack: { timber: 1 }, brazier: true }); // the start hex burns: a fire needs something to burn
         await openHere();
         if (!(await page.locator('[data-popover=here] [data-action=light-fire]').count()))
           problems.push(`${vp.name}: no light-fire with timber in the pack`);
@@ -1019,8 +1039,8 @@ async function run() {
         await idle();
         await shot4('03-fire-burning');
 
-        // No timber, on a deposit, with a fire seen: the here card hints at a fire, faded, its timber faded.
-        await stage({ at: 'iron', explored: ['iron'], fires: [cueAt.at] });
+        // No timber, on a brazier, with a fire seen: the here card hints at a fire, faded, its timber faded.
+        await stage({ brazier: true, fires: [cueAt.at] });
         await openHere();
         if (
           !(await page.locator('[data-popover=here] [data-action=light-fire] [data-short]').count())
@@ -1083,12 +1103,12 @@ async function run() {
           problems.push(`${vp.name}: the step hints do not show the veers`);
         await shot4('11-step-hints');
 
-        // A timber stand next to you: its inspect card hints at a fire, faded, with its timber.
-        await stage({ deposit: 'timber-stand', explored: ['iron'] });
+        // A deadfall next to you: its inspect card carries the burnable mark.
+        await stage({ deposit: 'deadfall', explored: ['iron'] });
         await idle();
         await tap(...(await spot('iron')));
-        if (!(await page.locator('[data-popover=inspect] [data-action=light-fire]').count()))
-          problems.push(`${vp.name}: no fire hint on the timber stand's card`);
+        if (!(await page.locator('[data-popover=inspect] [data-mark=burnable]').count()))
+          problems.push(`${vp.name}: no burnable mark on the deadfall's card`);
         await shot4('12-stand-hint');
 
         // A keeper riding a hungry creature: the bubble's creature entry carries the appetite badge.
@@ -1264,8 +1284,8 @@ async function run() {
           pack: { 'old-coin': 1 },
         });
         await openHere();
-        if (!(await count('[data-popover=here] [data-action=parley] [data-risk]')))
-          problems.push(`${vp.name}: no risk mark on a scout's parley`);
+        if (!(await count('[data-popover=here] [data-action=parley] [data-mark=odds]')))
+          problems.push(`${vp.name}: no odds mark on a scout's parley`);
         if (!(await count('[data-popover=here] [data-action="offer:old-coin"]')))
           problems.push(`${vp.name}: no offer with a coin carried`);
         await shot5('06-settlement-wary');
@@ -1527,21 +1547,16 @@ async function run() {
         await openHere();
         await cardClear('here', 'deposit');
 
-        // 2. Out of reach: a tap on the cliff (impassable) while selected shows the mark, not the card;
-        // a second tap looks at it.
+        // 2. Out of reach: a tap on the cliff (impassable) opens its card at once, with Move greyed.
         await stage5({ role: 'scout' });
         await idle();
-        await tap(...(await meTile()));
-        await tap(...(await offset(CHAIN_SPOTS.cliff)));
-        if (!(await count('.map-world [data-mark=out-of-reach]')))
-          problems.push(`${vp.name}: no out-of-reach mark on the cliff`);
-        if (await has('inspect'))
-          problems.push(`${vp.name}: an out-of-reach tap opened the inspect card`);
-        await page.waitForTimeout(150);
-        await shot5('p2-out-of-reach');
         await tap(...(await offset(CHAIN_SPOTS.cliff)));
         if (!(await has('inspect')))
-          problems.push(`${vp.name}: a second tap out of reach does not inspect`);
+          problems.push(`${vp.name}: a tap on the cliff did not open the inspect card`);
+        if (await count('[data-popover=inspect] [data-action=move]:not([aria-disabled=true])'))
+          problems.push(`${vp.name}: the cliff offers a Move`);
+        await page.waitForTimeout(150);
+        await shot5('p2-out-of-reach');
         await idle();
 
         // 3. An empty survey: the "nothing here" moment, then the explored-empty mark stays.
@@ -1681,11 +1696,13 @@ async function run() {
           held: 0,
         };
         const endings = [
-          ['safe', { steps: routeLength - 1, peril: 0, stats: RECAP_STATS }],
+          // The season ends when the creature's centre reaches the destination band: half a row ahead is one step.
+          ['safe', { steps: routeLength - 1, destinationAhead: 0.5, peril: 0, stats: RECAP_STATS }],
           [
             'wounded',
             {
               steps: routeLength - 1,
+              destinationAhead: 0.5,
               peril: 7,
               stats: { ...RECAP_STATS, peril: WOUNDED_LOG },
             },
@@ -1727,28 +1744,39 @@ async function run() {
             problems.push(
               `${vp.name}: the ending's foot (top ${String(footBox?.y)}) covers the scene (bottom ${String(sceneBox && sceneBox.y + sceneBox.height)})`,
             );
+          // On a wide screen the recap sits in a right drawer behind its button; on a phone it is on the page.
+          const wide = vp.width >= 900;
+          const R = wide ? '.drawer' : '.ending';
+          if (wide) {
+            await page.locator('.ending-recap-toggle').click();
+            await page.locator('.drawer .recap-section').first().waitFor();
+          }
           // The recap is part of the ending: three players by name with a role emblem, and the foot stays clear.
-          if ((await count('.ending .recap-player')) < 2)
+          if ((await count(`${R} .recap-player`)) < 2)
             problems.push(`${vp.name}: no recap on the ${String(outcome)} ending`);
-          if (!(await count('.ending .recap-player [data-top]')))
+          if (!(await count(`${R} .recap-player [data-top]`)))
             problems.push(`${vp.name}: the recap highlights no one`);
-          const recapBox = await page.locator('.ending .recap').boundingBox();
-          if (!recapBox || recapBox.y + recapBox.height > footBox.y + 0.5)
+          const recapBox = await page.locator(`${R} .recap`).boundingBox();
+          if (!wide && (!recapBox || recapBox.y + recapBox.height > footBox.y + 0.5))
             problems.push(`${vp.name}: the recap runs into the ending's foot`);
           // Where peril came from, on the endings that had some: icons with numbers, the biggest first.
           if (outcome !== 'safe') {
-            const rows = await page.locator('.ending .peril-row[data-kind=added]').count();
+            const rows = await page.locator(`${R} .peril-row[data-kind=added]`).count();
             if (rows < 3)
               problems.push(`${vp.name}: the ${outcome} ending lists ${rows} peril sources`);
             const nums = await page
-              .locator('.ending .peril-row[data-kind=added]')
+              .locator(`${R} .peril-row[data-kind=added]`)
               .evaluateAll((els) => els.map((e) => Number(e.getAttribute('data-amount'))));
             if (nums.some((n, i) => i > 0 && n > nums[i - 1]))
               problems.push(
                 `${vp.name}: the ${outcome} ending's peril sources are not biggest first`,
               );
-            if (!(await count('.ending .peril-row[data-source=hunger]')))
+            if (!(await count(`${R} .peril-row[data-source=hunger]`)))
               problems.push(`${vp.name}: the ${outcome} ending does not show hunger`);
+          }
+          if (wide) {
+            await page.keyboard.press('Escape');
+            await page.waitForTimeout(300);
           }
           await shot5(`15-ending-${outcome}`);
         }
@@ -1831,14 +1859,16 @@ async function run() {
 
         // 6. Your own action refreshes: a read of the log since the view before it follows the answer.
         const readsBefore = fake.reads.length;
-        await tap(...(await meOnScreen()));
         await tap(
           ...(await hexOnScreen(
             fake.scenario.state.creature.centre.q + CHAIN_SPOTS.iron.q,
             fake.scenario.state.creature.centre.r + CHAIN_SPOTS.iron.r,
           )),
         );
-        if (await has('confirm')) await press('[aria-label=Confirm]');
+        if (await page.locator(`${MOVE}:not([aria-disabled=true])`).count()) {
+          await press(MOVE);
+          await press(MOVE);
+        }
         await page.waitForTimeout(400);
         if (!fake.reads.slice(readsBefore).some((q) => q.includes('since=')))
           problems.push(`${vp.name}: no refresh after your own action`);
@@ -1888,12 +1918,12 @@ async function run() {
           if ((await page.locator('[data-mark=stranded]').count()) !== 1)
             problems.push(`${vp.name}: no stranded flare on a cut-off figure`);
           await shotP('03-stranded-flare');
-          // The tow line: Pip (riding) threw it to you, two hexes from the creature; it is drawn to your
+          // The tow line: Pip (riding) threw it to you, outside the window; it is drawn to your
           // figure for everyone, and your own card offers the grab.
           {
             const joined = joinedScenario();
             const c0 = joined.state.creature.centre;
-            const nearYou = { q: c0.q, r: c0.r + 3 };
+            const nearYou = { q: c0.q, r: c0.r + 7 };
             const withLine = {
               ...joined.state,
               unlocks: [...joined.state.unlocks, 'towline'],

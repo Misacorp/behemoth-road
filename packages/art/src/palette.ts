@@ -31,6 +31,8 @@ export const MATERIALS = [
   'dune',
   'crag',
   'upland',
+  'glass',
+  'toxic',
 ] as const;
 export type Material = (typeof MATERIALS)[number];
 
@@ -95,10 +97,12 @@ export const MORNING: Palette = {
     trodden: r('#e8dcb8', '#d6c496', '#b3a275'),
     mire: r('#a39066', '#8b7548', '#62653e'),
     upland: r('#d8c093', '#c4a574', '#9f8359'),
-    crag: r('#bcb7bd', '#a29da4', '#7f7a86'),
+    crag: r('#bcb7bd', '#ab9f98', '#7f7a86'),
     dune: r('#f8ecd0', '#f2dfb6', '#d6bc8a'),
     wood: r('#88ae8a', '#66936f', '#4b7455'),
     plain: r('#dce3a8', '#c6d084', '#a3ad66'),
+    glass: r('#f4eded', '#e6dadb', '#c2b0b3'),
+    toxic: r('#c4c08c', '#a3a064', '#7a7747'),
   },
   accents: {
     rose: r('#ecc8c3', '#d9a3a0', '#b48280'),
@@ -147,10 +151,12 @@ export const MIST: Palette = {
     trodden: r('#e0dac6', '#c9bfa4', '#a69d84'),
     mire: r('#9d916a', '#85764f', '#5e6342'),
     upland: r('#d3bf98', '#bfa780', '#9a8461'),
-    crag: r('#b4b8c2', '#9ba0ab', '#787d8c'),
+    crag: r('#b4b8c2', '#a0a0a7', '#787d8c'),
     dune: r('#f3e9d2', '#ece0c4', '#cdbf9f'),
     wood: r('#80ae9a', '#5f927f', '#46745f'),
     plain: r('#d4e0b0', '#bccd94', '#9aab74'),
+    glass: r('#f4eef0', '#ece1e5', '#c3b4bc'),
+    toxic: r('#bcc592', '#9ba66a', '#737e4c'),
   },
   accents: {
     rose: r('#ead0d3', '#d6a7ad', '#b4878e'),
@@ -199,10 +205,12 @@ export const SPRING: Palette = {
     trodden: r('#ebdcb8', '#d9c597', '#b5a574'),
     mire: r('#a69367', '#8a7648', '#5c6a3c'),
     upland: r('#d8bf8c', '#c0a06c', '#9a7e50'),
-    crag: r('#b9b5c4', '#a09cae', '#7c7a8e'),
+    crag: r('#b9b5c4', '#a89fa4', '#7c7a8e'),
     dune: r('#f8ebca', '#f1ddb0', '#d5b983'),
     wood: r('#82b296', '#5f9577', '#467555'),
     plain: r('#d9e4a0', '#c1d07f', '#9eb062'),
+    glass: r('#f2ecee', '#e3d9dc', '#bfb0b6'),
+    toxic: r('#c0bd88', '#a0a060', '#767744'),
   },
   accents: {
     rose: r('#efcdc4', '#e0a99e', '#bc887e'),

@@ -54,7 +54,7 @@ ID: `2026-11-21-fast-pace-schedules-a-second-alarm` · Status: current
 
 ## 2026-11-20: The short dev season follows the dev-tools switch; an ended season stops the schedule
 
-ID: `2026-11-20-the-short-dev-season-follows-the` · Status: current
+ID: `2026-11-20-the-short-dev-season-follows-the` · Status: current, amended by `2026-11-28-staging-plays-the-full-season`
 
 **Decision.** A new game takes `SERVER_CONFIG.devSeason` exactly when `DEV_TOOLS` is `"on"` (`seasonConfig(devTools)` in `guild-game.ts`, passed to `GuildGame` as `gameConfig`); any other value, or none, gives the core defaults. This covers the first game, a game replacing an outdated one and a new season. The overrides live in the stored state's config, so a game keeps its season length if the switch changes later. Replacing a game (outdated content or a new season) drops its events and marks the log pruned through the new game's version, so every client that saw the old game gets `eventsTruncated` and reloads. Once the season is over, no tick runs (alarm or catch-up), the alarm is deleted, and next day answers the unchanged view; a new season schedules the next tick from now. The five M5 actions' strings (threat id, material, boon) are bounded to `^[a-z0-9-]{1,64}$` and otherwise left to the core, which refuses unknown ones by name.
 

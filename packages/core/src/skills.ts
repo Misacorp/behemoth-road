@@ -10,6 +10,7 @@
 
 import {
   ACTION_XP,
+  FEATURE_TYPES,
   ROLES,
   SKILL_NODES,
   type SkillEffect,
@@ -31,6 +32,27 @@ export type PickRefusal =
 export const skillNode = (id: string): SkillNode | undefined =>
   SKILL_NODES.find((n) => n.id === id);
 
+/**
+ * The effects of one kind that a role's tree holds, in tree order (branch a then b, tier 1 to 3), for text
+ * that quotes a skill's own number. Looked up by role and effect, never by node id.
+ */
+export const roleEffects = <K extends SkillEffect['kind']>(
+  role: string,
+  kind: K,
+): Extract<SkillEffect, { kind: K }>[] =>
+  SKILL_NODES.filter((n) => n.role === role).flatMap((n) =>
+    [n.effect, ...(n.extra ?? [])].filter(
+      (e): e is Extract<SkillEffect, { kind: K }> => e.kind === kind,
+    ),
+  );
+
+/** Units one gather yields before any skill: the least a resource node gives. */
+export const baseGatherYield = (): number => {
+  const amounts = FEATURE_TYPES.flatMap((f) => (f.kind === 'node' ? [f.yields.amount] : []));
+  if (amounts.length === 0) throw new Error('no resource node yields anything');
+  return Math.min(...amounts);
+};
+
 /** The nodes a character has taken. */
 export const takenNodes = (c: Character): SkillNode[] =>
   c.skills.taken.flatMap((id) => {
@@ -38,14 +60,18 @@ export const takenNodes = (c: Character): SkillNode[] =>
     return n ? [n] : [];
   });
 
-/** The effects of one kind among a character's taken nodes. */
+/**
+ * The effects of one kind a character has: their role's own, then those of their taken nodes (a node's
+ * `effect` and its `extra`).
+ */
 export const effectsOf = <K extends SkillEffect['kind']>(
   c: Character,
   kind: K,
-): Extract<SkillEffect, { kind: K }>[] =>
-  takenNodes(c).flatMap((n) =>
-    n.effect.kind === kind ? [n.effect as Extract<SkillEffect, { kind: K }>] : [],
-  );
+): Extract<SkillEffect, { kind: K }>[] => {
+  const role = ROLES.find((r) => r.id === c.role)?.effects ?? [];
+  const all = [...role, ...takenNodes(c).flatMap((n) => [n.effect, ...(n.extra ?? [])])];
+  return all.filter((e): e is Extract<SkillEffect, { kind: K }> => e.kind === kind);
+};
 
 /** The largest `pick(effect)` over a character's effects of a kind, or null when it has none. */
 export const bestOf = <K extends SkillEffect['kind']>(

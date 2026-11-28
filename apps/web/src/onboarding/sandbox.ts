@@ -144,10 +144,12 @@ export function sandboxView(state: GameState, version: number): PlayerView {
       seen: [],
       lastDay: null,
       lastVersion: null,
+      storyRead: [],
     },
     offers: null,
     // The core's view type is read-only; the parsed type is the same shape.
     game: toPlayerView(state) as PlayerView['game'],
+    ending: null,
     players: users.map((userId) => {
       const c = characterOf(state, userId) ?? null;
       return {

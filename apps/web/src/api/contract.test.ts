@@ -117,11 +117,11 @@ describe('captured contract fixtures', () => {
       const view = v.parse(PlayerViewSchema, fixture(name));
       return momentsFromEvents(view.events, view.game.creature.centre, '').map((m) => m.kind);
     });
-    // The dev season brings threats from the first tick: both since-logs also carry a threat appearing.
-    // With the wider window none has reached the creature by the second tick yet.
+    // Staging plays the full season, whose threats come from day 3: the first since-log is too early for one,
+    // the second (the creature eating, later) carries a threat appearing.
     expect(kinds).toEqual([
       // The starved creature (the scenario lets it go hungry) raises peril: hunger is the cause shown.
-      ['stayed', 'fire-out', 'hungry', 'threat'],
+      ['stayed', 'fire-out', 'hungry'],
       ['step', 'ate', 'relieved', 'threat'],
     ]);
   });
@@ -144,9 +144,9 @@ describe('captured contract fixtures', () => {
     expect(moments('view-befriended')).toEqual(['befriended']);
     expect(moments('view-boon')).toEqual(['boon']);
     expect(moments('view-angered')).toEqual(['angered', 'threat']);
-    expect(moments('view-peril-since')).toEqual(['step', 'strike', 'strike', 'struck', 'threat']);
-    expect(moments('view-season-lost')).toEqual(['step', 'strike', 'season-over']);
-    expect(moments('view-season-safe')).toEqual(['step', 'season-over']);
+    expect(moments('view-peril-since')).toEqual(['step', 'strike', 'strike', 'threat']);
+    expect(moments('view-season-lost')).toEqual(['step', 'hungry', 'season-over']);
+    expect(moments('view-season-safe')).toEqual(['step', 'relieved', 'season-over']);
     expect(moments('view-struck-since')).toEqual(['step', 'struck', 'threat']);
   });
 

@@ -21,16 +21,35 @@ export {
   type SiteType,
   type TrapType,
 } from './features.ts';
-export { MATERIALS, UNLOCKS, type Material, type Unlock, type UnlockMovement } from './items.ts';
+export {
+  MATERIALS,
+  UNLOCKS,
+  type Material,
+  type Unlock,
+  type UnlockMovement,
+  type VehicleSpec,
+} from './items.ts';
 export {
   CREATURE_TYPES,
   REACTIONS,
+  type CreatureRoute,
   type CreatureType,
+  type Fate,
+  type RouteLeg,
+  type RouteStop,
   type Need,
   type Reaction,
 } from './creatures.ts';
 export { STIMULUS_TYPES, type StimulusType } from './stimuli.ts';
-export { THREAT_TYPES, type ThreatApproach, type ThreatType } from './threats.ts';
+export { HAZARD_TYPES, type HazardType } from './hazards.ts';
+export { LURE_TYPES, type LureType } from './lures.ts';
+export {
+  THREAT_TYPES,
+  type ThreatApproach,
+  type ThreatEnding,
+  type ThreatType,
+} from './threats.ts';
+export { STORYLETS, type Condition, type Storylet, type StoryKind } from './storylets.ts';
 export { BOONS, PEOPLE_TYPES, type Boon, type PeopleType } from './peoples.ts';
 export {
   ACTION_XP,

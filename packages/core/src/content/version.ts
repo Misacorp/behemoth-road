@@ -34,8 +34,18 @@
  * 20: water: lakes, ponds, seas and islands (deep water needs the raft; the creature swims), the water
  *    temple, the raft; forest, desert and cliff thinned a little to keep the plains share.
  * 21: the tow line unlock; the creature carries the day's thrown tow lines (`creature.tows`).
+ * 22: the world (docs/design/story.md): creature fate, sound, habit, blessing, tier and route; threats may
+ *    have an `ending`; traces and the story (storylets) join the state; the creature has a public kind.
+ * 23: fire needs something to burn: braziers (fire-site) and burnable features, fears-fire threats, the
+ *    rockslide can fall on its striker (pinned characters, dig-out); engineers are sure-footed; burnt
+ *    ground is kept (`burnt`, with the feature's `burntLook`).
+ * 24: pinned characters keep their actions and struggle free (`struggle`, `struggles`); the cart: a hand cart
+ *    (unlock with a `vehicle`), `carts` in the state, hitch, board, load and unload; hazards along the route
+ *    (scree field, poisoned lake, glass waste: `perilOnStep` on terrain) and the lure (a capybara; the `lead`
+ *    action, `lures` in the view, the creature's reaction to `small-beast`).
+ * 25: the destination band (`destination` in the state, a sanctuary the season ends on), 18 XP a pick and no explore XP for scouts, rivers that reach lakes or the sea.
  */
-export const CONTENT_VERSION = 21;
+export const CONTENT_VERSION = 25;
 
 /** Content versions this code can load. */
 export const KNOWN_CONTENT_VERSIONS: readonly number[] = [CONTENT_VERSION];

@@ -67,6 +67,15 @@ export const MIGRATIONS: readonly Migration[] = [
     sql.exec('ALTER TABLE players ADD COLUMN last_day INTEGER');
     sql.exec('ALTER TABLE players ADD COLUMN last_version INTEGER');
   },
+  (sql) => {
+    // Story, per player: the storylets (the core's `STORYLETS` ids) they have read. Cleared with a new
+    // season, whose beats fire afresh.
+    sql.exec(`CREATE TABLE story_read (
+      user_id TEXT NOT NULL,
+      story_id TEXT NOT NULL,
+      PRIMARY KEY (user_id, story_id)
+    )`);
+  },
 ];
 
 export const SCHEMA_VERSION = MIGRATIONS.length;

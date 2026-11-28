@@ -24,7 +24,14 @@
     "2026-11-23-1",
     "2026-11-23-2",
     "2026-11-23-3",
-    "2026-11-24-1"
+    "2026-11-24-1",
+    "2026-11-24-2",
+    "2026-11-24-3",
+    "2026-11-26-1",
+    "2026-11-26-2",
+    "2026-11-26-3",
+    "2026-11-26-4",
+    "2026-11-26-5"
   ],
   "items": [
     {
@@ -103,19 +110,19 @@
       "id": "sheet/terrain",
       "group": "Sheets",
       "title": "Terrain tiles",
-      "version": "9a91b60b",
+      "version": "7875a6cc",
       "kind": "glance",
-      "batch": "2026-11-24-1",
-      "file": "art/sheet-terrain-9a91b60b.svg"
+      "batch": "2026-11-26-4",
+      "file": "art/sheet-terrain-7875a6cc.svg"
     },
     {
       "id": "sheet/props",
       "group": "Sheets",
       "title": "Props",
-      "version": "990e401d",
+      "version": "c2b7f1af",
       "kind": "glance",
-      "batch": "2026-11-24-1",
-      "file": "art/sheet-props-990e401d.svg"
+      "batch": "2026-11-24-3",
+      "file": "art/sheet-props-c2b7f1af.svg"
     },
     {
       "id": "creature/gentle-ambler",
@@ -183,10 +190,10 @@
       "id": "map/patch",
       "group": "Map",
       "title": "The map, Spring at tilt 0.8",
-      "version": "659a2ae7",
+      "version": "dc880a03",
       "kind": "glance",
-      "batch": "2026-11-24-1",
-      "file": "art/map-patch-659a2ae7.svg"
+      "batch": "2026-11-24-3",
+      "file": "art/map-patch-dc880a03.svg"
     },
     {
       "id": "creature/headings",
@@ -259,10 +266,10 @@
       "id": "icons/sheet",
       "group": "Icons",
       "title": "Every icon, and the fallback",
-      "version": "d95d97d7",
+      "version": "bd45faf6",
       "kind": "glance",
-      "batch": "2026-11-24-1",
-      "file": "art/icons-sheet-d95d97d7.svg"
+      "batch": "2026-11-26-5",
+      "file": "art/icons-sheet-bd45faf6.svg"
     },
     {
       "id": "characters/lineup",
@@ -367,19 +374,19 @@
       "id": "map/care",
       "group": "Creature care",
       "title": "On the map: fires, berries, an underfed creature and two cues",
-      "version": "2e8ab50e",
+      "version": "6e82ebb4",
       "kind": "glance",
-      "batch": "2026-11-24-1",
-      "file": "art/map-care-2e8ab50e.svg"
+      "batch": "2026-11-24-3",
+      "file": "art/map-care-6e82ebb4.svg"
     },
     {
       "id": "map/care-lite",
       "group": "Creature care",
       "title": "The same in lite mode",
-      "version": "75cb1642",
+      "version": "5ccefdf0",
       "kind": "glance",
-      "batch": "2026-11-24-1",
-      "file": "art/map-care-lite-75cb1642.svg"
+      "batch": "2026-11-24-3",
+      "file": "art/map-care-lite-5ccefdf0.svg"
     },
     {
       "id": "features/veil",
@@ -421,28 +428,28 @@
       "id": "season/map-phone",
       "group": "Season",
       "title": "The season on a phone: threats, a village, an escort, a defender, peril 4 (full, then lite)",
-      "version": "d1aefc12",
+      "version": "7f6b940d",
       "kind": "glance",
-      "batch": "2026-11-24-1",
-      "file": "art/season-map-phone-d1aefc12.svg"
+      "batch": "2026-11-24-3",
+      "file": "art/season-map-phone-7f6b940d.svg"
     },
     {
       "id": "season/map-desktop",
       "group": "Season",
       "title": "The same at desktop scale",
-      "version": "de8a27f9",
+      "version": "0deb6908",
       "kind": "glance",
-      "batch": "2026-11-24-1",
-      "file": "art/season-map-desktop-de8a27f9.svg"
+      "batch": "2026-11-24-3",
+      "file": "art/season-map-desktop-0deb6908.svg"
     },
     {
       "id": "season/threats",
       "group": "Season",
       "title": "Captors, swarm, rockslide, raiders: strength marks, next-step arrows, the last of each arriving tomorrow",
-      "version": "84151812",
+      "version": "1b252bd4",
       "kind": "glance",
-      "batch": "2026-11-24-1",
-      "file": "art/season-threats-84151812.svg"
+      "batch": "2026-11-24-3",
+      "file": "art/season-threats-1b252bd4.svg"
     },
     {
       "id": "season/settlements",
@@ -475,10 +482,10 @@
       "id": "season/hud",
       "group": "Season",
       "title": "Peril gauge 0 to 10 and the route strip at phone and desktop widths; the vignette at peril 3, 6, 9",
-      "version": "342338e9",
+      "version": "f932c980",
       "kind": "glance",
-      "batch": "2026-11-24-1",
-      "file": "art/season-hud-342338e9.svg"
+      "batch": "2026-11-24-3",
+      "file": "art/season-hud-f932c980.svg"
     },
     {
       "id": "season/moments",
@@ -520,19 +527,19 @@
       "id": "feedback/phone-features",
       "group": "Playtest feedback",
       "title": "At phone zoom: tall features on ground shadows (fieldstones, outcrop, deadfall, river stones, iron, picked berries, snare, logs, a village) beside plain props; two explored-empty hexes (full, then lite)",
-      "version": "bbf3fb67",
+      "version": "4a22708d",
       "kind": "glance",
-      "batch": "2026-11-24-1",
-      "file": "art/feedback-phone-features-bbf3fb67.svg"
+      "batch": "2026-11-24-3",
+      "file": "art/feedback-phone-features-4a22708d.svg"
     },
     {
       "id": "feedback/marks",
       "group": "Playtest feedback",
       "title": "Explored-empty fading; out of reach; misled; greyed actions with the role they need; nothing here, misled and peril relieved moments",
-      "version": "efa3465a",
+      "version": "597ead59",
       "kind": "glance",
-      "batch": "2026-11-24-1",
-      "file": "art/feedback-marks-efa3465a.svg"
+      "batch": "2026-11-26-1",
+      "file": "art/feedback-marks-597ead59.svg"
     },
     {
       "id": "variety/map",
@@ -565,10 +572,10 @@
       "id": "map/telegraph",
       "group": "Creature care",
       "title": "Trodden ground that keeps cliffs and river readable, the defended ring and shields, the darker unexplored veil",
-      "version": "40cbd9c4",
+      "version": "0b7ee8c5",
       "kind": "glance",
-      "batch": "2026-11-24-1",
-      "file": "art/map-telegraph-40cbd9c4.svg"
+      "batch": "2026-11-24-3",
+      "file": "art/map-telegraph-0b7ee8c5.svg"
     },
     {
       "id": "features/tall",
@@ -601,28 +608,145 @@
       "id": "terrain/six",
       "group": "Terrain colours",
       "title": "Six terrains, each with its own base colour and prop: plains, forest, desert, cliffs, lake, swamp",
-      "version": "3513354d",
+      "version": "afb12e06",
       "kind": "glance",
-      "batch": "2026-11-24-1",
-      "file": "art/terrain-six-3513354d.svg"
+      "batch": "2026-11-24-3",
+      "file": "art/terrain-six-afb12e06.svg"
     },
     {
       "id": "terrain/patch",
       "group": "Terrain colours",
       "title": "A map patch over every terrain: the creature on trodden ground, characters, a threat, a find, a glint, fading, lost and unexplored ground",
-      "version": "78ce06f4",
+      "version": "cb142f10",
       "kind": "glance",
-      "batch": "2026-11-24-1",
-      "file": "art/terrain-patch-78ce06f4.svg"
+      "batch": "2026-11-24-3",
+      "file": "art/terrain-patch-cb142f10.svg"
     },
     {
       "id": "terrain/colourblind",
       "group": "Terrain colours",
       "title": "The six terrains as seen normally, with protan vision and with deutan vision",
-      "version": "1e424984",
+      "version": "d4c39122",
       "kind": "glance",
-      "batch": "2026-11-24-1",
-      "file": "art/terrain-colourblind-1e424984.svg"
+      "batch": "2026-11-24-3",
+      "file": "art/terrain-colourblind-d4c39122.svg"
+    },
+    {
+      "id": "world/traces",
+      "group": "World art",
+      "title": "Traces over every ground: fire scar, green trail, cairn, broken chain, open gate (plains, forest, desert, cliffs, lake, swamp, hills, trodden, veiled)",
+      "version": "ebac23b0",
+      "kind": "glance",
+      "batch": "2026-11-24-3",
+      "file": "art/world-traces-ebac23b0.svg"
+    },
+    {
+      "id": "world/waymarks",
+      "group": "World art",
+      "title": "The standing stone (bare, then one, two and three marks) and the Greyfold route mark",
+      "version": "28c721ab",
+      "kind": "glance",
+      "batch": "2026-11-24-2",
+      "file": "art/world-waymarks-28c721ab.svg"
+    },
+    {
+      "id": "world/story-cards",
+      "group": "World art",
+      "title": "Story card vignettes: twelve route beats and four endings",
+      "version": "533c82f8",
+      "kind": "glance",
+      "batch": "2026-11-24-3",
+      "file": "art/world-story-cards-533c82f8.svg"
+    },
+    {
+      "id": "world/gate-signs",
+      "group": "World art",
+      "title": "Gate signs: a bell with its clapper tied (hill folk), a pearl on a stone (river folk)",
+      "version": "0514c7a7",
+      "kind": "glance",
+      "batch": "2026-11-24-2",
+      "file": "art/world-gate-signs-0514c7a7.svg"
+    },
+    {
+      "id": "fire/brazier",
+      "group": "Fire and rockslide",
+      "title": "The low stone brazier with its tall flame: cold with ash, cold and stocked, then lit with three, two, one and no nights left (notches on its foot)",
+      "version": "917d8b15",
+      "kind": "glance",
+      "batch": "2026-11-26-4",
+      "file": "art/fire-brazier-917d8b15.svg"
+    },
+    {
+      "id": "fire/ring",
+      "group": "Fire and rockslide",
+      "title": "A lit brazier glowing orange on its own hex and the hexes within one step, with the fire ring round them, a cold brazier (no glow) beside it and fogged hexes at the edge",
+      "version": "ef7b43bb",
+      "kind": "glance",
+      "batch": "2026-11-26-4",
+      "file": "art/fire-ring-ef7b43bb.svg"
+    },
+    {
+      "id": "fire/marks",
+      "group": "Fire and rockslide",
+      "title": "Nights left (none to three embers), fears fire (a beast rearing from a flame), burnable (a log with a flame), dig out and light fire icons, and the rockslide moment",
+      "version": "579b13f5",
+      "kind": "glance",
+      "batch": "2026-11-26-4",
+      "file": "art/fire-marks-579b13f5.svg"
+    },
+    {
+      "id": "fire/pinned-burnt",
+      "group": "Fire and rockslide",
+      "title": "Pinned: lying almost flat under stones, head and an arm out (three looks, a free character beside them); a deadfall and a snare, then burnt",
+      "version": "4f14a873",
+      "kind": "glance",
+      "batch": "2026-11-26-4",
+      "file": "art/fire-pinned-burnt-4f14a873.svg"
+    },
+    {
+      "id": "r13/blocked",
+      "group": "Round 13: blocked, hazards, lure, cart, odds",
+      "title": "Blocked hexes: diagonal stripes with a thin edge over every ground, a fire cluster with its flame mark and a plain one",
+      "version": "28c999b1",
+      "kind": "glance",
+      "batch": "2026-11-26-4",
+      "file": "art/r13-blocked-28c999b1.svg"
+    },
+    {
+      "id": "r13/hazards",
+      "group": "Round 13: blocked, hazards, lure, cart, odds",
+      "title": "Hazard terrains: glass waste, a poisoned lake and a scree field under rockslide threats, with their icons",
+      "version": "c0611409",
+      "kind": "glance",
+      "batch": "2026-11-26-4",
+      "file": "art/r13-hazards-c0611409.svg"
+    },
+    {
+      "id": "r13/capybara",
+      "group": "Round 13: blocked, hazards, lure, cart, odds",
+      "title": "The capybara, normal and settled, the lead action icon and the leads-left pawprints (3 to 0)",
+      "version": "14724036",
+      "kind": "glance",
+      "batch": "2026-11-26-4",
+      "file": "art/r13-capybara-14724036.svg"
+    },
+    {
+      "id": "r13/cart",
+      "group": "Round 13: blocked, hazards, lure, cart, odds",
+      "title": "The hand cart: empty, loaded, with a rider and hitched with a puller; hitch, board, load, unload and struggle icons; cargo fill",
+      "version": "a03cfd68",
+      "kind": "glance",
+      "batch": "2026-11-26-4",
+      "file": "art/r13-cart-a03cfd68.svg"
+    },
+    {
+      "id": "r13/odds",
+      "group": "Round 13: blocked, hazards, lure, cart, odds",
+      "title": "The odds mark: bars from no chance to certain (failure shown as rocks, anger or harm), a row of pips, and the struggle icon",
+      "version": "c14e2e8e",
+      "kind": "glance",
+      "batch": "2026-11-26-4",
+      "file": "art/r13-odds-c14e2e8e.svg"
     }
   ]
 }

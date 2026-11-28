@@ -136,6 +136,7 @@ function CareCard({
       <div class="unlock care is-done" data-care={a.kind}>
         <span class="unlock-icon" {...tipProps(tipFor('action', a.kind))}>
           <ContentIcon id={a.kind} size={44} done />
+          <Verb kind={a.kind} />
         </span>
       </div>
     );
@@ -145,6 +146,7 @@ function CareCard({
       <span class="unlock-icon" {...tipProps(tipFor('action', a.kind))}>
         <ContentIcon id={a.kind} size={44} />
         <NeedsRole role={a.needs} />
+        <Verb kind={a.kind} />
       </span>
       <span class="unlock-cost">
         {a.uses && <Stack id={a.uses} count={1} short={a.short ?? false} />}
@@ -166,7 +168,6 @@ function CareCard({
         <svg viewBox="-24 -24 48 48" aria-hidden="true">
           <TickMark r={20} />
         </svg>
-        <Verb kind={a.kind} />
       </button>
     </div>
   );

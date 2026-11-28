@@ -5,10 +5,24 @@
  */
 import {
   ACTION_MOTIFS,
+  drawBurnableMark,
+  drawCapybara,
+  drawCargoFill,
+  drawCart,
+  drawHazardIcon,
+  drawLeadsLeft,
+  drawFearsFireMark,
+  drawBlockedHexes,
+  drawOddsMark,
   drawGlyph,
+  drawNightsLeft,
   drawIcon,
   drawMoment,
   drawPackIcon,
+  drawRouteDestination,
+  drawStandingStone,
+  drawTrace,
+  TRACE_KINDS,
   drawSettlementIcon,
   drawSkillNode,
   drawStoresIcon,
@@ -36,6 +50,7 @@ import {
   UNLOCKS,
 } from '@behemoth-road/core';
 import { PALETTE } from '../map/art.ts';
+import { burntLookOf } from '../map/cells.ts';
 import { MAP_TUNING } from '../map/config.ts';
 import { fillTip, tipValues } from '../text/tipValues.ts';
 import { TIP_TABLE, type TipId } from '../text/tips.ts';
@@ -60,10 +75,10 @@ export type GroupId =
 export const GROUPS: readonly { readonly id: GroupId; readonly title: string }[] = [
   { id: 'hud', title: 'Screen' },
   { id: 'actions', title: 'Actions' },
-  { id: 'materials', title: 'Materials and items' },
-  { id: 'features', title: 'Features' },
+  { id: 'materials', title: 'Materials and gear' },
+  { id: 'features', title: 'Sites and deposits' },
   { id: 'terrain', title: 'Terrain' },
-  { id: 'threats', title: 'Threats' },
+  { id: 'threats', title: 'Foes' },
   { id: 'settlements', title: 'Settlements and boons' },
   { id: 'roles', title: 'Roles' },
   { id: 'stances', title: 'Stances' },
@@ -81,7 +96,25 @@ export type Draw =
   | { readonly kind: 'threat'; readonly look: string }
   | { readonly kind: 'settlement'; readonly look: string; readonly attitude: string }
   | { readonly kind: 'moment'; readonly moment: string }
+  | { readonly kind: 'trace'; readonly trace: string }
+  | { readonly kind: 'stone' }
+  /** The lure and cart marks: a capybara (`lure`, `lure-settled`), the `cart`, `leads`, `cargo`, or a hazard icon. */
+  | { readonly kind: 'thing'; readonly id: string }
+  | { readonly kind: 'fire'; readonly mark: FireMark }
   | { readonly kind: 'hud'; readonly id: string };
+
+/** The fire rework's marks, as the glossary draws them. */
+export const FIRE_MARKS = [
+  'brazier-lit',
+  'burnable',
+  'burnt',
+  'fears-fire',
+  'blocked',
+  'odds',
+  'nights',
+  'pinned',
+] as const;
+export type FireMark = (typeof FIRE_MARKS)[number];
 
 export interface GlossaryEntry {
   readonly key: string;
@@ -93,7 +126,7 @@ export interface GlossaryEntry {
   readonly draw: Draw;
 }
 
-const VALUES = tipValues(DEFAULT_CONFIG);
+const VALUES = { ...tipValues(DEFAULT_CONFIG), note: 'Success 80% · Pinned 20%' };
 
 const prettify = (key: string): string => {
   const words = key.replace(/-/g, ' ');
@@ -114,14 +147,25 @@ function entry(
     key: `${group}:${key}`,
     group,
     name: shown,
-    text: tip === null ? null : fillTip(TIP_TABLE[tip].text, VALUES),
+    // Only the odds mark's tip carries numbers; an action's are drawn from the roll, so the wiki leaves them out.
+    text:
+      tip === null
+        ? null
+        : fillTip(
+            TIP_TABLE[tip].text,
+            tip === 'map:odds' ? VALUES : { ...VALUES, note: '' },
+          ).trim(),
     tip,
     draw,
   };
 }
 
 /** The icon each action tip is drawn with in the game (others have none and draw the neutral mark). */
-const ACTION_ICON: Readonly<Record<string, string>> = { survey: 'spyglass', build: 'hammer' };
+const ACTION_ICON: Readonly<Record<string, string>> = {
+  survey: 'spyglass',
+  build: 'hammer',
+  move: 'feet',
+};
 
 const BOON_IDS: ReadonlySet<string> = new Set(BOONS);
 
@@ -134,6 +178,9 @@ export const HUD_ICONS: readonly string[] = [
   'recentre-creature',
   'recap',
   'join',
+  'story',
+  'greyfold',
+  'date',
 ];
 
 export function buildGlossary(): readonly GlossaryEntry[] {
@@ -254,6 +301,42 @@ export function buildGlossary(): readonly GlossaryEntry[] {
   for (const n of SKILL_NODES)
     out.push(entry('skills', n.id, tipFor('skill', n.id), { kind: 'skill', icon: n.icon }, n.name));
 
+  // What the walk leaves on the map.
+  for (const kind of TRACE_KINDS)
+    out.push(
+      entry('marks', `trace-${kind}`, tipFor('map', `trace-${kind}`), {
+        kind: 'trace',
+        trace: kind,
+      }),
+    );
+  out.push(entry('marks', 'standing-stone', tipFor('map', 'standing-stone'), { kind: 'stone' }));
+
+  // The fire rework: a lit brazier and its embers, what a fire would take, what keeps clear of it.
+  const FIRE_TIPS: Readonly<Record<FireMark, TipId>> = {
+    'brazier-lit': 'map:fire-brazier',
+    burnable: 'map:burnable',
+    burnt: 'map:burnt',
+    'fears-fire': 'map:fears-fire',
+    blocked: 'map:blocked',
+    odds: 'map:odds',
+    nights: 'map:nights',
+    pinned: 'map:pinned',
+  };
+  for (const mark of FIRE_MARKS)
+    out.push(entry('marks', `fire-${mark}`, FIRE_TIPS[mark], { kind: 'fire', mark }));
+
+  // Hazards, the lure animal and the cart.
+  const THINGS: readonly (readonly [string, TipId, string])[] = [
+    ['lure', 'map:lure', 'lure'],
+    ['lure-settled', 'map:lure-settled', 'lure-settled'],
+    ['leads-left', 'map:leads', 'leads'],
+    ['cart', 'map:cart', 'cart'],
+    ['cargo', 'map:cargo', 'cargo'],
+    ['step-harm', 'map:step-harm', 'poisoned-lake'],
+    ['scree-field', 'map:scree-field', 'scree-field'],
+  ];
+  for (const [key, tip, id] of THINGS) out.push(entry('marks', key, tip, { kind: 'thing', id }));
+
   for (const kind of MOMENT_KINDS)
     out.push(entry('marks', kind, null, { kind: 'moment', moment: kind }));
 
@@ -281,6 +364,31 @@ export function drawEntry(d: Draw, size: number): SvgNode | null {
       });
     case 'moment':
       return drawMoment(d.moment, PALETTE, size);
+    case 'trace':
+    case 'stone': {
+      const drawn =
+        d.kind === 'trace'
+          ? drawTrace(PALETTE, d.trace, { k: 0.8, seed: 1 })
+          : drawStandingStone(PALETTE, { k: 0.8, seed: 1, ticks: 2 });
+      const { x0, y0, x1, y1 } = drawn.box;
+      const pad = 3;
+      const w = x1 - x0 + 2 * pad;
+      const h = y1 - y0 + 2 * pad;
+      const side = Math.max(w, h);
+      return el(
+        'svg',
+        {
+          viewBox: `${x0 - pad - (side - w) / 2} ${y0 - pad - (side - h) / 2} ${side} ${side}`,
+          width: size,
+          height: size,
+        },
+        drawn.nodes,
+      );
+    }
+    case 'fire':
+      return drawFireMark(d.mark, size);
+    case 'thing':
+      return drawThing(d.id, size);
     case 'tile': {
       const scene = renderScene({
         cells: [
@@ -303,6 +411,99 @@ export function drawEntry(d: Draw, size: number): SvgNode | null {
     case 'hud':
       if (d.id === 'pack') return drawPackIcon(PALETTE, size, 3, DEFAULT_CONFIG.packCapacity);
       if (d.id === 'stores') return drawStoresIcon(PALETTE, size);
+      if (d.id === 'greyfold') return drawRouteDestination(PALETTE, size);
       return null;
   }
+}
+
+/** A fire mark: the art kit's own mark, or a small scene for the ones that sit on the map. */
+function drawFireMark(mark: FireMark, size: number): SvgNode {
+  if (mark === 'burnable') return drawBurnableMark(PALETTE, size);
+  if (mark === 'fears-fire') return drawFearsFireMark(PALETTE, size);
+  if (mark === 'nights') return drawNightsLeft(PALETTE, 2, size);
+  if (mark === 'odds') return drawOddsMark(PALETTE, 0.8, 'rocks', { size: size * 0.5 });
+  const scene = renderScene({
+    cells: [
+      {
+        q: 0,
+        r: 0,
+        terrain: 'plains',
+        state: 'seen',
+        ...(mark === 'brazier-lit'
+          ? { feature: { look: 'brazier', lit: true, nightsLeft: 2 } }
+          : mark === 'burnt'
+            ? { burnt: burntLookOf(FEATURE_TYPES.find((f) => f.burntLook)?.id ?? '') }
+            : {}),
+      },
+    ],
+    ...(mark === 'pinned'
+      ? { characters: [{ id: 'gl', q: 0, r: 0, accent: 'slate', marks: { pinned: true } }] }
+      : {}),
+    projection: MINI,
+    palette: PALETTE,
+    seed: mark,
+    idPrefix: `gl-fire-${mark}`,
+    frame: 'none',
+  });
+  if (mark === 'blocked') {
+    // The stripes reach past the one hex the scene frames: widen the frame to take them in.
+    const [x = 0, y = 0, w = 1, h = 1] = String(scene.attrs['viewBox']).split(' ').map(Number);
+    const grow = 0.6;
+    return el(
+      'svg',
+      {
+        viewBox: `${x - w * grow} ${y - h * grow} ${w * (1 + 2 * grow)} ${h * (1 + 2 * grow)}`,
+        width: size * 1.14,
+        height: size,
+      },
+      [
+        ...scene.children,
+        drawBlockedHexes(
+          MINI,
+          [
+            { q: 0, r: 0 },
+            { q: 1, r: 0 },
+            { q: 0, r: 1 },
+          ],
+          PALETTE,
+          {
+            reason: 'fire',
+          },
+        ),
+      ],
+    );
+  }
+  return el('svg', { ...scene.attrs, width: size * 1.14, height: size }, scene.children);
+}
+
+/** A fitted `<svg>` square around art kit nodes, like the traces' entries. */
+function fitted(
+  drawn: { nodes: SvgNode[]; box: { x0: number; y0: number; x1: number; y1: number } },
+  size: number,
+): SvgNode {
+  const { x0, y0, x1, y1 } = drawn.box;
+  const pad = 3;
+  const w = x1 - x0 + 2 * pad;
+  const h = y1 - y0 + 2 * pad;
+  const side = Math.max(w, h);
+  return el(
+    'svg',
+    {
+      viewBox: `${x0 - pad - (side - w) / 2} ${y0 - pad - (side - h) / 2} ${side} ${side}`,
+      width: size,
+      height: size,
+    },
+    drawn.nodes,
+  );
+}
+
+/** The lure's and cart's marks. */
+function drawThing(id: string, size: number): SvgNode {
+  const opts = { k: 1, squash: MAP_TUNING.tilt, seed: 1 };
+  if (id === 'lure' || id === 'lure-settled')
+    return fitted(drawCapybara(PALETTE, id === 'lure' ? 'normal' : 'settled', opts), size);
+  if (id === 'cart') return fitted(drawCart(PALETTE, 'loaded', opts), size);
+  if (id === 'leads') return drawLeadsLeft(PALETTE, 2, size * 0.6);
+  if (id === 'cargo') return drawCargoFill(PALETTE, 0.5, 5, size * 0.5);
+  return drawHazardIcon(id, PALETTE, size);
 }

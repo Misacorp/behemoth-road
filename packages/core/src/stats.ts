@@ -47,13 +47,16 @@ export const PERIL_CALM = 'calm';
 export const PERIL_SHELTER = 'shelter';
 /** A strike on the creature by a threat of this type (a content id). */
 export const perilThreat = (type: string): string => `threat:${type}`;
+/** The source of peril from the creature stepping onto hazardous terrain. */
+export const perilTerrain = (terrain: string): string => `terrain:${terrain}`;
 /** The threat type a source id names, or null for the other sources. */
 export const threatOfSource = (source: string): string | null =>
   source.startsWith('threat:') ? source.slice('threat:'.length) : null;
 
 /**
  * Where the season's peril came from, so far, as the events showed it: `added` and `eased` are
- * totals by source (positive numbers; added minus eased equals the peril now), `held` is what
+ * totals by source (positive numbers; added minus eased equals the peril now; the keys run in the
+ * order the sources last changed, so the last key is the latest), `held` is what
  * defence kept off the creature (never in peril, shown beside it).
  */
 export interface PerilLog {
@@ -135,7 +138,10 @@ export const recordEvents = <S extends GameStateView>(
         shared = { ...shared, peakPeril: Math.max(shared.peakPeril, e.to) };
         for (const p of e.sources) {
           const into = p.amount > 0 ? added : eased;
-          into[p.source] = (into[p.source] ?? 0) + Math.abs(p.amount);
+          const total = (into[p.source] ?? 0) + Math.abs(p.amount);
+          // Re-inserted, so the keys run oldest addition first: the last is the latest (`endingOf` breaks ties by it).
+          delete into[p.source];
+          into[p.source] = total;
         }
         break;
       case 'threat-strikes':

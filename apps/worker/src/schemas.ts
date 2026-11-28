@@ -1,5 +1,14 @@
 import * as v from 'valibot';
-import { ROLE_IDS, SEEN_IDS, SEEN_MAX, SKILL_IDS, STANCE_IDS, UNLOCK_IDS } from './game-core.ts';
+import {
+  DIRECTIONS,
+  ROLE_IDS,
+  SEEN_IDS,
+  SEEN_MAX,
+  SKILL_IDS,
+  STANCE_IDS,
+  STORY_IDS,
+  UNLOCK_IDS,
+} from './game-core.ts';
 import { SERVER_CONFIG } from './server-config.ts';
 
 export const SNOWFLAKE_RE = /^\d{17,20}$/;
@@ -47,6 +56,15 @@ export const SeenBodySchema = v.strictObject({
   ids: v.pipe(v.array(v.picklist(SEEN_IDS)), v.minLength(1), v.maxLength(SEEN_MAX)),
 });
 
+/** POST /api/me/story-read: storylet ids from content, each a known id, at most the whole list. */
+export const StoryReadBodySchema = v.strictObject({
+  ids: v.pipe(
+    v.array(v.picklist(STORY_IDS as [string, ...string[]])),
+    v.minLength(1),
+    v.maxLength(STORY_IDS.length),
+  ),
+});
+
 /** POST /api/dev/pace: how the game's days advance. */
 export const PaceBodySchema = v.strictObject({ pace: v.picklist(['daily', 'fast']) });
 
@@ -92,10 +110,44 @@ export const ActionSchema = v.variant('kind', [
     to: v.pipe(v.string(), v.minLength(1), v.maxLength(64)),
   }),
   v.strictObject({ kind: v.literal('grab-line') }),
+  // The cart (docs/design/cart.md): hitch, board and their opposites take nothing; load and unload name a
+  // material and a count (the core refuses an unknown material, or a count that does not fit, by name).
+  v.strictObject({ kind: v.literal('hitch') }),
+  v.strictObject({ kind: v.literal('unhitch') }),
+  v.strictObject({ kind: v.literal('board-cart') }),
+  v.strictObject({ kind: v.literal('leave-cart') }),
+  v.strictObject({
+    kind: v.literal('load'),
+    material: contentId,
+    amount: v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(99)),
+  }),
+  v.strictObject({
+    kind: v.literal('unload'),
+    material: contentId,
+    amount: v.pipe(v.number(), v.integer(), v.minValue(1), v.maxValue(99)),
+  }),
   // Milestone 5: threats and settlements. The core refuses an unknown threat, material or boon by name
   // (`no-threat`, `no-trade-good`, `unknown-boon`), so the schema only bounds the strings.
   v.strictObject({ kind: v.literal('strike'), threat: contentId }),
   v.strictObject({ kind: v.literal('defend') }),
+  // Frees a pinned character: the target's id (the core refuses an unknown, free or distant one by name).
+  v.strictObject({
+    kind: v.literal('dig-out'),
+    target: v.pipe(v.string(), v.minLength(1), v.maxLength(64)),
+  }),
+  // A pinned character struggles free (rolled by the core from the seed).
+  v.strictObject({ kind: v.literal('struggle') }),
+  // Leads a lure (a small animal) one hex: its id, and exactly one of a direction or a target hex beside it.
+  // The core refuses the rest by name (`no-lure`, `not-near`, `settled`, `blocked`, `pinned`, ...).
+  v.pipe(
+    v.strictObject({
+      kind: v.literal('lead'),
+      lure: contentId,
+      direction: v.exactOptional(v.picklist(DIRECTIONS)),
+      to: v.exactOptional(v.strictObject({ q: coordinate, r: coordinate })),
+    }),
+    v.check((a) => (a.direction === undefined) !== (a.to === undefined)),
+  ),
   v.strictObject({ kind: v.literal('parley') }),
   v.strictObject({ kind: v.literal('offer'), material: contentId }),
   v.strictObject({ kind: v.literal('ask-boon'), boon: contentId }),

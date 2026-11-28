@@ -33,7 +33,16 @@ const ACTION_KINDS: Readonly<Record<Action['kind'], true>> = {
   linger: true,
   'throw-line': true,
   'grab-line': true,
+  hitch: true,
+  unhitch: true,
+  'board-cart': true,
+  'leave-cart': true,
+  load: true,
+  unload: true,
   strike: true,
+  'dig-out': true,
+  struggle: true,
+  lead: true,
   defend: true,
   parley: true,
   offer: true,
@@ -89,6 +98,10 @@ describe('tip texts', () => {
       for (const key of placeholdersIn(tip.text))
         expect(values[key], `${id}: {${key}}`).toBeDefined();
       expect(fillTip(tip.text, values), id).not.toMatch(/[{}]/);
+      expect(fillTip(tip.text, values), id).not.toContain('undefined');
+      if ('title' in tip) expect(fillTip(tip.title, values), id).not.toMatch(/[{}]|undefined/);
+      expect(fillTip(tip.text, values), id).not.toContain('undefined');
+      if ('title' in tip) expect(fillTip(tip.title, values), id).not.toMatch(/[{}]|undefined/);
       expect(tip.text.replace(/\{[^}]*\}/g, ''), id).not.toMatch(/[1-9]/);
     }
     // A tuning change shows in the text.
@@ -103,6 +116,17 @@ describe('tip texts', () => {
     for (const [id, tip] of Object.entries(tips)) {
       expect(fillTip(tip.text, tipValues(DEFAULT_CONFIG)).length, id).toBeLessThanOrEqual(130);
       expect(tip.text, id).not.toMatch(/\s{2}|^\s|\s$/);
+    }
+  });
+
+  it('keep to the glossary: no word it rules out (docs/design/glossary.md)', () => {
+    const avoid =
+      /\b(threats?|blows?|unlocks?|forage|dusk|danger|stand guard|standing guard|wide guard)\b/i;
+    const values = tipValues(DEFAULT_CONFIG);
+    for (const [id, tip] of Object.entries(tips)) {
+      const text = `${'title' in tip ? tip.title : ''} ${fillTip(tip.text, values)}`;
+      // The ids carry code words (`threat:`, `unlock:`); only the text a player reads is checked.
+      expect(text, id).not.toMatch(avoid);
     }
   });
 

@@ -9,15 +9,17 @@ import {
   drawCharacter,
   drawCreature,
   drawAppetiteBadge,
+  drawHazardIcon,
   drawIcon,
   drawSettlementIcon,
+  drawCapybara,
+  drawCart,
   drawSkillNode,
   drawThreatIcon,
   type CharacterLook,
   type Drawn,
   GENTLE_AMBLER,
   el,
-  hexCenter,
   isometric,
   moodOf,
   renderScene,
@@ -30,14 +32,19 @@ import type { CreatureSigns, GameStateView } from '@behemoth-road/core';
 type CreatureAppetiteSign = NonNullable<CreatureSigns['appetite']>;
 import type { JSX } from 'preact';
 import { iconOf } from '../game/chain.ts';
+import type { FireNote } from '../game/fire.ts';
+import type { MoveOption } from '../game/move.ts';
+import type { OddsView } from '../game/odds.ts';
+import { actionTip, tipNoteOf } from '../game/tipNote.ts';
+import { Odds, ODDS_H, ODDS_MARK_H, ODDS_RATIO } from './Odds.tsx';
+import { BurnableMark, FearsFireMark, NightsMark, NIGHTS_W } from './FireMarks.tsx';
 import { Pips, TickMark } from '../hud/icons.tsx';
 import type { Identity } from '../game/identity.ts';
 import { QuirkIcon, RoleEmblem, TraitIcon } from '../ui/emblems.tsx';
 import type { TipId } from '../text/tips.ts';
 import { defendedBy } from '../game/season.ts';
-import { WHY_ELSEWHERE } from '../game/why.ts';
 import { tipFor } from '../ui/tip.ts';
-import { greyedProps, tipProps } from '../ui/press.ts';
+import { elementTarget, greyedProps, tipProps, TIPS } from '../ui/press.ts';
 import { getSettings } from '../settings.ts';
 import { verbOf } from '../text/verbs.ts';
 import type { SettlementInfo, ThreatCardInfo } from '../game/season.ts';
@@ -48,12 +55,12 @@ import { MAP_TUNING } from './config.ts';
 import { toPreact } from './svgToPreact.ts';
 
 export const INSPECT_SIZE = { width: 132, height: 76 } as const;
-export const CREATURE_SIZE = { width: 140, height: 76 } as const;
+export const CREATURE_SIZE = { width: 100, height: 76 } as const;
 export const CONFIRM_SIZE = { width: 150, height: 60 } as const;
 
 const MINI = isometric(24, MAP_TUNING.tilt);
 
-function Card({ width, height }: { width: number; height: number }): JSX.Element {
+export function Card({ width, height }: { width: number; height: number }): JSX.Element {
   return (
     <g>
       <rect x={2} y={3} width={width - 2} height={height - 2} rx={12} fill={PALETTE.paperDeep} />
@@ -113,97 +120,86 @@ function Miniature({
   );
 }
 
-const eyeLine = {
-  fill: 'none',
-  stroke: PALETTE.ink,
-  'stroke-width': 1.8,
-  'stroke-linecap': 'round',
-  'stroke-linejoin': 'round',
-} as const;
-
-/**
- * Visibility as a mark: open eye (in play), closed eye (not yet explored), half-lidded (fading), mist (lost),
- * dotted lid (never seen).
- */
-function VisibilityMark({ state }: { state: CellState }): JSX.Element {
-  switch (state) {
-    case 'seen':
-      return (
-        <g>
-          <path d="M2 16Q18 2 34 16Q18 30 2 16Z" {...eyeLine} fill={PALETTE.paper} />
-          <circle cx={18} cy={16} r={5} fill={PALETTE.ramps.water.shade} stroke={PALETTE.ink} />
-        </g>
-      );
-    case 'fading':
-      return (
-        <g>
-          <path d="M2 16Q18 30 34 16" {...eyeLine} />
-          <path d="M2 16Q18 9 34 16" {...eyeLine} />
-          <path d="M12 17.5a6 4 0 0 0 12 0Z" fill={PALETTE.ramps.water.shade} />
-        </g>
-      );
-    case 'lost':
-      return (
-        <g>
-          <path
-            d="M3 13q5-5 10 0t10 0t10 0M3 21q5-5 10 0t10 0t10 0"
-            {...eyeLine}
-            stroke={PALETTE.inkSoft}
-          />
-        </g>
-      );
-    case 'unexplored':
-      // A closed eye: the terrain is known, but no one has looked yet.
-      return (
-        <g>
-          <path d="M2 16Q18 30 34 16" {...eyeLine} />
-          <path d="M10 21.5l-1.5 3M18 23v3.4M26 21.5l1.5 3" {...eyeLine} stroke-width={1.4} />
-        </g>
-      );
-    case 'unseen':
-      return (
-        <g>
-          <path
-            d="M2 16Q18 30 34 16"
-            {...eyeLine}
-            stroke-dasharray="2 3.5"
-            stroke={PALETTE.inkSoft}
-          />
-        </g>
-      );
-  }
-}
-
 /** An art kit icon (`drawIcon`), placed at (x, y) in a card. */
-function CardIcon({
+export function CardIcon({
   id,
   x,
   y,
   size,
-  risk = false,
+  done = false,
 }: {
   id: string;
   x: number;
   y: number;
   size: number;
-  /** The art kit's risk mark (a cracked triangle) on the icon. */
-  risk?: boolean;
+  /** The art kit's sealed look: this is how things stand now (a tap undoes it). */
+  done?: boolean;
 }): JSX.Element {
-  const icon = drawIcon(id, PALETTE, size, risk ? { risk: true } : {});
+  const icon = drawIcon(id, PALETTE, size, {
+    ...(done ? { done: true } : {}),
+  });
   return toPreact({ ...icon, attrs: { ...icon.attrs, x, y, width: size, height: size } });
 }
 
-/** The inspect card, wider for each button it offers (a survey, a fire hint). */
-export const inspectSize = (survey: boolean, fire = false): { width: number; height: number } => ({
-  width: INSPECT_SIZE.width + ((survey ? 1 : 0) + (fire ? 1 : 0)) * ACTION_W,
-  height: INSPECT_SIZE.height + TITLE_H + (survey || fire ? labelH() : 0),
+/** Width the card already leaves beside the picture for a fire note; the embers' mark is wider by the rest. */
+const NIGHTS_ROOM = 24;
+
+/** The inspect card, wider for each action button (move, survey) and for a lit brazier's embers. */
+export const inspectSize = (
+  buttons: number,
+  note: FireNote | null = null,
+): { width: number; height: number } => ({
+  width:
+    INSPECT_SIZE.width +
+    buttons * ACTION_W +
+    (note && 'nights' in note ? NIGHTS_W - NIGHTS_ROOM : 0),
+  height: INSPECT_SIZE.height + TITLE_H + (buttons > 0 ? labelH() : 0),
 });
+
+/** The Move button's props from the option the core gave (`game/move.ts`), shared by every card that has one. */
+export interface MoveButton {
+  readonly option: MoveOption;
+  /** The move is planned: the button is armed, its next tap walks. */
+  readonly armed: boolean;
+  /** The first tap plans it; the second walks it. */
+  readonly onTap: () => void;
+}
+
+/** One Move button at (x, y): the walk to this place, with its cost pips (and a plus when it is too far). */
+export function MoveActionButton({
+  move,
+  x,
+  y,
+  buttonRef,
+}: {
+  move: MoveButton;
+  x: number;
+  y: number;
+  buttonRef?: (el: SVGGElement | null) => void;
+}): JSX.Element {
+  return (
+    <ActionButton
+      kind="move"
+      icon="feet"
+      cost={move.option.cost}
+      plus={move.option.plus}
+      enabled={move.option.enabled}
+      why={move.option.why ?? null}
+      armedNow={move.armed}
+      arming={!move.armed}
+      x={x}
+      y={y}
+      onRun={move.onTap}
+      {...(buttonRef ? { buttonRef } : {})}
+    />
+  );
+}
 
 /**
  * The inspect card: the tile as the map draws it (under its veil while unexplored, with its revealed
- * feature) and its visibility; next to you and unexplored, a survey button (a spyglass and its cost); on a
- * timber stand, a faded fire with its timber, hinting what the wood is for (never a button that does
- * anything: a fire is lit where you stand).
+ * feature); the Move to stand there and, when you can survey it, a survey button (a spyglass and its
+ * cost). A
+ * feature a fire would burn shows the burnable mark; a lit brazier shows the nights it has left as embers.
  */
 export function InspectCard({
   title = null,
@@ -212,18 +208,24 @@ export function InspectCard({
   state,
   feature = null,
   survey = null,
-  fire = null,
+  note = null,
+  hazard = null,
   onSurvey,
   surveyRef,
   arm,
+  move = null,
 }: {
+  /** Move here: the first tap plans the walk (the route shows), the second walks. Null where there is none. */
+  move?: MoveButton | null;
   terrain: string;
+  /** The hazard icon key when the ground harms a creature stepping on it (a poisoned lake, a glass waste). */
+  hazard?: string | null;
   state: CellState;
   /** A revealed feature on the hex, drawn on the tile. */
   feature?: FeatureArt | null;
   survey?: { readonly cost: number; readonly enabled: boolean; readonly why?: TipId } | null;
-  /** The fire hint on a timber stand: what a fire costs and the fuel it takes. */
-  fire?: { readonly cost: number; readonly uses: string } | null;
+  /** The feature's note about fire: burnable, or the nights a lit brazier has left. */
+  note?: FireNote | null;
   onSurvey?: () => void;
   surveyRef?: (el: SVGGElement | null) => void;
   /** Two taps spend the survey. */
@@ -233,15 +235,35 @@ export function InspectCard({
   /** The tile picture's tip. */
   tileTip?: TipId | null;
 }): JSX.Element {
+  const buttons = (move ? 1 : 0) + (survey ? 1 : 0);
+  // The buttons follow the picture (and any fire note), the first one taking the card's focus.
+  const first = inspectSize(0, note).width - 6;
   return (
     <g data-popover="inspect" data-feature={feature?.look} data-state={state}>
-      <Card {...inspectSize(survey !== null, fire !== null)} />
+      <Card {...inspectSize(buttons, note)} />
       <Title text={title} />
       <g transform={`translate(0 ${TITLE_H})`}>
         <Miniature terrain={terrain} state={state} x={6} y={8} feature={feature} tip={tileTip} />
-        <g transform="translate(84 22)">
-          <VisibilityMark state={state} />
-        </g>
+        {hazard && (
+          <g
+            transform="translate(88 38)"
+            data-mark="hazard"
+            data-hazard={hazard}
+            {...tipProps(tipFor('terrain', terrain))}
+          >
+            <Placed node={drawHazardIcon(hazard, PALETTE, 30)} x={0} y={0} size={30} />
+          </g>
+        )}
+        {note && 'burnable' in note && <BurnableMark x={96} y={46} />}
+        {note && 'nights' in note && <NightsMark nights={note.nights} x={90} y={46} />}
+        {move && (
+          <MoveActionButton
+            move={move}
+            x={first}
+            y={12}
+            {...(surveyRef ? { buttonRef: surveyRef } : {})}
+          />
+        )}
         {survey && (
           <ActionButton
             kind="survey"
@@ -249,24 +271,11 @@ export function InspectCard({
             cost={survey.cost}
             enabled={survey.enabled}
             why={survey.why ?? null}
-            x={INSPECT_SIZE.width - 6}
+            x={first + (move ? ACTION_W : 0)}
             y={12}
             onRun={() => onSurvey?.()}
             {...(arm ? { arm } : {})}
-            {...(surveyRef ? { buttonRef: surveyRef } : {})}
-          />
-        )}
-        {fire && (
-          <ActionButton
-            kind="light-fire"
-            icon="light-fire"
-            cost={fire.cost}
-            enabled={false}
-            why={WHY_ELSEWHERE}
-            x={INSPECT_SIZE.width - 6 + (survey ? ACTION_W : 0)}
-            y={12}
-            uses={iconOf(fire.uses)}
-            onRun={() => {}}
+            {...(surveyRef && !move ? { buttonRef: surveyRef } : {})}
           />
         )}
       </g>
@@ -309,32 +318,6 @@ export function ConfirmCard({
       >
         <TickMark r={r} />
       </g>
-    </g>
-  );
-}
-
-/**
- * The creature's heading: an ink arrow pointing the way it walks on the map. No ring around it, so it does
- * not read as a button.
- */
-function HeadingMark({ heading }: { heading: { q: number; r: number } }): JSX.Element {
-  const d = hexCenter(MINI, heading.q, heading.r);
-  const len = Math.hypot(d.x, d.y) || 1;
-  const ux = d.x / len;
-  const uy = d.y / len;
-  const r = 14;
-  const tip = { x: ux * r * 0.8, y: uy * r * 0.8 };
-  const tail = { x: -ux * r * 0.6, y: -uy * r * 0.6 };
-  const side = (s: number) => ({
-    x: tip.x - ux * 6 + -uy * 4.5 * s,
-    y: tip.y - uy * 6 + ux * 4.5 * s,
-  });
-  const a = side(1);
-  const b = side(-1);
-  return (
-    <g>
-      <path d={`M${tail.x} ${tail.y}L${tip.x} ${tip.y}`} {...eyeLine} stroke-width={2.2} />
-      <path d={`M${a.x} ${a.y}L${tip.x} ${tip.y}L${b.x} ${b.y}`} {...eyeLine} stroke-width={2.2} />
     </g>
   );
 }
@@ -383,8 +366,9 @@ function DefendedMark({
 }
 
 /**
- * The creature: a small drawing of it, turned to its heading (lying down while it lingers, with your signs:
- * its appetite as you see it), and the heading as a compass mark.
+ * The creature: a small drawing of it, turned to the way it walks (lying down while it lingers, with your
+ * signs: its appetite as you see it). No heading arrow: the drawing already faces it, so an arrow beside it
+ * only asked "what is this?".
  */
 export function CreatureCard({
   state,
@@ -412,19 +396,16 @@ export function CreatureCard({
   return (
     <g data-popover="creature">
       <Card {...CREATURE_SIZE} />
-      <svg x={8} y={8} width={80} height={58} viewBox={viewBox} aria-hidden="true">
+      <svg x={10} y={8} width={80} height={58} viewBox={viewBox} aria-hidden="true">
         {drawn.nodes.map(toPreact)}
       </svg>
-      <g transform="translate(110 37)">
-        <HeadingMark heading={art.heading} />
-      </g>
       <DefendedMark wardens={defended.wardens} reduction={defended.reduction} />
     </g>
   );
 }
 
 /** A drawing from the art kit, fitted into a box with a little padding. */
-function Fitted({
+export function Fitted({
   drawn,
   x,
   y,
@@ -491,8 +472,15 @@ const PLACE_W = 56;
 const BUBBLE_H = 64;
 
 /** The bubble's size for `count` characters and a place entry. */
-export function bubbleSize(count: number, place = true): { width: number; height: number } {
-  return { width: 16 + count * FIGURE_W + (place ? PLACE_W : 0), height: BUBBLE_H };
+export function bubbleSize(
+  count: number,
+  place = true,
+  move = false,
+): { width: number; height: number } {
+  return {
+    width: 16 + count * FIGURE_W + (place ? PLACE_W : 0) + (move ? ACTION_W : 0),
+    height: BUBBLE_H + (move ? labelH() : 0),
+  };
 }
 
 export interface BubbleCharacter {
@@ -506,7 +494,17 @@ export interface BubbleCharacter {
 }
 
 /** A small icon placed with its top-left at (x, y). */
-function Placed({ node, x, y, size }: { node: SvgNode; x: number; y: number; size: number }) {
+export function Placed({
+  node,
+  x,
+  y,
+  size,
+}: {
+  node: SvgNode;
+  x: number;
+  y: number;
+  size: number;
+}) {
   return toPreact({ ...node, attrs: { ...node.attrs, x, y, width: size, height: size } });
 }
 
@@ -544,7 +542,10 @@ export function Bubble({
   onOpenPlace,
   onCharacter,
   placeRef,
+  move = null,
 }: {
+  /** Move onto the place (board the creature, from beside it), when you can. */
+  move?: MoveButton | null;
   characters: readonly BubbleCharacter[];
   onCharacter: (id: string) => void;
   place?: 'creature';
@@ -553,10 +554,12 @@ export function Bubble({
   onOpenPlace: () => void;
   placeRef: (el: SVGGElement | null) => void;
 }): JSX.Element {
-  const size = bubbleSize(characters.length, place !== undefined);
+  const size = bubbleSize(characters.length, place !== undefined, move !== null);
+  const moveX = 8 + characters.length * FIGURE_W;
   return (
     <g data-popover="bubble">
       <Card {...size} />
+      {move && <MoveActionButton move={move} x={moveX} y={5} />}
       {characters.map((c, i) => {
         const x = 8 + i * FIGURE_W;
         const ramp = accentRamp(PALETTE, c.accent);
@@ -648,8 +651,9 @@ export const characterSize = (
   back: boolean,
   skills = 0,
   tow = false,
+  dig = false,
 ): { width: number; height: number } => ({
-  width: CHARACTER_SIZE.width + (back ? BACK_W : 0) + (tow ? ACTION_W : 0),
+  width: CHARACTER_SIZE.width + (back ? BACK_W : 0) + ((tow ? 1 : 0) + (dig ? 1 : 0)) * ACTION_W,
   height: CHARACTER_SIZE.height + (skills > 0 ? SKILL_ROW_H : 0),
 });
 
@@ -696,9 +700,14 @@ export function CharacterCard({
   backRef,
   tow = null,
   onThrow,
+  dig = null,
+  onDig,
   arm,
 }: {
   who: Identity;
+  /** Digging them out from under a slide (they are pinned and you are on or next to their place), or none. */
+  dig?: { readonly cost: number; readonly enabled: boolean; readonly why?: TipId | null } | null;
+  onDig?: () => void;
   /** The tow line, for a rider: the throw button (its cost and whether it can be done now), or none. */
   tow?: { readonly cost: number; readonly enabled: boolean; readonly why?: TipId | null } | null;
   onThrow?: () => void;
@@ -709,6 +718,8 @@ export function CharacterCard({
   backRef?: (el: SVGGElement | null) => void;
 }): JSX.Element {
   const shift = onBack ? BACK_W : 0;
+  const size = characterSize(Boolean(onBack), who.skills.length, tow !== null, dig !== null);
+  const buttonsLeft = size.width - ((tow ? 1 : 0) + (dig ? 1 : 0)) * ACTION_W - 2;
   // The role, trait and quirk icons each have their tip (hover, or press and hold).
   const tipped = (id: TipId | null, x: number, y: number, icon: JSX.Element) => (
     <g transform={`translate(${x} ${y})`} {...tipProps(id)}>
@@ -717,7 +728,7 @@ export function CharacterCard({
   );
   return (
     <g data-popover="character" data-character={who.id} data-back={onBack ? true : undefined}>
-      <Card {...characterSize(Boolean(onBack), who.skills.length, tow !== null)} />
+      <Card {...size} />
       {tow && (
         <ActionButton
           kind="throw-line"
@@ -725,9 +736,22 @@ export function CharacterCard({
           cost={tow.cost}
           enabled={tow.enabled}
           why={tow.why ?? null}
-          x={characterSize(Boolean(onBack), 0, true).width - ACTION_W - 2}
+          x={buttonsLeft}
           y={12}
           onRun={() => onThrow?.()}
+          {...(arm ? { arm } : {})}
+        />
+      )}
+      {dig && (
+        <ActionButton
+          kind="dig-out"
+          icon="dig-out"
+          cost={dig.cost}
+          enabled={dig.enabled}
+          why={dig.why ?? null}
+          x={buttonsLeft + (tow ? ACTION_W : 0)}
+          y={12}
+          onRun={() => onDig?.()}
           {...(arm ? { arm } : {})}
         />
       )}
@@ -776,9 +800,11 @@ export interface HereAction {
   readonly kind: string;
   /** The art kit icon it shows, when not its kind's own. */
   readonly icon?: string;
-  /** It may go wrong (a parley by a non-warden): a small risk mark on the button. */
-  readonly risk?: boolean;
+  /** Its odds, when it rolls (a parley, working a site, a struggle): drawn by the `Odds` component. */
+  readonly odds?: OddsView | null;
   readonly cost: number;
+  /** One tap runs it: the button opens a card or is free and undone by a tap (never inferred from the cost). */
+  readonly noArm?: boolean;
   readonly enabled: boolean;
   /** A material it takes (a fire's timber), drawn small beside the pips. */
   readonly uses?: string | null;
@@ -790,7 +816,7 @@ export interface HereAction {
   readonly why?: TipId | null;
 }
 
-const ACTION_W = 54;
+export const ACTION_W = 54;
 
 /** The row under each action for its verb, when the action labels setting is on. */
 export const labelH = (): number => (getSettings().actionLabels ? 12 : 0);
@@ -798,7 +824,7 @@ export const labelH = (): number => (getSettings().actionLabels ? 12 : 0);
 export const TITLE_H = 18;
 
 /** A card's noun title (what it is about: "Berry bushes", "Plains"), the card's only words besides names. */
-function Title({ text }: { text: string | null }): JSX.Element | null {
+export function Title({ text }: { text: string | null }): JSX.Element | null {
   if (!text) return null;
   return (
     <text
@@ -815,12 +841,7 @@ function Title({ text }: { text: string | null }): JSX.Element | null {
   );
 }
 
-/** The tip of an action button: a boon's own, an offer's, or the action's. */
-function actionTip(kind: string): TipId | null {
-  if (kind.startsWith('boon:')) return tipFor('boon', kind.slice(5));
-  if (kind.startsWith('offer')) return 'action:offer';
-  return tipFor('action', kind);
-}
+export { actionTip };
 
 /**
  * Two taps spend: the card's armed button (`arm.armed`), changed by each press (`press`). Without it a
@@ -832,13 +853,15 @@ export interface Arming {
 }
 
 const BADGE = 20;
+/** Room the plus after the pips takes. */
+const PLUS_W = 8;
 
 /**
  * One action as a button: its art kit icon and cost pips; faded and inert when it cannot be done now, with
  * the emblem of the role that can when the core says so. The first tap arms it (its pips give way to a
  * tick), the second spends.
  */
-function ActionButton({
+export function ActionButton({
   kind,
   icon,
   cost,
@@ -847,9 +870,15 @@ function ActionButton({
   y,
   uses = null,
   short = false,
-  risk = false,
+  odds = null,
+  tall = false,
   needs = null,
   why = null,
+  done = false,
+  plus = false,
+  armedNow = false,
+  arming = false,
+  tipNote = null,
   arm,
   armKey = kind,
   onRun,
@@ -858,6 +887,14 @@ function ActionButton({
   kind: string;
   icon: string;
   cost: number;
+  /** The cost is more than the pips can show: a plus follows them (a tile too far to walk to). */
+  plus?: boolean;
+  /** Drawn armed (its tick) whatever the card's arming says: a planned move waiting for its second tap. */
+  armedNow?: boolean;
+  /** This button's tap only arms something else's state (a move is planned): its tip shows as it would for an armed one. */
+  arming?: boolean;
+  /** What the tip's text fills in: the odds ("Success 70% · Angered 30%") or the thing's name; the odds by default. */
+  tipNote?: string | null;
   enabled: boolean;
   x: number;
   y: number;
@@ -865,12 +902,18 @@ function ActionButton({
   uses?: string | null;
   /** The material is missing: drawn faded. */
   short?: boolean;
-  /** It may go wrong: a small cracked-triangle mark in the corner. */
+  /** Its odds, when it rolls: the `Odds` mark in a strip along the button's foot. */
+  odds?: OddsView | null;
+  /** The button is taller by the odds strip (every button of a card with odds, so they line up). */
+  tall?: boolean;
+  /** It may go wrong (the harm mark on the icon). */
   risk?: boolean;
   /** Greyed because this role can: its emblem as a badge on the corner. */
   needs?: string | null;
   /** Why it is greyed, as a tip id: the tap on a greyed button shows it (see `greyedProps`). */
   why?: TipId | null;
+  /** How things stand now (you pull the cart, you ride it): the icon is drawn sealed, a tap undoes it. */
+  done?: boolean;
   arm?: Arming;
   /** This button's key among the card's buttons (default its kind). */
   armKey?: string;
@@ -878,19 +921,33 @@ function ActionButton({
   buttonRef?: (el: SVGGElement | null) => void;
 }): JSX.Element {
   const material = uses ? 15 : 0;
-  const row = material + (material ? 2 : 0) + cost * 10;
+  const row = material + (material ? 2 : 0) + cost * 10 + (plus ? PLUS_W : 0);
   const left = (ACTION_W - 6) / 2 - row / 2;
-  const armed = enabled && arm !== undefined && arm.armed === armKey;
-  const run = (): void => {
+  const armed = enabled && (armedNow || (arm !== undefined && arm.armed === armKey));
+  const note = tipNote ?? tipNoteOf(odds);
+  const run = (e: Event): void => {
     // A greyed button never acts (its tap shows the reason, in the press layer).
     if (!enabled) return;
+    // The first tap shows what the action does (a passing tip, which may cover the popover); the second
+    // spends and puts it away.
+    const showTip = (): void => {
+      const id = actionTip(kind);
+      const host = (e.currentTarget as Element | null) ?? null;
+      if (id !== null && host) TIPS.tap(id, elementTarget(host));
+    };
+    if (armedNow) {
+      onRun();
+      return;
+    }
     if (!arm) {
-      if (enabled) onRun();
+      onRun();
+      if (arming) showTip();
       return;
     }
     const next = press(arm.armed, armKey, enabled);
     arm.onArm(next.armed);
     if (next.run) onRun();
+    else if (next.armed !== null) showTip();
   };
   return (
     <g
@@ -903,6 +960,7 @@ function ActionButton({
       aria-pressed={arm ? armed : undefined}
       data-action={kind}
       data-armed={armed ? true : undefined}
+      data-tip-note={enabled && note ? note : undefined}
       {...greyedProps(enabled, why, actionTip(kind))}
       data-needs={needs ?? undefined}
       transform={`translate(${x} ${y})`}
@@ -910,20 +968,20 @@ function ActionButton({
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
-          run();
+          run(e);
         }
       }}
     >
       <g opacity={enabled ? 1 : 0.4}>
         <rect
           width={ACTION_W - 6}
-          height={50 + labelH()}
+          height={50 + labelH() + (tall ? ODDS_H : 0)}
           rx={9}
           fill={PALETTE.paperDeep}
           {...(armed ? { stroke: PALETTE.ink, 'stroke-width': 1.6 } : {})}
         />
-        <g data-risk={risk ? 'true' : undefined}>
-          <CardIcon id={icon} x={(ACTION_W - 6) / 2 - 14} y={3} size={28} risk={risk} />
+        <g>
+          <CardIcon id={icon} x={(ACTION_W - 6) / 2 - 14} y={3} size={28} done={done} />
         </g>
         {armed ? (
           <g transform={`translate(${(ACTION_W - 6) / 2} 39)`} data-mark="armed">
@@ -936,9 +994,20 @@ function ActionButton({
                 <CardIcon id={uses} x={left} y={31} size={material} />
               </g>
             )}
-            <g transform={`translate(${left + row - cost * 10 - 2} 34)`}>
+            <g transform={`translate(${left + row - cost * 10 - (plus ? PLUS_W : 0) - 2} 34)`}>
               <Pips total={cost} left={cost} size={9} />
             </g>
+            {plus && (
+              <g
+                transform={`translate(${left + row - PLUS_W + 1} 38.5)`}
+                data-mark="plus"
+                stroke={PALETTE.ink}
+                stroke-width={1.8}
+                stroke-linecap="round"
+              >
+                <path d="M0 0h6M3 -3v6" />
+              </g>
+            )}
           </>
         )}
         {labelH() > 0 && verbOf(kind) && (
@@ -954,6 +1023,14 @@ function ActionButton({
           >
             {verbOf(kind)}
           </text>
+        )}
+        {odds && (
+          <Odds
+            odds={odds}
+            x={(ACTION_W - 6 - ODDS_MARK_H * ODDS_RATIO) / 2}
+            y={50 + labelH()}
+            height={ODDS_MARK_H}
+          />
         )}
       </g>
       {needs && (
@@ -977,10 +1054,13 @@ const ACTION_ICONS: Readonly<Record<string, string>> = { gather: 'hand', 'work-s
 export const actionKey = (a: HereAction): string => `${a.kind}:${a.uses ?? ''}`;
 
 // Compact, so the neighbours up-left and up-right of your figure stay tappable on a phone.
-export const hereSize = (count: number): { width: number; height: number } => ({
+export const hereSize = (count: number, odds = false): { width: number; height: number } => ({
   width: Math.max(58 + count * ACTION_W, 120),
-  height: 62 + TITLE_H + labelH(),
+  height: 62 + TITLE_H + labelH() + (odds ? ODDS_H : 0),
 });
+
+/** Whether any of a card's actions carries odds (its buttons then all grow by the odds strip). */
+export const hasOdds = (actions: readonly HereAction[]): boolean => actions.some((a) => a.odds);
 
 /**
  * Your own hex: the revealed feature there and the actions it offers (gather, work the site, light a fire),
@@ -1012,7 +1092,8 @@ export function HereCard({
   /** The tile picture's tip. */
   tileTip?: TipId | null;
 }): JSX.Element {
-  const size = hereSize(actions.length);
+  const tall = hasOdds(actions);
+  const size = hereSize(actions.length, tall);
   return (
     <g
       data-popover="here"
@@ -1045,7 +1126,8 @@ export function HereCard({
             key={actionKey(a)}
             kind={a.kind}
             icon={a.icon ?? ACTION_ICONS[a.kind] ?? a.kind}
-            risk={a.risk ?? false}
+            odds={a.odds ?? null}
+            tall={tall}
             cost={a.cost}
             enabled={a.enabled}
             x={56 + i * ACTION_W}
@@ -1055,7 +1137,7 @@ export function HereCard({
             needs={a.needs ?? null}
             why={a.why ?? null}
             armKey={actionKey(a)}
-            {...(arm ? { arm } : {})}
+            {...(arm && !a.noArm ? { arm } : {})}
             onRun={() => onAct(a.kind)}
             {...(i === 0 ? { buttonRef: firstRef } : {})}
           />
@@ -1089,9 +1171,9 @@ export function DistanceMarks({
 }
 
 /** The threat card, wider when it offers a strike. */
-export const threatSize = (strike: boolean): { width: number; height: number } => ({
+export const threatSize = (strike: boolean, odds = false): { width: number; height: number } => ({
   width: 206 + (strike ? ACTION_W : 0),
-  height: 76 + (strike ? labelH() : 0),
+  height: 76 + (strike ? labelH() : 0) + (strike && odds ? ODDS_H : 0),
 });
 
 /**
@@ -1111,7 +1193,7 @@ export function ThreatCard({
   /** Two taps spend the strike. */
   arm?: Arming;
 }): JSX.Element {
-  const size = threatSize(threat.strike !== null);
+  const size = threatSize(threat.strike !== null, threat.odds !== null);
   const marks = Math.min(threat.strength, 10);
   const blocked = Math.min(threat.defence, marks);
   const drawn = drawThreatIcon(threat.icon, PALETTE, 60);
@@ -1152,6 +1234,8 @@ export function ThreatCard({
         )}
       </g>
       <DistanceMarks count={threat.steps} x={72} y={56} />
+      {/* On the picture's lower corner: clear of the strike button and the screen's round buttons. */}
+      {threat.fears && <FearsFireMark x={46} y={50} />}
       {threat.strike && (
         <ActionButton
           kind="strike"
@@ -1159,6 +1243,8 @@ export function ThreatCard({
           cost={threat.strike.cost}
           enabled={threat.strike.enabled}
           why={threat.strike.why ?? null}
+          odds={threat.odds}
+          tall={threat.odds !== null}
           x={size.width - ACTION_W - 2}
           y={12}
           onRun={onStrike}
@@ -1171,6 +1257,12 @@ export function ThreatCard({
 }
 
 export const SETTLEMENT_SIZE = { width: 172, height: 80 } as const;
+
+/** The settlement card's size: wider by a Move button. */
+export const settlementSize = (move: boolean): { width: number; height: number } => ({
+  width: SETTLEMENT_SIZE.width + (move ? ACTION_W : 0),
+  height: SETTLEMENT_SIZE.height + (move ? labelH() : 0),
+});
 
 /**
  * A settlement's drawing by attitude (with its favour marks while wary), and once a boon is taken, that
@@ -1217,7 +1309,16 @@ function SettlementFigure({
  * A settlement from afar (or where you stand with nothing left to do there): its drawing by attitude, the
  * boon it gave, and its people's name.
  */
-export function SettlementCard({ settlement }: { settlement: SettlementInfo }): JSX.Element {
+export function SettlementCard({
+  settlement,
+  move = null,
+  moveRef,
+}: {
+  settlement: SettlementInfo;
+  /** Move onto the settlement's hex, when you can. */
+  move?: MoveButton | null;
+  moveRef?: (el: SVGGElement | null) => void;
+}): JSX.Element {
   return (
     <g
       data-popover="settlement"
@@ -1226,8 +1327,16 @@ export function SettlementCard({ settlement }: { settlement: SettlementInfo }): 
       data-favour={settlement.favour}
       data-boon={settlement.boon ?? undefined}
     >
-      <Card {...SETTLEMENT_SIZE} />
+      <Card {...settlementSize(move !== null)} />
       <SettlementFigure settlement={settlement} x={7} y={5} size={70} />
+      {move && (
+        <MoveActionButton
+          move={move}
+          x={SETTLEMENT_SIZE.width - 6}
+          y={12}
+          {...(moveRef ? { buttonRef: moveRef } : {})}
+        />
+      )}
       <text
         x={84}
         y={44}
@@ -1246,7 +1355,9 @@ export function SettlementCard({ settlement }: { settlement: SettlementInfo }): 
 export interface PickBubble {
   /** Its key among the bubbles (`me`, `character:id`, `threat:id`, `tile`). */
   readonly key: string;
-  readonly kind: 'character' | 'threat' | 'tile';
+  readonly kind: 'character' | 'threat' | 'tile' | 'lure' | 'cart';
+  /** The lure's or the cart's look (its drawing's state), and the cart's rider or puller accent. */
+  readonly thing?: { readonly look: string; readonly accent?: string };
   /** A character's accent and look. */
   readonly accent?: string;
   readonly look?: CharacterLook | undefined;
@@ -1319,6 +1430,18 @@ export function Picker({
             {b.kind === 'character' && b.accent && (
               <Fitted drawn={bubbleFigure(b.accent, b.look)} x={9} y={3} width={26} height={38} />
             )}
+            {b.kind === 'lure' && b.thing && (
+              <Fitted drawn={lureBubble(b.thing.look)} x={4} y={9} width={36} height={26} />
+            )}
+            {b.kind === 'cart' && b.thing && (
+              <Fitted
+                drawn={cartBubble(b.thing.look, b.thing.accent)}
+                x={4}
+                y={9}
+                width={36}
+                height={26}
+              />
+            )}
             {b.kind === 'threat' && b.threat && <g>{toPreact(pickThreat(b.threat.icon))}</g>}
             {b.kind === 'tile' &&
               (b.settlement ? (
@@ -1338,6 +1461,37 @@ export function Picker({
       })}
     </g>
   );
+}
+
+const thingDrawn = new Map<string, Drawn>();
+/** The capybara's bubble drawing (normal or settled), cached. */
+function lureBubble(look: string): Drawn {
+  const key = `lure|${look}`;
+  let d = thingDrawn.get(key);
+  if (!d) {
+    d = drawCapybara(PALETTE, look === 'settled' ? 'settled' : 'normal', {
+      k: 1,
+      squash: MAP_TUNING.tilt,
+      seed: 'bubble',
+    });
+    thingDrawn.set(key, d);
+  }
+  return d;
+}
+/** The cart's bubble drawing in its state, cached. */
+function cartBubble(look: string, accent?: string): Drawn {
+  const key = `cart|${look}|${accent ?? ''}`;
+  let d = thingDrawn.get(key);
+  if (!d) {
+    d = drawCart(PALETTE, look, {
+      k: 1,
+      squash: MAP_TUNING.tilt,
+      seed: 'bubble',
+      ...(accent ? { accent } : {}),
+    });
+    thingDrawn.set(key, d);
+  }
+  return d;
 }
 
 const pickThreat = (icon: string) => {

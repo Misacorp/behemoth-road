@@ -57,6 +57,54 @@ export interface TuningConfig {
   readonly hungryVeerWeights: VeerWeights;
   /** Action costs of the creature-care actions. */
   readonly lightFireCost: number;
+  /** Nights a lit brazier burns (a Beacon skill adds more). */
+  readonly brazierNights: number;
+  /** A burning brazier shows the hexes within this distance of it (they count as explored). */
+  readonly brazierRevealRadius: number;
+  /** Mapgen: braziers stand about this many hexes apart along the creature's likely route. */
+  readonly brazierSpacing: number;
+  /** Mapgen: the first brazier stands within this many hexes of the start, along the route. */
+  readonly brazierFirstWithin: number;
+  /** A threat tagged `fears-fire` keeps this far from a burning fire (it will not enter, stop on or strike from the ring). */
+  readonly fireFearRadius: number;
+  /** Chance that a strike on a threat tagged `falls` brings it down on the striker (skills and roles lower it). */
+  readonly slideFallChance: number;
+  /** Actions it costs to dig out a pinned character. */
+  readonly digOutCost: number;
+  /** Actions one struggle costs a pinned character. */
+  readonly struggleCost: number;
+  /** Chance the first struggle frees a pinned character; each earlier failure adds `struggleChanceStep`. */
+  readonly struggleChanceBase: number;
+  readonly struggleChanceStep: number;
+  /** Mapgen: a hazard patch (scree, poisoned lake, glass waste) lies across the route about every this many hexes. */
+  readonly hazardSpacing: number;
+  /** Mapgen: no hazard lies within this many hexes of the start. */
+  readonly hazardFirst: number;
+  /** Mapgen: a hazard patch is laid this many hexes beyond the window's edge (so none of it has been in view). */
+  readonly hazardLookaheadBeyond: number;
+  /** Mapgen: the first patch's centre lies this many hexes past `hazardFirst` (its edge is then past it too). */
+  readonly hazardFirstOffset: number;
+  /** Mapgen: chance a patch is laid a hex to one side of the heading's line. */
+  readonly hazardSideChance: number;
+  /** Mapgen: a patch's place along the route varies by up to this many hexes either way. */
+  readonly hazardJitter: number;
+  /** Mapgen: a lure (a small animal) stands near the route about every this many hexes. */
+  readonly lureSpacing: number;
+  /** Mapgen: the first lure stands this many hexes along the route from the start. */
+  readonly lureFirstWithin: number;
+  /** Mapgen: a lure's place along the route varies by up to this many hexes either way. */
+  readonly lureJitter: number;
+  /** Mapgen: no lure is placed within this many hexes beyond the creature's footprint. */
+  readonly lureKeepOut: number;
+  /** Mapgen: a lure is aimed at least this many hexes beyond the footprint along the heading. */
+  readonly lureAheadMin: number;
+  /** Mapgen: a lure stands this many hexes (at least, at most) beside the heading's line. */
+  readonly lureWideMin: number;
+  readonly lureWideMax: number;
+  /** Actions it costs to lead a lure one hex. */
+  readonly leadCost: number;
+  /** Times a lure can be led before it settles for good. */
+  readonly lureLeads: number;
   readonly feedCost: number;
   /** Keepers only: the creature stays put at the next tick. */
   readonly lingerCost: number;
@@ -64,6 +112,17 @@ export interface TuningConfig {
   readonly towThrowCost: number;
   readonly towGrabCost: number;
   readonly towReach: number;
+
+  // The cart (docs/design/cart.md): one party-owned hand cart, hitched to a puller or ridden by one.
+  /** Carts the party may have at once (a lost cart can be rebuilt). */
+  readonly cartsMax: number;
+  /** Material units a cart holds. */
+  readonly cartCargo: number;
+  /** Actions it costs to hitch to the cart, and to climb aboard it (unhitching and leaving are free). */
+  readonly cartHitchCost: number;
+  readonly cartBoardCost: number;
+  /** Actions added to every step of a puller with the cart hitched. */
+  readonly cartPullExtra: number;
 
   // Threats (docs/design/m5-season.md).
   /** The first day (after a tick) on which a threat may appear. */
@@ -129,8 +188,16 @@ export interface TuningConfig {
   readonly perilHungryLevel: number;
   /** Peril lost at a tick where it did not rise. */
   readonly perilCalm: number;
-  /** The season's length in creature steps. */
+  /** The season's length in creature steps (the destination lies about this many steps out). */
   readonly routeLength: number;
+  /** The destination band's thickness in rows (at least 1, so the creature cannot step over it). */
+  readonly destinationDepth: number;
+  /**
+   * Rows (see `destination.ts`) the creature is expected to cover per step, to place the destination `routeLength`
+   * steps out. A straight step is 1 row and a veering one half a row: untouched it averages 0.75, but fires,
+   * lures and hunger bend its path, so a played season averages 0.59 (careful parties in the balance sim).
+   */
+  readonly destinationRowsPerStep: number;
 
   // Skills (docs/design/skill-trees.md).
   /** XP that makes one pick (own tree, or another role's tier 1). */
@@ -138,6 +205,14 @@ export interface TuningConfig {
   /** Each time the creature's steps reach a multiple of this, every active character gets `catchUpXp` XP. */
   readonly catchUpEverySteps: number;
   readonly catchUpXp: number;
+
+  // Story (docs/design/story.md): traces and storylets change no rule.
+  /** Writes traces and fires storylets. Off only for tests that prove they change nothing else. */
+  readonly storyOn: boolean;
+  /** The most storylets that fire in one game day (the rest wait in the queue, none dropped). */
+  readonly storyPerDay: number;
+  /** The most traces kept (the oldest trail goes first). */
+  readonly traceCap: number;
 }
 
 export const DEFAULT_CONFIG: TuningConfig = {
@@ -165,11 +240,41 @@ export const DEFAULT_CONFIG: TuningConfig = {
   stimulusPull: 6,
   hungryVeerWeights: { left: 1, straight: 1, right: 1 },
   lightFireCost: 1,
+  brazierNights: 4,
+  brazierRevealRadius: 2,
+  brazierSpacing: 6,
+  brazierFirstWithin: 4,
+  fireFearRadius: 1,
+  slideFallChance: 0.2,
+  digOutCost: 1,
+  struggleCost: 1,
+  struggleChanceBase: 0.2,
+  struggleChanceStep: 0.2,
+  hazardSpacing: 12,
+  hazardFirst: 6,
+  hazardLookaheadBeyond: 3,
+  hazardFirstOffset: 3,
+  hazardSideChance: 0.4,
+  hazardJitter: 1,
+  lureSpacing: 7,
+  lureFirstWithin: 4,
+  lureJitter: 1,
+  lureKeepOut: 1,
+  lureAheadMin: 2,
+  lureWideMin: 1,
+  lureWideMax: 3,
+  leadCost: 1,
+  lureLeads: 3,
   feedCost: 1,
   lingerCost: 2,
   towThrowCost: 1,
   towGrabCost: 1,
   towReach: 1,
+  cartsMax: 1,
+  cartCargo: 8,
+  cartHitchCost: 1,
+  cartBoardCost: 1,
+  cartPullExtra: 1,
   threatsFromDay: 3,
   threatChanceBase: 0.25,
   threatChancePerPlayer: 0.05,
@@ -204,9 +309,14 @@ export const DEFAULT_CONFIG: TuningConfig = {
   perilHungryLevel: 2,
   perilCalm: 1,
   routeLength: 40,
-  xpPerPick: 14,
+  destinationDepth: 3,
+  destinationRowsPerStep: 0.6,
+  xpPerPick: 18,
   catchUpEverySteps: 10,
   catchUpXp: 1,
+  storyOn: true,
+  storyPerDay: 2,
+  traceCap: 60,
 };
 
 export type ConfigOverrides = Partial<Omit<TuningConfig, 'veerWeights' | 'hungryVeerWeights'>> & {
@@ -239,6 +349,8 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
   if (!isCount(config.graceDays, 0)) problems.push('graceDays');
   if (!isCount(config.lostTileRings, 0)) problems.push('lostTileRings');
   if (!isCount(config.playerCap, 1)) problems.push('playerCap');
+  const rows = config.destinationRowsPerStep;
+  if (!(Number.isFinite(rows) && rows >= 0.5 && rows <= 1)) problems.push('destinationRowsPerStep');
   const chances = [
     'featureChance',
     'siteChanceSpecialistTier1',
@@ -250,6 +362,10 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     'threatChancePerDay',
     'threatChanceMax',
     'parleyAngerChanceOther',
+    'slideFallChance',
+    'struggleChanceBase',
+    'struggleChanceStep',
+    'hazardSideChance',
   ] as const;
   for (const key of chances) {
     const p = config[key];
@@ -267,10 +383,21 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     'catchUpEverySteps',
     'catchUpXp',
     'lightFireCost',
+    'brazierNights',
+    'brazierSpacing',
+    'digOutCost',
+    'struggleCost',
+    'hazardSpacing',
+    'lureSpacing',
+    'leadCost',
+    'lureLeads',
     'feedCost',
     'lingerCost',
     'towThrowCost',
     'towGrabCost',
+    'cartCargo',
+    'cartHitchCost',
+    'cartBoardCost',
     'strikeCost',
     'defendCost',
     'parleyCost',
@@ -281,8 +408,11 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     'settlementFirst',
     'settlementEvery',
     'routeLength',
+    'destinationDepth',
     'perilMax',
     'lingerChainMax',
+    'storyPerDay',
+    'traceCap',
   ] as const;
   for (const key of costs) if (!isCount(config[key], 1)) problems.push(key);
   const counts = [
@@ -300,6 +430,15 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     'shelterPeril',
     'perilHungry',
     'perilCalm',
+    'brazierRevealRadius',
+    'hazardFirst',
+    'fireFearRadius',
+    'cartsMax',
+    'cartPullExtra',
+    'hazardJitter',
+    'lureJitter',
+    'lureKeepOut',
+    'hazardFirstOffset',
   ] as const;
   for (const key of counts) if (!isCount(config[key], 0)) problems.push(key);
   // A path threat appears beyond contact (next to the footprint) and inside the window.
@@ -317,7 +456,16 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
   if (config.stanceAmbushPerAction > config.clearPowerOther) problems.push('stanceAmbushPerAction');
   if (!validWeights(config.veerWeights)) problems.push('veerWeights');
   if (!validWeights(config.hungryVeerWeights)) problems.push('hungryVeerWeights');
+  if (typeof config.storyOn !== 'boolean') problems.push('storyOn');
   if (!isCount(config.stimulusRange, 0)) problems.push('stimulusRange');
+  if (!isCount(config.brazierFirstWithin, 2)) problems.push('brazierFirstWithin');
+  // Patches are at most five hexes across, so a closer spacing would run them together.
+  if (!isCount(config.hazardSpacing, 6)) problems.push('hazardSpacing');
+  if (!isCount(config.lureFirstWithin, 1)) problems.push('lureFirstWithin');
+  if (!isCount(config.hazardLookaheadBeyond, 1)) problems.push('hazardLookaheadBeyond');
+  if (!isCount(config.lureAheadMin, 1)) problems.push('lureAheadMin');
+  if (!isCount(config.lureWideMin, 1)) problems.push('lureWideMin');
+  if (!isCount(config.lureWideMax, config.lureWideMin)) problems.push('lureWideMax');
   if (!(Number.isFinite(config.stimulusPull) && config.stimulusPull >= 1)) {
     problems.push('stimulusPull');
   }

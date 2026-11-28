@@ -14,6 +14,7 @@ import {
   type Hex,
   hexEquals,
   escortReach,
+  FEARS_FIRE_TAG,
   isEscorted,
   MATERIALS,
   PEOPLE_TYPES,
@@ -25,6 +26,7 @@ import {
 } from '@behemoth-road/core';
 import type { CostedAction } from './chain.ts';
 import type { TipId } from '../text/tips.ts';
+import { type OddsView, oddsFor } from './odds.ts';
 import { neededRole } from './roles.ts';
 import { whyTip } from './why.ts';
 
@@ -104,6 +106,10 @@ export interface ThreatCardInfo {
   readonly strike: Offered | null;
   /** What the creature's defenders take off this threat's strike on it (the core's `defence`); 0 undefended. */
   readonly defence: number;
+  /** Keeps clear of a burning fire (content tag `fears-fire`): its mark shows. */
+  readonly fears: boolean;
+  /** The odds of a strike on it (the core's `oddsOf`: a slide may bury the striker), or null when it rolls nothing. */
+  readonly odds: OddsView | null;
 }
 
 export function threatCard(
@@ -113,6 +119,7 @@ export function threatCard(
 ): ThreatCardInfo | null {
   const mark = threatMarks(game).find((t) => t.id === threatId);
   if (!mark) return null;
+  const tags = THREAT_TYPES.find((t) => t.id === mark.type)?.tags ?? [];
   return {
     id: mark.id,
     type: mark.type,
@@ -122,6 +129,8 @@ export function threatCard(
     steps: threatNextPath(game, threatId).length,
     strike: offered(checkAction(game, characterId, { kind: 'strike', threat: threatId })),
     defence: defence(game),
+    fears: tags.includes(FEARS_FIRE_TAG),
+    odds: oddsFor(game, characterId, { kind: 'strike', threat: threatId }),
   };
 }
 
@@ -195,8 +204,8 @@ export interface SettlementAction {
   readonly enabled: boolean;
   /** A trade good it takes from your pack (offer). */
   readonly uses?: string | null;
-  /** Parley may anger it (the core's published chance is below 1). */
-  readonly risk?: boolean;
+  /** Parley may anger it: its odds (the core's `oddsOf`). */
+  readonly odds?: OddsView;
   /** Why it is greyed (the core's refusal, as a tip), when it is. */
   readonly why?: TipId;
 }
@@ -204,7 +213,7 @@ export interface SettlementAction {
 const TRADE_GOODS = MATERIALS.filter((m) => m.tags.includes(TRADE_TAG)).map((m) => m.id);
 
 /**
- * What you can do at the settlement you stand on: parley (with its risk) and offer each trade good you
+ * What you can do at the settlement you stand on: parley (with its odds) and offer each trade good you
  * carry while it is wary; once friendly, its boons until one is taken. Faded when your actions are spent;
  * nothing anywhere else.
  */
@@ -212,7 +221,8 @@ export function settlementActions(game: GameStateView, characterId: string): Set
   const out: SettlementAction[] = [];
   const parley = checkAction(game, characterId, { kind: 'parley' });
   const p = offered(parley);
-  if (p) out.push({ kind: 'parley', ...p, risk: parley.ok ? parley.chance < 1 : false });
+  const parleyOdds = oddsFor(game, characterId, { kind: 'parley' });
+  if (p) out.push({ kind: 'parley', ...p, ...(parleyOdds ? { odds: parleyOdds } : {}) });
   for (const material of TRADE_GOODS) {
     const o = offered(checkAction(game, characterId, { kind: 'offer', material }));
     if (o) out.push({ kind: 'offer', ...o, uses: material });
@@ -267,9 +277,9 @@ export const seasonEnd = (
 ): { readonly outcome: 'safe' | 'wounded' | 'lost'; readonly day: number } | null =>
   game.season.status === 'over' ? { outcome: game.season.outcome, day: game.season.day } : null;
 
-/** The three ending titles: the only words on the ending screen. */
+/** The ending titles for a creature that stays (the Mossback); the core's `endingOf` has them for every fate. */
 export const ENDING_TITLES = {
-  safe: 'Home safe',
-  wounded: 'Home, wounded',
+  safe: 'Arrived',
+  wounded: 'Arrived, wounded',
   lost: 'Lost',
 } as const;

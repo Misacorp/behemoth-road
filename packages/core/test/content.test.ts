@@ -9,6 +9,7 @@ import {
   THREAT_TYPES,
   REACTIONS,
   ROLES,
+  LURE_TYPES,
   STIMULUS_TYPES,
   TRAITS,
   UNLOCKS,
@@ -62,7 +63,10 @@ describe('content', () => {
   });
 
   it('gives creatures a sound hunger and reactions to known stimulus tags', () => {
-    const stimulusTags = new Set(STIMULUS_TYPES.flatMap((t) => t.tags));
+    const stimulusTags = new Set([
+      ...STIMULUS_TYPES.flatMap((t) => t.tags),
+      ...LURE_TYPES.flatMap((t) => t.tags),
+    ]);
     for (const type of CREATURE_TYPES) {
       const { start, drainPerDay, comfortable, max } = type.hunger;
       expect(0 <= comfortable.min && comfortable.min <= comfortable.max).toBe(true);

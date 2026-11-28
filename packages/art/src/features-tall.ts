@@ -7,6 +7,7 @@
 import { boxOf, ellipsePath, poly, smoothClosed, smoothOpen, type Point } from './geom.ts';
 import { kit } from './feature-kit.ts';
 import type { FeatureDraw } from './features.ts';
+import { drawBrazier } from './fire-art.ts';
 import { groundShadow } from './props.ts';
 import { el, type SvgNode } from './svg.ts';
 
@@ -990,6 +991,19 @@ const berryBushes: FeatureDraw = (c, state) => {
   return { nodes, box: boxOf([...shapes.flat()]) };
 };
 
+/** The brazier: the beacon cairn of `drawBrazier`, cold or lit (with the nights it has left). */
+const brazier: FeatureDraw = (c, _state, art) =>
+  drawBrazier(c.palette, {
+    lit: art?.lit === true,
+    ...(art?.stocked ? { stocked: true } : {}),
+    ...(art?.nightsLeft === undefined ? {} : { nightsLeft: art.nightsLeft }),
+    origin: c.origin,
+    k: c.k,
+    squash: c.squash,
+    ink: c.ink,
+    seed: c.rng.int(0, 1_000_000),
+  });
+
 export const TALL_DRAWERS: Readonly<Record<string, FeatureDraw>> = {
   ore: ironDeposit,
   stones: riverStones,
@@ -1002,4 +1016,5 @@ export const TALL_DRAWERS: Readonly<Record<string, FeatureDraw>> = {
   deadfall,
   shrine,
   temple,
+  brazier,
 };

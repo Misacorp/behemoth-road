@@ -20,7 +20,7 @@ import {
   stimulusPush,
   chooseCreatureStep,
 } from '../src/index.ts';
-import { chainGame, findSeed, placeCharacter } from './helpers.ts';
+import { chainGame, findSeed, placeCharacter, withFeature } from './helpers.ts';
 
 /**
  * Milestone 4's done criterion: a keeper works out by experiment how the
@@ -43,11 +43,14 @@ const fireSpot = (state: GameState, side: 'left' | 'right'): Hex | null => {
   for (const h of hexesInRange(centre, state.config.stimulusRange)) {
     if (footprint.some((f) => hexEquals(f, h))) continue;
     if (sideOf(state, h) !== (side === 'left' ? 1 : -1)) continue;
-    const there = withTimber(placeCharacter(state, 'keeper', h));
+    const there = withTimber(burnable(placeCharacter(state, 'keeper', h), h));
     if (checkAction(there, 'keeper', { kind: 'light-fire' }).ok) return h;
   }
   return null;
 };
+
+/** Something to burn on the hex: a deadfall burns away as a one-night fire, as a plain fire used to. */
+const burnable = (state: GameState, h: Hex): GameState => withFeature(state, h, 'deadfall', true);
 
 const withTimber = (state: GameState): GameState => ({
   ...state,
@@ -58,7 +61,7 @@ const withTimber = (state: GameState): GameState => ({
 const lightOn = (state: GameState, side: 'left' | 'right'): GameState => {
   const spot = fireSpot(state, side);
   if (!spot) throw new Error(`no spot for a fire on the ${side} on day ${state.day}`);
-  const r = act(withTimber(placeCharacter(state, 'keeper', spot)), 'keeper', {
+  const r = act(withTimber(burnable(placeCharacter(state, 'keeper', spot), spot)), 'keeper', {
     kind: 'light-fire',
   });
   if (!r.ok) throw new Error(r.reason);

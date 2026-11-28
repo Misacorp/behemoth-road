@@ -27,6 +27,7 @@ export {
   type Perk,
   type Unlock,
   type UnlockMovement,
+  type VehicleSpec,
   type NodeType,
   type SiteType,
   type TrapType,
@@ -51,7 +52,15 @@ export {
   CREATURE_TYPES,
   REACTIONS,
   STIMULUS_TYPES,
+  HAZARD_TYPES,
+  LURE_TYPES,
+  type HazardType,
+  type LureType,
+  type CreatureRoute,
   type CreatureType,
+  type Fate,
+  type RouteLeg,
+  type RouteStop,
   type Need,
   type Reaction,
   type StimulusType,
@@ -61,7 +70,12 @@ export {
   type Boon,
   type PeopleType,
   type ThreatApproach,
+  type ThreatEnding,
   type ThreatType,
+  STORYLETS,
+  type Condition,
+  type StoryKind,
+  type Storylet,
 } from './content/index.ts';
 export {
   DEFAULT_MAP_CONTENT,
@@ -69,6 +83,7 @@ export {
   terrainById,
   terrainIdAt,
   terrainOf,
+  hazardTerrainAt,
   type MapContent,
 } from './map.ts';
 export { noiseAt, type NoiseField } from './noise.ts';
@@ -77,11 +92,19 @@ export type {
   Season,
   SeasonOutcome,
   Settlement,
+  StoryQueued,
+  StoryState,
   Threat,
+  Burnt,
+  Trace,
+  TraceKind,
   Care,
   Cue,
   Nature,
   Stimulus,
+  Cart,
+  Lure,
+  HazardPatch,
   Character,
   CharacterStatus,
   Creature,
@@ -94,14 +117,29 @@ export type {
   TileKnowledge,
   Visibility,
 } from './state.ts';
-export { findCharacter, hasSeed, isSeasonOver } from './state.ts';
+export { emptyStory, findCharacter, hasSeed, isSeasonOver, unpinned } from './state.ts';
+export {
+  BURNABLE_TAG,
+  FEARS_FIRE_TAG,
+  FIRE_SITE_TAG,
+  FIRE_TAG,
+  firesBurning,
+  inFireRing,
+  nightsLeft,
+  nightsOf,
+} from './fire.ts';
+export { conditionLabel, fireStory, storyletHolds } from './story.ts';
+export { addTraces, pruneTraces, recordTraces } from './traces.ts';
+export { ENDING_TITLES, endingOf, largestPerilSource, type Ending } from './ending.ts';
 export {
   approachHexes,
   contactDistance,
   defence,
   DEFEND_TAG,
   ESCORT_TAG,
+  FALLS_TAG,
   GROUND_TAG,
+  keepsClearOf,
   isEscorted,
   escortReach,
   leadingEdge,
@@ -142,7 +180,10 @@ export {
   creatureType,
   isKeeper,
   KEEPER_TAG,
+  lureType,
   reactionTo,
+  reactionToLure,
+  reactionToTags,
   rollNature,
   stimulusType,
   type Appetite,
@@ -189,6 +230,16 @@ export {
 } from './places.ts';
 export { nextDay, nextDayWithEvents } from './tick.ts';
 export {
+  cartAtHex,
+  cartCanEnter,
+  cartPulledBy,
+  cartRiddenBy,
+  cartRoom,
+  cartSpot,
+  cartUnlock,
+  isVehicleUnlock,
+} from './cart.ts';
+export {
   AMBUSH_TAG,
   effectiveStance,
   GATHER_TAG,
@@ -204,6 +255,7 @@ export {
   PERIL_CALM,
   PERIL_HUNGER,
   PERIL_SHELTER,
+  perilTerrain,
   perilThreat,
   recordEvents,
   threatOfSource,
@@ -234,6 +286,7 @@ export {
 } from './view.ts';
 export {
   addMaterials,
+  brazierPlan,
   depositPack,
   enterHex,
   exploreHex,
@@ -245,16 +298,35 @@ export {
   generateFeature,
   hiddenFeatureKeys,
   keyToHex,
+  lightAround,
   revealedFeatureAt,
   roleHas,
   type EnterResult,
   type GameEvent,
 } from './features.ts';
 export {
+  type Destination,
+  destinationFor,
+  destinationHexesNear,
+  destinationProgress,
+  inDestination,
+  isSanctuary,
+  regionTagsAt,
+  rowsAlong,
+  rowsToDestination,
+  SANCTUARY_TAG,
+} from './destination.ts';
+export { blockedFor, type BlockedHex, type BlockReason, type BlockSubject } from './blocked.ts';
+export {
   act,
   actionsHere,
+  surveyableHexes,
   checkAction,
+  fallChance,
+  oddsOf,
+  struggleChance,
   possibleActions,
+  type Odds,
   packCapacityOf,
   type Action,
   type ActCheck,
@@ -274,8 +346,10 @@ export {
   distanceFrom,
   effectsOf,
   glintsFor,
+  baseGatherYield,
   picksAvailable,
   pickRefusal,
+  roleEffects,
   skillNode,
   takenNodes,
   withXp,
@@ -283,3 +357,12 @@ export {
 } from './skills.ts';
 export { emptySkills, type Skills } from './state.ts';
 export { addSeen, isSeenId, readSeen, SEEN_IDS, SEEN_MAX, type SeenId } from './seen.ts';
+export {
+  extendHazards,
+  hazardLookahead,
+  hazardRoutePosition,
+  hazardType,
+  spawnClusters,
+  stepPeril,
+} from './hazards.ts';
+export { canLeadOnto, keepLures, LURE_TAG, lureRoutePosition, placeLures } from './lures.ts';

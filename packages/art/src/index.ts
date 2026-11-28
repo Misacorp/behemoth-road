@@ -1,5 +1,7 @@
 export { ART_TUNING } from './config.ts';
 export { figureAnchor, type FigureContext } from './figure.ts';
+export { unionBox, type Box } from './geom.ts';
+export { ENTITY_FRONT, entityDepth, type EntityKind } from './depth.ts';
 export {
   assignLooks,
   characterLookFor,
@@ -77,6 +79,7 @@ export {
   riderSeats,
   type FramedScene,
   type SceneFrame,
+  type SceneExtra,
   type SceneInput,
 } from './scene.ts';
 export {
@@ -104,6 +107,26 @@ export {
   type FeatureState,
 } from './features.ts';
 export { drawFire } from './fire.ts';
+export {
+  BRAZIER_HEIGHT,
+  BURNT_LOOKS,
+  drawBrazier,
+  drawBurnableMark,
+  drawBurnt,
+  drawFearsFireMark,
+  drawFireGlow,
+  drawFireRing,
+  drawNightsLeft,
+  drawPinned,
+  jaggedFlame,
+  jaggedFlameNodes,
+  liePinned,
+  FIRE_MOMENT_KINDS,
+  NIGHTS_MAX,
+  type BrazierOptions,
+  type BurntLook,
+  type FireMomentKind,
+} from './fire-art.ts';
 export { DEFENDED_MAX, drawDefended } from './defended.ts';
 export { drawAppetiteBadge } from './signs.ts';
 export {
@@ -174,3 +197,42 @@ export {
   type SkillState,
 } from './skills.ts';
 export { drawNotchRing, drawPickGlow } from './notch-ring.ts';
+export { DESTINATION_GLOW, drawDestinationBadge, drawDestinationGlow } from './destination.ts';
+export { boxAround, drawTrace, TRACE_KINDS, type TraceKind, type TraceOptions } from './traces.ts';
+export {
+  drawRouteDestination,
+  drawStandingStone,
+  STANDING_STONE_HEIGHT,
+  type StandingStoneOptions,
+} from './waymarks.ts';
+export {
+  drawGateSign,
+  drawStoryVignette,
+  GATE_SIGN_KINDS,
+  STORY_VIGNETTE_IDS,
+  type GateSignKind,
+  type StoryVignetteId,
+} from './story-art.ts';
+export {
+  BLOCKED_REASONS,
+  drawBlockedHexes,
+  type BlockedOptions,
+  type BlockedReason,
+} from './blocked.ts';
+export { drawHazardIcon, drawScreeField, HAZARD_ICON_KEYS, type HazardIconKey } from './hazards.ts';
+export {
+  CAPYBARA_STATES,
+  drawCapybara,
+  drawLeadsLeft,
+  LEADS_MAX,
+  type CapybaraState,
+} from './lure-art.ts';
+export {
+  CARGO_SLOTS_MAX,
+  CART_STATES,
+  drawCargoFill,
+  drawCart,
+  type CartOptions,
+  type CartState,
+} from './cart-art.ts';
+export { drawOddsMark, ODDS_FAILURES, type OddsFailure, type OddsOptions } from './odds.ts';

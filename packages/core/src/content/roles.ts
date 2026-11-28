@@ -8,6 +8,8 @@
  * yield became skill nodes in `skills.ts`; far sight waits for scout tier 2). `icon` names the emblem.
  */
 
+import type { SkillEffect } from './skills.ts';
+
 export interface Perk {
   readonly id: string;
   readonly name: string;
@@ -24,6 +26,8 @@ export interface Role {
   readonly perks: readonly Perk[];
   /** XP earned for each hex this character newly explores (walking into it or surveying it). */
   readonly exploreXp: number;
+  /** Effects the role has from the start, read like a skill node's (`effectsOf`). */
+  readonly effects?: readonly SkillEffect[];
 }
 
 export const ROLES: readonly Role[] = [
@@ -32,7 +36,7 @@ export const ROLES: readonly Role[] = [
     name: 'Scout',
     tags: ['explore', 'survey'],
     icon: 'spyglass',
-    exploreXp: 1,
+    exploreXp: 0,
     perks: [
       // Sees threats beyond the window's edge, before they appear in it.
       { id: 'far-sight', name: 'Far sight', tags: ['sense', 'threats'], requiresUpgrade: true },
@@ -61,6 +65,8 @@ export const ROLES: readonly Role[] = [
     icon: 'hammer',
     perks: [],
     exploreXp: 0,
+    // Stonework: half as likely as anyone to be caught by a falling slide.
+    effects: [{ kind: 'sure-footed', tag: 'falls', factor: 0.5 }],
   },
   {
     id: 'warden',

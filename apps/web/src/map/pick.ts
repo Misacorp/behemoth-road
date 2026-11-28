@@ -23,12 +23,17 @@ export type Target =
   | { readonly kind: 'me' }
   /** Another player's character, tapped on its figure. */
   | { readonly kind: 'character'; readonly id: string }
+  /** A lure animal or the cart, tapped on its drawing. */
+  | { readonly kind: 'lure'; readonly id: string }
+  | { readonly kind: 'cart'; readonly id: string }
   | { readonly kind: 'hex'; readonly hex: Hex };
 
-/** Another character's figure: its id and where its feet are. */
+/** Another character's figure (or a lure's, or the cart's): its id and where its feet are. */
 export interface OtherFigure {
   readonly id: string;
   readonly feet: Point;
+  /** What it is (default a character). */
+  readonly kind?: 'character' | 'lure' | 'cart' | 'me';
 }
 
 /** Where a character's feet are on its hex: the art kit's own standee placement (`figureAnchor`). */
@@ -36,10 +41,13 @@ export function feetOf(p: Projection, h: Hex, slot = 0, context: FigureContext =
   return figureAnchor(p, h, slot, context);
 }
 
-const covers = (p: Projection, feet: Point, point: Point): boolean =>
-  Math.abs(point.x - feet.x) <= 0.3 * p.size &&
+const covers = (p: Projection, feet: Point, point: Point, wide = 0.3): boolean =>
+  Math.abs(point.x - feet.x) <= wide * p.size &&
   point.y <= feet.y + 0.12 * p.size &&
   point.y >= feet.y - 0.85 * p.size;
+
+/** How far either side of its feet each kind of figure takes a tap, in hex sizes. */
+const HALF_WIDTH = { character: 0.3, lure: 0.4, cart: 0.5 } as const;
 
 /**
  * A character stands upright, so its figure covers the hex behind it: a tap on a figure means that
@@ -52,12 +60,19 @@ export function pickTarget(
   feet: Point | null,
   others: readonly OtherFigure[] = [],
 ): Target {
-  let best: { target: Target; y: number } | null = null;
-  if (feet && covers(p, feet, point)) best = { target: { kind: 'me' }, y: feet.y };
-  for (const o of others) {
-    if (covers(p, o.feet, point) && (best === null || o.feet.y > best.y)) {
-      best = { target: { kind: 'character', id: o.id }, y: o.feet.y };
-    }
+  // Every figure alike: of those covering the point, the one drawn in front takes it. Which of several
+  // things on one hex is meant is not decided here: the picker (`pickEntries`) asks.
+  const figures: OtherFigure[] = [
+    ...(feet ? [{ id: '', feet, kind: 'me' as const }] : []),
+    ...others,
+  ];
+  let best: OtherFigure | null = null;
+  for (const o of figures) {
+    const kind = o.kind ?? 'character';
+    if (!covers(p, o.feet, point, kind === 'me' ? 0.3 : HALF_WIDTH[kind])) continue;
+    if (best === null || o.feet.y > best.feet.y) best = o;
   }
-  return best?.target ?? { kind: 'hex', hex: worldToHex(p, point) };
+  if (!best) return { kind: 'hex', hex: worldToHex(p, point) };
+  const kind = best.kind ?? 'character';
+  return kind === 'me' ? { kind: 'me' } : { kind, id: best.id };
 }

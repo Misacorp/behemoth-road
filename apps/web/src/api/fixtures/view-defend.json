@@ -1,5 +1,5 @@
 {
-  "version": 7,
+  "version": 8,
   "day": 1,
   "pace": "daily",
   "fastTickAt": null,
@@ -10,11 +10,12 @@
     "admin": true,
     "seen": [],
     "lastDay": null,
-    "lastVersion": null
+    "lastVersion": null,
+    "storyRead": []
   },
   "offers": null,
   "game": {
-    "contentVersion": 21,
+    "contentVersion": 25,
     "artSeed": 4242,
     "day": 1,
     "config": {
@@ -50,11 +51,41 @@
         "right": 1
       },
       "lightFireCost": 1,
+      "brazierNights": 4,
+      "brazierRevealRadius": 2,
+      "brazierSpacing": 6,
+      "brazierFirstWithin": 4,
+      "fireFearRadius": 1,
+      "slideFallChance": 0.2,
+      "digOutCost": 1,
+      "struggleCost": 1,
+      "struggleChanceBase": 0.2,
+      "struggleChanceStep": 0.2,
+      "hazardSpacing": 12,
+      "hazardFirst": 6,
+      "hazardLookaheadBeyond": 3,
+      "hazardFirstOffset": 3,
+      "hazardSideChance": 0.4,
+      "hazardJitter": 1,
+      "lureSpacing": 7,
+      "lureFirstWithin": 4,
+      "lureJitter": 1,
+      "lureKeepOut": 1,
+      "lureAheadMin": 2,
+      "lureWideMin": 1,
+      "lureWideMax": 3,
+      "leadCost": 1,
+      "lureLeads": 3,
       "feedCost": 1,
       "lingerCost": 2,
       "towThrowCost": 1,
       "towGrabCost": 1,
       "towReach": 1,
+      "cartsMax": 1,
+      "cartCargo": 8,
+      "cartHitchCost": 1,
+      "cartBoardCost": 1,
+      "cartPullExtra": 1,
       "threatsFromDay": 1,
       "threatChanceBase": 0.6,
       "threatChancePerPlayer": 0.05,
@@ -88,22 +119,37 @@
       "perilHungry": 1,
       "perilHungryLevel": 2,
       "perilCalm": 1,
-      "routeLength": 12,
+      "routeLength": 9,
+      "destinationDepth": 3,
+      "destinationRowsPerStep": 0.75,
       "xpPerPick": 5,
       "catchUpEverySteps": 10,
-      "catchUpXp": 1
+      "catchUpXp": 1,
+      "storyOn": true,
+      "storyPerDay": 2,
+      "traceCap": 60
     },
     "creature": {
       "centre": {
         "q": 0,
         "r": 0
       },
+      "kind": "mossback",
       "heading": "n",
       "lingering": false,
       "lingeredDay": null,
       "steps": 0,
       "defenders": ["111111111111111111.0"],
       "tows": []
+    },
+    "destination": {
+      "origin": {
+        "q": 0,
+        "r": 0
+      },
+      "heading": "n",
+      "from": 7,
+      "depth": 3
     },
     "tiles": {
       "-6,0": {
@@ -963,14 +1009,33 @@
         }
       }
     ],
-    "features": {},
+    "features": {
+      "-3,-2": {
+        "type": "brazier",
+        "revealed": true,
+        "left": 1,
+        "stocked": true
+      }
+    },
     "stores": {
       "forage": 12
     },
     "unlocks": [],
     "project": null,
+    "carts": [],
     "stimuli": [],
     "threats": [],
+    "lures": [
+      {
+        "id": "l1",
+        "type": "capybara",
+        "hex": {
+          "q": 1,
+          "r": -4
+        },
+        "leadsLeft": 3
+      }
+    ],
     "settlements": [],
     "peril": 0,
     "season": {
@@ -991,8 +1056,19 @@
       },
       "byCharacter": {}
     },
-    "misleadUntilDay": null
+    "misleadUntilDay": null,
+    "traces": [],
+    "burnt": [],
+    "story": {
+      "fired": ["beat.setting-out"],
+      "queue": [],
+      "today": {
+        "day": 1,
+        "count": 1
+      }
+    }
   },
+  "ending": null,
   "signs": {
     "appetite": null,
     "cues": []
@@ -1033,7 +1109,7 @@
     {
       "kind": "defend",
       "characterId": "111111111111111111.0",
-      "version": 7
+      "version": 8
     }
   ],
   "stopped": null

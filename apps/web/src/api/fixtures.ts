@@ -23,8 +23,11 @@ import {
   type CharacterTally,
   type SeasonStats,
   replaceCharacter,
+  directionOffset,
+  rowsAlong,
   SEEN_IDS,
   toPlayerView,
+  endingOf,
 } from '@behemoth-road/core';
 import type { AppConfig, PlayerView, Session } from './schema.ts';
 
@@ -70,6 +73,8 @@ export interface Scenario {
   readonly seen?: readonly string[];
   readonly lastDay?: number | null;
   readonly lastVersion?: number | null;
+  /** The story cards you have read (default none: every fired beat is unread). */
+  readonly storyRead?: readonly string[];
 }
 
 /** The view the server would send `scenario.you`. */
@@ -90,10 +95,12 @@ export function toView(s: Scenario): PlayerView {
       seen: [...(s.seen ?? [])],
       lastDay: s.lastDay ?? null,
       lastVersion: s.lastVersion ?? null,
+      storyRead: [...(s.storyRead ?? [])],
     },
     offers: needsCharacter ? characterOffers(s.state, s.you) : null,
     // The core's view type is read-only; the parsed type is the same shape.
     game: toPlayerView(s.state) as PlayerView['game'],
+    ending: endingOf(s.state),
     players: users.map((userId) => {
       const c = characterOf(s.state, userId) ?? null;
       return {
@@ -198,6 +205,18 @@ export interface ChainStage {
    * revealed water temple ringed by lake, sea beyond it and shallows round (for the raft's path mark).
    */
   readonly water?: boolean;
+  /** A revealed brazier on your starting spot: something to burn there (a fire needs it). */
+  readonly brazier?: boolean;
+  /** The brazier on your starting spot burns, with this many nights left (1 to the brazier's nights). */
+  readonly brazierLit?: number;
+  /** Hexes where a burnable was burnt away: no feature, a fire scar on the ground (offsets from the centre). */
+  readonly burnt?: readonly Hex[];
+  /** Pinned under a slide today (no actions left): you, Pip or Ola. */
+  readonly pinned?: readonly ('me' | 'pip' | 'ola')[];
+  /** Actions the pinned characters have left (default none). */
+  readonly pinnedActions?: number;
+  /** Failed struggles so far under the pin (the chance grows with each). */
+  readonly struggles?: number;
   /** Milestone 4: fires lit today, as offsets from the creature's centre. */
   readonly fires?: readonly Hex[];
   /** The creature's hidden hunger (server only; drives the appetite sign). */
@@ -207,8 +226,12 @@ export interface ChainStage {
    * holds the core's `Reaction` (attracted, repelled, indifferent); a keeper reads it as toward, away, unmoved.
    */
   readonly cues?: readonly { readonly at: Hex; readonly reaction: Reaction }[];
+  /** The stimulus id the cues name (default `fire`; a lure's is its type id, `capybara`). */
+  readonly cueStimulus?: string;
   readonly lingering?: boolean;
   readonly lingeredDay?: number | null;
+  /** The destination band's near edge, this many rows ahead of the creature's centre (default: far off). */
+  readonly destinationAhead?: number;
   /** Skills: XP earned, and the nodes already taken (set up, not played). */
   readonly xp?: number;
   readonly taken?: readonly string[];
@@ -305,6 +328,9 @@ export function chainScenario(stage: ChainStage = {}): Scenario {
           ...feature('iron', stage.deposit ?? 'iron-deposit', 3),
           ...feature('tomb', 'tomb', 1),
           ...feature('snare', 'snare', 1),
+          ...(stage.brazier || stage.brazierLit !== undefined
+            ? { [key(CHAIN_SPOTS.start)]: { type: 'brazier', revealed: true, left: 1 } }
+            : {}),
         },
     stores: stage.stores ?? {},
     unlocks: stage.unlocks ?? [],
@@ -313,14 +339,29 @@ export function chainScenario(stage: ChainStage = {}): Scenario {
   const day = state.day;
   state = {
     ...state,
-    stimuli: (stage.fires ?? []).map((h) => ({ type: 'fire', hex: abs(h), litDay: day })),
+    stimuli: [
+      ...(stage.fires ?? []).map((h) => ({ type: 'fire', hex: abs(h), litDay: day })),
+      ...(stage.brazierLit !== undefined
+        ? [
+            {
+              type: 'brazier-fire',
+              range: 5,
+              hex: abs(CHAIN_SPOTS.start),
+              litDay: day - (state.config.brazierNights - stage.brazierLit),
+              nights: state.config.brazierNights,
+              reveal: state.config.brazierRevealRadius,
+            },
+          ]
+        : []),
+    ],
+    burnt: (stage.burnt ?? []).map((h) => ({ hex: abs(h), feature: 'deadfall' })),
     care: {
       satiety: stage.satiety ?? state.care.satiety,
       cues: {
         day,
         list: (stage.cues ?? []).map((cue) => ({
           hex: abs(cue.at),
-          stimulus: 'fire',
+          stimulus: stage.cueStimulus ?? 'fire',
           reaction: cue.reaction,
         })),
       },
@@ -331,6 +372,24 @@ export function chainScenario(stage: ChainStage = {}): Scenario {
       lingeredDay: stage.lingeredDay ?? null,
     },
   };
+  const pinnedUsers = new Set(
+    (stage.pinned ?? []).map((w) => ({ me: MISA, pip: PIP, ola: OLA })[w]),
+  );
+  if (pinnedUsers.size > 0) {
+    state = {
+      ...state,
+      characters: state.characters.map((ch) =>
+        pinnedUsers.has(ch.userId)
+          ? {
+              ...ch,
+              actionsLeft: stage.pinnedActions ?? 0,
+              pinnedDay: state.day,
+              ...(stage.struggles ? { struggles: stage.struggles } : {}),
+            }
+          : ch,
+      ),
+    };
+  }
   const at = stage.at ?? 'start';
   if (at !== 'creature') state = place(state, MISA, abs(CHAIN_SPOTS[at]));
   state = {
@@ -347,6 +406,13 @@ export function chainScenario(stage: ChainStage = {}): Scenario {
           : ch,
     ),
   };
+  if (stage.destinationAhead !== undefined) {
+    const d = state.destination;
+    state = {
+      ...state,
+      destination: { ...d, from: rowsAlong(d, state.creature.centre) + stage.destinationAhead },
+    };
+  }
   return { ...s, state, version: s.version + 1 };
 }
 
@@ -357,6 +423,19 @@ export interface SeasonStage extends ChainStage {
     readonly type: string;
     readonly at: Hex;
     readonly strength?: number;
+    /** The scree field that laid it. */
+    readonly patch?: string;
+  }[];
+  /** Ground set to a terrain (explored), as offsets from the centre: a glass waste, a poisoned lake. */
+  readonly terrains?: readonly { readonly at: Hex; readonly terrain: string }[];
+  /** Lure animals, as offsets from the centre; `leadsLeft` 0 is settled (default the content's leads). */
+  readonly lures?: readonly { readonly at: Hex; readonly leadsLeft?: number }[];
+  /** Carts, as offsets from the centre, with what they carry and who pulls or rides (me, Pip or Ola). */
+  readonly carts?: readonly {
+    readonly at: Hex;
+    readonly cargo?: Readonly<Record<string, number>>;
+    readonly puller?: 'me' | 'pip' | 'ola';
+    readonly rider?: 'me' | 'pip' | 'ola';
   }[];
   /** Settlements of the hill folk, as offsets from the centre. */
   readonly settlements?: readonly {
@@ -399,7 +478,33 @@ export function seasonScenario(stage: SeasonStage = {}): Scenario {
       hex: abs(t.at),
       strength: t.strength ?? 3,
       appearedDay: day,
+      ...(t.patch ? { patch: t.patch } : {}),
     })),
+    tiles: Object.fromEntries(
+      Object.entries(s.state.tiles).map(([k, tile]) => {
+        const set = (stage.terrains ?? []).find((x) => `${c.q + x.at.q},${c.r + x.at.r}` === k);
+        return [k, set ? { ...tile, terrain: set.terrain, explored: true } : tile];
+      }),
+    ),
+    lures: (stage.lures ?? []).map((l, i) => ({
+      id: `lure-${String(i + 1)}`,
+      type: 'capybara',
+      hex: abs(l.at),
+      leadsLeft: l.leadsLeft ?? s.state.config.lureLeads,
+    })),
+    carts: (stage.carts ?? []).map((cart, i) => {
+      const who = (w: 'me' | 'pip' | 'ola' | undefined): string | null => {
+        const user = w ? { me: MISA, pip: PIP, ola: OLA }[w] : null;
+        return s.state.characters.find((ch) => ch.userId === user)?.id ?? null;
+      };
+      return {
+        id: `cart-${String(i + 1)}`,
+        hex: abs(cart.at),
+        cargo: { ...cart.cargo },
+        puller: who(cart.puller),
+        rider: who(cart.rider),
+      };
+    }),
     settlements: (stage.settlements ?? []).map((x, i) => ({
       id: `settlement-${String(i + 1)}`,
       type: 'hill-folk',
@@ -422,6 +527,18 @@ export function seasonScenario(stage: SeasonStage = {}): Scenario {
     },
     creature: { ...s.state.creature, steps: stage.steps ?? 0, defenders: [] },
   };
+  if (stage.steps !== undefined && stage.destinationAhead === undefined) {
+    // Steps walked mean the creature is that far along the way: move the route's origin back behind it, so
+    // the band stays put and the route strip (which reads the band) agrees with the steps.
+    const d = state.destination;
+    const done = Math.min(d.from, Math.round((stage.steps / state.config.routeLength) * d.from));
+    const { q, r } = directionOffset(d.heading);
+    const here = state.creature.centre;
+    state = {
+      ...state,
+      destination: { ...d, origin: { q: here.q - q * done, r: here.r - r * done } },
+    };
+  }
   if (stage.wardenAt) {
     state = place(state, OLA, abs(stage.wardenAt));
     state = {

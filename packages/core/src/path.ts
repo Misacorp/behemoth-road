@@ -4,6 +4,7 @@
  * boarding and stepping off. Every step follows the same rules as `move`.
  */
 
+import { cartCanEnter, cartPulledBy, cartRiddenBy } from './cart.ts';
 import {
   activeCharacter,
   type Entry,
@@ -71,7 +72,13 @@ interface Visit {
  * entered, up to `budget` actions. Ties are broken by neighbour order, so the
  * result is the same every time. Visits come back in the order they were settled.
  */
-const search = (state: GameStateView, start: Place, budget: number): Map<string, Visit> => {
+const search = (
+  state: GameStateView,
+  start: Place,
+  budget: number,
+  /** The mover, when it pulls a cart: each step costs more, and the cart's terrain rules apply. */
+  puller = false,
+): Map<string, Visit> => {
   const settled = new Map<string, Visit>();
   const origin: Visit = { place: start, cost: 0, step: null, from: null };
   const best = new Map<string, Visit>([[placeKey(start), origin]]);
@@ -95,9 +102,10 @@ const search = (state: GameStateView, start: Place, budget: number): Map<string,
     for (const place of placeNeighbours(state, current.place)) {
       const nextKey = placeKey(place);
       if (settled.has(nextKey) || !isPlaceReachable(state, place)) continue;
+      if (puller && (place.kind !== 'hex' || !cartCanEnter(state, place.hex))) continue;
       const entry = entryToPlace(state, place);
       if (!entry) continue;
-      const cost = current.cost + entry.cost;
+      const cost = current.cost + entry.cost + (puller ? state.config.cartPullExtra : 0);
       if (cost > budget) continue;
       const known = best.get(nextKey);
       if (known && known.cost <= cost) continue;
@@ -118,7 +126,11 @@ export const reachablePlaces = (state: GameStateView, characterId: string): Reac
   const found = activeCharacter(state, characterId);
   if (!found.ok || isSeasonOver(state)) return [];
   const { at, actionsLeft } = found.character;
-  return [...search(state, at, actionsLeft).values()]
+  // Sitting in the cart: not moving at all (leave it first).
+  if (cartRiddenBy(state, characterId)) return [];
+  return [
+    ...search(state, at, actionsLeft, cartPulledBy(state, characterId) !== undefined).values(),
+  ]
     .filter((v) => v.step !== null)
     .map((v) => ({ place: v.place, cost: v.cost }));
 };
@@ -138,8 +150,13 @@ export const planPath = (state: GameStateView, characterId: string, to: Hex | Pl
   if (placeEquals(start, target)) return { ok: true, steps: [], cost: 0 };
   if (!isPlaceReachable(state, target)) return { ok: false, reason: 'unreachable' };
   if (!entryToPlace(state, target)) return { ok: false, reason: 'impassable' };
+  if (cartRiddenBy(state, characterId)) return { ok: false, reason: 'aboard' };
+  const pulling = cartPulledBy(state, characterId) !== undefined;
+  if (pulling && (target.kind !== 'hex' || !cartCanEnter(state, target.hex))) {
+    return { ok: false, reason: 'cart-terrain' };
+  }
 
-  const visits = search(state, start, Number.POSITIVE_INFINITY);
+  const visits = search(state, start, Number.POSITIVE_INFINITY, pulling);
   const end = visits.get(placeKey(target));
   if (!end) return { ok: false, reason: 'no-path' };
   if (end.cost > found.character.actionsLeft) return { ok: false, reason: 'not-enough-actions' };
@@ -203,6 +220,7 @@ export const stranded = (state: GameStateView, characterId: string): boolean => 
   if (state.tiles[hexKey(at.hex)]?.visibility !== 'seen') return false;
   if (waiting) return true;
   let cheapest = Number.POSITIVE_INFINITY;
+  // A puller or rider can let the cart go for free, so the way home is counted as on foot.
   for (const v of search(state, at, Number.POSITIVE_INFINITY).values()) {
     if (v.step && (v.place.kind === 'creature' || isInWindow(state, v.place.hex))) {
       cheapest = Math.min(cheapest, v.cost);

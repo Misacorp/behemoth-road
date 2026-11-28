@@ -6,9 +6,11 @@
  */
 import {
   findCharacter,
+  unpinned,
   type Hex,
   hexKey,
   packCapacityOf,
+  type Place,
   type SkillNode,
   terrainOf,
 } from '@behemoth-road/core';
@@ -27,7 +29,6 @@ import { JoinDrawer } from '../join/JoinDrawer.tsx';
 import {
   type Flow,
   IDLE,
-  isSelecting,
   keyDown,
   choose,
   entryKey,
@@ -35,7 +36,9 @@ import {
   pickEntries,
   openCharacter,
   openHub,
+  planMove,
   rightClick,
+  startLead,
   tap,
 } from '../map/flow.ts';
 import { type FocusTarget, type Here, MapView } from '../map/MapView.tsx';
@@ -46,12 +49,13 @@ import { HubDrawer } from '../hub/HubDrawer.tsx';
 import { DayBanner, DayCountdown, PaceToggle } from '../hud/Pace.tsx';
 import { setTipConfig, TipLayer } from '../ui/Tip.tsx';
 import { cellStateAt, featureArtAt } from '../map/cells.ts';
+import { moveOption } from './move.ts';
+import { digOption, greyedForPin, struggleOption, takesFire } from './fire.ts';
 import {
   actionsAt,
   careOptions,
   type CostedAction,
   fireAction,
-  fuelNodeAt,
   packUnits,
   stockOf,
   surveyOf,
@@ -65,6 +69,7 @@ import type { CoachMap } from '../onboarding/coach.ts';
 import { Guides } from '../onboarding/Guides.tsx';
 import {
   defendOption,
+  ENDING_TITLES,
   seasonEnd,
   settlementActions,
   settlementAt,
@@ -74,6 +79,7 @@ import {
 /** The width from which the layout is the desktop one (`styles.css` media queries). */
 const DESKTOP_FROM = 900;
 import { identities, partySeeds, setAccents } from './identity.ts';
+import { cartAt } from './cart.ts';
 import { grabOption, throwOption } from './tow.ts';
 import {
   eventKeys,
@@ -84,6 +90,27 @@ import {
 } from './moments.ts';
 import { canWait, stanceView } from './stances.ts';
 import { toGameState, toSigns } from './viewState.ts';
+import { routeOf } from '../hud/route.ts';
+import {
+  anchorsOf,
+  arrive,
+  badgeShown,
+  type CardAnchor,
+  cardOf,
+  closeByLoss,
+  closeByTap,
+  NO_STORY,
+  READ_AFTER_MS,
+  readBatches,
+  settle,
+  type Step,
+  type StoryModel,
+  tapBadge,
+  unreadOf,
+} from './story.ts';
+
+/** How long story reads wait to go out together, in ms. */
+const READ_FLUSH_MS = 500;
 
 export interface GameProps {
   readonly api: ApiClient;
@@ -270,12 +297,52 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
   // Your character lost: the fog moment plays out before the join drawer opens.
   const fading = shownMoments.some((m) => m.kind === 'lost' && m.mine);
 
+  // Story cards (docs/design/story.md): the unread ones are `story.fired` minus what you have read, whether or
+  // not an event came with them (a new game fires its opening beats without one). One plays on load; the rest
+  // wait behind the badge. Never in the practice map. Reads go out in batches.
+  const [story, setStory] = useState<StoryModel>(NO_STORY);
+  const storyRef = useRef<StoryModel>(NO_STORY);
+  storyRef.current = story;
+  const storyAnchors = useRef(new Map<string, CardAnchor>());
+  const toRead = useRef<string[]>([]);
+  const readTimer = useRef(0);
+  const flushReads = (): void => {
+    window.clearTimeout(readTimer.current);
+    const batches = readBatches(toRead.current);
+    toRead.current = [];
+    for (const ids of batches) {
+      api.markStoryRead(ids).catch((err: unknown) => console.warn('story read not recorded', err));
+    }
+  };
+  // Reads still waiting go out when the game closes or the page is hidden for good (a keepalive request).
+  const flushRef = useRef(flushReads);
+  flushRef.current = flushReads;
+  useEffect(() => {
+    const onHide = (): void => flushRef.current();
+    window.addEventListener('pagehide', onHide);
+    return () => {
+      window.removeEventListener('pagehide', onHide);
+      window.clearTimeout(readTimer.current);
+      flushRef.current();
+    };
+  }, []);
+  const queueRead = (id: string): void => {
+    toRead.current.push(id);
+    window.clearTimeout(readTimer.current);
+    readTimer.current = window.setTimeout(flushReads, READ_FLUSH_MS);
+  };
+  anchorsOf(view.events, storyAnchors.current);
+  const unread = useMemo(
+    () => (practice ? [] : unreadOf(view.game.story.fired, view.you.storyRead, story.shown)),
+    [view, story.shown, practice],
+  );
+
   // A plan made on an older view may no longer hold: drop it when the view changes under it.
   const planVersion = useRef(view.version);
   useEffect(() => {
     if (planVersion.current !== view.version) {
       planVersion.current = view.version;
-      setFlow((f) => (f.kind === 'planned' ? IDLE : f));
+      setFlow((f) => (f.kind === 'planned' || f.kind === 'lead' ? IDLE : f));
     }
   }, [view.version]);
 
@@ -312,6 +379,21 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
   }
 
   const onConfirm = (): void => {
+    if (flow.kind === 'lead' && flow.to) {
+      // Leading the lure to the chosen hex; with leads and actions left its card stays for the next lead.
+      const { id: lure, to } = flow;
+      void act(
+        () => api.act(view.version, { kind: 'lead', lure, to }),
+        (next) => {
+          const mine = next.game.characters.find((c) => c.id === next.you.characterId);
+          const left = next.game.lures.find((l) => l.id === lure);
+          return left && left.leadsLeft > 0 && mine && mine.actionsLeft > 0
+            ? { kind: 'lure', id: lure }
+            : IDLE;
+        },
+      );
+      return;
+    }
     if (flow.kind !== 'planned') return;
     const path = flow.steps.map((s) => s.place);
     void act(
@@ -332,35 +414,37 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
 
   const drawerOpen = need !== 'none' && offers.length > 0 && !drawerClosed && !fading;
 
-  // Whether you have seen a fire on the map this session (in memory only), for the fire hint below.
-  const [sawFire, setSawFire] = useState(false);
-  useEffect(() => {
-    if (view.game.stimuli.length > 0) setSawFire(true);
-  }, [view]);
-
   // What you can do where you stand (gather, work a site, light a fire), a survey next to you, your pack,
   // and the hub (unlocks, feeding, lingering).
   const here = useMemo((): Here | null => {
     if (me?.status !== 'active' || me.at.kind !== 'hex') return null;
+    const pinned = me.pinnedDay !== undefined;
+    // Pinned, you cannot act: the card shows what you could do unpinned, all greyed with the reason.
+    const state0 = pinned
+      ? { ...state, characters: state.characters.map((c) => (c.id === me.id ? unpinned(c) : c)) }
+      : state;
     const feature = featureArtAt(state, hexKey(me.at.hex));
-    // Without fuel the fire never opens the card by itself. It hints, faded, on a card open for a feature
-    // once you have seen a fire, and always on a timber stand.
-    const hint = (feature !== null && sawFire) || fuelNodeAt(state, me.at.hex) !== null;
-    const fire = fireAction(state, me.id, hint);
+    // Without fuel the fire still hints, faded, on a brazier or a burnable (the only places it can be lit).
+    const fire = fireAction(state0, me.id, takesFire(state, me.at.hex));
     // Milestone 5: what you can do at the settlement you stand on (parley, offer, a boon).
-    const settlement = settlementActions(state, me.id).map((a): HereAction => ({
+    const settlement = settlementActions(state0, me.id).map((a): HereAction => ({
       kind: a.kind === 'offer' ? `offer:${a.uses ?? ''}` : a.kind,
       cost: a.cost,
       enabled: a.enabled,
       ...(a.kind === 'offer' ? { icon: 'offer', uses: a.uses ?? null } : {}),
       ...(a.kind.startsWith('boon:') ? { icon: a.kind.slice(5) } : {}),
-      ...(a.risk ? { risk: true } : {}),
+      ...(a.odds ? { odds: a.odds } : {}),
       ...(a.why ? { why: a.why } : {}),
     }));
     // A tow line thrown to you: grab it (its own action, never forced).
-    const grab = grabOption(state, me.id);
-    const actions = [
-      ...(feature ? actionsAt(state, me.id) : []),
+    const grab = grabOption(state0, me.id);
+    // A cart on your hex: its card (hitch, board, load) is one tap away, free.
+    const cartHere = cartAt(state, me.at.hex);
+    const offered = [
+      ...(feature ? actionsAt(state0, me.id) : []),
+      ...(cartHere
+        ? [{ kind: 'cart', icon: 'cart', cost: 0, noArm: true, enabled: true } satisfies HereAction]
+        : []),
       ...(fire ? [fire] : []),
       ...settlement,
       ...(grab
@@ -375,6 +459,24 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
           ]
         : []),
     ];
+    // Pinned, the one thing you can do is struggle: first on the card, with its odds.
+    const struggle = pinned ? struggleOption(state, me.id) : null;
+    const actions: HereAction[] = pinned
+      ? [
+          ...(struggle
+            ? [
+                {
+                  kind: 'struggle',
+                  cost: struggle.cost,
+                  enabled: struggle.enabled,
+                  ...(struggle.odds ? { odds: struggle.odds } : {}),
+                  ...(struggle.why ? { why: struggle.why } : {}),
+                } satisfies HereAction,
+              ]
+            : []),
+          ...greyedForPin(offered),
+        ]
+      : offered;
     // A settlement where you stand always opens the card (its attitude and the boon it gave), even with
     // nothing left to do there.
     const sid = settlementAt(state, me.at.hex);
@@ -382,13 +484,17 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
     if (!feature && !place && actions.length === 0) return null;
     const terrain = terrainOf(state, me.at.hex)?.id ?? 'unknown';
     return { terrain, feature, actions, settlement: place };
-  }, [state, me, sawFire]);
+  }, [state, me]);
   const stillSelected = (next: PlayerView): Flow => {
     const mine = next.game.characters.find((c) => c.id === next.you.characterId);
     return mine && mine.actionsLeft > 0 ? { kind: 'selected' } : IDLE;
   };
   const onAct = (kind: string): void => {
-    if (kind === 'grab-line') {
+    if (kind === 'cart') {
+      const here =
+        me?.status === 'active' && me.at.kind === 'hex' ? cartAt(state, me.at.hex) : null;
+      if (here) setFlow({ kind: 'cart', id: here.id });
+    } else if (kind === 'grab-line') {
       void act(
         () => api.act(view.version, { kind }),
         () => IDLE,
@@ -399,6 +505,8 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
       kind === 'light-fire' ||
       kind === 'parley'
     ) {
+      void act(() => api.act(view.version, { kind }), stillSelected);
+    } else if (kind === 'struggle') {
       void act(() => api.act(view.version, { kind }), stillSelected);
     } else if (kind.startsWith('offer:')) {
       void act(
@@ -412,11 +520,46 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
       );
     }
   };
+  // The lure's lead button: lead mode on (the hexes it can go to light up), or off again.
+  const onLead = (): void =>
+    setFlow((f) =>
+      f.kind === 'lead'
+        ? { kind: 'lure', id: f.id, ...(f.back ? { back: f.back } : {}) }
+        : f.kind === 'lure'
+          ? startLead(f)
+          : f,
+    );
+  // The cart's card stays open through its actions, so the cart is seen to change.
+  const onCart = (kind: 'hitch' | 'unhitch' | 'board-cart' | 'leave-cart'): void => {
+    if (flow.kind !== 'cart') return;
+    const keep: Flow = flow;
+    void act(
+      () => api.act(view.version, { kind }),
+      () => keep,
+    );
+  };
+  const onCartMove = (kind: 'load' | 'unload', material: string): void => {
+    if (flow.kind !== 'cart') return;
+    const keep: Flow = flow;
+    void act(
+      () => api.act(view.version, { kind, material, amount: 1 }),
+      () => keep,
+    );
+  };
   // Throwing the line from the target's card: the card closes, and the line shows on their figure.
   const towOf = (id: string) => (me?.status === 'active' ? throwOption(state, me.id, id) : null);
   const onThrow = (to: string): void => {
     void act(
       () => api.act(view.version, { kind: 'throw-line', to }),
+      () => IDLE,
+    );
+  };
+  // Digging out a pinned character from their card: the card closes, and the stones lift on their hex.
+  const digOf = (target: string) =>
+    me?.status === 'active' ? digOption(state, me.id, target) : null;
+  const onDig = (target: string): void => {
+    void act(
+      () => api.act(view.version, { kind: 'dig-out', target }),
       () => IDLE,
     );
   };
@@ -437,6 +580,11 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
       () => (kind === 'feed' ? { kind: 'creature' } : IDLE),
     );
   };
+  // The Move on a tile's card: its cost from the core's plan; the first tap plans the walk, the second walks.
+  const moveOf = (place: Place) =>
+    me?.status === 'active' ? moveOption(state, me.id, place) : null;
+  const onMove = (place: Place, from: Flow): void =>
+    setFlow((f) => (me?.status === 'active' ? planMove(state, me.id, place, from) : null) ?? f);
   const surveyAt = (h: Hex) => (me?.status === 'active' ? surveyOf(state, me.id, h) : null);
   const onSurvey = (h: Hex): void => {
     void act(
@@ -515,6 +663,54 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
     setRosterPeek((n) => n + 1);
   };
   const ended = seasonEnd(state);
+  // The map is free for a card when nothing else is open or moving on it.
+  const storyFree =
+    !practice &&
+    flow.kind === 'idle' &&
+    !anyDrawer &&
+    !rosterShown &&
+    !ended &&
+    !fading &&
+    step === null &&
+    !guides?.recapDue;
+  const applyStory = (r: Step): void => {
+    if (r.model !== storyRef.current) {
+      storyRef.current = r.model;
+      setStory(r.model);
+    }
+    if (r.read !== null) queueRead(r.read);
+  };
+  useEffect(() => {
+    applyStory(arrive(storyRef.current, unread, storyAnchors.current, storyFree, Date.now()));
+  }, [unread, storyFree]);
+  // A card never stays over a popover or a drawer that opens. Taken down too soon, it is unread again and
+  // plays once the map is free.
+  useEffect(() => {
+    if (!storyFree) applyStory(closeByLoss(storyRef.current, Date.now()));
+  }, [storyFree]);
+  // A card up for a while counts as read even if no tap closes it.
+  const playingId = story.playing?.id ?? null;
+  useEffect(() => {
+    if (playingId === null) return undefined;
+    const t = window.setTimeout(
+      () => applyStory(settle(storyRef.current, Date.now())),
+      READ_AFTER_MS,
+    );
+    return () => window.clearTimeout(t);
+  }, [playingId]);
+  // A new game (a new season) starts the story afresh.
+  const gameSeed = state.artSeed;
+  const seedRef = useRef(gameSeed);
+  useEffect(() => {
+    if (seedRef.current === gameSeed) return;
+    seedRef.current = gameSeed;
+    storyAnchors.current.clear();
+    storyRef.current = NO_STORY;
+    setStory(NO_STORY);
+  }, [gameSeed]);
+  const onStoryBadge = (): void => {
+    applyStory(tapBadge(storyRef.current, unread, storyAnchors.current, Date.now()));
+  };
   const care = me
     ? [...careOptions(state, me.id), ...[defendOption(state, me.id)].filter((a) => a !== null)]
     : [];
@@ -558,11 +754,17 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
         characterId={id}
         identities={who}
         onTap={(target: Target) => {
-          // Moments are skippable: any tap clears them.
+          // Moments are skippable: any tap clears them. A story card passes: the next tap closes it and
+          // goes no further.
           setMoments([]);
+          if (storyRef.current.playing) {
+            applyStory(closeByTap(storyRef.current));
+            return;
+          }
           setFlow((f) => tap(f, state, id, target));
         }}
         moments={shownMoments}
+        story={cardOf(story)}
         step={step}
         onConfirm={onConfirm}
         onOpenHub={() => setFlow(openHub())}
@@ -594,10 +796,17 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
         here={here}
         onAct={onAct}
         surveyAt={surveyAt}
+        moveOf={moveOf}
+        onMove={onMove}
         onSurvey={onSurvey}
         onStrike={onStrike}
         towOf={towOf}
         onThrow={onThrow}
+        digOf={digOf}
+        onDig={onDig}
+        onLead={onLead}
+        onCart={onCart}
+        onCartMove={onCartMove}
       />
       <PerilEdge peril={state.peril} max={state.config.perilMax} />
       <DayCountdown
@@ -609,9 +818,10 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
         day={view.day}
         actionsLeft={me?.actionsLeft ?? 0}
         actionsPerDay={state.config.actionsPerDay}
-        planned={flow.kind === 'planned' && isSelecting(flow) ? flow.cost : 0}
+        planned={flow.kind === 'planned' ? flow.cost : 0}
         lost={me?.status !== 'active'}
         snapped={shownMoments.some((m) => m.kind === 'trap' && m.mine)}
+        pinned={me?.status === 'active' && me.pinnedDay !== undefined}
         warned={
           me?.status === 'active' &&
           me.at.kind === 'hex' &&
@@ -627,8 +837,9 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
                 ...ringOf(state, me),
                 ready: pickReady(state, me),
                 onOpen: () => {
+                  // The button that opened the tree closes it again.
                   setFlow(IDLE);
-                  setSkillsOpen(true);
+                  setSkillsOpen((o) => !o);
                 },
               }
             : null
@@ -665,7 +876,8 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
           woundedAt: state.config.perilWoundedAt,
           log: state.stats.peril,
         }}
-        route={{ steps: state.creature.steps, length: state.config.routeLength }}
+        route={routeOf(state)}
+        story={badgeShown(story, unread) && storyFree ? { onTap: onStoryBadge } : null}
         jolt={moments.some((m) => m.kind === 'strike' || m.kind === 'hungry')}
         hungry={moments.some((m) => m.kind === 'hungry')}
         relieved={moments.some((m) => m.kind === 'relieved')}
@@ -726,8 +938,10 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
           perilMax={state.config.perilMax}
           perilWoundedAt={state.config.perilWoundedAt}
           outcome={ended.outcome}
+          title={view.ending?.title ?? ENDING_TITLES[ended.outcome]}
+          line={view.ending?.line ?? null}
           days={ended.day}
-          route={{ steps: state.creature.steps, length: state.config.routeLength }}
+          route={routeOf(state)}
           onNewSeason={showsNextDay(view) ? onNewSeason : null}
           failed={seasonFailed}
           party={state.characters

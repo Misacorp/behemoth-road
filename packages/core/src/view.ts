@@ -2,6 +2,7 @@
  * What leaves the server, and what comes back from storage.
  */
 
+import { hexKey } from './hex.ts';
 import { CONTENT_VERSION, KNOWN_CONTENT_VERSIONS } from './content/index.ts';
 import { emptyStats } from './stats.ts';
 import { isSeed } from './random.ts';
@@ -20,6 +21,7 @@ export const toPlayerView = (state: GameState): GameStateView => {
     day: state.day,
     config: state.config,
     creature: state.creature,
+    destination: state.destination,
     tiles: state.tiles,
     characters: state.characters,
     // Only revealed features leave the server.
@@ -27,13 +29,19 @@ export const toPlayerView = (state: GameState): GameStateView => {
     stores: state.stores,
     unlocks: state.unlocks,
     project: state.project,
+    carts: state.carts,
     stimuli: state.stimuli,
     threats: state.threats,
+    lures: state.lures,
     settlements: state.settlements,
     peril: state.peril,
     season: state.season,
     stats: state.stats,
     misleadUntilDay: state.misleadUntilDay,
+    traces: state.traces,
+    // Public where seen: the ground a fire burnt bare.
+    burnt: state.burnt.filter((b) => state.tiles[hexKey(b.hex)]?.visibility === 'seen'),
+    story: state.story,
   };
   // A deep copy, so nothing done to the view can reach the server's state.
   return JSON.parse(JSON.stringify(view)) as GameStateView;
@@ -79,5 +87,10 @@ export const loadGame = (stored: unknown): GameState => {
   }
   if (!isSeed(state.seed)) throw new TypeError('A stored game needs its seed');
   // A game saved before the tallies existed starts them empty.
-  return { ...state, stats: state.stats ?? emptyStats() } as GameState;
+  // A game saved before cart ids were counted resumes from the carts it has.
+  return {
+    ...state,
+    stats: state.stats ?? emptyStats(),
+    cartCount: state.cartCount ?? state.carts?.length ?? 0,
+  } as GameState;
 };

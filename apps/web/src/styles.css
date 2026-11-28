@@ -326,10 +326,25 @@ button svg,
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
+  box-sizing: border-box;
   padding: calc(var(--space-4) + var(--safe-top)) var(--gutter)
     calc(var(--space-4) + var(--safe-bottom));
   background: #f3f1e2;
   outline: none;
+}
+
+/*
+ * The title and the line of story, one centred block. The recap is its own card after it: below on a phone,
+ * beside it on a desktop, so the two never overlap.
+ */
+.ending-head {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  flex: 0 0 auto;
+  max-width: 100%;
 }
 
 /*
@@ -351,8 +366,19 @@ button svg,
 }
 
 .ending-title,
+.ending-story,
 .ending-foot {
   position: relative;
+}
+
+.ending-story {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: 14px;
+  background: #f3f1e2;
+  border: 1.5px solid #9a9776;
 }
 
 /* The route, the days and the new-season button sit low, clear of the scene's middle. */
@@ -592,6 +618,11 @@ button svg,
   padding: 0 var(--space-4) var(--space-4);
 }
 
+/* Phones close by the handle (or a drop to nothing); the cross is for desktop. */
+.drawer-close {
+  display: none;
+}
+
 @media (min-width: 900px) {
   .drawer {
     top: calc(var(--space-3) + var(--safe-top));
@@ -623,7 +654,25 @@ button svg,
   }
 
   .drawer-body {
-    padding-top: var(--space-4);
+    padding-top: 40px;
+  }
+
+  .drawer-close {
+    display: grid;
+    position: absolute;
+    top: var(--space-2);
+    right: var(--space-2);
+    z-index: 1;
+    width: 32px;
+    height: 32px;
+    padding: 6px;
+    border-radius: 50%;
+    opacity: 0.7;
+  }
+
+  .drawer-close:hover {
+    opacity: 1;
+    background: #e1ddc3;
   }
 }
 
@@ -950,6 +999,36 @@ button svg,
   }
 }
 
+.moment-heave {
+  animation-name: moment-heave;
+  animation-timing-function: ease-in-out;
+}
+
+@keyframes moment-heave {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  20% {
+    transform: translate(-3px, -4px);
+  }
+  40% {
+    opacity: 1;
+    transform: translate(3px, -6px);
+  }
+  60% {
+    transform: translate(-2px, -3px);
+  }
+  80% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(0);
+  }
+}
+
 .moment-snap {
   animation-name: moment-snap;
   animation-timing-function: steps(6, end);
@@ -1082,6 +1161,12 @@ button svg,
   font-size: 14px;
 }
 
+/* The fire mark under a tip's text (a burnable, a fear of fire). */
+.tip-mark {
+  display: flex;
+  padding-top: 2px;
+}
+
 .tip-chevron {
   position: absolute;
   top: 0;
@@ -1106,10 +1191,16 @@ button svg,
   display: inline-flex;
 }
 
-/* Stances (docs/design/stances.md): the control by your character button, its popover of bubbles, and the
+/* Stances (docs/design/stances.md): the control by the hourglass, its fan of bubbles above it, and the
    wait button beside the action arrows. */
 .hud-stance-root {
   position: relative;
+  pointer-events: auto;
+}
+
+/* By the hourglass the stance button matches it in size. */
+.hud-turn .hud-stance {
+  --round: 40px;
 }
 
 .hud-stance,
@@ -1144,9 +1235,8 @@ button svg,
 
 .stance-pop {
   position: absolute;
-  right: calc(100% + var(--space-2));
-  top: 50%;
-  transform: translateY(-50%);
+  bottom: calc(100% + var(--space-2));
+  right: 0;
   display: flex;
   gap: var(--space-2);
   padding: var(--space-2);
@@ -1169,7 +1259,7 @@ button svg,
 @keyframes stance-pop-in {
   from {
     opacity: 0;
-    transform: translateY(-50%) scale(0.92);
+    transform: translateY(6px) scale(0.92);
   }
 }
 
@@ -1445,9 +1535,43 @@ button.roster-row:active {
   border: 1.5px solid #9a9776;
   box-shadow: 1px 2px 0 #e1ddc3;
   color: #5c5a43;
+  overflow: hidden;
 }
 
+/* A group in the recap: a short subtitle, then its content, a thin rule between groups. */
+.recap-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  flex: 0 0 auto;
+}
+
+.recap-section + .recap-section {
+  padding-top: var(--space-3);
+  border-top: 1px solid #e1ddc3;
+}
+
+.recap-sub {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #9a9776;
+}
+
+/* The shared counts: one even row. */
 .recap-shared {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  justify-items: center;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+/* The gauge on the left; the bar and its legend, one column as wide as the bar, on the right. */
+.recap-peril {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1455,16 +1579,33 @@ button.roster-row:active {
   gap: var(--space-2) var(--space-3);
 }
 
-.recap-shared .hud-peril svg {
+.recap-peril .hud-peril svg {
   display: block;
+}
+
+.recap .peril-breakdown {
+  align-items: stretch;
+}
+
+.peril-breakdown.is-wide {
+  width: 200px;
+}
+
+.recap .peril-rows {
+  justify-content: flex-start;
+  gap: var(--space-1) var(--space-3);
+}
+
+.recap-party {
+  flex: 0 1 auto;
+  min-height: 0;
 }
 
 .recap-players {
   display: flex;
   flex-direction: column;
-  gap: var(--space-2);
+  gap: var(--space-1);
   margin: 0;
-  padding: 0;
   list-style: none;
   min-height: 0;
   overflow-y: auto;
@@ -1473,15 +1614,14 @@ button.roster-row:active {
 }
 
 .recap-player {
-  display: flex;
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-1) 0;
-  border-top: 1px solid #e1ddc3;
 }
 
 .recap-name {
-  flex: 1;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1489,9 +1629,12 @@ button.roster-row:active {
   font-weight: 600;
 }
 
+/* Each player's counts in three fixed columns, so the numbers line up from row to row. */
 .recap-stats {
-  display: flex;
-  gap: var(--space-3);
+  display: grid;
+  grid-template-columns: repeat(3, 4.2rem);
+  gap: var(--space-1);
+  justify-items: start;
 }
 
 .stat {
@@ -1520,14 +1663,53 @@ button.roster-row:active {
   height: 14px;
 }
 
-@media (min-width: 900px) {
+@media (max-width: 899px) {
+  /* A short phone: the whole card scrolls, so the party is never squeezed to one row. */
   .recap {
-    position: absolute;
-    right: var(--gutter-right);
-    top: 50%;
-    transform: translateY(-50%);
-    width: 26rem;
-    max-height: 70%;
+    overflow-y: auto;
+  }
+
+  .recap-party,
+  .recap-players {
+    flex-shrink: 0;
+    overflow: visible;
+  }
+}
+
+@media (min-width: 900px) {
+  /* Calm: the title, story card, vignette and route strip centred; the recap opens in a right drawer. */
+  .ending {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr) auto;
+    align-items: center;
+  }
+
+  .ending-head {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: center;
+    max-width: 34rem;
+  }
+
+  .ending-foot {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: center;
+  }
+
+  /* The recap inside its drawer: no card of its own, the drawer is the card. */
+  .drawer .recap {
+    width: auto;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+    background: none;
+    overflow: visible;
+  }
+
+  .drawer:has(.recap) {
+    width: 400px;
   }
 }
 
@@ -1723,44 +1905,62 @@ button.roster-row:active {
   visibility: hidden;
 }
 
-/* Desktop: the tree runs sideways, the emblem at the left and each branch a row. */
+/* Every node's title and line sits under it, locked or not; a small mark says why it is out of reach. */
+.skills-branches {
+  align-items: flex-start;
+}
+
+.skills-branch {
+  width: 160px;
+}
+
+.skill-caption {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  margin-top: 2px;
+  text-align: center;
+  max-width: 160px;
+}
+
+.skill-caption-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-1, 0.9rem);
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.skill-caption-text {
+  font-size: 0.78rem;
+  line-height: 1.25;
+  opacity: 0.85;
+}
+
+.skill-lock {
+  width: 14px;
+  height: 14px;
+  flex: none;
+}
+
+.skills-branch[data-closed] .skill-caption {
+  opacity: 0.5;
+}
+
+.skill-node[data-state='plain'] + .skill-caption .skill-caption-text,
+.skill-node[data-state='closed'] + .skill-caption .skill-caption-text {
+  opacity: 0.7;
+}
+
+/* Desktop: a wider drawer, the two branches as columns beside the emblem's column. */
 @media (min-width: 900px) {
   .drawer:has(.skills) {
-    width: 440px;
-  }
-
-  .skills-tree {
-    grid-auto-flow: column;
-    align-items: center;
-    gap: var(--space-2);
+    width: 460px;
   }
 
   .skills-branches {
-    flex-direction: column;
-    gap: var(--space-3);
-  }
-
-  .skills-branch {
-    grid-auto-flow: column;
-    align-items: center;
-  }
-
-  .skills-step {
-    grid-auto-flow: column;
-    align-items: center;
-  }
-
-  .skills-path {
-    position: relative;
-    width: 27px;
-    height: 40px;
-  }
-
-  .skills-path svg {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(-90deg);
+    gap: var(--space-5, 32px);
   }
 }
 
@@ -1797,4 +1997,215 @@ button.roster-row:active {
   50% {
     transform: scale(1.1);
   }
+}
+
+/* The destination's glow: the light breathes and the motes drift up, slowly. */
+[data-glow='ground'],
+[data-glow='halo'] {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: dest-breathe 3.6s ease-in-out infinite;
+}
+
+[data-glow='column'] {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: dest-rise 3.6s ease-in-out infinite;
+}
+
+[data-glow='mote'] {
+  animation: dest-mote 4.2s ease-in-out infinite;
+}
+
+[data-glow='mote'][data-mote='1'] {
+  animation-delay: -1.4s;
+}
+
+[data-glow='mote'][data-mote='2'] {
+  animation-delay: -2.8s;
+}
+
+@keyframes dest-breathe {
+  0%,
+  100% {
+    transform: scale(0.94);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.04);
+    opacity: 1;
+  }
+}
+
+@keyframes dest-rise {
+  0%,
+  100% {
+    transform: scaleY(0.88);
+    opacity: 0.7;
+  }
+  50% {
+    transform: scaleY(1);
+    opacity: 1;
+  }
+}
+
+@keyframes dest-mote {
+  0% {
+    transform: translateY(6px);
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-10px);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-glow] {
+    animation: none !important;
+  }
+}
+
+/* The story: a passing card over the map (its drawing and its few sentences), beside the creature or the
+   hex it is about. It takes no tap: the next tap anywhere closes it. */
+.story-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 5;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  width: min(264px, calc(100vw - 32px));
+  padding: var(--space-3);
+  border-radius: 14px;
+  background: #f3f1e2;
+  border: 1.5px solid #9a9776;
+  box-shadow: 1px 2px 0 #e1ddc3;
+  color: #5c5a43;
+  pointer-events: none;
+  animation: story-in 320ms ease-out both;
+}
+
+.story-art {
+  display: block;
+  line-height: 0;
+}
+
+.story-art svg {
+  display: block;
+}
+
+.story-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  font-style: italic;
+}
+
+@keyframes story-in {
+  from {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-card {
+    animation: none;
+  }
+}
+
+/* The story badge by the route strip: a small ribbon while cards wait. */
+.hud-story {
+  display: block;
+  width: 28px;
+  height: 28px;
+  margin-left: 4px;
+  pointer-events: auto;
+  animation: story-nudge 2.4s ease-in-out infinite;
+}
+
+@keyframes story-nudge {
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hud-story {
+    animation: none;
+  }
+}
+
+/* The step beside the route strip ("9 of 40") and the Greyfold mark at its end. */
+.hud-routeline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.hud-date {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: #5c5a43;
+  pointer-events: auto;
+}
+
+.hud-greyfold {
+  display: block;
+  width: 24px;
+  height: 24px;
+  pointer-events: auto;
+}
+
+.hud-greyfold svg {
+  display: block;
+}
+
+.tip-trace {
+  display: flex;
+  gap: 6px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.tip-trace-who {
+  font-weight: 600;
+}
+
+/* The ending's line of story, above the recap. */
+.ending-line {
+  margin: 0;
+  max-width: min(420px, calc(100vw - 48px));
+  font-size: 15px;
+  line-height: 1.45;
+  font-style: italic;
+  text-align: center;
+  color: #5c5a43;
+  pointer-events: none;
+}
+
+.ending-line-art {
+  display: block;
+  line-height: 0;
+}
+
+/* A pinned character: a heap of stones beside the action pips. */
+.hud-pinned {
+  display: inline-flex;
+  width: 28px;
+  height: 28px;
+}
+
+.hud-pinned svg {
+  width: 100%;
+  height: 100%;
 }

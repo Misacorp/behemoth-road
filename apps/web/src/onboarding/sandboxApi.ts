@@ -65,6 +65,7 @@ export function createSandbox(role: string): Sandbox {
     },
     // Nothing is stored or sent: the practice is never "seen" on the server by these.
     markSeen: () => Promise.resolve([]),
+    markStoryRead: () => Promise.resolve([]),
     visit: () => Promise.resolve(),
     nextDay: never('next-day'),
     setPace: never('pace'),

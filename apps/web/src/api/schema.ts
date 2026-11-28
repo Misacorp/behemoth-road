@@ -60,6 +60,9 @@ const character = v.object({
   /** The stance the spare actions go to at the tick (a content id), and whether the day is ended. */
   stance: id,
   waiting: v.boolean(),
+  /** The day a falling slide pinned them: no moving or acting until dug out or the next tick but one. */
+  pinnedDay: v.exactOptional(count),
+  struggles: v.exactOptional(count),
 });
 
 const weights = v.object({ left: v.number(), straight: v.number(), right: v.number() });
@@ -89,11 +92,41 @@ const config = v.object({
   stimulusPull: v.number(),
   hungryVeerWeights: weights,
   lightFireCost: count,
+  brazierNights: count,
+  brazierRevealRadius: count,
+  brazierSpacing: count,
+  brazierFirstWithin: count,
+  fireFearRadius: count,
+  slideFallChance: v.number(),
+  digOutCost: count,
+  struggleCost: count,
+  struggleChanceBase: v.number(),
+  struggleChanceStep: v.number(),
+  hazardSpacing: count,
+  hazardFirst: count,
+  hazardLookaheadBeyond: count,
+  hazardFirstOffset: count,
+  hazardJitter: count,
+  hazardSideChance: v.number(),
+  lureSpacing: count,
+  lureFirstWithin: count,
+  lureJitter: count,
+  lureKeepOut: count,
+  lureAheadMin: count,
+  lureWideMin: count,
+  lureWideMax: count,
+  leadCost: count,
+  lureLeads: count,
   feedCost: count,
   lingerCost: count,
   towThrowCost: count,
   towGrabCost: count,
   towReach: count,
+  cartsMax: count,
+  cartCargo: count,
+  cartHitchCost: count,
+  cartBoardCost: count,
+  cartPullExtra: count,
   threatsFromDay: count,
   threatChanceBase: v.number(),
   threatChancePerPlayer: v.number(),
@@ -128,9 +161,14 @@ const config = v.object({
   perilHungryLevel: count,
   perilCalm: count,
   routeLength: count,
+  destinationDepth: count,
+  destinationRowsPerStep: v.pipe(v.number(), v.finite(), v.minValue(0.5), v.maxValue(1)),
   xpPerPick: count,
   catchUpEverySteps: count,
   catchUpXp: count,
+  storyOn: v.boolean(),
+  storyPerDay: count,
+  traceCap: count,
 });
 
 /** The core state without the seed (the core's `GameStateView`): known tiles carry their terrain. */
@@ -140,8 +178,18 @@ export const GameStateViewSchema = v.object({
   artSeed: v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(0xffffffff)),
   day: count,
   config,
+  /** The destination band across the map: public from the start (`docs/design/destination.md`). */
+  destination: v.strictObject({
+    origin: hex,
+    heading: direction,
+    /** Rows (half rows) from the origin to the band's near edge. */
+    from: v.pipe(v.number(), v.finite(), v.minValue(0), v.maxValue(100_000)),
+    depth: count,
+  }),
   creature: v.object({
     centre: hex,
+    /** The creature's kind (a content id). */
+    kind: id,
     heading: direction,
     /** A keeper asked it to stay put at the next tick. */
     lingering: v.boolean(),
@@ -161,16 +209,40 @@ export const GameStateViewSchema = v.object({
   characters: v.pipe(v.array(character), v.maxLength(64)),
   /** Revealed features only (the server leaves hidden ones out). */
   features: v.pipe(
-    v.record(hexKeyString, v.object({ type: id, revealed: v.boolean(), left: count })),
+    v.record(
+      hexKeyString,
+      v.object({
+        type: id,
+        revealed: v.boolean(),
+        left: count,
+        /** Old fuel lies in the bowl (a brazier not yet lit): its first fire needs no wood. */
+        stocked: v.exactOptional(v.boolean()),
+      }),
+    ),
     v.check((f) => Object.keys(f).length <= 20_000, 'too many features'),
   ),
+  /** Burnables a fire burnt away for good, where seen (what stood there says how the ground looks). */
+  burnt: v.pipe(v.array(v.object({ hex, feature: id })), v.maxLength(2000)),
   /** The team stores, on the creature. */
   stores: counts,
   /** Unlocks the team has finished. */
   unlocks: v.pipe(v.array(id), v.maxLength(100)),
   /** The one unlock in progress. */
   project: v.nullable(v.object({ unlock: id, work: count })),
-  /** Lit fires (public): each burns through the tick that ends the day it was lit. */
+  /** Carts on the map (public): one puller and one rider at most, both standing on its hex. */
+  carts: v.pipe(
+    v.array(
+      v.object({
+        id,
+        hex,
+        cargo: counts,
+        puller: v.nullable(id),
+        rider: v.nullable(id),
+      }),
+    ),
+    v.maxLength(8),
+  ),
+  /** Lit fires (public): each burns through the tick that ends the day it was lit, or for `nights` nights (a brazier). */
   stimuli: v.pipe(
     v.array(
       v.object({
@@ -179,15 +251,30 @@ export const GameStateViewSchema = v.object({
         litDay: count,
         range: v.exactOptional(count),
         push: v.exactOptional(count),
+        /** A brazier: the nights it burns in all (from `litDay`), and the hexes it shows around it. */
+        nights: v.exactOptional(count),
+        reveal: v.exactOptional(count),
       }),
     ),
     v.maxLength(200),
   ),
   /** Threats on the map (public). */
   threats: v.pipe(
-    v.array(v.object({ id, type: id, hex, strength: count, appearedDay: count })),
+    v.array(
+      v.object({
+        id,
+        type: id,
+        hex,
+        strength: count,
+        appearedDay: count,
+        /** The id of the scree field that laid it, when one did. */
+        patch: v.exactOptional(id),
+      }),
+    ),
     v.maxLength(200),
   ),
+  /** Lures (small animals) on the map (public): `leadsLeft` 0 means it has settled. */
+  lures: v.pipe(v.array(v.object({ id, type: id, hex, leadsLeft: count })), v.maxLength(200)),
   /** Settlements in reach (public). */
   settlements: v.pipe(
     v.array(
@@ -232,6 +319,27 @@ export const GameStateViewSchema = v.object({
     ),
   }),
   misleadUntilDay: v.nullable(count),
+  /** What the season left on the map: fire scars, trails, cairns, broken chain, open gates. */
+  traces: v.pipe(
+    v.array(
+      v.object({
+        kind: v.picklist(['fire', 'trail', 'cairn', 'chain', 'gate']),
+        hex,
+        step: count,
+        by: v.exactOptional(id),
+      }),
+    ),
+    v.maxLength(200),
+  ),
+  /** The story so far: the ids that fired, and those waiting for the day's cap. */
+  story: v.object({
+    fired: v.pipe(v.array(id), v.maxLength(64)),
+    queue: v.pipe(
+      v.array(v.object({ id, hex: v.nullable(hex), when: v.pipe(v.string(), v.maxLength(200)) })),
+      v.maxLength(64),
+    ),
+    today: v.object({ day: count, count }),
+  }),
 });
 
 /**
@@ -298,16 +406,39 @@ const KNOWN_EVENTS = [
   event('unlock-progress', { unlock: id, work: count, needed: count }),
   event('unlock-done', { unlock: id }),
   event('fire-lit', { hex, characterId: id, stimulus: id }),
+  /** A fire burnt a burnable feature away for good. */
+  event('feature-burnt', { hex, characterId: id, feature: id }),
+  /** A falling slide pinned the striker; and a pinned character was freed (`by` null: on their own). */
+  event('pinned', { characterId: id, threat: id }),
+  event('dug-out', { characterId: id, by: v.nullable(id) }),
+  /** A pinned character struggled; `freed` when it worked. */
+  event('struggled', { characterId: id, freed: v.boolean() }),
   event('fed', { characterId: id, material: id }),
   event('linger', { characterId: id }),
   event('tow-thrown', { characterId: id, target: id }),
   event('tow-grabbed', { characterId: id, thrower: id }),
+  /** The cart: built (`characterId` absent for a self-winding finish); hitched, let go, boarded, left. */
+  event('cart-built', { cart: id, hex, characterId: v.exactOptional(id) }),
+  event('hitched', { cart: id, characterId: id, hex }),
+  event('unhitched', { cart: id, characterId: id, hex }),
+  event('boarded-cart', { cart: id, characterId: id, hex }),
+  event('left-cart', { cart: id, characterId: id, hex }),
+  event('loaded', { cart: id, characterId: id, hex, material: id, amount: count }),
+  event('unloaded', { cart: id, characterId: id, hex, material: id, amount: count }),
+  /** From the tick: a cart left out of reach was lost with its cargo. */
+  event('cart-lost', { cart: id, hex, cargo: counts }),
   /** The creature's step at the tick (a linger: from equals to). */
   event('creature-step', { from: hex, to: hex }),
   event('lost', { characterId: id, hex }),
   event('day', { day: count }),
   event('creature-ate', { material: id }),
   event('fire-out', { hex, stimulus: id }),
+  /** The creature's step ended on hazardous terrain; `damage` is the peril it added. */
+  event('hazard-step', { hex, terrain: id, damage: count }),
+  /** A lure was led a hex (`leadsLeft`: what remains); settled with its last lead; fled when the creature reached it. */
+  event('lure-led', { id, characterId: id, from: hex, to: hex, leadsLeft: count }),
+  event('lure-settled', { id, hex }),
+  event('lure-fled', { id, hex }),
   // Milestone 5.
   event('threat-appears', { id, type: id, hex }),
   event('threat-moves', { id, from: hex, to: hex }),
@@ -326,6 +457,16 @@ const KNOWN_EVENTS = [
     sources: v.pipe(v.array(v.object({ source: id, amount: int })), v.maxLength(16)),
   }),
   event('settlement-appears', { id, hex }),
+  /** A storylet fired: where it is anchored, and the condition that fired it (debugging). */
+  event('story', {
+    id,
+    step: count,
+    anchor: v.variant('kind', [
+      v.object({ kind: v.literal('creature') }),
+      v.object({ kind: v.literal('hex'), hex }),
+    ]),
+    when: v.pipe(v.string(), v.maxLength(200)),
+  }),
   /** `favour`: the settlement's favour now. */
   event('parley', { id, characterId: id, favour: count }),
   event('befriended', { id }),
@@ -372,8 +513,23 @@ export const PlayerViewSchema = v.object({
     /** The game day and version of your previous visit, for the recap; null on your first. */
     lastDay: v.optional(v.nullable(count), null),
     lastVersion: v.optional(v.nullable(count), null),
+    /** The storylets you have read (ids from `game.story.fired`). */
+    storyRead: v.optional(v.pipe(v.array(id), v.maxLength(64)), []),
   }),
   game: GameStateViewSchema,
+  /** How the season ended (title and the key of its line); null while it goes on. */
+  ending: v.optional(
+    v.nullable(
+      v.object({
+        outcome: v.picklist(['safe', 'wounded', 'lost']),
+        fate: v.picklist(['stays', 'goes-on']),
+        creature: id,
+        title: text,
+        line: v.nullable(id),
+      }),
+    ),
+    null,
+  ),
   players: v.pipe(v.array(player), v.maxLength(64)),
   devTools: v.boolean(),
   offers: v.nullable(v.pipe(v.array(OfferSchema), v.maxLength(8))),
@@ -414,6 +570,11 @@ export const SessionSchema = v.object({
 /** The answer to `POST /api/me/seen`: the player's whole record. */
 export const SeenAnswerSchema = v.strictObject({
   seen: v.pipe(v.array(v.pipe(v.string(), v.maxLength(40))), v.maxLength(32)),
+});
+
+/** `POST /api/me/story-read`: the storylets you have read, in content order. */
+export const StoryReadAnswerSchema = v.strictObject({
+  storyRead: v.pipe(v.array(id), v.maxLength(64)),
 });
 
 export const LiveTicketSchema = v.strictObject({ ticket: v.pipe(v.string(), v.maxLength(160)) });
@@ -461,8 +622,22 @@ export type GameAction =
   | { readonly kind: 'linger' }
   | { readonly kind: 'throw-line'; readonly to: string }
   | { readonly kind: 'grab-line' }
+  | { readonly kind: 'hitch' }
+  | { readonly kind: 'unhitch' }
+  | { readonly kind: 'board-cart' }
+  | { readonly kind: 'leave-cart' }
+  | { readonly kind: 'load'; readonly material: string; readonly amount: number }
+  | { readonly kind: 'unload'; readonly material: string; readonly amount: number }
   | { readonly kind: 'strike'; readonly threat: string }
   | { readonly kind: 'defend' }
+  | { readonly kind: 'dig-out'; readonly target: string }
+  | { readonly kind: 'struggle' }
+  | {
+      readonly kind: 'lead';
+      readonly lure: string;
+      readonly direction?: 'n' | 'ne' | 'se' | 's' | 'sw' | 'nw';
+      readonly to?: { readonly q: number; readonly r: number };
+    }
   | { readonly kind: 'parley' }
   | { readonly kind: 'offer'; readonly material: string }
   | { readonly kind: 'ask-boon'; readonly boon: string }

@@ -58,7 +58,7 @@ Record a decision:
 - 2026-11-21 Live sockets: ticket auth, caps, Hibernation, flag off in production (amended)
 - 2026-11-21 Live sockets only say "changed"; the client fetches its own view
 - 2026-11-21 Fast pace schedules a second alarm time in the one Durable Object alarm
-- 2026-11-20 The short dev season follows the dev-tools switch; an ended season stops the schedule
+- 2026-11-20 The short dev season follows the dev-tools switch; an ended season stops the schedule (amended)
 - 2026-11-20 Staging and local seasons are short; admins start a new season there
 - 2026-11-20 Web schema requires the M4 view fields now the fixtures carry them
 - 2026-11-20 The player view carries each viewer's creature signs; the creature's nature and condition never leave the server
@@ -123,6 +123,42 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-28 Player text follows the glossary: foe, Strike, gear, food, when the day turns
+- 2026-11-28 Threat stripes leave out the destination band
+- 2026-11-28 surveyableHexes lists what a survey can reach
+- 2026-11-28 Rivers run into lakes, ponds and seas \[Misa\]
+- 2026-11-28 Scouts earn XP like everyone else, 18 XP a pick \[Misa\]
+- 2026-11-28 The season ends on a destination band, a sanctuary the map shows \[Misa\]
+- 2026-11-28 Staging plays the full season \[Misa\]
+- 2026-11-28 Player text follows one glossary \[Misa\]
+- 2026-11-28 Round 16 screens: locked skills show their text, ending recap in a drawer, darker fog, destination glow \[Misa\]
+- 2026-11-28 An armed action shows what it does; stances sit by the hourglass \[Misa\]
+- 2026-11-28 Moving: tap a tile, tap its Move to see the route, tap Move again \[Misa\]
+- 2026-11-27 End-of-day reveals happen after the creature moves \[Misa\]
+- 2026-11-27 A drawer closes only on a mouse press on the map, and focus returns to its opener
+- 2026-11-27 One registry of tappable things feeds the picker and the tap resolver
+- 2026-11-27 Desktop drawers close by Escape, a press outside, a right-click and a small cross
+- 2026-11-26 Lure and cart web controls: lead mode and one-tap loading
+- 2026-11-26 A brazier's reveal counts as explored for good \[Misa\]
+- 2026-11-26 A blocked-hexes helper lists where a subject will not go \[Misa\]
+- 2026-11-26 Odds are shown for every roll, from one function; hidden chances give none \[Misa\]
+- 2026-11-26 A pinned character struggles free: each try rolls, the chance grows \[Misa\]
+- 2026-11-26 Cart rules: seat, hitch, load, push and loss
+- 2026-11-26 A cart, the first land vehicle (Misa's ask) \[Misa\]
+- 2026-11-26 Hazard patches are laid lazily across the route, and tuned to 12 hexes apart
+- 2026-11-26 A lure animal is a second steering tool (Misa's ask) \[Misa\]
+- 2026-11-26 Hazards across the route make steering worth it (Misa's ask) \[Misa\]
+- 2026-11-26 Striking a rockslide can bury the striker \[Misa\]
+- 2026-11-26 Threats tagged fears-fire keep clear of burning fires \[Misa\]
+- 2026-11-26 Fire needs something to burn: braziers and burnables
+- 2026-11-25 The tow line is for those outside the window
+- 2026-11-25 Story core: traces, storylets and endings are public and change no rule
+- 2026-11-25 Blessings become a rule only after the balance sim \[Misa\]
+- 2026-11-25 The Reckoners arrive in season two with their own threat \[Misa\]
+- 2026-11-25 Ending titles follow fate: Arrived, Gone on, Lost \[Misa\]
+- 2026-11-25 At a go-on ending the party watches rather than rides off \[Misa\]
+- 2026-11-25 Young creatures stay and old ones go on; old kinds from tier two \[Misa\]
+- 2026-11-25 The world: creatures are living beings everyone knows \[Misa\]
 - 2026-11-24 Lakes, ponds and seas: the creature swims, a raft lets everyone else cross \[Misa\]
 - 2026-11-24 The tow line reaches the first ring outside the window \[Misa\]
 - 2026-11-24 The tow line needs the hauled player's approval \[Misa\] (amended)
@@ -142,7 +178,7 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-24 Lore fragments found in a lost season are kept \[Misa\]
 - 2026-11-24 Rain makes fire dearer, to build after the balance sim \[Misa\]
 - 2026-11-24 Madness (Far-eyed) is parked \[Misa\]
-- 2026-11-24 Endings get a line each, varied by the largest peril source \[Misa\]
+- 2026-11-24 Endings get a line each, varied by the largest peril source \[Misa\] (amended)
 - 2026-11-24 No dawn digest for now \[Misa\]
 - 2026-11-24 A lingering creature holds the fog \[Misa\]
 - 2026-11-23 Skill tiers 2 and 3 are active, with adjusted effects
@@ -161,7 +197,7 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-23 A public skills wiki at /wiki with a build planner
 - 2026-11-22 The ending and the peril gauge show where peril came from \[Misa\]
 - 2026-11-22 The catch-up is 1 XP every 10 steps \[Misa\]
-- 2026-11-22 Skill XP comes from any contribution, one pool per character \[Misa\]
+- 2026-11-22 Skill XP comes from any contribution, one pool per character \[Misa\] (amended)
 - 2026-11-22 One tap on a skill node shows its tip and arms it; the glint is bigger \[Misa\]
 - 2026-11-22 Skill tree UI: emblem ring on the HUD, arm then take, tips for reasons (amended)
 - 2026-11-22 Skill slice: notch per action performed, tier 1 live, effects as data hooks (amended)
@@ -171,7 +207,7 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-22 The first skill pick in a role's tree closes the other branch \[Misa\]
 - 2026-11-21 Tips have no timer: they stay until the next tap \[Misa\]
 - 2026-11-21 A tap elsewhere only closes an open popover \[Misa\]
-- 2026-11-21 A rockslide strikes only its own hex (threat reach) \[Misa\]
+- 2026-11-21 A rockslide strikes only its own hex (threat reach) \[Misa\] (amended)
 - 2026-11-21 The scripted chain reaches the climbing spikes about twice as fast \[Misa\]
 - 2026-11-21 Hunger drains every day and food restores more \[Misa\]
 - 2026-11-21 Fires steer the creature sideways only, and several fires add up by side \[Misa\]
@@ -204,7 +240,6 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-20 Marks for empty hexes, out of reach, a needed role and a mislead
 - 2026-11-20 Features stand on a plinth; decorative props do not
 - 2026-11-20 A survey of an empty hex says so
-- 2026-11-20 Dev season brings threats from the first tick
 - 2026-11-20 Stone, iron and timber also lie on open ground
 - 2026-11-20 Threats and settlements near you carry M4-style action badges
 - 2026-11-20 Escort and struck marks read the core's rule through one web function until the core exports it
@@ -273,7 +308,6 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-19 The creature is drawn from above, at the map's view angle \[Misa\]
 - 2026-11-19 Spring palette and a high view: tilt 0.8 \[Misa\]
 - 2026-11-19 Map popovers are drawn in SVG; the view follows the creature each day
-- 2026-11-19 Moving: tap your character, tap a tile, see the arrow, confirm \[Misa\] (amended)
 - 2026-11-19 No focus outlines or other visible accessibility aids in the game \[Misa\]
 - 2026-11-19 Touch first: drag to pan, pinch or wheel to zoom, tap or click to act \[Misa\] (amended)
 - 2026-11-19 The map starts isometric, with flat ground first and heights later \[Misa\]
@@ -301,4 +335,4 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-19 Drag and drop always has a tap and keyboard alternative
 - 2026-11-19 Counts read "1 / 3", and terms explain themselves without "?" icons
 
-Superseded: 9 entries (see the topic file).
+Superseded: 11 entries (see the topic file).

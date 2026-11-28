@@ -51,7 +51,7 @@ describe('the reason an action is greyed', () => {
       'why:not-enough-actions',
     );
 
-    const walker = staged({ pack: { timber: 1 } });
+    const walker = staged({ pack: { timber: 1 }, brazier: true });
     const spent = {
       ...walker.view,
       characters: walker.view.characters.map((c) => ({ ...c, actionsLeft: 0 })),

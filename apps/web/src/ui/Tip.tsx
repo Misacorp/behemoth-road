@@ -5,6 +5,7 @@
  * one) and a line or two of text, placed like the map's popovers, beside the thing and never over it, with
  * the same chevron. The texts live in `text/tips.ts`.
  */
+import { drawBurnableMark, drawFearsFireMark } from '@behemoth-road/art';
 import { TIPS, watchPress } from './press.ts';
 import {
   DEFAULT_CONFIG,
@@ -22,6 +23,9 @@ import { fillTip, tipValues } from '../text/tipValues.ts';
 import { chevronFor, placePopover } from '../map/compose.ts';
 import { setCssTransform } from '../map/cssTransform.ts';
 import { contentName } from './emblems.tsx';
+import { tipMarkOf } from './tipMarks.ts';
+import { PALETTE } from '../map/art.ts';
+import { toPreact } from '../map/svgToPreact.ts';
 import type { OpenTip } from './tip.ts';
 
 /** The numbers tips show, from the game's tuning (the defaults until a game is loaded). */
@@ -113,10 +117,18 @@ export function TipLayer(): JSX.Element | null {
 
   if (!open) return null;
   const tip = TIP_TABLE[open.id];
+  const mark = tipMarkOf(open.id);
   return (
     <div ref={box} class="tip" role="tooltip" data-tip-open={open.id}>
       <strong class="tip-title">{titleOf(open.id)}</strong>
-      <span class="tip-text">{fillTip(tip.text, values)}</span>
+      <span class="tip-text">{fillTip(tip.text, { ...values, note: open.note ?? '' })}</span>
+      {mark !== null && (
+        <span class="tip-mark" data-tip-mark={mark}>
+          {toPreact(
+            mark === 'burnable' ? drawBurnableMark(PALETTE, 22) : drawFearsFireMark(PALETTE, 22),
+          )}
+        </span>
+      )}
       {typeof open.extra === 'function' && (open.extra as () => JSX.Element)()}
       <svg
         class="tip-chevron"

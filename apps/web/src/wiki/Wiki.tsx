@@ -151,8 +151,8 @@ function Planner({ plan, setPlan }: { plan: Plan; setPlan: (plan: Plan) => void 
         </button>
       </div>
       <p class="wiki-note">
-        One pick per {XP_PER_PICK} XP, at about {WIKI_XP_PER_DAY} XP a day for an active player.
-        Your first pick in a tree closes its other branch; other roles open at tier 1 only.
+        Each {XP_PER_PICK} XP is one pick, about {WIKI_XP_PER_DAY} XP a day. Your first pick in a
+        role closes its other branch. From another role you can pick tier 1 only.
       </p>
     </>
   );

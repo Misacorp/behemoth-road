@@ -6,7 +6,8 @@
  * part is server only (`stepWeights`); the public prediction uses the base weights.
  */
 
-import { appetiteOf, reactionTo, stimulusType } from './care.ts';
+import { appetiteOf, lureType, reactionTo, reactionToLure, stimulusType } from './care.ts';
+import { rangeOf } from './fire.ts';
 import type { VeerWeights } from './config.ts';
 import {
   type Direction,
@@ -83,7 +84,7 @@ export const sideOf = (state: GameStateView, target: Hex): -1 | 0 | 1 => {
 };
 
 /**
- * The sideways push of the stimuli in range, server only: each one within
+ * The sideways push of the stimuli and lures in range, server only: each one within
  * `stimulusRange` of the centre adds its type's `push` toward its side if the
  * creature is attracted, away from it if repelled, nothing if indifferent or if
  * it lies on the heading's line. Positive is left, negative right; pushes on
@@ -92,12 +93,20 @@ export const sideOf = (state: GameStateView, target: Hex): -1 | 0 | 1 => {
 export const stimulusPush = (state: GameState): number => {
   let push = 0;
   for (const s of state.stimuli) {
-    if (hexDistance(state.creature.centre, s.hex) > (s.range ?? state.config.stimulusRange)) {
+    if (hexDistance(state.creature.centre, s.hex) > rangeOf(state, s)) {
       continue;
     }
     const reaction = reactionTo(state.nature, s);
     const sign = reaction === 'attracted' ? 1 : reaction === 'repelled' ? -1 : 0;
     push += sign * sideOf(state, s.hex) * stimulusType(s.type).push * (s.push ?? 1);
+  }
+  // A lure acts like a fire: a permanent one, with its push and range on its type.
+  for (const l of state.lures) {
+    const type = lureType(l.type);
+    if (hexDistance(state.creature.centre, l.hex) > type.range) continue;
+    const reaction = reactionToLure(state.nature, l);
+    const sign = reaction === 'attracted' ? 1 : reaction === 'repelled' ? -1 : 0;
+    push += sign * sideOf(state, l.hex) * type.push;
   }
   return push;
 };

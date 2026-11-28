@@ -240,7 +240,7 @@ async function runViewport(browser, vite, vp) {
     await sweep('the practice guide', '.coach-bar', '.coach-bar');
     if (requests.length) fail(`practice made requests: ${requests.join(', ')}`);
     if (sockets) fail('practice opened a socket');
-    // Leaving by "Join the expedition" goes to the real game (the join drawer, as there is no character).
+    // Leaving by "Join the party" goes to the real game (the join drawer, as there is no character).
     await press('.coach-join');
     await page.waitForSelector('.drawer .offer');
     await wait(500);
@@ -445,10 +445,19 @@ async function driveGuidedDay(page, h) {
       h.fail(`practice (${h.name}) got stuck`);
       return;
     }
-    if (step === 'confirm') {
-      await h.press('[data-popover=confirm] .svg-button');
-      await h.wait(500);
-      continue;
+    if (step === 'move' || step === 'confirm') {
+      // Tap the tile (done), then its Move (the first tap plans the walk), then Move again (it walks).
+      const move = '[data-popover] [data-action=move]:not([aria-disabled=true])';
+      if (await h.count(move)) {
+        await h.press(move);
+        await h.wait(500);
+        continue;
+      }
+      if (await h.count('[data-popover=confirm] .svg-button')) {
+        await h.press('[data-popover=confirm] .svg-button');
+        await h.wait(500);
+        continue;
+      }
     }
     const lit = (await h.centreOf('.coach-glow')) ?? (await h.centreOf('.coach-ring'));
     if (step === 'select' || step === 'tile') {

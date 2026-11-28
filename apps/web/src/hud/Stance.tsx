@@ -1,7 +1,7 @@
 /**
  * The stance control and the wait button on the HUD (docs/design/stances.md). The control is a small round
  * button showing your stance's glyph (faded, with a moon, when it falls back to rest where you stand); a
- * tap opens a popover of the three stance bubbles to choose from (a hold on one shows its tip). The wait
+ * tap opens a fan of the three stance bubbles above it to choose from (it sits by the hourglass) (a hold on one shows its tip). The wait
  * button, an hourglass beside the action arrows, ends your day in two taps: the first arms it, the second
  * confirms; it disarms by itself, or on any tap elsewhere. No text anywhere: glyphs only.
  */
@@ -34,18 +34,17 @@ export function StanceControl({ stance, onChoose }: StanceControlProps): JSX.Ele
   const bubbles = useRef<HTMLDivElement>(null);
 
   // Focus moves into the popover when it opens (without a ring) and back to the button when it closes,
-  // as the drawers do: only if the button had keyboard focus.
+  // as the drawers do, unless a tap elsewhere has already put focus somewhere of its own.
   useEffect(() => {
     if (!open) return;
-    const wasKeyboard = button.current?.matches(':focus-visible') ?? false;
     const current = bubbles.current?.querySelector<HTMLElement>('[data-chosen]');
     (current ?? bubbles.current?.querySelector<HTMLElement>('button'))?.focus({
       preventScroll: true,
     });
     return () => {
-      if (wasKeyboard) button.current?.focus({ preventScroll: true });
-      else if (bubbles.current?.contains(document.activeElement))
-        (document.activeElement as HTMLElement).blur();
+      const now = document.activeElement;
+      if (!now || now === document.body || bubbles.current?.contains(now))
+        button.current?.focus({ preventScroll: true });
     };
   }, [open]);
 

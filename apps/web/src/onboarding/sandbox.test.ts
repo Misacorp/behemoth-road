@@ -1,6 +1,6 @@
 import { characterOf, type GameStateView, type Hex, hexKey } from '@behemoth-road/core';
 import { describe, expect, it } from 'vitest';
-import { type Flow, IDLE, tap } from '../map/flow.ts';
+import { type Flow, IDLE, planMove, tap } from '../map/flow.ts';
 import { type Target } from '../map/pick.ts';
 import {
   captionFor,
@@ -82,10 +82,14 @@ async function playGuidedDay(role: (typeof ROLES)[number]): Promise<Step[]> {
     step();
   };
   step();
-  tapOn({ kind: 'me' });
   const targetHex: Hex = plan.target.kind === 'hex' ? plan.target.hex : view.game.creature.centre;
   tapOn({ kind: 'hex', hex: targetHex });
-  // The arrow is planned: confirm it.
+  // The glowing tile's card is open: the first tap on its Move plans the route, the second confirms it.
+  const card = flow;
+  const planned = planMove(view.game, id, plan.target, card);
+  if (planned === null) throw new Error('no Move');
+  flow = planned;
+  step();
   expect(flow.kind).toBe('planned');
   if (flow.kind !== 'planned') throw new Error('no plan');
   view = await sandbox.api.move(
@@ -135,8 +139,8 @@ function arrivedAt(
 
 describe('the guided first day', () => {
   for (const role of ROLES) {
-    it(`walks a ${role} through select, tile, confirm, one action, done`, async () => {
-      expect(await playGuidedDay(role)).toEqual(['select', 'tile', 'confirm', 'act', 'done']);
+    it(`walks a ${role} through tile, move, confirm, one action, done`, async () => {
+      expect(await playGuidedDay(role)).toEqual(['tile', 'move', 'confirm', 'act', 'done']);
     });
   }
 
@@ -145,13 +149,21 @@ describe('the guided first day', () => {
     const id = state.characters.find((c) => c.userId === SANDBOX_USERS.you)?.id ?? '';
     const plan = planFor(state, 'scout');
     const input = { flow: IDLE, state, characterId: id, arrivalActions: null };
-    expect(coachMap(plan, input)).toMatchObject({ step: 'select', ringMe: true, glow: [] });
-    const selected = coachMap(plan, { ...input, flow: { kind: 'selected' } });
-    expect(selected).toMatchObject({ step: 'tile', ringMe: false });
-    expect(selected.glow.map(hexKey)).toEqual([hexKey((plan.target as { hex: Hex }).hex)]);
+    const target = (plan.target as { hex: Hex }).hex;
+    const tile = coachMap(plan, input);
+    expect(tile).toMatchObject({ step: 'tile', ringMe: false, mark: null });
+    expect(tile.glow.map(hexKey)).toEqual([hexKey(target)]);
+    // The card of that tile is open: its Move pulses; planned, the armed Move does.
+    const card = coachMap(plan, { ...input, flow: { kind: 'inspect', hex: target } });
+    expect(card).toMatchObject({ step: 'move', mark: 'move' });
+    const route = planMove(state, id, plan.target, { kind: 'inspect', hex: target });
+    expect(coachMap(plan, { ...input, flow: route! })).toMatchObject({
+      step: 'confirm',
+      mark: 'confirm',
+    });
   });
 
-  it('has a scout let go of themselves before tapping the veiled hex to look at it', () => {
+  it('has a scout tap the veiled hex to look at it, once on the glowing tile', () => {
     const state = sandboxView(sandboxState('scout'), 1).game;
     const id = state.characters.find((c) => c.userId === SANDBOX_USERS.you)?.id ?? '';
     const plan = planFor(state, 'scout');
@@ -162,8 +174,6 @@ describe('the guided first day', () => {
         characterId: id,
         arrivalActions: 2,
       });
-    const selected = at({ kind: 'selected' });
-    expect(selected).toMatchObject({ step: 'act', ringMe: true, glow: [] });
     const idle = at(IDLE);
     expect(idle).toMatchObject({ step: 'act', ringMe: false, mark: 'act' });
     expect(idle.glow.map(hexKey)).toEqual([hexKey(plan.look as Hex)]);
@@ -195,8 +205,10 @@ describe('the guided first day', () => {
   it('has a short line for each step, and none when done', () => {
     const state = sandboxView(sandboxState('keeper'), 1).game;
     const plan = planFor(state, 'keeper');
-    expect(captionFor('select', plan)).toBe('Tap yourself');
-    expect(captionFor('act', plan)).toBe('Feed it');
+    expect(captionFor('tile', plan)).toBe('Tap the glowing hex');
+    expect(captionFor('move', plan)).toBe('Tap Move');
+    expect(captionFor('confirm', plan)).toBe('Tap Move again');
+    expect(captionFor('act', plan)).toBe('Feed');
     expect(captionFor('done', plan)).toBeNull();
     expect(captionFor('stuck', plan)).toBeNull();
   });
@@ -226,7 +238,7 @@ describe('the guided first day', () => {
       characterId: id,
       arrivalActions: null,
     });
-    expect(['stuck', 'select']).toContain(step);
+    expect(['stuck', 'tile']).toContain(step);
   });
 });
 

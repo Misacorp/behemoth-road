@@ -9,6 +9,7 @@ import { boxOf, ellipsePath, mapper, poly, smoothOpen, type Point } from './geom
 import type { Palette } from './palette.ts';
 import { hexCenter, type Hex, type Projection } from './projection.ts';
 import { inkAttrs, riseFor, type Drawn } from './props.ts';
+import { drawPinned } from './fire-art.ts';
 import { glyphBadge, isGlyph } from './glyphs.ts';
 import { el, type SvgNode } from './svg.ts';
 
@@ -29,6 +30,8 @@ export interface CharacterMarks {
   readonly waiting?: boolean;
   /** Cut off on a grace hex and waiting or unable to get back (core `stranded`): a small orange flare overhead. */
   readonly stranded?: boolean;
+  /** Pinned under a falling slide (`pinnedDay` in the view): stones heaped over its legs (`drawPinned`). */
+  readonly pinned?: boolean;
 }
 
 /** The character standee's height in its own units (`drawCharacter`). */
@@ -265,6 +268,11 @@ export function drawCharacterMarks(
         line(drop, w * 0.9, palette.accents.coral.shade),
       ]),
     );
+  }
+  if (marks.pinned) {
+    const d = drawPinned(palette, origin, size, squash, ink);
+    nodes.push(...d.nodes);
+    all.push({ x: d.box.x0, y: d.box.y0 }, { x: d.box.x1, y: d.box.y1 });
   }
   return { nodes, box: all.length ? boxOf(all) : boxOf([origin]) };
 }

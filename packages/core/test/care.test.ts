@@ -16,7 +16,7 @@ import {
   stepWeights,
   toPlayerView,
 } from '../src/index.ts';
-import { chainGame, placeCharacter, withTerrain } from './helpers.ts';
+import { chainGame, placeCharacter, withFeature, withTerrain } from './helpers.ts';
 
 /** Keeper and scout riding a creature at the origin heading north, on plains. */
 const base = (seed = 1): GameState => chainGame(['keeper', 'scout'], seed);
@@ -65,12 +65,16 @@ describe('the hidden nature', () => {
     const view0 = JSON.parse(JSON.stringify(toPlayerView(state))) as Record<string, unknown>;
     expect(Object.keys(view0).sort()).toEqual([
       'artSeed',
+      'burnt',
+      'carts',
       'characters',
       'config',
       'contentVersion',
       'creature',
       'day',
+      'destination',
       'features',
+      'lures',
       'misleadUntilDay',
       'peril',
       'project',
@@ -79,14 +83,17 @@ describe('the hidden nature', () => {
       'stats',
       'stimuli',
       'stores',
+      'story',
       'threats',
       'tiles',
+      'traces',
       'unlocks',
     ]);
     expect(Object.keys(view0.creature as object).sort()).toEqual([
       'centre',
       'defenders',
       'heading',
+      'kind',
       'lingerStreak',
       'lingeredDay',
       'lingering',
@@ -209,7 +216,9 @@ describe('signs', () => {
 });
 
 describe('lighting a fire', () => {
-  const standing = (s: GameState = base()) => placeCharacter(s, 'scout', LEFT_FIRE);
+  // Standing on a deadfall: something that burns away, as a one-night fire.
+  const standing = (s: GameState = base()) =>
+    withFeature(placeCharacter(s, 'scout', LEFT_FIRE), LEFT_FIRE, 'deadfall', true);
 
   it('is refused on the creature, on water, where one burns, without fuel or actions', () => {
     const fire = { kind: 'light-fire' } as const;
@@ -223,6 +232,12 @@ describe('lighting a fire', () => {
       reason: 'no-fuel',
       cost: 1,
       missing: [{ material: 'timber', amount: 1 }],
+    });
+    const plain = placeCharacter(giveTimber(base(), 'scout'), 'scout', LEFT_FIRE);
+    expect(checkAction(plain, 'scout', fire)).toEqual({
+      ok: false,
+      reason: 'nothing-to-burn',
+      cost: 1,
     });
     const wet = withTerrain(giveTimber(standing(), 'scout'), LEFT_FIRE, 'river');
     expect(checkAction(wet, 'scout', fire)).toEqual({ ok: false, reason: 'cannot-burn', cost: 1 });
@@ -256,12 +271,15 @@ describe('lighting a fire', () => {
     const lit = ok(r);
     expect(r.ok && r.events).toEqual([
       { kind: 'fire-lit', hex: LEFT_FIRE, characterId: 'scout', stimulus: 'fire' },
+      { kind: 'feature-burnt', hex: LEFT_FIRE, characterId: 'scout', feature: 'deadfall' },
     ]);
     const scout = lit.characters.find((c) => c.id === 'scout')!;
     expect(scout.pack).toEqual({});
     expect(scout.actionsLeft).toBe(2);
     expect(lit.stimuli).toEqual([{ type: 'fire', hex: LEFT_FIRE, litDay: 1 }]);
     expect(nextDay(lit).stimuli).toEqual([]);
+    // The deadfall burnt away for good.
+    expect(lit.features[`${LEFT_FIRE.q},${LEFT_FIRE.r}`]).toBeUndefined();
   });
 });
 

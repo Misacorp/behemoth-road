@@ -76,6 +76,24 @@ describe('terrain colours', () => {
     }
   });
 
+  it('keeps sea and shallows apart from every land terrain under protan and deutan vision', () => {
+    const land = ORDER.filter((t) => t !== 'lake');
+    const close: string[] = [];
+    for (const palette of PALETTES) {
+      for (const water of ['sea', 'shallows']) {
+        for (const terrain of land) {
+          for (const vision of VISION) {
+            const d = deltaE(base(palette, water), base(palette, terrain), vision);
+            if (d < MIN_SIM_DELTA_E) {
+              close.push(`${palette.id} ${water} and ${terrain} (${vision}): ${d.toFixed(1)}`);
+            }
+          }
+        }
+      }
+    }
+    expect(close).toEqual([]);
+  });
+
   it('draws sea, shallows and islands differently from a lake and from plains', () => {
     expect(terrainLook('sea').marks).toBe('swell');
     expect(terrainLook('shallows').marks).toBe('shoals');

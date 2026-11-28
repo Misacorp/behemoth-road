@@ -19,6 +19,7 @@ import {
   characterOffers,
   createGame,
   creatureSigns,
+  endingOf,
   glintsFor,
   loadGame,
   actWithEvents,
@@ -33,6 +34,8 @@ import {
   type CharacterOffer,
   type ConfigOverrides,
   type CreatureSigns,
+  type Ending,
+  STORY_IDS,
   type Hex,
   type GameState,
   type GameStateView,
@@ -49,6 +52,7 @@ import {
   MoveBodySchema,
   PickBodySchema,
   SeenBodySchema,
+  StoryReadBodySchema,
   SINCE_RE,
   SNOWFLAKE_RE,
 } from './schemas.ts';
@@ -92,10 +96,14 @@ export interface PlayerView {
      */
     lastDay: number | null;
     lastVersion: number | null;
+    /** The storylets (ids in `game.story.fired`) this player has read, in content order. */
+    storyRead: string[];
   };
   /** The characters this player may pick (the rolls, then the plain one): only while they have no active character. */
   offers: CharacterOffer[] | null;
   game: GameStateView;
+  /** How the season ended (title and line key), public; null while it goes on. */
+  ending: Ending | null;
   /**
    * What this viewer reads off the creature, from their active character (a keeper sees clearer and sees
    * cues). Per viewer, a pure function of the stored state, so it changes only with the version.
@@ -117,9 +125,8 @@ type Storage = Pick<
 >;
 
 /**
- * The core tuning overrides a new game is created with: the short dev season where the dev tools are on
- * (staging, local), the core defaults everywhere else. `devTools` is true only for `DEV_TOOLS` "on", so
- * any other value (or none) gives production's season.
+ * The core tuning overrides a new game is created with: `SERVER_CONFIG.devSeason` where the dev tools are on
+ * (staging, local; none today, so the full season), the core defaults everywhere else.
  */
 export const seasonConfig = (devTools: boolean): ConfigOverrides =>
   devTools ? SERVER_CONFIG.devSeason : {};
@@ -222,6 +229,8 @@ export class GuildGame {
   private cachedGame: GameRow | null = null;
   private cachedGuildId: string | null = null;
   private readonly cachedSessions = new Map<string, CachedSession>();
+  /** The story ids each player has read (from `story_read`), kept so a changed poll reads no rows. */
+  private readonly cachedStoryRead = new Map<string, string[]>();
   private armedFor: number | null | undefined = undefined;
   /** The highest version written in the running write transaction, for the one push after its commit. */
   private pendingVersion: number | null = null;
@@ -242,6 +251,7 @@ export class GuildGame {
     this.cachedGame = null;
     this.cachedGuildId = null;
     this.cachedSessions.clear();
+    this.cachedStoryRead.clear();
     this.armedFor = undefined;
   }
 
@@ -358,6 +368,9 @@ export class GuildGame {
   private replaceGame(nextTickAt?: number): number {
     const version = this.writeGame(this.newState(), nextTickAt);
     this.sql.exec('DELETE FROM events');
+    // The new season's beats fire afresh: nobody has read them.
+    this.sql.exec('DELETE FROM story_read');
+    this.cachedStoryRead.clear();
     this.sql.exec('UPDATE game SET events_pruned_through = ? WHERE id = 1', version);
     return version;
   }
@@ -779,6 +792,8 @@ export class GuildGame {
         return this.act(user, request);
       case 'POST /api/me/seen':
         return this.markSeen(user, request);
+      case 'POST /api/me/story-read':
+        return this.markStoryRead(user, request);
       case 'POST /api/me/visit':
         return this.visit(user, request);
       case 'POST /api/live/ticket':
@@ -849,6 +864,48 @@ export class GuildGame {
     });
     if (seen === null) return errorResponse('invalid_session', 401);
     return json({ seen });
+  }
+
+  /** The storylet ids a player has read, in content order; from memory once read. */
+  private storyReadOf(userId: string): string[] {
+    const cached = this.cachedStoryRead.get(userId);
+    if (cached !== undefined) return cached;
+    const read = new Set(
+      this.sql
+        .exec<{ story_id: string }>('SELECT story_id FROM story_read WHERE user_id = ?', userId)
+        .toArray()
+        .map((r) => r.story_id),
+    );
+    const list = STORY_IDS.filter((id) => read.has(id));
+    this.cachedStoryRead.set(userId, list);
+    return list;
+  }
+
+  /**
+   * `POST /api/me/story-read`: adds storylet ids to the session player's reads (a union; an id is never
+   * removed) and answers them. The player is the session's, never the body's. Not a game change: the
+   * version stays.
+   */
+  private async markStoryRead(user: SessionUser, request: Request): Promise<Response> {
+    const body = await parseBody(request, StoryReadBodySchema);
+    if (body === undefined) return errorResponse('invalid_body', 400);
+    const have = this.storyReadOf(user.id);
+    const missing = body.ids.filter((id) => !have.includes(id));
+    if (missing.length === 0) return json({ storyRead: have });
+    const next = this.tx(() => {
+      if (this.player(user.id) === null) return null;
+      for (const id of missing) {
+        this.sql.exec(
+          'INSERT OR IGNORE INTO story_read (user_id, story_id) VALUES (?, ?)',
+          user.id,
+          id,
+        );
+      }
+      return STORY_IDS.filter((id) => have.includes(id) || missing.includes(id));
+    });
+    if (next === null) return errorResponse('invalid_session', 401);
+    this.cachedStoryRead.set(user.id, next);
+    return json({ storyRead: next });
   }
 
   /** A one-time ticket for a live socket, for the session's player. 404 where the flag is off. */
@@ -1072,9 +1129,11 @@ export class GuildGame {
         seen: readSeenText(own?.seen ?? '[]'),
         lastDay: own?.last_day ?? null,
         lastVersion: own?.last_version ?? null,
+        storyRead: this.storyReadOf(user.id),
       },
       offers: mine?.status === 'active' ? null : characterOffers(game.state, user.id),
       game: toPlayerView(game.state),
+      ending: endingOf(game.state),
       signs: creatureSigns(game.state, mine?.status === 'active' ? mine.id : null),
       glints: glintsFor(game.state, mine?.status === 'active' ? mine.id : null),
       players,

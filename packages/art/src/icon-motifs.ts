@@ -2,6 +2,7 @@
  * The motifs inside trait and quirk icons, on the 48-unit grid (centre 24, 24; within a radius of about
  * 13), keyed by the `icon` names content uses. Ink lines on small washes, like the role emblems.
  */
+import { ACTION_MOTIFS_R13 } from './action-motifs-r13.ts';
 import { ellipsePath, poly, smoothClosed, smoothOpen, type Point } from './geom.ts';
 import type { Palette } from './palette.ts';
 import { el, type SvgNode } from './svg.ts';
@@ -167,6 +168,16 @@ export const ACTION_MOTIFS: Readonly<Record<string, IconMotif>> = {
     }),
     solid(pal, ellipsePath(35, 13, 1.4, 1.4), pal.accents.ochre.base, 1.2),
   ],
+  // Dig out: a shovel prised under a fallen boulder, lifting it, with lift ticks above.
+  'dig-out': (pal) => [
+    ink(pal, 'M11 36h26', 1.4, pal.inkSoft),
+    solid(pal, 'M21 25l3-7 6-3 6 4 1 8-6 3-7-1z', pal.ramps.rock.light, 1.8),
+    ink(pal, 'M31 19l5 4 1 4', 1.2, pal.ramps.rock.shade),
+    ink(pal, 'M10 36l12-6', 3.4, pal.ramps.bark.shade),
+    ink(pal, 'M10 36l12-6', 1.3, pal.ramps.bark.light),
+    solid(pal, 'M21 29l5-1 3 4-6 3z', pal.ramps.stone.light, 1.6),
+    ink(pal, 'M30 11V8M24 12l-2-3M36 12l2-3', 1.4, pal.inkSoft),
+  ],
   // Feed: a wooden bowl heaped with berries, offered up (two lift lines).
   feed: (pal) => [
     ...[
@@ -284,6 +295,7 @@ export const ACTION_MOTIFS: Readonly<Record<string, IconMotif>> = {
     ),
     ink(pal, 'M9 35.5h30', 1.3, pal.inkSoft),
   ],
+  ...ACTION_MOTIFS_R13,
 };
 
 /** Item motifs by content icon key: what the team crafts. */
@@ -335,6 +347,14 @@ export const ITEM_MOTIFS: Readonly<Record<string, IconMotif>> = {
     solid(pal, 'M7 25l30-3 1 4-30 3z', pal.ramps.bark.base, 1.6),
     ink(pal, 'M16 24l1 9M30 22l1 9', 1.6, pal.ramps.bark.shade),
     ink(pal, 'M38 10L30 36', 2.2, pal.ramps.bark.shade),
+  ],
+  // A hand cart: an open box on one wheel with two shafts out the front.
+  cart: (pal) => [
+    solid(pal, 'M10 20h22l-2 10H12z', pal.ramps.bark.base, 1.6),
+    ink(pal, 'M13 24h16M14 27h14', 1.2, pal.ramps.bark.shade),
+    ink(pal, 'M32 22l10 6M31 27l11 4', 2.2, pal.ramps.bark.shade),
+    solid(pal, ellipsePath(22, 33, 5.5, 5.5), pal.ramps.stone.light, 1.8),
+    ink(pal, 'M22 28.5v9M17.5 33h9', 1.1, pal.ramps.bark.shade),
   ],
   spikes: (pal) => [
     solid(pal, 'M12 22h24l-2 5H14z', pal.ramps.stone.light),
