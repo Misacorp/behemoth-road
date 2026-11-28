@@ -483,7 +483,8 @@
 }
 
 /* The arrow's tick and the role's action button pulse when they are the thing to tap. */
-.map-root[data-coach='confirm'] [data-popover='confirm'] .svg-button,
+.map-root[data-coach='move'] [data-action='move']:not(.is-off),
+.map-root[data-coach='confirm'] [data-action='move']:not(.is-off),
 .map-root[data-coach='act'] [data-action]:not(.is-off),
 .map-root[data-coach='hub'] [data-popover='bubble'] [aria-label='Behemoth'],
 .game[data-coach='act'][data-coach-do='feed'] [data-care='feed']:not(.is-off),

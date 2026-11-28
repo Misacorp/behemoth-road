@@ -2,7 +2,7 @@
  * The numbers tips may show, as named placeholders, read from the game's own tuning and content, so a tip
  * says what the rules say even after a change. `fillTip` puts them into a tip's text.
  */
-import { STIMULUS_TYPES, type TuningConfig, UNLOCKS } from '@behemoth-road/core';
+import { LURE_TYPES, STIMULUS_TYPES, type TuningConfig, UNLOCKS } from '@behemoth-road/core';
 
 const percent = (p: number): string => String(Math.round(p * 100));
 
@@ -16,6 +16,7 @@ export function tipValues(config: TuningConfig): Readonly<Record<string, string>
     'siteChance.other.1': percent(config.siteChanceOtherTier1),
     workSiteCost: String(config.workSiteCost),
     packSize: String(config.packCapacity),
+    actionsPerDay: String(config.actionsPerDay),
     'strike.warden': String(config.clearPowerWarden),
     'strike.other': String(config.clearPowerOther),
     defendReduction: String(config.defendReduction),
@@ -28,6 +29,8 @@ export function tipValues(config: TuningConfig): Readonly<Record<string, string>
     slideFall: percent(config.slideFallChance),
     // Filled per thing when its tip opens (an odds mark's numbers); empty until then.
     note: '',
+    // The little animal a lead moves, by its content name.
+    lure: (LURE_TYPES[0]?.name ?? 'animal').toLowerCase(),
     struckActions: String(config.struckActions),
     fireFuel: String(
       STIMULUS_TYPES.find((s) => s.tags.includes('fire') && !s.tags.includes('fire-site'))?.fuel

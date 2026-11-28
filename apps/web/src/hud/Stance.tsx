@@ -1,7 +1,7 @@
 /**
  * The stance control and the wait button on the HUD (docs/design/stances.md). The control is a small round
  * button showing your stance's glyph (faded, with a moon, when it falls back to rest where you stand); a
- * tap opens a popover of the three stance bubbles to choose from (a hold on one shows its tip). The wait
+ * tap opens a fan of the three stance bubbles above it to choose from (it sits by the hourglass) (a hold on one shows its tip). The wait
  * button, an hourglass beside the action arrows, ends your day in two taps: the first arms it, the second
  * confirms; it disarms by itself, or on any tap elsewhere. No text anywhere: glyphs only.
  */

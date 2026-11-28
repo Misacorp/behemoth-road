@@ -35,6 +35,7 @@ export const verbs = {
 
 /** The verb for a button's kind (`offer:<material>` is an offer, `boon:<id>` asks for a boon), or null. */
 export function verbOf(kind: string): string | null {
+  if (kind === 'move') return 'Move';
   if (kind.startsWith('offer')) return verbs.offer;
   if (kind.startsWith('boon:')) return verbs['ask-boon'];
   return Object.hasOwn(verbs, kind) ? verbs[kind as keyof typeof verbs] : null;

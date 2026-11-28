@@ -40,4 +40,10 @@ describe('hints at what can be done near you', () => {
     ).toBeGreaterThan(0);
     expect(marks({}, { kind: 'idle' })).not.toContain('survey-hint');
   });
+
+  it('hints a survey on every hex the long survey reaches, not only the neighbours', () => {
+    const count = (stage: ChainStage) =>
+      marks(stage, { kind: 'selected' }).filter((m) => m === 'survey-hint').length;
+    expect(count({ taken: ['scout-a1', 'scout-a2'] })).toBeGreaterThan(count({}));
+  });
 });

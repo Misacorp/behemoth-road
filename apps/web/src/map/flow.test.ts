@@ -20,9 +20,12 @@ import {
   isPopover,
   isSelecting,
   openHub,
+  planMove,
+  shownFlow,
   tap,
   tapHex,
 } from './flow.ts';
+import { moveOption } from '../game/move.ts';
 
 const ME = { kind: 'me' } as const;
 
@@ -45,68 +48,120 @@ function target(s: GameState, cost: number) {
   return found.place.hex;
 }
 
+/** The first tap on a card's Move: the planned flow for `to`, from the card opened on it. */
+function planned(s: GameState, to: Hex): Flow {
+  const card = tapHex(IDLE, s, ID, to);
+  const plan = planMove(s, ID, onHex(to), card);
+  if (plan === null) throw new Error('No plan');
+  return plan;
+}
+
 describe('move flow', () => {
-  it('select, plan, confirm: the core moves the character and spends the cost', () => {
+  it('tap a tile, tap Move to plan, tap Move again: the core moves the character and spends the cost', () => {
     const s = game();
-    let flow: Flow = tap(IDLE, s, ID, ME);
-    expect(flow).toEqual({ kind: 'selected' });
     const to = target(s, 2);
-    flow = tapHex(flow, s, ID, to);
-    expect(flow.kind).toBe('planned');
-    if (flow.kind !== 'planned') return;
+    // The tap on a tile opens its card; Move is on it with the core's cost.
+    const card = tapHex(IDLE, s, ID, to);
+    expect(card).toEqual({ kind: 'inspect', hex: to });
+    expect(moveOption(s, ID, onHex(to))).toEqual({ cost: 2, plus: false, enabled: true });
+    const flow = planMove(s, ID, onHex(to), card);
+    expect(flow?.kind).toBe('planned');
+    if (flow?.kind !== 'planned') return;
     expect(flow.cost).toBe(2);
     expect(flow.steps[flow.steps.length - 1]!.place).toEqual(onHex(to));
+    // The card stays open with Move armed: the route is drawn from the planned flow.
+    expect(shownFlow(s, flow)).toEqual({ kind: 'inspect', hex: to });
     const done = confirmMove(flow, s, ID);
     expect(me(done.state).at).toEqual(onHex(to));
     expect(me(done.state).actionsLeft).toBe(s.config.actionsPerDay - 2);
-    // Actions remain, so the character stays selected for the next move.
+    // Actions remain, so your own card opens for the next thing to do.
     expect(done.flow).toEqual({ kind: 'selected' });
   });
 
   it('spending every action ends the selection', () => {
     const s = game();
-    const plan = tapHex({ kind: 'selected' }, s, ID, target(s, s.config.actionsPerDay));
-    const done = confirmMove(plan, s, ID);
+    const done = confirmMove(planned(s, target(s, s.config.actionsPerDay)), s, ID);
     expect(me(done.state).actionsLeft).toBe(0);
     expect(done.flow).toEqual(IDLE);
   });
 
-  it('tapping another reachable hex changes the plan; nothing is spent until confirm', () => {
+  it('a planned move is a popover: a tap elsewhere closes it, and a second tap opens that tile', () => {
     const s = game();
-    const a = tapHex({ kind: 'selected' }, s, ID, target(s, 1));
-    const b = tapHex(a, s, ID, target(s, 2));
-    expect(b.kind).toBe('planned');
-    expect(b).not.toEqual(a);
+    const plan = planned(s, target(s, 1));
+    expect(isPopover(plan)).toBe(true);
+    expect(isSelecting(plan)).toBe(false);
     expect(me(s).actionsLeft).toBe(s.config.actionsPerDay);
-  });
-
-  it('tapping your character again, or an unreachable hex, cancels the plan and spends nothing', () => {
-    const s = game();
-    const planned = tapHex({ kind: 'selected' }, s, ID, target(s, 1));
-    expect(tapHex(planned, s, ID, here(s))).toEqual(IDLE);
-    const far = windowHexes(s).find((h) => hexDistance(h, here(s)) > s.config.actionsPerDay)!;
-    expect(tapHex(planned, s, ID, far)).toEqual({ kind: 'out-of-reach', hex: far });
+    const other = target(s, 2);
+    expect(tapHex(plan, s, ID, other)).toEqual(IDLE);
+    expect(tapHex(tapHex(plan, s, ID, other), s, ID, other)).toEqual({
+      kind: 'inspect',
+      hex: other,
+    });
+    // Your own figure closes it too, and nothing is spent.
+    expect(tap(plan, s, ID, ME)).toEqual(IDLE);
     expect(confirmMove(IDLE, s, ID).state).toBe(s);
-    expect(confirmMove({ kind: 'out-of-reach', hex: far }, s, ID).state).toBe(s);
   });
 
-  it('an unreachable hex shows the out-of-reach mark first, keeps you selected, and a second tap looks at it', () => {
+  it('a planned move keeps the picker it came from, so back still works', () => {
     const s = game();
-    const far = windowHexes(s).find((h) => hexDistance(h, here(s)) > s.config.actionsPerDay)!;
-    const marked = tapHex({ kind: 'selected' }, s, ID, far);
-    expect(marked).toEqual({ kind: 'out-of-reach', hex: far });
-    expect(isSelecting(marked)).toBe(true);
-    expect(tapHex(marked, s, ID, far)).toEqual({ kind: 'inspect', hex: far });
-    // A reachable hex from the mark plans as usual; your own figure lets go.
-    expect(tapHex(marked, s, ID, target(s, 1)).kind).toBe('planned');
-    expect(tap(marked, s, ID, ME)).toEqual(IDLE);
-    // Another far hex moves the mark there.
-    const other = windowHexes(s).find(
-      (h) => hexDistance(h, here(s)) > s.config.actionsPerDay && (h.q !== far.q || h.r !== far.r),
+    const to = target(s, 1);
+    const pick: Flow = { kind: 'pick', hex: to };
+    const card: Flow = { kind: 'inspect', hex: to, back: pick };
+    const flow = planMove(s, ID, onHex(to), card)!;
+    expect(flow).toMatchObject({ kind: 'planned', back: pick });
+    expect(shownFlow(s, flow)).toEqual(card);
+  });
+
+  it('a tile too far to walk to has Move greyed with the three pips and a plus, and plans nothing', () => {
+    const s = game();
+    const far = windowHexes(s).find(
+      (h) => hexDistance(h, here(s)) > s.config.actionsPerDay + 1 && isPassable(s, h),
     )!;
-    expect(tapHex(marked, s, ID, other)).toEqual({ kind: 'out-of-reach', hex: other });
-    // Not selected: a far hex is simply looked at.
+    const option = moveOption(s, ID, onHex(far));
+    expect(option).toMatchObject({
+      cost: s.config.actionsPerDay,
+      plus: true,
+      enabled: false,
+      why: 'why:too-far',
+    });
+    expect(planMove(s, ID, onHex(far), tapHex(IDLE, s, ID, far))).toBeNull();
+    // The tap itself just opens its card, selected or not.
     expect(tapHex(IDLE, s, ID, far)).toEqual({ kind: 'inspect', hex: far });
+    expect(tapHex({ kind: 'selected' }, s, ID, far)).toEqual({ kind: 'inspect', hex: far });
+  });
+
+  it('a tile within a day but not with what is left shows its real cost, greyed, without a plus', () => {
+    const s = game();
+    const to = target(s, 3);
+    const tired: GameState = {
+      ...s,
+      characters: s.characters.map((c) => ({ ...c, actionsLeft: 1 })),
+    };
+    expect(moveOption(tired, ID, onHex(to))).toEqual({
+      cost: 3,
+      plus: false,
+      enabled: false,
+      why: 'why:not-enough-actions',
+    });
+    expect(planMove(tired, ID, onHex(to), IDLE)).toBeNull();
+  });
+
+  it('offers no Move onto where you stand, and none where there is no way', () => {
+    const s = game();
+    expect(moveOption(s, ID, onHex(here(s)))).toBeNull();
+    expect(moveOption(s, ID, onHex({ q: 999, r: 999 }))).toBeNull();
+  });
+
+  it('pinned, Move is greyed with the reason', () => {
+    const s = game();
+    const pinned: GameState = {
+      ...s,
+      characters: s.characters.map((c) => ({ ...c, pinnedDay: s.day })),
+    };
+    expect(moveOption(pinned, ID, onHex(target(s, 1)))).toMatchObject({
+      enabled: false,
+      why: 'why:pinned',
+    });
   });
 
   it('tapping a hex while idle inspects it; tapping it again closes', () => {
@@ -143,32 +198,29 @@ describe('move flow', () => {
     }
   });
 
-  it('a selection in progress is not a popover: the next tap goes on through it', () => {
+  it('your own card is a selection: the next tap goes on through it and opens that tile', () => {
     const s = game();
-    for (const flow of [
-      { kind: 'selected' },
-      { kind: 'out-of-reach', hex: { q: 5, r: 5 } },
-      { kind: 'bubble', selecting: true },
-    ] as Flow[]) {
+    for (const flow of [{ kind: 'selected' }, { kind: 'bubble', selecting: true }] as Flow[]) {
       expect(isPopover(flow)).toBe(false);
       expect(isSelecting(flow)).toBe(true);
     }
     expect(isPopover(IDLE)).toBe(false);
-    expect(tapHex({ kind: 'selected' }, s, ID, target(s, 1)).kind).toBe('planned');
+    const to = target(s, 1);
+    expect(tapHex({ kind: 'selected' }, s, ID, to)).toEqual({ kind: 'inspect', hex: to });
   });
 
   it('a plan the state no longer allows is refused by the core and spends nothing', () => {
     const s = game();
-    const planned = tapHex({ kind: 'selected' }, s, ID, target(s, 3));
-    const tired = confirmMove(tapHex({ kind: 'selected' }, s, ID, target(s, 1)), s, ID).state;
-    const done = confirmMove(planned, tired, ID);
+    const plan = planned(s, target(s, 3));
+    const tired = confirmMove(planned(s, target(s, 1)), s, ID).state;
+    const done = confirmMove(plan, tired, ID);
     expect(done.state).toBe(tired);
     expect(done.flow).toEqual(IDLE);
   });
 
   it('with no actions left, tapping your character inspects its hex instead of selecting', () => {
     const s = game();
-    const tired = confirmMove(tapHex({ kind: 'selected' }, s, ID, target(s, 3)), s, ID).state;
+    const tired = confirmMove(planned(s, target(s, 3)), s, ID).state;
     expect(me(tired).actionsLeft).toBe(0);
     const spot = here(tired);
     expect(tap(IDLE, tired, ID, ME)).toEqual({ kind: 'inspect', hex: spot });
@@ -191,14 +243,14 @@ describe('the creature as the hub', () => {
     }
   });
 
-  it('riding: a lit hex plans the step-off from the bubble; the creature again cancels the plan', () => {
+  it('riding: a tap on a hex opens its card, and its Move steps off the creature', () => {
     const s = riding();
     const edge = creatureEdge(s).find((h) => isPassable(s, h))!;
-    const plan = tapHex(tapHex(IDLE, s, ID, s.creature.centre), s, ID, edge);
+    const card = tapHex(tapHex(IDLE, s, ID, s.creature.centre), s, ID, edge);
+    expect(card).toEqual({ kind: 'inspect', hex: edge });
+    const plan = planMove(s, ID, onHex(edge), card);
     expect(plan).toMatchObject({ kind: 'planned', to: onHex(edge), cost: 1 });
-    // The creature again drops the plan and reopens the bubble with you selected.
-    expect(tapHex(plan, s, ID, s.creature.centre)).toEqual({ kind: 'bubble', selecting: true });
-    const done = confirmMove(plan, s, ID);
+    const done = confirmMove(plan!, s, ID);
     expect(me(done.state).at).toEqual(onHex(edge));
   });
 
@@ -236,18 +288,21 @@ describe('the creature as the hub', () => {
     expect(tapHex(openHub(), s, ID, s.creature.centre)).toEqual(IDLE);
   });
 
-  it('not riding but selected: tapping any footprint hex plans boarding for one action', () => {
+  it('not riding: the bubble has the Move that boards for one action, planned and shown as the bubble', () => {
     const s = game();
-    const selected = tap(IDLE, s, ID, ME);
-    for (const h of footprint(s)) {
-      expect(tapHex(selected, s, ID, h)).toMatchObject({
-        kind: 'planned',
-        to: ON_CREATURE,
-        cost: 1,
-      });
-    }
-    const done = confirmMove(tapHex(selected, s, ID, s.creature.centre), s, ID);
+    const bubble = tapHex(IDLE, s, ID, s.creature.centre);
+    expect(bubble).toEqual({ kind: 'bubble', selecting: false });
+    expect(moveOption(s, ID, ON_CREATURE)).toEqual({ cost: 1, plus: false, enabled: true });
+    const plan = planMove(s, ID, ON_CREATURE, bubble)!;
+    expect(plan).toMatchObject({ kind: 'planned', to: ON_CREATURE, cost: 1 });
+    expect(shownFlow(s, plan)).toEqual({ kind: 'bubble', selecting: false });
+    const done = confirmMove(plan, s, ID);
     expect(me(done.state).at).toEqual(ON_CREATURE);
+  });
+
+  it('riding: there is no Move onto the creature you ride', () => {
+    const s = riding();
+    expect(moveOption(s, ID, ON_CREATURE)).toBeNull();
   });
 
   it('a tap on your own hex picks your character first', () => {
@@ -256,13 +311,13 @@ describe('the creature as the hub', () => {
     expect(tapHex({ kind: 'selected' }, s, ID, here(s))).toEqual(IDLE);
   });
 
-  it('crosses the creature in two steps: board, then step off on the far side', () => {
+  it('crosses the creature in two steps through one Move: board, then step off on the far side', () => {
     const s = game();
     const start = here(s);
     const c = s.creature.centre;
     const far = { q: 2 * c.q - start.q, r: 2 * c.r - start.r };
     expect(isPassable(s, far)).toBe(true);
-    const plan = tapHex(tap(IDLE, s, ID, ME), s, ID, far);
+    const plan = planned(s, far);
     expect(plan.kind).toBe('planned');
     if (plan.kind !== 'planned') return;
     expect(plan.cost).toBe(2);

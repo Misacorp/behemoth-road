@@ -3,7 +3,30 @@ import { describe, expect, it } from 'vitest';
 import { chainScenario } from '../api/fixtures.ts';
 import { toView } from '../api/fixtures.ts';
 import { identities } from '../game/identity.ts';
-import { characterSize, CHARACTER_SIZE } from './Popover.tsx';
+import {
+  ACTION_W,
+  bubbleSize,
+  characterSize,
+  CHARACTER_SIZE,
+  inspectSize,
+  SETTLEMENT_SIZE,
+  settlementSize,
+} from './Popover.tsx';
+
+describe('cards that carry a Move button', () => {
+  it('grow by one action button each: move, survey', () => {
+    const none = inspectSize(0);
+    expect(inspectSize(1).width).toBe(none.width + ACTION_W);
+    expect(inspectSize(2).width).toBe(none.width + 2 * ACTION_W);
+    expect(inspectSize(1).height).toBeGreaterThanOrEqual(none.height);
+  });
+
+  it("make room for Move on a settlement's card and the creature's bubble", () => {
+    expect(settlementSize(false)).toEqual(SETTLEMENT_SIZE);
+    expect(settlementSize(true).width).toBe(SETTLEMENT_SIZE.width + ACTION_W);
+    expect(bubbleSize(2, true, true).width).toBe(bubbleSize(2, true).width + ACTION_W);
+  });
+});
 
 describe('the character card and taken skills', () => {
   it('grows a row only when the character has taken a node', () => {

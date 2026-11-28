@@ -25,14 +25,15 @@ import {
   hexEquals,
   hexesInRange,
   hexKey,
-  placeKey,
+  type Place,
+  placeAt,
   reachablePlaces,
 } from '@behemoth-road/core';
 import { Component, type ComponentChildren, type JSX } from 'preact';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { armedAfter } from './arm.ts';
 import { type Box, FrameCache, frameFrom } from './frame.ts';
-import { drawOutOfReach, PALETTE, PROJECTION } from './art.ts';
+import { PALETTE, PROJECTION } from './art.ts';
 import {
   cellStateAt,
   characterArts,
@@ -52,6 +53,7 @@ import { MomentMark } from './MomentMark.tsx';
 import { CoachLayer } from '../onboarding/CoachLayer.tsx';
 import type { CoachMap } from '../onboarding/coach.ts';
 import { mapTipAt, placeNoun, tileTipAt } from './mapTips.ts';
+import type { MoveOption } from '../game/move.ts';
 import type { TipId } from '../text/tips.ts';
 import type { TipTarget } from '../ui/tip.ts';
 import { holdEnded, onRightClick, TIPS } from '../ui/press.ts';
@@ -59,12 +61,12 @@ import { type StoryCard } from '../game/story.ts';
 import { beatText, vignetteOf } from '../text/story.ts';
 import { bare, newStoneMemory, standingStones, traceTipAt } from '../game/traces.ts';
 import { MAP_TUNING } from './config.ts';
-import { type Flow, entryKey, isSelecting, pickEntries } from './flow.ts';
+import { type Flow, entryKey, isSelecting, pickEntries, shownFlow } from './flow.ts';
 import { holdMs } from '../text/tips.ts';
 import { GestureTracker, type Gesture } from './gestures.ts';
 import { buildOverlays } from './overlays.ts';
 import { buildThings, sceneExtras } from './things.ts';
-import { figureFeet, pickableFeet, placePoint } from './figures.ts';
+import { figureFeet, pickableFeet } from './figures.ts';
 import { pickTarget, type Point, type Target, worldToHex } from './pick.ts';
 import {
   HereCard,
@@ -81,7 +83,8 @@ import {
   CONFIRM_SIZE,
   ConfirmCard,
   InspectCard,
-  SETTLEMENT_SIZE,
+  type MoveButton,
+  settlementSize,
   SettlementCard,
   ThreatCard,
   threatSize,
@@ -146,6 +149,10 @@ export interface MapViewProps {
   readonly onAct?: (kind: string) => void;
   /** Surveying a hex next to you: its cost and whether it can be done now, or null where it is not offered. */
   readonly surveyAt?: (h: Hex) => { readonly cost: number; readonly enabled: boolean } | null;
+  /** The Move a place's card offers you (its cost, or greyed: too far), or null where there is none. */
+  readonly moveOf?: (place: Place) => MoveOption | null;
+  /** The first tap on a card's Move: plan the walk there (the route shows). `from` is the card it was tapped on. */
+  readonly onMove?: (place: Place, from: Flow) => void;
   /** The survey button on an inspect card was tapped. */
   readonly onSurvey?: (h: Hex) => void;
   /** The strike button on a threat's card was tapped. */
@@ -324,6 +331,7 @@ function popoverAnchor(
   dig: boolean,
   odds: boolean,
   thing: ThingInfo | null,
+  move: boolean,
 ): Anchor | null {
   const tile = 2 * p.size * p.squash;
   const me = state.characters.find((c) => c.id === characterId);
@@ -382,10 +390,10 @@ function popoverAnchor(
     const strike = flow.kind === 'threat' ? threatCard(state, characterId, flow.id)?.strike : null;
     const lift = 0.9 * p.size;
     return {
-      key: `${flow.kind}:${flow.id}:${strike ? String(strike.enabled) : ''}${odds ? ':odds' : ''}`,
+      key: `${flow.kind}:${flow.id}:${strike ? String(strike.enabled) : ''}${odds ? ':odds' : ''}${move ? ':move' : ''}`,
       top: { x: c.x, y: c.y - lift },
       below: lift + tile / 2,
-      size: flow.kind === 'threat' ? threatSize(Boolean(strike), odds) : SETTLEMENT_SIZE,
+      size: flow.kind === 'threat' ? threatSize(Boolean(strike), odds) : settlementSize(move),
       ...clearOf(thing.hex),
       // A threat's card stays off its trail: its hex first, then the hexes it crosses at the next tick.
       ...(flow.kind === 'threat'
@@ -435,16 +443,19 @@ function popoverAnchor(
   if (flow.kind === 'inspect') {
     const c = hexCenter(p, flow.hex.q, flow.hex.r);
     return {
-      key: `inspect:${hexKey(flow.hex)}:${survey ? 'survey' : ''}:${note ? JSON.stringify(note) : ''}`,
+      key: `inspect:${hexKey(flow.hex)}:${survey ? 'survey' : ''}${move ? ':move' : ''}:${note ? JSON.stringify(note) : ''}`,
       top: { x: c.x, y: c.y - tile / 2 },
       below: tile,
-      size: inspectSize(survey, note),
+      size: inspectSize((survey ? 1 : 0) + (move ? 1 : 0), note),
       ...clearOf(flow.hex),
     };
   }
   if (flow.kind === 'bubble' || flow.kind === 'creature') {
     // The hub's drawer opens with the bubble still open, marking the creature it is about.
-    return bubbleAnchor(bubbleSize(ridersOf(state).length));
+    return {
+      ...bubbleAnchor(bubbleSize(ridersOf(state).length, true, move)),
+      key: move ? 'bubble:move' : 'bubble',
+    };
   }
   if (flow.kind === 'selected' && here) {
     // Your own hex's feature and actions, above your figure.
@@ -459,22 +470,6 @@ function popoverAnchor(
         ...clearOf(mine),
       };
     }
-  }
-  if (flow.kind === 'planned') {
-    // Above the figure's head where it would stand (its seat, for the creature).
-    const feet = placePoint(state, characterId, flow.to, p);
-    const head = 0.9 * p.size;
-    const last = flow.steps[flow.steps.length - 2];
-    const from = last
-      ? placePoint(state, characterId, last.place, p)
-      : (figureFeet(state, characterId, p) ?? feet);
-    return {
-      key: `planned:${placeKey(flow.to)}`,
-      top: { x: feet.x, y: feet.y - head },
-      below: head,
-      size: CONFIRM_SIZE,
-      prefer: from.y < feet.y ? 'below' : 'above',
-    };
   }
   return null;
 }
@@ -502,7 +497,10 @@ const skillsOf = (state: GameStateView, id: string): number =>
   state.characters.find((c) => c.id === id)?.skills.taken.length ?? 0;
 
 export function MapView(props: MapViewProps): JSX.Element {
-  const { state, flow, characterId } = props;
+  const { state, characterId } = props;
+  // A planned move keeps the card it was planned from open (its Move armed): everything below draws that.
+  const realFlow = props.flow;
+  const flow = shownFlow(state, realFlow);
   const signs = props.signs ?? null;
   const glints = props.glints;
   const svgRef = useRef<SVGSVGElement>(null);
@@ -595,10 +593,10 @@ export function MapView(props: MapViewProps): JSX.Element {
   layerRef.current = layers;
 
   const overlays = useMemo(() => {
-    const selecting = isSelecting(flow);
+    const selecting = isSelecting(realFlow);
     const input = {
       state,
-      flow,
+      flow: realFlow,
       characterId,
       reachable: selecting ? reachablePlaces(state, characterId) : [],
       predicted: predictCreature(state),
@@ -616,10 +614,34 @@ export function MapView(props: MapViewProps): JSX.Element {
       thingsUnder: things.under.map(toPreact),
       thingsOver: things.over.map(toPreact),
     };
-  }, [state, flow, characterId, inkZoom, stones]);
+  }, [state, realFlow, characterId, inkZoom, stones]);
 
   const survey = flow.kind === 'inspect' ? (props.surveyAt?.(flow.hex) ?? null) : null;
   const fireNote = flow.kind === 'inspect' ? fireNoteAt(state, flow.hex) : null;
+  // The Move the open card offers: to its hex, to the settlement's hex, or (from beside it) onto the creature.
+  const movePlace: Place | null =
+    flow.kind === 'inspect'
+      ? placeAt(state, flow.hex)
+      : flow.kind === 'settlement'
+        ? (() => {
+            const at = state.settlements.find((x) => x.id === flow.id)?.hex;
+            return at ? placeAt(state, at) : null;
+          })()
+        : flow.kind === 'bubble' || flow.kind === 'creature'
+          ? { kind: 'creature' }
+          : null;
+  const moveOption = movePlace ? (props.moveOf?.(movePlace) ?? null) : null;
+  const moveButton: MoveButton | null =
+    moveOption && movePlace
+      ? {
+          option: moveOption,
+          armed: realFlow.kind === 'planned',
+          onTap: () => {
+            if (realFlow.kind === 'planned') props.onConfirm();
+            else props.onMove?.(movePlace, realFlow);
+          },
+        }
+      : null;
   const oddsCard = flow.kind === 'threat' ? threatCard(state, characterId, flow.id) : null;
   // The lure's and the cart's cards: what you can do with them from where you stand.
   const meNow = state.characters.find((c) => c.id === characterId);
@@ -652,6 +674,7 @@ export function MapView(props: MapViewProps): JSX.Element {
     flow.kind === 'character' && !flow.back && (props.digOf?.(flow.id) ?? null) !== null,
     Boolean(oddsCard?.strike && oddsCard.odds !== null),
     thing,
+    moveButton !== null,
   );
 
   function apply(): void {
@@ -985,7 +1008,6 @@ export function MapView(props: MapViewProps): JSX.Element {
     apply();
     if (popKey) {
       const target =
-        flow.kind === 'planned' ||
         flow.kind === 'bubble' ||
         flow.kind === 'pick' ||
         (flow.kind === 'character' && flow.back !== undefined) ||
@@ -993,7 +1015,8 @@ export function MapView(props: MapViewProps): JSX.Element {
         (flow.kind === 'lure' && lead !== null) ||
         (flow.kind === 'lead' && flow.to !== undefined) ||
         (flow.kind === 'cart' && toggles.length > 0) ||
-        (flow.kind === 'inspect' && survey) ||
+        (flow.kind === 'inspect' && (survey || moveButton !== null)) ||
+        (flow.kind === 'settlement' && moveButton !== null) ||
         (flow.kind === 'threat' && popKey.endsWith(':true'))
           ? popoverFocusRef.current
           : popRef.current;
@@ -1007,28 +1030,6 @@ export function MapView(props: MapViewProps): JSX.Element {
       }
     }
   }, [popKey]);
-
-  // A move the cart refuses (you sit in it, it cannot roll there): its reason shows as a tip on the hex, and
-  // stays until the next tap, like a held tip.
-  const refusal = flow.kind === 'out-of-reach' ? (flow.why ?? null) : null;
-  const refusedAt = flow.kind === 'out-of-reach' ? hexKey(flow.hex) : '';
-  useEffect(() => {
-    const svg = svgRef.current;
-    const f = latest.current.flow;
-    if (!refusal || !svg || f.kind !== 'out-of-reach') return;
-    const hex = f.hex;
-    TIPS.tap(refusal, {
-      rect: () => {
-        if (!svg.isConnected) return null;
-        const box = svg.getBoundingClientRect();
-        const c = toScreen(view.current, hexCenter(p, hex.q, hex.r));
-        const s = view.current.scale * p.size;
-        return { x: box.left + c.x - s, y: box.top + c.y - 1.1 * s, width: 2 * s, height: 1.6 * s };
-      },
-      alive: () => svg.isConnected && latest.current.flow.kind === 'out-of-reach',
-      owns: (t) => t instanceof Node && svg.contains(t),
-    });
-  }, [refusal, refusedAt]);
 
   // Tips on the map (a threat, a settlement, a struck or escorted character, a fire): a mouse resting on one,
   // or a finger held on one; a hold never becomes a tap.
@@ -1177,6 +1178,7 @@ export function MapView(props: MapViewProps): JSX.Element {
         state={cellState}
         feature={known ? featureArtAt(state, hexKey(flow.hex)) : null}
         survey={survey}
+        move={moveButton}
         note={fireNote}
         hazard={known ? hazardIconAt(state, flow.hex) : null}
         onSurvey={() => props.onSurvey?.(at)}
@@ -1219,7 +1221,17 @@ export function MapView(props: MapViewProps): JSX.Element {
     }
   } else if (flow.kind === 'settlement') {
     const settlement = settlementInfo(state, flow.id);
-    if (settlement) card = <SettlementCard settlement={settlement} />;
+    if (settlement) {
+      card = (
+        <SettlementCard
+          settlement={settlement}
+          move={moveButton}
+          moveRef={(el) => {
+            popoverFocusRef.current = el;
+          }}
+        />
+      );
+    }
   } else if ((flow.kind === 'lure' || flow.kind === 'lead') && !(flow.kind === 'lead' && flow.to)) {
     const lure = lureById(state, flow.id);
     if (lure) {
@@ -1303,17 +1315,8 @@ export function MapView(props: MapViewProps): JSX.Element {
         place="creature"
         appetite={signs?.appetite ?? null}
         onOpenPlace={props.onOpenHub}
+        move={moveButton}
         placeRef={(el) => {
-          popoverFocusRef.current = el;
-        }}
-      />
-    );
-  } else if (flow.kind === 'planned') {
-    card = (
-      <ConfirmCard
-        cost={flow.cost}
-        onConfirm={props.onConfirm}
-        buttonRef={(el) => {
           popoverFocusRef.current = el;
         }}
       />
@@ -1342,21 +1345,6 @@ export function MapView(props: MapViewProps): JSX.Element {
     card = withBack(card);
   }
 
-  // Out of reach: a faded arrow from your feet ending in a cross on the tapped hex, fading by itself (CSS);
-  // keyed by hex so a new tap plays it again.
-  let outOfReach: JSX.Element | null = null;
-  if (flow.kind === 'out-of-reach') {
-    const feet = figureFeet(state, characterId, p);
-    if (feet) {
-      const to = hexCenter(p, flow.hex.q, flow.hex.r);
-      outOfReach = (
-        <g key={`oor:${hexKey(flow.hex)}`} class="out-of-reach">
-          {toPreact(drawOutOfReach(PALETTE, feet, to, Math.max(p.k, p.k / inkZoom)))}
-        </g>
-      );
-    }
-  }
-
   const { box, raster } = layers;
   return (
     <div class="map-root" data-coach={props.coach?.mark ?? undefined}>
@@ -1373,7 +1361,6 @@ export function MapView(props: MapViewProps): JSX.Element {
           <Static nodes={layers.figures} />
           {overlays.thingsOver}
           {overlays.over}
-          {outOfReach}
           {props.coach && (
             <CoachLayer
               coach={props.coach}

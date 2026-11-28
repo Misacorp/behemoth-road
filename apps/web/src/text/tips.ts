@@ -48,7 +48,7 @@ export const tips = {
     text: 'Explores ahead. Surveys a neighbouring hex for {surveyCost.scout} action (others pay {surveyCost.other}).',
   },
   'role:scholar': {
-    text: 'Works tombs: {siteChance.scholar.1} % a try, against {siteChance.other.1} % for others. Only scholars can work deep tombs ({siteChance.scholar.2} %).',
+    text: 'Better at working tombs. Only scholars can work deep tombs.',
   },
   'role:keeper': {
     text: 'Reads the creature’s signs and tends it. Riding, can make it stay put for a day.',
@@ -57,7 +57,7 @@ export const tips = {
     text: 'Builds the party’s unlocks from the stores, while riding the creature.',
   },
   'role:warden': {
-    text: 'Guards and speaks for the party. Strikes harder, parleys without risk, is never struck, and keeps those beside them safe.',
+    text: 'Better at parley and strikes. Is never struck, and keeps those beside them safe.',
   },
 
   // Traits: a character's knack. Not in play yet.
@@ -118,62 +118,32 @@ export const tips = {
   'unlock:cart': { text: 'A hand cart. Hauls goods, or one rider, but only over open ground.' },
   'unlock:raft': { text: 'Lets everyone cross deep water, for {climbCost.raft} actions a step.' },
 
-  // Actions (buttons in the cards and the hub).
-  'action:survey': {
-    text: 'Look into a neighbouring hex without entering it. {surveyCost.scout} action for a scout, {surveyCost.other} for others.',
-  },
-  'action:gather': { text: 'Take one unit from here into your pack.' },
-  'action:work-site': {
-    text: 'Search the tomb ({workSiteCost} actions). If nothing turns up, try again another day.',
-  },
-  'action:build': {
-    text: 'Engineers, riding: start or work on an unlock. Each action is one work.',
-  },
-  'action:light-fire': {
-    title: 'Light a fire',
-    text: 'Burn {fireFuel} timber from your pack here. It burns until the day turns; the creature may take notice.',
-  },
-  'action:feed': {
-    text: 'Riding: give the creature food from the stores.',
-  },
-  'action:linger': {
-    text: 'Keepers, riding: the creature stays put when the day turns. Not two days running.',
-  },
-  'action:throw-line': {
-    text: 'Throw the line to someone left behind. They choose to take it.',
-  },
-  'action:grab-line': { text: 'Take the line and be pulled aboard.' },
-  'action:hitch': { text: 'Take the shafts. The cart follows you, and every step costs more.' },
-  'action:unhitch': { text: 'Let the cart go where it stands.' },
-  'action:board-cart': { text: 'Sit in the cart. It carries you, and you cannot walk.' },
-  'action:leave-cart': { text: 'Climb out of the cart.' },
-  'action:load': { text: 'Put goods from your pack into the cart.' },
-  'action:unload': { text: 'Take goods from the cart into your pack.' },
-  'action:strike': {
-    text: 'Weaken a threat next to you by {strike.other}, or by {strike.warden} as a warden. At 0 it is gone.',
-  },
-  'action:dig-out': {
-    title: 'Dig out',
-    text: 'Free someone pinned under a slide, next to you or on your hex.',
-  },
-  'action:struggle': {
-    title: 'Struggle',
-    text: 'Work yourself out from under a slide. Each try is more likely to work than the last.',
-  },
-  'action:lead': {
-    title: 'Lead',
-    text: 'Lead a small animal one hex, from its hex or next to it. It can be led only a few times.',
-  },
-  'action:defend': {
-    text: 'Wardens, riding: stand guard over the creature. Every strike on it today lands {defendReduction} weaker, for each warden.',
-  },
-  'action:parley': {
-    text: 'Win a wary settlement’s favour. A warden gains {parleyFavour.warden}; others gain {parleyFavour.other} and may anger it.',
-  },
-  'action:offer': {
-    text: 'Give an old coin or a pearl to a wary settlement: {offerFavour} favour, no risk.',
-  },
-  'action:ask-boon': { title: 'Ask a boon', text: 'A friendly settlement grants one boon.' },
+  // Actions (buttons in the cards and the hub). Each is read as "Title. Text. Numbers": the verb, one plain
+  // sentence, and where the action rolls, its odds (`{note}`). The same line shows on a first tap and on hover.
+  'action:move': { title: 'Move', text: 'Walk to this tile along the route.' },
+  'action:survey': { title: 'Survey', text: 'Reveal the tile for everyone.' },
+  'action:gather': { title: 'Gather', text: 'Collect a resource.' },
+  'action:work-site': { title: 'Work', text: 'Search the site for a find. {note}' },
+  'action:build': { title: 'Build', text: 'Add work to the unlock.' },
+  'action:light-fire': { title: 'Light', text: 'Start a fire here. It burns until the day turns.' },
+  'action:feed': { title: 'Feed', text: 'Give the creature food from the stores.' },
+  'action:linger': { title: 'Linger', text: 'Make the creature stay put for the day.' },
+  'action:throw-line': { title: 'Throw', text: 'Send the line to someone left behind.' },
+  'action:grab-line': { title: 'Grab', text: 'Take the line and be pulled aboard.' },
+  'action:hitch': { title: 'Hitch', text: 'Pull the cart behind you.' },
+  'action:unhitch': { title: 'Unhitch', text: 'Let the cart go where it stands.' },
+  'action:board-cart': { title: 'Board', text: 'Sit in the cart.' },
+  'action:leave-cart': { title: 'Leave', text: 'Climb out of the cart.' },
+  'action:load': { title: 'Load', text: 'Put goods from your pack into the cart.' },
+  'action:unload': { title: 'Unload', text: 'Take goods from the cart into your pack.' },
+  'action:strike': { title: 'Strike', text: 'Deal damage to the foe. {note}' },
+  'action:dig-out': { title: 'Dig', text: 'Free someone pinned under a slide.' },
+  'action:struggle': { title: 'Struggle', text: 'Work yourself free of the slide. {note}' },
+  'action:lead': { title: 'Lead', text: 'Move the {lure} to a neighbouring tile.' },
+  'action:defend': { title: 'Defend', text: 'Soften every strike on the creature today.' },
+  'action:parley': { title: 'Parley', text: 'Win the village over. {note}' },
+  'action:offer': { title: 'Offer', text: 'Give a trade good to win favour.' },
+  'action:ask-boon': { title: 'Ask', text: 'Ask the friendly village for a boon.' },
   // Skills: the tree drawer's tips are below; this one names the action.
   'action:pick-skill': { title: 'Pick', text: 'Take a skill.' },
   'action:set-stance': { title: 'Stance', text: 'Choose where your spare actions go.' },
@@ -253,6 +223,7 @@ export const tips = {
   'why:role-keeper': { title: 'Not your role', text: 'A keeper can do this.' },
   'why:role-engineer': { title: 'Not your role', text: 'An engineer can do this.' },
   'why:role-warden': { title: 'Not your role', text: 'A warden can do this.' },
+  'why:too-far': { title: 'Too far', text: 'More than {actionsPerDay} actions away.' },
   'why:not-enough-actions': {
     title: 'Not now',
     text: 'Not enough actions left today. They refill when the day turns.',

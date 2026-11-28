@@ -10,6 +10,7 @@ import {
   type Hex,
   hexKey,
   packCapacityOf,
+  type Place,
   type SkillNode,
   terrainOf,
 } from '@behemoth-road/core';
@@ -28,7 +29,6 @@ import { JoinDrawer } from '../join/JoinDrawer.tsx';
 import {
   type Flow,
   IDLE,
-  isSelecting,
   keyDown,
   choose,
   entryKey,
@@ -36,6 +36,7 @@ import {
   pickEntries,
   openCharacter,
   openHub,
+  planMove,
   rightClick,
   startLead,
   tap,
@@ -48,6 +49,7 @@ import { HubDrawer } from '../hub/HubDrawer.tsx';
 import { DayBanner, DayCountdown, PaceToggle } from '../hud/Pace.tsx';
 import { setTipConfig, TipLayer } from '../ui/Tip.tsx';
 import { cellStateAt, featureArtAt } from '../map/cells.ts';
+import { moveOption } from './move.ts';
 import { digOption, greyedForPin, struggleOption, takesFire } from './fire.ts';
 import {
   actionsAt,
@@ -577,6 +579,11 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
       () => (kind === 'feed' ? { kind: 'creature' } : IDLE),
     );
   };
+  // The Move on a tile's card: its cost from the core's plan; the first tap plans the walk, the second walks.
+  const moveOf = (place: Place) =>
+    me?.status === 'active' ? moveOption(state, me.id, place) : null;
+  const onMove = (place: Place, from: Flow): void =>
+    setFlow((f) => (me?.status === 'active' ? planMove(state, me.id, place, from) : null) ?? f);
   const surveyAt = (h: Hex) => (me?.status === 'active' ? surveyOf(state, me.id, h) : null);
   const onSurvey = (h: Hex): void => {
     void act(
@@ -788,6 +795,8 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
         here={here}
         onAct={onAct}
         surveyAt={surveyAt}
+        moveOf={moveOf}
+        onMove={onMove}
         onSurvey={onSurvey}
         onStrike={onStrike}
         towOf={towOf}
@@ -808,7 +817,7 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
         day={view.day}
         actionsLeft={me?.actionsLeft ?? 0}
         actionsPerDay={state.config.actionsPerDay}
-        planned={flow.kind === 'planned' && isSelecting(flow) ? flow.cost : 0}
+        planned={flow.kind === 'planned' ? flow.cost : 0}
         lost={me?.status !== 'active'}
         snapped={shownMoments.some((m) => m.kind === 'trap' && m.mine)}
         pinned={me?.status === 'active' && me.pinnedDay !== undefined}
