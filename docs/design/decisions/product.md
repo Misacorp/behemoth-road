@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-28: Player text follows the glossary: foe, Strike, gear, food, when the day turns
+
+ID: `2026-11-28-player-text-follows-the-glossary-foe` · Status: current
+
+**Decision.** The glossary rewrites are applied to the code. The open choices are picked: "foe", never "threat", in player text; the verb stays "Strike" and foes "attack"; "gear", not "unlock"; "food", not "forage" (the item is renamed Food); "when the day turns", not "dusk". Two skills and two stances are renamed in player text only (ids stay): Standing guard is "Auto-defend", Wide guard is "Wide escort". Skill texts take their numbers from the content through `tipValues.ts`.
+
+**Reasoning.** One word per concept is the glossary's point; leaving the picks open kept the old words in half the texts. These are the lead's picks, not Misa's, and each is one edit to undo. Code ids (`threat`, `unlock`, `work-site`) do not change.
+
 ## 2026-11-28: Threat stripes leave out the destination band
 
 ID: `2026-11-28-threat-stripes-leave-out-the-destination` · Status: current

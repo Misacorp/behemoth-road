@@ -49,11 +49,11 @@ export function dueHint(
 
 /** The one short line of each hint (the storyboard's copy). */
 export const HINT_LINES: Readonly<Record<HintId, string>> = {
-  'hint:fog': 'Not seen yet.',
-  'hint:trap': 'Danger underfoot.',
-  'hint:threat': 'It moves at dusk.',
-  'hint:settlement': 'Folk live here. Mind them.',
-  'hint:hunger': 'Hungry. Peril rises.',
+  'hint:fog': 'Not explored yet.',
+  'hint:trap': 'A trap, found. Harmless now.',
+  'hint:threat': 'It moves when the day turns.',
+  'hint:settlement': 'A settlement. Win its favour.',
+  'hint:hunger': 'Hungry creature. Peril rises.',
 };
 
 /** How long a hint stays, in ms. */

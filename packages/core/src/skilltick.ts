@@ -34,7 +34,7 @@ export const applySkillTicks = (
   let state = before;
   const events: GameEvent[] = [];
 
-  // Standing guard: a rider with an unspent action defends the creature, spending it (as a hand defend
+  // Auto-defend: a rider with an unspent action defends the creature, spending it (as a hand defend
   // would: never more than the action).
   const guards = active(state)
     .filter(

@@ -36,7 +36,7 @@ export const ROLE_CARDS: readonly RoleCard[] = [
     role: 'scholar',
     does: ['scroll', 'key'],
     gets: { kind: 'moment', id: 'find' },
-    line: 'Opens what is hidden',
+    line: 'Searches tombs for finds',
   },
   {
     role: 'keeper',
@@ -48,13 +48,13 @@ export const ROLE_CARDS: readonly RoleCard[] = [
     role: 'engineer',
     does: ['iron', 'timber'],
     gets: { kind: 'via', id: 'grappling-hook' },
-    line: 'Builds for everyone',
+    line: 'Builds gear for everyone',
   },
   {
     role: 'warden',
     does: ['defend', 'parley'],
     gets: { kind: 'icon', id: 'shelter' },
-    line: 'Guards and persuades',
+    line: 'Defends, speaks for the party',
   },
 ];
 

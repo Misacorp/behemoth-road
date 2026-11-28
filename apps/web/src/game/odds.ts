@@ -16,7 +16,7 @@ export interface OddsView {
   readonly kind: string;
   /** Whole percents; they always add up to 100. */
   readonly percent: { readonly success: number; readonly failure: number };
-  /** The tip's numbers: "Success 80% · Buried 20%". */
+  /** The tip's numbers: "Success 80% · Pinned 20%". */
   readonly note: string;
 }
 
@@ -29,7 +29,7 @@ const ART: Readonly<Record<string, OddsFailure>> = {
 
 /** The word for each failure kind in the tip's numbers. */
 const WORD: Readonly<Record<string, string>> = {
-  buried: 'Buried',
+  buried: 'Pinned',
   'still-pinned': 'Pinned',
   angered: 'Angered',
   'site-failed': 'Nothing',

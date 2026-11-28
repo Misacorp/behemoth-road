@@ -282,7 +282,7 @@ export function RecapPanel(props: {
   return (
     <div class="recap" aria-label="Recap">
       <section class="recap-section" data-section="together">
-        <h3 class="recap-sub">Together</h3>
+        <h3 class="recap-sub">The season</h3>
         <div class="recap-shared">
           {recap.shared.map((s) => (
             <Stat key={s.id} id={s.id} value={s.value} />

@@ -78,7 +78,7 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
   {
     id: 'river-stones',
     kind: 'node',
-    name: 'Sturdy river stones',
+    name: 'River stones',
     tags: ['stone', 'quarry'],
     icon: 'stones',
     placement: { on: ['water'], near: ['water'], weight: 10 },
@@ -165,7 +165,7 @@ export const FEATURE_TYPES: readonly FeatureType[] = [
   {
     id: 'ore-outcrop',
     kind: 'node',
-    name: 'Ore outcrop',
+    name: 'Iron outcrop',
     tags: ['ore', 'mine'],
     icon: 'outcrop',
     placement: { on: ['open'], weight: 7 },

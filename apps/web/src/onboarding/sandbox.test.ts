@@ -205,10 +205,10 @@ describe('the guided first day', () => {
   it('has a short line for each step, and none when done', () => {
     const state = sandboxView(sandboxState('keeper'), 1).game;
     const plan = planFor(state, 'keeper');
-    expect(captionFor('tile', plan)).toBe('Tap the glowing tile');
+    expect(captionFor('tile', plan)).toBe('Tap the glowing hex');
     expect(captionFor('move', plan)).toBe('Tap Move');
     expect(captionFor('confirm', plan)).toBe('Tap Move again');
-    expect(captionFor('act', plan)).toBe('Feed it');
+    expect(captionFor('act', plan)).toBe('Feed');
     expect(captionFor('done', plan)).toBeNull();
     expect(captionFor('stuck', plan)).toBeNull();
   });

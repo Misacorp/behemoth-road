@@ -115,6 +115,17 @@ describe('tip texts', () => {
     }
   });
 
+  it('keep to the glossary: no word it rules out (docs/design/glossary.md)', () => {
+    const avoid =
+      /\b(threats?|blows?|unlocks?|forage|dusk|danger|stand guard|standing guard|wide guard)\b/i;
+    const values = tipValues(DEFAULT_CONFIG);
+    for (const [id, tip] of Object.entries(tips)) {
+      const text = `${'title' in tip ? tip.title : ''} ${fillTip(tip.text, values)}`;
+      // The ids carry code words (`threat:`, `unlock:`); only the text a player reads is checked.
+      expect(text, id).not.toMatch(avoid);
+    }
+  });
+
   it('have a delay for every group and a hold time', () => {
     expect(Object.values(delays).every((ms) => ms >= 0)).toBe(true);
     expect(holdMs).toBeGreaterThan(200);

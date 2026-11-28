@@ -11,7 +11,7 @@ export interface IntroCard {
 export const INTRO_CARDS: readonly IntroCard[] = [
   { id: 'journey', line: 'Friends escort a huge creature home across a wild map.' },
   { id: 'actions', line: 'Each of you has a few actions a day.' },
-  { id: 'dusk', line: 'At dusk the creature walks and dangers move.' },
+  { id: 'dusk', line: 'When the day turns, the creature walks and foes move.' },
   { id: 'home', line: 'Together you reach home.' },
 ];
 

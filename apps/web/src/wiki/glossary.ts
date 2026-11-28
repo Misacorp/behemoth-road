@@ -75,10 +75,10 @@ export type GroupId =
 export const GROUPS: readonly { readonly id: GroupId; readonly title: string }[] = [
   { id: 'hud', title: 'Screen' },
   { id: 'actions', title: 'Actions' },
-  { id: 'materials', title: 'Materials and items' },
-  { id: 'features', title: 'Features' },
+  { id: 'materials', title: 'Materials and gear' },
+  { id: 'features', title: 'Sites and deposits' },
   { id: 'terrain', title: 'Terrain' },
-  { id: 'threats', title: 'Threats' },
+  { id: 'threats', title: 'Foes' },
   { id: 'settlements', title: 'Settlements and boons' },
   { id: 'roles', title: 'Roles' },
   { id: 'stances', title: 'Stances' },
@@ -126,7 +126,7 @@ export interface GlossaryEntry {
   readonly draw: Draw;
 }
 
-const VALUES = { ...tipValues(DEFAULT_CONFIG), note: 'Success 80% · Buried 20%' };
+const VALUES = { ...tipValues(DEFAULT_CONFIG), note: 'Success 80% · Pinned 20%' };
 
 const prettify = (key: string): string => {
   const words = key.replace(/-/g, ' ');
