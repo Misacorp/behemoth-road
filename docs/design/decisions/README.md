@@ -123,6 +123,7 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-28 Player text follows the glossary: foe, Strike, gear, food, when the day turns
 - 2026-11-28 Threat stripes leave out the destination band
 - 2026-11-28 surveyableHexes lists what a survey can reach
 - 2026-11-28 Rivers run into lakes, ponds and seas \[Misa\]

@@ -1,7 +1,7 @@
 /**
  * The one "odds" component: the art kit's odds mark (a bar of success against failure, with a badge for
  * what failure means) for any action with a roll, drawn inside an SVG card. Fed only by `OddsView`
- * (`game/odds.ts`, from the core's `oddsOf`). Its tip carries the numbers ("Success 80% · Buried 20%").
+ * (`game/odds.ts`, from the core's `oddsOf`). Its tip carries the numbers ("Success 80% · Pinned 20%").
  */
 import { drawOddsMark } from '@behemoth-road/art';
 import type { JSX } from 'preact';

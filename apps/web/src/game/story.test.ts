@@ -341,9 +341,9 @@ describe('the recap lines', () => {
   });
 
   it('counts in words, and says a long count plainly', () => {
-    expect(recapText('strike', 2)).toBe('Something struck the creature twice.');
-    expect(recapText('strike', 3)).toBe('Something struck the creature three times.');
-    expect(recapText('strike', 40)).toBe('Something struck the creature many times.');
+    expect(recapText('strike', 2)).toBe('Foes attacked the creature twice.');
+    expect(recapText('strike', 3)).toBe('Foes attacked the creature three times.');
+    expect(recapText('strike', 40)).toBe('Foes attacked the creature many times.');
   });
 
   it('has no line for a kind it does not know', () => {

@@ -74,48 +74,48 @@ export const endingVignetteOf = (line: string): string =>
 /**
  * The "while you were away" lines: one short line for each kind of thing that happened near the creature.
  * `one` when it happened once; `many` when it happened more, where `{times}` becomes "twice", "three times"...
- * Same voice as the beats: short, concrete, no rules, no numbers.
+ * Plain game words (see docs/design/glossary.md), not story prose.
  */
 export const RECAP_TEXT = {
   threat: {
-    one: 'Something dangerous drew near the creature.',
-    many: 'Danger drew near the creature {times}.',
+    one: 'A foe came near the creature.',
+    many: 'Foes came near the creature {times}.',
   },
   strike: {
-    one: 'Something struck the creature.',
-    many: 'Something struck the creature {times}.',
+    one: 'A foe attacked the creature.',
+    many: 'Foes attacked the creature {times}.',
   },
   trap: {
-    one: 'A hidden trap was sprung.',
-    many: 'Hidden traps were sprung {times}.',
+    one: 'A trap sprang.',
+    many: 'Traps sprang {times}.',
   },
   hungry: {
-    one: 'The creature went hungry in the night.',
+    one: 'The creature went hungry.',
     many: 'The creature went hungry {times}.',
   },
   find: {
-    one: 'Someone found something worth keeping.',
-    many: 'Things worth keeping were found {times}.',
+    one: 'A site gave a find.',
+    many: 'Sites gave finds {times}.',
   },
   reveal: {
-    one: 'A hidden thing came to light.',
-    many: 'Hidden things came to light {times}.',
+    one: 'Something hidden was found.',
+    many: 'Hidden things were found {times}.',
   },
   fire: {
     one: 'A fire was lit.',
     many: 'Fires were lit {times}.',
   },
   cleared: {
-    one: 'A threat was driven off.',
-    many: 'Threats were driven off {times}.',
+    one: 'A foe was beaten.',
+    many: 'Foes were beaten {times}.',
   },
   befriended: {
-    one: 'A settlement warmed to the party.',
-    many: 'Settlements warmed to the party {times}.',
+    one: 'A settlement became friendly.',
+    many: 'Settlements became friendly {times}.',
   },
   angered: {
-    one: 'A settlement turned against the party.',
-    many: 'Settlements turned against the party {times}.',
+    one: 'A settlement became angry.',
+    many: 'Settlements became angry {times}.',
   },
 } as const;
 

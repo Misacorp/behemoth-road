@@ -6,7 +6,7 @@ describe('oddsView', () => {
     const v = oddsView({ success: 0.8, failure: 0.2, failureKind: 'buried' });
     expect(v).toMatchObject({ success: 0.8, art: 'rocks', kind: 'buried' });
     expect(v?.percent).toEqual({ success: 80, failure: 20 });
-    expect(v?.note).toBe('Success 80% · Buried 20%');
+    expect(v?.note).toBe('Success 80% · Pinned 20%');
   });
 
   it('picks the badge by failure kind', () => {

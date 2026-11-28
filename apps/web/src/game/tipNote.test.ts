@@ -8,7 +8,7 @@ describe('the tip an action shows on its first tap', () => {
   it('reads like the examples: verb, a full stop, one plain sentence', () => {
     expect(actionLine('gather')).toBe('Gather. Collect a resource.');
     expect(actionLine('survey')).toBe('Survey. Reveal the tile for everyone.');
-    expect(actionLine('move')).toBe('Move. Walk to this tile along the route.');
+    expect(actionLine('move')).toBe('Move. Move to this hex along the route.');
   });
 
   it('fills the thing the action acts on from content: the lure', () => {
@@ -19,19 +19,19 @@ describe('the tip an action shows on its first tap', () => {
     const parley = oddsView({ success: 0.7, failure: 0.3, failureKind: 'angered' });
     expect(tipNoteOf(parley)).toBe('Success 70% · Angered 30%');
     expect(actionLine('parley', tipNoteOf(parley))).toBe(
-      'Parley. Win the village over. Success 70% · Angered 30%',
+      'Parley. Win a wary settlement’s favour. Success 70% · Angered 30%',
     );
     const strike = oddsView({ success: 0.8, failure: 0.2, failureKind: 'buried' });
     expect(actionLine('strike', tipNoteOf(strike))).toBe(
-      'Strike. Deal damage to the foe. Success 80% · Buried 20%',
+      'Strike. Deal damage to the foe. Success 80% · Pinned 20%',
     );
     const work = oddsView({ success: 0.5, failure: 0.5, failureKind: 'site-failed' });
     expect(actionLine('work-site', tipNoteOf(work))).toBe(
-      'Work. Search the site for a find. Success 50% · Nothing 50%',
+      'Search. Search this site for finds. Success 50% · Nothing 50%',
     );
     const struggle = oddsView({ success: 0.4, failure: 0.6, failureKind: 'still-pinned' });
     expect(actionLine('struggle', tipNoteOf(struggle))).toBe(
-      'Struggle. Work yourself free of the slide. Success 40% · Pinned 60%',
+      'Struggle. Try to free yourself. Each try is likelier to work. Success 40% · Pinned 60%',
     );
   });
 
@@ -39,7 +39,7 @@ describe('the tip an action shows on its first tap', () => {
     expect(tipNoteOf(null)).toBeNull();
     expect(tipNoteOf(oddsView({ success: 1, failure: 0, failureKind: 'buried' }))).toBeNull();
     expect(actionLine('strike')).toBe('Strike. Deal damage to the foe.');
-    expect(actionLine('parley')).toBe('Parley. Win the village over.');
+    expect(actionLine('parley')).toBe('Parley. Win a wary settlement’s favour.');
   });
 
   it('has one short line, led by its verb, for every action a button can show', () => {

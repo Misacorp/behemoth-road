@@ -175,7 +175,7 @@ export function coachMap(plan: PracticePlan, i: CoachInput): CoachMap {
 export function captionFor(step: Step, plan: PracticePlan): string | null {
   switch (step) {
     case 'tile':
-      return 'Tap the glowing tile';
+      return 'Tap the glowing hex';
     case 'move':
       return 'Tap Move';
     case 'confirm':
@@ -188,11 +188,11 @@ export function captionFor(step: Step, plan: PracticePlan): string | null {
 }
 
 export const ACTION_LINES: Readonly<Record<PracticeAction, string>> = {
-  survey: 'Look around',
+  survey: 'Survey',
   gather: 'Gather',
-  'work-site': 'Study it',
-  feed: 'Feed it',
-  defend: 'Stand guard',
+  'work-site': 'Search',
+  feed: 'Feed',
+  defend: 'Defend',
 };
 
 /** The dot (0-based) a step lights, or all of them once done. */

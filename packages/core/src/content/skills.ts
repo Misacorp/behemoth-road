@@ -127,16 +127,16 @@ export const SKILL_NODES: readonly SkillNode[] = [
 
   node('scholar', 'a', 1, 'Field kit', { kind: 'action-cost', action: 'work-site', cost: 1 }),
   node('scholar', 'a', 2, 'Steady hands', { kind: 'site-chance', bonus: 0.15 }),
-  node('scholar', 'a', 3, 'Second chamber', { kind: 'site-finds', amount: 1 }),
+  node('scholar', 'a', 3, 'Extra find', { kind: 'site-finds', amount: 1 }),
   node('scholar', 'b', 1, 'Lamplight', { kind: 'site-chance', tag: 'dark', bonus: 0.2 }),
   node('scholar', 'b', 2, 'Relic sense', { kind: 'find-bonus', tag: 'rare', chance: 1 / 3 }),
   node('scholar', 'b', 3, 'Old maps', { kind: 'reveal-site', range: 4 }),
 
-  node('keeper', 'a', 1, 'Good forage', { kind: 'gather-yield', amount: 2, tag: 'food' }),
+  node('keeper', 'a', 1, 'More food', { kind: 'gather-yield', amount: 2, tag: 'food' }),
   node('keeper', 'a', 2, 'Soothing herbs', { kind: 'feed-calm', amount: 1 }),
   node('keeper', 'a', 3, 'Contented', { kind: 'hunger-slow', everyDays: 2 }),
   node('keeper', 'b', 1, 'Quiet linger', { kind: 'action-cost', action: 'linger', cost: 1 }),
-  node('keeper', 'b', 2, 'Long rest', { kind: 'linger-chain' }),
+  node('keeper', 'b', 2, 'Linger again', { kind: 'linger-chain' }),
   node('keeper', 'b', 3, 'Beacon', { kind: 'fire-boost', range: 5, push: 2, nights: 1 }),
 
   node('engineer', 'a', 1, 'Double yield', { kind: 'gather-yield', amount: 2 }),
@@ -153,10 +153,10 @@ export const SKILL_NODES: readonly SkillNode[] = [
   // protection and diplomacy, so the fork is a style, not half the role. (Merged from guardian and envoy.)
   node('warden', 'a', 1, 'Bulwark', { kind: 'defend-reduction', amount: 3 }),
   node('warden', 'a', 2, 'Silver tongue', { kind: 'parley-favour', bonus: 1 }),
-  node('warden', 'a', 3, 'Standing guard', { kind: 'defend-tick' }),
+  node('warden', 'a', 3, 'Auto-defend', { kind: 'defend-tick' }),
   node('warden', 'b', 1, 'Ravens', { kind: 'parley-range', range: 3 }),
   node('warden', 'b', 2, 'Long reach', { kind: 'strike-range', range: 2 }),
-  node('warden', 'b', 3, 'Wide guard', { kind: 'escort-range', range: 2 }),
+  node('warden', 'b', 3, 'Wide escort', { kind: 'escort-range', range: 2 }),
 ];
 
 /**

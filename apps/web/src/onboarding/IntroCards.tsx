@@ -1,7 +1,7 @@
 /**
  * The intro cards: a few cards, one at a time, led by the game's own art with one short line each, so a new
  * player knows what Behemoth Road is about (a party of friends escorts a huge creature home across a wild
- * map; each of you has a few actions a day; at dusk the creature walks and dangers move; together you reach
+ * map; each of you has a few actions a day; when the day turns the creature walks and foes move; together you reach
  * home). Back is at the top left, Skip at the top right; a swipe or the round button goes on. Shown once per
  * Discord user (the server keeps that), and again from the day readout's menu.
  */

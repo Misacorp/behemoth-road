@@ -4,7 +4,7 @@ import { verbOf, verbs } from './verbs.ts';
 describe('verbOf', () => {
   it('gives the verb of a plain action kind', () => {
     expect(verbOf('gather')).toBe('Gather');
-    expect(verbOf('work-site')).toBe('Work');
+    expect(verbOf('work-site')).toBe('Search');
   });
 
   it('reads the offer: and boon: prefixes', () => {
