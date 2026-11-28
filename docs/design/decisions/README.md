@@ -123,6 +123,7 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-28 Player text follows one glossary \[Misa\]
 - 2026-11-27 End-of-day reveals happen after the creature moves \[Misa\]
 - 2026-11-27 A drawer closes only on a mouse press on the map, and focus returns to its opener
 - 2026-11-27 One registry of tappable things feeds the picker and the tap resolver
