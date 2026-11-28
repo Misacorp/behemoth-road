@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-28: Threat stripes leave out the destination band
+
+ID: `2026-11-28-threat-stripes-leave-out-the-destination` · Status: current
+
+**Decision.** A selected threat's striped overlay draws only the `fire` reasons from `blockedFor`; the `sanctuary` hexes are left out.
+
+**Reasoning.** The destination band already glows gold, fog included. Stripes on only its explored hexes would look patchy over the glow and add noise.
+
 ## 2026-11-28: surveyableHexes lists what a survey can reach
 
 ID: `2026-11-28-surveyablehexes-lists-what-a-survey-can` · Status: current
