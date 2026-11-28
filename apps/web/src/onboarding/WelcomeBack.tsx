@@ -8,6 +8,9 @@
 import type { JSX } from 'preact';
 import { useEffect, useRef, useState } from 'preact/hooks';
 import { PerilGauge, RouteStrip } from '../hud/Season.tsx';
+import { daysLine, recapText } from '../text/story.ts';
+import type { TipId } from '../text/tips.ts';
+import { IconTip } from '../ui/IconTip.tsx';
 import { ArtCreature, ArtIcon, ArtMoment } from './art.tsx';
 import { type MarkKind, type Welcome } from './welcomeBack.ts';
 
@@ -28,6 +31,20 @@ const MARK_ART: Readonly<Record<MarkKind, string>> = {
   cleared: 'cleared',
   befriended: 'befriended',
   angered: 'angered',
+};
+
+/** The tip each mark's icon opens. */
+const MARK_TIP: Readonly<Record<MarkKind, TipId>> = {
+  threat: 'recap:threat',
+  strike: 'recap:strike',
+  trap: 'recap:trap',
+  hungry: 'recap:hungry',
+  find: 'recap:find',
+  reveal: 'recap:reveal',
+  fire: 'recap:fire',
+  cleared: 'recap:cleared',
+  befriended: 'recap:befriended',
+  angered: 'recap:angered',
 };
 
 export interface WelcomeBackProps {
@@ -72,6 +89,9 @@ export function WelcomeBack({ welcome: w, onStep, onDone }: WelcomeBackProps): J
                 </span>
               ))}
             </div>
+            <p class="onb-line" data-line="days">
+              {daysLine(w.dusks)}
+            </p>
             <div class="onb-sheet-route">
               <RouteStrip steps={w.steps} length={w.routeLength} width={220} />
             </div>
@@ -80,10 +100,12 @@ export function WelcomeBack({ welcome: w, onStep, onDone }: WelcomeBackProps): J
         {step === 'marks' && (
           <div class="onb-marks" data-count={w.marks.length}>
             {w.marks.map((m) => (
-              <span key={m.kind} class="onb-mark" data-mark={m.kind}>
-                <ArtMoment kind={MARK_ART[m.kind]} size={52} />
-                {m.count > 1 && <b>×{m.count}</b>}
-              </span>
+              <div key={m.kind} class="onb-mark" data-mark={m.kind}>
+                <IconTip id={MARK_TIP[m.kind]} tapShows>
+                  <ArtMoment kind={MARK_ART[m.kind]} size={52} />
+                </IconTip>
+                <p class="onb-line">{recapText(m.kind, m.count)}</p>
+              </div>
             ))}
           </div>
         )}

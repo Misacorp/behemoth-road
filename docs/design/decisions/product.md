@@ -4,6 +4,14 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-28: Round 16 screens: locked skills show their text, ending recap in a drawer, darker fog, destination glow **[Misa]**
+
+ID: `2026-11-28-round-16-screens-locked-skills-show` · Status: current
+
+**Decision.** (1) Every skill node shows its title and line in the tree, locked or not; a small mark says why it is out of reach (padlock: an earlier step first; cross: the other branch was chosen; dashed ring: not enough XP). (2) The creature menu's card drops the heading arrow (the drawing already faces the way it walks) and each care action shows its verb under its icon. (3) The welcome-back recap gives each card a short line of story (`RECAP_TEXT` in `text/story.ts`) and each icon opens its tip. (4) On desktop the ending stays calm and the recap opens in a right drawer from the recap button; phones keep the inline recap. (5) The eye mark for discovered or undiscovered is removed; the unexplored veil is darker with thick stripes (`ART_TUNING.veil*`). (6) The destination area (`game.destination.hexes`, assumed until the core's contract lands) glows gold-green on the map, over fog, and the route strip's Greyfold mark carries the same light.
+
+**Reasoning.** Misa's playtest asks: players felt out of control when locked nodes said only "Not yet"; the arrow beside the creature asked what it was; the recap had icons but no story; the desktop ending was crowded; fog was too light to read as unknown; and the goal should be visible on the map.
+
 ## 2026-11-27: End-of-day reveals happen after the creature moves **[Misa]**
 
 ID: `2026-11-27-end-of-day-reveals-happen-after` · Status: current

@@ -58,6 +58,8 @@ const NAMES: Readonly<Record<string, string>> = { [MISA]: 'Misa', [PIP]: 'Pip', 
 /** A scenario: the full state (with its seed, as the server holds it), whose view it is, and a version. */
 export interface Scenario {
   readonly state: GameState;
+  /** The destination area the view reports (absolute hexes), until the core's state holds one. */
+  readonly destination?: readonly Hex[];
   readonly you: string;
   readonly version: number;
   /** Admins see "next day" when dev tools are on. */
@@ -97,7 +99,10 @@ export function toView(s: Scenario): PlayerView {
     },
     offers: needsCharacter ? characterOffers(s.state, s.you) : null,
     // The core's view type is read-only; the parsed type is the same shape.
-    game: toPlayerView(s.state) as PlayerView['game'],
+    game: {
+      ...(toPlayerView(s.state) as PlayerView['game']),
+      ...(s.destination ? { destination: { hexes: s.destination.map((h) => ({ ...h })) } } : {}),
+    },
     ending: endingOf(s.state),
     players: users.map((userId) => {
       const c = characterOf(s.state, userId) ?? null;
@@ -228,6 +233,8 @@ export interface ChainStage {
   readonly cueStimulus?: string;
   readonly lingering?: boolean;
   readonly lingeredDay?: number | null;
+  /** The destination area, as offsets from the creature's centre (the view's `game.destination`). */
+  readonly destination?: readonly Hex[];
   /** Skills: XP earned, and the nodes already taken (set up, not played). */
   readonly xp?: number;
   readonly taken?: readonly string[];
@@ -402,7 +409,12 @@ export function chainScenario(stage: ChainStage = {}): Scenario {
           : ch,
     ),
   };
-  return { ...s, state, version: s.version + 1 };
+  return {
+    ...s,
+    state,
+    version: s.version + 1,
+    ...(stage.destination ? { destination: stage.destination.map((h) => abs(h)) } : {}),
+  };
 }
 
 /** Milestone 5's staging on top of the chain scenario: threats, settlements, peril, the route, the end. */

@@ -4,7 +4,17 @@ import { describe, expect, it } from 'vitest';
 import { chainScenario, USERS } from '../api/fixtures.ts';
 import { WHY_BY_REFUSAL, whyOfPick } from '../game/why.ts';
 import { TIP_TABLE, type TipId } from '../text/tips.ts';
-import { nodeState, nodeTip, orderedTabs, pickReady, ringOf, tapNode, treeOf } from './model.ts';
+import {
+  lockOf,
+  nodeState,
+  nodeText,
+  nodeTip,
+  orderedTabs,
+  pickReady,
+  ringOf,
+  tapNode,
+  treeOf,
+} from './model.ts';
 
 const PER = DEFAULT_CONFIG.xpPerPick;
 
@@ -221,5 +231,38 @@ describe('node art', () => {
     for (const n of SKILL_NODES) {
       expect(SKILL_IDS, n.id).toContain(n.icon);
     }
+  });
+});
+
+describe('what a locked node shows', () => {
+  it('gives every node of every tree its title and line, locked or not, never "Not yet"', () => {
+    const { view, me } = staged({ role: 'scout' });
+    for (const role of ['scout', 'scholar', 'keeper', 'engineer', 'warden']) {
+      for (const n of treeOf(view, me, role).flatMap((b) => b.nodes)) {
+        const t = nodeText(n);
+        expect(t, n.node.id).not.toBeNull();
+        expect(t!.title.length, n.node.id).toBeGreaterThan(0);
+        expect(t!.text.length, n.node.id).toBeGreaterThan(0);
+        expect(`${t!.title} ${t!.text}`, n.node.id).not.toMatch(/not yet/i);
+      }
+    }
+  });
+
+  it('marks why a node is out of reach: the tier before it, the other branch, or not enough XP', () => {
+    const { view, me } = staged({ role: 'scout' });
+    const tree = treeOf(view, me, 'scout');
+    // No pick yet: tier 1 lacks XP; tiers 2 and 3 wait for the tier below.
+    expect(lockOf(nodeOf(tree, 'scout-a1'))).toBe('xp');
+    expect(lockOf(nodeOf(tree, 'scout-a2'))).toBe('tier');
+    const picked = staged({ role: 'scout', xp: PER * 2, taken: ['scout-b1'] });
+    const [a, b] = treeOf(picked.view, picked.me, 'scout');
+    expect(lockOf(a!.nodes[0]!)).toBe('closed');
+    expect(lockOf(b!.nodes[0]!)).toBeNull(); // taken
+    expect(lockOf(b!.nodes[1]!)).toBeNull(); // available
+  });
+
+  it('marks nothing on a node that can be taken', () => {
+    const { view, me } = staged({ role: 'scout', xp: PER });
+    expect(lockOf(nodeOf(treeOf(view, me, 'scout'), 'scout-a1'))).toBeNull();
   });
 });

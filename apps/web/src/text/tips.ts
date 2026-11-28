@@ -437,6 +437,18 @@ export const tips = {
     group: 'hud',
   },
 
+  // The recap's marks: what happened near the creature while you were away.
+  'recap:threat': { title: 'Danger', text: 'Something dangerous came close.', group: 'map' },
+  'recap:strike': { title: 'Struck', text: 'The creature took a blow.', group: 'map' },
+  'recap:trap': { title: 'Trap', text: 'A hidden trap was sprung.', group: 'map' },
+  'recap:hungry': { title: 'Hungry', text: 'The creature went without food.', group: 'map' },
+  'recap:find': { title: 'Find', text: 'Something was found in the ground.', group: 'map' },
+  'recap:reveal': { title: 'Revealed', text: 'Something hidden came to light.', group: 'map' },
+  'recap:fire': { title: 'Fire', text: 'A fire was lit.', group: 'map' },
+  'recap:cleared': { title: 'Driven off', text: 'A threat was sent away.', group: 'map' },
+  'recap:befriended': { title: 'Friends', text: 'A settlement grew friendly.', group: 'map' },
+  'recap:angered': { title: 'Angry', text: 'A settlement grew angry.', group: 'map' },
+
   // The heads-up display.
   'hud:day': {
     title: 'Day',

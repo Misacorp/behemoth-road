@@ -20,6 +20,14 @@ export const ART_TUNING = {
   /** Fading tiles: paper veil over the ground, and the opacity of their props. */
   fadingVeil: 0.55,
   fadingPropOpacity: 0.45,
+  /**
+   * The unexplored veil: a dark base over the terrain (share kept, so the hue stays faintly readable) and thick
+   * stripes. Sizes in px at the reference hex size: the pattern's period and the stripe's width.
+   */
+  veilBase: 0.72,
+  veilPeriod: 12,
+  veilStripe: 5,
+  veilStripeOpacity: 0.5,
   /** Unexplored tiles: their props under the veil. */
   veilPropOpacity: 0.6,
   /** Character height, in hex sizes. */

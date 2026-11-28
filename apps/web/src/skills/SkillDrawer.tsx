@@ -20,6 +20,9 @@ import { tipFor } from '../ui/tip.ts';
 import {
   type BranchView,
   type NodeView,
+  lockOf,
+  type LockKind,
+  nodeText,
   nodeTip,
   orderedTabs,
   ringOf,
@@ -87,6 +90,47 @@ function Node({
   );
 }
 
+/** The small mark for why a node is out of reach. */
+function LockMark({ kind }: { kind: LockKind }): JSX.Element {
+  return (
+    <svg class="skill-lock" data-lock={kind} viewBox="-8 -8 16 16" aria-hidden="true">
+      {kind === 'tier' && (
+        <g fill="none" stroke="#5c5a43" stroke-width="1.6" stroke-linecap="round">
+          <path d="M-3 -1 V-3 a3 3 0 0 1 6 0 V-1" />
+          <rect x="-4.5" y="-1" width="9" height="7" rx="1.5" fill="#d9d5b8" />
+        </g>
+      )}
+      {kind === 'closed' && (
+        <g fill="none" stroke="#5c5a43" stroke-width="1.8" stroke-linecap="round">
+          <path d="M-5 -5 L5 5 M5 -5 L-5 5" />
+        </g>
+      )}
+      {kind === 'xp' && (
+        <g fill="none" stroke="#5c5a43" stroke-width="1.6" stroke-linecap="round">
+          <circle r="5.5" stroke-dasharray="3 2.4" />
+          <path d="M0 -2.5 V2.5 M-2.5 0 H2.5" />
+        </g>
+      )}
+    </svg>
+  );
+}
+
+/** Every node's title and line, shown whether or not it can be taken; a lock mark says why it cannot. */
+function Caption({ n }: { n: NodeView }): JSX.Element | null {
+  const t = nodeText(n);
+  if (t === null) return null;
+  const lock = lockOf(n);
+  return (
+    <div class="skill-caption" data-caption={n.node.id}>
+      <span class="skill-caption-title">
+        {lock !== null && <LockMark kind={lock} />}
+        {t.title}
+      </span>
+      <span class="skill-caption-text">{t.text}</span>
+    </div>
+  );
+}
+
 function Branch({
   b,
   armedKey,
@@ -106,6 +150,7 @@ function Branch({
             {toPreact(drawBranchPath(PALETTE, b.paths[i] ?? 'open', PATH_SIZE))}
           </span>
           <Node n={n} armed={armedKey === n.node.id} inked={inkedId === n.node.id} onTap={onTap} />
+          <Caption n={n} />
         </div>
       ))}
     </div>

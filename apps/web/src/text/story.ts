@@ -70,3 +70,70 @@ export const vignetteOf = (id: string): string =>
 /** The art kit's vignette for an ending line. */
 export const endingVignetteOf = (line: string): string =>
   line.startsWith('ending.') ? line : `ending.${line}`;
+
+/**
+ * The "while you were away" lines: one short line for each kind of thing that happened near the creature.
+ * `one` when it happened once; `many` when it happened more, where `{times}` becomes "twice", "three times"...
+ * Same voice as the beats: short, concrete, no rules, no numbers.
+ */
+export const RECAP_TEXT = {
+  threat: {
+    one: 'Something dangerous drew near the creature.',
+    many: 'Danger drew near the creature {times}.',
+  },
+  strike: {
+    one: 'Something struck the creature.',
+    many: 'Something struck the creature {times}.',
+  },
+  trap: {
+    one: 'A hidden trap was sprung.',
+    many: 'Hidden traps were sprung {times}.',
+  },
+  hungry: {
+    one: 'The creature went hungry in the night.',
+    many: 'The creature went hungry {times}.',
+  },
+  find: {
+    one: 'Someone found something worth keeping.',
+    many: 'Things worth keeping were found {times}.',
+  },
+  reveal: {
+    one: 'A hidden thing came to light.',
+    many: 'Hidden things came to light {times}.',
+  },
+  fire: {
+    one: 'A fire was lit.',
+    many: 'Fires were lit {times}.',
+  },
+  cleared: {
+    one: 'A threat was driven off.',
+    many: 'Threats were driven off {times}.',
+  },
+  befriended: {
+    one: 'A settlement warmed to the party.',
+    many: 'Settlements warmed to the party {times}.',
+  },
+  angered: {
+    one: 'A settlement turned against the party.',
+    many: 'Settlements turned against the party {times}.',
+  },
+} as const;
+
+export type RecapKind = keyof typeof RECAP_TEXT;
+
+const TIMES = ['', '', 'twice', 'three times', 'four times', 'five times', 'six times'] as const;
+
+/** The line for something that happened `count` times, or null for a kind this build has no line for. */
+export function recapText(kind: string, count: number): string | null {
+  if (!has(RECAP_TEXT, kind)) return null;
+  const t = RECAP_TEXT[kind as RecapKind];
+  if (count <= 1) return t.one;
+  return t.many.replace('{times}', TIMES[count] ?? 'many times');
+}
+
+/** How many days turned, as a line ("A day turned while you were away."). */
+export function daysLine(dusks: number): string {
+  const words = ['No days', 'A day', 'Two days', 'Three days', 'Four days', 'Five days'] as const;
+  const n = Math.max(dusks, 1);
+  return `${words[n] ?? 'Many days'} turned while you were away.`;
+}

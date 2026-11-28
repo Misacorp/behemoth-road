@@ -15,7 +15,7 @@ import {
   type SkillNode,
 } from '@behemoth-road/core';
 import { whyOfPick } from '../game/why.ts';
-import type { TipId } from '../text/tips.ts';
+import { TIP_TABLE, type TipId } from '../text/tips.ts';
 import { tipFor } from '../ui/tip.ts';
 
 /** One node of a tree: how to draw it and why it cannot be taken (null when it can). */
@@ -76,6 +76,33 @@ export function treeOf(
 export function nodeTip(n: NodeView): TipId | null {
   if (n.state === 'available' || n.state === 'taken') return tipFor('skill', n.node.id);
   return n.refusal === null ? null : whyOfPick(n.refusal);
+}
+
+/** Why a node is out of reach, as a small mark: a lock (an earlier step first, or another role's tree), a cut (the other branch was chosen), or a spark (not enough XP yet). */
+export type LockKind = 'tier' | 'closed' | 'xp';
+
+export function lockOf(n: NodeView): LockKind | null {
+  switch (n.refusal) {
+    case 'skill-tier-order':
+    case 'skill-tier-limit':
+    case 'skill-veiled':
+      return 'tier';
+    case 'branch-closed':
+      return 'closed';
+    case 'no-pick':
+      return 'xp';
+    default:
+      return null;
+  }
+}
+
+/** The title and line a node shows in the tree, for every node whether or not it can be taken (null for a veiled one). */
+export function nodeText(n: NodeView): { readonly title: string; readonly text: string } | null {
+  if (n.state === 'veiled') return null;
+  const id = tipFor('skill', n.node.id);
+  if (id === null) return null;
+  const t = TIP_TABLE[id];
+  return { title: t.title ?? '', text: t.text };
 }
 
 /**
