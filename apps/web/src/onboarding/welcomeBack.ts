@@ -4,6 +4,7 @@
  * `GET /api/game?since=`), and where peril and the route stand now. Everything in it is already public in
  * the view and the log, so it reveals nothing new. These are the pure rules; `WelcomeBack.tsx` draws it.
  */
+import { destinationProgress } from '@behemoth-road/core';
 import type { GameEvent, PlayerView } from '../api/schema.ts';
 import { type Moment, momentsFromEvents } from '../game/moments.ts';
 
@@ -45,6 +46,8 @@ export interface Welcome {
   readonly perilWoundedAt: number;
   readonly steps: number;
   readonly routeLength: number;
+  /** How far along to the destination band, 0..1 (the route strip's measure). */
+  readonly progress: number;
 }
 
 /**
@@ -105,5 +108,6 @@ export function welcomeOf(
     perilWoundedAt: game.config.perilWoundedAt,
     steps: game.creature.steps,
     routeLength: game.config.routeLength,
+    progress: destinationProgress(game),
   };
 }

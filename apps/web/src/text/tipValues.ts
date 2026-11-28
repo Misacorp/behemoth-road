@@ -3,8 +3,9 @@
  * says what the rules say even after a change. `fillTip` puts them into a tip's text.
  */
 import {
+  baseGatherYield,
   LURE_TYPES,
-  SKILL_NODES,
+  roleEffects,
   STIMULUS_TYPES,
   type SkillEffect,
   type TuningConfig,
@@ -13,53 +14,66 @@ import {
 
 const percent = (p: number): string => String(Math.round(p * 100));
 
-/** The effect of a skill node, read from the content so a skill's text follows its numbers. */
+/**
+ * The one effect of this kind in a role's tree that `pick` accepts (any when it is left out), read from the
+ * content so a skill's text follows its numbers. Missing is an error: a tip must never show a guess.
+ */
 function effect<K extends SkillEffect['kind']>(
-  id: string,
+  role: string,
   kind: K,
+  pick: (e: Extract<SkillEffect, { kind: K }>) => boolean = () => true,
 ): Extract<SkillEffect, { kind: K }> {
-  const e = SKILL_NODES.find((n) => n.id === id)?.effect;
-  if (e?.kind !== kind) throw new Error(`skill ${id} has no ${kind} effect`);
-  return e as Extract<SkillEffect, { kind: K }>;
+  const e = roleEffects(role, kind).find(pick);
+  if (!e) throw new Error(`role ${role} has no matching ${kind} effect`);
+  return e;
+}
+
+/** The little animal a lead moves: the lure tagged `small-beast`, by its content name. */
+function leadName(): string {
+  const lure = LURE_TYPES.find((l) => l.tags.includes('small-beast'));
+  if (!lure) throw new Error('no lure is tagged small-beast');
+  return lure.name.toLowerCase();
 }
 
 /** The numbers skill texts show (a skill's own number, and the base it replaces). */
 function skillValues(config: TuningConfig): Record<string, string> {
-  const fire = effect('keeper-b3', 'fire-boost');
+  // The scout's two sight skills: the nearer first, the further second.
+  const nearest = Math.min(...roleEffects('scout', 'glints').map((e) => e.range));
+  const fire = effect('keeper', 'fire-boost');
   return {
     xpPerPick: String(config.xpPerPick),
     perilMax: String(config.perilMax),
     buildWork: String(config.buildWork),
     lingerCost: String(config.lingerCost),
-    // A gather yields 1 unless a skill says more (`gatherYield` in the core).
-    gatherYield: '1',
-    bulwark: String(effect('warden-a1', 'defend-reduction').amount),
-    parleyBonus: String(effect('warden-a2', 'parley-favour').bonus),
-    parleyRange: String(effect('warden-b1', 'parley-range').range),
-    strikeRange: String(effect('warden-b2', 'strike-range').range),
-    escortRange: String(effect('warden-b3', 'escort-range').range),
-    surveyRange: String(effect('scout-a2', 'survey-range').range),
-    glintRange: String(effect('scout-b1', 'glints').range),
-    glintRange2: String(effect('scout-b2', 'glints').range),
-    forecastDays: String(effect('scout-b3', 'forecast').days),
-    fieldKitCost: String(effect('scholar-a1', 'action-cost').cost),
-    steadyBonus: percent(effect('scholar-a2', 'site-chance').bonus),
-    siteFinds: String(effect('scholar-a3', 'site-finds').amount),
-    lampBonus: percent(effect('scholar-b1', 'site-chance').bonus),
-    relicChance: percent(effect('scholar-b2', 'find-bonus').chance),
-    mapRange: String(effect('scholar-b3', 'reveal-site').range),
-    foodYield: String(effect('keeper-a1', 'gather-yield').amount),
-    feedCalm: String(effect('keeper-a2', 'feed-calm').amount),
-    hungerDays: String(effect('keeper-a3', 'hunger-slow').everyDays),
-    quietCost: String(effect('keeper-b1', 'action-cost').cost),
+    // A gather yields the node's own amount unless a skill says more.
+    gatherYield: String(baseGatherYield()),
+    bulwark: String(effect('warden', 'defend-reduction').amount),
+    parleyBonus: String(effect('warden', 'parley-favour').bonus),
+    parleyRange: String(effect('warden', 'parley-range').range),
+    strikeRange: String(effect('warden', 'strike-range').range),
+    escortRange: String(effect('warden', 'escort-range').range),
+    surveyRange: String(effect('scout', 'survey-range').range),
+    glintRange: String(effect('scout', 'glints', (e) => e.range === nearest).range),
+    glintRange2: String(effect('scout', 'glints', (e) => e.range !== nearest).range),
+    forecastDays: String(effect('scout', 'forecast').days),
+    fieldKitCost: String(effect('scholar', 'action-cost', (e) => e.action === 'work-site').cost),
+    steadyBonus: percent(effect('scholar', 'site-chance', (e) => e.tag === undefined).bonus),
+    siteFinds: String(effect('scholar', 'site-finds').amount),
+    lampBonus: percent(effect('scholar', 'site-chance', (e) => e.tag !== undefined).bonus),
+    relicChance: percent(effect('scholar', 'find-bonus').chance),
+    mapRange: String(effect('scholar', 'reveal-site').range),
+    foodYield: String(effect('keeper', 'gather-yield', (e) => e.tag !== undefined).amount),
+    feedCalm: String(effect('keeper', 'feed-calm').amount),
+    hungerDays: String(effect('keeper', 'hunger-slow').everyDays),
+    quietCost: String(effect('keeper', 'action-cost', (e) => e.action === 'linger').cost),
     beaconRange: String(fire.range),
     beaconNights: String(fire.nights ?? 0),
-    doubleYield: String(effect('engineer-a1', 'gather-yield').amount),
-    packMule: String(effect('engineer-a2', 'pack-size').capacity),
-    droneAmount: String(effect('engineer-a3', 'drone').amount),
-    quickWork: String(effect('engineer-b1', 'build-work').amount),
-    thrift: String(effect('engineer-b2', 'build-discount').amount),
-    tickWork: String(effect('engineer-b3', 'build-tick').amount),
+    doubleYield: String(effect('engineer', 'gather-yield', (e) => e.tag === undefined).amount),
+    packMule: String(effect('engineer', 'pack-size').capacity),
+    droneAmount: String(effect('engineer', 'drone').amount),
+    quickWork: String(effect('engineer', 'build-work').amount),
+    thrift: String(effect('engineer', 'build-discount').amount),
+    tickWork: String(effect('engineer', 'build-tick').amount),
   };
 }
 
@@ -87,7 +101,7 @@ export function tipValues(config: TuningConfig): Readonly<Record<string, string>
     // Filled per thing when its tip opens (an odds mark's numbers); empty until then.
     note: '',
     // The little animal a lead moves, by its content name.
-    lure: (LURE_TYPES[0]?.name ?? 'animal').toLowerCase(),
+    lure: leadName(),
     struckActions: String(config.struckActions),
     fireFuel: String(
       STIMULUS_TYPES.find((s) => s.tags.includes('fire') && !s.tags.includes('fire-site'))?.fuel

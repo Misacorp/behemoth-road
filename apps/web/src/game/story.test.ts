@@ -1,4 +1,4 @@
-import { endingOf, STORYLETS, type Hex } from '@behemoth-road/core';
+import { directionOffset, endingOf, STORYLETS, type Hex } from '@behemoth-road/core';
 import { STORY_VIGNETTE_IDS } from '@behemoth-road/art';
 import { describe, expect, it } from 'vitest';
 import { joined, joinedScenario, seasonScenario } from '../api/fixtures.ts';
@@ -282,6 +282,15 @@ describe('standing stones', () => {
       ...s0,
       story: { ...s0.story, fired: [...s0.story.fired, WAYMARKS[0].id] },
       creature: { ...s0.creature, steps: step + 5 },
+      // The route runs through the trail hex: it is 2 rows out on a band 4 rows out (a quarter is 1).
+      destination: {
+        ...s0.destination,
+        origin: {
+          q: at.q - 2 * directionOffset(s0.destination.heading).q,
+          r: at.r - 2 * directionOffset(s0.destination.heading).r,
+        },
+        from: 4,
+      },
       traces: [{ kind: 'trail' as const, hex: at, step }],
     };
     const memory = newStoneMemory();
@@ -298,6 +307,15 @@ describe('standing stones', () => {
       ...s0,
       story: { ...s0.story, fired: [...s0.story.fired, WAYMARKS[0].id] },
       creature: { ...s0.creature, steps: step + 5 },
+      // The route runs through the trail hex: it is 2 rows out on a band 4 rows out (a quarter is 1).
+      destination: {
+        ...s0.destination,
+        origin: {
+          q: at.q - 2 * directionOffset(s0.destination.heading).q,
+          r: at.r - 2 * directionOffset(s0.destination.heading).r,
+        },
+        from: 4,
+      },
       traces: [{ kind: 'trail' as const, hex: at, step }],
     };
     const memory = newStoneMemory();

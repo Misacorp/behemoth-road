@@ -40,8 +40,11 @@ export interface PerilProps {
 }
 
 export interface RouteProps {
+  /** The day counter: steps walked (the date reads "steps of length"). */
   readonly steps: number;
   readonly length: number;
+  /** How far along the way to the destination band, 0..1: the strip is full exactly when the season ends. */
+  readonly progress: number;
 }
 
 /** The peril gauge: `max` marks, the wounded threshold notched; it jolts on a strike, swells on relief. */
@@ -203,6 +206,7 @@ export const dateOf = (steps: number, length: number): string =>
 export function RouteStrip({
   steps,
   length,
+  progress,
   width = 160,
   date = true,
 }: RouteProps & { width?: number; date?: boolean }) {
@@ -213,9 +217,12 @@ export function RouteStrip({
         aria-label="Route"
         data-steps={steps}
         data-length={length}
+        data-progress={progress.toFixed(3)}
         {...tipProps('hud:route')}
       >
-        {toPreact(drawRouteStrip(PALETTE, width, steps, length))}
+        {toPreact(
+          drawRouteStrip(PALETTE, width, Math.min(1, Math.max(0, progress)) * length, length),
+        )}
       </span>
       <span class="hud-greyfold" aria-label="Greyfold" {...tipProps('hud:greyfold')}>
         {toPreact(drawDestinationBadge(PALETTE, 24))}

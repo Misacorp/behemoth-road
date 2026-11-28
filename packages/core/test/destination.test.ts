@@ -93,12 +93,15 @@ describe('the destination band', () => {
       let before = state.creature.centre;
       for (let i = 0; i < 60 && state.season.status === 'on'; i++) {
         expect(inDestination(state.destination, state.creature.centre)).toBe(false);
+        // The strip is full exactly when the season ends: below 1 all the way there.
+        expect(destinationProgress(state)).toBeLessThan(1);
         before = state.creature.centre;
         state = nextDay(state);
       }
       expect(state.season.status).toBe('over');
       expect(inDestination(state.destination, state.creature.centre)).toBe(true);
       expect(inDestination(state.destination, before)).toBe(false);
+      expect(destinationProgress(state)).toBe(1);
       // 7 rows out: all straight 7 steps, all veering 14.
       expect(state.creature.steps).toBeGreaterThanOrEqual(7);
       expect(state.creature.steps).toBeLessThanOrEqual(14);

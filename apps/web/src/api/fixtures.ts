@@ -23,6 +23,7 @@ import {
   type CharacterTally,
   type SeasonStats,
   replaceCharacter,
+  directionOffset,
   rowsAlong,
   SEEN_IDS,
   toPlayerView,
@@ -526,6 +527,18 @@ export function seasonScenario(stage: SeasonStage = {}): Scenario {
     },
     creature: { ...s.state.creature, steps: stage.steps ?? 0, defenders: [] },
   };
+  if (stage.steps !== undefined && stage.destinationAhead === undefined) {
+    // Steps walked mean the creature is that far along the way: move the route's origin back behind it, so
+    // the band stays put and the route strip (which reads the band) agrees with the steps.
+    const d = state.destination;
+    const done = Math.min(d.from, Math.round((stage.steps / state.config.routeLength) * d.from));
+    const { q, r } = directionOffset(d.heading);
+    const here = state.creature.centre;
+    state = {
+      ...state,
+      destination: { ...d, origin: { q: here.q - q * done, r: here.r - r * done } },
+    };
+  }
   if (stage.wardenAt) {
     state = place(state, OLA, abs(stage.wardenAt));
     state = {

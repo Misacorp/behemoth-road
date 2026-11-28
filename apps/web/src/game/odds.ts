@@ -30,7 +30,7 @@ const ART: Readonly<Record<string, OddsFailure>> = {
 /** The word for each failure kind in the tip's numbers. */
 const WORD: Readonly<Record<string, string>> = {
   buried: 'Pinned',
-  'still-pinned': 'Pinned',
+  'still-pinned': 'Still pinned',
   angered: 'Angered',
   'site-failed': 'Nothing',
 };

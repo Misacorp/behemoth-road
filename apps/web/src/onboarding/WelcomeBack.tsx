@@ -93,7 +93,12 @@ export function WelcomeBack({ welcome: w, onStep, onDone }: WelcomeBackProps): J
               {daysLine(w.dusks)}
             </p>
             <div class="onb-sheet-route">
-              <RouteStrip steps={w.steps} length={w.routeLength} width={220} />
+              <RouteStrip
+                steps={w.steps}
+                length={w.routeLength}
+                progress={w.progress}
+                width={220}
+              />
             </div>
           </>
         )}
@@ -117,7 +122,12 @@ export function WelcomeBack({ welcome: w, onStep, onDone }: WelcomeBackProps): J
               <ArtCreature size={84} />
             </div>
             <div class="onb-sheet-route">
-              <RouteStrip steps={w.steps} length={w.routeLength} width={220} />
+              <RouteStrip
+                steps={w.steps}
+                length={w.routeLength}
+                progress={w.progress}
+                width={220}
+              />
             </div>
           </>
         )}

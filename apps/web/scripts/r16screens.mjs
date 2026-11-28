@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* global console, process, document, window, MouseEvent */
+/* global console, process, document, window, MouseEvent, getComputedStyle */
 /**
  * Screenshots and browser checks for round 16's screens: the skill tree with its locked nodes' text, the
  * creature menu with its verbs, the ending on desktop (the recap drawer open and closed) and on a phone, the
@@ -214,6 +214,11 @@ async function runViewport(browser, vite, vp) {
     if ((await count('.drawer .recap-section')) !== 3)
       fail('ending: the drawer lacks its sections');
     await shot('ending-drawer');
+    // Focus is inside the drawer while it is open, and no ring is drawn.
+    if (!(await page.evaluate(() => !!document.activeElement?.closest('.drawer'))))
+      fail('ending: focus did not move into the recap drawer');
+    if (await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle !== 'none'))
+      fail('ending: the focused control in the recap drawer has an outline');
     await page.locator('.drawer .drawer-close').click();
     await wait(300);
     if (await count('.drawer')) fail('ending: the cross did not close the drawer');
@@ -225,6 +230,8 @@ async function runViewport(browser, vite, vp) {
     await page.keyboard.press('Escape');
     await wait(300);
     if (await count('.drawer')) fail('ending: Escape did not close the drawer');
+    if (!(await page.evaluate(() => !!document.activeElement?.closest('.ending-recap-toggle'))))
+      fail('ending: focus did not go back to the recap button');
     await press('.ending-recap-toggle');
     await page.locator('.drawer').waitFor();
     await press('.ending-recap-toggle');

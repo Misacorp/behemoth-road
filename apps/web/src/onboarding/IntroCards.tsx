@@ -79,7 +79,7 @@ function CardArt({ id }: { id: IntroCard['id'] }): JSX.Element {
         <div class="onb-art onb-art-home">
           <ArtCreature size={130} />
           <div class="onb-route">
-            <RouteStrip steps={7} length={10} width={260} />
+            <RouteStrip steps={7} length={10} progress={0.7} width={260} />
           </div>
           <span class="onb-home">
             <ArtIcon id="shelter" size={84} />

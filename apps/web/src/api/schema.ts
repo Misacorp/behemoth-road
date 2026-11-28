@@ -162,7 +162,7 @@ const config = v.object({
   perilCalm: count,
   routeLength: count,
   destinationDepth: count,
-  destinationRowsPerStep: v.pipe(v.number(), v.finite(), v.minValue(0), v.maxValue(1)),
+  destinationRowsPerStep: v.pipe(v.number(), v.finite(), v.minValue(0.5), v.maxValue(1)),
   xpPerPick: count,
   catchUpEverySteps: count,
   catchUpXp: count,

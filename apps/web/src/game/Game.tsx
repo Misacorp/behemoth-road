@@ -90,6 +90,7 @@ import {
 } from './moments.ts';
 import { canWait, stanceView } from './stances.ts';
 import { toGameState, toSigns } from './viewState.ts';
+import { routeOf } from '../hud/route.ts';
 import {
   anchorsOf,
   arrive,
@@ -875,7 +876,7 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
           woundedAt: state.config.perilWoundedAt,
           log: state.stats.peril,
         }}
-        route={{ steps: state.creature.steps, length: state.config.routeLength }}
+        route={routeOf(state)}
         story={badgeShown(story, unread) && storyFree ? { onTap: onStoryBadge } : null}
         jolt={moments.some((m) => m.kind === 'strike' || m.kind === 'hungry')}
         hungry={moments.some((m) => m.kind === 'hungry')}
@@ -940,7 +941,7 @@ export function Game({ api, initial, practice, guides }: GameProps): JSX.Element
           title={view.ending?.title ?? ENDING_TITLES[ended.outcome]}
           line={view.ending?.line ?? null}
           days={ended.day}
-          route={{ steps: state.creature.steps, length: state.config.routeLength }}
+          route={routeOf(state)}
           onNewSeason={showsNextDay(view) ? onNewSeason : null}
           failed={seasonFailed}
           party={state.characters

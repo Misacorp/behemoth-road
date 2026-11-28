@@ -5,7 +5,7 @@
  * three-quarter beats of `game.story.fired`.
  */
 import type { GameStateView, Hex, Trace, TraceKind } from '@behemoth-road/core';
-import { creatureHexes, hexKey } from '@behemoth-road/core';
+import { creatureHexes, hexKey, rowsAlong } from '@behemoth-road/core';
 import type { TipId } from '../text/tips.ts';
 
 /** When several traces share a hex, the one that tells most shows first (a trail is the least). */
@@ -92,12 +92,21 @@ export function standingStones(state: GameStateView, memory: StoneMemory): reado
   const fired = new Set(state.story.fired);
   for (const w of WAYMARKS) {
     if (!fired.has(w.id)) continue;
-    const step = Math.ceil(w.fraction * state.config.routeLength);
     let hex = memory.hexes.get(w.id) ?? null;
     if (!hex) {
-      hex =
-        state.traces.find((t) => t.kind === 'trail' && t.step === step)?.hex ??
-        (state.creature.steps - step <= 1 ? state.creature.centre : null);
+      // The stone stands where the creature first got a fraction of the way to the destination band,
+      // the measure the route strip shows: the earliest trail hex at or past it, else here.
+      const at = w.fraction * state.destination.from - 1e-9;
+      const crossed = state.traces
+        .filter((t) => t.kind === 'trail' && rowsAlong(state.destination, t.hex) >= at)
+        .sort((a, b) => a.step - b.step)[0];
+      // No trail past it yet: the creature is only now there (within a row of it, or a step of the beat's
+      // step count, which also fires it), else it has walked on and the stone has no place.
+      const here = rowsAlong(state.destination, state.creature.centre) - at;
+      const justNow =
+        (here >= 0 && here <= 1) ||
+        state.creature.steps - Math.ceil(w.fraction * state.config.routeLength) <= 1;
+      hex = crossed?.hex ?? (justNow ? state.creature.centre : null);
       if (hex) memory.hexes.set(w.id, hex);
     }
     if (hex && state.tiles[hexKey(hex)]) out.push({ id: w.id, hex, ticks: w.ticks });

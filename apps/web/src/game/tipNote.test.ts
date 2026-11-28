@@ -31,7 +31,7 @@ describe('the tip an action shows on its first tap', () => {
     );
     const struggle = oddsView({ success: 0.4, failure: 0.6, failureKind: 'still-pinned' });
     expect(actionLine('struggle', tipNoteOf(struggle))).toBe(
-      'Struggle. Try to free yourself. Each try is likelier to work. Success 40% · Pinned 60%',
+      'Struggle. Try to free yourself. Each try is likelier to work. Success 40% · Still pinned 60%',
     );
   });
 

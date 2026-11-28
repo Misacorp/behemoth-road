@@ -98,6 +98,10 @@ describe('tip texts', () => {
       for (const key of placeholdersIn(tip.text))
         expect(values[key], `${id}: {${key}}`).toBeDefined();
       expect(fillTip(tip.text, values), id).not.toMatch(/[{}]/);
+      expect(fillTip(tip.text, values), id).not.toContain('undefined');
+      if ('title' in tip) expect(fillTip(tip.title, values), id).not.toMatch(/[{}]|undefined/);
+      expect(fillTip(tip.text, values), id).not.toContain('undefined');
+      if ('title' in tip) expect(fillTip(tip.title, values), id).not.toMatch(/[{}]|undefined/);
       expect(tip.text.replace(/\{[^}]*\}/g, ''), id).not.toMatch(/[1-9]/);
     }
     // A tuning change shows in the text.

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* global console, process, document */
+/* global console, process, document, getComputedStyle */
 /**
  * Screenshots and browser checks for round 16's move and tips work, on a phone (390 x 844) and a desktop
  * (1440 x 900) size, against the fake game server:
@@ -212,7 +212,7 @@ async function runViewport(browser, vite, vp) {
   if (!(await count('[data-popover=inspect] [data-action=move][data-armed]')))
     fail('Move is not armed after its first tap');
   if (!(await count('.map-world [data-arrow=ready]'))) fail('no route arrow after the first tap');
-  await expectTip('armed Move', 'Move', 'Walk to this tile');
+  await expectTip('armed Move', 'Move', 'Move to this hex along the route.');
   await onScreen('[data-popover=inspect]', 'the armed tile card');
   await shot('move-armed-route');
   const before = JSON.stringify(
@@ -285,7 +285,7 @@ async function runViewport(browser, vite, vp) {
   await open(staged({ settlements: [{ at: START }] }));
   await tapHex(START, 8);
   await press('[data-popover=here] [data-action=parley]');
-  await expectTip('Parley', 'Parley', 'Win the village over.', 'Success');
+  await expectTip('Parley', 'Parley', 'Win a wary settlement’s favour.', 'Success');
   await onScreen('.tip', 'the parley tip');
   await shot('tip-parley-odds');
   await page.keyboard.press('Escape');
@@ -306,12 +306,25 @@ async function runViewport(browser, vite, vp) {
   if ((await count('[data-stance-pop] [data-stance]')) !== 3)
     fail('the fan does not show 3 stances');
   await onScreen('[data-stance-pop]', 'the stance fan');
+  if (!(await page.evaluate(() => !!document.activeElement?.closest('[data-stance-pop]'))))
+    fail('focus did not move into the stance fan');
+  if (await page.evaluate(() => getComputedStyle(document.activeElement).outlineStyle !== 'none'))
+    fail('the focused stance has an outline');
   // Rest the pointer on a stance so its own tip shows beside the fan, not the button's.
   const bubble = await page.locator('[data-stance-pop] [data-stance]').nth(1).boundingBox();
   if (bubble) await page.mouse.move(bubble.x + bubble.width / 2, bubble.y + bubble.height / 2);
   await wait(500);
   await shot('stance-fan');
   await page.keyboard.press('Escape');
+  await wait(150);
+  // A resting hover tip takes the first Escape; the fan closes on the next.
+  if (await count('[data-stance-pop]')) {
+    await page.keyboard.press('Escape');
+    await wait(150);
+  }
+  if (await count('[data-stance-pop]')) fail('Escape did not close the stance fan');
+  if (!(await page.evaluate(() => !!document.activeElement?.closest('.hud-stance'))))
+    fail('focus did not go back to the stance button');
 
   // 6. Long survey: every hex the scout can survey carries the icon, not only the neighbours.
   await open(staged({ taken: ['scout-a1', 'scout-a2'] }));
