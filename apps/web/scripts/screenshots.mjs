@@ -736,9 +736,14 @@ async function run() {
         if (!(await page.locator(`${mineRow} [data-mark=waiting]`).count()))
           problems.push(`${vp.name}: the roster shows no waiting mark`);
         await shotS('roster');
+        // Off the party button first so its tip is gone: Escape closes an open tip before anything else, and
+        // would leave the roster open under the next tap.
+        await page.mouse.move(2, vp.height - 2);
+        await page.waitForTimeout(250);
         await page.keyboard.press('Escape');
         await page.waitForTimeout(250);
-        await page.mouse.move(2, vp.height - 2);
+        if (await page.locator('.drawer[aria-label=Players]').count())
+          problems.push(`${vp.name}: Escape did not close the roster`);
       }
 
       // Next day (dev tools and admin): the server ticks and the map follows the creature.
@@ -779,13 +784,12 @@ async function run() {
 
       // The hub entry opens the creature card; right-click (desktop) and Escape close.
       const [q1, r1] = await creature();
-      // Clear the pace button's tip and anything its taps left open first.
-      await page.keyboard.press('Escape');
+      // Off the pace button, so its tip is gone and the tap goes to the map.
       await page.mouse.move(2, vp.height - 2);
       await page.waitForTimeout(300);
       await tap(...(await hexOnScreen(q1, r1)));
       await page.waitForTimeout(300);
-      if (!(await has('bubble'))) await tap(...(await hexOnScreen(q1, r1)));
+      if (!(await has('bubble'))) problems.push(`${vp.name}: no bubble on the creature tap`);
       await press('[data-popover=bubble] [aria-label=Behemoth]');
       if (!(await has('creature'))) problems.push(`${vp.name}: no creature card`);
       await holdAll('creature');
