@@ -72,6 +72,7 @@ describe('the hidden nature', () => {
       'contentVersion',
       'creature',
       'day',
+      'destination',
       'features',
       'lures',
       'misleadUntilDay',

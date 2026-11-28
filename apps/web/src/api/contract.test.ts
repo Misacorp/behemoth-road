@@ -117,11 +117,11 @@ describe('captured contract fixtures', () => {
       const view = v.parse(PlayerViewSchema, fixture(name));
       return momentsFromEvents(view.events, view.game.creature.centre, '').map((m) => m.kind);
     });
-    // The dev season brings threats from the first tick: both since-logs also carry a threat appearing.
-    // With the wider window none has reached the creature by the second tick yet.
+    // Staging plays the full season, whose threats come from day 3: the first since-log is too early for one,
+    // the second (the creature eating, later) carries a threat appearing.
     expect(kinds).toEqual([
       // The starved creature (the scenario lets it go hungry) raises peril: hunger is the cause shown.
-      ['stayed', 'fire-out', 'hungry', 'threat'],
+      ['stayed', 'fire-out', 'hungry'],
       ['step', 'ate', 'relieved', 'threat'],
     ]);
   });

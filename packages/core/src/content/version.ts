@@ -43,8 +43,9 @@
  *    (unlock with a `vehicle`), `carts` in the state, hitch, board, load and unload; hazards along the route
  *    (scree field, poisoned lake, glass waste: `perilOnStep` on terrain) and the lure (a capybara; the `lead`
  *    action, `lures` in the view, the creature's reaction to `small-beast`).
+ * 25: the destination band (`destination` in the state, a sanctuary the season ends on), 18 XP a pick and no explore XP for scouts, rivers that reach lakes or the sea.
  */
-export const CONTENT_VERSION = 24;
+export const CONTENT_VERSION = 25;
 
 /** Content versions this code can load. */
 export const KNOWN_CONTENT_VERSIONS: readonly number[] = [CONTENT_VERSION];

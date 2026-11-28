@@ -125,9 +125,8 @@ type Storage = Pick<
 >;
 
 /**
- * The core tuning overrides a new game is created with: the short dev season where the dev tools are on
- * (staging, local), the core defaults everywhere else. `devTools` is true only for `DEV_TOOLS` "on", so
- * any other value (or none) gives production's season.
+ * The core tuning overrides a new game is created with: `SERVER_CONFIG.devSeason` where the dev tools are on
+ * (staging, local; none today, so the full season), the core defaults everywhere else.
  */
 export const seasonConfig = (devTools: boolean): ConfigOverrides =>
   devTools ? SERVER_CONFIG.devSeason : {};

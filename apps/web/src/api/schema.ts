@@ -161,6 +161,8 @@ const config = v.object({
   perilHungryLevel: count,
   perilCalm: count,
   routeLength: count,
+  destinationDepth: count,
+  destinationRowsPerStep: v.pipe(v.number(), v.finite(), v.minValue(0), v.maxValue(1)),
   xpPerPick: count,
   catchUpEverySteps: count,
   catchUpXp: count,
@@ -176,6 +178,14 @@ export const GameStateViewSchema = v.object({
   artSeed: v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(0xffffffff)),
   day: count,
   config,
+  /** The destination band across the map: public from the start (`docs/design/destination.md`). */
+  destination: v.strictObject({
+    origin: hex,
+    heading: direction,
+    /** Rows (half rows) from the origin to the band's near edge. */
+    from: v.pipe(v.number(), v.finite(), v.minValue(0), v.maxValue(100_000)),
+    depth: count,
+  }),
   creature: v.object({
     centre: hex,
     /** The creature's kind (a content id). */

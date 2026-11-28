@@ -6,7 +6,7 @@
  * Walking straight in means harm; steering a hex or two aside avoids it.
  *
  * Patches are laid lazily and seeded (a pure function of the seed, the creature's steps and heading, and
- * what is already known), beyond the window, so the terrain shows as the tiles come into view and a
+ * what is already known; never in the destination), beyond the window, so the terrain shows as the tiles come into view and a
  * cluster's threats appear (public, with the usual threat visibility) once the patch is within reach.
  * Server only; the plan never leaves it. Rules read tags and properties, never ids.
  */
@@ -23,6 +23,7 @@ import {
   neighbour,
   rotate,
 } from './hex.ts';
+import { type Destination, inDestination } from './destination.ts';
 import { hazardTerrainAt, terrainById, terrainIdAt } from './map.ts';
 import { hashString, hashToUnit, pickWeighted, type Seed } from './random.ts';
 import type { Creature, GameState, HazardPatch, Threat, TileKnowledge } from './state.ts';
@@ -83,11 +84,16 @@ const makePatch = (
   centre: Hex,
   tiles: Readonly<Record<string, TileKnowledge>>,
   braziers: readonly Hex[],
+  keepOut: (h: Hex) => boolean,
 ): HazardPatch => {
   const type = pickWeighted(HAZARD_TYPES, (t) => t.weight, hashToUnit(seed, HAZARD_STREAM, k, 1));
   const radius = between(hashToUnit(seed, HAZARD_STREAM, k, 2), type.radius);
   const free = hexesInRange(centre, radius).filter(
-    (h) => !tiles[hexKey(h)] && !braziers.some((b) => hexEquals(b, h)) && layable(seed, h),
+    (h) =>
+      !tiles[hexKey(h)] &&
+      !keepOut(h) &&
+      !braziers.some((b) => hexEquals(b, h)) &&
+      layable(seed, h),
   );
   const id = `h${k + 1}`;
   if (type.cluster) {
@@ -120,7 +126,9 @@ export const extendHazards = (
   tiles: Readonly<Record<string, TileKnowledge>>,
   braziers: readonly Hex[],
   plan: readonly HazardPatch[],
+  destination?: Destination,
 ): readonly HazardPatch[] => {
+  const keepOut = (h: Hex): boolean => destination !== undefined && inDestination(destination, h);
   const ahead = hazardLookahead(config);
   let next = plan;
   for (;;) {
@@ -133,7 +141,7 @@ export const extendHazards = (
       const side = hashToUnit(seed, HAZARD_STREAM, k, 7) < 0.5 ? -1 : 1;
       centre = neighbour(centre, rotate(creature.heading, side));
     }
-    next = [...next, makePatch(seed, k, centre, tiles, braziers)];
+    next = [...next, makePatch(seed, k, centre, tiles, braziers, keepOut)];
   }
 };
 

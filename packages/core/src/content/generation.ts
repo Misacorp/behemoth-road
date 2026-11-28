@@ -57,6 +57,11 @@ export interface WaterKind {
   readonly shore: number;
   /** How much of the edge is eaten away at random, in hex steps. */
   readonly ragged: number;
+  /**
+   * Chance a body of this kind is set on a river (centred on one of the cell's river hexes, when it has
+   * any), so the river runs into it and out of it, not past. Needs `WaterGeneration.river`.
+   */
+  readonly onRiver?: number;
   /** Islands: from this radius up, with this chance, one to three land hexes in the deep part. */
   readonly island?: {
     readonly minRadius: number;
@@ -66,6 +71,8 @@ export interface WaterKind {
 }
 
 export interface WaterGeneration {
+  /** The terrain id the rules lay rivers with: bodies with `onRiver` are set on its hexes. */
+  readonly river?: string;
   /** Hexes around where the creature starts that stay dry. */
   readonly startClear: number;
   /** Largest line of deep hexes the kinds allow: for tests and the tips, not read by generation. */
@@ -90,6 +97,7 @@ const moisture: FieldRef = { name: 'moisture', scale: 10, octaves: 2 };
 export const TERRAIN_GENERATION: TerrainGeneration = {
   fallback: 'plains',
   waters: {
+    river: 'river',
     startClear: 8,
     // A crossing is a line of deep hexes: a radius under 2 allows 4 at most (about 3-4 creature steps).
     maxCrossing: 4,
@@ -103,6 +111,7 @@ export const TERRAIN_GENERATION: TerrainGeneration = {
         radius: [1.5, 1.95],
         shore: 1,
         ragged: 0.4,
+        onRiver: 1,
         island: { minRadius: 1.5, chance: 1, terrain: 'islet' },
       },
       {
@@ -110,20 +119,22 @@ export const TERRAIN_GENERATION: TerrainGeneration = {
         deep: 'lake',
         shallows: 'shallows',
         cell: 12,
-        chance: 0.35,
+        chance: 0.4,
         radius: [1.0, 1.85],
         shore: 1,
         ragged: 0.5,
+        onRiver: 1,
         island: { minRadius: 1.2, chance: 0.7, terrain: 'islet' },
       },
       {
         id: 'pond',
         deep: 'lake',
         cell: 6,
-        chance: 0.15,
+        chance: 0.2,
         radius: [0.3, 0.95],
         shore: 0,
         ragged: 0.2,
+        onRiver: 1,
       },
     ],
   },

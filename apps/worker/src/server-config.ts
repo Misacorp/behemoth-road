@@ -53,21 +53,11 @@ export const SERVER_CONFIG = {
   /** How long a player's "may manage the server" answer is reused before Discord is asked again. */
   adminCacheMs: 10 * 60 * 1000,
   /**
-   * Core tuning overrides for a game created where the dev tools are on (staging, local): a short season,
-   * so a playtest reaches settlements, threats and the ending in days. Production uses the core defaults.
-   * Threats may come from the first tick and come often: over 30 seeds with 2 to 3 idle players, the first
-   * threat is out by day 2 in about 80% and by day 3 in over 90%, and strikes raise peril by day 5 in about
-   * 75% (measured in the core, see the decision "Dev season brings threats from the first tick").
+   * Core tuning overrides for a game created where the dev tools are on (staging, local). None: staging
+   * plays the full production season (decision "Staging plays the full season"). The dev tools (skip to
+   * next day, fast rounds) are on there regardless; this is only the tuning.
    */
-  devSeason: {
-    routeLength: 12,
-    settlementFirst: 3,
-    settlementEvery: 6,
-    threatsFromDay: 1,
-    threatChanceBase: 0.6,
-    /** A pick per 5 XP (14 on a full season), so a short season gives a choice or two to a busy player. */
-    xpPerPick: 5,
-  },
+  devSeason: {} as Readonly<Record<string, never>>,
   limits: {
     /** Bound on hex coordinates in a request; the creature walks one hex a day. */
     maxCoordinate: 100_000,

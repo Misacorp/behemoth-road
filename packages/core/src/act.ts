@@ -1370,9 +1370,34 @@ const ALL_BOONS = BOONS.filter((b) => PEOPLE_TYPES.some((p) => p.boons.includes(
 /** Materials a settlement takes as an offering. */
 const TRADE_GOODS = MATERIALS.filter((m) => m.tags.includes(TRADE_TAG));
 
+/** Hexes within a character's survey reach that are on the map and not yet explored (cost and the rest unchecked). */
+const surveyCandidates = (state: GameStateView, c: Character): Hex[] => {
+  const reach = surveyReach(c);
+  const near: Hex[] =
+    reach <= 1
+      ? placeNeighbours(state, c.at).flatMap((p) => (p.kind === 'hex' ? [p.hex] : []))
+      : hexesInRange(
+          c.at.kind === 'hex' ? c.at.hex : state.creature.centre,
+          reach + state.config.creatureRadius,
+        ).filter((h) => withinSurvey(state, c, h));
+  return near.filter((h) => state.tiles[hexKey(h)] && !isExplored(state, h));
+};
+
+/**
+ * The hexes this character could survey now (in reach, reachable, unexplored, and the actions to pay):
+ * the next hexes, or every hex within the range a survey skill gives (Long survey: 2). For the survey marks.
+ */
+export const surveyableHexes = (state: GameStateView, characterId: string): Hex[] => {
+  const c = state.characters.find((x) => x.id === characterId);
+  if (!c) return [];
+  return surveyCandidates(state, c).filter(
+    (h) => checkAction(state, characterId, { kind: 'survey', hex: h }).ok,
+  );
+};
+
 /**
  * Every action a character could take now, with its check, for the interface:
- * surveying each adjacent unexplored hex, gathering and working a site here,
+ * surveying each unexplored hex in survey reach, gathering and working a site here,
  * building each unlock, lighting a fire, feeding and lingering, striking each
  * threat, defending, parleying, offering each trade good and asking each boon.
  * Runs on a view.
@@ -1383,17 +1408,10 @@ export const actionsHere = (
 ): { readonly action: Action; readonly check: ActCheck }[] => {
   const c = state.characters.find((x) => x.id === characterId);
   if (!c) return [];
-  const reach = surveyReach(c);
-  const near: Hex[] =
-    reach <= 1
-      ? placeNeighbours(state, c.at).flatMap((p) => (p.kind === 'hex' ? [p.hex] : []))
-      : hexesInRange(
-          c.at.kind === 'hex' ? c.at.hex : state.creature.centre,
-          reach + state.config.creatureRadius,
-        ).filter((h) => withinSurvey(state, c, h));
-  const surveys: Action[] = near.flatMap((h) =>
-    state.tiles[hexKey(h)] && !isExplored(state, h) ? [{ kind: 'survey' as const, hex: h }] : [],
-  );
+  const surveys: Action[] = surveyCandidates(state, c).map((h) => ({
+    kind: 'survey' as const,
+    hex: h,
+  }));
   const options: Action[] = [
     ...surveys,
     { kind: 'gather' },

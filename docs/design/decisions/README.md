@@ -58,7 +58,7 @@ Record a decision:
 - 2026-11-21 Live sockets: ticket auth, caps, Hibernation, flag off in production (amended)
 - 2026-11-21 Live sockets only say "changed"; the client fetches its own view
 - 2026-11-21 Fast pace schedules a second alarm time in the one Durable Object alarm
-- 2026-11-20 The short dev season follows the dev-tools switch; an ended season stops the schedule
+- 2026-11-20 The short dev season follows the dev-tools switch; an ended season stops the schedule (amended)
 - 2026-11-20 Staging and local seasons are short; admins start a new season there
 - 2026-11-20 Web schema requires the M4 view fields now the fixtures carry them
 - 2026-11-20 The player view carries each viewer's creature signs; the creature's nature and condition never leave the server
@@ -123,6 +123,11 @@ Superseded: 3 entries (see the topic file).
 
 [product.md](product.md): Features, UX and behaviour the users see.
 
+- 2026-11-28 surveyableHexes lists what a survey can reach
+- 2026-11-28 Rivers run into lakes, ponds and seas \[Misa\]
+- 2026-11-28 Scouts earn XP like everyone else, 18 XP a pick \[Misa\]
+- 2026-11-28 The season ends on a destination band, a sanctuary the map shows \[Misa\]
+- 2026-11-28 Staging plays the full season \[Misa\]
 - 2026-11-27 End-of-day reveals happen after the creature moves \[Misa\]
 - 2026-11-27 A drawer closes only on a mouse press on the map, and focus returns to its opener
 - 2026-11-27 One registry of tappable things feeds the picker and the tap resolver
@@ -186,7 +191,7 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-23 A public skills wiki at /wiki with a build planner
 - 2026-11-22 The ending and the peril gauge show where peril came from \[Misa\]
 - 2026-11-22 The catch-up is 1 XP every 10 steps \[Misa\]
-- 2026-11-22 Skill XP comes from any contribution, one pool per character \[Misa\]
+- 2026-11-22 Skill XP comes from any contribution, one pool per character \[Misa\] (amended)
 - 2026-11-22 One tap on a skill node shows its tip and arms it; the glint is bigger \[Misa\]
 - 2026-11-22 Skill tree UI: emblem ring on the HUD, arm then take, tips for reasons (amended)
 - 2026-11-22 Skill slice: notch per action performed, tier 1 live, effects as data hooks (amended)
@@ -229,7 +234,6 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-20 Marks for empty hexes, out of reach, a needed role and a mislead
 - 2026-11-20 Features stand on a plinth; decorative props do not
 - 2026-11-20 A survey of an empty hex says so
-- 2026-11-20 Dev season brings threats from the first tick
 - 2026-11-20 Stone, iron and timber also lie on open ground
 - 2026-11-20 Threats and settlements near you carry M4-style action badges
 - 2026-11-20 Escort and struck marks read the core's rule through one web function until the core exports it
@@ -326,4 +330,4 @@ Superseded: 3 entries (see the topic file).
 - 2026-11-19 Drag and drop always has a tap and keyboard alternative
 - 2026-11-19 Counts read "1 / 3", and terms explain themselves without "?" icons
 
-Superseded: 9 entries (see the topic file).
+Superseded: 10 entries (see the topic file).

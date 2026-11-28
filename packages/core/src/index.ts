@@ -304,10 +304,23 @@ export {
   type EnterResult,
   type GameEvent,
 } from './features.ts';
+export {
+  type Destination,
+  destinationFor,
+  destinationHexesNear,
+  destinationProgress,
+  inDestination,
+  isSanctuary,
+  regionTagsAt,
+  rowsAlong,
+  rowsToDestination,
+  SANCTUARY_TAG,
+} from './destination.ts';
 export { blockedFor, type BlockedHex, type BlockReason, type BlockSubject } from './blocked.ts';
 export {
   act,
   actionsHere,
+  surveyableHexes,
   checkAction,
   fallChance,
   oddsOf,

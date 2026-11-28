@@ -5,13 +5,21 @@ For Misa to react to. Numbers are guesses for the tuning config. **All 30 nodes 
 ## How progression works in a season
 
 - **You earn XP by contributing** (revised after the first playtest; the first draft paid notches to the role that owned the work). Every act that helps earns 1 XP into one pool, whatever your role: survey, gather, work a site, build, feed, linger, light a fire, strike, defend, parley, offer, ask a boon. Moving earns nothing. A scout also earns 1 XP for each newly explored hex, walked into or surveyed.
-- **A pick per `xpPerPick` XP** (14 on a full season, 5 on the dev season), tuned so a busy player gets about the same picks as under the notch rule (simulated: 1.4 each at 3 players, 1.0 at 6, per 40 steps; a human who acts all three actions a day earns far more).
+- **A pick per `xpPerPick` XP** (18; staging plays the same full season, see "Pace" below), tuned so a busy player gets about the same picks as under the notch rule (simulated: 1.4 each at 3 players, 1.0 at 6, per 40 steps; a human who acts all three actions a day earns far more).
 - **Pick any time**, free, effective at once, kept for the season.
 - **Each tree forks:** two branches of three tiers. Your first pick in a tree chooses the branch; the other closes. Mastery is three picks.
 - **Multi-classing is open.** Any pick can buy another role's tier 1 (never deeper): a scout can take Bulwark, never Wide guard.
 - **No combos.** No node reads who else is near or their role.
 
 **Between seasons:** nothing for now. Later, optional: a master who came home joins the roster as a veteran with a matching trait, for one run (a sidegrade), and the archive keeps a seal per mastered branch.
+
+## Pace (2026-11-28, from Misa's playtest)
+
+Misa, playing a scout on staging: "Scouts get EXP REALLY FAST compared to a class like the Warden ... I had maxed everything in just 10 days."
+
+Two causes. A scout earned 1 XP for each newly explored hex as well as 1 for each survey, so a busy scout earned about 5 XP a day against 3 at most for anyone else (the balance sim's surveying scout: 4.9 a day, 14 picks by day 40 of a tree that holds 7: its own three tiers and four other roles' tier 1). And staging ran the 12-step season with `xpPerPick` 5, so a pick came after 5 acts.
+
+Now: `exploreXp` is 0 on every role (the mechanism stays as data on the role), so every role earns 1 XP an act, at most `actionsPerDay` (3) a day, and `xpPerPick` is 18. A player who spends every action a day on XP acts earns about 3.3 picks by day 20 of a 40-day season and the whole tree (7) only at the very end; one who acts about twice a day gets about 2 by day 20 and 4 by day 40. The sim's surveying scout: 3.1 picks by day 20, 5.4 to 5.8 by day 40 (it runs out of hexes to survey some days). Staging plays the full season (decision "Staging plays the full season"), so one tuning serves both.
 
 ## The trees
 
@@ -145,7 +153,7 @@ The player view response (`PlayerView`) gains a per-viewer field `glints: { q, r
 
 **XP.** One XP per action performed (not per action point; a refused action earns none), to the actor, whatever their role: survey, gather, build, work-site (a failed attempt counts), feed, linger, light-fire, strike, defend, parley, offer and ask-boon. The amounts are data (`ACTION_XP`, 1 each). Moving and picking earn nothing. A role may earn for exploring: `Role.exploreXp` (scout 1, others 0) times the hexes the action newly explored (a survey's target, or the hex a move enters; a survey earns its act XP as well). Catch-up: at each day tick where the creature's step count reaches a multiple of `catchUpEverySteps` (10; a linger adds no step), every active character gets `catchUpXp` (1).
 
-**Picks.** Picks available = `floor(xp / xpPerPick) - nodes taken` (`picksAvailable(state, character)`, no role argument). `xpPerPick` is 14 (the dev season on staging and local sets 5). Both numbers are in the core tuning config (`config` on the state, so the client reads them from the view).
+**Picks.** Picks available = `floor(xp / xpPerPick) - nodes taken` (`picksAvailable(state, character)`, no role argument). `xpPerPick` is 18 (it was 14, and 5 on the old short staging season). Both numbers are in the core tuning config (`config` on the state, so the client reads them from the view).
 
 **Action.** `{ kind: 'pick-skill', node: <nodeId> }` through `POST /api/game/act`. It costs no actions (`check.cost` 0) and works with none left. It is valid when: the node exists and is active; it is not taken; the character has a pick (XP not yet spent); the role's other branch is not taken (the first pick chooses the branch); tier order holds (tier n needs tier n-1 of the same branch); and, for a role other than the character's own, the tier is 1. A node of any role can be bought with the one pool. The result event is `{ kind: 'skill-picked', characterId, node }`. The helpers `picksAvailable(state, character, role)` and `pickRefusal(state, character, nodeId)` run on a view, so the UI can grey nodes without asking the server.
 

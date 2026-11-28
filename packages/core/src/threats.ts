@@ -7,6 +7,7 @@
  */
 
 import { THREAT_TYPES, type ThreatType } from './content/index.ts';
+import { isSanctuary } from './destination.ts';
 import { roleHas } from './features.ts';
 import { FEARS_FIRE_TAG, inFireRing } from './fire.ts';
 import { bestOf, effectsOf } from './skills.ts';
@@ -94,6 +95,8 @@ export const threatPath = (state: GameStateView, threat: Threat, centre: Hex, ah
     if (hexDistance(at, centre) <= contact) break;
     const next = stepToward(at, centre);
     if (keepsClearOf(state, type, next, ahead)) break;
+    // The destination is a sanctuary: no threat walks into it.
+    if (isSanctuary(state, next)) break;
     at = next;
     path.push(at);
   }
@@ -158,6 +161,7 @@ export const approachHexes = (state: GameStateView, type: ThreatType, side: -1 |
 export const canAppearOn = (state: GameStateView, h: Hex, type?: ThreatType): boolean => {
   const terrain = terrainOf(state, h);
   if (!terrain || isCreatureHex(state, h)) return false;
+  if (isSanctuary(state, h)) return false;
   if (type && keepsClearOf(state, type, h)) return false;
   if (type?.on && !type.on.some((tag) => terrain.tags.includes(tag))) return false;
   if (OFF_LIMITS_TAGS.some((tag) => terrain.tags.includes(tag))) return false;

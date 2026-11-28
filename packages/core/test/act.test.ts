@@ -15,6 +15,7 @@ import {
   onHex,
   planPath,
   possibleActions,
+  surveyableHexes,
   toPlayerView,
 } from '../src/index.ts';
 import { chainGame, placeCharacter, withCharacter, withFeature, withTerrain } from './helpers.ts';
@@ -497,5 +498,31 @@ describe('actionsHere', () => {
     expect(possible.filter((a) => a.kind === 'survey')).toHaveLength(6);
     expect(possible.filter((a) => a.kind !== 'survey')).toEqual([{ kind: 'gather' }]);
     expect(possibleActions(toPlayerView(state), 'engineer')).toEqual(options);
+  });
+});
+
+describe('surveyableHexes', () => {
+  it('lists the next hexes, and with Long survey every unexplored hex within two', () => {
+    const base = placeCharacter(chainGame(['scout']), 'scout', P);
+    const near = surveyableHexes(toPlayerView(base), 'scout');
+    expect(near).toHaveLength(6);
+    const long = withCharacter(base, {
+      ...base.characters.find((c) => c.id === 'scout')!,
+      skills: { xp: 0, taken: ['scout-a1', 'scout-a2'] },
+    });
+    const far = surveyableHexes(toPlayerView(long), 'scout');
+    expect(far.length).toBeGreaterThan(near.length);
+    expect(far.some((h) => hexKey(h) === hexKey(hex(5, -1)))).toBe(true);
+    // Everything listed can be surveyed, and nothing further can.
+    for (const h of far)
+      expect(checkAction(long, 'scout', { kind: 'survey', hex: h }).ok).toBe(true);
+    expect(far.some((h) => hexKey(h) === hexKey(hex(6, -1)))).toBe(false);
+    // No actions, or an unknown character: none.
+    expect(surveyableHexes(toPlayerView(long), 'nobody')).toEqual([]);
+    const spent = withCharacter(long, {
+      ...long.characters.find((c) => c.id === 'scout')!,
+      actionsLeft: 0,
+    });
+    expect(surveyableHexes(toPlayerView(spent), 'scout')).toEqual([]);
   });
 });

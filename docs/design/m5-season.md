@@ -2,7 +2,7 @@
 
 The plan and contract for Milestone 5 (`docs/PROTOTYPE_PLAN.md`): a complete, short season that can be won or lost. It builds on Milestone 4 (`docs/design/m4-creature.md`). Every number below is a starting value in the tuning config or content data; change it there.
 
-Done when the group can play a full short season to a win or a loss. On staging and locally the season is short (12 steps) and the admin "next day" plays it through in minutes.
+Done when the group can play a full short season to a win or a loss. On staging and locally the admin "next day" plays the season through in minutes (staging plays the full 40-step season since 2026-11-28; it was a 12-step one before).
 
 This is a prototype slice. Three threat flavours, one people, three boons. They are placeholders to prove the loop; threats, peoples and boons are meant to grow varied, and warden abilities beyond the base ones come later as upgrades.
 
@@ -68,7 +68,7 @@ The creature's step (or linger) is chosen as before, then the step count rises. 
 - Actions (`checkAction` / `act`): `{ kind: 'strike', threat: id }`, `{ kind: 'defend' }`, `{ kind: 'parley' }`, `{ kind: 'offer', material }`, `{ kind: 'ask-boon', boon }`. The check's `chance` carries parley's success chance (1 − anger chance). New refusals: `season-over`, `no-threat`, `not-near`, `needs-warden`, `no-settlement`, `not-wary`, `not-friendly`, `boon-taken`, `unknown-boon`, `no-trade-good`; `already-have` for a second defend in a day.
 - Moves are refused with `season-over` once the season has ended.
 - Events: `threat-appears` (id, type, hex), `threat-moves` (id, from, to), `threat-strikes` (id, type, damage, held), `struck` (characterId, threat id), `threat-hit` (id, characterId, strength left), `threat-cleared` (id, characterId), `threat-gone` (id), `defend` (characterId), `peril` (from, to, sources), `settlement-appears` (id, hex), `parley` (id, characterId, favour), `befriended` (id), `angered` (id), `offer` (id, characterId, material), `boon` (id, characterId, boon), `season-over` (outcome). Every one carries only public facts.
-- `POST /api/game/act` accepts the five new actions (strict schemas; ids and boon names length-limited). `POST /api/dev/new-season` (dev tools on, admin only, like next day). The staging and local game is created with `SERVER_CONFIG.devSeason` overrides (`routeLength: 12`, `settlementFirst: 3`, `settlementEvery: 6`, `threatsFromDay: 2`); production uses the defaults. The alarm stops scheduling ticks once the season is over.
+- `POST /api/game/act` accepts the five new actions (strict schemas; ids and boon names length-limited). `POST /api/dev/new-season` (dev tools on, admin only, like next day). The staging and local game is created with `SERVER_CONFIG.devSeason` overrides (none since 2026-11-28: the full season; it was `routeLength: 12`, `settlementFirst: 3`, `settlementEvery: 6`, `threatsFromDay: 2`); production uses the defaults. The season now ends on the destination band (`docs/design/destination.md`). The alarm stops scheduling ticks once the season is over.
 - Contract fixtures are recaptured from the Worker, with a scenario that reaches each outcome; never edited by hand.
 
 ## Interface

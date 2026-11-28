@@ -21,6 +21,7 @@ export const toPlayerView = (state: GameState): GameStateView => {
     day: state.day,
     config: state.config,
     creature: state.creature,
+    destination: state.destination,
     tiles: state.tiles,
     characters: state.characters,
     // Only revealed features leave the server.
