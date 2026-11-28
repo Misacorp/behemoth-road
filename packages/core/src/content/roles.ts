@@ -36,7 +36,7 @@ export const ROLES: readonly Role[] = [
     name: 'Scout',
     tags: ['explore', 'survey'],
     icon: 'spyglass',
-    exploreXp: 1,
+    exploreXp: 0,
     perks: [
       // Sees threats beyond the window's edge, before they appear in it.
       { id: 'far-sight', name: 'Far sight', tags: ['sense', 'threats'], requiresUpgrade: true },

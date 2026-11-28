@@ -12,6 +12,7 @@
 import type { Condition, Storylet } from './content/index.ts';
 import { STORYLETS } from './content/index.ts';
 import type { GameEvent } from './features.ts';
+import { destinationProgress } from './destination.ts';
 import { type Hex, hexKey } from './hex.ts';
 import { terrainById } from './map.ts';
 import type { GameStateView, StoryQueued, StoryState } from './state.ts';
@@ -23,9 +24,13 @@ interface Hit {
   readonly hex?: Hex;
 }
 
-/** Whether a route fraction has been walked: steps over the route's length, with a little for floats. */
+/**
+ * Whether a route fraction has been walked: steps over the route's length, or the way to the destination
+ * (rows along the heading), whichever is further, with a little for floats.
+ */
 const walked = (state: GameStateView, fraction: number): boolean =>
-  state.creature.steps >= fraction * state.config.routeLength - 1e-9;
+  state.creature.steps >= fraction * state.config.routeLength - 1e-9 ||
+  destinationProgress(state) >= fraction - 1e-9;
 
 /** The one place conditions are read: public facts of the view, nothing else. */
 const holds = (state: GameStateView, c: Condition): Hit | null => {

@@ -1,5 +1,5 @@
 {
-  "version": 29,
+  "version": 30,
   "day": 6,
   "pace": "daily",
   "fastTickAt": null,
@@ -15,7 +15,7 @@
   },
   "offers": null,
   "game": {
-    "contentVersion": 24,
+    "contentVersion": 25,
     "artSeed": 4242,
     "day": 6,
     "config": {
@@ -119,7 +119,9 @@
       "perilHungry": 1,
       "perilHungryLevel": 2,
       "perilCalm": 1,
-      "routeLength": 12,
+      "routeLength": 9,
+      "destinationDepth": 3,
+      "destinationRowsPerStep": 0.75,
       "xpPerPick": 5,
       "catchUpEverySteps": 10,
       "catchUpXp": 1,
@@ -140,6 +142,15 @@
       "defenders": ["111111111111111111.0"],
       "tows": [],
       "lingerStreak": 0
+    },
+    "destination": {
+      "origin": {
+        "q": 0,
+        "r": 0
+      },
+      "heading": "n",
+      "from": 7,
+      "depth": 3
     },
     "tiles": {
       "-6,0": {
@@ -1255,7 +1266,7 @@
         "stance": "rest",
         "waiting": false,
         "skills": {
-          "xp": 6,
+          "xp": 2,
           "taken": []
         }
       }
@@ -1492,12 +1503,13 @@
         "beat.terrain.wooded",
         "beat.first.captors",
         "beat.first.settlement",
-        "beat.waymark.quarter"
+        "beat.waymark.quarter",
+        "beat.waymark.half"
       ],
       "queue": [],
       "today": {
         "day": 6,
-        "count": 0
+        "count": 1
       }
     }
   },
@@ -1548,12 +1560,12 @@
       "id": "s4",
       "characterId": "222222222222222222.0",
       "favour": 4,
-      "version": 29
+      "version": 30
     },
     {
       "kind": "befriended",
       "id": "s4",
-      "version": 29
+      "version": 30
     }
   ],
   "stopped": null

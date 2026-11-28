@@ -32,6 +32,7 @@ import {
   type Action,
   appetiteOf,
   type ConfigOverrides,
+  DEFAULT_CONFIG,
   createGame,
   featureType,
   hazardAt,
@@ -48,6 +49,7 @@ import {
   type Place,
   planPath,
   reachablePlaces,
+  surveyableHexes,
   reactionTo,
   reactionToLure,
   LURE_TYPES,
@@ -63,7 +65,7 @@ import { FOOD_TAG } from '../src/care.ts';
 
 export type Policy = 'careful' | 'careless';
 
-/** The staging and local season: mirrors `SERVER_CONFIG.devSeason` in apps/worker/src/server-config.ts. */
+/** A short season (12 steps) for quick runs and tests. Staging no longer plays it (it plays the full season); the sim keeps it as a second scenario. */
 export const DEV_SEASON: ConfigOverrides = {
   routeLength: 12,
   settlementFirst: 3,
@@ -252,6 +254,19 @@ const forage = (state: GameState, id: string): GameState => {
   let s = walk(state, id, target.hex, target.cost);
   s = tryAct(s, id, { kind: 'gather' });
   return goHome(s, id);
+};
+
+/** Surveys the nearest unexplored hexes in reach until the actions run out. */
+const surveyDay = (state: GameState, id: string): GameState => {
+  let s = state;
+  while (actionsLeft(s, id) > 0) {
+    const [next] = surveyableHexes(s, id);
+    if (!next) break;
+    const after = tryAct(s, id, { kind: 'survey', hex: next });
+    if (after === s) break;
+    s = after;
+  }
+  return s;
 };
 
 /** The warden's diplomacy: parley with a wary settlement, or ask a friendly one for a boon. */
@@ -516,6 +531,15 @@ const NO_STEERING =
     'BALANCE_STEER'
   ] === 'off';
 
+/**
+ * With `BALANCE_SCOUT=survey` the scout spends its spare actions surveying, as a player scouting does (the
+ * XP measurement runs this way); otherwise it forages like the rest, so the outcome table stays comparable.
+ */
+const SCOUT_SURVEYS =
+  (globalThis as { process?: { env: Record<string, string | undefined> } }).process?.env[
+    'BALANCE_SCOUT'
+  ] === 'survey';
+
 /** The character on a steering errand (out fetching wood or walking to a brazier), if any, today. */
 let errand: string | null = null;
 /** A lure already bends the creature clear of the hazard ahead, today. */
@@ -644,6 +668,8 @@ const carefulDay = (state: GameState, ids: readonly string[]): GameState => {
     if (role === 'warden') s = parleyDay(s, id);
     s = feed(s, id, 1);
     if (id === errand) continue;
+    // With the survey policy a scout spends what is left on surveying, before foraging.
+    if (role === 'scout' && SCOUT_SURVEYS) s = surveyDay(s, id);
     if (role !== 'warden' && actionsLeft(s, id) >= 2) s = forage(s, id);
     // Never left behind: everyone ends the day as close to the creature as they can (but for an errand).
     s = goHome(s, id);
@@ -771,6 +797,54 @@ export const summarise = (
     led: mean((r) => r.led),
     braziers: mean((r) => r.braziers),
   };
+};
+
+export interface XpRow {
+  readonly role: string;
+  /** Mean XP per day over the season up to the last checkpoint, and mean picks earned (XP / `xpPerPick`) by each checkpoint day. */
+  readonly perDay: number;
+  readonly picksBy: readonly number[];
+}
+
+/**
+ * XP by role: for seeds 1..n, each character's XP is read at the end of each checkpoint day (after the
+ * party acted, before that day's tick), and averaged per role. A season that ends before a checkpoint
+ * counts its final XP there.
+ */
+export const xpProfile = (
+  n: number,
+  policy: Policy,
+  players: number,
+  config: ConfigOverrides,
+  checkpoints: readonly number[],
+): XpRow[] => {
+  const sums = new Map<string, { count: number; xp: number[] }>();
+  for (let seed = 1; seed <= n; seed++) {
+    const snaps = new Map<number, GameState>();
+    let last: GameState | null = null;
+    playSeason(seed, policy, players, config, (planned) => {
+      last = planned;
+      if (checkpoints.includes(planned.day)) snaps.set(planned.day, planned);
+    });
+    const final = last as GameState | null;
+    if (!final) continue;
+    for (const [i, c] of final.characters.entries()) {
+      const entry = sums.get(c.role) ?? { count: 0, xp: checkpoints.map(() => 0) };
+      entry.count++;
+      checkpoints.forEach((day, k) => {
+        const at = snaps.get(day) ?? final;
+        entry.xp[k] = (entry.xp[k] ?? 0) + (at.characters[i]?.skills.xp ?? 0);
+      });
+      sums.set(c.role, entry);
+    }
+  }
+  const per = config.xpPerPick ?? DEFAULT_CONFIG.xpPerPick;
+  const lastDay = checkpoints[checkpoints.length - 1] ?? 1;
+  return [...sums.entries()].map(([role, e]) => ({
+    role,
+    perDay: (e.xp[e.xp.length - 1] ?? 0) / e.count / lastDay,
+    picksBy: e.xp.map((x) => x / e.count / per),
+  }));
 };
 
 /** Prints a Markdown table for seeds 1..n (default 200). */

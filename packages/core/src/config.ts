@@ -188,8 +188,16 @@ export interface TuningConfig {
   readonly perilHungryLevel: number;
   /** Peril lost at a tick where it did not rise. */
   readonly perilCalm: number;
-  /** The season's length in creature steps. */
+  /** The season's length in creature steps (the destination lies about this many steps out). */
   readonly routeLength: number;
+  /** The destination band's thickness in rows (at least 1, so the creature cannot step over it). */
+  readonly destinationDepth: number;
+  /**
+   * Rows (see `destination.ts`) the creature is expected to cover per step, to place the destination `routeLength`
+   * steps out. A straight step is 1 row and a veering one half a row: untouched it averages 0.75, but fires,
+   * lures and hunger bend its path, so a played season averages 0.59 (careful parties in the balance sim).
+   */
+  readonly destinationRowsPerStep: number;
 
   // Skills (docs/design/skill-trees.md).
   /** XP that makes one pick (own tree, or another role's tier 1). */
@@ -301,7 +309,9 @@ export const DEFAULT_CONFIG: TuningConfig = {
   perilHungryLevel: 2,
   perilCalm: 1,
   routeLength: 40,
-  xpPerPick: 14,
+  destinationDepth: 3,
+  destinationRowsPerStep: 0.6,
+  xpPerPick: 18,
   catchUpEverySteps: 10,
   catchUpXp: 1,
   storyOn: true,
@@ -339,6 +349,8 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
   if (!isCount(config.graceDays, 0)) problems.push('graceDays');
   if (!isCount(config.lostTileRings, 0)) problems.push('lostTileRings');
   if (!isCount(config.playerCap, 1)) problems.push('playerCap');
+  const rows = config.destinationRowsPerStep;
+  if (!(Number.isFinite(rows) && rows >= 0.5 && rows <= 1)) problems.push('destinationRowsPerStep');
   const chances = [
     'featureChance',
     'siteChanceSpecialistTier1',
@@ -396,6 +408,7 @@ export const resolveConfig = (overrides: ConfigOverrides = {}): TuningConfig => 
     'settlementFirst',
     'settlementEvery',
     'routeLength',
+    'destinationDepth',
     'perilMax',
     'lingerChainMax',
     'storyPerDay',

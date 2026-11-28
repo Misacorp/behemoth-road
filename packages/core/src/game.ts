@@ -6,6 +6,7 @@ import { type ConfigOverrides, resolveConfig } from './config.ts';
 import { type Direction, DIRECTIONS, type Hex, isValidHex } from './hex.ts';
 import { CONTENT_VERSION, DEFAULT_STANCE } from './content/index.ts';
 import { freshCare, rollNature } from './care.ts';
+import { destinationFor } from './destination.ts';
 import { addFeatures, brazierPlan, keyToHex } from './features.ts';
 import { extendHazards, spawnClusters } from './hazards.ts';
 import { placeLures } from './lures.ts';
@@ -65,7 +66,16 @@ export const createGame = (
   const day = 1;
   const nature = rollNature(seed);
   const braziers = brazierPlan(seed, centre, heading, config);
-  const hazardPlan = extendHazards(seed, config, { centre, heading, steps: 0 }, {}, braziers, []);
+  const destination = destinationFor(config, centre, heading);
+  const hazardPlan = extendHazards(
+    seed,
+    config,
+    { centre, heading, steps: 0 },
+    {},
+    braziers,
+    [],
+    destination,
+  );
   const tiles = updateTiles({}, centre, day, config, seed, hazardPlan);
   const game: GameState = {
     contentVersion: CONTENT_VERSION,
@@ -73,6 +83,7 @@ export const createGame = (
     seed,
     day,
     config,
+    destination,
     creature: {
       centre,
       kind: nature.type,

@@ -15,7 +15,7 @@
   },
   "offers": null,
   "game": {
-    "contentVersion": 24,
+    "contentVersion": 25,
     "artSeed": 4242,
     "day": 2,
     "config": {
@@ -86,8 +86,8 @@
       "cartHitchCost": 1,
       "cartBoardCost": 1,
       "cartPullExtra": 1,
-      "threatsFromDay": 1,
-      "threatChanceBase": 0.6,
+      "threatsFromDay": 3,
+      "threatChanceBase": 0.25,
       "threatChancePerPlayer": 0.05,
       "threatChancePerDay": 0.01,
       "threatChanceMax": 0.9,
@@ -112,15 +112,17 @@
       "offerFavour": 2,
       "misleadDays": 4,
       "shelterPeril": 3,
-      "settlementFirst": 3,
-      "settlementEvery": 6,
+      "settlementFirst": 4,
+      "settlementEvery": 10,
       "perilMax": 10,
       "perilWoundedAt": 5,
       "perilHungry": 1,
       "perilHungryLevel": 2,
       "perilCalm": 1,
-      "routeLength": 12,
-      "xpPerPick": 5,
+      "routeLength": 40,
+      "destinationDepth": 3,
+      "destinationRowsPerStep": 0.6,
+      "xpPerPick": 18,
       "catchUpEverySteps": 10,
       "catchUpXp": 1,
       "storyOn": true,
@@ -140,6 +142,15 @@
       "defenders": [],
       "tows": [],
       "lingerStreak": 0
+    },
+    "destination": {
+      "origin": {
+        "q": 0,
+        "r": 0
+      },
+      "heading": "n",
+      "from": 24,
+      "depth": 3
     },
     "tiles": {
       "-6,0": {
@@ -1054,18 +1065,7 @@
     },
     "carts": [],
     "stimuli": [],
-    "threats": [
-      {
-        "id": "t2",
-        "type": "swarm",
-        "hex": {
-          "q": 7,
-          "r": -7
-        },
-        "strength": 2,
-        "appearedDay": 2
-      }
-    ],
+    "threats": [],
     "lures": [
       {
         "id": "l1",

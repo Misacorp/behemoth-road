@@ -9,6 +9,7 @@ import {
   type GameEvent,
   type GameState,
   hex,
+  inDestination,
   move,
   moveAlong,
   nextDay,
@@ -121,7 +122,7 @@ describe('peril', () => {
 
 describe('the season', () => {
   const ends = (config: ConfigOverrides, peril: number, threat = false) => {
-    const straight = { veerWeights: { left: 0, right: 0 } };
+    const straight = { veerWeights: { left: 0, right: 0 }, destinationRowsPerStep: 1 };
     let state: GameState = { ...fieldGame(['a'], { ...QUIET, ...straight, ...config }), peril };
     if (threat) state = withThreat(state, 'rockslide', hex(0, -2), 3);
     return nextDayWithEvents(state);
@@ -154,7 +155,12 @@ describe('the season', () => {
   });
 
   it('once over, refuses every action and move, and the tick changes nothing', () => {
-    let state = fieldGame(['warden'], { ...QUIET, routeLength: 1 });
+    let state = fieldGame(['warden'], {
+      ...QUIET,
+      routeLength: 1,
+      veerWeights: { left: 0, right: 0 },
+      destinationRowsPerStep: 1,
+    });
     state = nextDay(state);
     expect(state.season.status).toBe('over');
     expect(nextDayWithEvents(state)).toEqual({ state, events: [] });
@@ -195,11 +201,11 @@ describe('the season', () => {
 
 /**
  * Milestone 5's done criterion: full short seasons played through the core to
- * each outcome. The short season of staging and local play (12 steps); the
+ * each outcome. A short season (routeLength 16, about 15 days); the
  * team rides: two wardens and a keeper. Threats roll as they would in play.
  */
 const SHORT: ConfigOverrides = {
-  routeLength: 12,
+  routeLength: 16,
   settlementFirst: 3,
   settlementEvery: 6,
   threatsFromDay: 2,
@@ -241,9 +247,11 @@ const season = (
 describe('a short season, played through', () => {
   it('comes home safe when the team feeds and defends the creature', () => {
     const { state, events } = season(3, { feed: true, defend: true });
-    expect(state.season).toEqual({ status: 'over', outcome: 'safe', day: 13 });
-    expect(state.creature.steps).toBe(12);
-    expect(state.peril).toBe(0);
+    expect(state.season).toEqual({ status: 'over', outcome: 'safe', day: 15 });
+    // The season ends on the destination band, about routeLength (16) steps out: a veer is worth half a row.
+    expect(inDestination(state.destination, state.creature.centre)).toBe(true);
+    expect(state.creature.steps).toBe(14);
+    expect(state.peril).toBeLessThan(state.config.perilWoundedAt);
     // Threats came, struck and were held off; a settlement appeared on the route.
     expect(ofKind(events, 'threat-appears').length).toBeGreaterThan(0);
     expect(ofKind(events, 'threat-strikes').length).toBeGreaterThan(0);
@@ -253,9 +261,10 @@ describe('a short season, played through', () => {
 
   it('comes home wounded when the creature goes hungry', () => {
     const { state } = season(3, { feed: false, defend: true });
-    expect(state.season).toEqual({ status: 'over', outcome: 'wounded', day: 13 });
-    // Hunger drains 1 a day (of 20, two a level), so an unfed creature is underfed at level 2 from day 7: peril 6.
-    expect(state.peril).toBe(6);
+    expect(state.season).toEqual({ status: 'over', outcome: 'wounded', day: 15 });
+    // Hunger drains 1 a day (of 20, two a level), so an unfed creature is underfed at level 2 from day 7. A hungry
+    // creature veers more (and so goes slower toward the band), so it is hungry for longer: peril 8.
+    expect(state.peril).toBe(8);
   });
 
   it('is lost to peril when the creature goes hungry and undefended', () => {

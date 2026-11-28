@@ -73,6 +73,7 @@ import {
   perilThreat,
   recordEvents,
 } from './stats.ts';
+import { inDestination } from './destination.ts';
 import { fireStory } from './story.ts';
 import { pruneTraces, recordTraces } from './traces.ts';
 import {
@@ -229,9 +230,9 @@ const threatsAct = (
 
 /** How the season ends at a tick with this peril and these steps, or null if it goes on. */
 const seasonEnd = (state: GameState): SeasonOutcome | null => {
-  const { perilMax, perilWoundedAt, routeLength } = state.config;
+  const { perilMax, perilWoundedAt } = state.config;
   if (state.peril >= perilMax) return 'lost';
-  if (state.creature.steps >= routeLength) {
+  if (inDestination(state.destination, state.creature.centre)) {
     return state.peril < perilWoundedAt ? 'safe' : 'wounded';
   }
   return null;
@@ -316,6 +317,7 @@ export const nextDayWithEvents = (
         state.tiles,
         state.brazierPlan,
         state.hazardPlan,
+        state.destination,
       );
   const tiles = step.stay
     ? holdTiles(state.tiles)

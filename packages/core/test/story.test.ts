@@ -234,7 +234,14 @@ describe('firing', () => {
   });
 
   it('fires nothing once the season is over', () => {
-    const over = nextDay({ ...fresh({ ...QUIET, routeLength: 1 }) });
+    const over = nextDay({
+      ...fresh({
+        ...QUIET,
+        routeLength: 1,
+        veerWeights: { left: 0, right: 0 },
+        destinationRowsPerStep: 1,
+      }),
+    });
     expect(over.season.status).toBe('over');
     expect(over.story.queue).toEqual([]);
     expect(over.story.fired).toEqual([]);

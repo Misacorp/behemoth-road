@@ -19,6 +19,7 @@ import {
   neighbour,
   rotate,
 } from './hex.ts';
+import { inDestination } from './destination.ts';
 import { inHazardPlan } from './hazards.ts';
 import { terrainById, terrainOf } from './map.ts';
 import { hashString, hashToUnit, type Seed } from './random.ts';
@@ -62,6 +63,7 @@ const holdsLure = (
     !state.threats.some((t) => hexEquals(t.hex, h)) &&
     !state.settlements.some((s) => hexEquals(s.hex, h)) &&
     !inHazardPlan(plan, h) &&
+    !inDestination(state.destination, h) &&
     !(state.features[hexKey(h)]?.revealed ?? false)
   );
 };
@@ -151,6 +153,7 @@ export const canLeadOnto = (state: GameStateView, lure: Lure, h: Hex): boolean =
     !state.lures.some((l) => hexEquals(l.hex, h)) &&
     !state.threats.some((t) => hexEquals(t.hex, h)) &&
     !state.settlements.some((s) => hexEquals(s.hex, h)) &&
+    !inDestination(state.destination, h) &&
     !(state.features[hexKey(h)]?.revealed ?? false)
   );
 };

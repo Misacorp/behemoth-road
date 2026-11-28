@@ -41,6 +41,19 @@ const meets = (seed: Seed, field: FieldRef, when: FieldCondition, h: Hex): boole
   return value >= when.contour && neighbours(h).some((n) => sample(seed, field, n) < when.contour);
 };
 
+/** Whether the river rule claims a hex (before water is laid over it): where lakes and seas are set on rivers. */
+const riverTestFor = (
+  seed: Seed,
+  generation: TerrainGeneration,
+): ((h: Hex) => boolean) | undefined => {
+  const id = generation.waters?.river;
+  const rule = id === undefined ? undefined : generation.rules.find((r) => r.terrain === id);
+  if (!rule) return undefined;
+  return (h) =>
+    meets(seed, rule.field, rule.when, h) &&
+    (!rule.mask || sample(seed, rule.mask.field, h) > rule.mask.above);
+};
+
 /** The id of the terrain the generation rules place at a hex. */
 export const terrainIdAt = (
   seed: Seed | number,
@@ -49,7 +62,7 @@ export const terrainIdAt = (
 ): string => {
   const key = toSeed(seed);
   if (generation.waters) {
-    const water = waterIdAt(key, h, generation.waters);
+    const water = waterIdAt(key, h, generation.waters, riverTestFor(key, generation));
     if (water) return water;
   }
   for (const rule of generation.rules) {

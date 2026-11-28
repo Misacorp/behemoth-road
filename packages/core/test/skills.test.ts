@@ -107,8 +107,9 @@ describe('skill content', () => {
     expect(ACTION_XP['pick-skill']).toBeUndefined();
   });
 
-  it('gives only the scout XP for exploring, as data on the role', () => {
-    expect(ROLES.filter((r) => r.exploreXp > 0).map((r) => r.id)).toEqual(['scout']);
+  it('gives no role XP for exploring (the number stays as data on the role)', () => {
+    expect(ROLES.filter((r) => r.exploreXp > 0)).toEqual([]);
+    expect(ROLES.every((r) => Number.isInteger(r.exploreXp))).toBe(true);
   });
 });
 
@@ -145,15 +146,13 @@ describe('xp', () => {
     expect(xp(state, 'warden')).toBe(2);
   });
 
-  it('gives a scout XP for each newly explored hex, by surveying or by walking, and others none for walking', () => {
+  it('gives a survey one XP for the act and none for the hex, and a walk into new ground none', () => {
     let state = placeCharacter(chainGame(['scout']), 'scout', P);
-    // A survey: 1 for the act, 1 for the new hex.
     state = ok(state, 'scout', { kind: 'survey', hex: N }).state;
-    expect(xp(state, 'scout')).toBe(2);
-    // Walking into an unexplored hex: 1 for the hex, none for the move.
+    expect(xp(state, 'scout')).toBe(1);
     const walked = move(state, 'scout', hex(4, -2));
     expect(walked.ok).toBe(true);
-    if (walked.ok) expect(xp(walked.state, 'scout')).toBe(3);
+    if (walked.ok) expect(xp(walked.state, 'scout')).toBe(1);
     // An engineer walking the same way earns nothing.
     const eng = move(placeCharacter(chainGame(['engineer']), 'engineer', P), 'engineer', N);
     expect(eng.ok).toBe(true);

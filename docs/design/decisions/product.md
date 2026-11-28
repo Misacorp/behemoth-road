@@ -4,6 +4,46 @@ Features, UX and behaviour the users see.
 
 <!-- Maintained with `node scripts/decisions.mjs`; see README.md. Newest first. -->
 
+## 2026-11-28: surveyableHexes lists what a survey can reach
+
+ID: `2026-11-28-surveyablehexes-lists-what-a-survey-can` · Status: current
+
+**Decision.** `surveyableHexes(view, characterId)` returns the hexes the character could survey now: unexplored, within its survey reach (the next hexes, or two with Long survey), reachable, with the actions to pay. `actionsHere` already offered the further hexes; the web was only marking the adjacent ones. The helper is for the survey marks.
+
+**Reasoning.** Misa: with Long survey the survey icon only showed on adjacent hexes. The core allowed it already (`withinSurvey` reads the `survey-range` effect), so the fix is in the web; the helper gives it one call that cannot disagree with the rule.
+
+## 2026-11-28: Rivers run into lakes, ponds and seas **[Misa]**
+
+ID: `2026-11-28-rivers-run-into-lakes-ponds-and` · Status: current
+
+**Decision.** Bodies of water (sea, lake, pond) are set on a river where the cell has one: with chance `onRiver` (1 for all three kinds) a body is centred on a seeded river hex of its cell, so the river runs into it and out of it. Lake chance 0.35 to 0.4 and pond 0.15 to 0.2 so there are more bodies on rivers; the sea is unchanged. The cap on deep water is untouched (a body's radius bounds a crossing at 4). Over 20 seeds within 25 hexes of the start, the share of river hexes with water within 10 steps along the river went from 41 % to 63 % (within 20 steps 66 % to 86 %), at 6 % more deep hexes. Content version 25 (maps change).
+
+**Reasoning.** Misa: "Rivers feel dull when they don't lead to lakes or oceans." Rivers are contour lines of a noise field and water bodies sit on their own grid, so most rivers met water by chance. The terrain stays a pure function of the seed and the hex: the water code takes a test for river hexes from the terrain rules and picks the anchor hex by seeded hash. Rivers do not end at a lake: they pass through it, which reads as a river fed by a lake.
+
+## 2026-11-28: Scouts earn XP like everyone else, 18 XP a pick **[Misa]**
+
+ID: `2026-11-28-scouts-earn-xp-like-everyone-else` · Status: current · Amends: `2026-11-22-skill-xp-comes-from-any-contribution`
+
+**Decision.** Scouts no longer earn XP for exploring: `exploreXp` is 0 on every role (the mechanism and the number stay as role data). Every role earns 1 XP an act, at most 3 a day. `xpPerPick` goes from 14 to 18. Measured in the balance sim (careful, a scout that spends spare actions surveying, `BALANCE_SCOUT=survey`, 60 seeds, full season): before, the scout earned 4.9 XP a day (4.2 picks by day 10, 7.7 by day 20, 14.0 by day 40) against 0.8 for the warden (0.3, 0.9, 2.3) and 0.6 for the keeper (0.3, 0.8, 1.8); after, the scout earns 2.3 a day (1.6, 3.0, 5.2), the warden 0.7 (0.2, 0.7, 1.6) and the keeper 0.5 (0.2, 0.6, 1.2). The sim's non-scouts spend few actions on XP acts; a player who spends all 3 a day earns about 3.3 picks by day 20 and the tree (7 picks) at the very end of 40 days. The old 12-step season with 5 XP a pick (scout 5.3 XP a day, 4.8 picks by day 4, 12.7 by day 12) was most of why the scout maxed out in 10 days on staging; staging now plays the full season.
+
+**Reasoning.** Misa: "Scouts get EXP REALLY FAST ... I had maxed everything in just 10 days." A scout earned 1 XP for each survey and 1 for each hex it explored, so up to about 5 a day against 3 for anyone else, and a tree holds only 7 picks (three of its own, four other roles' tier 1). With the explore XP gone every role is capped by its actions, so all fill their trees at the same pace; 18 a pick puts half the tree at about day 20 of 40 for a player who acts all day and leaves it unfinished until the end. Tuned by config and data only. Careful parties earn fewer picks (0.9 each at 3 players, from 1.5), which costs a little: full season careful losses are 23 % at 3 players and 15 % at 6 (150 seeds), inside the goal of 30 %.
+
+## 2026-11-28: The season ends on a destination band, a sanctuary the map shows **[Misa]**
+
+ID: `2026-11-28-the-season-ends-on-a-destination` · Status: current
+
+**Decision.** The season ends when the creature's centre steps onto a band of hexes across the whole map, perpendicular to its heading, `destinationRowsPerStep` x `routeLength` rows out (24 rows for 40 steps) and `destinationDepth` (3) rows thick. It replaces "ends after `routeLength` steps". The view carries it from the first day as `game.destination: { origin, heading, from, depth }`; the core exports `inDestination`, `rowsAlong`, `destinationHexesNear`, `rowsToDestination`, `destinationProgress`, `isSanctuary` and `regionTagsAt` for the web. The band is a `sanctuary` region: threats never appear in it (`canAppearOn`), never walk into it (`threatPath` stops at the edge), `blockedFor` lists its known hexes with reason `sanctuary`, and hazards and lures are never laid in it or led into it. Contract in `docs/design/destination.md`. Content version 25.
+
+**Reasoning.** Misa: the destination was not visible and the game just ended; wanted a glowing area, free of foes. A step is a row straight on and half a row to either side, so a band of 1 row or more cannot be stepped over, and a line across the whole map cannot be missed by veering; it is stored as an origin, a direction and two numbers rather than a hex list because it is unbounded. Rows per step is a config number because play bends the path: left alone the creature averages 0.75 row a step, but fires, lures and hunger bring a careful party's creature to 0.59, and 0.6 puts the median arrival at day 41 of 40 (days 34 to 47, 150 seeds). So "9 of 40" can read a step or two over; the web clamps it or uses `destinationProgress`. The story's route beats read steps or the way to the band, whichever is further.
+
+## 2026-11-28: Staging plays the full season **[Misa]**
+
+ID: `2026-11-28-staging-plays-the-full-season` · Status: current · Supersedes: `2026-11-20-dev-season-brings-threats-from-the` · Amends: `2026-11-20-the-short-dev-season-follows-the`
+
+**Decision.** Staging (and local play) no longer gets a short season: `SERVER_CONFIG.devSeason` is empty, so a new game there uses the core defaults, the same as production (40-step route, `xpPerPick` 18, threats from day 3). The dev tools stay on there (skip to next day, fast rounds, new season); only the tuning overrides are gone. The capture test for fixtures sets its own 12-step season on the stored game so the captured plays stay short. The balance sim keeps `DEV_SEASON` as a second, short scenario.
+
+**Reasoning.** Misa asked for it after the playtest. The 12-step season with 5 XP a pick gave a scout the whole tree in under a week (4.8 picks by day 4 and 12.7 by day 12, measured in the sim), so staging said little about how the real game paces. Testing the real season is the point of staging.
+
 ## 2026-11-27: End-of-day reveals happen after the creature moves **[Misa]**
 
 ID: `2026-11-27-end-of-day-reveals-happen-after` · Status: current
@@ -522,7 +562,7 @@ ID: `2026-11-22-the-catch-up-is-1-xp` · Status: current · Amends: `2026-11-22-
 
 ## 2026-11-22: Skill XP comes from any contribution, one pool per character **[Misa]**
 
-ID: `2026-11-22-skill-xp-comes-from-any-contribution` · Status: current · Supersedes: `2026-11-22-skill-picks-are-earned-by-working`
+ID: `2026-11-22-skill-xp-comes-from-any-contribution` · Status: current, amended by `2026-11-28-scouts-earn-xp-like-everyone-else` · Supersedes: `2026-11-22-skill-picks-are-earned-by-working`
 
 **Decision.** Each character has one XP pool (`skills.xp`, replacing role notches). Every action that contributes earns 1 XP: survey, gather, work a site, build, feed, linger, light a fire, strike, defend, parley, offer, ask a boon (data: `ACTION_XP`). Moving and picking earn nothing; a refused action earns none. A scout also earns 1 XP for each newly explored hex, whether walked into or surveyed (data on the role: `exploreXp`). A pick costs `xpPerPick` (14 on a full season, 5 on the dev season) and buys a node of your own role's tree (tier order; the first pick closes the other branch) or another role's tier 1, whatever role you earned the XP in. `picksAvailable(state, character)` is floor(xp / xpPerPick) less the nodes taken. Balance sim, careful parties, 40 seeds: 1.4 picks each per full season at 3 players and 1.0 at 6 (before: 1.6 and 1.0); dev season 1.2 and 0.9 (before 1.3 and 0.7). Content version 15.
 
@@ -925,14 +965,6 @@ ID: `2026-11-20-a-survey-of-an-empty-hex` · Status: current
 **Decision.** A survey of a hex that holds no feature adds `{ kind: 'survey-empty', hex, characterId }` after its `survey` and `explore` events. Entering an empty hex stays an `explore` with no `reveal`; no new event for it.
 
 **Reasoning.** The fresh-eyes playtest surveyed about ten hexes and could not tell an empty hex from a failed look. The web could infer emptiness from a missing `reveal`, but one explicit event is simpler to show as a "nothing here" moment. It is public: once explored, a hex's feature (or its absence) is visible to everyone.
-
-## 2026-11-20: Dev season brings threats from the first tick
-
-ID: `2026-11-20-dev-season-brings-threats-from-the` · Status: current
-
-**Decision.** The dev season (staging and local only) sets `threatsFromDay: 1` and `threatChanceBase: 0.6` on top of its short route. Production keeps the core defaults (from day 3, base 0.25). In the capture's "wounded" season the guardian now also defends, so it still ends wounded rather than lost.
-
-**Reasoning.** The playtest's first season had no peril until day 13. Simulated through the core over 30 seeds of the 12-step dev season with 2 and 3 idle players: before, the first threat was out by day 2 in 15–17 of 30 and by day 3 in 22–23; after, 23–25 and 27–29. Strikes raise peril by day 5 in 22–24 of 30 (was 19–20) and by day 6 in 27–29. The first tick makes day 2, so `threatsFromDay: 1` and `2` behave the same; 1 says "from the start".
 
 ## 2026-11-20: Stone, iron and timber also lie on open ground
 
@@ -1778,6 +1810,14 @@ ID: `2026-11-22-skill-picks-are-earned-by-working` · Status: superseded by `202
 **Decision.** A character earns notches by working: one for each action performed on work a role owns (survey is the Scout's, gather and build the Engineer's, working a site the Scholar's, feeding, lingering, lighting a fire and gathering food the Keeper's, strike and defend the Guardian's, parley, offer and boon the Envoy's). Moving earns nothing. Every `notchesPerPick` notches in a role (10; 4 on the dev season) give one pick in that role's tree. Proposal in `docs/design/skill-trees.md`.
 
 **Reasoning.** Misa chose work over a pick per route step: it rewards investment. The catch-up notch (own entry) keeps absent players from falling far behind.
+
+## 2026-11-20: Dev season brings threats from the first tick
+
+ID: `2026-11-20-dev-season-brings-threats-from-the` · Status: superseded by `2026-11-28-staging-plays-the-full-season`
+
+**Decision.** The dev season (staging and local only) sets `threatsFromDay: 1` and `threatChanceBase: 0.6` on top of its short route. Production keeps the core defaults (from day 3, base 0.25). In the capture's "wounded" season the guardian now also defends, so it still ends wounded rather than lost.
+
+**Reasoning.** The playtest's first season had no peril until day 13. Simulated through the core over 30 seeds of the 12-step dev season with 2 and 3 idle players: before, the first threat was out by day 2 in 15–17 of 30 and by day 3 in 22–23; after, 23–25 and 27–29. Strikes raise peril by day 5 in 22–24 of 30 (was 19–20) and by day 6 in 27–29. The first tick makes day 2, so `threatsFromDay: 1` and `2` behave the same; 1 says "from the start".
 
 ## 2026-11-20: The step ghost walks for one second, then the creature itself returns
 

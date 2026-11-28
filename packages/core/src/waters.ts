@@ -81,6 +81,7 @@ const bodyIn = (
   seedKey: string,
   seed: Seed,
   waters: WaterGeneration,
+  isRiver: RiverTest | undefined,
   index: number,
   gx: number,
   gy: number,
@@ -98,8 +99,17 @@ const bodyIn = (
     const margin = reach + 0.01;
     const span = Math.max(0, kind.cell - 2 * margin);
     // Cell sides are in hex steps; the plane is too.
-    const cx = gx * kind.cell + margin + hashToUnit(seed, STREAM, index, gx, gy, 2) * span;
-    const cy = gy * kind.cell + margin + hashToUnit(seed, STREAM, index, gx, gy, 3) * span;
+    let cx = gx * kind.cell + margin + hashToUnit(seed, STREAM, index, gx, gy, 2) * span;
+    let cy = gy * kind.cell + margin + hashToUnit(seed, STREAM, index, gx, gy, 3) * span;
+    // A river hex of the cell, when the kind sits on rivers and one is there: the body is centred on it.
+    if (
+      isRiver &&
+      kind.onRiver !== undefined &&
+      hashToUnit(seed, STREAM, index, gx, gy, 6) < kind.onRiver
+    ) {
+      const on = riverHexIn(seed, index, gx, gy, kind.cell, margin, isRiver);
+      if (on) [cx, cy] = plane(on);
+    }
     body = { kind, cx, cy, radius, island: null };
     if (
       kind.island &&
@@ -109,11 +119,38 @@ const bodyIn = (
       body = { ...body, island: nearestHex(cx, cy) };
     }
     if (Math.hypot(cx, cy) - reach <= waters.startClear) body = null;
-    else if (index > 0 && touchesEarlier(seedKey, seed, waters, index, body)) body = null;
+    else if (index > 0 && touchesEarlier(seedKey, seed, waters, isRiver, index, body)) body = null;
   }
   if (bodyCache.size > 20_000) bodyCache.clear();
   bodyCache.set(key, body);
   return body;
+};
+
+/** Tells whether a hex is a river hex (the terrain rules' river line, ignoring water). */
+export type RiverTest = (h: Hex) => boolean;
+
+/** A seeded river hex whose centre lies in a cell's inner box (where a body's centre may be), or null. */
+const riverHexIn = (
+  seed: Seed,
+  index: number,
+  gx: number,
+  gy: number,
+  cell: number,
+  margin: number,
+  isRiver: RiverTest,
+): Hex | null => {
+  const x0 = gx * cell + margin;
+  const x1 = gx * cell + cell - margin;
+  const y0 = gy * cell + margin;
+  const y1 = gy * cell + cell - margin;
+  const found: Hex[] = [];
+  for (let q = Math.ceil((x0 * SQRT3) / 1.5); q <= Math.floor((x1 * SQRT3) / 1.5); q++) {
+    for (let r = Math.ceil(y0 - q / 2); r <= Math.floor(y1 - q / 2); r++) {
+      if (isRiver({ q, r })) found.push({ q, r });
+    }
+  }
+  if (found.length === 0) return null;
+  return found[Math.floor(hashToUnit(seed, STREAM, index, gx, gy, 5) * found.length)] as Hex;
 };
 
 /** The bodies of a kind that can reach a hex: those centred in its cell or the eight around it. */
@@ -121,6 +158,7 @@ const bodiesNear = (
   seedKey: string,
   seed: Seed,
   waters: WaterGeneration,
+  isRiver: RiverTest | undefined,
   index: number,
   h: Hex,
 ): Body[] => {
@@ -131,7 +169,7 @@ const bodiesNear = (
   const found: Body[] = [];
   for (let dx = -1; dx <= 1; dx++) {
     for (let dy = -1; dy <= 1; dy++) {
-      const body = bodyIn(seedKey, seed, waters, index, gx + dx, gy + dy);
+      const body = bodyIn(seedKey, seed, waters, isRiver, index, gx + dx, gy + dy);
       if (body) found.push(body);
     }
   }
@@ -143,6 +181,7 @@ const touchesEarlier = (
   seedKey: string,
   seed: Seed,
   waters: WaterGeneration,
+  isRiver: RiverTest | undefined,
   index: number,
   body: Body,
 ): boolean => {
@@ -150,7 +189,7 @@ const touchesEarlier = (
   const reach = body.radius + body.kind.shore;
   for (let i = 0; i < index; i++) {
     const earlier = waters.kinds[i] as WaterKind;
-    for (const other of bodiesNear(seedKey, seed, waters, i, centre)) {
+    for (const other of bodiesNear(seedKey, seed, waters, isRiver, i, centre)) {
       const gap = Math.hypot(other.cx - body.cx, other.cy - body.cy);
       if (gap <= reach + other.radius + earlier.shore + 1.5) return true;
     }
@@ -162,10 +201,15 @@ const touchesEarlier = (
  * The water terrain id at a hex (deep water, shallows or an island), or null when it is dry
  * land. Nothing within `startClear` of the origin, where the creature starts.
  */
-export const waterIdAt = (seed: Seed, h: Hex, waters: WaterGeneration): string | null => {
+export const waterIdAt = (
+  seed: Seed,
+  h: Hex,
+  waters: WaterGeneration,
+  isRiver?: RiverTest,
+): string | null => {
   const seedKey = seed.join('.');
   for (const [index, kind] of waters.kinds.entries()) {
-    const bodies = bodiesNear(seedKey, seed, waters, index, h);
+    const bodies = bodiesNear(seedKey, seed, waters, isRiver, index, h);
     if (bodies.length === 0) continue;
     for (const body of bodies) {
       if (body.island && kind.island && hexKey(body.island) === hexKey(h)) {

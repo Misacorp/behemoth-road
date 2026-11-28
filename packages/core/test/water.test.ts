@@ -21,6 +21,7 @@ import {
   planPath,
   reachablePlaces,
   TERRAIN_GENERATION,
+  TERRAIN_TYPES,
   terrainAt,
   terrainById,
   terrainOf,
@@ -203,6 +204,55 @@ describe('where water is generated', { timeout: 60_000 }, () => {
     expect(sizes.get('lake')!.length).toBeGreaterThan(5);
     expect(Math.max(...sizes.get('lake')!)).toBeLessThanOrEqual(14);
     expect(sizes.get('sea')!.length).toBeGreaterThan(0);
+  });
+
+  it('runs rivers into lakes, ponds and seas: more of them reach water than when bodies are laid anywhere', () => {
+    const reach = (generation: typeof TERRAIN_GENERATION) => {
+      let rivers = 0;
+      let wet = 0;
+      for (const seed of SEEDS.slice(0, 12)) {
+        const ids = new Map(
+          hexesInRange(hex(0, 0), 36).map((h) => [
+            hexKey(h),
+            terrainAt(seed, h, { terrains: TERRAIN_TYPES, generation }).id,
+          ]),
+        );
+        for (const h of hexesInRange(hex(0, 0), 20)) {
+          if (ids.get(hexKey(h)) !== 'river') continue;
+          rivers++;
+          // Walk along the river, up to ten steps, for water beside it.
+          const seen = new Set([hexKey(h)]);
+          let frontier = [h];
+          let found = false;
+          for (let d = 0; d <= 10 && !found; d++) {
+            const next: typeof frontier = [];
+            for (const c of frontier) {
+              for (const n of neighbours(c)) {
+                const id = ids.get(hexKey(n)) ?? '';
+                if (['lake', 'sea', 'shallows'].includes(id)) found = true;
+                else if (id === 'river' && !seen.has(hexKey(n))) {
+                  seen.add(hexKey(n));
+                  next.push(n);
+                }
+              }
+            }
+            frontier = next;
+          }
+          if (found) wet++;
+        }
+      }
+      return wet / rivers;
+    };
+    const anywhere = {
+      ...TERRAIN_GENERATION,
+      waters: {
+        ...TERRAIN_GENERATION.waters!,
+        kinds: TERRAIN_GENERATION.waters!.kinds.map((k) => ({ ...k, onRiver: 0 })),
+      },
+    };
+    const onRivers = reach(TERRAIN_GENERATION);
+    expect(onRivers).toBeGreaterThan(0.55);
+    expect(onRivers).toBeGreaterThan(reach(anywhere));
   });
 
   it('puts islands only inside deep water, with deep water all round them', () => {

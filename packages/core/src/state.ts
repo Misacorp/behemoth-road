@@ -5,6 +5,7 @@
 
 import type { TuningConfig } from './config.ts';
 import type { Reaction } from './content/creatures.ts';
+import type { Destination } from './destination.ts';
 import type { Direction, Hex } from './hex.ts';
 import { isSeed, type Seed } from './random.ts';
 import type { SeasonStats } from './stats.ts';
@@ -310,6 +311,8 @@ export interface GameStateView {
   /** The tuning this game was created with; every rule reads it from here. */
   readonly config: TuningConfig;
   readonly creature: Creature;
+  /** The destination band across the map (`docs/design/destination.md`): public from the start; the season ends when the creature's centre steps onto it. */
+  readonly destination: Destination;
   /** Knowledge of hexes that have been in view, by `hexKey`. Absent means hidden. */
   readonly tiles: Readonly<Record<string, TileKnowledge>>;
   readonly characters: readonly Character[];
